@@ -94,11 +94,11 @@ export const HomeFooter = () => {
               <Link href="/" className="flex items-center space-x-2">
                 <BookOpen className="h-8 w-8 text-purple-400" />
                 <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                  bdGenAI
+                  MindForge
                 </span>
               </Link>
               <p className="text-sm leading-relaxed">
-                Empowering learners worldwide with cutting-edge education and transformative knowledge.
+                Transform your learning journey with AI-powered education. Where minds are forged through intelligent, adaptive learning experiences.
               </p>
               <div className="flex flex-wrap gap-3">
                 <motion.a
@@ -136,7 +136,7 @@ export const HomeFooter = () => {
             <div>
               <h3 className="text-white font-semibold mb-6 pl-2 border-l-2 border-cyan-400">Quick Links</h3>
               <ul className="space-y-4">
-                {['Courses', 'About Us', 'Contact', 'Blog'].map((item) => (
+                {['Courses', 'About Us', 'Contact', 'Blog', 'Enterprise', 'API'].map((item) => (
                   <motion.li key={item} whileHover={{ x: 3 }}>
                     <Link href="#" className="text-gray-400 hover:text-cyan-400 transition-colors flex items-center group">
                       <span className="w-1 h-1 bg-cyan-400 rounded-full mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></span>
@@ -151,7 +151,7 @@ export const HomeFooter = () => {
             <div>
               <h3 className="text-white font-semibold mb-6 pl-2 border-l-2 border-purple-400">Resources</h3>
               <ul className="space-y-4">
-                {['Documentation', 'Support', 'Terms of Service', 'Privacy'].map((item) => (
+                {['Documentation', 'Support', 'Terms of Service', 'Privacy Policy', 'Security', 'Status'].map((item) => (
                   <motion.li key={item} whileHover={{ x: 3 }}>
                     <Link href="#" className="text-gray-400 hover:text-purple-400 transition-colors flex items-center group">
                       <span className="w-1 h-1 bg-purple-400 rounded-full mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></span>
@@ -185,11 +185,17 @@ export const HomeFooter = () => {
           {/* Bottom Bar */}
           <div className="border-t border-slate-700 pt-8 mt-8">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-              <p className="text-sm">
-                © 2024 bdGenAI. All rights reserved.
-              </p>
+              <div className="text-sm space-y-2 md:space-y-0">
+                <p>© 2024 MindForge. All rights reserved.</p>
+                <div className="flex flex-wrap gap-4 text-gray-400">
+                  <Link href="/terms" className="hover:text-purple-400 transition-colors">Terms</Link>
+                  <Link href="/privacy" className="hover:text-purple-400 transition-colors">Privacy</Link>
+                  <Link href="/cookies" className="hover:text-purple-400 transition-colors">Cookies</Link>
+                  <Link href="/security" className="hover:text-purple-400 transition-colors">Security</Link>
+                </div>
+              </div>
               <p className="text-sm flex items-center">
-                Made with <Heart className="w-4 h-4 text-red-500 mx-1" /> in Bangladesh
+                Made with <Heart className="w-4 h-4 text-red-500 mx-1" /> by the MindForge Team
               </p>
             </div>
           </div>

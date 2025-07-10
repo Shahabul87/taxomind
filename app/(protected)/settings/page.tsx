@@ -27,7 +27,8 @@ const SettingsPage = () => {
         animate={{ opacity: 1 }}
         className={cn(
           "min-h-screen pt-20",
-          "bg-white dark:bg-gray-900",
+          "bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50",
+          "dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-700",
           "text-gray-900 dark:text-gray-100"
         )}
       >

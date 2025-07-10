@@ -1,0 +1,127 @@
+import { NextResponse } from "next/server";
+import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
+
+export async function DELETE(
+  req: Request,
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string; examId: string }> }
+) {
+  try {
+    const params = await props.params;
+    const user = await currentUser();
+
+    if (!user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    // Verify ownership of the course
+    const courseOwner = await db.course.findUnique({
+      where: {
+        id: params.courseId,
+        userId: user.id,
+      }
+    });
+
+    if (!courseOwner) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    // Check if exam exists and belongs to the section
+    const exam = await db.exam.findUnique({
+      where: {
+        id: params.examId,
+        sectionId: params.sectionId,
+      },
+      include: {
+        questions: true,
+        userAttempts: true
+      }
+    });
+
+    if (!exam) {
+      return new NextResponse("Exam not found", { status: 404 });
+    }
+
+    // Prevent deletion if exam has user attempts
+    if (exam.userAttempts && exam.userAttempts.length > 0) {
+      return new NextResponse("Cannot delete exam with existing user attempts", { status: 400 });
+    }
+
+    // Delete exam and its questions in a transaction
+    await db.$transaction(async (tx) => {
+      // Delete all exam questions first
+      await tx.examQuestion.deleteMany({
+        where: {
+          examId: params.examId
+        }
+      });
+
+      // Delete the exam
+      await tx.exam.delete({
+        where: {
+          id: params.examId
+        }
+      });
+    });
+
+    return NextResponse.json({ success: true, message: "Exam deleted successfully" });
+  } catch (error) {
+    console.log("[EXAM_DELETE]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
+
+export async function GET(
+  req: Request,
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string; examId: string }> }
+) {
+  try {
+    const params = await props.params;
+    const user = await currentUser();
+
+    if (!user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    // Verify ownership of the course
+    const courseOwner = await db.course.findUnique({
+      where: {
+        id: params.courseId,
+        userId: user.id,
+      }
+    });
+
+    if (!courseOwner) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    // Get exam with questions
+    const exam = await db.exam.findUnique({
+      where: {
+        id: params.examId,
+        sectionId: params.sectionId,
+      },
+      include: {
+        questions: {
+          orderBy: {
+            order: 'asc'
+          }
+        },
+        _count: {
+          select: {
+            userAttempts: true
+          }
+        }
+      }
+    });
+
+    if (!exam) {
+      return new NextResponse("Exam not found", { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, exam });
+  } catch (error) {
+    console.log("[EXAM_GET]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}

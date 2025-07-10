@@ -11,7 +11,13 @@ export const AdminGuard = ({ children }: { children: React.ReactNode }) => {
     return null;
   }
 
-  if (session?.user?.role !== UserRole.ADMIN) {
+  // Check if user is authenticated first
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  // Then check if user has admin role
+  if (session.user.role !== UserRole.ADMIN) {
     redirect("/unauthorized");
   }
 

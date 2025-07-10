@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Clock, BookOpen, Users, Star, BarChart, Plus, Search, Filter, CheckCircle2, Award, Zap, Trophy, TrendingUp, Calendar, Target, AlertTriangle } from "lucide-react";
+import { Clock, BookOpen, Users, Star, BarChart, Plus, Search, Filter, CheckCircle2, Award, Zap, Trophy, TrendingUp, Calendar, Target, AlertTriangle, BarChart3 } from "lucide-react";
 
 import { CourseCard } from "./course-card";
 import { EmptyState } from "./empty-state";
@@ -311,6 +311,49 @@ export const MyCoursesDashboard = ({
         />
       </motion.div>
 
+      {/* Analytics Promotion Banner for Course Creators */}
+      {totalCreatedCourses > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mb-8"
+        >
+          <Link href="/my-courses/analytics">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white cursor-pointer hover:shadow-xl transition-shadow">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-32 translate-x-32"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-2xl translate-y-24 -translate-x-24"></div>
+              
+              <div className="relative z-10 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center mb-2">
+                    <BarChart3 className="w-6 h-6 mr-2" />
+                    <h3 className="text-xl font-bold">Course Creator Analytics</h3>
+                  </div>
+                  <p className="text-white/90 mb-4">
+                    Track your impact! See how {totalStudents} learners are engaging with your {totalCreatedCourses} courses.
+                  </p>
+                  <div className="flex items-center text-sm">
+                    <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full mr-3">
+                      {totalStudents} Total Students
+                    </span>
+                    <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+                      View Detailed Analytics →
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="hidden lg:block">
+                  <div className="w-32 h-32 bg-white/10 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                    <BarChart3 className="w-16 h-16 text-white/50" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+      )}
+
       {/* Main Content Area - Full Width */}
       <div className="bg-white/80 dark:bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-800/50 overflow-hidden shadow-xl">
         {/* Tab Navigation */}
@@ -459,7 +502,18 @@ export const MyCoursesDashboard = ({
                 </motion.div>
               )}
               
-              <div className="flex justify-end mb-6">
+              <div className="flex justify-between mb-6">
+                <Link href="/my-courses/analytics">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium text-sm hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg hover:shadow-xl"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    View Course Analytics
+                  </motion.button>
+                </Link>
+                
                 <Link href="/teacher/courses/create">
                   <motion.button
                     whileHover={{ scale: 1.05 }}

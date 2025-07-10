@@ -1,10 +1,20 @@
-import { Course, Category } from "@prisma/client";
-import { db } from "@/lib/db";
+import { enterpriseDataAPI } from "@/lib/data-fetching/enterprise-data-api";
 import { currentUser } from "@/lib/auth";
 
-type CourseWithProgressWithCategory = Course & {
-  category: Category | null;
+type CourseWithProgressWithCategory = {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  price?: number | null;
+  isPublished: boolean;
+  isFeatured: boolean;
+  category: any;
   chapters: { id: string }[];
+  cleanDescription?: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 // Function to strip HTML tags and get plain text
@@ -24,38 +34,46 @@ const extractTextFromHtml = (html: string | null): string => {
     .replace(/&#39;/g, "'");
 };
 
-export const getCoursesForHomepage = async () => {
+export const getCoursesForHomepage = async (): Promise<CourseWithProgressWithCategory[]> => {
   const user = await currentUser();
 
   try {
-    const courses = await db.course.findMany({
-      where: {
-        isPublished: true,
-      },
-      include: {
-        chapters: true,
-        category: true,
-        purchases: {
-          where: {
-            userId: user?.id
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    console.log("🚀 [GET_COURSES] Starting to fetch courses for homepage using Enterprise API...");
+    
+    // Use the enterprise API for safe data fetching
+    const result = await enterpriseDataAPI.fetchCourses(
+      { isPublished: true },
+      { page: 1, pageSize: 20 },
+      user?.id
+    );
 
-    // Ensure cleanDescription is populated for each course
-    const processedCourses = courses.map(course => {
-      // If cleanDescription is empty but description exists, extract it
-      if (!course.cleanDescription && course.description) {
-        return {
-          ...course,
-          cleanDescription: extractTextFromHtml(course.description)
-        };
-      }
-      return course;
+    if (!result.success) {
+      console.error("💥 [GET_COURSES] Enterprise API returned error:", result.error);
+      return [];
+    }
+
+    const courses = result.data || [];
+    console.log(`✅ [GET_COURSES] Successfully fetched ${courses.length} courses via Enterprise API`);
+
+    // Process courses to ensure cleanDescription is populated
+    const processedCourses: CourseWithProgressWithCategory[] = courses.map(course => {
+      const cleanDescription = course.description ? extractTextFromHtml(course.description) : '';
+      
+      return {
+        id: course.id,
+        title: course.title,
+        subtitle: course.subtitle,
+        description: course.description,
+        imageUrl: course.imageUrl,
+        price: course.price,
+        isPublished: course.isPublished,
+        isFeatured: course.isFeatured,
+        category: course.category,
+        chapters: course.chapters || [],
+        cleanDescription,
+        createdAt: course.createdAt,
+        updatedAt: course.updatedAt
+      };
     });
 
     console.log("Courses processed:", processedCourses.map(course => ({ 

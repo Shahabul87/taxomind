@@ -1,7 +1,7 @@
 // pages/api/register.ts
 
 import { NextResponse } from "next/server";
-import * as z from "zod";
+import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { RegisterSchema } from "@/schemas";

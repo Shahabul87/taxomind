@@ -7,9 +7,11 @@ import { HomeSidebar } from "./home-sidebar";
 interface SidebarContainerProps {
   user: any;
   children?: React.ReactNode;
+  onDashboardTabChange?: (tab: string) => void;
+  currentDashboardTab?: string;
 }
 
-export function SidebarContainer({ user, children }: SidebarContainerProps) {
+export function SidebarContainer({ user, children, onDashboardTabChange, currentDashboardTab }: SidebarContainerProps) {
   // Only render the sidebar if there's a logged-in user
   if (user) {
     // If children are provided, render them inside the sidebar

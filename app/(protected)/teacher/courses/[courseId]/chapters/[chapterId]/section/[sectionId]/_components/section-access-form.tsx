@@ -78,21 +78,14 @@ export const SectionAccessForm = ({
   const Icon = form.getValues("isFree") ? Unlock : Lock;
 
   return (
-    <div className={cn(
-      "p-4 mt-4 rounded-lg",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
-      "transition-all duration-200",
-      "backdrop-blur-sm"
-    )}>
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="flex items-center gap-x-2">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <div className={cn(
-            "p-2 w-fit rounded-lg transition-all duration-200",
+            "p-2.5 rounded-xl transition-all duration-200",
             form.getValues("isFree")
-              ? "bg-emerald-50 dark:bg-emerald-500/10"
-              : "bg-amber-50 dark:bg-amber-500/10"
+              ? "bg-gradient-to-br from-emerald-100 to-cyan-100 dark:from-emerald-900/50 dark:to-cyan-900/50 border border-emerald-200/50 dark:border-emerald-700/50"
+              : "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50 border border-amber-200/50 dark:border-amber-700/50"
           )}>
             <Icon className={cn(
               "h-5 w-5",
@@ -102,13 +95,8 @@ export const SectionAccessForm = ({
             )} />
           </div>
           <div>
-            <h3 className={cn(
-              "text-base sm:text-lg font-semibold bg-gradient-to-r bg-clip-text text-transparent",
-              form.getValues("isFree")
-                ? "from-emerald-600 to-cyan-600 dark:from-emerald-400 dark:to-cyan-400"
-                : "from-amber-600 to-yellow-600 dark:from-amber-400 dark:to-yellow-400"
-            )}>
-              Section Access Settings
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Access Settings
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Control who can access this section
@@ -121,29 +109,54 @@ export const SectionAccessForm = ({
           size="sm"
           className={cn(
             "transition-all duration-200",
-            "w-full sm:w-auto",
-            "justify-center",
+            "w-full sm:w-auto justify-center",
+            "border",
             form.getValues("isFree")
-              ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 hover:text-emerald-800 dark:hover:text-emerald-200"
-              : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:text-amber-800 dark:hover:text-amber-200"
+              ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border-emerald-200/50 dark:border-emerald-700/50"
+              : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 border-amber-200/50 dark:border-amber-700/50"
           )}
         >
           {isEditing ? "Cancel" : "Edit access"}
         </Button>
       </div>
       {!isEditing && (
-        <motion.p 
+        <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            "text-sm sm:text-base mt-2",
+            "p-4 rounded-lg border",
+            form.getValues("isFree")
+              ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200/50 dark:border-emerald-700/50"
+              : "bg-amber-50 dark:bg-amber-900/20 border-amber-200/50 dark:border-amber-700/50"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Icon className={cn(
+              "h-4 w-4",
+              form.getValues("isFree")
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-amber-600 dark:text-amber-400"
+            )} />
+            <p className={cn(
+              "font-medium",
+              form.getValues("isFree")
+                ? "text-emerald-800 dark:text-emerald-200"
+                : "text-amber-800 dark:text-amber-200"
+            )}>
+              {form.getValues("isFree") ? "Free Preview" : "Enrolled Students Only"}
+            </p>
+          </div>
+          <p className={cn(
+            "text-sm mt-1",
             form.getValues("isFree")
               ? "text-emerald-700 dark:text-emerald-300"
               : "text-amber-700 dark:text-amber-300"
-          )}
-        >
-          This section is {form.getValues("isFree") ? "free for preview" : "only for enrolled students"}
-        </motion.p>
+          )}>
+            {form.getValues("isFree") 
+              ? "This section is available for preview without enrollment" 
+              : "Students need to be enrolled to access this section"}
+          </p>
+        </motion.div>
       )}
       {isEditing && (
         <Form {...form}>
@@ -183,19 +196,18 @@ export const SectionAccessForm = ({
                 </FormItem>
               )}
             />
-            <div className="flex items-center gap-x-2">
+            <div className="flex items-center gap-x-2 pt-2">
               <Button
                 disabled={isSubmitting}
                 type="submit"
-                variant="ghost"
                 size="sm"
                 className={cn(
                   "transition-all duration-200",
-                  "w-full sm:w-auto",
-                  "justify-center",
+                  "w-full sm:w-auto justify-center",
+                  "shadow-sm",
                   form.getValues("isFree")
-                    ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 hover:text-emerald-800 dark:hover:text-emerald-200 border border-emerald-200/20 dark:border-emerald-500/20"
-                    : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:text-amber-800 dark:hover:text-amber-200 border border-amber-200/20 dark:border-amber-500/20"
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    : "bg-amber-600 hover:bg-amber-700 text-white"
                 )}
               >
                 {isSubmitting ? (
@@ -209,7 +221,7 @@ export const SectionAccessForm = ({
                     <span>Saving...</span>
                   </div>
                 ) : (
-                  "Save"
+                  "Save Changes"
                 )}
               </Button>
             </div>

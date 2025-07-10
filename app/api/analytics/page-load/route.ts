@@ -1,0 +1,199 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import { performanceMonitoring } from '@/lib/performance-monitoring'
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    
+    const {
+      dns,
+      tcp,
+      ssl,
+      ttfb,
+      download,
+      domInteractive,
+      domComplete,
+      loadComplete,
+      url,
+      timestamp,
+    } = body
+
+    // Validate required fields
+    if (typeof ttfb !== 'number' || typeof loadComplete !== 'number') {
+      return NextResponse.json(
+        { error: 'Missing required performance timing fields' },
+        { status: 400 }
+      )
+    }
+
+    // Store page load performance data
+    await performanceMonitoring.traceDatabaseQuery(
+      'create',
+      'page_performance',
+      async () => {
+        await db.pagePerformance.create({
+          data: {
+            url,
+            dnsLookup: dns || 0,
+            tcpConnect: tcp || 0,
+            sslHandshake: ssl || 0,
+            timeToFirstByte: ttfb,
+            download: download || 0,
+            domInteractive: domInteractive || 0,
+            domComplete: domComplete || 0,
+            loadComplete,
+            timestamp: new Date(timestamp),
+            userAgent: req.headers.get('user-agent') || null,
+            sessionId: req.headers.get('x-session-id') || null,
+          },
+        })
+      }
+    )
+
+    // Check for slow page loads
+    const slowThresholds = {
+      ttfb: 800,
+      loadComplete: 3000,
+      domInteractive: 2000,
+    }
+
+    const alerts = []
+    if (ttfb > slowThresholds.ttfb) {
+      alerts.push({ metric: 'TTFB', value: ttfb, threshold: slowThresholds.ttfb })
+    }
+    if (loadComplete > slowThresholds.loadComplete) {
+      alerts.push({ metric: 'Load Complete', value: loadComplete, threshold: slowThresholds.loadComplete })
+    }
+    if (domInteractive > slowThresholds.domInteractive) {
+      alerts.push({ metric: 'DOM Interactive', value: domInteractive, threshold: slowThresholds.domInteractive })
+    }
+
+    // Create alerts for slow page loads
+    for (const alert of alerts) {
+      await db.performanceAlert.create({
+        data: {
+          metric: alert.metric,
+          value: alert.value,
+          threshold: alert.threshold,
+          severity: 'MEDIUM',
+          url,
+          timestamp: new Date(timestamp),
+          resolved: false,
+        },
+      })
+    }
+
+    return NextResponse.json({ success: true, alerts: alerts.length })
+  } catch (error) {
+    console.error('Error storing page load data:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const url = new URL(req.url)
+    const timeframe = url.searchParams.get('timeframe') || '24h'
+    const pageUrl = url.searchParams.get('url')
+
+    // Calculate date range
+    const now = new Date()
+    const timeframes = {
+      '1h': 1,
+      '24h': 24,
+      '7d': 24 * 7,
+      '30d': 24 * 30,
+    }
+    
+    const hours = timeframes[timeframe as keyof typeof timeframes] || 24
+    const startDate = new Date(now.getTime() - hours * 60 * 60 * 1000)
+
+    // Build query
+    const where = {
+      timestamp: {
+        gte: startDate,
+      },
+      ...(pageUrl && { url: pageUrl }),
+    }
+
+    const pageLoads = await performanceMonitoring.traceDatabaseQuery(
+      'findMany',
+      'page_performance',
+      async () => {
+        return await db.pagePerformance.findMany({
+          where,
+          orderBy: {
+            timestamp: 'desc',
+          },
+          take: 1000,
+        })
+      }
+    )
+
+    // Calculate aggregated metrics
+    const metrics = [
+      'dnsLookup',
+      'tcpConnect',
+      'sslHandshake',
+      'timeToFirstByte',
+      'download',
+      'domInteractive',
+      'domComplete',
+      'loadComplete',
+    ]
+
+    const aggregated = metrics.reduce((acc, metric) => {
+      const values = pageLoads.map(p => p[metric as keyof typeof p] as number).filter(v => v > 0)
+      
+      if (values.length > 0) {
+        values.sort((a, b) => a - b)
+        acc[metric] = {
+          count: values.length,
+          average: values.reduce((sum, val) => sum + val, 0) / values.length,
+          min: Math.min(...values),
+          max: Math.max(...values),
+          p50: values[Math.floor(values.length * 0.5)],
+          p75: values[Math.floor(values.length * 0.75)],
+          p90: values[Math.floor(values.length * 0.9)],
+          p95: values[Math.floor(values.length * 0.95)],
+        }
+      }
+
+      return acc
+    }, {} as any)
+
+    // Calculate page-specific metrics if URL filter is applied
+    let pageSpecific = null
+    if (pageUrl) {
+      const pageSpecificData = pageLoads.filter(p => p.url === pageUrl)
+      if (pageSpecificData.length > 0) {
+        pageSpecific = {
+          url: pageUrl,
+          totalLoads: pageSpecificData.length,
+          averageLoadTime: pageSpecificData.reduce((sum, p) => sum + p.loadComplete, 0) / pageSpecificData.length,
+          fastestLoad: Math.min(...pageSpecificData.map(p => p.loadComplete)),
+          slowestLoad: Math.max(...pageSpecificData.map(p => p.loadComplete)),
+        }
+      }
+    }
+
+    return NextResponse.json({
+      timeframe,
+      startDate,
+      endDate: now,
+      totalPageLoads: pageLoads.length,
+      metrics: aggregated,
+      pageSpecific,
+    })
+  } catch (error) {
+    console.error('Error fetching page load data:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

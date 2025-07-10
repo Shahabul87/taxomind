@@ -1,5 +1,4 @@
-import { Post } from "@prisma/client";
-import { db } from "@/lib/db";
+import { enterpriseDataAPI } from "@/lib/data-fetching/enterprise-data-api";
 
 type PostForHomepage = {
   id: string;
@@ -18,113 +17,43 @@ type PostForHomepage = {
   views?: number;
 };
 
-type GetPosts = {
-  title?: string;
-  category?: string;
-};
-
 export const getPostsForHomepage = async (): Promise<PostForHomepage[]> => {
-  console.log("🚀 [GET_POSTS] Starting to fetch posts for homepage...");
+  console.log("🚀 [GET_POSTS] Starting to fetch posts for homepage using Enterprise API...");
   
   try {
-    // First, let's check if database connection is working
-    console.log("🔗 [GET_POSTS] Testing database connection...");
-    
-    // Check total posts count first
-    const totalPostsCount = await db.post.count();
-    console.log(`📊 [GET_POSTS] Total posts in database: ${totalPostsCount}`);
-    
-    if (totalPostsCount === 0) {
-      console.log("⚠️ [GET_POSTS] No posts found in database at all!");
+    // Use the enterprise API for safe data fetching
+    const result = await enterpriseDataAPI.fetchPosts(
+      { published: true, isArchived: false },
+      { page: 1, pageSize: 20 }
+    );
+
+    if (!result.success) {
+      console.error("💥 [GET_POSTS] Enterprise API returned error:", result.error);
       return [];
     }
 
-    // Check published posts count
-    const publishedCount = await db.post.count({
-      where: { published: true }
-    });
-    console.log(`✅ [GET_POSTS] Published posts count: ${publishedCount}`);
-
-    // Check null published count
-    const nullPublishedCount = await db.post.count({
-      where: { published: null }
-    });
-    console.log(`❓ [GET_POSTS] Null published posts count: ${nullPublishedCount}`);
-
-    // Check false published count
-    const falsePublishedCount = await db.post.count({
-      where: { published: false }
-    });
-    console.log(`❌ [GET_POSTS] Unpublished posts count: ${falsePublishedCount}`);
-
-    // Get a sample of all posts to see their status
-    const samplePosts = await db.post.findMany({
-      take: 5,
-      select: {
-        id: true,
-        title: true,
-        published: true,
-        category: true,
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const posts = result.data || [];
+    console.log(`✅ [GET_POSTS] Successfully fetched ${posts.length} posts via Enterprise API`);
     
-    console.log("📝 [GET_POSTS] Sample posts from database:", samplePosts);
-
-    // Now fetch published posts (including null as published)
-    console.log("🔍 [GET_POSTS] Fetching published posts (including null)...");
-    const posts = await db.post.findMany({
-      where: {
-        OR: [
-          { published: true },
-          { published: null }
-        ]
-      },
-      include: {
-        comments: {
-          select: {
-            id: true,
-          }
-        },
-        user: {
-          select: {
-            name: true,
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    console.log(`✅ [GET_POSTS] Successfully fetched ${posts.length} posts (published: true or null)`);
-    
-    if (posts.length === 0) {
-      console.log("⚠️ [GET_POSTS] No posts found with published: true or null");
-    }
-
-    const formattedPosts = posts.map(post => ({
+    // Format posts for homepage
+    const formattedPosts: PostForHomepage[] = posts.map(post => ({
       id: post.id,
-      title: post.title,
-      description: post.description,
-      imageUrl: post.imageUrl,
-      published: post.published === true || post.published === null, // Treat null as published
-      category: post.category,
-      createdAt: post.createdAt.toISOString(),
+      title: post.title || 'Untitled Post',
+      description: post.description || 'No description available',
+      imageUrl: post.imageUrl || null,
+      published: post.published,
+      category: post.category || null,
+      createdAt: typeof post.createdAt === 'string' ? post.createdAt : post.createdAt.toISOString(),
       updatedAt: post.updatedAt,
-      userId: post.userId,
-      comments: post.comments,
-      user: post.user,
-      views: Math.floor(Math.random() * 1000) + 1,
+      userId: post.authorId,
+      comments: [], // Will be populated separately if needed
+      user: { name: null }, // Will be populated separately if needed
+      views: post.views || 0,
     }));
 
-    console.log("🎉 [GET_POSTS] Successfully formatted posts. Sample:", formattedPosts.slice(0, 2));
     console.log(`✅ [GET_POSTS] Returning ${formattedPosts.length} formatted posts`);
-    
     return formattedPosts;
+    
   } catch (error) {
     console.error("💥 [GET_POSTS] CRITICAL ERROR fetching posts:");
     console.error("Error details:", error);
@@ -138,46 +67,39 @@ export const getPostsForHomepage = async (): Promise<PostForHomepage[]> => {
 
 export const getPostsByCategory = async (category: string): Promise<PostForHomepage[]> => {
   try {
-    console.log(`[GET_POSTS_BY_CATEGORY] Fetching posts for category: ${category}`);
+    console.log(`[GET_POSTS_BY_CATEGORY] Fetching posts for category: ${category} using Enterprise API`);
     
-    const posts = await db.post.findMany({
-      where: {
-        published: true,
-        category: category,
-      },
-      include: {
-        comments: {
-          select: {
-            id: true,
-          }
-        },
-        user: {
-          select: {
-            name: true,
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    // Use the enterprise API for safe data fetching
+    const result = await enterpriseDataAPI.fetchPosts(
+      { published: true, isArchived: false, category },
+      { page: 1, pageSize: 50 }
+    );
 
-    console.log(`[GET_POSTS_BY_CATEGORY] Found ${posts.length} posts for category ${category}`);
+    if (!result.success) {
+      console.error("[GET_POSTS_BY_CATEGORY] Enterprise API returned error:", result.error);
+      return [];
+    }
 
-    return posts.map(post => ({
+    const posts = result.data || [];
+    console.log(`[GET_POSTS_BY_CATEGORY] Found ${posts.length} posts`);
+
+    // Format posts for homepage
+    const formattedPosts: PostForHomepage[] = posts.map(post => ({
       id: post.id,
-      title: post.title,
-      description: post.description,
-      imageUrl: post.imageUrl,
+      title: post.title || 'Untitled Post',
+      description: post.description || 'No description available',
+      imageUrl: post.imageUrl || null,
       published: post.published,
-      category: post.category,
-      createdAt: post.createdAt.toISOString(),
+      category: post.category || null,
+      createdAt: typeof post.createdAt === 'string' ? post.createdAt : post.createdAt.toISOString(),
       updatedAt: post.updatedAt,
-      userId: post.userId,
-      comments: post.comments,
-      user: post.user,
-      views: Math.floor(Math.random() * 1000) + 1,
+      userId: post.authorId,
+      comments: [], // Will be populated separately if needed
+      user: { name: null }, // Will be populated separately if needed
+      views: post.views || 0,
     }));
+
+    return formattedPosts;
   } catch (error) {
     console.error("[GET_POSTS_BY_CATEGORY] Error:", error);
     return [];

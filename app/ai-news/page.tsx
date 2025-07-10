@@ -1,0 +1,538 @@
+"use client"
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Newspaper, 
+  Clock, 
+  TrendingUp,
+  Eye,
+  Share,
+  Bookmark,
+  ExternalLink,
+  Filter,
+  Search,
+  Bell,
+  Globe,
+  Zap,
+  Star,
+  MessageSquare,
+  ThumbsUp,
+  Calendar,
+  Tag,
+  Users,
+  Brain,
+  Sparkles,
+  Rocket,
+  AlertCircle,
+  ChevronRight,
+  Play,
+  Pause,
+  Volume2,
+  Download,
+  MoreHorizontal
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+
+interface NewsArticle {
+  id: string;
+  title: string;
+  summary: string;
+  content: string;
+  source: string;
+  author: string;
+  publishedAt: Date;
+  category: 'Breaking' | 'Research' | 'Industry' | 'Technology' | 'Education' | 'Policy';
+  tags: string[];
+  readTime: number;
+  views: number;
+  likes: number;
+  comments: number;
+  importance: 'Critical' | 'High' | 'Medium' | 'Low';
+  imageUrl?: string;
+  isBookmarked: boolean;
+  isLiked: boolean;
+}
+
+interface NewsCategory {
+  name: string;
+  count: number;
+  color: string;
+  icon: any;
+  description: string;
+}
+
+export default function AINewsPage() {
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedImportance, setSelectedImportance] = useState<string>('all');
+  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  const newsArticles: NewsArticle[] = [
+    {
+      id: '1',
+      title: 'OpenAI Announces Revolutionary GPT-5 with Enhanced Educational Capabilities',
+      summary: 'Latest language model promises unprecedented personalization in learning experiences with advanced reasoning capabilities.',
+      content: 'OpenAI today unveiled GPT-5, featuring groundbreaking improvements in educational applications...',
+      source: 'TechCrunch',
+      author: 'Sarah Johnson',
+      publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      category: 'Breaking',
+      tags: ['OpenAI', 'GPT-5', 'Education AI', 'LLM'],
+      readTime: 5,
+      views: 12547,
+      likes: 892,
+      comments: 156,
+      importance: 'Critical',
+      imageUrl: '/placeholder.svg',
+      isBookmarked: false,
+      isLiked: false
+    },
+    {
+      id: '2',
+      title: 'Stanford Research: AI Tutors Improve Student Performance by 40%',
+      summary: 'Comprehensive study shows significant learning gains when AI tutoring systems are integrated into traditional education.',
+      content: 'A groundbreaking study from Stanford University reveals that students using AI tutoring systems...',
+      source: 'Nature Education',
+      author: 'Dr. Michael Chen',
+      publishedAt: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+      category: 'Research',
+      tags: ['Stanford', 'AI Tutoring', 'Education Research', 'Performance'],
+      readTime: 8,
+      views: 8934,
+      likes: 567,
+      comments: 89,
+      importance: 'High',
+      isBookmarked: true,
+      isLiked: true
+    },
+    {
+      id: '3',
+      title: 'Microsoft Copilot for Education Reaches 10 Million Students Worldwide',
+      summary: 'Enterprise AI assistant adapted for educational environments shows massive adoption across global institutions.',
+      content: 'Microsoft announced that its Copilot for Education platform has reached a significant milestone...',
+      source: 'EdTech Weekly',
+      author: 'Jennifer Martinez',
+      publishedAt: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
+      category: 'Industry',
+      tags: ['Microsoft', 'Copilot', 'EdTech', 'Adoption'],
+      readTime: 4,
+      views: 6782,
+      likes: 423,
+      comments: 67,
+      importance: 'High',
+      isBookmarked: false,
+      isLiked: false
+    },
+    {
+      id: '4',
+      title: 'EU Proposes New AI Regulations for Educational Technology',
+      summary: 'European Union drafts comprehensive guidelines for AI use in education, focusing on privacy and ethical considerations.',
+      content: 'The European Union has released a draft proposal for regulating AI in educational settings...',
+      source: 'Reuters',
+      author: 'Hans Weber',
+      publishedAt: new Date(Date.now() - 18 * 60 * 60 * 1000), // 18 hours ago
+      category: 'Policy',
+      tags: ['EU', 'Regulation', 'AI Ethics', 'Privacy'],
+      readTime: 6,
+      views: 5234,
+      likes: 312,
+      comments: 45,
+      importance: 'Medium',
+      isBookmarked: false,
+      isLiked: false
+    },
+    {
+      id: '5',
+      title: 'Neural Networks Breakthrough: Understanding How Students Learn',
+      summary: 'New research uses advanced neural networks to decode learning patterns and optimize educational content delivery.',
+      content: 'Researchers at MIT have developed a novel neural network architecture that can analyze...',
+      source: 'MIT Technology Review',
+      author: 'Dr. Lisa Park',
+      publishedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+      category: 'Technology',
+      tags: ['Neural Networks', 'Learning Science', 'MIT', 'Optimization'],
+      readTime: 7,
+      views: 4156,
+      likes: 278,
+      comments: 34,
+      importance: 'Medium',
+      isBookmarked: true,
+      isLiked: false
+    }
+  ];
+
+  const newsCategories: NewsCategory[] = [
+    { 
+      name: 'Breaking', 
+      count: 23, 
+      color: 'text-red-400', 
+      icon: AlertCircle, 
+      description: 'Latest breaking news and announcements' 
+    },
+    { 
+      name: 'Research', 
+      count: 156, 
+      color: 'text-blue-400', 
+      icon: Brain, 
+      description: 'Academic studies and research findings' 
+    },
+    { 
+      name: 'Industry', 
+      count: 89, 
+      color: 'text-emerald-400', 
+      icon: Rocket, 
+      description: 'Business and industry developments' 
+    },
+    { 
+      name: 'Technology', 
+      count: 234, 
+      color: 'text-purple-400', 
+      icon: Zap, 
+      description: 'Technical innovations and advancements' 
+    },
+    { 
+      name: 'Education', 
+      count: 178, 
+      color: 'text-yellow-400', 
+      icon: Sparkles, 
+      description: 'Educational applications and implementations' 
+    },
+    { 
+      name: 'Policy', 
+      count: 67, 
+      color: 'text-orange-400', 
+      icon: Globe, 
+      description: 'Regulations and policy changes' 
+    }
+  ];
+
+  const importanceOptions = [
+    { value: 'all', label: 'All Importance' },
+    { value: 'Critical', label: 'Critical' },
+    { value: 'High', label: 'High' },
+    { value: 'Medium', label: 'Medium' },
+    { value: 'Low', label: 'Low' }
+  ];
+
+  const quickStats = [
+    { label: 'Today\'s Articles', value: '127', icon: Newspaper, color: 'text-blue-400' },
+    { label: 'Breaking News', value: '23', icon: AlertCircle, color: 'text-red-400' },
+    { label: 'Total Views', value: '2.4M', icon: Eye, color: 'text-emerald-400' },
+    { label: 'Active Sources', value: '89', icon: Globe, color: 'text-purple-400' }
+  ];
+
+  const filteredArticles = newsArticles.filter(article => {
+    const matchesCategory = selectedCategory === 'all' || article.category === selectedCategory;
+    const matchesImportance = selectedImportance === 'all' || article.importance === selectedImportance;
+    const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         article.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesImportance && matchesSearch;
+  });
+
+  const getImportanceColor = (importance: string) => {
+    switch (importance) {
+      case 'Critical': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'High': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+      case 'Medium': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'Low': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
+
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    return `${Math.floor(diffInHours / 24)}d ago`;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-20">
+      {/* Hero Section */}
+      <motion.div 
+        className="relative overflow-hidden bg-gradient-to-r from-blue-900/20 via-purple-900/20 to-emerald-900/20 py-16"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-emerald-500/10 backdrop-blur-3xl"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            className="inline-flex items-center space-x-2 bg-blue-500/10 rounded-full px-6 py-2 border border-blue-500/20 mb-6"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Newspaper className="w-5 h-5 text-blue-400" />
+            <span className="text-blue-300 font-medium">AI News Intelligence</span>
+          </motion.div>
+
+          <motion.h1 
+            className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6"
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <span className="text-white">Stay Informed with</span>
+            <br />
+            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
+              AI News Feed
+            </span>
+          </motion.h1>
+
+          <motion.p
+            className="text-xl text-gray-300 max-w-3xl mx-auto mb-8"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            Curated AI news from top sources worldwide. Get real-time updates on breakthroughs, 
+            research, and industry developments that matter to your learning journey.
+          </motion.p>
+
+          <motion.div
+            className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            {quickStats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className={`text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
+                <div className="text-gray-400 text-sm">{stat.label}</div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        
+        {/* Filters and Controls */}
+        <motion.div
+          className="mb-8 space-y-4"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            
+            {/* Search and Filters */}
+            <div className="flex flex-1 gap-4 max-w-2xl">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search news, topics, or sources..."
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+              >
+                <option value="all">All Categories</option>
+                {newsCategories.map(category => (
+                  <option key={category.name} value={category.name}>{category.name}</option>
+                ))}
+              </select>
+
+              <select
+                value={selectedImportance}
+                onChange={(e) => setSelectedImportance(e.target.value)}
+                className="bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+              >
+                {importanceOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <Clock className="w-4 h-4" />
+                <span>Updated {formatTimeAgo(lastUpdated)}</span>
+              </div>
+              
+              <button
+                onClick={() => setIsAutoRefresh(!isAutoRefresh)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-xl border transition-colors ${
+                  isAutoRefresh 
+                    ? 'bg-blue-600 border-blue-500 text-white' 
+                    : 'bg-slate-800/50 border-slate-700 text-gray-400 hover:text-white'
+                }`}
+              >
+                <div className={`w-2 h-2 rounded-full ${isAutoRefresh ? 'bg-white animate-pulse' : 'bg-gray-400'}`}></div>
+                <span className="text-sm">Auto-refresh</span>
+              </button>
+
+              <Button variant="outline" size="sm" className="border-slate-700 text-gray-300">
+                <Bell className="w-4 h-4 mr-2" />
+                Alerts
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          
+          {/* Category Sidebar */}
+          <div className="space-y-6">
+            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">News Categories</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={() => setSelectedCategory('all')}
+                  className={`w-full text-left p-3 rounded-xl transition-colors ${
+                    selectedCategory === 'all' 
+                      ? 'bg-slate-700/50 border border-slate-600' 
+                      : 'hover:bg-slate-700/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-medium">All News</span>
+                    <span className="text-sm text-gray-400">{newsArticles.length}</span>
+                  </div>
+                </button>
+
+                {newsCategories.map((category, index) => (
+                  <motion.button
+                    key={category.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 * index }}
+                    onClick={() => setSelectedCategory(category.name)}
+                    className={`w-full text-left p-3 rounded-xl transition-colors ${
+                      selectedCategory === category.name 
+                        ? 'bg-slate-700/50 border border-slate-600' 
+                        : 'hover:bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3 mb-1">
+                      <category.icon className={`w-4 h-4 ${category.color}`} />
+                      <span className="text-white font-medium">{category.name}</span>
+                      <span className="text-sm text-gray-400 ml-auto">{category.count}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 pl-7">{category.description}</p>
+                  </motion.button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Trending Topics */}
+            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Trending Topics</h3>
+              <div className="space-y-3">
+                {['GPT-5', 'AI Education', 'Machine Learning', 'Neural Networks', 'EdTech'].map((topic, index) => (
+                  <div key={topic} className="flex items-center justify-between p-2 hover:bg-slate-700/30 rounded-lg cursor-pointer">
+                    <span className="text-gray-300">{topic}</span>
+                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          {/* Main News Feed */}
+          <div className="lg:col-span-3">
+            <div className="space-y-6">
+              <AnimatePresence>
+                {filteredArticles.map((article, index) => (
+                  <motion.div
+                    key={article.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ delay: 0.1 * index }}
+                  >
+                    <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6 hover:bg-slate-800/60 transition-colors group cursor-pointer">
+                      <div className="flex items-start space-x-4">
+                        
+                        {/* Content */}
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <span className={`text-xs px-2 py-1 rounded-full border ${getImportanceColor(article.importance)}`}>
+                              {article.importance}
+                            </span>
+                            <span className="text-xs text-gray-400">{article.category}</span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-400">{formatTimeAgo(article.publishedAt)}</span>
+                          </div>
+                          
+                          <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-blue-400 transition-colors">
+                            {article.title}
+                          </h3>
+                          
+                          <p className="text-gray-300 mb-4 line-clamp-2">{article.summary}</p>
+                          
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {article.tags.map((tag, tagIndex) => (
+                              <span key={tagIndex} className="text-xs bg-slate-700/50 text-gray-300 px-2 py-1 rounded-full">
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4 text-sm text-gray-400">
+                              <span>{article.source}</span>
+                              <span>•</span>
+                              <span>{article.readTime} min read</span>
+                              <span>•</span>
+                              <div className="flex items-center space-x-1">
+                                <Eye className="w-4 h-4" />
+                                <span>{article.views.toLocaleString()}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <button className={`p-2 rounded-lg transition-colors ${
+                                article.isLiked ? 'bg-red-500/20 text-red-400' : 'hover:bg-slate-700 text-gray-400'
+                              }`}>
+                                <ThumbsUp className="w-4 h-4" />
+                              </button>
+                              <button className={`p-2 rounded-lg transition-colors ${
+                                article.isBookmarked ? 'bg-yellow-500/20 text-yellow-400' : 'hover:bg-slate-700 text-gray-400'
+                              }`}>
+                                <Bookmark className="w-4 h-4" />
+                              </button>
+                              <button className="p-2 rounded-lg hover:bg-slate-700 text-gray-400 transition-colors">
+                                <Share className="w-4 h-4" />
+                              </button>
+                              <button className="p-2 rounded-lg hover:bg-slate-700 text-gray-400 transition-colors">
+                                <ExternalLink className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {filteredArticles.length === 0 && (
+                <div className="text-center py-12">
+                  <Newspaper className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">No articles found</h3>
+                  <p className="text-gray-400">Try adjusting your filters or search query</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

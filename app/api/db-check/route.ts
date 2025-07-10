@@ -12,26 +12,18 @@ export async function GET(request: NextRequest) {
   try {
     // Get counts of various tables
     const counts = {
-      courses: await db.course.count({
-        where: { isPublished: true }
-      }),
-      blogs: await db.blog.count({
-        where: { isPublished: true }
-      }),
+      courses: await db.course.count(),
+      blogs: await db.blog.count(),
       users: await db.user.count(),
-      chapters: await db.chapter.count({
-        where: { isPublished: true }
-      })
+      chapters: await db.chapter.count()
     };
     
     // Get sample entries for debugging
     const sampleCourse = await db.course.findFirst({
-      where: { isPublished: true },
       select: { id: true, title: true }
     });
     
     const sampleBlog = await db.blog.findFirst({
-      where: { isPublished: true },
       select: { id: true, title: true }
     });
     

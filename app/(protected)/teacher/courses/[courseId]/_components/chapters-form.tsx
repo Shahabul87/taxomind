@@ -4,12 +4,13 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Loader2, PlusCircle, BookOpen } from "lucide-react";
+import { Loader2, PlusCircle, BookOpen, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Chapter, Course } from "@prisma/client";
+import { AIChapterPreferencesDialog, type AIChapterGenerationPreferences } from "./ai-chapter-preferences";
 
 import {
   Form,
@@ -41,6 +42,7 @@ export const ChaptersForm = ({
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -134,6 +136,79 @@ export const ChaptersForm = ({
     }
   };
 
+  const generateChaptersWithAI = async (preferences: AIChapterGenerationPreferences) => {
+    if (!initialData.title || !initialData.description) {
+      toast.error("Please add course title and description first to generate chapters with AI");
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      console.log('[CHAPTERS_FORM] Starting AI chapter generation:', { courseId, preferences });
+      
+      // First, generate chapters with AI
+      const aiResponse = await fetch('/api/ai/bulk-chapters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId,
+          chapterCount: preferences.chapterCount,
+          difficulty: preferences.difficulty,
+          targetDuration: preferences.targetDuration,
+          focusAreas: preferences.focusAreas,
+          includeKeywords: preferences.includeKeywords,
+          additionalInstructions: preferences.additionalInstructions
+        })
+      });
+
+      if (!aiResponse.ok) {
+        throw new Error('Failed to generate chapters with AI');
+      }
+
+      const aiData = await aiResponse.json();
+      
+      if (!aiData.success || !aiData.data || !Array.isArray(aiData.data)) {
+        throw new Error('Invalid AI response format');
+      }
+
+      console.log('[CHAPTERS_FORM] AI chapters generated:', aiData.data.length);
+
+      // Create chapters in database
+      const createdChapters = [];
+      for (let i = 0; i < aiData.data.length; i++) {
+        const chapterData = aiData.data[i];
+        try {
+          const createResponse = await axios.post(`/api/courses/${courseId}/chapters`, {
+            title: chapterData.title
+          }, {
+            headers: { 'Content-Type': 'application/json' },
+            withCredentials: true,
+            timeout: 30000
+          });
+          
+          createdChapters.push(createResponse.data);
+          console.log(`[CHAPTERS_FORM] Created chapter ${i + 1}:`, createResponse.data.title);
+        } catch (error: any) {
+          console.error(`[CHAPTERS_FORM] Failed to create chapter ${i + 1}:`, error);
+          // Continue with remaining chapters instead of failing completely
+        }
+      }
+
+      if (createdChapters.length > 0) {
+        toast.success(`Successfully generated ${createdChapters.length} chapters with AI!`);
+        router.refresh();
+      } else {
+        throw new Error('No chapters were created successfully');
+      }
+      
+    } catch (error: any) {
+      console.error('[CHAPTERS_FORM] AI chapter generation failed:', error);
+      toast.error("Failed to generate chapters with AI. Please try again.");
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   return (
     <div className={cn(
       "relative p-4 mt-6 rounded-xl",
@@ -143,7 +218,7 @@ export const ChaptersForm = ({
       "backdrop-blur-sm",
       "transition-all duration-200"
     )}>
-      {(isUpdating || isDeleting) && (
+      {(isUpdating || isDeleting || isGeneratingAI) && (
         <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
           <Loader2 className="h-6 w-6 animate-spin text-purple-600 dark:text-purple-400" />
         </div>
@@ -164,27 +239,64 @@ export const ChaptersForm = ({
             </div>
           </div>
         </div>
-        <Button
-          onClick={() => setIsCreating(!isCreating)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "text-purple-700 dark:text-purple-300",
-            "hover:text-purple-800 dark:hover:text-purple-200",
-            "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-            "w-full sm:w-auto",
-            "justify-center"
-          )}
-        >
-          {isCreating ? (
-            "Cancel"
-          ) : (
-            <>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add chapter
-            </>
-          )}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <AIChapterPreferencesDialog
+            onGenerate={generateChaptersWithAI}
+            isGenerating={isGeneratingAI}
+            disabled={!initialData.title || !initialData.description || isGeneratingAI}
+            courseTitle={initialData.title}
+            courseDescription={initialData.description}
+            trigger={
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isGeneratingAI || !initialData.title || !initialData.description}
+                className={cn(
+                  "text-purple-700 dark:text-purple-300",
+                  "border-purple-200 dark:border-purple-700",
+                  "hover:text-purple-800 dark:hover:text-purple-200",
+                  "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+                  "w-full sm:w-auto",
+                  "justify-center",
+                  "transition-all duration-200"
+                )}
+              >
+                {isGeneratingAI ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Generating...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    <span>Generate with AI</span>
+                  </div>
+                )}
+              </Button>
+            }
+          />
+          <Button
+            onClick={() => setIsCreating(!isCreating)}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "text-purple-700 dark:text-purple-300",
+              "hover:text-purple-800 dark:hover:text-purple-200",
+              "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+              "w-full sm:w-auto",
+              "justify-center"
+            )}
+          >
+            {isCreating ? (
+              "Cancel"
+            ) : (
+              <>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add chapter
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -267,9 +379,16 @@ export const ChaptersForm = ({
             items={initialData.chapters || []}
           />
           {initialData.chapters.length === 0 && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 italic text-center mt-4">
-              No chapters yet
-            </p>
+            <div className="mt-4 text-center space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                No chapters yet
+              </p>
+              {(!initialData.title || !initialData.description) && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Add course title and description to use AI generation
+                </p>
+              )}
+            </div>
           )}
         </motion.div>
       )}

@@ -190,6 +190,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
 
       {/* Sidebar */}
       <motion.div
+        data-sidebar
         initial={false}
         animate={{ 
           width: (open || (!isMobile && isHovered)) ? "280px" : "94px",

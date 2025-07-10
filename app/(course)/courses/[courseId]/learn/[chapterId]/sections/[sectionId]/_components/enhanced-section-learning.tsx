@@ -47,7 +47,7 @@ export const EnhancedSectionLearning = ({
 }: EnhancedSectionLearningProps) => {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<"content" | "notes" | "discussion" | "exams">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "notes" | "discussion" | "exams" | "adaptive" | "tutor">("content");
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [expandedChapters, setExpandedChapters] = useState<string[]>([chapterId]);
@@ -287,6 +287,8 @@ export const EnhancedSectionLearning = ({
               setActiveTab={setActiveTab}
               courseId={courseId}
               chapterId={chapterId}
+              courseTitle={course.title}
+              chapterTitle={currentChapter.title}
             />
 
             

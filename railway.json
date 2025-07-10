@@ -1,0 +1,165 @@
+{
+  "name": "alam-lms-intelligent-platform",
+  "services": {
+    "web": {
+      "name": "alam-lms-web",
+      "source": {
+        "type": "github",
+        "repo": "your-username/alam-lms",
+        "branch": "main"
+      },
+      "build": {
+        "buildCommand": "npm run build",
+        "startCommand": "npm start"
+      },
+      "variables": {
+        "NODE_ENV": "production",
+        "PORT": "3000"
+      },
+      "domains": [
+        {
+          "domain": "alam-lms.railway.app"
+        }
+      ],
+      "healthcheck": {
+        "path": "/api/system/health",
+        "timeout": 30,
+        "interval": 60
+      },
+      "resources": {
+        "memory": "2Gi",
+        "cpu": "2"
+      }
+    },
+    
+    "postgres": {
+      "name": "alam-lms-postgres",
+      "type": "postgresql",
+      "version": "15",
+      "resources": {
+        "memory": "1Gi",
+        "cpu": "1",
+        "storage": "20Gi"
+      }
+    },
+    
+    "redis": {
+      "name": "alam-lms-redis",
+      "type": "redis",
+      "version": "7",
+      "resources": {
+        "memory": "512Mi",
+        "cpu": "0.5"
+      }
+    },
+    
+    "ml-worker": {
+      "name": "alam-lms-ml-worker",
+      "source": {
+        "type": "github",
+        "repo": "your-username/alam-lms",
+        "branch": "main"
+      },
+      "build": {
+        "dockerfile": "Dockerfile.ml-worker",
+        "startCommand": "node workers/ml-worker.js"
+      },
+      "variables": {
+        "NODE_ENV": "production",
+        "WORKER_TYPE": "ml"
+      },
+      "resources": {
+        "memory": "4Gi",
+        "cpu": "2"
+      },
+      "replicas": 2
+    },
+    
+    "analytics-worker": {
+      "name": "alam-lms-analytics-worker",
+      "source": {
+        "type": "github",
+        "repo": "your-username/alam-lms",
+        "branch": "main"
+      },
+      "build": {
+        "dockerfile": "Dockerfile.analytics-worker",
+        "startCommand": "node workers/analytics-worker.js"
+      },
+      "variables": {
+        "NODE_ENV": "production",
+        "WORKER_TYPE": "analytics"
+      },
+      "resources": {
+        "memory": "2Gi",
+        "cpu": "1"
+      }
+    },
+    
+    "job-market-worker": {
+      "name": "alam-lms-job-market-worker",
+      "source": {
+        "type": "github",
+        "repo": "your-username/alam-lms",
+        "branch": "main"
+      },
+      "build": {
+        "dockerfile": "Dockerfile.job-worker",
+        "startCommand": "node workers/job-market-worker.js"
+      },
+      "variables": {
+        "NODE_ENV": "production",
+        "WORKER_TYPE": "job_market"
+      },
+      "resources": {
+        "memory": "1Gi",
+        "cpu": "0.5"
+      }
+    },
+    
+    "kafka": {
+      "name": "alam-lms-kafka",
+      "source": {
+        "type": "docker",
+        "image": "confluentinc/cp-kafka:latest"
+      },
+      "variables": {
+        "KAFKA_BROKER_ID": "1",
+        "KAFKA_ZOOKEEPER_CONNECT": "zookeeper:2181",
+        "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://kafka:9092",
+        "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1"
+      },
+      "resources": {
+        "memory": "1Gi",
+        "cpu": "1"
+      }
+    },
+    
+    "zookeeper": {
+      "name": "alam-lms-zookeeper",
+      "source": {
+        "type": "docker",
+        "image": "confluentinc/cp-zookeeper:latest"
+      },
+      "variables": {
+        "ZOOKEEPER_CLIENT_PORT": "2181",
+        "ZOOKEEPER_TICK_TIME": "2000"
+      },
+      "resources": {
+        "memory": "512Mi",
+        "cpu": "0.5"
+      }
+    }
+  },
+  
+  "networking": {
+    "internal": true,
+    "allowedOrigins": ["*"]
+  },
+  
+  "monitoring": {
+    "enabled": true,
+    "metrics": true,
+    "logs": true
+  }
+}

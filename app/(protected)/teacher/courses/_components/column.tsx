@@ -3,6 +3,7 @@
 import { Course as PrismaCourse } from "@prisma/client"
 import { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, Pencil, Trash2, Calendar, Loader2, BookOpen, Tag, DollarSign, BookCheck } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,30 @@ type CourseWithCategory = {
 }
 
 export const columns: ColumnDef<CourseWithCategory>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+        className="translate-y-[2px]"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        className="translate-y-[2px]"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "title",
     header: ({ column }) => {
@@ -182,9 +207,22 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
     },
     cell: ({ row }) => {
       const date = row.getValue("createdAt")
+      
+      const formatDate = (dateValue: any) => {
+        try {
+          if (!dateValue) return 'N/A';
+          const dateObj = new Date(dateValue);
+          if (isNaN(dateObj.getTime())) return 'Invalid Date';
+          return format(dateObj, 'MMM dd, yyyy');
+        } catch (error) {
+          console.error('Date formatting error:', error);
+          return 'Invalid Date';
+        }
+      };
+      
       return (
         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
-          {date ? format(new Date(date as string), 'MMM dd, yyyy') : 'N/A'}
+          {formatDate(date)}
         </div>
       )
     }

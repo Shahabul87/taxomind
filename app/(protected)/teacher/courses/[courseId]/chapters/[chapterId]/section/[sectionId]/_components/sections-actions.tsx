@@ -94,20 +94,18 @@ export const SectionActions = ({
         <Button
           onClick={onClick}
           disabled={disabled || isLoading}
-          variant="ghost"
+          variant="outline"
           size="sm"
           className={cn(
             "flex items-center gap-x-2",
-            "px-3 py-2 rounded-lg",
             "transition-all duration-200",
-            "border",
             "w-full lg:w-auto",
             "h-9 lg:h-10",
             "text-xs lg:text-sm",
             isPublished
-              ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:text-amber-800 dark:hover:text-amber-200 border-amber-200/20 dark:border-amber-500/20"
-              : "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 hover:text-emerald-800 dark:hover:text-emerald-200 border-emerald-200/20 dark:border-emerald-500/20",
-            disabled && "opacity-75 cursor-not-allowed hover:bg-transparent"
+              ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/40 hover:text-orange-800 dark:hover:text-orange-200 hover:border-orange-300 dark:hover:border-orange-600"
+              : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:text-emerald-800 dark:hover:text-emerald-200 hover:border-emerald-300 dark:hover:border-emerald-600",
+            disabled && "opacity-50 cursor-not-allowed"
           )}
         >
           {isLoading ? (
@@ -133,15 +131,15 @@ export const SectionActions = ({
           <AlertDialogTrigger asChild>
             <Button
               disabled={isLoading}
-              variant="ghost"
+              variant="outline"
               size="sm"
               className={cn(
-                "bg-rose-50 dark:bg-rose-500/10",
-                "text-rose-700 dark:text-rose-300",
-                "hover:bg-rose-100 dark:hover:bg-rose-500/20",
-                "hover:text-rose-800 dark:hover:text-rose-200",
-                "border border-rose-200/20 dark:border-rose-500/20",
-                "rounded-lg",
+                "bg-red-50 dark:bg-red-900/20",
+                "text-red-700 dark:text-red-300",
+                "border-red-200 dark:border-red-700",
+                "hover:bg-red-100 dark:hover:bg-red-900/40",
+                "hover:text-red-800 dark:hover:text-red-200",
+                "hover:border-red-300 dark:hover:border-red-600",
                 "transition-all duration-200",
                 "w-full lg:w-auto",
                 "h-9 lg:h-10",
@@ -158,7 +156,7 @@ export const SectionActions = ({
             "backdrop-blur-sm"
           )}>
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-semibold bg-gradient-to-r from-rose-600 to-pink-600 dark:from-rose-400 dark:to-pink-400 bg-clip-text text-transparent">
+              <AlertDialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                 Delete Section
               </AlertDialogTitle>
               <AlertDialogDescription className="text-gray-600 dark:text-gray-400 text-base">

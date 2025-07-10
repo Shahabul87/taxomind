@@ -1,0 +1,102 @@
+{
+  "name": "alam-lms",
+  "version": 2,
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 60
+    },
+    "app/api/job-market-mapping/**/*.ts": {
+      "maxDuration": 120
+    },
+    "app/api/ml/**/*.ts": {
+      "maxDuration": 180
+    },
+    "app/api/analytics/**/*.ts": {
+      "maxDuration": 90
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/job-market-update",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/analytics-aggregation",
+      "schedule": "0 */1 * * *"
+    },
+    {
+      "path": "/api/cron/ml-model-update",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/health-check",
+      "schedule": "*/5 * * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-Requested-With, Content-Type, Authorization"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/api/health",
+      "destination": "/api/system/health",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/v1/(.*)",
+      "destination": "/api/$1"
+    }
+  ],
+  "env": {
+    "VERCEL_ENV": "@vercel-env",
+    "NODE_ENV": "production"
+  }
+}

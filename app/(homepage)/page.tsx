@@ -1,6 +1,9 @@
 import { getCoursesForHomepage } from "@/actions/get-all-courses";
 import { getPostsForHomepage } from "@/actions/get-all-posts";
-import HomeHeroSection from "./home-hero-section";
+import MindForgeHeroSection from "./mindforge-hero-section";
+import HowItWorksSection from "./how-it-works-section";
+import FeaturesShowcaseSection from "./features-showcase-section";
+import TestimonialsSection from "./testimonials-section";
 import { HomeFooter } from "./HomeFooter";
 import { FeaturedCoursesSection } from "./featured-courses-section";
 import { FeaturedBlogPostsSection } from "./featured-blog-posts-section";
@@ -18,12 +21,14 @@ const Home = async () => {
 
   return (
     <>
-      <HomeHeroSection />
+      <MindForgeHeroSection />
+      <HowItWorksSection />
+      <FeaturesShowcaseSection />
+      <TestimonialsSection />
       <div className="min-h-screen">
         <FeaturedCoursesSection courses={courses} />
         <FeaturedBlogPostsSection posts={posts} />
       </div>
-
       <HomeFooter />
     </>
   );

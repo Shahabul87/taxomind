@@ -64,37 +64,36 @@ export const SectionTitleForm = ({
   };
 
   return (
-    <div className={cn(
-      "p-4 mt-4 rounded-lg",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
-      "transition-all duration-200",
-      "backdrop-blur-sm"
-    )}>
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="flex items-center gap-x-2">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <div className={cn(
-            "p-2 w-fit rounded-lg",
-            "bg-cyan-50 dark:bg-cyan-500/10"
+            "p-2.5 rounded-xl",
+            "bg-gradient-to-br from-blue-100 to-indigo-100",
+            "dark:from-blue-900/50 dark:to-indigo-900/50",
+            "border border-blue-200/50 dark:border-blue-700/50"
           )}>
-            <FileText className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+            <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
-          <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">
-            Section Title
-          </h3>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Section Title
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Give your section a clear, descriptive title
+            </p>
+          </div>
         </div>
         <Button
           onClick={() => setIsEditing(!isEditing)}
           variant="ghost"
           size="sm"
           className={cn(
-            "bg-cyan-50 dark:bg-cyan-500/10",
-            "text-cyan-700 dark:text-cyan-300",
-            "hover:bg-cyan-100 dark:hover:bg-cyan-500/20",
-            "hover:text-cyan-800 dark:hover:text-cyan-200",
-            "w-full sm:w-auto",
-            "justify-center",
+            "bg-blue-50 dark:bg-blue-900/20",
+            "text-blue-700 dark:text-blue-300",
+            "hover:bg-blue-100 dark:hover:bg-blue-900/40",
+            "border border-blue-200/50 dark:border-blue-700/50",
+            "w-full sm:w-auto justify-center",
             "transition-all duration-200"
           )}
         >
@@ -109,16 +108,19 @@ export const SectionTitleForm = ({
         </Button>
       </div>
       {!isEditing && (
-        <motion.p 
+        <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            "text-sm sm:text-base mt-2",
-            "text-gray-700 dark:text-gray-300"
+            "p-4 rounded-lg",
+            "bg-gray-50 dark:bg-gray-900/50",
+            "border border-gray-200/50 dark:border-gray-700/50"
           )}
         >
-          {initialData.title}
-        </motion.p>
+          <p className="text-gray-900 dark:text-gray-100 font-medium">
+            {initialData.title || "No title set"}
+          </p>
+        </motion.div>
       )}
       {isEditing && (
         <Form {...form}>
@@ -137,12 +139,12 @@ export const SectionTitleForm = ({
                       disabled={isSubmitting}
                       placeholder="e.g. 'Introduction to the topic'"
                       className={cn(
-                        "bg-white dark:bg-gray-900/50",
-                        "border-gray-200 dark:border-gray-700/50",
+                        "bg-white dark:bg-gray-900",
+                        "border-gray-200 dark:border-gray-700",
                         "text-gray-900 dark:text-gray-200",
                         "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-                        "focus:ring-cyan-500/20",
-                        "text-sm sm:text-base font-medium",
+                        "focus:ring-2 focus:ring-gray-900 dark:focus:ring-white",
+                        "text-sm sm:text-base",
                         "transition-all duration-200"
                       )}
                     />
@@ -151,21 +153,18 @@ export const SectionTitleForm = ({
                 </FormItem>
               )}
             />
-            <div className="flex items-center gap-x-2">
+            <div className="flex items-center gap-x-2 pt-2">
               <Button
                 disabled={!isValid || isSubmitting}
                 type="submit"
-                variant="ghost"
                 size="sm"
                 className={cn(
-                  "bg-cyan-50 dark:bg-cyan-500/10",
-                  "text-cyan-700 dark:text-cyan-300",
-                  "hover:bg-cyan-100 dark:hover:bg-cyan-500/20",
-                  "hover:text-cyan-800 dark:hover:text-cyan-200",
-                  "border border-cyan-200/20 dark:border-cyan-500/20",
-                  "w-full sm:w-auto",
-                  "justify-center",
+                  "bg-blue-600 dark:bg-blue-500",
+                  "text-white",
+                  "hover:bg-blue-700 dark:hover:bg-blue-600",
+                  "w-full sm:w-auto justify-center",
                   "transition-all duration-200",
+                  "shadow-sm",
                   !isValid && "opacity-50 cursor-not-allowed"
                 )}
               >
@@ -180,7 +179,7 @@ export const SectionTitleForm = ({
                     <span>Saving...</span>
                   </div>
                 ) : (
-                  "Save"
+                  "Save Changes"
                 )}
               </Button>
             </div>

@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition, useState } from "react";
 import { useSession } from "next-auth/react";
-import {SidebarDemo } from "@/components/ui/sidebar-demo";
 
 import { Switch } from "@/components/ui/switch";
 import {
@@ -81,30 +80,33 @@ export const PrivateDetailsSettingsPage = () => {
   }
 
   return (
-    <SidebarDemo>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className={cn(
             "rounded-2xl",
-            "bg-white dark:bg-gray-900",
-            "border border-gray-200 dark:border-gray-700"
+            "bg-white/80 dark:bg-slate-800/80",
+            "backdrop-blur-sm",
+            "border border-slate-200/50 dark:border-slate-700/50",
+            "shadow-xl shadow-slate-900/5 dark:shadow-black/20"
           )}
         >
           {/* Header Section */}
           <div className={cn(
             "px-6 py-8 sm:px-8",
-            "border-b border-gray-200 dark:border-gray-700"
+            "bg-gradient-to-r from-blue-50/50 to-indigo-50/30 dark:from-blue-900/30 dark:to-indigo-900/20",
+            "border-b border-slate-200/50 dark:border-slate-700/50",
+            "backdrop-blur-sm"
           )}>
             <div className="flex items-center gap-4 mb-6">
-              <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                <Settings className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <div className="h-12 w-12 rounded-full bg-blue-100/80 dark:bg-blue-900/40 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                <Settings className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Account Settings</h1>
-                <p className="text-gray-500 dark:text-gray-400">Manage your account preferences</p>
+                <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Account Settings</h1>
+                <p className="text-slate-600 dark:text-slate-400">Manage your account preferences and security</p>
               </div>
             </div>
           </div>
@@ -112,32 +114,40 @@ export const PrivateDetailsSettingsPage = () => {
           {/* Form Section */}
           <div className="p-6 sm:p-8">
             <Form {...form}>
-              <form className="space-y-8 max-w-3xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="grid gap-8 md:grid-cols-2">
+              <form className="space-y-8 max-w-4xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
+                <div className="grid gap-6 lg:grid-cols-2">
                   {/* Basic Info Section */}
                   <div className="space-y-6">
                     <div className={cn(
                       "p-6 rounded-xl",
-                      "bg-gray-50 dark:bg-gray-800/50"
+                      "bg-white/60 dark:bg-slate-800/60",
+                      "backdrop-blur-sm",
+                      "border border-slate-200/30 dark:border-slate-700/30",
+                      "shadow-lg shadow-slate-900/5 dark:shadow-black/10",
+                      "hover:bg-white/70 dark:hover:bg-slate-800/70",
+                      "transition-all duration-300"
                     )}>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h3>
+                      <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Basic Information</h3>
                       <div className="space-y-4">
                         <FormField
                           control={form.control}
                           name="name"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-gray-700 dark:text-gray-300">Name</FormLabel>
+                              <FormLabel className="text-slate-700 dark:text-slate-300">Name</FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
                                   placeholder="John Doe"
                                   disabled={isPending}
                                   className={cn(
-                                    "bg-white dark:bg-gray-900/50",
-                                    "border-gray-200 dark:border-gray-700",
-                                    "text-gray-900 dark:text-white",
-                                    "placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                                    "bg-white/50 dark:bg-slate-900/50",
+                                    "backdrop-blur-sm",
+                                    "border-slate-200/50 dark:border-slate-700/50",
+                                    "text-slate-900 dark:text-slate-100",
+                                    "placeholder:text-slate-500 dark:placeholder:text-slate-400",
+                                    "focus:bg-white/70 dark:focus:bg-slate-900/70",
+                                    "transition-all duration-300"
                                   )}
                                 />
                               </FormControl>
@@ -151,7 +161,7 @@ export const PrivateDetailsSettingsPage = () => {
                             name="email"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-gray-700 dark:text-gray-300">Email</FormLabel>
+                                <FormLabel className="text-slate-700 dark:text-slate-300">Email</FormLabel>
                                 <FormControl>
                                   <Input
                                     {...field}
@@ -159,10 +169,13 @@ export const PrivateDetailsSettingsPage = () => {
                                     type="email"
                                     disabled={isPending}
                                     className={cn(
-                                      "bg-white dark:bg-gray-900/50",
-                                      "border-gray-200 dark:border-gray-700",
-                                      "text-gray-900 dark:text-white",
-                                      "placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                                      "bg-white/50 dark:bg-slate-900/50",
+                                      "backdrop-blur-sm",
+                                      "border-slate-200/50 dark:border-slate-700/50",
+                                      "text-slate-900 dark:text-slate-100",
+                                      "placeholder:text-slate-500 dark:placeholder:text-slate-400",
+                                      "focus:bg-white/70 dark:focus:bg-slate-900/70",
+                                      "transition-all duration-300"
                                     )}
                                   />
                                 </FormControl>
@@ -179,9 +192,14 @@ export const PrivateDetailsSettingsPage = () => {
                   <div className="space-y-6">
                     <div className={cn(
                       "p-6 rounded-xl",
-                      "bg-gray-50 dark:bg-gray-800/50"
+                      "bg-white/60 dark:bg-slate-800/60",
+                      "backdrop-blur-sm",
+                      "border border-slate-200/30 dark:border-slate-700/30",
+                      "shadow-lg shadow-slate-900/5 dark:shadow-black/10",
+                      "hover:bg-white/70 dark:hover:bg-slate-800/70",
+                      "transition-all duration-300"
                     )}>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Security</h3>
+                      <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Security</h3>
                       <div className="space-y-4">
                         {user?.isOAuth === false && (
                           <>
@@ -190,7 +208,7 @@ export const PrivateDetailsSettingsPage = () => {
                               name="password"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-gray-700 dark:text-gray-300">Current Password</FormLabel>
+                                  <FormLabel className="text-slate-700 dark:text-slate-300">Current Password</FormLabel>
                                   <FormControl>
                                     <Input
                                       {...field}
@@ -198,10 +216,13 @@ export const PrivateDetailsSettingsPage = () => {
                                       type="password"
                                       disabled={isPending}
                                       className={cn(
-                                        "bg-white dark:bg-gray-900/50",
-                                        "border-gray-200 dark:border-gray-700",
-                                        "text-gray-900 dark:text-white",
-                                        "placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                                        "bg-white/50 dark:bg-slate-900/50",
+                                        "backdrop-blur-sm",
+                                        "border-slate-200/50 dark:border-slate-700/50",
+                                        "text-slate-900 dark:text-slate-100",
+                                        "placeholder:text-slate-500 dark:placeholder:text-slate-400",
+                                        "focus:bg-white/70 dark:focus:bg-slate-900/70",
+                                        "transition-all duration-300"
                                       )}
                                     />
                                   </FormControl>
@@ -214,7 +235,7 @@ export const PrivateDetailsSettingsPage = () => {
                               name="newPassword"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-gray-700 dark:text-gray-300">New Password</FormLabel>
+                                  <FormLabel className="text-slate-700 dark:text-slate-300">New Password</FormLabel>
                                   <FormControl>
                                     <Input
                                       {...field}
@@ -222,10 +243,13 @@ export const PrivateDetailsSettingsPage = () => {
                                       type="password"
                                       disabled={isPending}
                                       className={cn(
-                                        "bg-white dark:bg-gray-900/50",
-                                        "border-gray-200 dark:border-gray-700",
-                                        "text-gray-900 dark:text-white",
-                                        "placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                                        "bg-white/50 dark:bg-slate-900/50",
+                                        "backdrop-blur-sm",
+                                        "border-slate-200/50 dark:border-slate-700/50",
+                                        "text-slate-900 dark:text-slate-100",
+                                        "placeholder:text-slate-500 dark:placeholder:text-slate-400",
+                                        "focus:bg-white/70 dark:focus:bg-slate-900/70",
+                                        "transition-all duration-300"
                                       )}
                                     />
                                   </FormControl>
@@ -243,10 +267,15 @@ export const PrivateDetailsSettingsPage = () => {
                 {/* Role & 2FA Section */}
                 <div className={cn(
                   "p-6 rounded-xl",
-                  "bg-gray-50 dark:bg-gray-800/50"
+                  "bg-white/60 dark:bg-slate-800/60",
+                  "backdrop-blur-sm",
+                  "border border-slate-200/30 dark:border-slate-700/30",
+                  "shadow-lg shadow-slate-900/5 dark:shadow-black/10",
+                  "hover:bg-white/70 dark:hover:bg-slate-800/70",
+                  "transition-all duration-300"
                 )}>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Account Preferences</h3>
-                  <div className="grid gap-6 md:grid-cols-2">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Account Preferences</h3>
+                  <div className="grid gap-6 sm:grid-cols-2">
                     {/* Only show Role selection for admin users */}
                     {user?.role === "ADMIN" && (
                       <FormField
@@ -254,7 +283,7 @@ export const PrivateDetailsSettingsPage = () => {
                         name="role"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-gray-700 dark:text-gray-300">Account Role</FormLabel>
+                            <FormLabel className="text-slate-700 dark:text-slate-300">Account Role</FormLabel>
                             <Select
                               disabled={isPending}
                               onValueChange={field.onChange}
@@ -262,19 +291,22 @@ export const PrivateDetailsSettingsPage = () => {
                             >
                               <FormControl>
                                 <SelectTrigger className={cn(
-                                  "bg-white dark:bg-gray-900/50",
-                                  "border-gray-200 dark:border-gray-700",
-                                  "text-gray-900 dark:text-white"
+                                  "bg-white/50 dark:bg-slate-900/50",
+                                  "backdrop-blur-sm",
+                                  "border-slate-200/50 dark:border-slate-700/50",
+                                  "text-slate-900 dark:text-slate-100",
+                                  "focus:bg-white/70 dark:focus:bg-slate-900/70",
+                                  "transition-all duration-300"
                                 )}>
                                   <SelectValue placeholder="Select a role" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+                              <SelectContent className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50">
                                 {Object.values(UserRole).map((role) => (
                                   <SelectItem 
                                     key={role} 
                                     value={role}
-                                    className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    className="text-slate-900 dark:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/80"
                                   >
                                     {role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()}
                                   </SelectItem>
@@ -295,12 +327,15 @@ export const PrivateDetailsSettingsPage = () => {
                         render={({ field }) => (
                           <FormItem className={cn(
                             "flex items-center justify-between p-4 rounded-lg",
-                            "bg-white dark:bg-gray-900/50",
-                            "border border-gray-200 dark:border-gray-700"
+                            "bg-white/50 dark:bg-slate-900/50",
+                            "backdrop-blur-sm",
+                            "border border-slate-200/50 dark:border-slate-700/50",
+                            "hover:bg-white/60 dark:hover:bg-slate-900/60",
+                            "transition-all duration-300"
                           )}>
                             <div>
-                              <FormLabel className="text-gray-700 dark:text-gray-300">Two Factor Authentication</FormLabel>
-                              <FormDescription className="text-gray-500 dark:text-gray-400">
+                              <FormLabel className="text-slate-700 dark:text-slate-300">Two Factor Authentication</FormLabel>
+                              <FormDescription className="text-slate-500 dark:text-slate-400">
                                 Add an extra layer of security to your account
                               </FormDescription>
                             </div>
@@ -330,21 +365,27 @@ export const PrivateDetailsSettingsPage = () => {
                     disabled={isPending}
                     type="submit"
                     className={cn(
-                      "px-8",
-                      "bg-purple-600 hover:bg-purple-700",
-                      "dark:bg-purple-500 dark:hover:bg-purple-600",
-                      "text-white"
+                      "px-8 py-3",
+                      "bg-gradient-to-r from-blue-600 to-indigo-600",
+                      "hover:from-blue-700 hover:to-indigo-700",
+                      "dark:from-blue-500 dark:to-indigo-500",
+                      "dark:hover:from-blue-600 dark:hover:to-indigo-600",
+                      "text-white font-medium",
+                      "backdrop-blur-sm shadow-lg",
+                      "border border-blue-200/20 dark:border-blue-700/30",
+                      "hover:shadow-xl hover:scale-105",
+                      "transition-all duration-300",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
                     )}
                   >
-                    Save Changes
+                    {isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </form>
             </Form>
           </div>
         </motion.div>
-      </div>
-    </SidebarDemo>
+    </div>
   );
 }
  

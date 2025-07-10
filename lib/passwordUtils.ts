@@ -111,7 +111,8 @@ const verifyBcryptHash = async (plainPassword: string, hashedPassword: string): 
 
     // Try to import bcryptjs only if available
     try {
-      const bcrypt = require('bcryptjs');
+      // Use dynamic import instead of require to avoid exports error
+      const bcrypt = await import('bcryptjs');
       const isValid = await bcrypt.compare(plainPassword, hashedPassword);
       
       if (isValid) {

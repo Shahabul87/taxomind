@@ -4,7 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, ListFilter, Plus, Check, Tag, ArrowRight, Search, Hash, Compass, X, Zap } from "lucide-react";
+import { Pencil, ListFilter, Plus, Check, Tag, ArrowRight, Search, Hash, Compass, X, Zap, Lightbulb } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -135,12 +135,21 @@ interface CategoryFormProps {
 
 // Form schema with both select and custom options
 const formSchema = z.object({
-  categoryId: z.string().min(1, {
-    message: "Category is required",
-  }),
+  categoryId: z.string().optional(),
   newCategory: z.string().optional(),
   categoryType: z.enum(["existing", "new"]),
   searchQuery: z.string().optional(),
+}).refine((data) => {
+  if (data.categoryType === "existing") {
+    return data.categoryId && data.categoryId.length > 0;
+  }
+  if (data.categoryType === "new") {
+    return data.newCategory && data.newCategory.length > 0;
+  }
+  return false;
+}, {
+  message: "Please select a category or enter a new category name",
+  path: ["categoryId"],
 });
 
 export const CategoryForm = ({
@@ -206,6 +215,7 @@ export const CategoryForm = ({
       categoryType: "existing",
       searchQuery: "",
     },
+    mode: "onChange", // Enable real-time validation
   });
 
   const { isSubmitting, isValid } = form.formState;
@@ -240,9 +250,13 @@ export const CategoryForm = ({
     console.log("Category selected:", option);
     form.setValue("categoryId", option.value);
     form.setValue("categoryType", "existing");
-    // Log form state after selection
+    form.setValue("newCategory", ""); // Clear new category when selecting existing
+    // Trigger validation
+    form.trigger();
     console.log("Form state after category selection:", form.getValues());
+    console.log("Form valid after selection:", form.formState.isValid);
   };
+
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -427,7 +441,19 @@ export const CategoryForm = ({
                 >
                   <Tabs 
                     defaultValue="existing" 
-                    onValueChange={(value) => form.setValue("categoryType", value as "existing" | "new")}
+                    onValueChange={(value) => {
+                      form.setValue("categoryType", value as "existing" | "new");
+                      // Clear the other field when switching tabs
+                      if (value === "existing") {
+                        form.setValue("newCategory", "");
+                      } else {
+                        form.setValue("categoryId", "");
+                      }
+                      // Trigger validation
+                      form.trigger();
+                      console.log("Tab changed to:", value);
+                      console.log("Form state after tab change:", form.getValues());
+                    }}
                     className="w-full"
                   >
                     <TabsList className="grid grid-cols-2 bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -456,36 +482,91 @@ export const CategoryForm = ({
                               <Input
                                 {...field}
                                 placeholder="Search for a category..."
-                                className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 pl-10 h-11 rounded-lg"
+                                className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 pl-10 pr-4 h-11 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                                 ref={inputRef}
                               />
+                              {field.value && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    field.onChange("");
+                                    setSearchTerm("");
+                                  }}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                                >
+                                  <X className="h-3 w-3 text-gray-400" />
+                                </button>
+                              )}
                             </div>
                           )}
                         />
+                        {searchQuery && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                            <span>Showing results for: </span>
+                            <Badge variant="outline" className="text-xs px-2 py-0.5">
+                              {searchQuery}
+                            </Badge>
+                            <span>({filteredOptions.length} found)</span>
+                          </p>
+                        )}
                       </div>
                       
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {Object.keys(CATEGORIES_BY_GROUP).map(group => (
-                          <button
-                            key={group}
-                            type="button"
-                            className={cn(
-                              "px-3 py-1.5 text-xs rounded-full font-medium transition-all",
-                              selectedGroup === group
-                                ? "bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-indigo-600 dark:to-purple-600 text-white shadow-sm" 
-                                : "bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/80"
-                            )}
-                            onClick={() => {
-                              setSelectedGroup(prev => prev === group ? null : group);
-                              form.setValue("searchQuery", "");
-                            }}
-                          >
-                            {group}
-                          </button>
-                        ))}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <Tag className="h-4 w-4" />
+                            Browse by Category
+                          </h4>
+                          {selectedGroup && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedGroup(null);
+                                form.setValue("searchQuery", "");
+                              }}
+                              className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Clear filter
+                            </Button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.keys(CATEGORIES_BY_GROUP).map(group => (
+                            <button
+                              key={group}
+                              type="button"
+                              className={cn(
+                                "px-3 py-1.5 text-xs rounded-full font-medium transition-all",
+                                selectedGroup === group
+                                  ? "bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-indigo-600 dark:to-purple-600 text-white shadow-sm" 
+                                  : "bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/80 hover:border-indigo-300 dark:hover:border-indigo-600"
+                              )}
+                              onClick={() => {
+                                setSelectedGroup(prev => prev === group ? null : group);
+                                form.setValue("searchQuery", "");
+                              }}
+                            >
+                              {group}
+                              {selectedGroup === group && <Check className="h-3 w-3 ml-1" />}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       
                       <div className="bg-white dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-700 p-4 h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                        {selectedGroup && (
+                          <div className="mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                            <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                              {selectedGroup} Categories
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {CATEGORIES_BY_GROUP[selectedGroup as keyof typeof CATEGORIES_BY_GROUP]?.length || 0} options available
+                            </p>
+                          </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                           {filteredOptions.length > 0 ? (
                             filteredOptions.map((option) => (
@@ -530,9 +611,36 @@ export const CategoryForm = ({
                                 <Search className="h-8 w-8 text-gray-400 dark:text-gray-500" />
                               </div>
                               <p className="text-gray-500 dark:text-gray-400 font-medium">No categories found</p>
-                              {searchQuery && (
+                              {searchQuery ? (
+                                <div className="space-y-2 mt-2">
+                                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                                    No results for "{searchQuery}"
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      form.setValue("newCategory", searchQuery);
+                                      form.setValue("categoryType", "new");
+                                      form.setValue("categoryId", ""); // Clear existing category selection
+                                      // Trigger validation
+                                      form.trigger();
+                                      console.log("Created new category from search:", searchQuery);
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Create "{searchQuery}" as new category
+                                  </Button>
+                                </div>
+                              ) : selectedGroup ? (
                                 <p className="text-xs mt-1 text-gray-400 dark:text-gray-500">
-                                  Try a different search term or create a new category
+                                  No categories in {selectedGroup} group
+                                </p>
+                              ) : (
+                                <p className="text-xs mt-1 text-gray-400 dark:text-gray-500">
+                                  Search or browse categories above
                                 </p>
                               )}
                             </div>
@@ -571,26 +679,54 @@ export const CategoryForm = ({
                                 <div className="relative">
                                   <Input
                                     disabled={isSubmitting || categoryType !== "new"}
-                                    placeholder="e.g. Data Visualization, UI Design..."
+                                    placeholder="e.g. Data Visualization, UI Design, Machine Learning..."
                                     {...field}
+                                    onChange={(e) => {
+                                      field.onChange(e);
+                                      // Trigger validation on change
+                                      setTimeout(() => form.trigger(), 100);
+                                    }}
                                     className={cn(
                                       "bg-white dark:bg-gray-900/50",
                                       "border-gray-200 dark:border-gray-700",
                                       "text-gray-900 dark:text-gray-200",
-                                      "focus-visible:ring-indigo-500",
+                                      "focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500",
                                       "shadow-sm",
                                       "h-11 rounded-lg",
-                                      "pl-4 pr-12"
+                                      "pl-4 pr-12",
+                                      "transition-all"
                                     )}
                                   />
                                   <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-indigo-100 dark:bg-indigo-900/20 rounded-full p-1.5">
                                     <Zap className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                                   </div>
+                                  {field.value && (
+                                    <div className="absolute right-12 top-1/2 -translate-y-1/2">
+                                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                                        New
+                                      </Badge>
+                                    </div>
+                                  )}
                                 </div>
                               </FormControl>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                Your new category will be available for all your courses and visible to students browsing courses.
-                              </p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                <div className="flex items-start gap-2 text-green-600 dark:text-green-400">
+                                  <Check className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <span>Available for all your courses</span>
+                                </div>
+                                <div className="flex items-start gap-2 text-green-600 dark:text-green-400">
+                                  <Check className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <span>Visible to students browsing</span>
+                                </div>
+                                <div className="flex items-start gap-2 text-green-600 dark:text-green-400">
+                                  <Check className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <span>Helps with course discovery</span>
+                                </div>
+                                <div className="flex items-start gap-2 text-green-600 dark:text-green-400">
+                                  <Check className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <span>Better content organization</span>
+                                </div>
+                              </div>
                             </div>
                             <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
                           </FormItem>
@@ -600,15 +736,18 @@ export const CategoryForm = ({
                       <div className="bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-900/10 dark:to-purple-900/10 rounded-lg p-4 border border-indigo-100 dark:border-indigo-800/20">
                         <div className="flex items-start gap-3">
                           <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm flex-shrink-0 mt-0.5">
-                            <Tag className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                            <Lightbulb className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                           </div>
                           <div>
                             <h4 className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
-                              Why create a custom category?
+                              💡 Category Naming Tips
                             </h4>
-                            <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-1">
-                              Custom categories help organize your courses better and make them easier to discover by students looking for specific topics.
-                            </p>
+                            <ul className="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-2 space-y-1">
+                              <li>• Be specific but not overly narrow</li>
+                              <li>• Use industry-standard terms when possible</li>
+                              <li>• Consider how students will search for your course</li>
+                              <li>• Avoid special characters and keep it concise</li>
+                            </ul>
                           </div>
                         </div>
                       </div>
@@ -675,11 +814,24 @@ export const CategoryForm = ({
                     <Button
                       disabled={
                         isLoading || 
+                        !isValid ||
                         (categoryType === "existing" && !form.getValues("categoryId")) ||
                         (categoryType === "new" && !form.getValues("newCategory"))
                       }
                       type="submit"
-                      onClick={() => console.log("Save button clicked, form state:", form.getValues(), "isValid:", form.formState.isValid)}
+                      onClick={() => {
+                        console.log("=== SAVE BUTTON DEBUG ===");
+                        console.log("Form values:", form.getValues());
+                        console.log("Form isValid:", form.formState.isValid);
+                        console.log("Form errors:", form.formState.errors);
+                        console.log("Category type:", categoryType);
+                        console.log("isLoading:", isLoading);
+                        console.log("Button disabled conditions:");
+                        console.log("- isLoading:", isLoading);
+                        console.log("- !isValid:", !isValid);
+                        console.log("- existing + no categoryId:", categoryType === "existing" && !form.getValues("categoryId"));
+                        console.log("- new + no newCategory:", categoryType === "new" && !form.getValues("newCategory"));
+                      }}
                       className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-md hover:shadow-lg transition-all duration-200 rounded-lg"
                     >
                       {isLoading ? (

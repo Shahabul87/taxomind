@@ -1,0 +1,62 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
+import { ContentVersioningService } from "@/lib/content-versioning";
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { templateId: string } }
+) {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { contentType, contentId, customizations = {} } = body;
+
+    if (!contentType || !contentId) {
+      return NextResponse.json(
+        { error: "Content type and content ID are required" },
+        { status: 400 }
+      );
+    }
+
+    // Apply the template using the versioning service
+    const version = await ContentVersioningService.applyTemplate(
+      params.templateId,
+      contentType,
+      contentId,
+      customizations
+    );
+
+    // Get the template for response
+    const template = await db.contentTemplate.findUnique({
+      where: { id: params.templateId },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true
+          }
+        }
+      }
+    });
+
+    return NextResponse.json({
+      version,
+      template,
+      message: "Template applied successfully"
+    });
+
+  } catch (error) {
+    console.error("Template apply error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to apply template" },
+      { status: 500 }
+    );
+  }
+}

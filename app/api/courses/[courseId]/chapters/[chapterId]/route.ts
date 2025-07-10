@@ -64,16 +64,16 @@ export async function DELETE(
       }
     });
 
-    // Update the positions of the remaining chapters
-    for (const item of remainingChapters) {
-      await db.chapter.update({
-        where: {
-          id: item.id
-        },
-        data: {
-          position: item.position - 1
-        }
-      });
+    // Optimize: Bulk update chapter positions instead of individual updates
+    if (remainingChapters.length > 0) {
+      const updatePromises = remainingChapters.map((item) =>
+        db.chapter.update({
+          where: { id: item.id },
+          data: { position: item.position - 1 }
+        })
+      );
+      
+      await db.$transaction(updatePromises);
     }
 
     return NextResponse.json(deletedChapter);

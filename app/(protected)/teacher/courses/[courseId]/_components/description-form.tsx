@@ -4,9 +4,11 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil } from "lucide-react";
+import { Pencil, Sparkles, Loader2 } from "lucide-react";
+import { AICourseAssistant } from "./ai-course-assistant";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +24,7 @@ import TipTapEditor from "@/components/tiptap/editor";
 import ContentViewer from "@/components/tiptap/content-viewer";
 
 interface DescriptionFormProps {
-  initialData: Course;
+  initialData: Course & { title?: string };
   courseId: string;
 }
 
@@ -38,6 +40,7 @@ export const DescriptionForm = ({
 }: DescriptionFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   // Prevent hydration issues
@@ -57,6 +60,15 @@ export const DescriptionForm = ({
   });
 
   const { isValid } = form.formState;
+
+  const handleAIGenerate = (content: string) => {
+    form.setValue("description", content);
+    form.trigger("description"); // Trigger validation
+    if (!isEditing) {
+      setIsEditing(true);
+    }
+    toast.success("Description generated! You can edit it before saving.");
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -122,21 +134,56 @@ export const DescriptionForm = ({
     )}>
       <div className="font-medium flex items-center justify-between">
         Course description
-        <Button 
-          onClick={toggleEdit} 
-          variant="ghost"
-          type="button"
-          className="text-xs h-8"
-        >
-          {isEditing ? (
-            <>Cancel</>
-          ) : (
-            <>
-              <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              Edit
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <ErrorBoundary
+            fallback={
+              <Button 
+                variant="outline"
+                type="button"
+                size="sm"
+                disabled
+                className="text-xs h-8"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                AI Error
+              </Button>
+            }
+          >
+            <AICourseAssistant
+              courseTitle={initialData.title || ""}
+              type="description"
+              onGenerate={handleAIGenerate}
+              disabled={!initialData.title}
+              trigger={
+                <Button 
+                  variant="outline"
+                  type="button"
+                  size="sm"
+                  disabled={!initialData.title}
+                  className="text-xs h-8"
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Generate with AI
+                </Button>
+              }
+            />
+          </ErrorBoundary>
+          <Button 
+            onClick={toggleEdit} 
+            variant="ghost"
+            type="button"
+            className="text-xs h-8"
+          >
+            {isEditing ? (
+              <>Cancel</>
+            ) : (
+              <>
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                Edit
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       {!isEditing ? (
         <div className={cn(

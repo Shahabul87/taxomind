@@ -1,7 +1,13 @@
 import type { Metadata } from 'next'
-import { Inter, DM_Sans } from 'next/font/google'
+import { DM_Sans } from 'next/font/google'
 import './globals.css'
 import clsx from "clsx";
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+});
+
 import { auth } from '@/auth'
 import { ConfettiProvider } from '@/components/providers/confetti-provider';
 import { Providers } from "@/components/providers";
@@ -15,16 +21,28 @@ import { Suspense } from 'react';
 // Force dynamic rendering for the entire app
 export const dynamic = 'force-dynamic';
 
-const inter = Inter({ subsets: ['latin'] })
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
-});
-
 export const metadata: Metadata = {
-  title: 'bdgenai',
-  description: 'Learn with Shahabul Alam',
+  title: 'MindForge - Intelligent Learning Platform',
+  description: 'Transform your learning journey with AI-powered education. Adaptive courses, real-time analytics, and personalized learning paths.',
+  keywords: 'AI learning, adaptive education, intelligent tutoring, online courses, personalized learning, educational technology',
+  authors: [{ name: 'MindForge Team' }],
+  openGraph: {
+    title: 'MindForge - Where Minds Are Forged Through Intelligence',
+    description: 'Experience the future of education with our AI-powered learning platform',
+    type: 'website',
+    siteName: 'MindForge',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MindForge - Intelligent Learning Platform',
+    description: 'Transform your learning journey with AI-powered education',
+  },
+  robots: 'index, follow',
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 // Header Loading Fallback Component
@@ -37,7 +55,7 @@ function HeaderFallback() {
           <div className="flex items-center space-x-2 pl-8 md:pl-0">
             <div className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 bg-purple-400 rounded animate-pulse" />
             <span className="text-sm sm:text-base md:text-lg lg:text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text">
-              bdGenAI
+              MindForge
             </span>
           </div>
           
@@ -106,15 +124,11 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link 
-          rel="preload" 
-          href="/_next/static/css/app/layout.css" 
-          as="style"
-        />
       </head>
       <body className={clsx(
         dmSans.className,
-        "min-h-screen transition-colors duration-300"
+        "min-h-screen transition-colors duration-300",
+        "bg-background text-foreground"
       )}>
         <Providers session={session}>
           <ConfettiProvider />

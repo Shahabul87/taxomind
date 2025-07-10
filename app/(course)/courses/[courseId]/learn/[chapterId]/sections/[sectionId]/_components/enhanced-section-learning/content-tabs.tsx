@@ -11,7 +11,8 @@ import {
   Lightbulb,
   Play,
   StickyNote,
-  GraduationCap
+  GraduationCap,
+  Brain
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,15 +24,19 @@ import { ArticleContent } from "./article-content";
 import { CodeContent } from "./code-content";
 import { NotesContent } from "./notes-content";
 import { ExamsContent } from "./exams-content";
+import { AdaptiveAssessmentContent } from "./adaptive-assessment-content";
+import { ContextAwareTutor } from "./context-aware-tutor";
 
 type ContentSubTab = "videos" | "blogs" | "articles" | "code";
 
 interface ContentTabsProps {
   currentSection: Section;
-  activeTab: "content" | "notes" | "discussion" | "exams";
-  setActiveTab: (tab: "content" | "notes" | "discussion" | "exams") => void;
+  activeTab: "content" | "notes" | "discussion" | "exams" | "adaptive" | "tutor";
+  setActiveTab: (tab: "content" | "notes" | "discussion" | "exams" | "adaptive" | "tutor") => void;
   courseId: string;
   chapterId: string;
+  courseTitle?: string;
+  chapterTitle?: string;
 }
 
 export const ContentTabs = ({
@@ -40,6 +45,8 @@ export const ContentTabs = ({
   setActiveTab,
   courseId,
   chapterId,
+  courseTitle,
+  chapterTitle,
 }: ContentTabsProps) => {
   const [activeContentTab, setActiveContentTab] = useState<ContentSubTab>("videos");
 
@@ -100,6 +107,8 @@ export const ContentTabs = ({
             { id: "content", label: "Learning Materials", icon: BookOpen },
             { id: "notes", label: "My Notes", icon: StickyNote },
             { id: "exams", label: "Exams", icon: GraduationCap },
+            { id: "adaptive", label: "Adaptive Assessment", icon: Brain },
+            { id: "tutor", label: "AI Tutor", icon: MessageCircle },
             { id: "discussion", label: "Discussion", icon: MessageCircle },
           ].map((tab) => (
             <button
@@ -257,6 +266,39 @@ export const ContentTabs = ({
                 sectionId={currentSection.id}
                 courseId={courseId}
                 chapterId={chapterId}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === "adaptive" && (
+            <motion.div
+              key="adaptive"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <AdaptiveAssessmentContent 
+                sectionId={currentSection.id}
+                courseId={courseId}
+                chapterId={chapterId}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === "tutor" && (
+            <motion.div
+              key="tutor"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <ContextAwareTutor 
+                courseId={courseId}
+                chapterId={chapterId}
+                sectionId={currentSection.id}
+                sectionTitle={currentSection.title}
+                chapterTitle={chapterTitle || ""}
+                courseTitle={courseTitle || ""}
               />
             </motion.div>
           )}

@@ -2,6 +2,8 @@ import { Category, Course } from "@prisma/client";
 
 import { getProgress } from "@/actions/get-progress";
 import { db } from "@/lib/db";
+import { BatchQueryOptimizer } from "@/lib/database/query-optimizer";
+import { ServerActionCache } from "@/lib/redis/server-action-cache";
 
 type CourseWithProgressWithCategory = Course & {
   category: Category | null;
@@ -21,6 +23,25 @@ export const getCourses = async ({
   categoryId
 }: GetCourses): Promise<CourseWithProgressWithCategory[]> => {
   console.log(title)
+  
+  // Use cache for course listing
+  const cacheResult = await ServerActionCache.getCourseList(
+    userId,
+    { title, categoryId },
+    async () => {
+      return await fetchCoursesFromDatabase(userId, title, categoryId);
+    }
+  );
+
+  return cacheResult.data;
+};
+
+// Extracted database logic for caching
+async function fetchCoursesFromDatabase(
+  userId: string,
+  title?: string,
+  categoryId?: string
+): Promise<CourseWithProgressWithCategory[]> {
   try {
     const courses = await db.course.findMany({
       where: {
@@ -40,7 +61,7 @@ export const getCourses = async ({
             id: true,
           }
         },
-        purchases: {
+        enrollments: {
           where: {
             userId,
           }
@@ -51,23 +72,34 @@ export const getCourses = async ({
       }
     });
 
-    const coursesWithProgress: CourseWithProgressWithCategory[] = await Promise.all(
-      courses.map(async course => {
-        if (course.purchases.length === 0) {
-          return {
-            ...course,
-            progress: null,
-          }
-        }
+    // Optimize: Batch load progress for all courses instead of individual calls
+    const courseIds = courses.map(course => course.id);
+    const progressMap = await BatchQueryOptimizer.batchLoadUserProgress(userId, courseIds);
 
-        const progressPercentage = await getProgress(userId, course.id);
-
+    const coursesWithProgress: CourseWithProgressWithCategory[] = courses.map(course => {
+      if (course.enrollments.length === 0) {
         return {
           ...course,
-          progress: progressPercentage,
-        };
-      })
-    );
+          progress: null,
+        }
+      }
+
+      const progressData = progressMap.get(course.id);
+      let progressPercentage = 0;
+
+      if (progressData?.courseProgress) {
+        progressPercentage = progressData.courseProgress.progressPercentage || 0;
+      } else if (progressData?.chapterProgress && course.chapters.length > 0) {
+        // Calculate progress from chapter completions if course progress not available
+        const completedChapters = progressData.chapterProgress.filter((cp: any) => cp.isCompleted).length;
+        progressPercentage = (completedChapters / course.chapters.length) * 100;
+      }
+
+      return {
+        ...course,
+        progress: Math.round(progressPercentage),
+      };
+    });
 
     return coursesWithProgress;
   } catch (error) {

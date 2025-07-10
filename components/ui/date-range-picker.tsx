@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
+import { format } from "date-fns";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,22 +14,27 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface DateRangePickerProps {
-  className?: string;
+interface DatePickerWithRangeProps {
   value?: DateRange;
-  onChange?: (date: DateRange | undefined) => void;
+  onChange?: (range: DateRange | undefined) => void;
+  className?: string;
 }
 
-export function DateRangePicker({
-  className,
+export function DatePickerWithRange({
   value,
   onChange,
-}: DateRangePickerProps) {
+  className,
+}: DatePickerWithRangeProps) {
   const [date, setDate] = React.useState<DateRange | undefined>(value);
 
   React.useEffect(() => {
     setDate(value);
   }, [value]);
+
+  const handleSelect = (selectedDate: DateRange | undefined) => {
+    setDate(selectedDate);
+    onChange?.(selectedDate);
+  };
 
   return (
     <div className={cn("grid gap-2", className)}>
@@ -39,7 +44,7 @@ export function DateRangePicker({
             id="date"
             variant={"outline"}
             className={cn(
-              "w-full justify-start text-left font-normal",
+              "w-[280px] justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
           >
@@ -64,14 +69,14 @@ export function DateRangePicker({
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={(selectedDate) => {
-              setDate(selectedDate);
-              onChange?.(selectedDate);
-            }}
+            onSelect={handleSelect}
             numberOfMonths={2}
           />
         </PopoverContent>
       </Popover>
     </div>
   );
-} 
+}
+
+// Export alias for backward compatibility
+export const DateRangePicker = DatePickerWithRange;

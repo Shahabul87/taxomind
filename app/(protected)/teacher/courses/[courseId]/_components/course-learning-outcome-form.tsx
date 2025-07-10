@@ -4,7 +4,8 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, GraduationCap, Loader2 } from "lucide-react";
+import { Pencil, GraduationCap, Loader2, Sparkles } from "lucide-react";
+import { AICourseAssistant } from "./ai-course-assistant";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -24,6 +25,8 @@ import ContentViewer from "@/components/tiptap/content-viewer";
 interface CourseLearningOutcomeFormProps {
   initialData: {
     whatYouWillLearn?: string[] | null;
+    title?: string;
+    description?: string;
   };
   courseId: string;
 }
@@ -42,6 +45,7 @@ export const CourseLearningOutcomeForm = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [truncatedContent, setTruncatedContent] = useState("");
   const [isMounted, setIsMounted] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
 
   // Convert array to HTML string for display
@@ -82,6 +86,15 @@ export const CourseLearningOutcomeForm = ({
   });
 
   const { isSubmitting, isValid } = form.formState;
+
+  const handleAIGenerate = (content: string) => {
+    form.setValue("whatYouWillLearn", content);
+    form.trigger("whatYouWillLearn"); // Trigger validation
+    if (!isEditing) {
+      setIsEditing(true);
+    }
+    toast.success("Learning objectives generated! You can edit them before saving.");
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -214,28 +227,57 @@ export const CourseLearningOutcomeForm = ({
             </div>
           )}
         </div>
-        <Button
-          onClick={() => setIsEditing(!isEditing)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "text-purple-700 dark:text-purple-300",
-            "hover:text-purple-800 dark:hover:text-purple-200",
-            "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-            "w-full sm:w-auto",
-            "justify-center",
-            "transition-all duration-200"
-          )}
-        >
-          {isEditing ? (
-            <span className="text-rose-700 dark:text-rose-300">Cancel</span>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Pencil className="h-4 w-4" />
-              <span>Edit</span>
-            </div>
-          )}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <AICourseAssistant
+            courseTitle={initialData.title || ""}
+            type="objectives"
+            onGenerate={handleAIGenerate}
+            disabled={!initialData.title}
+            trigger={
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!initialData.title}
+                className={cn(
+                  "text-purple-700 dark:text-purple-300",
+                  "border-purple-200 dark:border-purple-700",
+                  "hover:text-purple-800 dark:hover:text-purple-200",
+                  "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+                  "w-full sm:w-auto",
+                  "justify-center",
+                  "transition-all duration-200"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Generate with AI</span>
+                </div>
+              </Button>
+            }
+          />
+          <Button
+            onClick={() => setIsEditing(!isEditing)}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "text-purple-700 dark:text-purple-300",
+              "hover:text-purple-800 dark:hover:text-purple-200",
+              "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+              "w-full sm:w-auto",
+              "justify-center",
+              "transition-all duration-200"
+            )}
+          >
+            {isEditing ? (
+              <span className="text-rose-700 dark:text-rose-300">Cancel</span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Pencil className="h-4 w-4" />
+                <span>Edit</span>
+              </div>
+            )}
+          </Button>
+        </div>
       </div>
       {isEditing && (
         <Form {...form}>

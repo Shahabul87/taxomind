@@ -4,7 +4,8 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil } from "lucide-react";
+import { Pencil, Sparkles, Loader2 } from "lucide-react";
+import { AIGenerationPreferencesDialog, type AIGenerationPreferences } from "./ai-generation-preferences";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -23,6 +24,7 @@ import { Button } from "@/components/ui/button";
 interface TitleFormProps {
   initialData: {
     title: string;
+    description?: string;
   };
   courseId: string;
 }
@@ -38,6 +40,7 @@ export const TitleForm = ({
   courseId
 }: TitleFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -46,6 +49,70 @@ export const TitleForm = ({
   });
 
   const { isSubmitting, isValid } = form.formState;
+
+  const generateTitle = async (preferences: AIGenerationPreferences) => {
+    if (!initialData.description) {
+      toast.error("Please add a course description first to generate a title");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      // Build enhanced prompt with preferences
+      const targetAudience = preferences.targetAudience || "Students";
+      const focusAreas = preferences.focusAreas.length > 0 
+        ? `Focus on: ${preferences.focusAreas.join(", ")}`
+        : "";
+      
+      const keywords = preferences.includeKeywords 
+        ? `Include these keywords: ${preferences.includeKeywords}`
+        : "";
+      
+      const additionalInstructions = preferences.additionalInstructions || "";
+      
+      const enhancedDescription = [
+        `Generate a course title with a ${preferences.tone} tone.`,
+        focusAreas,
+        keywords,
+        additionalInstructions
+      ].filter(Boolean).join(" ");
+
+      const response = await fetch('/api/ai/course-planner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: initialData.title || "Course",
+          targetAudience,
+          duration: "4 weeks",
+          difficulty: "intermediate",
+          learningGoals: ["Learn key concepts"],
+          description: `${initialData.description} ${enhancedDescription}`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate title');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data.title) {
+        form.setValue("title", data.data.title);
+        form.trigger("title"); // Trigger validation
+        toast.success("Title generated! You can edit it before saving.");
+        if (!isEditing) {
+          setIsEditing(true);
+        }
+      } else {
+        throw new Error('No title generated');
+      }
+    } catch (error: any) {
+      console.error('Title generation error:', error);
+      toast.error("Failed to generate title. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -93,27 +160,62 @@ export const TitleForm = ({
             </p>
           )}
         </div>
-        <Button
-          onClick={() => setIsEditing(!isEditing)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "text-purple-700 dark:text-purple-300",
-            "hover:text-purple-800 dark:hover:text-purple-200",
-            "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-            "w-full sm:w-auto",
-            "justify-center"
-          )}
-        >
-          {isEditing ? (
-            "Cancel"
-          ) : (
-            <>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit
-            </>
-          )}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <AIGenerationPreferencesDialog
+            type="title"
+            onGenerate={generateTitle}
+            isGenerating={isGenerating}
+            disabled={!initialData.description}
+            trigger={
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isGenerating || !initialData.description}
+                className={cn(
+                  "text-purple-700 dark:text-purple-300",
+                  "border-purple-200 dark:border-purple-700",
+                  "hover:text-purple-800 dark:hover:text-purple-200",
+                  "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+                  "w-full sm:w-auto",
+                  "justify-center"
+                )}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate with AI
+                  </>
+                )}
+              </Button>
+            }
+          />
+          <Button
+            onClick={() => setIsEditing(!isEditing)}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "text-purple-700 dark:text-purple-300",
+              "hover:text-purple-800 dark:hover:text-purple-200",
+              "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+              "w-full sm:w-auto",
+              "justify-center"
+            )}
+          >
+            {isEditing ? (
+              "Cancel"
+            ) : (
+              <>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       {isEditing && (
         <Form {...form}>

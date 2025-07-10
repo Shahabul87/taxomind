@@ -4,7 +4,8 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Loader2, PlusCircle, LayoutGrid } from "lucide-react";
+import { Loader2, PlusCircle, LayoutGrid, Sparkles } from "lucide-react";
+import { AISectionGenerator } from "./ai-section-generator";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -44,6 +45,7 @@ export const ChaptersSectionForm = ({
 }: ChaptersSectionFormProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -112,6 +114,51 @@ export const ChaptersSectionForm = ({
     }
   };
 
+  const generateSectionsWithAI = async (sections: any[]) => {
+    if (!chapter.title) {
+      toast.error("Chapter title is required to generate sections with AI");
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      console.log('[SECTIONS_FORM] Starting AI section generation:', { chapterId, sections: sections.length });
+      
+      // Create sections in database
+      const createdSections = [];
+      for (let i = 0; i < sections.length; i++) {
+        const sectionData = sections[i];
+        try {
+          const createResponse = await axios.post(
+            `/api/courses/${courseId}/chapters/${chapterId}/sections`,
+            {
+              title: sectionData.title
+            }
+          );
+          
+          createdSections.push(createResponse.data);
+          console.log(`[SECTIONS_FORM] Created section ${i + 1}:`, createResponse.data.title);
+        } catch (error: any) {
+          console.error(`[SECTIONS_FORM] Failed to create section ${i + 1}:`, error);
+          // Continue with remaining sections instead of failing completely
+        }
+      }
+
+      if (createdSections.length > 0) {
+        toast.success(`Successfully generated ${createdSections.length} sections with AI!`);
+        router.refresh();
+      } else {
+        throw new Error('No sections were created successfully');
+      }
+      
+    } catch (error: any) {
+      console.error('[SECTIONS_FORM] AI section generation failed:', error);
+      toast.error("Failed to generate sections with AI. Please try again.");
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   return (
     <div className={cn(
       "relative p-4 sm:p-6 rounded-xl",
@@ -125,7 +172,7 @@ export const ChaptersSectionForm = ({
       "scrollbar-track-transparent"
     )}>
       <div className="min-w-[600px] sm:min-w-full">
-        {isUpdating && (
+        {(isUpdating || isGeneratingAI) && (
           <div className="absolute h-full w-full bg-white/10 dark:bg-gray-900/20 top-0 right-0 rounded-xl flex items-center justify-center backdrop-blur-sm">
             <Loader2 className="h-6 w-6 text-cyan-600 dark:text-cyan-400 animate-spin" />
           </div>
@@ -146,28 +193,37 @@ export const ChaptersSectionForm = ({
               </div>
             </div>
           </div>
-          <Button
-            onClick={() => setIsCreating(!isCreating)}
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "transition-all duration-200",
-              "w-full sm:w-auto",
-              "justify-center",
-              isCreating
-                ? "text-rose-700 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-                : "text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-500/10"
-            )}
-          >
-            {isCreating ? (
-              "Cancel"
-            ) : (
-              <div className="flex items-center gap-x-2">
-                <PlusCircle className="h-4 w-4" />
-                <span>Add Section</span>
-              </div>
-            )}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <AISectionGenerator
+              chapterTitle={chapter.title}
+              courseId={courseId}
+              chapterId={chapterId}
+              onGenerate={generateSectionsWithAI}
+              disabled={isGeneratingAI || !chapter.title}
+            />
+            <Button
+              onClick={() => setIsCreating(!isCreating)}
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "transition-all duration-200",
+                "w-full sm:w-auto",
+                "justify-center",
+                isCreating
+                  ? "text-rose-700 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                  : "text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-500/10"
+              )}
+            >
+              {isCreating ? (
+                "Cancel"
+              ) : (
+                <div className="flex items-center gap-x-2">
+                  <PlusCircle className="h-4 w-4" />
+                  <span>Add Section</span>
+                </div>
+              )}
+            </Button>
+          </div>
         </div>
 
         <AnimatePresence mode="wait">
@@ -253,9 +309,16 @@ export const ChaptersSectionForm = ({
               items={chapter.sections || []}
             />
             {chapter.sections.length === 0 && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 italic text-center mt-4">
-                No sections yet
-              </p>
+              <div className="mt-4 text-center space-y-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                  No sections yet
+                </p>
+                {!chapter.title && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Add chapter title to use AI generation
+                  </p>
+                )}
+              </div>
             )}
           </motion.div>
         )}

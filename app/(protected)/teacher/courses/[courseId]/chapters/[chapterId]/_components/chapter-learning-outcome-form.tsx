@@ -5,6 +5,7 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil, BookOpen, GraduationCap, Loader2 } from "lucide-react";
+import { AIChapterAssistant } from "./ai-chapter-assistant";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -24,6 +25,7 @@ import ContentViewer from "@/components/tiptap/content-viewer";
 interface ChapterLearningOutcomeFormProps {
   initialData: {
     learningOutcomes: string | null;
+    title: string;
   };
   courseId: string;
   chapterId: string;
@@ -85,6 +87,15 @@ export const ChapterLearningOutcomeForm = ({
     } catch {
       toast.error("Something went wrong");
     }
+  };
+
+  const handleAIGenerate = (content: string) => {
+    form.setValue("learningOutcomes", content);
+    form.trigger("learningOutcomes");
+    if (!isEditing) {
+      setIsEditing(true);
+    }
+    toast.success("Learning objectives generated! You can edit them before saving.");
   };
 
   if (!isMounted) {
@@ -150,28 +161,36 @@ export const ChapterLearningOutcomeForm = ({
             </div>
           )}
         </div>
-        <Button
-          onClick={() => setIsEditing(!isEditing)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "text-purple-700 dark:text-purple-300",
-            "hover:text-purple-800 dark:hover:text-purple-200",
-            "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-            "w-full sm:w-auto",
-            "justify-center",
-            "transition-all duration-200"
-          )}
-        >
-          {isEditing ? (
-            <span className="text-rose-700 dark:text-rose-300">Cancel</span>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Pencil className="h-4 w-4" />
-              <span>Edit</span>
-            </div>
-          )}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <AIChapterAssistant
+            chapterTitle={initialData.title}
+            type="objectives"
+            onGenerate={handleAIGenerate}
+            disabled={!initialData.title}
+          />
+          <Button
+            onClick={() => setIsEditing(!isEditing)}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "text-purple-700 dark:text-purple-300",
+              "hover:text-purple-800 dark:hover:text-purple-200",
+              "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+              "w-full sm:w-auto",
+              "justify-center",
+              "transition-all duration-200"
+            )}
+          >
+            {isEditing ? (
+              <span className="text-rose-700 dark:text-rose-300">Cancel</span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Pencil className="h-4 w-4" />
+                <span>Edit</span>
+              </div>
+            )}
+          </Button>
+        </div>
       </div>
       {isEditing && (
         <Form {...form}>

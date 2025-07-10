@@ -52,6 +52,61 @@ export async function PATCH(
   }
 }
 
+export async function GET(
+  req: Request,
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }
+) {
+  const params = await props.params;
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    // Verify the course exists and belongs to the user
+    const course = await db.course.findUnique({
+      where: {
+        id: params.courseId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!course) {
+      return new NextResponse("Not found", { status: 404 });
+    }
+
+    // Fetch the section
+    const section = await db.section.findUnique({
+      where: {
+        id: params.sectionId,
+        chapterId: params.chapterId,
+      },
+      include: {
+        chapter: {
+          select: {
+            title: true,
+            course: {
+              select: {
+                title: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!section) {
+      return new NextResponse("Section not found", { status: 404 });
+    }
+
+    return NextResponse.json(section);
+  } catch (error) {
+    console.error("[SECTION_GET_ERROR]:", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
+
 export async function DELETE(
   req: Request,
   props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }

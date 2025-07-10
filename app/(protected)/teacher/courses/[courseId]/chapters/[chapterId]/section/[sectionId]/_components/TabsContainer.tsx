@@ -52,8 +52,8 @@ export const TabsContainer = ({
   if (!isMounted) {
     return (
       <div className="w-full mt-10">
-        <div className="w-full bg-gradient-to-r from-purple-100/50 to-cyan-100/50 dark:from-purple-900/20 dark:to-cyan-900/20 p-2 rounded-xl mb-6">
-          <div className="h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg animate-pulse"></div>
+        <div className="w-full bg-gray-100 dark:bg-gray-800 p-2 rounded-xl mb-6">
+          <div className="h-12 bg-white dark:bg-gray-700 rounded-lg animate-pulse"></div>
         </div>
       </div>
     );
@@ -61,15 +61,15 @@ export const TabsContainer = ({
 
   return (
     <div className="w-full mt-10">
-      <div className="w-full bg-gradient-to-r from-purple-100/50 to-cyan-100/50 dark:from-purple-900/20 dark:to-cyan-900/20 p-2 rounded-xl mb-6">
+      <div className="w-full">
         <Tabs defaultValue="videos" value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="w-full grid grid-cols-5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg">
+          <TabsList className="w-full grid grid-cols-5 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <TabsTrigger 
               value="videos" 
               className={cn(
                 "flex items-center gap-2",
-                "data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500",
-                "data-[state=active]:text-white dark:data-[state=active]:text-white"
+                "data-[state=active]:bg-gray-900 dark:data-[state=active]:bg-white",
+                "data-[state=active]:text-white dark:data-[state=active]:text-gray-900"
               )}
             >
               <Video className="h-4 w-4" />
@@ -79,8 +79,8 @@ export const TabsContainer = ({
               value="blogs" 
               className={cn(
                 "flex items-center gap-2",
-                "data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-purple-500",
-                "data-[state=active]:text-white dark:data-[state=active]:text-white"
+                "data-[state=active]:bg-gray-900 dark:data-[state=active]:bg-white",
+                "data-[state=active]:text-white dark:data-[state=active]:text-gray-900"
               )}
             >
               <BookOpen className="h-4 w-4" />
@@ -90,8 +90,8 @@ export const TabsContainer = ({
               value="math" 
               className={cn(
                 "flex items-center gap-2",
-                "data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500",
-                "data-[state=active]:text-white dark:data-[state=active]:text-white"
+                "data-[state=active]:bg-gray-900 dark:data-[state=active]:bg-white",
+                "data-[state=active]:text-white dark:data-[state=active]:text-gray-900"
               )}
             >
               <Calculator className="h-4 w-4" />
@@ -101,8 +101,8 @@ export const TabsContainer = ({
               value="code" 
               className={cn(
                 "flex items-center gap-2",
-                "data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500",
-                "data-[state=active]:text-white dark:data-[state=active]:text-white"
+                "data-[state=active]:bg-gray-900 dark:data-[state=active]:bg-white",
+                "data-[state=active]:text-white dark:data-[state=active]:text-gray-900"
               )}
             >
               <Code2 className="h-4 w-4" />
@@ -112,8 +112,8 @@ export const TabsContainer = ({
               value="exam" 
               className={cn(
                 "flex items-center gap-2",
-                "data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-rose-500",
-                "data-[state=active]:text-white dark:data-[state=active]:text-white"
+                "data-[state=active]:bg-gray-900 dark:data-[state=active]:bg-white",
+                "data-[state=active]:text-white dark:data-[state=active]:text-gray-900"
               )}
             >
               <FileQuestion className="h-4 w-4" />

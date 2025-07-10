@@ -1,234 +1,194 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { z } from "zod";
+import { QueryPerformanceMonitor } from "@/lib/database/query-optimizer";
 
+// Force Node.js runtime
+export const runtime = 'nodejs';
+
+// Validation schema for exam submission
+const SubmissionSchema = z.object({
+  answers: z.array(z.object({
+    questionId: z.string(),
+    answer: z.any(),
+  })),
+  timeSpent: z.number(),
+});
+
+// POST endpoint to submit an exam attempt
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ sectionId: string; examId: string; attemptId: string }> }
+  props: { params: Promise<{ sectionId: string; examId: string; attemptId: string }> }
 ) {
+  const params = await props.params;
+  const endTimer = QueryPerformanceMonitor.startQuery("exam:submit");
+  
   try {
     const user = await currentUser();
-    
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { attemptId } = await params;
-    const { answers, timeSpent } = await req.json();
-
-    if (!attemptId) {
-      return new NextResponse("Attempt ID is required", { status: 400 });
+    // Parse and validate request body
+    const body = await req.json();
+    const parseResult = SubmissionSchema.safeParse(body);
+    
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid submission format', 
+          details: parseResult.error.errors 
+        },
+        { status: 400 }
+      );
     }
 
-    if (!answers || !Array.isArray(answers)) {
-      return new NextResponse("Answers are required", { status: 400 });
-    }
+    const { answers, timeSpent } = parseResult.data;
 
-    // Get the attempt with exam questions
-    const attempt = await db.userExamAttempt.findUnique({
-      where: { 
-        id: attemptId,
-        userId: user.id, // Ensure user can only submit their own attempts
+    // Optimized: Fetch the attempt with exam and questions in one query
+    const attempt = await db.examAttempt.findUnique({
+      where: {
+        id: params.attemptId,
+        userId: user.id,
+        examId: params.examId,
       },
       include: {
         exam: {
           include: {
             questions: {
               orderBy: {
-                order: 'asc',
-              },
-            },
-          },
-        },
-        answers: true,
-      },
+                position: 'asc'
+              }
+            }
+          }
+        }
+      }
     });
 
     if (!attempt) {
-      return new NextResponse("Attempt not found", { status: 404 });
+      return NextResponse.json(
+        { error: 'Exam attempt not found' },
+        { status: 404 }
+      );
     }
 
-    if (attempt.status !== 'IN_PROGRESS') {
-      return new NextResponse("Attempt is not in progress", { status: 400 });
+    if (attempt.completedAt) {
+      return NextResponse.json(
+        { error: 'This exam has already been submitted' },
+        { status: 400 }
+      );
     }
 
-    // Process and grade each answer
+    // Grade the exam
     let correctAnswers = 0;
     let totalPoints = 0;
     let earnedPoints = 0;
 
-    const gradeQuestion = (question: any, userAnswer: any) => {
-      totalPoints += question.points;
+    // Optimized: Prepare all answer data for batch insert
+    const answerData = attempt.exam.questions.map((question) => {
+      const userAnswer = answers.find(a => a.questionId === question.id);
+      const isCorrect = checkAnswer(question, userAnswer?.answer);
+      const pointsEarned = isCorrect ? question.points : 0;
       
-      let isCorrect = false;
-      let pointsEarned = 0;
+      totalPoints += question.points;
+      earnedPoints += pointsEarned;
+      if (isCorrect) correctAnswers++;
 
-      switch (question.questionType) {
-        case 'MULTIPLE_CHOICE':
-          isCorrect = userAnswer === question.correctAnswer;
-          break;
-        case 'TRUE_FALSE':
-          isCorrect = userAnswer === question.correctAnswer;
-          break;
-        case 'SHORT_ANSWER':
-          // For short answer, we'll do a simple case-insensitive comparison
-          // In a real app, you might want more sophisticated matching
-          isCorrect = userAnswer?.toLowerCase().trim() === question.correctAnswer?.toLowerCase().trim();
-          break;
-        case 'FILL_IN_BLANK':
-          isCorrect = userAnswer?.toLowerCase().trim() === question.correctAnswer?.toLowerCase().trim();
-          break;
-        case 'MATCHING':
-        case 'ORDERING':
-          // For matching/ordering, compare arrays
-          isCorrect = JSON.stringify(userAnswer) === JSON.stringify(question.correctAnswer);
-          break;
-        case 'ESSAY':
-          // Essays need manual grading, so we'll leave them ungraded for now
-          isCorrect = null;
-          break;
-        default:
-          isCorrect = false;
-      }
-
-      if (isCorrect === true) {
-        correctAnswers++;
-        pointsEarned = question.points;
-        earnedPoints += pointsEarned;
-      }
-
-      return { isCorrect, pointsEarned };
-    };
-
-    // Create or update user answers
-    const answerPromises = answers.map(async (answerData: any) => {
-      const question = attempt.exam.questions.find(q => q.id === answerData.questionId);
-      if (!question) return null;
-
-      const { isCorrect, pointsEarned } = gradeQuestion(question, answerData.answer);
-
-      // Check if answer already exists
-      const existingAnswer = attempt.answers.find(a => a.questionId === answerData.questionId);
-
-      if (existingAnswer) {
-        // Update existing answer
-        return db.userAnswer.update({
-          where: { id: existingAnswer.id },
-          data: {
-            answer: answerData.answer,
-            isCorrect,
-            pointsEarned,
-            timeSpent: answerData.timeSpent || null,
-          },
-        });
-      } else {
-        // Create new answer
-        return db.userAnswer.create({
-          data: {
-            attemptId,
-            questionId: answerData.questionId,
-            answer: answerData.answer,
-            isCorrect,
-            pointsEarned,
-            timeSpent: answerData.timeSpent || null,
-          },
-        });
-      }
+      return {
+        attemptId: params.attemptId,
+        questionId: question.id,
+        userAnswer: userAnswer?.answer || null,
+        isCorrect,
+        pointsEarned,
+        timeSpent: 0, // Could be calculated per question if needed
+      };
     });
 
-    await Promise.all(answerPromises.filter(Boolean));
-
-    // Calculate score percentage
+    // Calculate score
     const scorePercentage = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
     const isPassed = scorePercentage >= attempt.exam.passingScore;
 
-    // Update attempt status
-    const updatedAttempt = await db.userExamAttempt.update({
-      where: { id: attemptId },
-      data: {
-        status: 'SUBMITTED',
-        submittedAt: new Date(),
-        timeSpent,
-        correctAnswers,
-        scorePercentage,
-        isPassed,
-      },
-      include: {
-        answers: {
-          include: {
-            question: {
-              select: {
-                id: true,
-                question: true,
-                questionType: true,
-                points: true,
-                order: true,
-                options: true,
-                correctAnswer: true,
-                explanation: true,
-                imageUrl: true,
-                videoUrl: true,
-              },
-            },
-          },
+    // Optimized: Use transaction for batch operations
+    const result = await db.$transaction(async (tx) => {
+      // Batch insert all answers
+      await tx.questionAttempt.createMany({
+        data: answerData,
+      });
+
+      // Update the attempt
+      const updatedAttempt = await tx.examAttempt.update({
+        where: {
+          id: params.attemptId,
         },
-        exam: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            timeLimit: true,
-            passingScore: true,
-            showResults: true,
-          },
-        },
-      },
+        data: {
+          completedAt: new Date(),
+          timeSpent,
+          score: scorePercentage,
+          passed: isPassed,
+          correctAnswers,
+          totalQuestions: attempt.exam.questions.length,
+        }
+      });
+
+      return updatedAttempt;
     });
 
-    // Create analytics entries
-    const analyticsPromises = [
-      // Overall time analytics
-      db.examAnalytics.create({
-        data: {
-          attemptId,
-          analyticsType: 'QUESTION_TIME',
-          value: timeSpent || 0,
-          metadata: { type: 'total_time' },
-        },
-      }),
-      // Score analytics
-      db.examAnalytics.create({
-        data: {
-          attemptId,
-          analyticsType: 'DIFFICULTY_SCORE',
-          value: scorePercentage,
-          metadata: { 
-            type: 'final_score',
-            correctAnswers,
-            totalQuestions: attempt.exam.questions.length,
-            earnedPoints,
-            totalPoints,
-          },
-        },
-      }),
-    ];
-
-    await Promise.all(analyticsPromises);
-
     return NextResponse.json({
-      attempt: updatedAttempt,
+      success: true,
+      attempt: result,
       summary: {
-        totalQuestions: attempt.exam.questions.length,
-        correctAnswers,
-        scorePercentage: Math.round(scorePercentage * 100) / 100,
+        scorePercentage,
         isPassed,
+        correctAnswers,
+        totalQuestions: attempt.exam.questions.length,
         earnedPoints,
         totalPoints,
         timeSpent,
-      },
+      }
     });
-  } catch (error) {
-    console.error("[EXAM_SUBMIT_POST]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+
+  } catch (error: any) {
+    console.error('Exam submission error:', error);
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+      },
+      { status: 500 }
+    );
+  } finally {
+    endTimer();
   }
-} 
+}
+
+// Helper function to check if an answer is correct
+function checkAnswer(question: any, userAnswer: any): boolean {
+  if (!userAnswer && userAnswer !== false && userAnswer !== 0) {
+    return false; // No answer provided
+  }
+
+  const correctAnswer = question.correctAnswer;
+
+  switch (question.questionType) {
+    case 'MULTIPLE_CHOICE':
+      return String(userAnswer).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
+    
+    case 'TRUE_FALSE':
+      return Boolean(userAnswer) === Boolean(correctAnswer);
+    
+    case 'SHORT_ANSWER':
+    case 'FILL_IN_BLANK':
+      // For short answers, we do a case-insensitive comparison
+      // In a real system, you might want more sophisticated matching
+      return String(userAnswer).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
+    
+    case 'ESSAY':
+      // Essays typically require manual grading
+      // For now, we'll mark them as correct if any answer is provided
+      return Boolean(userAnswer && String(userAnswer).trim().length > 0);
+    
+    default:
+      return false;
+  }
+}

@@ -1,7 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { CircleDollarSign, File, LayoutDashboard, ListChecks, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { CircleDollarSign, File, LayoutDashboard, ListChecks, AlertTriangle, CheckCircle2, Brain, Target, FileQuestion, Lightbulb, Sparkles } from "lucide-react";
 import { TitleForm } from "./_components/title-form";
 import { DescriptionForm } from "./_components/description-form";
 
@@ -15,6 +15,9 @@ import { IconBadge } from "@/components/icon-badge";
 import { cn } from "@/lib/utils";
 import { CourseImageUpload } from "./_components/course-image-upload";
 import { CourseLearningOutcomeForm } from "./_components/course-learning-outcome-form";
+import { BloomsTaxonomyGuide } from "./chapters/[chapterId]/section/[sectionId]/_components/blooms-taxonomy-guide";
+import { SimplifiedAICourseAssistant } from "./_components/simplified-ai-course-assistant";
+import { ContextAwareFeatureRevealer } from "@/components/ui/context-aware-feature-revealer";
 
 
 
@@ -178,6 +181,21 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
           </div>
         </div>
 
+        {/* Progressive Feature Discovery */}
+        <div className="px-4 md:px-8 mb-6">
+          <ContextAwareFeatureRevealer
+            userId={userId}
+            currentPage="course-creation"
+            contextualData={{
+              coursesCreated: 1,
+              chaptersCreated: course.chapters.length,
+              studentsEnrolled: 0, // This would come from actual enrollment data
+              examAttempts: 0, // This would come from actual exam data
+              bloomsLevels: 3 // This would be calculated from actual exam questions
+            }}
+          />
+        </div>
+
         {/* Main Content Grid */}
         <div className="px-4 md:px-8">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
@@ -203,7 +221,7 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                 </div>
                 
                 <div className="space-y-6">
-                  <TitleForm initialData={course} courseId={course.id} />
+                  <TitleForm initialData={{ title: course.title ?? undefined, description: course.description ?? undefined }} courseId={course.id} />
                   <div className={cn(
                     "rounded-md overflow-hidden",
                     sections.titleDesc ? "border-l-4 border-emerald-500" : ""
@@ -228,9 +246,156 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                         </h3>
                         <CourseLearningOutcomeForm
                           initialData={{ 
-                            whatYouWillLearn: course.whatYouWillLearn || [] 
+                            whatYouWillLearn: course.whatYouWillLearn || [],
+                            title: course.title ?? undefined,
+                            description: course.description ?? undefined
                           }}
                           courseId={course.id}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Smart AI Course Building Assistant */}
+              {!sections.titleDesc || !sections.learningObj ? (
+                <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[1px] rounded-xl">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
+                        <Brain className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">
+                          Need AI Help Building Your Course?
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Let our AI assistant help you create comprehensive course content faster
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {!sections.titleDesc && (
+                        <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                          <div className="flex items-start gap-3">
+                            <Target className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                            <div>
+                              <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-1">
+                                Enhance Course Description
+                              </h4>
+                              <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                                Get AI-powered suggestions for compelling course titles and descriptions that attract students.
+                              </p>
+                              <button className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition-colors">
+                                Get AI Writing Help
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!sections.learningObj && (
+                        <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-700">
+                          <div className="flex items-start gap-3">
+                            <Lightbulb className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5" />
+                            <div>
+                              <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-1">
+                                Generate Learning Objectives
+                              </h4>
+                              <p className="text-sm text-purple-700 dark:text-purple-300 mb-3">
+                                Create SMART learning objectives aligned with Bloom's taxonomy for better student outcomes.
+                              </p>
+                              <button className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-md transition-colors">
+                                AI Objective Builder
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {sections.titleDesc && sections.learningObj && (
+                      <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-700">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                          <div>
+                            <h4 className="font-medium text-green-800 dark:text-green-200">
+                              Great Progress! Ready for Advanced AI Features?
+                            </h4>
+                            <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                              Now that your basics are complete, unlock AI-powered chapter generation, content curation, and assessment creation.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Enhanced AI Course Assistant */}
+              {sections.titleDesc && sections.learningObj && (
+                <div className={cn(
+                  "rounded-xl",
+                  "border border-gray-200/70 dark:border-gray-700/50",
+                  "bg-white dark:bg-gray-800",
+                  "shadow-md overflow-hidden"
+                )}>
+                  <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 p-[1px]">
+                    <div className="bg-white dark:bg-gray-800 p-5 md:p-7">
+                      <SimplifiedAICourseAssistant 
+                        courseId={params.courseId}
+                        courseTitle={course.title || "Your Course"}
+                        currentChapters={course.chapters.length}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bloom's Taxonomy Educational Design Guide */}
+              <div className={cn(
+                "rounded-xl",
+                "border border-gray-200/70 dark:border-gray-700/50",
+                "bg-white dark:bg-gray-800",
+                "shadow-md overflow-hidden"
+              )}>
+                <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[1px]">
+                  <div className="bg-white dark:bg-gray-800 p-5 md:p-7">
+                    <div className="flex items-center gap-x-3 mb-6">
+                      <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg">
+                        <Brain className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-semibold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                          Educational Design Assistant
+                        </h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          AI-powered Bloom's taxonomy guide for cognitive learning design
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700">
+                        <div className="flex items-start gap-3">
+                          <Target className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <h4 className="font-medium text-indigo-800 dark:text-indigo-200 mb-1">Smart Course Design</h4>
+                            <p className="text-sm text-indigo-700 dark:text-indigo-300 leading-relaxed">
+                              Use our comprehensive Bloom's taxonomy guide to design cognitively progressive learning experiences. 
+                              Create questions and assessments that build from basic recall to advanced creative thinking.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-1">
+                        <BloomsTaxonomyGuide
+                          showQuestionExamples={true}
+                          isInteractive={true}
                         />
                       </div>
                     </div>
@@ -261,6 +426,76 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                   </h2>
                 </div>
                 <ChaptersForm initialData={course} courseId={course.id} />
+                
+                {/* AI Chapter & Content Assistant */}
+                {sections.titleDesc && sections.learningObj && (
+                  <div className="mt-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 p-[1px] rounded-xl">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg">
+                          <Brain className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                            AI-Powered Content Creation
+                          </h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Generate chapters, sections, and assessments automatically
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {!sections.chapters ? (
+                          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                            <div className="flex items-start gap-2">
+                              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+                              <div>
+                                <h5 className="font-medium text-emerald-800 dark:text-emerald-200 text-sm mb-1">
+                                  Generate Course Structure
+                                </h5>
+                                <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-2">
+                                  Let AI create a complete chapter outline based on your course objectives and industry best practices.
+                                </p>
+                                <button className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded">
+                                  Auto-Generate Chapters
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-3 bg-teal-50 dark:bg-teal-950/20 rounded-lg border border-teal-200 dark:border-teal-700">
+                            <div className="flex items-start gap-2">
+                              <Target className="w-4 h-4 text-teal-600 dark:text-teal-400 mt-0.5" />
+                              <div>
+                                <h5 className="font-medium text-teal-800 dark:text-teal-200 text-sm mb-1">
+                                  Enhance Existing Chapters
+                                </h5>
+                                <p className="text-xs text-teal-700 dark:text-teal-300 mb-2">
+                                  Use AI to add detailed sections, practice exercises, and assessments to your chapters.
+                                </p>
+                                <button className="text-xs bg-teal-600 hover:bg-teal-700 text-white px-2 py-1 rounded">
+                                  Enhance with AI
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <button className="flex items-center gap-1 p-2 bg-cyan-50 dark:bg-cyan-950/20 text-cyan-700 dark:text-cyan-300 rounded hover:bg-cyan-100 dark:hover:bg-cyan-950/40 transition-colors">
+                            <FileQuestion className="w-3 h-3" />
+                            AI Quiz Generator
+                          </button>
+                          <button className="flex items-center gap-1 p-2 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors">
+                            <Lightbulb className="w-3 h-3" />
+                            Content Curator
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Price Section */}

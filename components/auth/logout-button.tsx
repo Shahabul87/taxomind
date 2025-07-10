@@ -1,8 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useState } from "react";
-import { logout } from "@/actions/logout";
 
 interface LogoutButtonProps {
   children?: React.ReactNode;
@@ -13,15 +12,23 @@ export const LogoutButton = ({
   children,
   className
 }: LogoutButtonProps) => {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const onClick = async () => {
     try {
       setIsLoading(true);
-      await logout();
+      
+      // Use NextAuth's client-side signOut - most reliable method
+      // This handles the session cleanup and redirect automatically
+      await signOut({ 
+        callbackUrl: "/",
+        redirect: true 
+      });
+      
     } catch (error) {
       console.error("Logout failed:", error);
+      // Fallback: force redirect to clear any cached state
+      window.location.href = "/";
     } finally {
       setIsLoading(false);
     }
@@ -30,10 +37,10 @@ export const LogoutButton = ({
   return (
     <span 
       onClick={onClick} 
-      className={`flex cursor-pointer hover:text-cyan-500 ${className}`}
+      className={`flex cursor-pointer hover:text-cyan-500 transition-colors ${className}`}
       style={{ opacity: isLoading ? 0.7 : 1 }}
     >
-      {children}
+      {isLoading ? "Signing out..." : children}
     </span>
   );
 };
