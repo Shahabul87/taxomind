@@ -22,12 +22,24 @@ export const upstashRedis = (() => {
 })();
 
 // For Self-hosted Redis (Optional - for local development)
-export const ioRedis = process.env.REDIS_URL 
-  ? new IORedis(process.env.REDIS_URL)
+export const ioRedis = (process.env.REDIS_URL && !process.env.DISABLE_REDIS)
+  ? (() => {
+      try {
+        return new IORedis(process.env.REDIS_URL);
+      } catch (error) {
+        console.warn('Failed to initialize IORedis:', error);
+        return null;
+      }
+    })()
   : null;
 
 // Use Upstash for production, IORedis for local development
 export const redis = (() => {
+  if (process.env.DISABLE_REDIS) {
+    console.log('Redis disabled via DISABLE_REDIS environment variable');
+    return null;
+  }
+  
   if (process.env.NODE_ENV === 'production' || process.env.UPSTASH_REDIS_REST_URL) {
     return upstashRedis;
   }
