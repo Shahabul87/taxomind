@@ -621,6 +621,262 @@ export default function HeroSection() {
                               </div>
                             </div>
 
+                            {/* Interactive Visual Representation */}
+                            <div className="mt-6 mb-6">
+                              <h6 className="text-sm font-semibold text-gray-400 mb-4">Visual Learning Representation:</h6>
+                              <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-2xl p-6 border border-slate-600/50">
+                                {/* Different visual for each level */}
+                                {level.level === 1 && (
+                                  // Remember - Memory Cards Animation
+                                  <div className="flex items-center justify-center space-x-4">
+                                    {[1, 2, 3].map((card) => (
+                                      <motion.div
+                                        key={card}
+                                        className="w-16 h-24 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg"
+                                        animate={{ 
+                                          rotateY: [0, 180, 0],
+                                          scale: [1, 1.05, 1]
+                                        }}
+                                        transition={{ 
+                                          duration: 2,
+                                          delay: card * 0.3,
+                                          repeat: Infinity,
+                                          repeatDelay: 3
+                                        }}
+                                      >
+                                        <span className="text-white font-bold text-lg">{card}</span>
+                                      </motion.div>
+                                    ))}
+                                    <motion.div
+                                      className="text-yellow-400"
+                                      animate={{ opacity: [0.5, 1, 0.5] }}
+                                      transition={{ duration: 1.5, repeat: Infinity }}
+                                    >
+                                      <span className="text-sm">💡 Memory Recall</span>
+                                    </motion.div>
+                                  </div>
+                                )}
+
+                                {level.level === 2 && (
+                                  // Understand - Concept Map
+                                  <div className="relative w-full h-32">
+                                    <svg viewBox="0 0 300 120" className="w-full h-full">
+                                      <defs>
+                                        <linearGradient id="conceptGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                          <stop offset="0%" stopColor="#6366f1" />
+                                          <stop offset="100%" stopColor="#8b5cf6" />
+                                        </linearGradient>
+                                      </defs>
+                                      {/* Central concept */}
+                                      <motion.circle
+                                        cx="150" cy="60" r="25"
+                                        fill="url(#conceptGrad)"
+                                        animate={{ scale: [1, 1.1, 1] }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                      />
+                                      <text x="150" y="65" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">
+                                        Core
+                                      </text>
+                                      
+                                      {/* Connected concepts */}
+                                      {[
+                                        { x: 75, y: 30, label: "A" },
+                                        { x: 225, y: 30, label: "B" },
+                                        { x: 75, y: 90, label: "C" },
+                                        { x: 225, y: 90, label: "D" }
+                                      ].map((node, i) => (
+                                        <g key={i}>
+                                          <motion.line
+                                            x1="150" y1="60"
+                                            x2={node.x} y2={node.y}
+                                            stroke="#6366f1"
+                                            strokeWidth="2"
+                                            initial={{ pathLength: 0 }}
+                                            animate={{ pathLength: 1 }}
+                                            transition={{ duration: 1, delay: i * 0.2 }}
+                                          />
+                                          <motion.circle
+                                            cx={node.x} cy={node.y} r="15"
+                                            fill="#4f46e5"
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            transition={{ delay: 0.5 + i * 0.2 }}
+                                          />
+                                          <text x={node.x} y={node.y + 5} textAnchor="middle" fill="white" fontSize="10">
+                                            {node.label}
+                                          </text>
+                                        </g>
+                                      ))}
+                                    </svg>
+                                  </div>
+                                )}
+
+                                {level.level === 3 && (
+                                  // Apply - Problem Solving Steps
+                                  <div className="flex items-center justify-between">
+                                    {['Problem', 'Method', 'Solution'].map((step, i) => (
+                                      <div key={step} className="flex flex-col items-center">
+                                        <motion.div
+                                          className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mb-2"
+                                          animate={{ 
+                                            scale: [1, 1.2, 1],
+                                            rotate: [0, 360, 0]
+                                          }}
+                                          transition={{ 
+                                            duration: 3,
+                                            delay: i * 0.5,
+                                            repeat: Infinity,
+                                            repeatDelay: 2
+                                          }}
+                                        >
+                                          <span className="text-white font-bold">{i + 1}</span>
+                                        </motion.div>
+                                        <span className="text-blue-300 text-xs font-medium">{step}</span>
+                                        {i < 2 && (
+                                          <motion.div
+                                            className="text-blue-400 mt-1"
+                                            animate={{ x: [0, 10, 0] }}
+                                            transition={{ duration: 1.5, repeat: Infinity }}
+                                          >
+                                            →
+                                          </motion.div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {level.level === 4 && (
+                                  // Analyze - Data Patterns
+                                  <div className="w-full h-32">
+                                    <svg viewBox="0 0 300 120" className="w-full h-full">
+                                      <defs>
+                                        <linearGradient id="analyzeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                          <stop offset="0%" stopColor="#06b6d4" />
+                                          <stop offset="100%" stopColor="#0891b2" />
+                                        </linearGradient>
+                                      </defs>
+                                      {/* Bar chart */}
+                                      {[20, 35, 55, 45, 70, 60].map((height, i) => (
+                                        <motion.rect
+                                          key={i}
+                                          x={30 + i * 40}
+                                          y={100 - height}
+                                          width="25"
+                                          height={height}
+                                          fill="url(#analyzeGrad)"
+                                          initial={{ height: 0, y: 100 }}
+                                          animate={{ height, y: 100 - height }}
+                                          transition={{ duration: 1, delay: i * 0.1 }}
+                                        />
+                                      ))}
+                                      {/* Trend line */}
+                                      <motion.path
+                                        d="M 42 80 Q 82 65 122 45 T 202 40 T 282 30"
+                                        stroke="#fbbf24"
+                                        strokeWidth="3"
+                                        fill="none"
+                                        initial={{ pathLength: 0 }}
+                                        animate={{ pathLength: 1 }}
+                                        transition={{ duration: 2, delay: 0.8 }}
+                                      />
+                                    </svg>
+                                  </div>
+                                )}
+
+                                {level.level === 5 && (
+                                  // Evaluate - Judgment Scale
+                                  <div className="flex items-center justify-center">
+                                    <div className="relative w-48 h-20">
+                                      {/* Scale background */}
+                                      <div className="absolute top-8 left-0 w-full h-4 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full opacity-30" />
+                                      
+                                      {/* Moving indicator */}
+                                      <motion.div
+                                        className="absolute top-6 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center"
+                                        animate={{ 
+                                          left: ['10%', '80%', '10%'],
+                                          scale: [1, 1.2, 1]
+                                        }}
+                                        transition={{ 
+                                          duration: 4,
+                                          repeat: Infinity,
+                                          ease: "easeInOut"
+                                        }}
+                                      >
+                                        <div className="w-3 h-3 bg-emerald-500 rounded-full" />
+                                      </motion.div>
+                                      
+                                      {/* Scale labels */}
+                                      <div className="absolute top-0 left-0 text-xs text-red-400">Poor</div>
+                                      <div className="absolute top-0 right-0 text-xs text-green-400">Excellent</div>
+                                      
+                                      <motion.div
+                                        className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-emerald-300 text-xs font-medium"
+                                        animate={{ opacity: [0.5, 1, 0.5] }}
+                                        transition={{ duration: 1.5, repeat: Infinity }}
+                                      >
+                                        ⚖️ Critical Assessment
+                                      </motion.div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {level.level === 6 && (
+                                  // Create - Innovation Process
+                                  <div className="relative w-full h-32 overflow-hidden">
+                                    {/* Creativity sparks */}
+                                    {[...Array(8)].map((_, i) => (
+                                      <motion.div
+                                        key={i}
+                                        className="absolute w-2 h-2 bg-yellow-400 rounded-full"
+                                        style={{
+                                          left: `${20 + (i * 10)}%`,
+                                          top: `${30 + Math.sin(i) * 20}%`
+                                        }}
+                                        animate={{
+                                          scale: [0, 1.5, 0],
+                                          opacity: [0, 1, 0],
+                                          rotate: [0, 180, 360]
+                                        }}
+                                        transition={{
+                                          duration: 2,
+                                          delay: i * 0.2,
+                                          repeat: Infinity,
+                                          repeatDelay: 1
+                                        }}
+                                      />
+                                    ))}
+                                    
+                                    {/* Central lightbulb */}
+                                    <motion.div
+                                      className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                                      animate={{ 
+                                        scale: [1, 1.3, 1],
+                                        rotate: [0, 10, -10, 0]
+                                      }}
+                                      transition={{ 
+                                        duration: 3,
+                                        repeat: Infinity
+                                      }}
+                                    >
+                                      <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                                        <Lightbulb className="w-8 h-8 text-white" />
+                                      </div>
+                                    </motion.div>
+                                    
+                                    <motion.div
+                                      className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-yellow-300 text-xs font-medium"
+                                      animate={{ opacity: [0.5, 1, 0.5] }}
+                                      transition={{ duration: 1.5, repeat: Infinity }}
+                                    >
+                                      💡 Innovation in Progress
+                                    </motion.div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
                             {/* Learning Examples */}
                             <div className="mt-6">
                               <h6 className="text-sm font-semibold text-gray-400 mb-3">Learning Activities:</h6>
