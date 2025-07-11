@@ -1,6 +1,6 @@
 import { getCoursesForHomepage } from "@/actions/get-all-courses";
 import { getPostsForHomepage } from "@/actions/get-all-posts";
-import MindForgeHeroSection from "./mindforge-hero-section";
+import HeroSection from "./hero-section";
 import HowItWorksSection from "./how-it-works-section";
 import FeaturesShowcaseSection from "./features-showcase-section";
 import TestimonialsSection from "./testimonials-section";
@@ -21,7 +21,7 @@ const Home = async () => {
 
   return (
     <>
-      <MindForgeHeroSection />
+      <HeroSection />
       <HowItWorksSection />
       <FeaturesShowcaseSection />
       <TestimonialsSection />

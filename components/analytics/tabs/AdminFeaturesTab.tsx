@@ -1,4 +1,4 @@
-// Admin Features Tab - System-wide management and infrastructure
+// Admin Features Tab - System-wide management and infrastructure with Enterprise Features
 
 'use client';
 
@@ -7,10 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Settings, Database, Wifi, Link, Shield, AlertCircle,
-  CheckCircle, XCircle, Activity, Server, Cpu, HardDrive
+  CheckCircle, XCircle, Activity, Server, Cpu, HardDrive,
+  Building2, Users, BookOpen, Lock, Target, BarChart3
 } from 'lucide-react';
+import { EnterpriseAdminTab } from '@/components/enterprise/EnterpriseAdminTab';
 
 interface AdminFeaturesProps {
   analytics?: any;
@@ -111,16 +114,23 @@ export function AdminFeaturesTab({ analytics, performance }: AdminFeaturesProps)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">System Administration</h2>
-          <p className="text-muted-foreground">Manage infrastructure and system-wide intelligent features</p>
+      {/* Main Enterprise Tab */}
+      <EnterpriseAdminTab analytics={analytics} performance={performance} />
+      
+      {/* Legacy System Administration - Enhanced */}
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Server className="h-6 w-6 text-blue-600" />
+              System Infrastructure
+            </h2>
+            <p className="text-muted-foreground">Advanced system management and intelligent features</p>
+          </div>
+          <Badge variant="secondary" className="text-sm">
+            {adminFeatures.filter(f => f.status === 'active').length} Active Systems
+          </Badge>
         </div>
-        <Badge variant="secondary" className="text-sm">
-          {adminFeatures.filter(f => f.status === 'active').length} Active Systems
-        </Badge>
-      </div>
 
       {/* System Health Overview */}
       <Card className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 border-red-200 dark:border-red-800">
@@ -391,6 +401,7 @@ export function AdminFeaturesTab({ analytics, performance }: AdminFeaturesProps)
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

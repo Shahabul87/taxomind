@@ -20,16 +20,10 @@ export async function getUserPublishedPosts() {
         published: true
       },
       include: {
-        tags: true,
+        Tag: true,
         comments: {
           select: {
             id: true
-          }
-        },
-        reactions: {
-          select: {
-            id: true,
-            type: true
           }
         }
       },
@@ -51,11 +45,6 @@ export async function getUserPublishedPosts() {
     
     // Transform posts to include additional stats
     const formattedPosts = posts.map(post => {
-      // Count likes from reactions
-      const likeCount = post.reactions.filter(r => 
-        r.type === 'LIKE' || r.type === 'LOVE'
-      ).length;
-      
       // Get view count from our simulated data
       const viewData = viewCounts.find(v => v.postId === post.id);
       
@@ -63,10 +52,10 @@ export async function getUserPublishedPosts() {
         ...post,
         status: "published",
         isPublished: post.published,
-        likes: likeCount,
+        likes: 0, // No direct post likes in current schema
         comments: post.comments.length,
-        views: viewData?.viewCount || 0,
-        categories: post.tags.map(tag => tag.name),
+        views: viewData?.viewCount || post.views || 0,
+        categories: post.Tag.map(tag => tag.name),
         // If there's no excerpt/description, create one from the first part of the content
         excerpt: post.description || "No description available",
         readTime: `${Math.max(1, Math.ceil((post.description?.length || 0) / 1000))} min read`
@@ -103,7 +92,7 @@ export async function getUserDraftPosts() {
         published: false
       },
       include: {
-        tags: true
+        Tag: true
       },
       orderBy: {
         updatedAt: "desc"
@@ -119,7 +108,7 @@ export async function getUserDraftPosts() {
         likes: 0,
         comments: 0,
         views: 0,
-        categories: post.tags.map(tag => tag.name),
+        categories: post.Tag.map(tag => tag.name),
         excerpt: post.description || "No description available",
         readTime: `${Math.max(1, Math.ceil((post.description?.length || 0) / 1000))} min read`
       };
@@ -159,9 +148,8 @@ export async function getUserPostsAnalytics() {
         published: true
       },
       include: {
-        tags: true,
-        comments: true,
-        reactions: true
+        Tag: true,
+        comments: true
       }
     });
     
@@ -199,26 +187,22 @@ export async function getUserPostsAnalytics() {
 
     // Calculate total stats
     const totalViews = viewCounts.reduce((acc, vc) => acc + vc.views, 0);
-    const totalLikes = posts.reduce((acc, post) => 
-      acc + post.reactions.filter(r => r.type === 'LIKE' || r.type === 'LOVE').length, 0);
+    const totalLikes = 0; // No direct post likes in current schema
     const totalComments = posts.reduce((acc, post) => acc + post.comments.length, 0);
     
     // Find posts with most views, likes, and comments
     const postsWithStats = posts.map(post => {
       const viewData = viewCounts.find(v => v.postId === post.id);
-      const likeCount = post.reactions.filter(r => 
-        r.type === 'LIKE' || r.type === 'LOVE'
-      ).length;
       
       return {
         id: post.id,
         title: post.title,
         slug: post.id, // Use ID as slug if not available
-        views: viewData?.views || 0,
-        likes: likeCount,
+        views: viewData?.views || post.views || 0,
+        likes: 0, // No direct post likes in current schema
         comments: post.comments.length,
         category: post.category || "Uncategorized",
-        tags: post.tags.map(tag => tag.name)
+        tags: post.Tag.map(tag => tag.name)
       };
     });
     
@@ -228,7 +212,7 @@ export async function getUserPostsAnalytics() {
     const sortedByComments = [...postsWithStats].sort((a, b) => b.comments - a.comments);
     
     // Get popular categories and tags
-    const allTags = posts.flatMap(post => post.tags.map(tag => tag.name));
+    const allTags = posts.flatMap(post => post.Tag.map(tag => tag.name));
     const tagCount = allTags.reduce((acc, tag) => {
       acc[tag] = (acc[tag] || 0) + 1;
       return acc;

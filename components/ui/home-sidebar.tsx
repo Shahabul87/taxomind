@@ -44,6 +44,14 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Debug user role
+  useEffect(() => {
+    if (user) {
+      console.log("HomeSidebar - Current user:", user);
+      console.log("HomeSidebar - User role:", user.role);
+    }
+  }, [user]);
+
   // Update mobile detection to consider larger screens
   useEffect(() => {
     const checkMobile = () => {
@@ -120,7 +128,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
     {
       title: "Analytics",
       icon: <IconChartBar className="w-5 h-5" />,
-      href: user?.role === "ADMIN" ? "/analytics/admin" : "/analytics/student",
+      href: "/analytics", // Changed to use the redirect page
     },
     {
       title: "Groups",

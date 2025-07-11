@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ImprovedUnifiedAnalytics } from '@/components/analytics/ImprovedUnifiedAnalytics';
 import { AnalyticsErrorBoundary } from '@/components/analytics/ErrorBoundary';
-import { StudentGuard } from "@/components/auth/role-guard";
 
 // Stable demo user object to prevent unnecessary re-renders
 const DEMO_USER: User = {
@@ -19,7 +18,7 @@ const DEMO_USER: User = {
   role: "USER"
 } as User;
 
-export default function StudentAnalyticsPage() {
+export default function UserAnalyticsPage() {
   const { data: session, status } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -63,7 +62,7 @@ export default function StudentAnalyticsPage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">Loading your learning analytics...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading your analytics...</p>
         </div>
       </div>
     );
@@ -100,26 +99,31 @@ export default function StudentAnalyticsPage() {
   }
 
   return (
-    <StudentGuard>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-        {error && (
-          <div className="container mx-auto px-4 py-4">
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
-              <p className="text-amber-700 dark:text-amber-300 text-sm">
-                {error} — Using demo data for analytics.
-              </p>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* Debug Info */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="fixed top-20 right-4 z-50 bg-black/80 text-white p-4 rounded-lg text-xs">
+          <p>Session User Role: {session?.user?.role || "No role"}</p>
+          <p>Is Admin: {session?.user?.role === "ADMIN" ? "Yes" : "No"}</p>
+        </div>
+      )}
+      {error && (
+        <div className="container mx-auto px-4 py-4">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+            <p className="text-amber-700 dark:text-amber-300 text-sm">
+              {error} — Using demo data for analytics.
+            </p>
           </div>
-        )}
-        
-        <AnalyticsErrorBoundary>
-          <ImprovedUnifiedAnalytics 
-            user={user} 
-            variant="fullpage"
-            className="min-h-screen"
-          />
-        </AnalyticsErrorBoundary>
-      </div>
-    </StudentGuard>
+        </div>
+      )}
+      
+      <AnalyticsErrorBoundary>
+        <ImprovedUnifiedAnalytics 
+          user={user} 
+          variant="fullpage"
+          className="min-h-screen"
+        />
+      </AnalyticsErrorBoundary>
+    </div>
   );
 }

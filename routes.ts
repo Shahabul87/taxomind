@@ -112,7 +112,8 @@ export const protectedRoutes: string[] = [
   "/teacher/analytics",
   "/teacher/allposts",
   "/post/create-post",
-  "/analytics/student",
+  "/analytics/user",
+  "/analytics/admin",
 ];
 
 /**

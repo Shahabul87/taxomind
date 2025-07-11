@@ -1,11 +1,10 @@
 import NextAuth from "next-auth";
 import authConfig from "@/auth.config.edge";
 import { NextResponse } from 'next/server';
-// Temporarily define UserRole to avoid Prisma import
+// Use actual database UserRole enum to match Prisma schema
 enum UserRole {
   ADMIN = "ADMIN",
-  TEACHER = "TEACHER", 
-  STUDENT = "STUDENT"
+  USER = "USER"
 }
 
 import {
@@ -16,21 +15,18 @@ import {
   isProtectedRoute,
 } from "@/routes";
 
-// Role-based route definitions
+// Role-based route definitions - aligned with actual roles
 const ROLE_ROUTES = {
-  [UserRole.ADMIN]: ['/admin', '/analytics/admin'],
-  [UserRole.TEACHER]: ['/teacher', '/analytics/teacher'],
-  [UserRole.STUDENT]: ['/analytics/student']
+  [UserRole.ADMIN]: ['/admin', '/analytics/admin', '/dashboard/admin'],
+  [UserRole.USER]: ['/analytics/user', '/dashboard/user']
 };
 
 function getRoleBasedRedirect(role: UserRole): string {
   switch (role) {
     case UserRole.ADMIN:
-      return '/analytics/admin';
-    case UserRole.TEACHER:
-      return '/analytics/teacher';
-    case UserRole.STUDENT:
-      return '/analytics/student';
+      return '/dashboard/admin';
+    case UserRole.USER:
+      return '/dashboard/user';
     default:
       return DEFAULT_LOGIN_REDIRECT;
   }

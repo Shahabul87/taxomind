@@ -8,6 +8,7 @@ import { getUserById } from "@/data/user";
 import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
 import { getAccountByUserId } from "@/data/account";
 import { checkEnvironmentVariables } from "@/lib/env-check";
+import { getRedirectUrl } from "@/routes";
 
 // Check environment variables on startup
 checkEnvironmentVariables();
@@ -28,6 +29,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }
   },
   callbacks: {
+    async redirect({ url, baseUrl, token }) {
+      // Handle role-based redirects after login
+      if (url === baseUrl || url === `${baseUrl}/` || url.includes('/dashboard/user')) {
+        // If we have a token with role information, redirect based on role
+        if (token?.role) {
+          const roleBasedUrl = getRedirectUrl(token.role as string);
+          return `${baseUrl}${roleBasedUrl}`;
+        }
+        // If no role yet, try to get user info
+        if (token?.sub) {
+          try {
+            const user = await getUserById(token.sub);
+            if (user?.role) {
+              const roleBasedUrl = getRedirectUrl(user.role);
+              return `${baseUrl}${roleBasedUrl}`;
+            }
+          } catch (error) {
+            console.error("Error fetching user for redirect:", error);
+          }
+        }
+      }
+      
+      // If the URL is already an absolute URL (contains the baseUrl), use it
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      // If it's a relative URL, combine it with the baseUrl
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      // Default fallback to baseUrl
+      return baseUrl;
+    },
     async signIn({ user, account }) {
       // Ensure we return early if missing critical data
       if (!user || !user.id) {

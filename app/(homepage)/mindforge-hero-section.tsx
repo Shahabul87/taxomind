@@ -17,36 +17,51 @@ import {
   Shield,
   Cpu,
   GraduationCap,
-  Building2
+  Building2,
+  Lightbulb,
+  Layers,
+  GitBranch,
+  Activity,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useInView } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 
+// Bloom's Taxonomy levels for cognitive tracking
+const bloomsLevels = [
+  { name: "Remember", color: "from-purple-600 to-purple-500", icon: BookOpen, progress: 95 },
+  { name: "Understand", color: "from-indigo-600 to-indigo-500", icon: Brain, progress: 88 },
+  { name: "Apply", color: "from-blue-600 to-blue-500", icon: Target, progress: 76 },
+  { name: "Analyze", color: "from-cyan-600 to-cyan-500", icon: GitBranch, progress: 68 },
+  { name: "Evaluate", color: "from-emerald-600 to-emerald-500", icon: BarChart3, progress: 54 },
+  { name: "Create", color: "from-yellow-600 to-yellow-500", icon: Lightbulb, progress: 42 }
+];
+
 const aiFeatures = [
   {
     icon: Brain,
-    title: "AI-Powered Learning",
-    description: "Adaptive algorithms that personalize your learning journey in real-time",
+    title: "Cognitive Tracking",
+    description: "AI monitors your progress through all 6 levels of Bloom's taxonomy in real-time",
     gradient: "from-purple-500 to-indigo-500",
-    stats: "98% Accuracy",
+    stats: "6 Levels",
     delay: 0.1
   },
   {
-    icon: BarChart3,
-    title: "Real-Time Analytics",
-    description: "Advanced insights and predictive analytics for optimal learning outcomes",
+    icon: Activity,
+    title: "Learning Analytics",
+    description: "Track cognitive development patterns and get personalized insights for growth",
     gradient: "from-blue-500 to-cyan-500",
-    stats: "Live Insights",
+    stats: "Real-Time",
     delay: 0.2
   },
   {
-    icon: Target,
-    title: "Adaptive Assessment",
-    description: "Intelligent question generation that adjusts to your skill level dynamically",
+    icon: Layers,
+    title: "Adaptive Path",
+    description: "AI adjusts content difficulty based on your current cognitive level mastery",
     gradient: "from-emerald-500 to-teal-500",
-    stats: "Smart Testing",
+    stats: "Personalized",
     delay: 0.3
   },
 ];
@@ -55,31 +70,31 @@ const userTypes = [
   {
     icon: GraduationCap,
     title: "Students",
-    description: "Personalized learning paths with AI tutoring",
+    description: "Track your cognitive growth through 6 levels with personalized AI guidance",
     link: "/auth/register?role=student",
     color: "purple"
   },
   {
     icon: Users,
     title: "Teachers",
-    description: "AI-assisted content creation and analytics",
+    description: "Monitor student cognitive development and create adaptive assessments",
     link: "/auth/register?role=teacher", 
     color: "blue"
   },
   {
     icon: Building2,
     title: "Enterprise",
-    description: "Scalable solutions for organizations",
+    description: "Measure team cognitive capabilities and optimize learning outcomes",
     link: "/enterprise",
     color: "emerald"
   }
 ];
 
 const stats = [
-  { value: "500K+", label: "AI-Powered Assessments" },
-  { value: "95%", label: "Learning Improvement" },
-  { value: "24/7", label: "Intelligent Support" },
-  { value: "Enterprise", label: "Security Ready" }
+  { value: "6 Levels", label: "Cognitive Tracking", icon: Layers },
+  { value: "Real-Time", label: "Progress Monitoring", icon: Activity },
+  { value: "98%", label: "Accuracy Rate", icon: Target },
+  { value: "Adaptive", label: "Learning Paths", icon: GitBranch }
 ];
 
 // Enhanced animation variants
@@ -214,6 +229,15 @@ export default function MindForgeHeroSection() {
               <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.4"/>
               <stop offset="100%" stopColor="#06B6D4" stopOpacity="0.6"/>
             </linearGradient>
+            <linearGradient id="cognitiveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.8"/>
+              <stop offset="16.66%" stopColor="#6366F1" stopOpacity="0.8"/>
+              <stop offset="33.33%" stopColor="#3B82F6" stopOpacity="0.8"/>
+              <stop offset="50%" stopColor="#06B6D4" stopOpacity="0.8"/>
+              <stop offset="66.66%" stopColor="#10B981" stopOpacity="0.8"/>
+              <stop offset="83.33%" stopColor="#EAB308" stopOpacity="0.8"/>
+              <stop offset="100%" stopColor="#FBBF24" stopOpacity="0.8"/>
+            </linearGradient>
           </defs>
           {/* Neural network connections */}
           <g stroke="url(#neuralGradient)" strokeWidth="1" fill="none">
@@ -248,6 +272,57 @@ export default function MindForgeHeroSection() {
                 animate={{ scale: 1, opacity: 0.8 }}
                 transition={{ duration: 0.5, delay: 2.5 + i * 0.1 }}
               />
+            ))}
+          </g>
+          {/* Cognitive Level Indicators */}
+          <g>
+            {bloomsLevels.map((level, index) => (
+              <motion.g key={level.name}>
+                <motion.circle
+                  cx={200 + index * 150}
+                  cy={400}
+                  r="20"
+                  fill="url(#cognitiveGradient)"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 0.3 }}
+                  transition={{ 
+                    duration: 0.8, 
+                    delay: 3 + index * 0.2,
+                    type: "spring"
+                  }}
+                />
+                <motion.circle
+                  cx={200 + index * 150}
+                  cy={400}
+                  r="8"
+                  fill="white"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: [0, 1.2, 1] }}
+                  transition={{ 
+                    duration: 0.6, 
+                    delay: 3.5 + index * 0.2,
+                  }}
+                />
+                {/* Pulsing effect */}
+                <motion.circle
+                  cx={200 + index * 150}
+                  cy={400}
+                  r="20"
+                  fill="none"
+                  stroke="url(#cognitiveGradient)"
+                  strokeWidth="2"
+                  initial={{ scale: 1, opacity: 1 }}
+                  animate={{ 
+                    scale: [1, 1.5, 1],
+                    opacity: [0.8, 0, 0.8]
+                  }}
+                  transition={{ 
+                    duration: 3,
+                    repeat: Infinity,
+                    delay: index * 0.5
+                  }}
+                />
+              </motion.g>
             ))}
           </g>
         </svg>
@@ -315,15 +390,15 @@ export default function MindForgeHeroSection() {
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
               <div className="flex flex-wrap justify-center items-center gap-4 mb-4">
                 <span className="bg-gradient-to-r from-purple-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent bg-300% animate-gradient">
-                  Intelligent
+                  Track Cognitive
                 </span>
-                <span className="text-white/90">Learning</span>
+                <span className="text-white/90">Development</span>
               </div>
               <div className="flex flex-wrap justify-center items-center gap-4">
-                <span className="text-white/90">Powered by</span>
+                <span className="text-white/90">with</span>
                 <div className="relative">
                   <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent bg-300% animate-gradient">
-                    AI
+                    AI & Bloom's Taxonomy
                   </span>
                   <motion.div
                     className="absolute -top-3 -right-3"
@@ -341,10 +416,143 @@ export default function MindForgeHeroSection() {
               className="text-xl md:text-2xl text-gray-300/90 max-w-4xl mx-auto leading-relaxed font-light"
               variants={subtitleVariants}
             >
-              Transform your organization's learning potential with AI-powered adaptive education. 
-              <span className="text-purple-300 font-medium"> Personalized learning paths</span>, 
-              real-time analytics, and intelligent assessment systems that evolve with your learners.
+              Watch your learners progress through all 6 cognitive levels with our
+              <span className="text-purple-300 font-medium"> AI-powered tracking system</span>. 
+              Real-time visualization of cognitive development, personalized learning paths, 
+              and intelligent assessments that adapt to each learner's growth.
             </motion.p>
+          </motion.div>
+
+          {/* Bloom's Taxonomy Visualization */}
+          <motion.div
+            className="w-full max-w-6xl mx-auto mt-16"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 0.8 }}
+          >
+            <motion.h3 
+              className="text-2xl font-bold text-center mb-8 text-white"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+            >
+              <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                AI Tracks Your Cognitive Journey
+              </span>
+            </motion.h3>
+            
+            {/* Cognitive Levels Pyramid */}
+            <div className="relative">
+              {/* Background glow */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-indigo-500/20 to-emerald-500/20 blur-3xl rounded-full" />
+              
+              {/* Bloom's Levels */}
+              <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
+                {bloomsLevels.map((level, index) => (
+                  <motion.div
+                    key={level.name}
+                    className="relative"
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.5 + index * 0.1, duration: 0.6 }}
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <div className="relative bg-slate-800/80 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 shadow-xl">
+                      {/* Level Icon */}
+                      <div className={`w-12 h-12 bg-gradient-to-r ${level.color} rounded-xl flex items-center justify-center mb-4`}>
+                        <level.icon className="w-6 h-6 text-white" />
+                      </div>
+                      
+                      {/* Level Name */}
+                      <h4 className="text-lg font-bold text-white mb-2">{level.name}</h4>
+                      
+                      {/* Progress Bar */}
+                      <div className="relative h-2 bg-slate-700/50 rounded-full overflow-hidden mb-2">
+                        <motion.div
+                          className={`absolute inset-y-0 left-0 bg-gradient-to-r ${level.color}`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${level.progress}%` }}
+                          transition={{ delay: 2 + index * 0.1, duration: 1, ease: "easeOut" }}
+                        />
+                      </div>
+                      
+                      {/* Progress Percentage */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-400">Mastery Level</span>
+                        <motion.span 
+                          className="text-sm font-bold text-purple-400"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 2.5 + index * 0.1 }}
+                        >
+                          {level.progress}%
+                        </motion.span>
+                      </div>
+                      
+                      {/* AI Tracking Indicator */}
+                      <motion.div
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 2.8 + index * 0.1, type: "spring" }}
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      </motion.div>
+                      
+                      {/* Animated pulse effect */}
+                      <motion.div
+                        className={`absolute inset-0 bg-gradient-to-r ${level.color} rounded-2xl opacity-0`}
+                        animate={{ opacity: [0, 0.2, 0] }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          delay: index * 0.3,
+                          repeatDelay: 3
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              
+              {/* Connecting Lines Animation */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1 }}>
+                <defs>
+                  <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.3" />
+                    <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.3" />
+                  </linearGradient>
+                </defs>
+                {bloomsLevels.slice(0, -1).map((_, index) => (
+                  <motion.path
+                    key={index}
+                    d={`M${150 + index * 200},150 Q${250 + index * 200},100 ${350 + index * 200},150`}
+                    stroke="url(#lineGradient)"
+                    strokeWidth="2"
+                    fill="none"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.6 }}
+                    transition={{ delay: 3 + index * 0.2, duration: 1 }}
+                  />
+                ))}
+              </svg>
+            </div>
+            
+            {/* Real-time tracking indicator */}
+            <motion.div
+              className="mt-8 text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 3.5 }}
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 backdrop-blur-sm rounded-full border border-purple-500/30">
+                <Activity className="w-4 h-4 text-purple-400 animate-pulse" />
+                <span className="text-sm text-purple-300 font-medium">
+                  AI actively tracking cognitive progress in real-time
+                </span>
+              </div>
+            </motion.div>
           </motion.div>
 
           {/* Stats showcase */}
@@ -357,17 +565,35 @@ export default function MindForgeHeroSection() {
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
-                className="text-center p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-purple-500/30 transition-all duration-300"
+                className="relative group text-center p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-purple-500/30 transition-all duration-300 overflow-hidden"
                 whileHover={{ scale: 1.05 }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2 + index * 0.1, duration: 0.5 }}
               >
-                <div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
-                  {stat.value}
+                {/* Background gradient on hover */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                />
+                
+                {/* Icon */}
+                <div className="relative mb-3">
+                  <motion.div
+                    className="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-xl flex items-center justify-center"
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  >
+                    <stat.icon className="w-6 h-6 text-purple-400" />
+                  </motion.div>
                 </div>
-                <div className="text-sm text-gray-400 font-medium">
-                  {stat.label}
+                
+                <div className="relative">
+                  <div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                    {stat.value}
+                  </div>
+                  <div className="text-sm text-gray-400 font-medium mt-1">
+                    {stat.label}
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -451,6 +677,115 @@ export default function MindForgeHeroSection() {
             ))}
           </motion.div>
 
+          {/* Cognitive Journey Visualization */}
+          <motion.div
+            className="w-full max-w-4xl mx-auto mt-16 mb-16"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2.5, duration: 0.8 }}
+          >
+            <motion.h3 
+              className="text-2xl font-bold text-center mb-8 text-white"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.7 }}
+            >
+              <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+                Your Personalized Learning Journey
+              </span>
+            </motion.h3>
+            
+            {/* Journey Path */}
+            <div className="relative h-32">
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 128">
+                <defs>
+                  <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#8B5CF6" />
+                    <stop offset="25%" stopColor="#6366F1" />
+                    <stop offset="50%" stopColor="#3B82F6" />
+                    <stop offset="75%" stopColor="#06B6D4" />
+                    <stop offset="100%" stopColor="#10B981" />
+                  </linearGradient>
+                </defs>
+                
+                {/* Main path */}
+                <motion.path
+                  d="M50,64 Q200,20 350,64 T650,64 L750,64"
+                  stroke="url(#pathGradient)"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ duration: 2, delay: 3 }}
+                />
+                
+                {/* Moving dot */}
+                <motion.circle
+                  r="8"
+                  fill="#FBBF24"
+                  initial={{ offsetDistance: "0%" }}
+                  animate={{ offsetDistance: "100%" }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "linear",
+                    delay: 3.5
+                  }}
+                  style={{
+                    offsetPath: "path('M50,64 Q200,20 350,64 T650,64 L750,64')",
+                  }}
+                >
+                  <animate
+                    attributeName="r"
+                    values="8;12;8"
+                    dur="1s"
+                    repeatCount="indefinite"
+                  />
+                </motion.circle>
+              </svg>
+              
+              {/* Journey milestones */}
+              <div className="absolute inset-0 flex justify-between items-center px-12">
+                {["Start", "Assess", "Learn", "Practice", "Master"].map((stage, index) => (
+                  <motion.div
+                    key={stage}
+                    className="relative"
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 3.5 + index * 0.2, type: "spring" }}
+                  >
+                    <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full" />
+                    <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-gray-400 whitespace-nowrap">
+                      {stage}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+            
+            {/* AI Features */}
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 4 }}
+            >
+              <div className="text-center p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                <Brain className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-300">AI analyzes your cognitive patterns</p>
+              </div>
+              <div className="text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                <Target className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-300">Adapts content to your level</p>
+              </div>
+              <div className="text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-300">Tracks improvement over time</p>
+              </div>
+            </motion.div>
+          </motion.div>
+
           {/* CTA Section - Enhanced responsive */}
           <motion.div
             className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-12 sm:mt-16 px-4"
@@ -464,7 +799,7 @@ export default function MindForgeHeroSection() {
                 className="relative bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold py-3 sm:py-4 px-6 sm:px-8 rounded-2xl shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 border-0 overflow-hidden bg-300% animate-gradient w-full sm:w-auto"
               >
                 <span className="relative z-10 flex items-center justify-center text-base sm:text-lg">
-                  Start Your AI Learning Journey
+                  Begin Cognitive Tracking
                   <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-1" />
                 </span>
                 <motion.div
@@ -483,7 +818,7 @@ export default function MindForgeHeroSection() {
                 className="font-semibold py-3 sm:py-4 px-6 sm:px-8 rounded-2xl border-2 border-purple-400/50 text-purple-300 hover:bg-purple-900/30 hover:border-purple-400 backdrop-blur-sm transition-all duration-300 shadow-lg hover:shadow-purple-500/20 w-full sm:w-auto"
               >
                 <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                <span className="text-base sm:text-lg">Explore Features</span>
+                <span className="text-base sm:text-lg">See How It Works</span>
               </Button>
             </Link>
           </motion.div>
@@ -496,16 +831,20 @@ export default function MindForgeHeroSection() {
             transition={{ delay: 2.5, duration: 0.8 }}
           >
             <div className="flex items-center space-x-2">
+              <Brain className="h-5 w-5 text-purple-400" />
+              <span className="text-gray-300 font-medium">Bloom's Taxonomy</span>
+            </div>
+            <div className="flex items-center space-x-2">
               <Shield className="h-5 w-5 text-emerald-400" />
-              <span className="text-gray-300 font-medium">Enterprise Security</span>
+              <span className="text-gray-300 font-medium">Secure Analytics</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Activity className="h-5 w-5 text-blue-400" />
+              <span className="text-gray-300 font-medium">Real-Time Tracking</span>
             </div>
             <div className="flex items-center space-x-2">
               <Award className="h-5 w-5 text-yellow-400" />
-              <span className="text-gray-300 font-medium">ISO Certified</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Cpu className="h-5 w-5 text-blue-400" />
-              <span className="text-gray-300 font-medium">AI-First Platform</span>
+              <span className="text-gray-300 font-medium">Research-Backed</span>
             </div>
           </motion.div>
         </div>

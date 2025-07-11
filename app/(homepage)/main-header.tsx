@@ -196,9 +196,6 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                   </div>
                 </div>
               </div>
-              <Link href="/resources" className="text-sm lg:text-base text-gray-300 hover:text-white transition-colors font-medium">
-                Resources
-              </Link>
             </nav>
 
             {/* User Actions */}
@@ -321,9 +318,6 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                   </Link>
                 </div>
               </div>
-              <Link href="/resources" className="text-gray-300 hover:text-white transition-colors text-center w-full">
-                Resources
-              </Link>
               <Link href="/about" className="text-gray-300 hover:text-white transition-colors text-center w-full">
                 About
               </Link>

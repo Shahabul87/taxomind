@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AIWelcomeHub } from '../smart-dashboard/AIWelcomeHub';
+import { PostAnalyticsWidget } from './PostAnalyticsWidget';
 
 interface OverviewTabProps {
   user: User;
@@ -230,13 +231,15 @@ export function OverviewTab({ user }: OverviewTabProps) {
           </Card>
         </motion.div>
 
-        {/* Right Column: Upcoming Activities */}
+        {/* Right Column: Upcoming Activities & Post Analytics */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          className="space-y-6"
         >
-          <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 h-fit">
+          {/* Upcoming Activities */}
+          <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Timer className="w-5 h-5 text-blue-500" />
@@ -276,6 +279,15 @@ export function OverviewTab({ user }: OverviewTabProps) {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Post Analytics Widget */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <PostAnalyticsWidget user={user} />
+          </motion.div>
         </motion.div>
       </div>
 

@@ -70,22 +70,22 @@ export const UserMenu = ({ user }: UserMenuProps) => {
       title: "Navigation",
       items: [
         { icon: LayoutDashboard, label: "Dashboard", link: dashboardLink },
-        { icon: User, label: "My Profile", link: "/profile" },
+        { icon: User, label: "My Profile", link: "/settings" },
         { icon: Bookmark, label: "My Courses", link: "/my-courses" },
         { icon: MessageCircle, label: "My Posts", link: "/my-posts" },
-        { icon: Users, label: "My Study Groups", link: "/groups" },
+        { icon: Users, label: "Study Groups", link: "/groups" },
       ]
     },
     {
-      title: "Account",
+      title: "Account & Settings",
       items: [
-        { icon: Settings, label: "Settings", link: "/settings" },
-        { icon: Bell, label: "Notifications", link: "/notifications" },
-        { icon: CreditCard, label: "Billing", link: "/billing" },
+        { icon: Settings, label: "Account Settings", link: "/settings" },
+        { icon: Bell, label: "Notifications", link: "/settings#notifications" },
+        { icon: CreditCard, label: "Billing & Plans", link: "/settings#billing" },
       ]
     },
     {
-      title: "Support",
+      title: "Support & Help",
       items: [
         { icon: HelpCircle, label: "Help Center", link: "/help" },
         { icon: MessageCircle, label: "Contact Support", link: "/support" },
@@ -191,7 +191,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="fixed right-4 top-16 w-80 rounded-xl bg-gray-900 backdrop-blur-xl border border-gray-600 shadow-2xl overflow-hidden z-[99999]"
+              className="fixed right-4 top-16 w-80 rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-gray-600/50 shadow-2xl overflow-hidden z-[99999]"
             >
               {/* Modal Header with User Info */}
               <div className="relative p-5 bg-gradient-to-br from-indigo-800 via-purple-800 to-pink-800 border-b border-gray-600">
@@ -242,7 +242,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
               </div>
 
               {/* Menu Sections */}
-              <div className="max-h-[400px] overflow-y-auto py-2 bg-gray-900">
+              <div className="max-h-[400px] overflow-y-auto py-2 bg-gray-900/95 backdrop-blur-sm">
                 {menuSections.map((section, sectionIndex) => (
                   <div key={section.title} className={sectionIndex !== 0 ? "mt-1 pt-3 border-t border-gray-700" : ""}>
                     <p className="px-4 py-2 text-xs text-gray-400 uppercase tracking-wider font-medium">

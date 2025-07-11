@@ -25,6 +25,7 @@ import { JobMarketTab } from './tabs/JobMarketTab';
 import { StudentFeaturesTab } from './tabs/StudentFeaturesTab';
 import { TeacherFeaturesTab } from './tabs/TeacherFeaturesTab';
 import { AdminFeaturesTab } from './tabs/AdminFeaturesTab';
+import { PostAnalyticsTab } from './tabs/PostAnalyticsTab';
 
 interface UnifiedAnalyticsProps {
   user: User;
@@ -146,7 +147,7 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
           />
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-10 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+            <TabsList className="grid w-full grid-cols-11 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
               <TabsTrigger 
                 value="overview" 
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
@@ -170,6 +171,12 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
               >
                 Courses
+              </TabsTrigger>
+              <TabsTrigger 
+                value="posts" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
+              >
+                Posts
               </TabsTrigger>
               <TabsTrigger 
                 value="jobmarket" 
@@ -229,6 +236,10 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
             
             <TabsContent value="courses" className="space-y-6 pt-6">
               <CoursesTab analytics={analytics} />
+            </TabsContent>
+            
+            <TabsContent value="posts" className="space-y-6 pt-6">
+              <PostAnalyticsTab />
             </TabsContent>
             
             <TabsContent value="jobmarket" className="space-y-6 pt-6">

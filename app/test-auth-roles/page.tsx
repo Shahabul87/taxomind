@@ -34,16 +34,16 @@ export default async function TestAuthRoles() {
             <p><strong>Current Role:</strong> 
               <span className={`ml-2 px-3 py-1 rounded-full text-sm font-semibold ${
                 role === 'ADMIN' ? 'bg-red-200 text-red-800' :
-                role === 'TEACHER' ? 'bg-green-200 text-green-800' :
-                role === 'STUDENT' ? 'bg-blue-200 text-blue-800' :
+                role === 'USER' ? 'bg-blue-200 text-blue-800' :
                 'bg-gray-200 text-gray-800'
               }`}>
                 {role || "UNKNOWN"}
               </span>
             </p>
             <p><strong>Is Admin:</strong> {role === 'ADMIN' ? "✅ Yes" : "❌ No"}</p>
-            <p><strong>Is Teacher:</strong> {role === 'TEACHER' ? "✅ Yes" : "❌ No"}</p>
-            <p><strong>Is Student:</strong> {role === 'STUDENT' ? "✅ Yes" : "❌ No"}</p>
+            <p><strong>Is User:</strong> {role === 'USER' ? "✅ Yes" : "❌ No"}</p>
+            <p><strong>Expected Dashboard:</strong> {role === 'ADMIN' ? "/dashboard/admin" : "/dashboard/user"}</p>
+            <p><strong>Expected Analytics:</strong> {role === 'ADMIN' ? "/analytics/admin" : "/analytics/user"}</p>
           </div>
         </div>
 
@@ -76,7 +76,7 @@ export default async function TestAuthRoles() {
         <div className="flex flex-wrap gap-3">
           {role === 'ADMIN' && (
             <>
-              <a href="/admin/dashboard" className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+              <a href="/dashboard/admin" className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
                 Admin Dashboard
               </a>
               <a href="/analytics/admin" className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
@@ -85,24 +85,19 @@ export default async function TestAuthRoles() {
             </>
           )}
           
-          {(role === 'TEACHER' || role === 'ADMIN') && (
+          {(role === 'USER' || role === 'ADMIN') && (
             <>
-              <a href="/teacher/courses" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-                Manage Courses
+              <a href="/dashboard/user" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                User Dashboard
               </a>
-              <a href="/teacher/create" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-                Create Course
+              <a href="/analytics/user" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                User Analytics
               </a>
-            </>
-          )}
-          
-          {(role === 'STUDENT' || role === 'TEACHER') && (
-            <>
-              <a href="/my-courses" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+              <a href="/my-courses" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
                 My Courses
               </a>
-              <a href="/analytics/student" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                My Progress
+              <a href="/teacher/courses" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                Manage Courses
               </a>
             </>
           )}

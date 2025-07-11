@@ -93,6 +93,12 @@ model User {
   user_progress                           user_progress[]
   Idea_IdeaCollaborators                  Idea[]                   @relation("IdeaCollaborators")
   Mind_MindCollaborators                  Mind[]                   @relation("MindCollaborators")
+  
+  // Enterprise Relations
+  organizationMemberships                 OrganizationUser[]       @relation("OrganizationUsers")
+  authoredContentVersions                 ContentVersion[]         @relation("ContentVersionAuthor")
+  approvedContentVersions                 ContentVersion[]         @relation("ContentVersionApprover")
+  auditLogs                               AuditLog[]               @relation("AuditLogUser")
 }
 
 model Account {
@@ -189,7 +195,12 @@ model Course {
   user_achievements   user_achievements[]
   user_progress       user_progress[]
 
+  // Enterprise Relations
+  organizationId      String?
+  organization        Organization?         @relation("OrganizationCourses", fields: [organizationId], references: [id])
+
   @@index([categoryId])
+  @@index([organizationId])
 }
 
 model Attachment {
@@ -1980,6 +1991,10 @@ enum ContentType {
   BOOK
   DOCUMENT
   IMAGE
+  CHAPTER
+  SECTION
+  EXAM
+  QUESTION
   OTHER
 }
 
@@ -2322,4 +2337,347 @@ enum TransactionType {
   REFUND
   CHARGEBACK
   CREDIT
+}
+
+// ===== ENTERPRISE FEATURES =====
+
+// Multi-Tenant Organization Support
+model Organization {
+  id                        String                    @id @default(cuid())
+  name                      String
+  domain                    String?                   @unique
+  slug                      String                    @unique
+  brandingConfig            Json?                     // Custom branding configuration
+  subscriptionTier          SubscriptionTier          @default(FREE)
+  maxUsers                  Int                       @default(100)
+  maxCourses                Int                       @default(10)
+  customFeatures            Json?                     // Custom feature flags
+  settings                  Json?                     // Organization settings
+  isActive                  Boolean                   @default(true)
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  
+  // Relations
+  users                     OrganizationUser[]
+  courses                   Course[]                  @relation("OrganizationCourses")
+  analytics                 EnterpriseAnalytics[]
+  auditLogs                 AuditLog[]
+  complianceEvents          ComplianceEvent[]
+  contentVersions           ContentVersion[]
+  collaborationSessions     CollaborationSession[]
+  aiModelPerformance        AIModelPerformance[]
+  securityEvents            SecurityEvent[]
+  
+  @@map("organizations")
+}
+
+// Organization User Relationship
+model OrganizationUser {
+  id                        String                    @id @default(cuid())
+  organizationId            String
+  userId                    String
+  role                      OrganizationRole          @default(MEMBER)
+  permissions               Json?                     // Custom permissions
+  joinedAt                  DateTime                  @default(now())
+  isActive                  Boolean                   @default(true)
+  
+  // Relations
+  organization              Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                      User                      @relation("OrganizationUsers", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([organizationId, userId])
+  @@map("organization_users")
+}
+
+// Enterprise Analytics
+model EnterpriseAnalytics {
+  id                        String                    @id @default(cuid())
+  organizationId            String?
+  metricType                EnterpriseMetricType
+  metricCategory            String
+  value                     Float
+  metadata                  Json?
+  dimensions                Json?                     // Additional dimensions for filtering
+  aggregationPeriod         AggregationPeriod
+  recordedAt                DateTime                  @default(now())
+  
+  // Relations
+  organization              Organization?             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@index([organizationId, metricType, recordedAt])
+  @@index([metricType, aggregationPeriod])
+  @@map("enterprise_analytics")
+}
+
+// Governance & Compliance
+model ComplianceEvent {
+  id                        String                    @id @default(cuid())
+  organizationId            String?
+  eventType                 ComplianceEventType
+  complianceFramework       ComplianceFramework
+  status                    ComplianceStatus
+  severity                  ComplianceSeverity        @default(LOW)
+  details                   Json
+  affectedUsers             Json?                     // Array of user IDs
+  affectedContent           Json?                     // Array of content IDs
+  actionTaken               String?
+  resolvedAt                DateTime?
+  createdAt                 DateTime                  @default(now())
+  
+  // Relations
+  organization              Organization?             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@index([organizationId, eventType, createdAt])
+  @@index([complianceFramework, status])
+  @@map("compliance_events")
+}
+
+// Content Versioning
+model ContentVersion {
+  id                        String                    @id @default(cuid())
+  organizationId            String?
+  contentId                 String
+  contentType               ContentType
+  versionNumber             Int
+  title                     String?
+  changes                   Json                      // Detailed change log
+  changesSummary            String?
+  authorId                  String
+  approvedBy                String?
+  approvedAt                DateTime?
+  isActive                  Boolean                   @default(false)
+  tags                      String[]                  @default([])
+  metadata                  Json?
+  createdAt                 DateTime                  @default(now())
+  
+  // Relations
+  organization              Organization?             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author                    User                      @relation("ContentVersionAuthor", fields: [authorId], references: [id])
+  approver                  User?                     @relation("ContentVersionApprover", fields: [approvedBy], references: [id])
+  
+  @@unique([contentId, versionNumber])
+  @@index([organizationId, contentType, createdAt])
+  @@index([contentId, isActive])
+  @@map("content_versions")
+}
+
+// Comprehensive Audit Trail
+model AuditLog {
+  id                        String                    @id @default(cuid())
+  organizationId            String?
+  userId                    String?
+  action                    AuditAction
+  entityType                String
+  entityId                  String
+  entityName                String?
+  changes                   Json?                     // Before/after changes
+  context                   Json?                     // Additional context
+  ipAddress                 String?
+  userAgent                 String?
+  severity                  AuditSeverity             @default(INFO)
+  tags                      String[]                  @default([])
+  createdAt                 DateTime                  @default(now())
+  
+  // Relations
+  organization              Organization?             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                      User?                     @relation("AuditLogUser", fields: [userId], references: [id])
+  
+  @@index([organizationId, userId, createdAt])
+  @@index([action, entityType, createdAt])
+  @@index([severity, createdAt])
+  @@map("audit_logs")
+}
+
+// Real-time Collaboration Tracking
+model CollaborationSession {
+  id                        String                    @id @default(cuid())
+  organizationId            String?
+  sessionId                 String                    @unique
+  contentId                 String
+  contentType               ContentType
+  participants              Json                      // Array of user IDs
+  activeParticipants        Json                      // Currently active users
+  sessionData               Json?                     // Session state
+  startedAt                 DateTime                  @default(now())
+  endedAt                   DateTime?
+  duration                  Int?                      // Duration in seconds
+  isActive                  Boolean                   @default(true)
+  
+  // Relations
+  organization              Organization?             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@index([organizationId, contentId, isActive])
+  @@index([sessionId, isActive])
+  @@map("collaboration_sessions")
+}
+
+// AI Model Performance Tracking
+model AIModelPerformance {
+  id                        String                    @id @default(cuid())
+  organizationId            String?
+  modelName                 String
+  modelVersion              String
+  metricName                String
+  metricValue               Float
+  benchmarkValue            Float?
+  performanceCategory       AIPerformanceCategory
+  evaluationData            Json?
+  testCases                 Json?
+  recordedAt                DateTime                  @default(now())
+  
+  // Relations
+  organization              Organization?             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@index([organizationId, modelName, recordedAt])
+  @@index([modelName, metricName, recordedAt])
+  @@map("ai_model_performance")
+}
+
+// Security Events
+model SecurityEvent {
+  id                        String                    @id @default(cuid())
+  organizationId            String?
+  eventType                 SecurityEventType
+  severity                  SecuritySeverity          @default(LOW)
+  source                    String?
+  description               String
+  details                   Json?
+  affectedUsers             Json?                     // Array of user IDs
+  mitigationActions         Json?                     // Actions taken
+  status                    SecurityStatus            @default(OPEN)
+  resolvedAt                DateTime?
+  createdAt                 DateTime                  @default(now())
+  
+  // Relations
+  organization              Organization?             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@index([organizationId, eventType, severity, createdAt])
+  @@index([severity, status, createdAt])
+  @@map("security_events")
+}
+
+// === ENTERPRISE ENUMS ===
+
+enum SubscriptionTier {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+  CUSTOM
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum EnterpriseMetricType {
+  USER_ENGAGEMENT
+  CONTENT_PERFORMANCE
+  AI_USAGE
+  SYSTEM_PERFORMANCE
+  REVENUE
+  COMPLIANCE
+  SECURITY
+  COLLABORATION
+}
+
+enum AggregationPeriod {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum ComplianceEventType {
+  DATA_ACCESS
+  DATA_EXPORT
+  DATA_DELETION
+  POLICY_VIOLATION
+  SECURITY_INCIDENT
+  AUDIT_REQUIREMENT
+}
+
+enum ComplianceFramework {
+  GDPR
+  CCPA
+  FERPA
+  HIPAA
+  SOX
+  COPPA
+  CUSTOM
+}
+
+enum ComplianceStatus {
+  COMPLIANT
+  NON_COMPLIANT
+  UNDER_REVIEW
+  PENDING_ACTION
+  RESOLVED
+}
+
+enum ComplianceSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  IMPORT
+  APPROVE
+  REJECT
+  PUBLISH
+  UNPUBLISH
+}
+
+enum AuditSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum AIPerformanceCategory {
+  ACCURACY
+  RESPONSE_TIME
+  RESOURCE_USAGE
+  USER_SATISFACTION
+  LEARNING_EFFECTIVENESS
+}
+
+enum SecurityEventType {
+  UNAUTHORIZED_ACCESS
+  SUSPICIOUS_ACTIVITY
+  DATA_BREACH
+  POLICY_VIOLATION
+  SYSTEM_INTRUSION
+  MALWARE_DETECTION
+  AUTHENTICATION_FAILURE
+}
+
+enum SecuritySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SecurityStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
 }
