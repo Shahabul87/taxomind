@@ -28,7 +28,7 @@ const getDomain = () => {
   // Check for production environment
   const isProd = process.env.NODE_ENV === 'production';
   if (isProd) {
-    return 'https://bdgenai.com';
+    return 'https://taxomind.com';
   }
   
   // Default to localhost for development
@@ -54,7 +54,7 @@ export const sendTwoFactorTokenEmail = async (
 
   try {
     const { data, error } = await resend!.emails.send({
-      from: "mail@bdgenai.com",
+      from: "noreply@taxomind.com",
       to: email,
       subject: "2FA Code for Login",
       html: `
@@ -98,9 +98,9 @@ export const sendPasswordResetEmail = async (
   
   try {
     const { data, error } = await resend!.emails.send({
-      from: "mail@bdgenai.com",
+      from: "noreply@taxomind.com",
       to: email,
-      subject: "Reset Your Password - bdGenAI",
+      subject: "Reset Your Password - MindForge",
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #0891b2; margin-bottom: 20px;">Reset Your Password</h2>
@@ -151,14 +151,14 @@ export const sendVerificationEmail = async (
 
   try {
     const { data, error } = await resend!.emails.send({
-      from: "mail@bdgenai.com",
+      from: "noreply@taxomind.com",
       to: email,
-      subject: "Verify Your Email - bdGenAI",
+      subject: "Verify Your Email - MindForge",
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #0891b2; margin-bottom: 20px;">Verify Your Email Address</h2>
           <p style="font-size: 16px; margin-bottom: 20px;">
-            Thank you for registering with bdGenAI. Please click the button below to verify your email address:
+            Thank you for registering with MindForge. Please click the button below to verify your email address:
           </p>
           <a href="${confirmLink}" 
              style="display: inline-block; background: linear-gradient(to right, #0891b2, #8b5cf6); 

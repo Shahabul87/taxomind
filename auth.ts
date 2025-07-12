@@ -19,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: "/auth/error",
   },
   trustHost: true,
-  secret: process.env.AUTH_SECRET,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   events: {
     async linkAccount({ user }) {
       await db.user.update({
