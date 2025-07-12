@@ -3,7 +3,7 @@
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -26,6 +26,7 @@ import { newPassword } from "@/actions/new-password";
 
 export const NewPasswordForm = () => {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams?.get("token");
 
   const [error, setError] = useState<string | undefined>("");
@@ -55,6 +56,11 @@ export const NewPasswordForm = () => {
           if (data?.success) {
             form.reset();
             setSuccess(data.success);
+            
+            // Auto-redirect to login after successful password reset
+            setTimeout(() => {
+              router.push("/auth/login?message=Password updated successfully! Please login with your new password.");
+            }, 2000); // 2 second delay to show success message
           }
         });
     });

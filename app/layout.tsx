@@ -22,19 +22,19 @@ import { Suspense } from 'react';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'MindForge - Intelligent Learning Platform',
+  title: 'Taxomind - Intelligent Learning Platform',
   description: 'Transform your learning journey with AI-powered education. Adaptive courses, real-time analytics, and personalized learning paths.',
   keywords: 'AI learning, adaptive education, intelligent tutoring, online courses, personalized learning, educational technology',
-  authors: [{ name: 'MindForge Team' }],
+  authors: [{ name: 'Taxomind Team' }],
   openGraph: {
-    title: 'MindForge - Where Minds Are Forged Through Intelligence',
+    title: 'Taxomind - Where Minds Are Forged Through Intelligence',
     description: 'Experience the future of education with our AI-powered learning platform',
     type: 'website',
-    siteName: 'MindForge',
+    siteName: 'Taxomind',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'MindForge - Intelligent Learning Platform',
+    title: 'Taxomind - Intelligent Learning Platform',
     description: 'Transform your learning journey with AI-powered education',
   },
   robots: 'index, follow',
@@ -55,7 +55,7 @@ function HeaderFallback() {
           <div className="flex items-center space-x-2 pl-8 md:pl-0">
             <div className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 bg-purple-400 rounded animate-pulse" />
             <span className="text-sm sm:text-base md:text-lg lg:text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text">
-              MindForge
+              Taxomind
             </span>
           </div>
           

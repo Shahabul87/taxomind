@@ -1,8 +1,8 @@
 {
-  "name": "mindforge",
+  "name": "taxomind",
   "version": "1.0.0",
   "private": true,
-  "description": "MindForge - Intelligent Learning Platform with AI-powered education and adaptive courses",
+  "description": "Taxomind - Intelligent Learning Platform with AI-powered education and adaptive courses",
   "keywords": [
     "education",
     "AI",
@@ -11,7 +11,7 @@
     "adaptive learning",
     "intelligent tutoring"
   ],
-  "author": "MindForge Team",
+  "author": "Taxomind Team",
   "license": "MIT",
   "scripts": {
     "dev": "next dev",

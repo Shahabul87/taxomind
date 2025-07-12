@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { BeatLoader } from "react-spinners";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -15,6 +15,7 @@ export const NewVerificationForm = () => {
   const [success, setSuccess] = useState<string | undefined>();
 
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const token = searchParams?.get("token");
 
@@ -30,6 +31,13 @@ export const NewVerificationForm = () => {
       .then((data) => {
         setSuccess(data.success);
         setError(data.error);
+        
+        // Auto-redirect to login after successful verification
+        if (data.success) {
+          setTimeout(() => {
+            router.push("/auth/login?message=Email verified successfully! Please login.");
+          }, 2000); // 2 second delay to show success message
+        }
       })
       .catch(() => {
         setError("Something went wrong!");

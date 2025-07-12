@@ -123,7 +123,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
             <Link href="/" className="flex items-center space-x-2 pl-8 md:pl-0">
               <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-purple-400" />
               <span className="text-sm sm:text-base md:text-lg lg:text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text">
-                MindForge
+                Taxomind
               </span>
             </Link>
 
