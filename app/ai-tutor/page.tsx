@@ -159,10 +159,10 @@ export default function AiTutorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-16 sm:pt-20">
       {/* Hero Section */}
       <motion.div 
-        className="relative overflow-hidden bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-emerald-900/20 py-16"
+        className="relative overflow-hidden bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-emerald-900/20 py-12 sm:py-16"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
@@ -180,7 +180,7 @@ export default function AiTutorPage() {
           </motion.div>
 
           <motion.h1 
-            className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 sm:mb-6"
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -193,7 +193,7 @@ export default function AiTutorPage() {
           </motion.h1>
 
           <motion.p
-            className="text-xl text-gray-300 max-w-3xl mx-auto mb-8"
+            className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
@@ -203,15 +203,15 @@ export default function AiTutorPage() {
           </motion.p>
 
           <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
             {learningStats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className={`text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
-                <div className="text-gray-400 text-sm">{stat.label}</div>
+                <div className={`text-2xl sm:text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
+                <div className="text-gray-400 text-xs sm:text-sm">{stat.label}</div>
               </div>
             ))}
           </motion.div>
@@ -219,12 +219,12 @@ export default function AiTutorPage() {
       </motion.div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           
           {/* AI Chat Interface */}
           <div className="lg:col-span-2">
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl h-[600px] flex flex-col">
+            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl h-[500px] sm:h-[600px] flex flex-col">
               {/* Chat Header */}
               <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
                 <div className="flex items-center space-x-3">
@@ -232,7 +232,7 @@ export default function AiTutorPage() {
                     <Brain className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white">MindForge AI Tutor</h3>
+                    <h3 className="text-lg font-semibold text-white">TaxoMind AI Tutor</h3>
                     <p className="text-sm text-gray-400">Online • Ready to help</p>
                   </div>
                 </div>

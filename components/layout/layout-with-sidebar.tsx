@@ -16,7 +16,13 @@ const SIDEBAR_HIDDEN_ROUTES = [
   "/about",
   "/features",
   "/blog",
+  "/courses",
   "/support",
+  "/solutions",
+  "/ai-trends",
+  "/ai-tutor",
+  "/ai-news",
+  "/ai-research",
 ];
 
 // Routes that need full-width layout (no padding)
@@ -24,7 +30,14 @@ const FULL_WIDTH_ROUTES = [
   "/features",
   "/",
   "/about",
+  "/blog",
+  "/courses",
   "/profile",
+  "/solutions",
+  "/ai-trends",
+  "/ai-tutor",
+  "/ai-news",
+  "/ai-research",
 ];
 
 // Patterns for routes where the sidebar should be hidden

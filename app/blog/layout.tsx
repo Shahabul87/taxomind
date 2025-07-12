@@ -16,7 +16,7 @@ export default async function BlogLayout({
         <div className="antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
           <ConfettiProvider />
          
-          <main className="min-h-screen w-full px-0 sm:px-2 md:px-4">             
+          <main className="min-h-screen w-full">             
               {children}
           </main> 
         </div>

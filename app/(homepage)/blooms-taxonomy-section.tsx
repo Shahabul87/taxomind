@@ -261,7 +261,7 @@ export default function BloomsTaxonomySection() {
                         {/* Platform Features */}
                         <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-6">
                           <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                            MindForge Features
+                            TaxoMind Features
                           </h4>
                           <div className="grid grid-cols-1 gap-3">
                             {level.platformFeatures.map((feature, i) => (
@@ -283,7 +283,7 @@ export default function BloomsTaxonomySection() {
                       <Brain className="w-12 h-12 text-purple-600 dark:text-purple-400" />
                     </div>
                     <p className="text-gray-600 dark:text-gray-400">
-                      Click on any level to explore how MindForge enhances your cognitive development
+                      Click on any level to explore how TaxoMind enhances your cognitive development
                     </p>
                   </div>
                 </div>

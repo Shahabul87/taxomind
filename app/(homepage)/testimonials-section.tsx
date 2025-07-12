@@ -23,7 +23,7 @@ const testimonials = [
     company: "TechCorp University",
     avatar: "/api/placeholder/64/64",
     rating: 5,
-    text: "MindForge's AI-powered assessment system has revolutionized how we evaluate student progress. The adaptive questioning has improved our completion rates by 85%.",
+    text: "TaxoMind's AI-powered assessment system has revolutionized how we evaluate student progress. The adaptive questioning has improved our completion rates by 85%.",
     results: "85% improvement in completion rates",
     category: "enterprise"
   },
@@ -53,7 +53,7 @@ const testimonials = [
     company: "Fortune 500 Company",
     avatar: "/api/placeholder/64/64",
     rating: 5,
-    text: "Implementing MindForge for our 10,000+ employees has streamlined our training programs. The predictive analytics help us optimize learning paths for maximum ROI.",
+    text: "Implementing TaxoMind for our 10,000+ employees has streamlined our training programs. The predictive analytics help us optimize learning paths for maximum ROI.",
     results: "60% training efficiency increase",
     category: "enterprise"
   },
@@ -73,7 +73,7 @@ const testimonials = [
     company: "Stanford University",
     avatar: "/api/placeholder/64/64",
     rating: 5,
-    text: "MindForge's intelligent feedback system helped me identify knowledge gaps I didn't even know existed. My research productivity has increased dramatically.",
+    text: "TaxoMind's intelligent feedback system helped me identify knowledge gaps I didn't even know existed. My research productivity has increased dramatically.",
     results: "2x research productivity boost",
     category: "student"
   }
@@ -192,7 +192,7 @@ export default function TestimonialsSection() {
           
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
             See how students, educators, and organizations are achieving remarkable 
-            results with MindForge's intelligent learning platform.
+            results with TaxoMind's intelligent learning platform.
           </p>
         </motion.div>
 

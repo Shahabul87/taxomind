@@ -143,7 +143,7 @@ async function performSearch(query: string): Promise<SearchResult[]> {
       },
       take: 15,
       include: {
-        user: true
+        User: true
       }
     });
     

@@ -196,5 +196,71 @@ npx prisma studio
 - Keep this file updated when schema changes
 
 ---
+
+## Local Development Setup
+
+### Environment Configuration
+- **Local Development**: Uses `.env` file with `NODE_ENV=development`
+- **Production**: Uses `.env.production` or Railway environment variables
+- **Database Port**: Local PostgreSQL runs on port **5433** to avoid conflicts
+
+### Quick Start Commands
+```bash
+# Start local development environment
+npm run dev:docker:start    # Start PostgreSQL container
+npm run dev                 # Start Next.js server
+
+# Database management
+npm run dev:setup          # Reset and seed database
+npm run dev:db:seed        # Seed with test data
+npm run dev:db:studio      # Open Prisma Studio
+
+# Container management
+npm run dev:docker:stop    # Stop container
+npm run dev:docker:reset   # Recreate container
+```
+
+### Local Database Configuration
+```bash
+# Local connection string (port 5433)
+DATABASE_URL="postgresql://postgres:dev_password_123@localhost:5433/taxomind_dev"
+
+# Test users available
+teacher@dev.local / password123
+student@dev.local / password123
+admin@dev.local / password123
+```
+
+### Development vs Production Safety
+```typescript
+// The codebase includes safety checks to prevent production data loss
+// lib/db-environment.ts ensures destructive operations only run in development
+if (process.env.NODE_ENV === 'development') {
+  // Safe to run destructive operations
+} else {
+  throw new Error('Destructive operations not allowed in production!');
+}
+```
+
+### Testing Commands to Run After Changes
+```bash
+# After making changes, always test:
+npm run lint               # Check code style
+npm run build             # Verify build succeeds
+npx prisma generate       # Update Prisma client
+```
+
+### Email Testing in Development
+- Emails are logged to console in development mode
+- Check terminal output for email preview
+- No real emails are sent when `NODE_ENV=development`
+
+### Important Files for Development
+- `LOCAL_DEVELOPMENT_GUIDE.md` - Complete local setup guide
+- `scripts/dev-seed.ts` - Development database seeding
+- `lib/db-environment.ts` - Environment safety utilities
+
+---
 *Last updated: July 2025*
 *Current schema: Purchase-based enrollment system*
+*Local development setup: Docker PostgreSQL on port 5433*

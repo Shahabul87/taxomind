@@ -30,7 +30,14 @@
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
     "test:debug": "jest --debug",
-    "test:update-snapshots": "jest --updateSnapshot"
+    "test:update-snapshots": "jest --updateSnapshot",
+    "dev:db:reset": "npx prisma db push --force-reset",
+    "dev:db:seed": "node scripts/dev-seed.ts",
+    "dev:db:studio": "npx prisma studio",
+    "dev:setup": "npm run dev:db:reset && npm run dev:db:seed",
+    "dev:docker:start": "docker start taxomind-dev-db",
+    "dev:docker:stop": "docker stop taxomind-dev-db",
+    "dev:docker:reset": "docker stop taxomind-dev-db || true && docker rm taxomind-dev-db || true && docker run --name taxomind-dev-db -e POSTGRES_PASSWORD=dev_password_123 -e POSTGRES_DB=taxomind_dev -p 5433:5432 -d postgres:15"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.19.2",

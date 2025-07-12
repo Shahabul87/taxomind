@@ -193,7 +193,7 @@ const useTypewriter = (text: string, speed: number = 50) => {
   return displayText;
 };
 
-export default function MindForgeHeroSection() {
+export default function TaxoMindHeroSection() {
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-50px" });
   const [showTypewriter, setShowTypewriter] = useState(false);
@@ -367,7 +367,7 @@ export default function MindForgeHeroSection() {
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
-                MindForge
+                TaxoMind
               </span>
             </div>
             <span className="text-purple-300 text-lg font-medium">

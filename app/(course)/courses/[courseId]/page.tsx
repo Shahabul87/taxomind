@@ -73,7 +73,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
       },
       _count: {
         select: {
-          enrollments: true,
+          Enrollment: true,
         },
       },
     },

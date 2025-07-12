@@ -23,11 +23,11 @@ export const Footer = () => {
           <a href="#">Careers</a>
         </nav>
         <div className="flex justify-center gap-6 mt-6">
-          <SocialX />
-          <SocialInsta />
-          <SocialLinkedIn />
-          <SocialPin />
-          <SocialYoutube />
+          <Image src={SocialX} height={20} width={20} alt="X (Twitter)" className="cursor-pointer hover:opacity-70" />
+          <Image src={SocialInsta} height={20} width={20} alt="Instagram" className="cursor-pointer hover:opacity-70" />
+          <Image src={SocialLinkedIn} height={20} width={20} alt="LinkedIn" className="cursor-pointer hover:opacity-70" />
+          <Image src={SocialPin} height={20} width={20} alt="Pinterest" className="cursor-pointer hover:opacity-70" />
+          <Image src={SocialYoutube} height={20} width={20} alt="YouTube" className="cursor-pointer hover:opacity-70" />
         </div>
         <p className="mt-6">&copy; 2024 Your Company, Inc. All rights reserved.</p>
       </div>

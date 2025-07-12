@@ -61,7 +61,7 @@ const CourseSuccessPage = async ({ params, searchParams }: CourseSuccessPageProp
             user: true,
             _count: {
               select: {
-                enrollments: true,
+                Enrollment: true,
               },
             },
           },
@@ -121,7 +121,7 @@ const CourseSuccessPage = async ({ params, searchParams }: CourseSuccessPageProp
                 <div className="flex items-center gap-4 mt-3">
                   <Badge variant="secondary" className="bg-green-100 text-green-700">
                     <Users className="w-3 h-3 mr-1" />
-                    {course._count.enrollments} students
+                    {course._count.Enrollment} students
                   </Badge>
                   <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                     <BookOpen className="w-3 h-3 mr-1" />

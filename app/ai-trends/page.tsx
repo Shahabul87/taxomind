@@ -174,10 +174,10 @@ export default function AITrendsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-16 sm:pt-20">
       {/* Hero Section */}
       <motion.div 
-        className="relative overflow-hidden bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-emerald-900/20 py-16"
+        className="relative overflow-hidden bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-emerald-900/20 py-12 sm:py-16"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
@@ -195,7 +195,7 @@ export default function AITrendsPage() {
           </motion.div>
 
           <motion.h1 
-            className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 sm:mb-6"
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -208,7 +208,7 @@ export default function AITrendsPage() {
           </motion.h1>
 
           <motion.p
-            className="text-xl text-gray-300 max-w-3xl mx-auto mb-8"
+            className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
@@ -218,15 +218,15 @@ export default function AITrendsPage() {
           </motion.p>
 
           <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
             {globalStats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className={`text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
-                <div className="text-gray-400 text-sm">{stat.label}</div>
+                <div className={`text-2xl sm:text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
+                <div className="text-gray-400 text-xs sm:text-sm">{stat.label}</div>
               </div>
             ))}
           </motion.div>
@@ -234,7 +234,7 @@ export default function AITrendsPage() {
       </motion.div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
         
         {/* Filters and Controls */}
         <motion.div
@@ -243,10 +243,10 @@ export default function AITrendsPage() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.6 }}
         >
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col xl:flex-row gap-4 items-center justify-between">
             
             {/* Search and Filter */}
-            <div className="flex flex-1 gap-4 max-w-2xl">
+            <div className="flex flex-col sm:flex-row flex-1 gap-4 max-w-2xl w-full">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
@@ -254,14 +254,14 @@ export default function AITrendsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search trends, keywords, or topics..."
-                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500 text-sm sm:text-base"
                 />
               </div>
               
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500"
+                className="w-full sm:w-auto bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 text-sm sm:text-base"
               >
                 <option value="all">All Categories</option>
                 {trendCategories.map(category => (
@@ -271,13 +271,13 @@ export default function AITrendsPage() {
             </div>
 
             {/* Timeframe and Live Update */}
-            <div className="flex items-center gap-4">
-              <div className="flex bg-slate-800/50 rounded-xl border border-slate-700">
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
+              <div className="flex bg-slate-800/50 rounded-xl border border-slate-700 w-full sm:w-auto overflow-hidden">
                 {timeframeOptions.map(option => (
                   <button
                     key={option.value}
                     onClick={() => setSelectedTimeframe(option.value as any)}
-                    className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition-colors flex-1 sm:flex-none ${
                       selectedTimeframe === option.value 
                         ? 'bg-emerald-600 text-white' 
                         : 'text-gray-400 hover:text-white'
@@ -303,7 +303,7 @@ export default function AITrendsPage() {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
           
           {/* Category Overview */}
           <div className="space-y-6">

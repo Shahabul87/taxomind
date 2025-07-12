@@ -11,7 +11,7 @@ interface MyPostCardProps {
     title: string;
     description: string | null;
     imageUrl: string | null;
-    published: boolean;
+    published: boolean | null;
     category: string | null;
     createdAt: string;
     comments?: {

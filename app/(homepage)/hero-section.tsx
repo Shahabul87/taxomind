@@ -260,32 +260,32 @@ export default function HeroSection() {
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-8 py-20">
+      <div className="relative z-10 w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-16 sm:py-20">
         <div className="max-w-7xl mx-auto">
           {/* Header section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8 }}
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
           >
             {/* Brand with icon */}
             <motion.div 
-              className="inline-flex items-center gap-3 mb-6"
+              className="inline-flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6"
               initial={{ scale: 0 }}
               animate={isInView ? { scale: 1 } : {}}
               transition={{ type: "spring", delay: 0.2 }}
             >
-              <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-2xl shadow-xl">
-                <Brain className="w-8 h-8 text-white" />
+              <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl sm:rounded-2xl shadow-xl">
+                <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <span className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+              <span className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
                 Taxomind
               </span>
             </motion.div>
 
             {/* Main headline */}
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 sm:mb-6 leading-tight">
               <motion.span 
                 className="block text-white mb-2"
                 initial={{ opacity: 0, x: -20 }}
@@ -305,7 +305,7 @@ export default function HeroSection() {
             </h1>
 
             <motion.p 
-              className="text-xl text-gray-300 max-w-3xl mx-auto mb-8"
+              className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-4 sm:px-0 leading-relaxed"
               initial={{ opacity: 0 }}
               animate={isInView ? { opacity: 1 } : {}}
               transition={{ delay: 0.5 }}
@@ -316,7 +316,7 @@ export default function HeroSection() {
 
             {/* CTA Buttons */}
             <motion.div 
-              className="flex flex-col sm:flex-row gap-4 justify-center"
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0"
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.6 }}
@@ -324,11 +324,11 @@ export default function HeroSection() {
               <Link href="/auth/register">
                 <Button 
                   size="lg"
-                  className="group relative bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold px-8 py-6 rounded-2xl shadow-2xl hover:shadow-purple-500/25 transition-all duration-300"
+                  className="group relative w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold px-6 sm:px-8 py-4 sm:py-6 rounded-xl sm:rounded-2xl shadow-2xl hover:shadow-purple-500/25 transition-all duration-300"
                 >
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center justify-center gap-2 text-base sm:text-lg">
                     Start Your Journey
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-2xl"
@@ -343,17 +343,17 @@ export default function HeroSection() {
                 <Button 
                   size="lg"
                   variant="outline"
-                  className="group font-semibold px-8 py-6 rounded-2xl border-2 border-purple-400/50 text-purple-300 hover:bg-purple-900/30 hover:border-purple-400 backdrop-blur-sm"
+                  className="group w-full sm:w-auto font-semibold px-6 sm:px-8 py-4 sm:py-6 rounded-xl sm:rounded-2xl border-2 border-purple-400/50 text-purple-300 hover:bg-purple-900/30 hover:border-purple-400 backdrop-blur-sm"
                 >
-                  <Play className="w-5 h-5 mr-2" />
-                  Watch Demo
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  <span className="text-base sm:text-lg">Watch Demo</span>
                 </Button>
               </Link>
             </motion.div>
           </motion.div>
 
           {/* Interactive Bloom's Taxonomy Pyramid */}
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-start">
             {/* Interactive Pyramid Visualization */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
@@ -361,13 +361,13 @@ export default function HeroSection() {
               transition={{ duration: 0.8 }}
               className="relative"
             >
-              <h3 className="text-2xl font-bold text-white mb-6 text-center lg:text-left">
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 text-center lg:text-left">
                 <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
                   Your Interactive Cognitive Journey
                 </span>
               </h3>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {taxonomyLevels.map((level, index) => {
                   const width = 100 - (index * 12);
                   const isActive = activeLevel === level.level;
@@ -390,31 +390,31 @@ export default function HeroSection() {
                     >
                       {/* Compact Level Card */}
                       <div className={`
-                        relative overflow-hidden rounded-2xl p-4 
+                        relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-4 
                         bg-gradient-to-r ${isActive || isHovered ? level.color : level.lightColor}
                         ${isActive ? 'shadow-2xl shadow-purple-500/25' : isHovered ? 'shadow-xl' : 'shadow-lg'}
                         transform transition-all duration-500 border-2
                         ${isHovered ? 'border-white/30' : 'border-transparent'}
                       `}>
                         <div className="flex items-center justify-between text-white">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 sm:gap-3">
                             <motion.div 
-                              className="p-2 bg-white/20 rounded-lg backdrop-blur-sm"
+                              className="p-1.5 sm:p-2 bg-white/20 rounded-lg backdrop-blur-sm"
                               animate={isActive || isHovered ? { rotate: 360, scale: 1.1 } : { scale: 1 }}
                               transition={{ duration: 0.5 }}
                             >
-                              <level.icon className="w-5 h-5" />
+                              <level.icon className="w-4 h-4 sm:w-5 sm:h-5" />
                             </motion.div>
                             <div>
-                              <h4 className="font-semibold text-lg">{level.name}</h4>
-                              <p className="text-sm text-white/80">Level {level.level}</p>
+                              <h4 className="font-semibold text-base sm:text-lg">{level.name}</h4>
+                              <p className="text-xs sm:text-sm text-white/80">Level {level.level}</p>
                             </div>
                           </div>
                           <motion.div
                             animate={isHovered ? { x: 5 } : { x: 0 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <ChevronRight className="w-5 h-5" />
+                            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                           </motion.div>
                         </div>
                         

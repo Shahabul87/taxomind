@@ -57,12 +57,12 @@ export const MessagesPopover = () => {
                 >
                   <div className="flex gap-3">
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={message.sender.image || undefined} />
-                      <AvatarFallback>{message.sender.name?.[0] || '?'}</AvatarFallback>
+                      <AvatarImage src={message.User_Message_senderIdToUser?.image || undefined} />
+                      <AvatarFallback>{message.User_Message_senderIdToUser?.name?.[0] || '?'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex justify-between items-start">
-                        <h4 className="font-medium text-sm">{message.sender.name}</h4>
+                        <h4 className="font-medium text-sm">{message.User_Message_senderIdToUser?.name || 'Unknown'}</h4>
                         <span className="text-xs text-gray-500">
                           {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
                         </span>

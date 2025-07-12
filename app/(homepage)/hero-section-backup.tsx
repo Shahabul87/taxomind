@@ -280,7 +280,7 @@ export default function HeroSection() {
                 <Brain className="w-8 h-8 text-white" />
               </div>
               <span className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
-                MindForge
+                TaxoMind
               </span>
             </motion.div>
 

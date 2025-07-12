@@ -192,7 +192,7 @@ export class CourseQueryOptimizer {
         },
         _count: {
           select: {
-            enrollments: true,
+            Enrollment: true,
             reviews: true,
             chapters: true,
           },
@@ -290,7 +290,7 @@ export class CourseQueryOptimizer {
         category: true,
         _count: {
           select: {
-            enrollments: true,
+            Enrollment: true,
             reviews: true,
             chapters: true,
           },

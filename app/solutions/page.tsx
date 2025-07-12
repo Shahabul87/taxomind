@@ -118,7 +118,7 @@ const solutionCategories = {
         name: "Sarah Chen",
         role: "Medical Student",
         university: "Johns Hopkins",
-        quote: "MindForge's AI tutor helped me master complex anatomy concepts 3x faster than traditional methods.",
+        quote: "TaxoMind's AI tutor helped me master complex anatomy concepts 3x faster than traditional methods.",
         improvement: "85% grade improvement"
       },
       {
@@ -199,7 +199,7 @@ const solutionCategories = {
         name: "Dr. Maria Rodriguez",
         role: "Mathematics Professor",
         university: "Stanford University",
-        quote: "MindForge's AI content creator reduced my lesson preparation time by 80% while improving student engagement.",
+        quote: "TaxoMind's AI content creator reduced my lesson preparation time by 80% while improving student engagement.",
         improvement: "80% time reduction"
       },
       {
@@ -280,7 +280,7 @@ const solutionCategories = {
         name: "David Kim",
         role: "Chief Learning Officer",
         company: "Fortune 500 Technology Company",
-        quote: "MindForge transformed our corporate training, improving employee engagement by 70% and reducing training costs by 40%.",
+        quote: "TaxoMind transformed our corporate training, improving employee engagement by 70% and reducing training costs by 40%.",
         improvement: "70% engagement increase"
       },
       {
@@ -334,7 +334,7 @@ export default function SolutionsPage() {
       {/* Hero Section */}
       <motion.div
         ref={heroRef}
-        className="relative pt-24 pb-16 px-4 sm:px-6 lg:px-8"
+        className="relative pt-20 sm:pt-24 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8"
         initial="hidden"
         animate={heroInView ? "visible" : "hidden"}
         variants={containerVariants}
@@ -351,7 +351,7 @@ export default function SolutionsPage() {
 
           {/* Main title */}
           <motion.h1
-            className="text-5xl md:text-6xl lg:text-7xl font-bold mb-8"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 sm:mb-8"
             variants={itemVariants}
           >
             <span className="text-white">Solutions Built for</span>
@@ -363,16 +363,16 @@ export default function SolutionsPage() {
 
           {/* Subtitle */}
           <motion.p
-            className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed mb-12"
+            className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed mb-8 sm:mb-12 px-2"
             variants={itemVariants}
           >
             Whether you're a student seeking personalized learning, an educator enhancing teaching effectiveness, 
-            or an organization transforming workforce development, MindForge has the perfect solution for you.
+            or an organization transforming workforce development, TaxoMind has the perfect solution for you.
           </motion.p>
 
           {/* Solution selector buttons */}
           <motion.div
-            className="flex flex-wrap justify-center gap-6 mb-16"
+            className="flex flex-col sm:flex-row flex-wrap justify-center gap-4 sm:gap-6 mb-12 sm:mb-16"
             variants={itemVariants}
           >
             {Object.entries(solutionCategories).map(([key, solution]) => (
@@ -385,22 +385,22 @@ export default function SolutionsPage() {
               >
                 <div className={`absolute inset-0 bg-gradient-to-r ${solution.gradient} opacity-${activeSolution === key ? '100' : '0'} group-hover:opacity-75 transition-opacity duration-300`}></div>
                 
-                <div className={`relative px-8 py-6 rounded-2xl border-2 transition-all duration-300 ${
+                <div className={`relative px-4 sm:px-6 md:px-8 py-4 sm:py-6 rounded-2xl border-2 transition-all duration-300 ${
                   activeSolution === key 
                     ? 'border-transparent bg-white/10 backdrop-blur-sm' 
                     : 'border-slate-700/50 bg-slate-800/50 hover:border-slate-600/50'
                 }`}>
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                  <div className="flex flex-col sm:flex-row items-center sm:space-x-4 space-y-2 sm:space-y-0">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
                       activeSolution === key 
                         ? 'bg-white/20' 
                         : `bg-gradient-to-r ${solution.gradient}`
                     }`}>
-                      <solution.icon className="w-6 h-6 text-white" />
+                      <solution.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <div className="text-left">
-                      <h3 className="text-xl font-bold text-white">{solution.title}</h3>
-                      <p className="text-sm text-gray-300">{solution.subtitle}</p>
+                    <div className="text-center sm:text-left">
+                      <h3 className="text-lg sm:text-xl font-bold text-white">{solution.title}</h3>
+                      <p className="text-xs sm:text-sm text-gray-300">{solution.subtitle}</p>
                     </div>
                   </div>
                 </div>
@@ -413,7 +413,7 @@ export default function SolutionsPage() {
       {/* Active Solution Section */}
       <motion.div
         ref={solutionsRef}
-        className="relative py-24 px-4 sm:px-6 lg:px-8"
+        className="relative py-12 sm:py-16 md:py-20 lg:py-24 px-4 sm:px-6 lg:px-8"
         key={activeSolution}
         initial="hidden"
         animate={solutionsInView ? "visible" : "hidden"}
@@ -422,38 +422,38 @@ export default function SolutionsPage() {
         <div className="max-w-7xl mx-auto">
           {/* Solution hero */}
           <motion.div
-            className="text-center mb-20"
+            className="text-center mb-12 sm:mb-16 lg:mb-20"
             variants={itemVariants}
           >
-            <div className={`inline-flex items-center space-x-4 bg-gradient-to-r ${currentSolution.gradient} rounded-3xl p-8 mb-8`}>
-              <currentSolution.icon className="w-12 h-12 text-white" />
-              <div className="text-left">
-                <h2 className="text-4xl font-bold text-white">{currentSolution.title}</h2>
-                <p className="text-xl text-white/90">{currentSolution.subtitle}</p>
+            <div className={`inline-flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 bg-gradient-to-r ${currentSolution.gradient} rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-6 sm:mb-8`}>
+              <currentSolution.icon className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+              <div className="text-center sm:text-left">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">{currentSolution.title}</h2>
+                <p className="text-lg sm:text-xl text-white/90">{currentSolution.subtitle}</p>
               </div>
             </div>
             
-            <p className="text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+            <p className="text-lg sm:text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed px-2">
               {currentSolution.description}
             </p>
           </motion.div>
 
           {/* Stats grid */}
           <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20 max-w-5xl mx-auto"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 sm:mb-16 lg:mb-20 max-w-5xl mx-auto"
             variants={containerVariants}
           >
             {currentSolution.stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
                 variants={itemVariants}
-                className="text-center p-6 rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/30 hover:border-blue-500/30 transition-all duration-300 group"
+                className="text-center p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/30 hover:border-blue-500/30 transition-all duration-300 group"
                 whileHover={{ scale: 1.05, y: -5 }}
               >
-                <div className={`text-3xl font-bold bg-gradient-to-r ${currentSolution.gradient} bg-clip-text text-transparent mb-2`}>
+                <div className={`text-2xl sm:text-3xl font-bold bg-gradient-to-r ${currentSolution.gradient} bg-clip-text text-transparent mb-2`}>
                   {stat.value}
                 </div>
-                <div className="text-sm font-semibold text-white mb-1">
+                <div className="text-xs sm:text-sm font-semibold text-white mb-1">
                   {stat.label}
                 </div>
                 <div className="text-xs text-gray-400">
@@ -466,7 +466,7 @@ export default function SolutionsPage() {
           {/* Features grid */}
           <motion.div
             ref={featuresRef}
-            className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-12 sm:mb-16 lg:mb-20"
             initial="hidden"
             animate={featuresInView ? "visible" : "hidden"}
             variants={containerVariants}
@@ -480,18 +480,18 @@ export default function SolutionsPage() {
               >
                 <div className={`absolute -inset-1 bg-gradient-to-r ${currentSolution.gradient} rounded-3xl blur opacity-0 group-hover:opacity-25 transition duration-300`}></div>
                 
-                <div className="relative rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl p-8 shadow-2xl border border-slate-700/50 group-hover:border-blue-500/30 transition-all duration-300 h-full">
+                <div className="relative rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl p-6 sm:p-8 shadow-2xl border border-slate-700/50 group-hover:border-blue-500/30 transition-all duration-300 h-full">
                   {/* Feature icon */}
                   <div className={`inline-block rounded-2xl bg-gradient-to-r ${currentSolution.gradient} p-4 shadow-xl mb-6 group-hover:scale-110 transition-transform duration-300`}>
                     <feature.icon className="h-8 w-8 text-white" />
                   </div>
                   
                   {/* Feature content */}
-                  <h4 className="text-2xl font-bold text-white mb-4 group-hover:text-blue-300 transition-colors">
+                  <h4 className="text-xl sm:text-2xl font-bold text-white mb-4 group-hover:text-blue-300 transition-colors">
                     {feature.title}
                   </h4>
                   
-                  <p className="text-gray-300 text-lg leading-relaxed mb-6">
+                  <p className="text-gray-300 text-base sm:text-lg leading-relaxed mb-6">
                     {feature.description}
                   </p>
                   
@@ -519,14 +519,14 @@ export default function SolutionsPage() {
 
           {/* Testimonials */}
           <motion.div
-            className="mb-20"
+            className="mb-12 sm:mb-16 lg:mb-20"
             variants={itemVariants}
           >
-            <h3 className="text-3xl md:text-4xl font-bold text-center text-white mb-12">
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-white mb-8 sm:mb-12">
               Success Stories
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 max-w-6xl mx-auto">
               {currentSolution.testimonials.map((testimonial, index) => (
                 <motion.div
                   key={testimonial.name}
@@ -536,7 +536,7 @@ export default function SolutionsPage() {
                 >
                   <div className={`absolute -inset-1 bg-gradient-to-r ${currentSolution.gradient} rounded-3xl blur opacity-0 group-hover:opacity-20 transition duration-300`}></div>
                   
-                  <div className="relative rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl p-8 shadow-xl border border-slate-700/50 group-hover:border-blue-500/30 transition-all duration-300">
+                  <div className="relative rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl p-6 sm:p-8 shadow-xl border border-slate-700/50 group-hover:border-blue-500/30 transition-all duration-300">
                     {/* Quote */}
                     <div className="mb-6">
                       <div className="flex items-center mb-4">
@@ -576,29 +576,29 @@ export default function SolutionsPage() {
             className="text-center"
             variants={itemVariants}
           >
-            <div className="max-w-4xl mx-auto p-8 rounded-3xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 backdrop-blur-sm">
-              <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <div className="max-w-4xl mx-auto p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 backdrop-blur-sm">
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
                 Ready to Get Started?
               </h3>
-              <p className="text-lg text-gray-300 mb-8">
+              <p className="text-base sm:text-lg text-gray-300 mb-6 sm:mb-8 px-2">
                 Join thousands of learners, educators, and organizations who have transformed 
-                their educational journey with MindForge's intelligent solutions.
+                their educational journey with TaxoMind's intelligent solutions.
               </p>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                <Link href="/auth/register" className="group">
-                  <Button size="lg" className={`bg-gradient-to-r ${currentSolution.gradient} hover:shadow-lg text-white font-semibold py-4 px-8 rounded-2xl shadow-xl transition-all duration-300`}>
-                    <span className="flex items-center text-lg">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+                <Link href="/auth/register" className="group w-full sm:w-auto">
+                  <Button size="lg" className={`w-full sm:w-auto bg-gradient-to-r ${currentSolution.gradient} hover:shadow-lg text-white font-semibold py-3 sm:py-4 px-6 sm:px-8 rounded-2xl shadow-xl transition-all duration-300`}>
+                    <span className="flex items-center text-base sm:text-lg">
                       Start Free Trial
-                      <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
                     </span>
                   </Button>
                 </Link>
                 
-                <Link href="/contact" className="group">
-                  <Button size="lg" variant="outline" className="border-2 border-blue-400/50 text-blue-300 hover:bg-blue-900/30 hover:border-blue-400 font-semibold py-4 px-8 rounded-2xl backdrop-blur-sm transition-all duration-300">
-                    <MessageSquare className="mr-2 h-5 w-5" />
-                    <span className="text-lg">Contact Sales</span>
+                <Link href="/contact" className="group w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-2 border-blue-400/50 text-blue-300 hover:bg-blue-900/30 hover:border-blue-400 font-semibold py-3 sm:py-4 px-6 sm:px-8 rounded-2xl backdrop-blur-sm transition-all duration-300">
+                    <MessageSquare className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-base sm:text-lg">Contact Sales</span>
                   </Button>
                 </Link>
               </div>

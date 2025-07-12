@@ -252,10 +252,10 @@ export default function AINewsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-16 sm:pt-20">
       {/* Hero Section */}
       <motion.div 
-        className="relative overflow-hidden bg-gradient-to-r from-blue-900/20 via-purple-900/20 to-emerald-900/20 py-16"
+        className="relative overflow-hidden bg-gradient-to-r from-blue-900/20 via-purple-900/20 to-emerald-900/20 py-12 sm:py-16"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
@@ -273,7 +273,7 @@ export default function AINewsPage() {
           </motion.div>
 
           <motion.h1 
-            className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 sm:mb-6"
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -286,7 +286,7 @@ export default function AINewsPage() {
           </motion.h1>
 
           <motion.p
-            className="text-xl text-gray-300 max-w-3xl mx-auto mb-8"
+            className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
@@ -296,15 +296,15 @@ export default function AINewsPage() {
           </motion.p>
 
           <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
             {quickStats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className={`text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
-                <div className="text-gray-400 text-sm">{stat.label}</div>
+                <div className={`text-2xl sm:text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
+                <div className="text-gray-400 text-xs sm:text-sm">{stat.label}</div>
               </div>
             ))}
           </motion.div>

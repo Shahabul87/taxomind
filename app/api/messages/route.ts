@@ -14,7 +14,7 @@ export async function GET() {
         recipientId: session.user.id,
       },
       include: {
-        sender: {
+        User_Message_senderIdToUser: {
           select: {
             id: true,
             name: true,
@@ -45,9 +45,19 @@ export async function POST(req: Request) {
 
     const message = await db.message.create({
       data: {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         content,
         senderId: session.user.id,
         recipientId,
+      },
+      include: {
+        User_Message_senderIdToUser: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
       },
     });
 

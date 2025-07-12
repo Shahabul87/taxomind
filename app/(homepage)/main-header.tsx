@@ -113,35 +113,35 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 w-full z-[90] bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full relative">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 w-full relative">
           {/* Subtle header glow effects to match PageBackground */}
           <div className="absolute -top-20 -right-20 w-60 h-60 bg-purple-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
           <div className="absolute -top-20 -left-20 w-60 h-60 bg-blue-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
           
-          <div className="flex justify-between items-center h-16 relative">
+          <div className="flex justify-between items-center h-14 sm:h-16 relative">
             {/* Logo */}
-            <Link href="/" className="flex items-center space-x-2 pl-8 md:pl-0">
-              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-purple-400" />
-              <span className="text-sm sm:text-base md:text-lg lg:text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text">
+            <Link href="/" className="flex items-center space-x-2 pl-0 sm:pl-0">
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-purple-400" />
+              <span className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text">
                 Taxomind
               </span>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link href="/courses" className="text-sm lg:text-base text-gray-300 hover:text-white transition-colors font-medium">
+            <nav className="hidden lg:flex items-center space-x-6 xl:space-x-8">
+              <Link href="/courses" className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium">
                 Courses
               </Link>
-              <Link href="/blog" className="text-sm lg:text-base text-gray-300 hover:text-white transition-colors font-medium">
+              <Link href="/blog" className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium">
                 Blogs
               </Link>
               <div className="relative group">
-                <Link href="/features" className="text-sm lg:text-base text-gray-300 hover:text-white transition-colors font-medium flex items-center space-x-1">
+                <Link href="/features" className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium flex items-center space-x-1">
                   <span>Features</span>
                 </Link>
               </div>
               <div className="relative group">
-                <div className="text-sm lg:text-base text-gray-300 hover:text-white transition-colors font-medium flex items-center space-x-1 cursor-pointer">
+                <div className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium flex items-center space-x-1 cursor-pointer">
                   <span>Solutions</span>
                   <svg className="w-3 h-3 transition-transform group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -167,7 +167,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                 </div>
               </div>
               <div className="relative group">
-                <div className="text-sm lg:text-base text-gray-300 hover:text-white transition-colors font-medium flex items-center space-x-1 cursor-pointer">
+                <div className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium flex items-center space-x-1 cursor-pointer">
                   <span>AI</span>
                   <svg className="w-3 h-3 transition-transform group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -199,46 +199,46 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
             </nav>
 
             {/* User Actions */}
-            <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 lg:space-x-4">
               {/* Search Icon */}
               <button
                 onClick={handleSearchIconClick}
-                className="p-1.5 md:p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors"
                 aria-label="Search"
               >
-                <Search className="w-4 h-4 md:w-5 md:h-5 text-gray-300" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-300" />
               </button>
               
               {/* Theme Toggle - Fixed hydration */}
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-1.5 md:p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors"
                 aria-label="Toggle theme"
               >
                 {mounted ? (
                   theme === "dark" ? (
-                    <Sun className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+                    <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
                   ) : (
-                    <Moon className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
+                    <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
                   )
                 ) : (
                   // Render a placeholder that matches the server during hydration
-                  <div className="w-4 h-4 md:w-5 md:h-5 bg-gray-400 rounded animate-pulse" />
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 bg-gray-400 rounded animate-pulse" />
                 )}
               </button>
 
               {/* Authenticated User Actions */}
               {isAuthenticated ? (
-                <div className="hidden md:flex items-center gap-2 lg:gap-4">
+                <div className="hidden lg:flex items-center gap-2 xl:gap-4">
                   <NotificationsPopover />
                   <MessagesPopover />
                   <UserMenu user={user} />
                 </div>
               ) : (
-                <div className="hidden md:flex items-center space-x-3">
+                <div className="hidden lg:flex items-center space-x-2 xl:space-x-3">
                   <Link href="/auth/login">
                     <motion.div
-                      className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                      className="px-3 xl:px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -249,7 +249,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     <motion.div 
                       whileHover={{ scale: 1.05 }} 
                       whileTap={{ scale: 0.95 }}
-                      className="px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium transition-all duration-300 shadow-lg hover:shadow-purple-500/25"
+                      className="px-4 xl:px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium transition-all duration-300 shadow-lg hover:shadow-purple-500/25 text-sm xl:text-base"
                     >
                       Start Free Trial
                     </motion.div>
@@ -258,7 +258,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
               )}
 
               {/* Mobile Menu Button */}
-              <div className="md:hidden">
+              <div className="lg:hidden">
                 {isAuthenticated ? (
                   <MobileMenuButton 
                     isOpen={isOpen} 
@@ -286,19 +286,19 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
       {/* Mobile Navigation Menu for Unauthenticated Users */}
       {!isAuthenticated && isOpen && (
-        <div className="fixed top-16 left-0 right-0 w-full md:hidden overflow-hidden z-40 shadow-lg bg-gradient-to-b from-slate-900/95 to-slate-800/95 backdrop-blur-sm border-b border-slate-700/50">
-          <div className="px-4 py-3 max-h-[calc(100vh-4rem)] overflow-y-auto">
+        <div className="fixed top-14 sm:top-16 left-0 right-0 w-full lg:hidden overflow-hidden z-40 shadow-lg bg-gradient-to-b from-slate-900/95 to-slate-800/95 backdrop-blur-sm border-b border-slate-700/50">
+          <div className="px-4 py-3 max-h-[calc(100vh-3.5rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto">
             <nav className="flex flex-col items-center space-y-3">
-              <Link href="/courses" className="text-gray-300 hover:text-white transition-colors text-center w-full">
+              <Link href="/courses" className="text-gray-300 hover:text-white transition-colors text-center w-full py-2 text-base">
                 Courses
               </Link>
-              <Link href="/blog" className="text-gray-300 hover:text-white transition-colors text-center w-full">
+              <Link href="/blog" className="text-gray-300 hover:text-white transition-colors text-center w-full py-2 text-base">
                 Blogs
               </Link>
-              <Link href="/features" className="text-gray-300 hover:text-white transition-colors text-center w-full">
+              <Link href="/features" className="text-gray-300 hover:text-white transition-colors text-center w-full py-2 text-base">
                 Features
               </Link>
-              <Link href="/solutions" className="text-gray-300 hover:text-white transition-colors text-center w-full">
+              <Link href="/solutions" className="text-gray-300 hover:text-white transition-colors text-center w-full py-2 text-base">
                 Solutions
               </Link>
               <div className="w-full">

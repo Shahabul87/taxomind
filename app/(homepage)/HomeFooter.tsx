@@ -94,7 +94,7 @@ export const HomeFooter = () => {
               <Link href="/" className="flex items-center space-x-2">
                 <BookOpen className="h-8 w-8 text-purple-400" />
                 <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                  MindForge
+                  TaxoMind
                 </span>
               </Link>
               <p className="text-sm leading-relaxed">
@@ -186,7 +186,7 @@ export const HomeFooter = () => {
           <div className="border-t border-slate-700 pt-8 mt-8">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               <div className="text-sm space-y-2 md:space-y-0">
-                <p>© 2024 MindForge. All rights reserved.</p>
+                <p>© 2024 TaxoMind. All rights reserved.</p>
                 <div className="flex flex-wrap gap-4 text-gray-400">
                   <Link href="/terms" className="hover:text-purple-400 transition-colors">Terms</Link>
                   <Link href="/privacy" className="hover:text-purple-400 transition-colors">Privacy</Link>
@@ -195,7 +195,7 @@ export const HomeFooter = () => {
                 </div>
               </div>
               <p className="text-sm flex items-center">
-                Made with <Heart className="w-4 h-4 text-red-500 mx-1" /> by the MindForge Team
+                Made with <Heart className="w-4 h-4 text-red-500 mx-1" /> by the TaxoMind Team
               </p>
             </div>
           </div>

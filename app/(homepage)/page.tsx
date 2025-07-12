@@ -2,7 +2,6 @@ import { getCoursesForHomepage } from "@/actions/get-all-courses";
 import { getPostsForHomepage } from "@/actions/get-all-posts";
 import HeroSection from "./hero-section";
 import HowItWorksSection from "./how-it-works-section";
-import FeaturesShowcaseSection from "./features-showcase-section";
 import TestimonialsSection from "./testimonials-section";
 import { HomeFooter } from "./HomeFooter";
 import { FeaturedCoursesSection } from "./featured-courses-section";
@@ -23,12 +22,12 @@ const Home = async () => {
     <>
       <HeroSection />
       <HowItWorksSection />
-      <FeaturesShowcaseSection />
-      <TestimonialsSection />
+     
       <div className="min-h-screen">
         <FeaturedCoursesSection courses={courses} />
         <FeaturedBlogPostsSection posts={posts} />
       </div>
+      <TestimonialsSection />
       <HomeFooter />
     </>
   );

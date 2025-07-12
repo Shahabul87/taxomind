@@ -1,7 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getPostsForHomepage } from "@/actions/get-all-posts";
+import { getSimplePostsForBlog } from "@/actions/get-simple-posts";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -77,7 +77,7 @@ export async function GET() {
   try {
     console.log("🔄 [API] /api/posts - Starting to fetch posts...");
     
-    const posts = await getPostsForHomepage();
+    const posts = await getSimplePostsForBlog();
     
     console.log(`✅ [API] /api/posts - Successfully fetched ${posts.length} posts`);
     

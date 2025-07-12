@@ -91,7 +91,7 @@ const CourseLearningPage = async (
           category: true,
           _count: {
             select: {
-              enrollments: true
+              Enrollment: true
             }
           }
         }

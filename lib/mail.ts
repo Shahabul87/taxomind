@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { getEnvironmentConfig, devLog } from "./db-environment";
 
 // Initialize Resend with better error handling
 let resend: Resend | null = null;
@@ -39,7 +40,33 @@ const domain = getDomain();
 
 // Helper function to check if email is configured
 const isEmailConfigured = () => {
+  const config = getEnvironmentConfig();
+  if (config.isDevelopment) {
+    return true; // Always "configured" in development (we'll log instead)
+  }
   return resend !== null && process.env.RESEND_API_KEY;
+};
+
+// Helper function to send emails safely in different environments
+const sendEmailSafely = async (emailData: any) => {
+  const config = getEnvironmentConfig();
+  
+  if (config.isDevelopment) {
+    devLog('📧 Email would be sent:', {
+      to: emailData.to,
+      subject: emailData.subject,
+      from: emailData.from
+    });
+    devLog('📧 Email HTML content:', emailData.html.substring(0, 200) + '...');
+    return { success: true, dev: true, id: 'dev_email_' + Date.now() };
+  }
+  
+  // Send real email in staging/production
+  if (!resend) {
+    throw new Error('Resend not configured for production email sending');
+  }
+  
+  return await resend.emails.send(emailData);
 };
 
 export const sendTwoFactorTokenEmail = async (
@@ -53,7 +80,7 @@ export const sendTwoFactorTokenEmail = async (
   }
 
   try {
-    const { data, error } = await resend!.emails.send({
+    const emailData = {
       from: "noreply@taxomind.com",
       to: email,
       subject: "2FA Code for Login",
@@ -69,14 +96,21 @@ export const sendTwoFactorTokenEmail = async (
           </p>
         </div>
       `
-    });
+    };
 
-    if (error) {
-      console.error("Resend API Error:", error);
+    const result = await sendEmailSafely(emailData);
+    
+    if (result.dev) {
+      devLog('2FA token email logged to console (development mode)');
+      return result;
+    }
+    
+    if (result.error) {
+      console.error("Email API Error:", result.error);
       return;
     }
 
-    return data;
+    return result;
   } catch (error) {
     console.error("Detailed error:", error);
     return null;
@@ -212,7 +246,7 @@ export const sendVerificationEmail = async (
   }
 
   try {
-    const { data, error } = await resend!.emails.send({
+    const emailData = {
       from: "noreply@taxomind.com",
       to: email,
       subject: "Welcome to Taxomind - Verify Your Email",
@@ -295,15 +329,23 @@ export const sendVerificationEmail = async (
         </body>
         </html>
       `
-    });
+    };
 
-    if (error) {
-      console.error("Resend API Error:", error);
-      throw new Error(`Failed to send verification email: ${error.message}`);
+    const result = await sendEmailSafely(emailData);
+    
+    if (result.dev) {
+      devLog('Verification email logged to console (development mode)');
+      devLog('Verification link:', confirmLink);
+      return result;
+    }
+    
+    if (result.error) {
+      console.error("Email API Error:", result.error);
+      throw new Error(`Failed to send verification email: ${result.error.message}`);
     }
 
-    console.log('Verification email sent successfully:', data);
-    return data;
+    console.log('Verification email sent successfully:', result);
+    return result;
   } catch (error) {
     console.error("Verification email error:", error);
     throw error;
