@@ -37,19 +37,35 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
   const [selectedPeriod, setSelectedPeriod] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>(getStoredPeriod);
   const [selectedCourse, setSelectedCourse] = useState<string | undefined>(undefined);
   const [activeTab, setActiveTab] = useState(getStoredTab);
+  
+  // Check user role for conditional tab rendering
+  const isAdmin = user?.role === 'ADMIN';
+  const isUser = user?.role === 'USER';
 
-  // Initialize from localStorage only once
+  // Initialize from localStorage only once and validate tab access
   useEffect(() => {
     const storedTab = getStoredTab();
     const storedPeriod = getStoredPeriod();
     
-    if (storedTab !== activeTab) {
-      setActiveTab(storedTab);
+    // Check if user has access to the stored tab
+    const hasAccessToTab = (tab: string) => {
+      if (tab === 'admin-features') return isAdmin;
+      return true; // All other tabs are accessible to everyone (including teacher tools)
+    };
+    
+    // If user doesn't have access to stored tab, default to overview
+    const validTab = hasAccessToTab(storedTab) ? storedTab : 'overview';
+    
+    if (validTab !== activeTab) {
+      setActiveTab(validTab);
+      if (validTab !== storedTab) {
+        storeTab(validTab); // Store the valid tab
+      }
     }
     if (storedPeriod !== selectedPeriod) {
       setSelectedPeriod(storedPeriod);
     }
-  }, []); // Empty dependency array to run only once
+  }, [isAdmin]); // Depend on admin role check
 
   // Stable data hooks that won't cause errors or reloads
   const { 
@@ -147,7 +163,9 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
           />
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-11 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+            <TabsList className={`grid w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm ${
+              isAdmin ? 'grid-cols-11' : 'grid-cols-10'
+            }`}>
               <TabsTrigger 
                 value="overview" 
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
@@ -196,18 +214,25 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
               >
                 Student Tools
               </TabsTrigger>
+              
+              {/* Teacher Tools - Show for all users (both USER and ADMIN) */}
               <TabsTrigger 
                 value="teacher-features" 
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
               >
                 Teacher Tools
               </TabsTrigger>
-              <TabsTrigger 
-                value="admin-features" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
-              >
-                Admin Tools
-              </TabsTrigger>
+              
+              {/* Admin Tools - Only show for admins */}
+              {isAdmin && (
+                <TabsTrigger 
+                  value="admin-features" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
+                >
+                  Admin Tools
+                </TabsTrigger>
+              )}
+              
               <TabsTrigger 
                 value="insights" 
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
@@ -254,13 +279,17 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
               <StudentFeaturesTab analytics={analytics} performance={performance} />
             </TabsContent>
             
+            {/* Teacher Features - Show for all users (both USER and ADMIN) */}
             <TabsContent value="teacher-features" className="space-y-6 pt-6">
               <TeacherFeaturesTab analytics={analytics} performance={performance} />
             </TabsContent>
             
-            <TabsContent value="admin-features" className="space-y-6 pt-6">
-              <AdminFeaturesTab analytics={analytics} performance={performance} />
-            </TabsContent>
+            {/* Admin Features - Only render for admins */}
+            {isAdmin && (
+              <TabsContent value="admin-features" className="space-y-6 pt-6">
+                <AdminFeaturesTab analytics={analytics} performance={performance} />
+              </TabsContent>
+            )}
             
             <TabsContent value="insights" className="space-y-6 pt-6">
               <PredictiveAnalytics user={user} />

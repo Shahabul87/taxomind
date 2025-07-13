@@ -17,6 +17,21 @@ interface TeacherFeaturesProps {
   performance?: any;
 }
 
+// Helper function to get feature gradient colors for teacher tools
+const getTeacherFeatureGradient = (color: string) => {
+  const gradients: Record<string, string> = {
+    blue: 'from-blue-500 to-cyan-500',
+    purple: 'from-purple-500 to-violet-500',
+    green: 'from-green-500 to-emerald-500',
+    orange: 'from-orange-500 to-amber-500',
+    indigo: 'from-indigo-500 to-blue-500',
+    pink: 'from-pink-500 to-rose-500',
+    emerald: 'from-emerald-500 to-teal-500',
+    red: 'from-red-500 to-orange-500'
+  };
+  return gradients[color] || 'from-gray-500 to-gray-600';
+};
+
 export function TeacherFeaturesTab({ analytics, performance }: TeacherFeaturesProps) {
   const [featuresData, setFeaturesData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,171 +145,176 @@ export function TeacherFeaturesTab({ analytics, performance }: TeacherFeaturesPr
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Teaching Intelligence Tools</h2>
-          <p className="text-muted-foreground">AI-powered insights to enhance your teaching effectiveness</p>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50/40 via-teal-50/30 to-cyan-50/40 dark:from-emerald-950/20 dark:via-teal-950/15 dark:to-cyan-950/20 p-6 space-y-6">
+      {/* Header with Glass Effect */}
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 text-transparent bg-clip-text">Teaching Intelligence Tools</h2>
+            <p className="text-slate-600 dark:text-slate-400 mt-2">AI-powered insights to enhance your teaching effectiveness</p>
+          </div>
+          <Badge variant="secondary" className="text-sm bg-emerald-100/80 dark:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-700/50">
+            {teacherFeatures.filter(f => f.status === 'active').length} Active Tools
+          </Badge>
         </div>
-        <Badge variant="secondary" className="text-sm">
-          {teacherFeatures.filter(f => f.status === 'active').length} Active Tools
-        </Badge>
       </div>
 
-      {/* Class Overview */}
-      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Activity className="h-5 w-5 text-green-600" />
-            <span>Class Performance Overview</span>
-          </CardTitle>
-          <CardDescription>
-            Real-time insights into your classroom effectiveness
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">24</div>
-              <div className="text-sm text-muted-foreground">Active Students</div>
+      {/* Class Overview with Glass Effect */}
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-6">
+        <div className="mb-4">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500/20 to-teal-500/20 dark:from-emerald-400/20 dark:to-teal-400/20">
+              <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">87%</div>
-              <div className="text-sm text-muted-foreground">Avg Engagement</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">94%</div>
-              <div className="text-sm text-muted-foreground">Completion Rate</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">3</div>
-              <div className="text-sm text-muted-foreground">At-Risk Students</div>
-            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Class Performance Overview</h3>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-slate-600 dark:text-slate-400">
+            Real-time insights into your classroom effectiveness
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="text-center p-4 bg-emerald-50/50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200/50 dark:border-emerald-700/50">
+            <div className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-500 dark:from-emerald-400 dark:to-green-300 text-transparent bg-clip-text">24</div>
+            <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Active Students</div>
+          </div>
+          <div className="text-center p-4 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl border border-blue-200/50 dark:border-blue-700/50">
+            <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-blue-400 dark:to-cyan-300 text-transparent bg-clip-text">87%</div>
+            <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Avg Engagement</div>
+          </div>
+          <div className="text-center p-4 bg-purple-50/50 dark:bg-purple-900/20 rounded-xl border border-purple-200/50 dark:border-purple-700/50">
+            <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-violet-500 dark:from-purple-400 dark:to-violet-300 text-transparent bg-clip-text">94%</div>
+            <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Completion Rate</div>
+          </div>
+          <div className="text-center p-4 bg-orange-50/50 dark:bg-orange-900/20 rounded-xl border border-orange-200/50 dark:border-orange-700/50">
+            <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-500 dark:from-orange-400 dark:to-amber-300 text-transparent bg-clip-text">3</div>
+            <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">At-Risk Students</div>
+          </div>
+        </div>
+      </div>
 
-      {/* Teacher Features Grid */}
+      {/* Teacher Features Grid with Glass Effect */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {teacherFeatures.map((feature) => (
-          <Card key={feature.id} className="hover:shadow-lg transition-shadow duration-200">
-            <CardHeader className="pb-3">
+          <div key={feature.id} className="group relative overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-lg transition-all duration-300 p-6">
+            <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg bg-${feature.color}-100 dark:bg-${feature.color}-900`}>
-                    {feature.icon}
+                  <div className={`p-3 rounded-xl bg-gradient-to-r ${getTeacherFeatureGradient(feature.color)} shadow-sm`}>
+                    <div className="text-white">{feature.icon}</div>
                   </div>
                   <div>
-                    <CardTitle className="text-lg">{feature.name}</CardTitle>
+                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white">{feature.name}</h4>
                     <Badge 
                       variant={feature.status === 'active' ? 'default' : 'secondary'}
-                      className="mt-1"
+                      className={`mt-1 ${feature.status === 'active' ? 'bg-emerald-100/80 text-emerald-700 border-emerald-200/50 dark:bg-emerald-900/80 dark:text-emerald-300 dark:border-emerald-700/50' : 'bg-amber-100/80 text-amber-700 border-amber-200/50 dark:bg-amber-900/80 dark:text-amber-300 dark:border-amber-700/50'}`}
                     >
                       {feature.status}
                     </Badge>
                   </div>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{feature.description}</p>
               
-              <div className="space-y-2">
+              <p className="text-sm text-slate-600 dark:text-slate-400">{feature.description}</p>
+              
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span>Feature Utilization</span>
-                  <span className="font-medium">{feature.progress}%</span>
+                  <span className="text-slate-600 dark:text-slate-400">Feature Utilization</span>
+                  <span className="font-medium text-slate-900 dark:text-white">{feature.progress}%</span>
                 </div>
-                <Progress value={feature.progress} className="h-2" />
+                <div className="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full bg-gradient-to-r ${getTeacherFeatureGradient(feature.color)} transition-all duration-300`}
+                    style={{ width: `${feature.progress}%` }}
+                  />
+                </div>
               </div>
 
               {/* Feature-specific metrics */}
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {Object.entries(feature.metrics).map(([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                    <span className="font-medium">{value}</span>
-                  </div>
-                ))}
+              <div className="bg-emerald-50/50 dark:bg-emerald-900/20 p-3 rounded-lg border border-emerald-200/50 dark:border-emerald-700/50">
+                <div className="grid grid-cols-1 gap-2 text-sm">
+                  {Object.entries(feature.metrics).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                      <span className="font-medium text-slate-900 dark:text-white">{value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex items-center space-x-2 text-sm">
-                <TrendingUp className="h-4 w-4 text-green-500" />
-                <span className="text-muted-foreground">{feature.benefit}</span>
+              <div className="flex items-center space-x-2 text-sm bg-teal-50/50 dark:bg-teal-900/20 p-3 rounded-lg border border-teal-200/50 dark:border-teal-700/50">
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                <span className="text-slate-600 dark:text-slate-400">{feature.benefit}</span>
               </div>
 
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="w-full"
+                className="w-full bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-white/80 dark:hover:bg-slate-700/80 transition-all duration-300"
                 onClick={() => {
-                  // Navigate to specific feature or show details
                   console.log(`Opening ${feature.name} details...`);
                 }}
               >
                 Open Tool
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* Alerts & Recommendations */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <AlertTriangle className="h-5 w-5 text-orange-500" />
-            <span>AI Recommendations</span>
-          </CardTitle>
-          <CardDescription>Smart insights to improve your teaching</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-start space-x-3 p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium">3 students showing signs of difficulty</p>
-                <p className="text-xs text-muted-foreground">Consider providing additional support for Chapter 5 concepts</p>
-              </div>
+      {/* Alerts & Recommendations with Glass Effect */}
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-6">
+        <div className="mb-4">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500/20 to-amber-500/20 dark:from-orange-400/20 dark:to-amber-400/20">
+              <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
             </div>
-            <div className="flex items-start space-x-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-blue-500 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium">Video engagement increased by 15%</p>
-                <p className="text-xs text-muted-foreground">Your recent interactive elements are working well</p>
-              </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">AI Recommendations</h3>
+          </div>
+          <p className="text-slate-600 dark:text-slate-400">Smart insights to improve your teaching</p>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-start space-x-3 p-4 bg-orange-50/50 dark:bg-orange-900/20 rounded-xl border border-orange-200/50 dark:border-orange-700/50">
+            <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">3 students showing signs of difficulty</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Consider providing additional support for Chapter 5 concepts</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-start space-x-3 p-4 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl border border-blue-200/50 dark:border-blue-700/50">
+            <TrendingUp className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">Video engagement increased by 15%</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Your recent interactive elements are working well</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Teaching Tools</CardTitle>
-          <CardDescription>Quick access to your most-used features</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Button variant="outline" size="sm">
-              <Eye className="h-4 w-4 mr-2" />
-              Monitor Class
-            </Button>
-            <Button variant="outline" size="sm">
-              <Shuffle className="h-4 w-4 mr-2" />
-              Reorder Content
-            </Button>
-            <Button variant="outline" size="sm">
-              <Users className="h-4 w-4 mr-2" />
-              View Student Progress
-            </Button>
-            <Button variant="outline" size="sm">
-              <Brain className="h-4 w-4 mr-2" />
-              Generate Predictions
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Quick Actions with Glass Effect */}
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-6">
+        <div className="mb-4">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Teaching Tools</h3>
+          <p className="text-slate-600 dark:text-slate-400">Quick access to your most-used features</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Button variant="outline" size="sm" className="bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-emerald-50/80 dark:hover:bg-emerald-900/20 transition-all duration-300">
+            <Eye className="h-4 w-4 mr-2" />
+            Monitor Class
+          </Button>
+          <Button variant="outline" size="sm" className="bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-purple-50/80 dark:hover:bg-purple-900/20 transition-all duration-300">
+            <Shuffle className="h-4 w-4 mr-2" />
+            Reorder Content
+          </Button>
+          <Button variant="outline" size="sm" className="bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 transition-all duration-300">
+            <Users className="h-4 w-4 mr-2" />
+            View Student Progress
+          </Button>
+          <Button variant="outline" size="sm" className="bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-cyan-50/80 dark:hover:bg-cyan-900/20 transition-all duration-300">
+            <Brain className="h-4 w-4 mr-2" />
+            Generate Predictions
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

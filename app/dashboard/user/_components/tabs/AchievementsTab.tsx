@@ -12,16 +12,17 @@ interface AchievementsTabProps {
 
 export function AchievementsTab({ user }: AchievementsTabProps) {
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      {/* Gamification Engine */}
+    <div className="w-full px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      {/* Gamification Engine - Full Width within Sidebar */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="w-full"
       >
         <DashboardCard 
           title="Achievements & Badges" 
-          icon={<Award className="w-5 h-5 text-orange-600" />}
+          icon={<Award className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />}
         >
           <GamificationEngine user={user} />
         </DashboardCard>

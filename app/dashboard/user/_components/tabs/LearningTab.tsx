@@ -12,16 +12,17 @@ interface LearningTabProps {
 
 export function LearningTab({ user }: LearningTabProps) {
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      {/* Smart Learning Hub */}
+    <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12 py-4 sm:py-6">
+      {/* Smart Learning Hub - Full Width */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="w-full"
       >
         <DashboardCard 
           title="Learning Hub" 
-          icon={<BookOpen className="w-5 h-5 text-purple-600" />}
+          icon={<BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />}
         >
           <SmartLearningHub user={user} />
         </DashboardCard>
