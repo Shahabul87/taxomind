@@ -28,7 +28,11 @@ const formSchema = z.object({
   }),
 });
 
-export const CreateCourseInputSection = () => {
+interface CreateCourseInputSectionProps {
+  onBack?: () => void;
+}
+
+export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionProps) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -41,11 +45,37 @@ export const CreateCourseInputSection = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      console.log('Submitting course creation with:', values);
       const response = await axios.post("/api/courses", values);
+      console.log('Course creation response:', response.data);
       router.push(`/teacher/courses/${response.data.id}`);
-      toast.success("Course created");
-    } catch {
-      toast.error("Something went wrong");
+      toast.success("Course created successfully!");
+    } catch (error: any) {
+      console.error('Course creation error:', error);
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        const errorMessage = error.response.data || error.response.statusText || "Unknown error";
+        console.error('Server error response:', error.response.status, errorMessage);
+        
+        if (error.response.status === 401) {
+          toast.error("You need to be logged in as a teacher to create courses");
+        } else if (error.response.status === 403) {
+          toast.error("You don't have permission to create courses");
+        } else if (error.response.status === 400) {
+          toast.error(`Validation error: ${errorMessage}`);
+        } else {
+          toast.error(`Server error: ${errorMessage}`);
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('Network error:', error.request);
+        toast.error("Network error - please check your connection");
+      } else {
+        // Something happened in setting up the request
+        console.error('Request setup error:', error.message);
+        toast.error("Something went wrong with the request");
+      }
     }
   }
 
@@ -87,10 +117,11 @@ export const CreateCourseInputSection = () => {
             )}
           />
           <div className="flex items-center gap-x-2">
-            <Link href="/teacher/courses">
+            {onBack ? (
               <Button
                 type="button"
                 variant="ghost"
+                onClick={onBack}
                 className={cn(
                   "flex items-center gap-2",
                   "text-gray-600 dark:text-gray-400",
@@ -99,9 +130,25 @@ export const CreateCourseInputSection = () => {
                 )}
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to courses
+                Back to selection
               </Button>
-            </Link>
+            ) : (
+              <Link href="/teacher/courses">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className={cn(
+                    "flex items-center gap-2",
+                    "text-gray-600 dark:text-gray-400",
+                    "hover:text-gray-900 dark:hover:text-white",
+                    "transition-colors"
+                  )}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to courses
+                </Button>
+              </Link>
+            )}
             <Button
               type="submit"
               disabled={!isValid || isSubmitting}

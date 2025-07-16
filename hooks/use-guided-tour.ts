@@ -56,7 +56,7 @@ export const useGuidedTour = (config: TourConfig) => {
       
       return () => clearTimeout(timer);
     }
-  }, [config.autoStart, isCompleted, hasBeenStarted]);
+  }, [config.autoStart, isCompleted, hasBeenStarted, startTour]);
 
   const startTour = useCallback(() => {
     setIsActive(true);
@@ -74,7 +74,7 @@ export const useGuidedTour = (config: TourConfig) => {
     } else {
       completeTour();
     }
-  }, [currentStep, config.steps.length]);
+  }, [currentStep, config.steps.length, completeTour]);
 
   const prevStep = useCallback(() => {
     if (currentStep > 0) {

@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
         },
         Enrollment: {
           include: {
-            course: {
+            Course: {
               include: {
                 category: true,
                 chapters: true,
@@ -328,7 +328,8 @@ function findWeakestCognitiveArea(courseData: UserCourseData[]): string {
   });
 
   return Object.entries(avgScores).reduce((lowest, [key, value]) => 
-    value < avgScores[lowest as keyof typeof avgScores] ? key : lowest
+    value < avgScores[lowest as keyof typeof avgScores] ? key : lowest, 
+    Object.keys(avgScores)[0]
   );
 }
 
@@ -362,7 +363,7 @@ export async function GET(req: NextRequest) {
         },
         Enrollment: {
           include: {
-            course: {
+            Course: {
               include: {
                 category: true,
               }

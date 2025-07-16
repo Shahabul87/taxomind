@@ -5,7 +5,7 @@ import { ContentVersioningService } from "@/lib/content-versioning";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { templateId: string } }
+  { params }: { params: Promise<{ templateId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -13,6 +13,7 @@ export async function POST(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
+    const { templateId } = await params;
     const body = await request.json();
     const { contentType, contentId, customizations = {} } = body;
 
@@ -25,7 +26,7 @@ export async function POST(
 
     // Apply the template using the versioning service
     const version = await ContentVersioningService.applyTemplate(
-      params.templateId,
+      templateId,
       contentType,
       contentId,
       customizations
@@ -33,7 +34,7 @@ export async function POST(
 
     // Get the template for response
     const template = await db.contentTemplate.findUnique({
-      where: { id: params.templateId },
+      where: { id: templateId },
       include: {
         author: {
           select: {

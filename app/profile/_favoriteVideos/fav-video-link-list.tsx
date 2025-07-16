@@ -6,6 +6,7 @@ import { Pencil, Trash, Play, ExternalLink, Video, LayoutGrid, List, Info } from
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 interface FavoriteVideoListProps {
   items: FavoriteVideo[];
@@ -93,9 +94,11 @@ const VideoItem = ({
         >
           {/* Thumbnail */}
           {thumbnail ? (
-            <img 
+            <Image 
               src={thumbnail} 
               alt={video.title} 
+              width={320}
+              height={180}
               className="w-full h-full object-cover"
             />
           ) : (

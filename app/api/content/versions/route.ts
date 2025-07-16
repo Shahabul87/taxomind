@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/api-protection";
 import { ContentVersioningService } from "@/lib/content-versioning";
-import { VersionType } from "@prisma/client";
+import { ContentType } from "@prisma/client";
 
 export const POST = withAuth(async (request: NextRequest) => {
   try {
@@ -10,7 +10,7 @@ export const POST = withAuth(async (request: NextRequest) => {
       contentType,
       contentId,
       contentSnapshot,
-      versionType = VersionType.PATCH,
+      versionType = "PATCH",
       title,
       description,
       changeLog,

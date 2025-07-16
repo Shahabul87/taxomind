@@ -44,11 +44,11 @@ const CourseSuccessPage = async ({ params, searchParams }: CourseSuccessPageProp
         },
       },
       include: {
-        course: {
+        Course: {
           include: {
             chapters: {
               include: {
-                userProgress: {
+                user_progress: {
                   where: {
                     userId: user.id,
                   },
@@ -83,7 +83,7 @@ const CourseSuccessPage = async ({ params, searchParams }: CourseSuccessPageProp
     return redirect(`/courses/${resolvedParams.courseId}?error=enrollment_not_found&debug=1`);
   }
 
-  const { course } = enrollment;
+  const { Course: course } = enrollment;
   const firstChapter = course.chapters[0];
   const totalChapters = course.chapters.length;
   const estimatedHours = totalChapters * 0.5; // Rough estimate
@@ -199,8 +199,8 @@ const CourseSuccessPage = async ({ params, searchParams }: CourseSuccessPageProp
         {/* What's Next Section */}
         <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-xl text-gray-900">What's Next?</CardTitle>
-            <CardDescription>Here's how to get the most out of your course</CardDescription>
+            <CardTitle className="text-xl text-gray-900">What&apos;s Next?</CardTitle>
+            <CardDescription>Here&apos;s how to get the most out of your course</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3">

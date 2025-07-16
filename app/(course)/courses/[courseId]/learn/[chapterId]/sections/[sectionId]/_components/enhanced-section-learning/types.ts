@@ -13,7 +13,7 @@ export interface Section {
   type?: string | null;
   position: number;
   duration?: number | null;
-  userProgress: Array<{
+  user_progress: Array<{
     id: string;
     isCompleted: boolean;
     completedAt?: Date | null;
@@ -22,7 +22,7 @@ export interface Section {
   blogs: Array<{ id: string; title: string; content?: string | null }>;
   articles: Array<{ id: string; title: string; content?: string | null }>;
   notes: Array<{ id: string; title: string; content?: string | null }>;
-  codeExplanations: Array<{ id: string; heading: string; explanation?: string | null }>;
+  codeExplanations: Array<{ id: string; heading: string | null; explanation?: string | null }>;
 }
 
 export interface Chapter {

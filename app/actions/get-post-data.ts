@@ -9,7 +9,7 @@ export const getPostData = async (postId: string) => {
         id: postId,
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -18,7 +18,7 @@ export const getPostData = async (postId: string) => {
         },
         comments: {
           include: {
-            user: {
+            User: {
               select: {
                 id: true,
                 name: true,
@@ -37,14 +37,14 @@ export const getPostData = async (postId: string) => {
             },
             replies: {
               include: {
-                user: {
+                User: {
                   select: {
                     id: true,
                     name: true,
                     image: true,
                   },
                 },
-                reactions: {
+                Reaction: {
                   include: {
                     user: {
                       select: {
@@ -61,13 +61,13 @@ export const getPostData = async (postId: string) => {
             createdAt: "asc",
           },
         },
-        tags: true,
-        postchapter: {
+        Tag: true,
+        PostChapterSection: {
           orderBy: {
             position: "asc",
           },
         },
-        postimage: {
+        PostImageSection: {
           orderBy: {
             position: "asc",
           },

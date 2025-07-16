@@ -60,8 +60,6 @@ export async function GET(req: Request) {
         taskId: true,
         createdAt: true,
         updatedAt: true,
-        notification: true,
-        notificationTime: true,
         parentEventId: true,
         externalId: true,
         source: true,
@@ -115,6 +113,7 @@ export async function POST(req: Request) {
     // Create event using Prisma
     const event = await db.calendarEvent.create({
       data: {
+        id: validData.id || crypto.randomUUID(),
         title: validData.title,
         description: validData.description,
         startDate: new Date(validData.startDate),
@@ -125,6 +124,8 @@ export async function POST(req: Request) {
         recurringType: validData.recurringType,
         recurringEndDate: validData.recurringEndDate ? new Date(validData.recurringEndDate) : null,
         taskId: validData.taskId,
+        category: validData.category || 'general',
+        updatedAt: new Date(),
         userId: session.user.id,
       },
     });

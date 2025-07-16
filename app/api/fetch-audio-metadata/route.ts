@@ -44,10 +44,11 @@ export async function GET(request: Request) {
     const $ = cheerio.load(response.data);
     
     // Extract metadata - try multiple approaches to get the most accurate title
-    let title = $('meta[property="og:title"]').attr('content') || 
-                $('meta[name="twitter:title"]').attr('content') || 
-                $('meta[property="music:song"]').attr('content') ||
-                $('title').text();
+    let title: string | null = $('meta[property="og:title"]').attr('content') || 
+                               $('meta[name="twitter:title"]').attr('content') || 
+                               $('meta[property="music:song"]').attr('content') ||
+                               $('title').text() ||
+                               null;
     
     // Clean up the title
     title = title ? title.trim() : null;

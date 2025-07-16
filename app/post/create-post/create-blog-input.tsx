@@ -5,7 +5,7 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Edit3, ArrowRight, Loader2, Tag, X, Sparkles } from "lucide-react";
@@ -65,7 +65,7 @@ export const CreateBlogInputSection = () => {
 
   const { isSubmitting } = form.formState;
   const title = form.watch("title");
-  const selectedCategories = form.watch("categories") || [];
+  const selectedCategories = useMemo(() => form.watch("categories") || [], [form]);
 
   useEffect(() => {
     // Validate the input based on zod schema requirements

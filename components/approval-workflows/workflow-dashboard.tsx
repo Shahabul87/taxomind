@@ -60,12 +60,7 @@ export function WorkflowDashboard({
     action: 'approve' | 'reject' | 'request_changes';
   } | null>(null);
 
-  // Load data
-  useEffect(() => {
-    loadData();
-  }, [user, viewMode]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -89,7 +84,12 @@ export function WorkflowDashboard({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, viewMode]);
+
+  // Load data
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Filter instances
   const filteredInstances = instances.filter(instance => {

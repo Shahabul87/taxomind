@@ -55,7 +55,7 @@ export default function UserAnalyticsPage() {
       setError("No user data available");
       setIsInitialized(true);
     }
-  }, [session?.user?.id, status]); // Only depend on user ID to prevent object changes
+  }, [session?.user, status]);
 
   if (status === "loading") {
     return (

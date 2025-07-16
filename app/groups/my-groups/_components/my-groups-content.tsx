@@ -266,7 +266,7 @@ export const MyGroupsContent = ({
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center">
                       <UserPlus className="mr-2 w-5 h-5 text-indigo-500" />
-                      Groups You've Joined
+                      Groups You&apos;ve Joined
                     </h3>
                     <Link href="/groups">
                       <button className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center">

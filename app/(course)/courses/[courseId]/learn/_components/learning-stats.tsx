@@ -30,7 +30,7 @@ interface Course {
       title: string;
       type?: string | null;
       duration?: number | null;
-      userProgress: Array<{
+      user_progress: Array<{
         isCompleted: boolean;
       }>;
       videos: Array<{ id: string; title: string; duration?: number | null }>;
@@ -59,7 +59,7 @@ export const LearningStats = ({
   const chapterProgress = course.chapters.map(chapter => {
     const chapterSections = chapter.sections.length;
     const completedInChapter = chapter.sections.filter(
-      section => section.userProgress.some(p => p.isCompleted)
+      section => section.user_progress.some(p => p.isCompleted)
     ).length;
     
     return {
@@ -98,7 +98,7 @@ export const LearningStats = ({
 
   const remainingMinutes = course.chapters.reduce((acc, chapter) => {
     return acc + chapter.sections.reduce((sectionAcc, section) => {
-      if (!section.userProgress.some(p => p.isCompleted)) {
+      if (!section.user_progress.some(p => p.isCompleted)) {
         return sectionAcc + (section.duration || 10);
       }
       return sectionAcc;

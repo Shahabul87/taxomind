@@ -54,8 +54,8 @@ export const EnhancedSectionLearning = ({
   
   // Memoize the current section completion status
   const isCurrentSectionCompleted = useMemo(() => 
-    currentSection.userProgress.some(p => p.isCompleted), 
-    [currentSection.userProgress]
+    currentSection.user_progress.some(p => p.isCompleted), 
+    [currentSection.user_progress]
   );
 
   const [completedCurrentSection, setCompletedCurrentSection] = useState(isCurrentSectionCompleted);
@@ -77,7 +77,7 @@ export const EnhancedSectionLearning = ({
   const chaptersWithProgress = useMemo((): ChapterWithProgress[] => {
     return courseChapters.map(chapter => {
       const completedCount = chapter.sections.reduce((count, section) => {
-        return count + (section.userProgress.some(p => p.isCompleted) ? 1 : 0);
+        return count + (section.user_progress.some(p => p.isCompleted) ? 1 : 0);
       }, 0);
       
       const progressPercentage = chapter.sections.length > 0 

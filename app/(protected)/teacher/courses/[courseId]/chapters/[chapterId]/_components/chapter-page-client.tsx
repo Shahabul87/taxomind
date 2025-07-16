@@ -11,6 +11,7 @@ import { ChapterAccessForm } from "./chapter-access-form";
 import { ChapterActions } from "./chapter-actions";
 import { ChapterLearningOutcomeForm } from "./chapter-learning-outcome-form";
 import { ChaptersSectionForm } from "./chapter-section-form";
+import { AIChapterContentGenerator } from "./ai-chapter-content-generator";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,9 +25,15 @@ interface ChapterPageClientProps {
 
 export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) => {
   const [showTour, setShowTour] = useState(false);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
 
   const handleStartTour = () => {
     setShowTour(true);
+  };
+
+  const handleAIContentGenerated = (content: any) => {
+    console.log('AI content generated:', content);
+    // The component will refresh the page, so we don't need to do anything here
   };
 
   // Calculate completion status
@@ -196,6 +203,7 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
                               size="sm" 
                               className="bg-amber-600 hover:bg-amber-700 text-white"
                               data-tour="ai-writing-help"
+                              onClick={() => setShowAIGenerator(true)}
                             >
                               <Sparkles className="w-4 h-4 mr-1" />
                               Get AI Writing Help
@@ -213,13 +221,14 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
                               Ready to Add Learning Content?
                             </h4>
                             <p className="text-sm text-emerald-700 dark:text-emerald-300 mb-3">
-                              Great start! Now let's create sections with videos, articles, and assessments. AI can help generate a complete content structure.
+                              Great start! Now let&apos;s create sections with videos, articles, and assessments. AI can help generate a complete content structure.
                             </p>
                             <div className="flex gap-2">
                               <Button 
                                 size="sm" 
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
                                 data-tour="ai-section-builder"
+                                onClick={() => setShowAIGenerator(true)}
                               >
                                 <Brain className="w-4 h-4 mr-1" />
                                 AI Section Builder
@@ -260,6 +269,7 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
                                 size="sm" 
                                 variant="outline"
                                 className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                                onClick={() => setShowAIGenerator(true)}
                               >
                                 <Sparkles className="w-4 h-4 mr-1" />
                                 AI Content Ideas
@@ -313,6 +323,7 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
                           size="sm" 
                           variant="ghost"
                           className="text-xs hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                          onClick={() => setShowAIGenerator(true)}
                         >
                           <Sparkles className="w-3 h-3 mr-1" />
                           Content Ideas
@@ -321,6 +332,7 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
                           size="sm" 
                           variant="ghost"
                           className="text-xs hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                          onClick={() => setShowAIGenerator(true)}
                         >
                           <FileQuestion className="w-3 h-3 mr-1" />
                           Quiz Generator
@@ -329,6 +341,7 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
                           size="sm" 
                           variant="ghost"
                           className="text-xs hover:bg-purple-50 dark:hover:bg-purple-950/20"
+                          onClick={() => setShowAIGenerator(true)}
                         >
                           <Target className="w-3 h-3 mr-1" />
                           Learning Goals
@@ -337,6 +350,7 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
                           size="sm" 
                           variant="ghost"
                           className="text-xs hover:bg-orange-50 dark:hover:bg-orange-950/20"
+                          onClick={() => setShowAIGenerator(true)}
                         >
                           <TrendingUp className="w-3 h-3 mr-1" />
                           Progress Check
@@ -390,6 +404,14 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
           </div>
         </div>
       </div>
+
+      {/* AI Chapter Content Generator Modal */}
+      <AIChapterContentGenerator
+        open={showAIGenerator}
+        onClose={() => setShowAIGenerator(false)}
+        chapter={chapter}
+        onContentGenerated={handleAIContentGenerated}
+      />
     </div>
   );
 };

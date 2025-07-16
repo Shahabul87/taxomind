@@ -23,16 +23,17 @@ export const RoleGuard = ({
 }: RoleGuardProps) => {
   const currentRole = useCurrentRole();
   
+  // Always call hooks at the top level
+  const hasAllPermissions = useHasAllPermissions(requiredPermissions || []);
+  const hasAnyPermission = useHasAnyPermission(requiredPermissions || []);
+  
   // Check role-based access
   const hasRoleAccess = allowedRoles ? 
     (currentRole && allowedRoles.includes(currentRole)) : true;
   
   // Check permission-based access
   const hasPermissionAccess = requiredPermissions ? 
-    (requireAllPermissions ? 
-      useHasAllPermissions(requiredPermissions) : 
-      useHasAnyPermission(requiredPermissions)
-    ) : true;
+    (requireAllPermissions ? hasAllPermissions : hasAnyPermission) : true;
   
   const hasAccess = hasRoleAccess && hasPermissionAccess;
   

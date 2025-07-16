@@ -7,12 +7,13 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 interface GroupSettingsPageProps {
-  params: {
+  params: Promise<{
     groupId: string;
-  };
+  }>;
 }
 
 export default async function GroupSettingsPage({ params }: GroupSettingsPageProps) {
+  const { groupId } = await params;
   const user = await currentUser();
 
   if (!user?.id) {
@@ -21,7 +22,7 @@ export default async function GroupSettingsPage({ params }: GroupSettingsPagePro
 
   const group = await db.group.findUnique({
     where: {
-      id: params.groupId,
+      id: groupId,
     },
     include: {
       creator: true,
@@ -45,7 +46,7 @@ export default async function GroupSettingsPage({ params }: GroupSettingsPagePro
   );
 
   if (!isCreator && !isAdmin) {
-    return redirect(`/groups/${params.groupId}`);
+    return redirect(`/groups/${groupId}`);
   }
 
   return (
@@ -58,7 +59,7 @@ export default async function GroupSettingsPage({ params }: GroupSettingsPagePro
           <div className="container mx-auto px-4 py-8">
             <div className="flex items-center mb-2">
               <Link
-                href={`/groups/${params.groupId}`}
+                href={`/groups/${groupId}`}
                 className="flex items-center text-sm text-white/80 hover:text-white"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />

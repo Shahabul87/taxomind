@@ -30,7 +30,7 @@ export async function GET(
         isPublished: true,
       },
       include: {
-        questions: {
+        ExamQuestion: {
           select: {
             id: true,
             question: true,

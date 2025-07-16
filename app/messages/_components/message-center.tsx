@@ -22,11 +22,11 @@ interface MessageCenterProps {
 }
 
 export const MessageCenter = ({ userId }: MessageCenterProps) => {
-  if (!userId) return null;
-
   const [searchQuery, setSearchQuery] = useState("");
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
+
+  if (!userId) return null;
 
   return (
     <div className="h-[calc(100vh-120px)] flex gap-6">

@@ -28,8 +28,10 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     // Create enrollment
     const enrollment = await db.enrollment.create({
       data: {
+        id: crypto.randomUUID(),
         userId: user.id,
         courseId: params.courseId,
+        updatedAt: new Date(),
       },
     });
 

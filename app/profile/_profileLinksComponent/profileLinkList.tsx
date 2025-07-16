@@ -285,9 +285,12 @@ export const ProfileLinkList = ({
 
   // Create debounced reorder function to prevent excessive server calls
   const debouncedReorder = useCallback(
-    debounce((updateData: { id: string; position: number }[]) => {
-      onReorder(updateData);
-    }, 500),
+    (updateData: { id: string; position: number }[]) => {
+      const debouncedFn = debounce(() => {
+        onReorder(updateData);
+      }, 500);
+      debouncedFn();
+    },
     [onReorder]
   );
 

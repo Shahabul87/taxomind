@@ -8,15 +8,15 @@ export async function GET() {
     let configStatus = 'UNKNOWN';
     
     try {
-      const { GET: authGET, POST: authPOST } = await import('@/auth');
-      handlersStatus = (authGET && authPOST) ? 'AVAILABLE' : 'PARTIAL';
+      const { handlers } = await import('@/auth');
+      handlersStatus = handlers ? 'AVAILABLE' : 'MISSING';
     } catch (error) {
       handlersStatus = `ERROR: ${error instanceof Error ? error.message : 'Unknown'}`;
     }
 
     try {
       const { auth } = await import('@/auth');
-      authStatus = auth ? 'AVAILABLE' : 'MISSING';
+      authStatus = typeof auth === 'function' ? 'AVAILABLE' : 'MISSING';
     } catch (error) {
       authStatus = `ERROR: ${error instanceof Error ? error.message : 'Unknown'}`;
     }
@@ -32,7 +32,7 @@ export async function GET() {
     let routeFileStatus = 'UNKNOWN';
     try {
       const routeHandlers = await import('@/app/api/auth/[...nextauth]/route');
-      routeFileStatus = (routeHandlers.GET && routeHandlers.POST) ? 'AVAILABLE' : 'PARTIAL';
+      routeFileStatus = (typeof routeHandlers.GET === 'function' && typeof routeHandlers.POST === 'function') ? 'AVAILABLE' : 'PARTIAL';
     } catch (error) {
       routeFileStatus = `ERROR: ${error instanceof Error ? error.message : 'Unknown'}`;
     }

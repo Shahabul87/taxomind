@@ -211,7 +211,11 @@ export const AIExamAssistant = ({
   };
 
   const defaultTrigger = (
-    <FeatureHint featureId="ai-exam-assistant">
+    <FeatureHint 
+      featureId="ai-exam-assistant"
+      title="AI Exam Assistant"
+      description="AI-powered exam and quiz generation assistant"
+    >
       <Button
         variant="outline"
         size="sm"
@@ -373,7 +377,7 @@ export const AIExamAssistant = ({
                   <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="basics">Basics</TabsTrigger>
                     <TabsTrigger value="taxonomy" className="relative">
-                      Bloom's
+                      Bloom&apos;s
                       {!isBloomsTaxonomyUnlocked && (
                         <Badge variant="outline" className="ml-1 text-xs">
                           <Star className="w-2 h-2" />
@@ -432,7 +436,7 @@ export const AIExamAssistant = ({
                             <SelectItem value="true-false">True/False</SelectItem>
                             <SelectItem value="short-answer">Short Answer</SelectItem>
                             <SelectItem value="mixed">Mixed Types</SelectItem>
-                            <SelectItem value="blooms-based">Bloom's Taxonomy Based</SelectItem>
+                            <SelectItem value="blooms-based">Bloom&apos;s Taxonomy Based</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -456,13 +460,17 @@ export const AIExamAssistant = ({
 
                   <TabsContent value="taxonomy" className="space-y-4">
                     {!isBloomsTaxonomyUnlocked ? (
-                      <FeatureHint featureId="blooms-taxonomy-guide">
+                      <FeatureHint 
+                        featureId="blooms-taxonomy-guide"
+                        title="Bloom's Taxonomy Guide"
+                        description="Advanced cognitive learning taxonomy guide and tools"
+                      >
                         <Card className="border-dashed border-2 border-yellow-300 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors">
                           <CardContent className="flex items-center justify-center p-6">
                             <div className="text-center space-y-2">
                               <Star className="w-8 h-8 text-yellow-600 mx-auto" />
-                              <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">Unlock Bloom's Taxonomy Integration</h3>
-                              <p className="text-sm text-yellow-700 dark:text-yellow-300">Use the AI Exam Assistant more to unlock advanced Bloom's taxonomy features</p>
+                              <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">Unlock Bloom&apos;s Taxonomy Integration</h3>
+                              <p className="text-sm text-yellow-700 dark:text-yellow-300">Use the AI Exam Assistant more to unlock advanced Bloom&apos;s taxonomy features</p>
                             </div>
                           </CardContent>
                         </Card>
@@ -573,7 +581,11 @@ export const AIExamAssistant = ({
                       )}
                       
                       {!isAdvancedPromptsUnlocked && (
-                        <FeatureHint featureId="advanced-ai-prompts">
+                        <FeatureHint 
+                          featureId="advanced-ai-prompts"
+                          title="Advanced AI Prompts"
+                          description="Advanced AI prompting features and customization"
+                        >
                           <Card className="border-dashed border-2 border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
                             <CardContent className="flex items-center justify-center p-4">
                               <div className="text-center space-y-1">
@@ -677,7 +689,7 @@ export const AIExamAssistant = ({
                     <p>• {questionCount} questions for {targetAudience} audience</p>
                     <p>• Complexity: {complexity[0]}/10 | Creativity: {creativity[0]}/10</p>
                     {isBloomsTaxonomyUnlocked && (
-                      <p>• Bloom's levels: {Object.entries(bloomsLevels).filter(([_, enabled]) => enabled).map(([level]) => level).join(', ')}</p>
+                      <p>• Bloom&apos;s levels: {Object.entries(bloomsLevels).filter(([_, enabled]) => enabled).map(([level]) => level).join(', ')}</p>
                     )}
                     <p>• {includeExplanations ? 'With' : 'Without'} explanations | {includeDistractors ? 'With' : 'Without'} distractor analysis</p>
                   </div>

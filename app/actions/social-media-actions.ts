@@ -24,6 +24,7 @@ export async function connectSocialMediaAccount(data: {
   try {
     const account = await db.socialMediaAccount.create({
       data: {
+        id: `${data.platform}_${data.username}_${Date.now()}`,
         platform: data.platform,
         platformUserId: `${data.username}_${Date.now()}`, // Temporary ID
         username: data.username,
@@ -34,7 +35,8 @@ export async function connectSocialMediaAccount(data: {
         followingCount: data.followingCount || 0,
         postsCount: data.postsCount || 0,
         userId: session.user.id,
-        lastSyncAt: new Date()
+        lastSyncAt: new Date(),
+        updatedAt: new Date()
       }
     });
 
@@ -114,8 +116,10 @@ export async function createContentCollection(data: {
   try {
     const collection = await db.contentCollection.create({
       data: {
+        id: `collection_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...data,
-        userId: session.user.id
+        userId: session.user.id,
+        updatedAt: new Date()
       }
     });
 
@@ -150,9 +154,11 @@ export async function addContentItem(data: {
   try {
     const contentItem = await db.contentItem.create({
       data: {
+        id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...data,
         userId: session.user.id,
-        tags: data.tags || []
+        tags: data.tags || [],
+        updatedAt: new Date()
       }
     });
 
@@ -220,9 +226,11 @@ export async function addSubscription(data: {
   try {
     const subscription = await db.userSubscription.create({
       data: {
+        id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...data,
         userId: session.user.id,
-        currency: data.currency || "USD"
+        currency: data.currency || "USD",
+        updatedAt: new Date()
       }
     });
 
@@ -282,8 +290,10 @@ export async function createGoal(data: {
   try {
     const goal = await db.goal.create({
       data: {
+        id: `goal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...data,
-        userId: session.user.id
+        userId: session.user.id,
+        updatedAt: new Date()
       }
     });
 
@@ -334,6 +344,7 @@ export async function recordAnalytics(data: {
   try {
     await db.userAnalytics.create({
       data: {
+        id: `analytics_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         analyticsType: data.analyticsType as any,
         value: data.value,
         metadata: data.metadata,
@@ -368,7 +379,7 @@ export async function getDashboardData() {
       db.socialMediaAccount.findMany({
         where: { userId: session.user.id },
         include: {
-          socialMetrics: {
+          SocialMetric: {
             orderBy: { recordedAt: 'desc' },
             take: 1
           }
@@ -396,7 +407,7 @@ export async function getDashboardData() {
       db.goal.findMany({
         where: { userId: session.user.id },
         include: {
-          milestones: true
+          Milestone: true
         }
       }),
       

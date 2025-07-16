@@ -43,8 +43,8 @@ export const AboutHero = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto mb-12 leading-relaxed"
           >
-            We're on a mission to make quality education accessible to everyone, 
-            empowering learners to master the skills that matter in today's world.
+            We&rsquo;re on a mission to make quality education accessible to everyone, 
+            empowering learners to master the skills that matter in today&rsquo;s world.
           </motion.p>
           
           <motion.div

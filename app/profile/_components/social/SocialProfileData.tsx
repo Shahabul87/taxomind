@@ -109,7 +109,7 @@ export function SocialProfileData() {
           <div className="flex flex-col items-center justify-center p-6 text-center">
             <AlertCircle className="h-8 w-8 text-gray-400 mb-2" />
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              You haven't connected any social platforms yet. Add platforms to see your metrics.
+              You haven&apos;t connected any social platforms yet. Add platforms to see your metrics.
             </p>
           </div>
         </CardContent>

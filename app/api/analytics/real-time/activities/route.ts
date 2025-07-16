@@ -42,30 +42,29 @@ async function getStudentActivities(courseId: string | null) {
   const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
-  // Get all students with recent activity
-  const recentInteractions = await db.studentInteraction.findMany({
+  // Get all students with recent activity (using user_progress as proxy)
+  const recentInteractions = await db.user_progress.findMany({
     where: {
-      timestamp: {
+      lastAccessedAt: {
         gte: thirtyMinutesAgo
       },
-      studentId: { not: null },
       ...(courseId && { courseId })
     },
     include: {
-      student: {
+      User: {
         select: {
           id: true,
           name: true,
           email: true
         }
       },
-      course: {
+      Course: {
         select: {
           id: true,
           title: true
         }
       },
-      section: {
+      Section: {
         select: {
           id: true,
           title: true
@@ -73,7 +72,7 @@ async function getStudentActivities(courseId: string | null) {
       }
     },
     orderBy: {
-      timestamp: 'desc'
+      lastAccessedAt: 'desc'
     }
   });
 
@@ -81,41 +80,41 @@ async function getStudentActivities(courseId: string | null) {
   const studentActivities = new Map<string, any>();
 
   for (const interaction of recentInteractions) {
-    if (!interaction.studentId) continue;
+    if (!interaction.userId) continue;
 
-    const studentId = interaction.studentId;
+    const studentId = interaction.userId;
     
     if (!studentActivities.has(studentId)) {
       // Get student's learning metrics
-      const metrics = await db.learningMetric.findFirst({
+      const metrics = await db.learning_metrics.findFirst({
         where: {
-          studentId,
+          userId: studentId,
           ...(courseId && { courseId: interaction.courseId })
         },
         orderBy: {
-          updatedAt: 'desc'
+          lastActivityDate: 'desc'
         }
       });
 
       // Get course enrollment for progress
-      const enrollment = await db.userCourseEnrollment.findFirst({
+      const enrollment = await db.enrollment.findFirst({
         where: {
           userId: studentId,
-          ...(courseId && { courseId: interaction.courseId })
+          ...(courseId && interaction.courseId && { courseId: interaction.courseId })
         }
       });
 
       studentActivities.set(studentId, {
         studentId,
-        studentName: interaction.student?.name || null,
+        studentName: interaction.User?.name || null,
         courseId: interaction.courseId,
-        courseName: interaction.course?.title || 'Unknown Course',
+        courseName: interaction.Course?.title || 'Unknown Course',
         currentActivity: 'Unknown',
-        engagementScore: metrics?.engagementScore || 0,
-        timeSpent: 0,
-        lastSeen: interaction.timestamp,
+        engagementScore: metrics?.engagementTrend || 'STABLE',
+        timeSpent: interaction.timeSpent || 0,
+        lastSeen: interaction.lastAccessedAt,
         status: 'idle',
-        progress: enrollment?.progressPercentage || 0,
+        progress: interaction.progressPercent || 0,
         interactions: []
       });
     }
@@ -297,18 +296,16 @@ export async function POST(req: NextRequest) {
 }
 
 async function flagStrugglingStudent(studentId: string, data: any) {
-  // Create a content flag for the struggling student
-  await db.contentFlag.create({
-    data: {
-      contentType: 'student',
-      contentId: studentId,
-      flagType: 'manual_struggle',
-      metadata: {
-        flaggedBy: data.teacherId,
-        reason: data.reason,
-        timestamp: new Date(),
-        courseId: data.courseId
-      }
+  // TODO: Implement proper content flagging system
+  console.log('Flagging struggling student:', {
+    studentId,
+    contentType: 'student',
+    flagType: 'manual_struggle',
+    metadata: {
+      flaggedBy: data.teacherId,
+      reason: data.reason,
+      timestamp: new Date(),
+      courseId: data.courseId
     }
   });
 

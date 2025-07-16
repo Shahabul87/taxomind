@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
   try {
     // Try to manually test the NextAuth route functionality
-    let routeTestResult = 'UNKNOWN';
+    let routeTestResult: any = 'UNKNOWN';
     
     try {
       // Import the handlers directly like the route file does
@@ -21,14 +21,14 @@ export async function GET() {
     }
 
     // Test if we can create a mock request to the auth handler
-    let mockRequestTest = 'UNKNOWN';
+    let mockRequestTest: any = 'UNKNOWN';
     try {
       const { handlers } = await import('@/auth');
       const { GET: authGET } = handlers;
       
       if (authGET) {
         // Create a mock request to test the handler
-        const mockRequest = new Request('https://www.bdgenai.com/api/auth/providers', {
+        const mockRequest = new NextRequest('https://www.bdgenai.com/api/auth/providers', {
           method: 'GET',
         });
         

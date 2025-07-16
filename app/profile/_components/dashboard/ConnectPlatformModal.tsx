@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -413,7 +414,7 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
             Connect Social Platforms
           </DialogTitle>
           <p className="text-sm text-slate-400 mt-2">
-            Note: Due to platform restrictions, we'll create demo profiles for portfolio display. 
+            Note: Due to platform restrictions, we&apos;ll create demo profiles for portfolio display. 
             Real data requires official API access or manual input.
           </p>
         </DialogHeader>
@@ -612,7 +613,7 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
                 <div>
                   <h3 className="text-xl font-semibold text-white mb-2">Fetching Your Profile Data</h3>
                   <p className="text-slate-400">
-                    We're extracting metadata from your {selectedPlatform?.name} profile...
+                    We&apos;re extracting metadata from your {selectedPlatform?.name} profile...
                   </p>
                 </div>
                 <div className="bg-slate-800 rounded-lg p-4">
@@ -627,7 +628,7 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-white mb-2">Review Your Profile Data</h3>
                   <p className="text-slate-400">
-                    Choose which information you'd like to display on your profile
+                    Choose which information you&apos;d like to display on your profile
                   </p>
                 </div>
 
@@ -670,9 +671,11 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
                       <CardContent className="space-y-4">
                         <div className="flex items-center gap-4">
                           {fetchedMetadata.profileImage && (
-                            <img 
+                            <Image 
                               src={fetchedMetadata.profileImage} 
                               alt={fetchedMetadata.displayName}
+                              width={64}
+                              height={64}
                               className="w-16 h-16 rounded-full"
                             />
                           )}

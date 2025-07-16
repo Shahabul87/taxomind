@@ -286,9 +286,10 @@ export const CategoryForm = ({
           toast.success("New category created");
         } catch (error) {
           console.error("Error creating new category:", error);
-          if (error.response) {
-            console.error("Error response data:", error.response.data);
-            console.error("Error response status:", error.response.status);
+          if (error && typeof error === 'object' && 'response' in error) {
+            const axiosError = error as any;
+            console.error("Error response data:", axiosError.response?.data);
+            console.error("Error response status:", axiosError.response?.status);
           }
           toast.error("Failed to create new category");
           setIsLoading(false);
@@ -326,9 +327,10 @@ export const CategoryForm = ({
         router.refresh();
       } catch (error) {
         console.error("Course update error:", error);
-        if (error.response) {
-          console.error("Error response data:", error.response.data);
-          console.error("Error response status:", error.response.status);
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as any;
+          console.error("Error response data:", axiosError.response?.data);
+          console.error("Error response status:", axiosError.response?.status);
         }
         toast.error("Error updating course category");
       }
@@ -614,7 +616,7 @@ export const CategoryForm = ({
                               {searchQuery ? (
                                 <div className="space-y-2 mt-2">
                                   <p className="text-xs text-gray-400 dark:text-gray-500">
-                                    No results for "{searchQuery}"
+                                    No results for &quot;{searchQuery}&quot;
                                   </p>
                                   <Button
                                     type="button"
@@ -631,7 +633,7 @@ export const CategoryForm = ({
                                     className="text-xs"
                                   >
                                     <Plus className="h-3 w-3 mr-1" />
-                                    Create "{searchQuery}" as new category
+                                    Create &quot;{searchQuery}&quot; as new category
                                   </Button>
                                 </div>
                               ) : selectedGroup ? (
@@ -799,9 +801,10 @@ export const CategoryForm = ({
                             toast.success("API connection test successful");
                           } catch (error) {
                             console.error("API test error:", error);
-                            if (error.response) {
-                              console.error("Error response data:", error.response.data);
-                              console.error("Error response status:", error.response.status);
+                            if (error && typeof error === 'object' && 'response' in error) {
+                              const axiosError = error as any;
+                              console.error("Error response data:", axiosError.response?.data);
+                              console.error("Error response status:", axiosError.response?.status);
                             }
                             toast.error("API connection test failed");
                           }

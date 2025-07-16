@@ -197,6 +197,7 @@ export const ChaptersForm = ({
       if (createdChapters.length > 0) {
         toast.success(`Successfully generated ${createdChapters.length} chapters with AI!`);
         router.refresh();
+        // Generation succeeded - modal will be closed by the dialog component
       } else {
         throw new Error('No chapters were created successfully');
       }
@@ -204,6 +205,8 @@ export const ChaptersForm = ({
     } catch (error: any) {
       console.error('[CHAPTERS_FORM] AI chapter generation failed:', error);
       toast.error("Failed to generate chapters with AI. Please try again.");
+      // Re-throw error so dialog can handle modal state appropriately
+      throw error;
     } finally {
       setIsGeneratingAI(false);
     }
@@ -245,7 +248,7 @@ export const ChaptersForm = ({
             isGenerating={isGeneratingAI}
             disabled={!initialData.title || !initialData.description || isGeneratingAI}
             courseTitle={initialData.title}
-            courseDescription={initialData.description}
+            courseDescription={initialData.description || undefined}
             trigger={
               <Button
                 variant="outline"

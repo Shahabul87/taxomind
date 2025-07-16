@@ -39,7 +39,7 @@ export const FeaturedBlogPostsSection = ({ posts }: FeaturedBlogPostsProps) => {
         {posts.map((post) => (
           <MyPostCard 
             key={post.id}
-            post={post}
+            post={post as any}
           />
         ))}
       </div>

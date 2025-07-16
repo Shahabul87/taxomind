@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -139,27 +139,7 @@ export const CognitiveProgressionVisualizer = ({
   const [selectedTimeRange, setSelectedTimeRange] = useState(timeRange);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadProgressionData();
-  }, [studentId, courseId, selectedTimeRange]);
-
-  const loadProgressionData = async () => {
-    setIsLoading(true);
-    try {
-      // Mock data generation - replace with actual API calls
-      const mockData = generateMockProgressionData();
-      setProgressionData(mockData.progression);
-      setMilestones(mockData.milestones);
-      setTrends(mockData.trends);
-      setPredictions(mockData.predictions);
-    } catch (error) {
-      console.error('Failed to load progression data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const generateMockProgressionData = () => {
+  const generateMockProgressionData = useCallback(() => {
     const days = selectedTimeRange === 'week' ? 7 : 
                  selectedTimeRange === 'month' ? 30 : 
                  selectedTimeRange === 'quarter' ? 90 : 365;
@@ -283,7 +263,27 @@ export const CognitiveProgressionVisualizer = ({
     });
 
     return { progression, milestones, trends, predictions };
-  };
+  }, [selectedTimeRange]);
+
+  const loadProgressionData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Mock data generation - replace with actual API calls
+      const mockData = generateMockProgressionData();
+      setProgressionData(mockData.progression);
+      setMilestones(mockData.milestones);
+      setTrends(mockData.trends);
+      setPredictions(mockData.predictions);
+    } catch (error) {
+      console.error('Failed to load progression data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [generateMockProgressionData]);
+
+  useEffect(() => {
+    loadProgressionData();
+  }, [studentId, courseId, selectedTimeRange, loadProgressionData]);
 
   const ProgressionTimeline = () => {
     return (
@@ -294,7 +294,7 @@ export const CognitiveProgressionVisualizer = ({
             Cognitive Progression Timeline
           </CardTitle>
           <CardDescription>
-            Learning progress across all Bloom's taxonomy levels over time
+            Learning progress across all Bloom&apos;s taxonomy levels over time
           </CardDescription>
         </CardHeader>
         <CardContent>

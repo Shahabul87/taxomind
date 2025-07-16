@@ -348,7 +348,7 @@ export const FeaturesGrid = () => {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-4xl mx-auto font-light leading-relaxed mb-8"
           >
-            From planning your learning journey to mastering skills with AI assistance - experience the world's first 
+            From planning your learning journey to mastering skills with AI assistance - experience the world&apos;s first 
             comprehensive skill-building ecosystem designed for the modern learner.
           </motion.p>
           

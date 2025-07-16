@@ -26,21 +26,20 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
           createdAt: "asc",
         },
       },
-      reactions: true,
-      tags: true,
-      user: {
+      Tag: true,
+      User: {
         select: {
           id: true,
           name: true,
           email: true,
         },
       },
-      postchapter: {
+      PostChapterSection: {
         orderBy: {
           position: "asc",
         },
       },
-      imageSections: {
+      PostImageSection: {
         orderBy: {
           position: "asc",
         },
@@ -58,7 +57,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
     post.description,
     post.imageUrl,
     post.category,
-    post.postchapter.some(chapter => chapter.isPublished),
+    post.PostChapterSection.some(chapter => chapter.isPublished),
   ];
 
   const totalFields = requiredFields.length;
@@ -88,7 +87,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
     {
       title: "Post Content",
       icon: BookOpen,
-      content: <PostChaptersForm initialData={post} postId={post.id} />,
+      content: <PostChaptersForm initialData={{...post, postchapter: post.PostChapterSection.map(section => ({...section, isPublished: section.isPublished ?? false, isFree: section.isFree ?? false}))}} postId={post.id} />,
     },
     {
       title: "Post Image",
@@ -100,7 +99,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
   return (
     <>
       <div className="bg-gradient-to-b from-gray-100 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        <ConditionalHeader user={user} />
+        <ConditionalHeader user={user?.id ? {id: user.id, role: user.role} : null} />
       </div>
       <SidebarDemo>
         <div className="min-h-screen pt-16 sm:pt-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
@@ -132,7 +131,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
                   <PostActions
                     disabled={!isComplete}
                     postId={params.postId}
-                    isPublished={post.published}
+                    isPublished={post.published ?? false}
                   />
                 </div>
               </div>

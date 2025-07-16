@@ -435,7 +435,7 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
                 <option value="all">All Nodes</option>
                 <option value="strengths">Strengths</option>
                 <option value="weaknesses">Growth Areas</option>
-                <option value="blooms">Bloom's Levels</option>
+                <option value="blooms">Bloom&apos;s Levels</option>
               </select>
               
               {/* Drag Toggle */}

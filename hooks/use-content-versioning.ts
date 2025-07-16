@@ -242,7 +242,7 @@ export function useContentVersioning(contentType: string, contentId: string) {
     if (contentType && contentId) {
       fetchVersions();
     }
-  }, [contentType, contentId]);
+  }, [contentType, contentId, fetchVersions]);
 
   // Get version by status
   const getVersionByStatus = (status: VersionStatus) => {

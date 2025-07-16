@@ -69,7 +69,7 @@ const teacherOnboarding: OnboardingFlow = {
             </li>
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-500 mt-1 flex-shrink-0" />
-              <span>Create learning objectives aligned with Bloom's taxonomy</span>
+              <span>Create learning objectives aligned with Bloom&apos;s taxonomy</span>
             </li>
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-500 mt-1 flex-shrink-0" />
@@ -89,7 +89,7 @@ const teacherOnboarding: OnboardingFlow = {
       content: (
         <div className="space-y-4">
           <p className="text-gray-600 dark:text-gray-400">
-            Our platform automatically integrates Bloom's Taxonomy to ensure your assessments cover all cognitive levels:
+            Our platform automatically integrates Bloom&apos;s Taxonomy to ensure your assessments cover all cognitive levels:
           </p>
           <div className="grid grid-cols-2 gap-2">
             {["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"].map((level, index) => (
@@ -141,7 +141,7 @@ const teacherOnboarding: OnboardingFlow = {
       content: (
         <div className="space-y-4">
           <p className="text-gray-600 dark:text-gray-400">
-            Get insights into your students' learning patterns:
+            Get insights into your students&apos; learning patterns:
           </p>
           <ul className="space-y-2">
             <li className="flex items-start gap-2">

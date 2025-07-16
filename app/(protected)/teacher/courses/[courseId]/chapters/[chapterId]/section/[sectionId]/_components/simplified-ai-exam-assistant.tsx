@@ -376,7 +376,7 @@ export const SimplifiedAIExamAssistant = ({
 
                 {/* Bloom's Taxonomy Levels */}
                 <div className="space-y-2">
-                  <Label>Bloom's Taxonomy Levels</Label>
+                  <Label>Bloom&apos;s Taxonomy Levels</Label>
                   <div className="flex flex-wrap gap-2">
                     {["remember", "understand", "apply", "analyze", "evaluate", "create"].map((level) => (
                       <Badge

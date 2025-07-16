@@ -233,7 +233,9 @@ export const SimplifiedAICourseAssistant = ({
       }
     } catch (error) {
       console.error('AI generation error:', error);
+      // Error handling is done in the individual components/hooks
     } finally {
+      // Always clear the loading state and active feature
       setIsGenerating(false);
       setActiveFeature(null);
     }
@@ -252,19 +254,27 @@ export const SimplifiedAICourseAssistant = ({
   };
 
   const handlePresetSelect = async (preset: EducationalPreset) => {
-    setShowPresetSelector(false);
     markFeatureUsed("smart-presets");
     
-    // For now, just simulate preset application
-    // In a real implementation, this would use the preset application hook
+    // Start generation
     setIsGenerating(true);
     setActiveFeature('smart-presets');
     
-    setTimeout(() => {
+    try {
+      // For now, just simulate preset application
+      // In a real implementation, this would use the preset application hook
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Close preset selector on successful completion
+      setShowPresetSelector(false);
+      // You could show a success message or redirect here
+    } catch (error) {
+      console.error('Preset application failed:', error);
+      // Keep preset selector open on error to allow retry
+    } finally {
       setIsGenerating(false);
       setActiveFeature(null);
-      // You could show a success message or redirect
-    }, 3000);
+    }
   };
 
   const handleCustomPresetCreate = () => {
@@ -284,7 +294,7 @@ export const SimplifiedAICourseAssistant = ({
             AI Course Assistant
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Get intelligent help creating content for "{courseTitle}"
+            Get intelligent help creating content for &quot;{courseTitle}&quot;
           </p>
         </div>
         

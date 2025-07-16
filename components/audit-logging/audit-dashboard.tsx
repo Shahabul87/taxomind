@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,16 +62,7 @@ export function AuditDashboard({ className }: AuditDashboardProps) {
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 50;
 
-  // Load data
-  useEffect(() => {
-    loadAuditData();
-  }, [dateRange, searchQuery, categoryFilter, severityFilter, userFilter, successFilter, currentPage]);
-
-  useEffect(() => {
-    loadMetrics();
-  }, [dateRange]);
-
-  const loadAuditData = async () => {
+  const loadAuditData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -107,9 +98,9 @@ export function AuditDashboard({ className }: AuditDashboardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange, searchQuery, categoryFilter, severityFilter, userFilter, successFilter, currentPage]);
 
-  const loadMetrics = async () => {
+  const loadMetrics = useCallback(async () => {
     try {
       const metricsData = await auditSystem.getAuditMetrics(
         startOfDay(dateRange.from),
@@ -119,7 +110,16 @@ export function AuditDashboard({ className }: AuditDashboardProps) {
     } catch (error) {
       console.error('Failed to load metrics:', error);
     }
-  };
+  }, [dateRange]);
+
+  // Load data
+  useEffect(() => {
+    loadAuditData();
+  }, [loadAuditData]);
+
+  useEffect(() => {
+    loadMetrics();
+  }, [loadMetrics]);
 
   // Generate compliance report
   const generateReport = async (type: 'GDPR' | 'SOX' | 'HIPAA' | 'FERPA') => {

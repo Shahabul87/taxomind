@@ -239,10 +239,10 @@ export const BloomsTaxonomyShowcase = ({
               </motion.div>
               
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                Bloom's Taxonomy Integration
+                Bloom&apos;s Taxonomy Integration
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                The only LMS platform with native Bloom's taxonomy support, ensuring pedagogically sound course design and assessment creation.
+                The only LMS platform with native Bloom&apos;s taxonomy support, ensuring pedagogically sound course design and assessment creation.
               </p>
             </div>
 
@@ -256,7 +256,7 @@ export const BloomsTaxonomyShowcase = ({
                   Cognitive Learning Progression
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Our AI-powered system automatically categorizes and generates content across all six levels of Bloom's taxonomy, ensuring comprehensive cognitive development.
+                  Our AI-powered system automatically categorizes and generates content across all six levels of Bloom&apos;s taxonomy, ensuring comprehensive cognitive development.
                 </p>
                 
                 <div className="space-y-3">

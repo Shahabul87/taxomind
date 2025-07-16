@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Search, TrendingUp, Clock, Eye, MessageCircle, ChevronRight, ChevronDown, Menu, Flame, Calendar, BookOpen, Users, Star, Code, Briefcase, Palette, Target, BarChart3, Brain, Shield } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Course {
   id: string;
@@ -59,10 +60,11 @@ const CompactCard = ({ course }: { course: CompactCourseCard }) => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 group overflow-hidden">
       <div className="relative aspect-[16/10] overflow-hidden">
-        <img 
+        <Image 
           src={course.imageUrl || "/placeholder.svg"} 
           alt={course.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute bottom-3 right-3">
@@ -115,10 +117,11 @@ const WideCard = ({ course }: { course: CompactCourseCard }) => {
       <div className="flex flex-col sm:flex-row">
         {/* Image Section - Responsive sizing */}
         <div className="relative w-full sm:w-48 md:w-56 lg:w-80 aspect-[16/10] sm:aspect-[4/3] lg:aspect-auto overflow-hidden">
-          <img 
+          <Image 
             src={course.imageUrl || "/placeholder.svg"} 
             alt={course.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3">
@@ -215,7 +218,7 @@ export default function CoursePage() {
   const [contentTopPadding, setContentTopPadding] = useState('6.75rem');
 
   // Calculate which tabs fit in the available space
-  const calculateVisibleTabs = () => {
+  const calculateVisibleTabs = useCallback(() => {
     if (!tabsContainerRef.current || categories.length === 0) return;
 
     const container = tabsContainerRef.current;
@@ -250,7 +253,7 @@ export default function CoursePage() {
       setVisibleTabs(categories.slice(0, minVisible));
       setHiddenTabs(categories.slice(minVisible));
     }
-  };
+  }, [categories]);
 
   // Handle responsive header height and tab calculation
   useEffect(() => {
@@ -268,7 +271,7 @@ export default function CoursePage() {
     updateLayout();
     window.addEventListener('resize', updateLayout);
     return () => window.removeEventListener('resize', updateLayout);
-  }, [categories]);
+  }, [categories, calculateVisibleTabs]);
 
   // Fetch courses from API route
   useEffect(() => {
@@ -354,7 +357,7 @@ export default function CoursePage() {
     if (categories.length > 0) {
       setTimeout(calculateVisibleTabs, 200); // Allow time for DOM to update
     }
-  }, [categories]);
+  }, [categories, calculateVisibleTabs]);
 
   // Transform courses for card component
   const transformCourseForCard = (course: Course): CompactCourseCard => ({
@@ -529,10 +532,11 @@ export default function CoursePage() {
                         <div className="flex items-start gap-2 sm:gap-3">
                           {/* Course Image */}
                           <div className="relative w-12 h-9 sm:w-16 sm:h-12 flex-shrink-0 rounded-lg overflow-hidden">
-                            <img 
+                            <Image 
                               src={course.imageUrl || "/placeholder.svg"} 
                               alt={course.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                           </div>
@@ -621,10 +625,11 @@ export default function CoursePage() {
                             
                             {/* Course Image */}
                             <div className="relative w-12 h-9 sm:w-16 sm:h-12 flex-shrink-0 rounded-lg overflow-hidden">
-                              <img 
+                              <Image 
                                 src={course.imageUrl || "/placeholder.svg"} 
                                 alt={course.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                             </div>
@@ -671,10 +676,11 @@ export default function CoursePage() {
                           <div className="flex items-start gap-2 sm:gap-3">
                             {/* Course Image */}
                             <div className="relative w-12 h-9 sm:w-16 sm:h-12 flex-shrink-0 rounded-lg overflow-hidden">
-                              <img 
+                              <Image 
                                 src={course.imageUrl || "/placeholder.svg"} 
                                 alt={course.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                               {/* Trending Badge */}

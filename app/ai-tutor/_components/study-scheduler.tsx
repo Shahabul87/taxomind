@@ -56,7 +56,7 @@ export const StudyScheduler = () => {
           animate={{ opacity: 1, x: 0 }}
         >
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
-            <h3 className="text-lg font-semibold mb-4">Today's Sessions</h3>
+            <h3 className="text-lg font-semibold mb-4">Today&apos;s Sessions</h3>
             {sessions.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-400">No sessions scheduled</p>
             ) : (

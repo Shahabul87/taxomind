@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
           name: session.user?.name,
           image: session.user?.image,
           role: session.user?.role,
-          emailVerified: session.user?.emailVerified,
+          // emailVerified: session.user?.emailVerified, // Not available on session user
           isTwoFactorEnabled: session.user?.isTwoFactorEnabled,
           isOAuth: session.user?.isOAuth
         },
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
               profileLinks: {
                 orderBy: { createdAt: 'desc' }
               },
-              socialMediaAccounts: {
+              SocialMediaAccount: {
                 select: {
                   id: true,
                   platform: true,
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
                   createdAt: true
                 }
               },
-              posts: {
+              Post: {
                 select: {
                   id: true,
                   title: true,
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
                 orderBy: { createdAt: 'desc' },
                 take: 5
               },
-              comments: {
+              Comment: {
                 select: {
                   id: true,
                   content: true,
@@ -119,15 +119,15 @@ export async function GET(request: NextRequest) {
                 orderBy: { createdAt: 'desc' },
                 take: 5
               },
-              ideas: {
-                select: {
-                  id: true,
-                  title: true,
-                  createdAt: true
-                },
-                orderBy: { createdAt: 'desc' },
-                take: 5
-              }
+              // ideas: { // Not available in schema
+              //   select: {
+              //     id: true,
+              //     title: true,
+              //     createdAt: true
+              //   },
+              //   orderBy: { createdAt: 'desc' },
+              //   take: 5
+              // }
             }
           });
 
@@ -143,34 +143,34 @@ export async function GET(request: NextRequest) {
                 emailVerified: userData.emailVerified,
                 isTwoFactorEnabled: userData.isTwoFactorEnabled,
                 createdAt: userData.createdAt,
-                updatedAt: userData.updatedAt
+                // updatedAt: userData.updatedAt // Not available in query result
               },
               accounts: userData.accounts,
               profileLinks: userData.profileLinks,
-              socialMediaAccounts: userData.socialMediaAccounts,
-              recentPosts: userData.posts,
-              recentComments: userData.comments,
+              socialMediaAccounts: userData.SocialMediaAccount,
+              recentPosts: userData.Post,
+              recentComments: userData.Comment,
               recentCourses: userData.courses,
-              recentIdeas: userData.ideas,
+              // recentIdeas: userData.ideas, // Not available in schema
               counts: {
-                posts: userData.posts.length,
-                comments: userData.comments.length,
+                posts: userData.Post.length,
+                comments: userData.Comment.length,
                 courses: userData.courses.length,
-                ideas: userData.ideas.length,
+                // ideas: userData.ideas.length, // Not available in schema
                 profileLinks: userData.profileLinks.length,
-                socialAccounts: userData.socialMediaAccounts.length,
+                socialAccounts: userData.SocialMediaAccount.length,
                 connectedProviders: userData.accounts.length
               }
             };
 
             debugData.profileLinks = userData.profileLinks;
-            debugData.socialMediaAccounts = userData.socialMediaAccounts;
+            debugData.socialMediaAccounts = userData.SocialMediaAccount;
           } else {
             debugData.error = 'User not found in database';
           }
 
         } catch (dbError) {
-          debugData.error = `Database error: ${dbError.message}`;
+          debugData.error = `Database error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`;
           console.error('Debug API database error:', dbError);
         }
       }
@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
     } catch (dbError) {
       debugData.database = { 
         status: 'error', 
-        error: dbError.message 
+        error: dbError instanceof Error ? dbError.message : 'Unknown error' 
       };
     }
 
@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Internal server error',
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
         environment: process.env.NODE_ENV 
       }, 
       { status: 500 }
@@ -301,7 +301,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Internal server error',
-        message: error.message 
+        message: error instanceof Error ? error.message : 'Unknown error' 
       }, 
       { status: 500 }
     );

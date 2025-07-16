@@ -11,7 +11,7 @@ export type CourseWithChaptersAndSections = Course & {
       articles: any[];
       notes: any[];
       codeExplanations: any[];
-      userProgress: any[];
+      user_progress: any[];
     })[];
   })[];
 };
@@ -68,7 +68,7 @@ export async function getCourse(courseId: string): Promise<{
                     createdAt: 'desc'
                   }
                 },
-                userProgress: true
+                user_progress: true
               }
             }
           }

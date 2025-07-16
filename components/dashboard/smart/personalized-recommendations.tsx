@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import { 
   Lightbulb,
   BookOpen,
@@ -186,9 +187,11 @@ export default function PersonalizedRecommendations({
                 <Card className="border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 hover:scale-[1.01]">
                   <CardContent className="p-4">
                     <div className="flex gap-4">
-                      <img
+                      <Image
                         src={course.imageUrl || "/placeholder-course.jpg"}
                         alt={course.title}
+                        width={80}
+                        height={80}
                         className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
                       />
                       

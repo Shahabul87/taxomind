@@ -148,7 +148,7 @@ export const ChapterNavigation = ({
                         className="pl-6 space-y-1"
                       >
                         {chapter.sections.map((section) => {
-                          const isCompleted = section.userProgress.some(p => p.isCompleted);
+                          const isCompleted = section.user_progress.some(p => p.isCompleted);
                           const isCurrentSection = section.id === sectionId;
                           
                           return (

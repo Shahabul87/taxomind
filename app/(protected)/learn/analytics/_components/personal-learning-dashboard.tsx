@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   BookOpen,
@@ -102,7 +102,7 @@ export const PersonalLearningDashboard = ({
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'semester' | 'all'>('month');
   const [activeTab, setActiveTab] = useState('overview');
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/learning-analytics/personal', {
@@ -127,11 +127,11 @@ export const PersonalLearningDashboard = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [timeframe]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [timeframe]);
+  }, [timeframe, fetchAnalytics]);
 
   const getBloomsLevelColor = (level: string) => {
     const colors: { [key: string]: string } = {
@@ -413,7 +413,7 @@ export const PersonalLearningDashboard = ({
                 Cognitive Skills Development
               </CardTitle>
               <CardDescription>
-                Your progress across different thinking skills (Bloom's Taxonomy)
+                Your progress across different thinking skills (Bloom&apos;s Taxonomy)
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -62,6 +62,7 @@ export async function POST(req: Request) {
             lastSync: new Date(),
           },
           create: {
+            id: crypto.randomUUID(),
             title: event.title || '',
             description: event.description || null,
             startDate: new Date(event.startDate || ''),
@@ -72,6 +73,7 @@ export async function POST(req: Request) {
             externalId: event.externalId || '',
             userId: session.user.id,
             category: 'General',
+            updatedAt: new Date(),
             lastSync: new Date(),
           },
         });

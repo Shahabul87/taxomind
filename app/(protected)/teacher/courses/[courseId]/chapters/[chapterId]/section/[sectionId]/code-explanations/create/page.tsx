@@ -1,19 +1,21 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { CodeExplanationForm } from "../../_components/_explanations/code-explanation-form";
 
 const CodeExplanationCreatePage = async ({
   params
 }: {
-  params: { 
+  params: Promise<{ 
     courseId: string; 
     chapterId: string; 
     sectionId: string; 
-  }
+  }>
 }) => {
-  const session = await currentUser();
-  const userId = session?.user?.id;
+  const { courseId, chapterId, sectionId } = await params;
+  const user = await currentUser();
+  const userId = user?.id;
 
   if (!userId) {
     return redirect("/");
@@ -21,7 +23,7 @@ const CodeExplanationCreatePage = async ({
 
   const course = await db.course.findUnique({
     where: {
-      id: params.courseId,
+      id: courseId,
       userId
     }
   });
@@ -33,9 +35,9 @@ const CodeExplanationCreatePage = async ({
   return ( 
     <div className="p-6">
       <CodeExplanationForm
-        courseId={params.courseId}
-        chapterId={params.chapterId}
-        sectionId={params.sectionId}
+        courseId={courseId}
+        chapterId={chapterId}
+        sectionId={sectionId}
         initialData={{}}
       />
     </div>

@@ -226,7 +226,7 @@ export const RecentActivity = ({ course }: RecentActivityProps) => {
               <div className="flex items-center gap-2 mb-3">
                 <Calendar className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                 <h4 className="font-medium text-slate-900 dark:text-slate-100 text-sm">
-                  This Week's Progress
+                  This Week&apos;s Progress
                 </h4>
               </div>
               

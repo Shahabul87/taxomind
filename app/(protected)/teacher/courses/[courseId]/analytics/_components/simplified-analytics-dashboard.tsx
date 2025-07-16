@@ -433,7 +433,7 @@ export const SimplifiedAnalyticsDashboard = ({
                     <Badge className="bg-purple-100 text-purple-700 text-xs">Expert</Badge>
                   </CardTitle>
                   <CardDescription>
-                    Deep analysis of cognitive skill development across Bloom's taxonomy levels
+                    Deep analysis of cognitive skill development across Bloom&apos;s taxonomy levels
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

@@ -137,7 +137,9 @@ export function UserManagementTable() {
     };
     
     users.forEach(user => {
-      stats[user.role]++;
+      if (user.role in stats) {
+        stats[user.role as keyof typeof stats]++;
+      }
     });
     
     return stats;
@@ -165,7 +167,7 @@ export function UserManagementTable() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {stats[role as UserRole]}
+                  {stats[role as keyof typeof stats] || 0}
                 </div>
               </CardContent>
             </Card>
@@ -192,8 +194,8 @@ export function UserManagementTable() {
             </TableHeader>
             <TableBody>
               {users.map((user) => {
-                const roleInfo = roleConfig[user.role];
-                const Icon = roleInfo.icon;
+                const roleInfo = roleConfig[user.role as keyof typeof roleConfig];
+                const Icon = roleInfo?.icon;
                 
                 return (
                   <TableRow key={user.id}>
@@ -202,9 +204,9 @@ export function UserManagementTable() {
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge className={roleInfo.color}>
-                        <Icon className="w-3 h-3 mr-1" />
-                        {roleInfo.label}
+                      <Badge className={roleInfo?.color || "bg-gray-100 text-gray-800"}>
+                        {Icon && <Icon className="w-3 h-3 mr-1" />}
+                        {roleInfo?.label || user.role}
                       </Badge>
                     </TableCell>
                     <TableCell>

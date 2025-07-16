@@ -43,8 +43,8 @@ export async function GET(req: Request) {
         userId: session.user.id,
       },
       include: {
-        attachments: true,
-        paymentHistory: {
+        BillAttachment: true,
+        BillPayment: {
           orderBy: {
             paymentDate: 'desc',
           },

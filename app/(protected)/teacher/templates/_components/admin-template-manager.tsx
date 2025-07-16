@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,12 +107,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    fetchTemplates();
-    fetchAnalytics();
-  }, [page, sortBy, sortOrder, selectedContentType, selectedCategory]);
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams({
@@ -139,7 +134,12 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, sortBy, sortOrder, selectedContentType, selectedCategory, searchQuery]);
+
+  useEffect(() => {
+    fetchTemplates();
+    fetchAnalytics();
+  }, [fetchTemplates]);
 
   const fetchAnalytics = async () => {
     try {
@@ -310,7 +310,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "templates" | "analytics" | "authors")}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -348,7 +348,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
                     </SelectContent>
                   </Select>
 
-                  <Select value={sortBy} onValueChange={setSortBy}>
+                  <Select value={sortBy} onValueChange={(value) => setSortBy(value as "name" | "createdAt" | "updatedAt" | "usageCount")}>
                     <SelectTrigger className="w-32">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
@@ -470,7 +470,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete Template</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to delete "{template.name}"? This action cannot be undone.
+                                Are you sure you want to delete &ldquo;{template.name}&rdquo;? This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

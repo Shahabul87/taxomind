@@ -12,6 +12,7 @@ import { SimpleQuestionValidation } from "./SimpleQuestionValidation";
 import { CognitiveAnalyticsDashboard } from "../cognitive-analytics-dashboard";
 import { CognitivePathwayVisualizer } from "../cognitive-pathway-visualizer";
 import { Question, CourseContext, ValidationResult } from "./types";
+import { BloomsLevel } from "@prisma/client";
 
 interface BloomsTaxonomyTabsProps {
   activeTab: string;
@@ -43,10 +44,10 @@ export function BloomsTaxonomyTabs({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xl font-bold bg-gradient-to-r from-red-700 via-purple-700 to-blue-700 dark:from-red-300 dark:via-purple-300 dark:to-blue-300 bg-clip-text text-transparent mb-2">
-              Bloom's Taxonomy AI Exam Creator
+              Bloom&apos;s Taxonomy AI Exam Creator
             </h3>
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              Create sophisticated assessments using AI-powered Bloom's taxonomy analysis and
+              Create sophisticated assessments using AI-powered Bloom&apos;s taxonomy analysis and
               cognitive-level question generation
             </p>
           </div>
@@ -74,7 +75,7 @@ export function BloomsTaxonomyTabs({
             className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm font-medium transition-all"
           >
             <Brain className="h-4 w-4 mr-2" />
-            Bloom's Guide
+            Bloom&apos;s Guide
           </TabsTrigger>
           <TabsTrigger
             value="validation"
@@ -214,7 +215,7 @@ export function BloomsTaxonomyTabs({
             <div className="relative">
               <BloomsTaxonomyGuide
                 onLevelSelect={onBloomsLevelSelect}
-                selectedLevel={selectedBloomsLevel}
+                selectedLevel={selectedBloomsLevel as BloomsLevel | undefined}
                 showQuestionExamples={true}
                 isInteractive={true}
               />
@@ -302,8 +303,6 @@ export function BloomsTaxonomyTabs({
                 courseId={courseContext.courseId}
                 chapterId={courseContext.chapterId}
                 sectionId={courseContext.sectionId}
-                questions={questions}
-                showTeacherView={true}
               />
             </div>
           </div>

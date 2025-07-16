@@ -59,7 +59,7 @@ export default function EnterpriseAdminPage() {
       setError("No user data available - Using demo mode");
       setIsInitialized(true);
     }
-  }, [session?.user?.id, session?.user?.role, status]);
+  }, [session?.user, status]);
 
   if (status === "loading") {
     return (

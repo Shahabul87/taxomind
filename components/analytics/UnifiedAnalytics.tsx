@@ -20,6 +20,7 @@ import { AnalyticsNavigation } from './AnalyticsNavigation';
 import { CognitiveAnalytics } from './CognitiveAnalytics';
 import { useDashboardAnalytics, usePerformanceMetrics, useRealtimePulse } from '@/hooks/use-dashboard-analytics';
 import { cn } from '@/lib/utils';
+import Image from "next/image";
 
 interface UnifiedAnalyticsProps {
   user: User;
@@ -457,9 +458,11 @@ export function UnifiedAnalytics({ user, variant = 'dashboard', className }: Uni
                 {analytics.learningMetrics.slice(0, 5).map((metric) => (
                   <div key={metric.id} className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                     {metric.course?.imageUrl && (
-                      <img 
+                      <Image 
                         src={metric.course.imageUrl} 
                         alt={metric.course.title}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-lg object-cover"
                       />
                     )}
@@ -578,7 +581,7 @@ function OverviewTab({ analytics, performance, pulse }: any) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-green-600" />
-              Today's Activity Summary
+              Today&apos;s Activity Summary
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -737,9 +740,11 @@ function CoursesTab({ analytics }: any) {
               {analytics.learningMetrics.map((metric: any) => (
                 <div key={metric.id} className="flex items-center gap-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border">
                   {metric.course?.imageUrl && (
-                    <img 
+                    <Image 
                       src={metric.course.imageUrl} 
                       alt={metric.course.title}
+                      width={64}
+                      height={64}
                       className="w-16 h-16 rounded-lg object-cover"
                     />
                   )}

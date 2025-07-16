@@ -10,13 +10,9 @@ const SettingsPage = () => {
   const user = useCurrentUser();
   
   // Convert undefined to null to match expected type
-  const userForHeader = user ? {
+  const userForHeader = user && user.id ? {
     id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    isTwoFactorEnabled: user.isTwoFactorEnabled,
-    isOAuth: user.isOAuth
+    role: user.role
   } : null;
 
   return (

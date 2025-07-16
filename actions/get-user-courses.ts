@@ -25,9 +25,10 @@ export async function getUserCreatedCourses() {
             name: true
           }
         },
-        enrollments: {
+        Purchase: {
           select: {
-            id: true
+            id: true,
+            userId: true
           },
           take: 100 // Limit to prevent performance issues
         },
@@ -56,8 +57,8 @@ export async function getUserCreatedCourses() {
         const totalChapters = 8; // Consistent mock value
         const totalSections = 35; // Consistent mock value
         
-        // Calculate total enrolled students
-        const totalEnrolled = course.enrollments?.length || 0;
+        // Calculate total enrolled students (based on purchases)
+        const totalEnrolled = course.Purchase?.length || 0;
         
         return {
           ...course,
@@ -109,7 +110,7 @@ export async function getUserEnrolledCourses() {
         userId: session.user.id
       },
       include: {
-        course: {
+        Course: {
           include: {
             category: {
               select: {
@@ -141,7 +142,7 @@ export async function getUserEnrolledCourses() {
     // Process and calculate stats for each enrolled course with safe access
     const enrolledCourses = enrollments.map(enrollment => {
       try {
-        const course = enrollment.course;
+        const course = enrollment.Course;
         
         if (!course) {
           throw new Error("Course not found");
@@ -177,13 +178,13 @@ export async function getUserEnrolledCourses() {
         console.warn("Error processing enrollment:", error);
         // Return a safe fallback object
         return {
-          id: enrollment.course?.id || "unknown",
-          title: enrollment.course?.title || "Unknown Course",
-          description: enrollment.course?.description || "",
-          imageUrl: enrollment.course?.imageUrl || null,
-          price: enrollment.course?.price || 0,
-          isPublished: enrollment.course?.isPublished || false,
-          category: enrollment.course?.category || { id: "unknown", name: "Unknown" },
+          id: enrollment.Course?.id || "unknown",
+          title: enrollment.Course?.title || "Unknown Course",
+          description: enrollment.Course?.description || "",
+          imageUrl: enrollment.Course?.imageUrl || null,
+          price: enrollment.Course?.price || 0,
+          isPublished: enrollment.Course?.isPublished || false,
+          category: enrollment.Course?.category || { id: "unknown", name: "Unknown" },
           enrollmentId: enrollment.id,
           enrolledAt: enrollment.createdAt,
           totalRatings: 0,

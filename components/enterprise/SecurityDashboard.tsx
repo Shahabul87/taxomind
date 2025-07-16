@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -56,11 +56,7 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
 
-  useEffect(() => {
-    fetchSecurityData();
-  }, [search, eventTypeFilter, statusFilter, severityFilter]);
-
-  const fetchSecurityData = async () => {
+  const fetchSecurityData = useCallback(async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams({
@@ -82,7 +78,11 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [search, eventTypeFilter, statusFilter, severityFilter]);
+
+  useEffect(() => {
+    fetchSecurityData();
+  }, [fetchSecurityData]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

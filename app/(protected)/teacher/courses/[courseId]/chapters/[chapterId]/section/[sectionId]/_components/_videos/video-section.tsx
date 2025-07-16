@@ -5,10 +5,11 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil, Video, Loader2, Star, X, Clipboard, Play } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 import {
   Form,
@@ -131,7 +132,7 @@ export const VideoSectionForm = ({
   const { isSubmitting, isValid } = form.formState;
   const videoUrl = form.watch("videoUrl");
 
-  const fetchVideoMetadata = async (url: string) => {
+  const fetchVideoMetadata = useCallback(async (url: string) => {
     if (!url || !z.string().url().safeParse(url).success) return;
     
     try {
@@ -184,7 +185,7 @@ export const VideoSectionForm = ({
     } finally {
       setIsLoadingMetadata(false);
     }
-  };
+  }, [form]);
 
   // Effect to fetch metadata when URL changes
   useEffect(() => {
@@ -193,7 +194,7 @@ export const VideoSectionForm = ({
         // Add a small delay before fetching metadata to avoid too many requests during typing
         const timer = setTimeout(() => {
           // Only fetch if URL is valid
-          if (!form.formState.errors.videoUrl) {
+          if (!form.formState.errors.videoUrl && value.videoUrl) {
             fetchVideoMetadata(value.videoUrl);
           }
         }, 500);
@@ -203,7 +204,7 @@ export const VideoSectionForm = ({
     });
     
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, fetchVideoMetadata]);
 
   const pasteFromClipboard = async () => {
     try {
@@ -415,15 +416,12 @@ export const VideoSectionForm = ({
                       <div className="relative h-[200px] w-full bg-gray-100 dark:bg-gray-700">
                         {previewData.thumbnail ? (
                           <div className="h-full w-full relative group overflow-hidden">
-                            <img
+                            <Image
                               src={previewData.thumbnail}
                               alt={previewData.title || "Video thumbnail"}
+                              width={400}
+                              height={200}
                               className="object-cover h-full w-full"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const fallbackEl = document.getElementById(`video-thumbnail-fallback-${Date.now()}`);
-                                if (fallbackEl) fallbackEl.style.display = 'flex';
-                              }}
                             />
                             <div 
                               id={`video-thumbnail-fallback-${Date.now()}`}
@@ -513,7 +511,7 @@ export const VideoSectionForm = ({
                         />
                         
                         <div className="mt-4">
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rate this video's quality</p>
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rate this video&apos;s quality</p>
                           <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map((rating) => (
                               <button
@@ -566,7 +564,7 @@ export const VideoSectionForm = ({
 
                   {!previewData && !isLoadingMetadata && videoUrl && z.string().url().safeParse(videoUrl).success && (
                     <p className="text-sm text-rose-500 dark:text-rose-400 italic">
-                      We couldn't fetch details for this video. Please check if the URL is correct and accessible.
+                      We couldn&apos;t fetch details for this video. Please check if the URL is correct and accessible.
                     </p>
                   )}
                 </div>

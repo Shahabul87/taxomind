@@ -24,7 +24,7 @@ export async function GET(
         isPublished: true, // Only show published exams to students
       },
       include: {
-        questions: {
+        ExamQuestion: {
           orderBy: {
             order: 'asc'
           },
@@ -37,7 +37,7 @@ export async function GET(
             // Don't include correct answers for security
           }
         },
-        userAttempts: {
+        UserExamAttempt: {
           where: {
             userId: user.id
           },
@@ -59,7 +59,7 @@ export async function GET(
         },
         _count: {
           select: {
-            userAttempts: true
+            UserExamAttempt: true
           }
         }
       },
@@ -76,8 +76,8 @@ export async function GET(
       timeLimit: exam.timeLimit,
       attempts: exam.attempts || 3, // Default max attempts
       passingScore: exam.passingScore,
-      questions: exam.questions,
-      userAttempts: exam.userAttempts,
+      questions: exam.ExamQuestion,
+      userAttempts: exam.UserExamAttempt,
     }));
 
     return NextResponse.json(transformedExams);

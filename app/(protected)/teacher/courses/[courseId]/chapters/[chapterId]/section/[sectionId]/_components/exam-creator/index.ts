@@ -11,5 +11,5 @@ export { QuestionItem } from './QuestionItem';
 export { ExamForm } from './ExamForm';
 export { BloomsTaxonomyTabs } from './BloomsTaxonomyTabs';
 
-// Re-export the refactored main component
-export { ExamCreationForm } from '../ExamCreationForm.refactored';
+// Re-export the main component
+export { ExamCreationForm } from '../ExamCreationForm';

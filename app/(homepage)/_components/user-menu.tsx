@@ -269,7 +269,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
 
               {/* Logout Section */}
               <div className="p-2 border-t border-gray-600 bg-gray-800">
-                <LogoutButton className="w-full" onClick={handleMenuItemClick}>
+                <LogoutButton className="w-full">
                   <motion.div
                     whileHover={{ x: 4, backgroundColor: "rgba(239, 68, 68, 0.15)" }}
                     whileTap={{ scale: 0.98 }}

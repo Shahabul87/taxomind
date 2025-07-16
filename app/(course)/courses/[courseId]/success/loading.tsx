@@ -51,7 +51,7 @@ export default function SuccessLoading() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-500">Sending Welcome Email</h3>
-                  <p className="text-gray-500 text-sm">You'll receive a confirmation email shortly</p>
+                  <p className="text-gray-500 text-sm">You&apos;ll receive a confirmation email shortly</p>
                 </div>
               </div>
             </div>
@@ -61,7 +61,7 @@ export default function SuccessLoading() {
         {/* Additional Info */}
         <div className="text-center text-gray-600">
           <p className="mb-2">This usually takes just a few seconds...</p>
-          <p className="text-sm">If this page doesn't redirect automatically, please refresh.</p>
+          <p className="text-sm">If this page doesn&apos;t redirect automatically, please refresh.</p>
         </div>
       </div>
     </div>

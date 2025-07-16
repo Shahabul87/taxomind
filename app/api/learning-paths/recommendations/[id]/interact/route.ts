@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -12,6 +12,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     const { action } = await req.json();
     
     if (!["VIEWED", "ACCEPTED", "REJECTED", "DEFERRED"].includes(action)) {
@@ -24,7 +25,7 @@ export async function POST(
     // Verify the recommendation belongs to the user
     const recommendation = await db.pathRecommendation.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
     });
@@ -39,7 +40,7 @@ export async function POST(
     // Record the interaction
     const interaction = await db.recommendationInteraction.create({
       data: {
-        recommendationId: params.id,
+        recommendationId: id,
         action,
       },
     });
@@ -57,19 +58,19 @@ export async function POST(
 
       // Mark recommendation as inactive
       await db.pathRecommendation.update({
-        where: { id: params.id },
+        where: { id },
         data: { isActive: false },
       });
     } else if (action === "REJECTED") {
       // Mark recommendation as inactive
       await db.pathRecommendation.update({
-        where: { id: params.id },
+        where: { id },
         data: { isActive: false },
       });
     } else if (action === "DEFERRED") {
       // Lower the priority
       await db.pathRecommendation.update({
-        where: { id: params.id },
+        where: { id },
         data: { 
           priority: Math.max(0, recommendation.priority - 10),
         },

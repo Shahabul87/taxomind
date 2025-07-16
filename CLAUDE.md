@@ -1,11 +1,97 @@
-# CLAUDE.md - Database Query Patterns and Development Guidelines
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+**Taxomind** is an intelligent learning management system (LMS) built with Next.js 15, featuring AI-powered adaptive learning, real-time analytics, and enterprise-grade security. The platform supports multiple learning paths with role-based access control for students, teachers, and administrators.
+
+## Essential Development Commands
+
+### Core Development
+```bash
+# Start development server (uses local PostgreSQL on port 5433)
+npm run dev
+
+# Production build and type checking
+npm run build
+npm run lint
+npx prisma generate
+
+# Testing
+npm run test              # Run all tests
+npm run test:watch        # Watch mode
+npm run test:coverage     # Coverage report
+npm run test:ci          # CI mode
+```
+
+### Local Development Environment
+```bash
+# Database setup (uses Docker PostgreSQL on port 5433)
+npm run dev:docker:start    # Start local PostgreSQL container
+npm run dev:setup          # Reset and seed database
+npm run dev:db:seed        # Seed with test data only
+npm run dev:db:studio      # Open Prisma Studio
+
+# Container management
+npm run dev:docker:stop    # Stop container
+npm run dev:docker:reset   # Recreate container
+```
+
+### Enterprise Commands
+```bash
+# Enterprise-grade validation and deployment
+npm run enterprise:validate                # Validate development setup
+npm run enterprise:deploy:staging          # Deploy to staging
+npm run enterprise:deploy:production       # Deploy to production
+npm run enterprise:health                  # System health check
+npm run enterprise:audit                   # View audit logs
+```
+
+## Architecture Overview
+
+### Next.js 15 App Router Structure
+```
+app/
+├── (auth)/           # Authentication pages
+├── (course)/         # Course learning interface
+├── (dashboard)/      # Role-based dashboards
+├── (homepage)/       # Public homepage
+├── (protected)/      # Protected routes with role guards
+└── api/             # API routes with comprehensive endpoints
+```
+
+### Key Architectural Patterns
+
+#### 1. Role-Based Access Control
+- **Middleware**: `middleware.ts` handles route protection and role-based redirects
+- **User Roles**: `ADMIN`, `USER` (defined in Prisma schema)
+- **Route Protection**: Uses `routes.ts` for public, protected, and admin routes
+- **Authentication**: NextAuth.js v5 with multi-provider support
+
+#### 2. Database Architecture
+- **ORM**: Prisma with PostgreSQL
+- **Connection**: Singleton pattern in `lib/db.ts`
+- **Models**: Comprehensive schema with 50+ models for learning management
+- **Relations**: Complex relationships between User, Course, Chapter, Section, Purchase, Enrollment
+
+#### 3. AI Integration
+- **Content Generation**: AI-powered course and chapter creation
+- **Adaptive Learning**: Personalized question generation and difficulty adjustment
+- **Analytics**: Real-time learning analytics and progress tracking
+- **Libraries**: OpenAI SDK, Anthropic SDK for content generation
+
+#### 4. Component Architecture
+- **UI Components**: Radix UI primitives with Tailwind CSS
+- **Reusable Components**: Extensive component library in `components/`
+- **Server Components**: Leverage Next.js 15 Server Components for performance
+- **Client Components**: Marked with 'use client' directive where needed
 
 ## Database Query Patterns
 
-### ✅ CORRECT: Use These Database Query Patterns
-
+### ✅ CORRECT: Current Database Relations
 ```typescript
-// Use the actual model names from the current schema
+// Use these actual model relations from the schema
 const courses = await db.course.findMany({
   include: {
     category: true,
@@ -18,249 +104,210 @@ const courses = await db.course.findMany({
     },
     Purchase: userId ? {
       where: { userId },
-      select: {
-        createdAt: true,
-      },
     } : false,
-    _count: {
-      select: {
-        Purchase: true,
-        reviews: true,
-        chapters: true,
-      },
-    },
+    Enrollment: true,
     reviews: {
       select: {
         rating: true,
       },
     },
-  },
-});
-```
-
-### ❌ AVOID: These Patterns Cause Errors
-
-```typescript
-// DON'T use non-existent models
-const courses = await db.course.findMany({
-  include: {
-    enrollments: true, // ❌ UserCourseEnrollment doesn't exist in current DB
     _count: {
       select: {
-        enrollments: true, // ❌ This will cause "table does not exist" error
+        Purchase: true,
+        Enrollment: true,
+        reviews: true,
+        chapters: true,
       },
     },
   },
 });
 ```
 
-## Current Database Model Relations
-
-### Course Model Relations
-- `Purchase[]` - Course purchases (use this instead of enrollments)
-- `Enrollment[]` - Course enrollments
-- `reviews` - Course reviews
-- `chapters` - Course chapters
-- `category` - Course category
-- `user` - Course creator
-
-### User Model Relations
-- `courses` - Created courses
-- `Purchase[]` - Purchased courses
-- `Enrollment[]` - Enrolled courses
-- `courseReviews` - Course reviews
-
-## Error Prevention Rules
-
-1. **Always check the current schema** before writing queries
-2. **Use `db.course.findMany()` patterns** not complex query optimizer calls
-3. **Include only existing relations** in your queries
-4. **Test queries with simple includes first** before adding complex relations
-
-## Common Error Patterns to Avoid
-
-### 1. Non-existent Table References
+### ❌ AVOID: Common Database Errors
 ```typescript
-// ❌ This causes "Table does not exist" errors
-include: {
-  enrollments: true, // UserCourseEnrollment table doesn't exist
-}
-
-// ✅ Use this instead
-include: {
-  Purchase: true, // Purchase table exists
-  Enrollment: true, // Enrollment table exists
-}
-```
-
-### 2. Incorrect Relation Names
-```typescript
-// ❌ Wrong relation name
-_count: {
-  select: {
-    enrollments: true, // Should be Purchase or Enrollment
-  },
-}
-
-// ✅ Correct relation names
-_count: {
-  select: {
-    Purchase: true,
-    Enrollment: true,
-    reviews: true,
-    chapters: true,
-  },
-}
-```
-
-### 3. Complex Query Optimizer Usage
-```typescript
-// ❌ Avoid complex query optimizers that reference non-existent tables
-const { courses } = await CourseQueryOptimizer.getCoursesWithFilters(params);
-
-// ✅ Use simple, direct queries
+// DON'T use non-existent relations
 const courses = await db.course.findMany({
-  where: conditions,
-  include: simpleIncludes,
+  include: {
+    enrollments: true, // ❌ Use 'Enrollment' instead
+    userCourseEnrollments: true, // ❌ Table doesn't exist
+  },
 });
 ```
 
-## Development Workflow
+## Key Technical Decisions
 
-1. **Before adding new database queries:**
-   - Check the current schema in `prisma/schema.prisma`
-   - Verify table exists in database with `npx prisma db pull`
-   - Test simple queries first
+### 1. Environment Safety
+- **Local Development**: Port 5433 PostgreSQL to avoid conflicts
+- **Environment Isolation**: `lib/db-environment.ts` prevents production data access from development
+- **Safety Guards**: Destructive operations only allowed in development mode
 
-2. **When schema conflicts occur:**
-   - Use `npx prisma db pull` to sync with actual database
-   - Update queries to match actual schema
-   - Avoid `npx prisma db push --force-reset` in production
+### 2. Authentication Flow
+- **NextAuth.js v5**: Latest version with enhanced security
+- **Multi-Provider**: Google, GitHub, credentials-based authentication
+- **Session Management**: JWT strategy with secure session handling
+- **Role-Based Redirects**: Automatic redirect to appropriate dashboard based on user role
 
-3. **For API routes:**
-   - Use direct `db.model.findMany()` calls
-   - Keep includes simple and verified
-   - Test with actual database data
+### 3. API Route Structure
+- **Comprehensive API**: 100+ API endpoints under `app/api/`
+- **Route Groups**: Organized by feature (analytics, courses, auth, etc.)
+- **Middleware Protection**: API routes skip middleware for performance
+- **Type Safety**: Full TypeScript integration with Prisma types
 
-## Quick Fix for Course Queries
+### 4. Testing Strategy
+- **Jest Configuration**: Comprehensive test setup with coverage thresholds
+- **Test Types**: Unit, integration, and e2e testing support
+- **Coverage**: 70% minimum threshold for branches, functions, lines, statements
+- **Path Mapping**: Matches application path aliases
 
+## Common Development Patterns
+
+### 1. Server Actions
 ```typescript
-// Simple, reliable course fetching
-export async function getCoursesForPages() {
-  return await db.course.findMany({
-    where: {
-      isPublished: true,
-    },
-    include: {
-      category: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
-          image: true,
-        },
-      },
-      _count: {
-        select: {
-          chapters: true,
-          Purchase: true,
-          reviews: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
+// actions/get-courses.ts pattern
+export const getCourses = async (params: GetCoursesParams) => {
+  try {
+    const courses = await db.course.findMany({
+      where: conditions,
+      include: standardIncludes,
+    });
+    return { success: true, data: courses };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+```
+
+### 2. Component Patterns
+```typescript
+// Standard component pattern with proper typing
+interface ComponentProps {
+  courseId: string;
+  userId?: string;
+}
+
+export const CourseComponent = ({ courseId, userId }: ComponentProps) => {
+  // Implementation
+};
+```
+
+### 3. Error Handling
+```typescript
+// Consistent error handling pattern
+try {
+  const result = await someOperation();
+  return { success: true, data: result };
+} catch (error) {
+  console.error('Operation failed:', error);
+  return { success: false, error: 'Operation failed' };
 }
 ```
 
 ## Schema Verification Commands
 
 ```bash
-# Check current database schema
-npx prisma db pull
-
-# Generate Prisma client after schema changes
-npx prisma generate
-
-# Check what tables exist (use only when needed)
-npx prisma studio
+# Essential database commands
+npx prisma db pull        # Sync with actual database
+npx prisma generate       # Update Prisma client
+npx prisma studio         # Visual database browser
+npx prisma migrate dev    # Apply migrations in development
 ```
+
+## Enterprise Features
+
+### 1. Analytics System
+- **Real-time Analytics**: Live user engagement tracking
+- **Learning Analytics**: Course progress and performance metrics
+- **Predictive Analytics**: AI-powered learning outcome predictions
+- **Role-based Dashboards**: Different analytics views for different user types
+
+### 2. Content Management
+- **AI Content Generation**: Automated course and chapter creation
+- **Version Control**: Content versioning and approval workflows
+- **Template System**: Reusable content templates
+- **Media Management**: Cloudinary integration for asset management
+
+### 3. Security Features
+- **Audit Logging**: Comprehensive activity tracking
+- **Rate Limiting**: API protection with Upstash Redis
+- **Data Protection**: GDPR-compliant data handling
+- **Enterprise SSO**: Support for enterprise authentication providers
+- **EnterpriseDB**: Enhanced database layer with audit trails and safety checks
+- **Strict Environment Mode**: Production data protection with `STRICT_ENV_MODE=true`
+
+## Development Workflow
+
+### 1. Before Making Changes
+- Check current database schema in `prisma/schema.prisma`
+- Verify environment variables are set correctly
+- Ensure local development database is running
+
+### 2. Making Database Changes
+- Use direct Prisma queries, avoid complex query optimizers
+- Test queries in Prisma Studio before implementing
+- Always include proper error handling
+- **For Critical Operations**: Use EnterpriseDB for user management, financial records, and deletions:
+  ```typescript
+  import { getEnterpriseDB } from '@/lib/db-migration';
+  
+  const enterpriseDb = getEnterpriseDB({
+    userContext: { id: user.id, role: user.role },
+    auditEnabled: true
+  });
+  
+  // Operations are audited and protected
+  await enterpriseDb.user.delete({ where: { id } });
+  ```
+
+### 3. After Making Changes
+```bash
+npm run lint              # Check code style
+npm run validate:env      # Validate environment configuration
+npm run build            # Verify build succeeds (includes env validation)
+npm run test             # Run test suite
+npx prisma generate      # Update Prisma client if schema changed
+```
+
+## Important Files and Locations
+
+### Configuration Files
+- `next.config.js` - Next.js configuration with image optimization
+- `tailwind.config.js` - Tailwind CSS configuration
+- `prisma/schema.prisma` - Database schema
+- `auth.ts` - Authentication configuration
+- `middleware.ts` - Route protection and role-based access
+
+### Key Directories
+- `app/api/` - API routes (100+ endpoints)
+- `components/` - Reusable UI components
+- `lib/` - Utility functions and configurations
+- `actions/` - Server actions for data fetching
+- `hooks/` - Custom React hooks
+
+### Development Files
+- `scripts/dev-seed.ts` - Development database seeding
+- `lib/db-environment.ts` - Environment safety utilities
+- `ENTERPRISE_GUIDE.md` - Enterprise deployment guide
+- `DEPLOYMENT.md` - Environment-specific deployment instructions
 
 ## Notes for Future Development
 
 - Always use simple, direct Prisma queries over complex abstractions
-- Verify relation names match the actual schema
-- Test database queries in isolation before integrating
-- Keep this file updated when schema changes
+- Verify relation names match the actual schema before using them
+- Test database queries in isolation before integrating into components
+- Use the enterprise-grade safety features for production deployments
+- Follow the established patterns for authentication and authorization
+- Keep the CLAUDE.md file updated when making significant architectural changes
+- **Critical Operations**: Always use EnterpriseDB for operations involving:
+  - User deletions or role changes
+  - Financial records (bills, payments, purchases)
+  - Course/content deletions
+  - Any operation that needs audit trails
+- **Environment Safety**: Production and staging have `STRICT_ENV_MODE=true` enabled
+- **Build Validation**: All builds now include automatic environment validation
 
 ---
 
-## Local Development Setup
-
-### Environment Configuration
-- **Local Development**: Uses `.env` file with `NODE_ENV=development`
-- **Production**: Uses `.env.production` or Railway environment variables
-- **Database Port**: Local PostgreSQL runs on port **5433** to avoid conflicts
-
-### Quick Start Commands
-```bash
-# Start local development environment
-npm run dev:docker:start    # Start PostgreSQL container
-npm run dev                 # Start Next.js server
-
-# Database management
-npm run dev:setup          # Reset and seed database
-npm run dev:db:seed        # Seed with test data
-npm run dev:db:studio      # Open Prisma Studio
-
-# Container management
-npm run dev:docker:stop    # Stop container
-npm run dev:docker:reset   # Recreate container
-```
-
-### Local Database Configuration
-```bash
-# Local connection string (port 5433)
-DATABASE_URL="postgresql://postgres:dev_password_123@localhost:5433/taxomind_dev"
-
-# Test users available
-teacher@dev.local / password123
-student@dev.local / password123
-admin@dev.local / password123
-```
-
-### Development vs Production Safety
-```typescript
-// The codebase includes safety checks to prevent production data loss
-// lib/db-environment.ts ensures destructive operations only run in development
-if (process.env.NODE_ENV === 'development') {
-  // Safe to run destructive operations
-} else {
-  throw new Error('Destructive operations not allowed in production!');
-}
-```
-
-### Testing Commands to Run After Changes
-```bash
-# After making changes, always test:
-npm run lint               # Check code style
-npm run build             # Verify build succeeds
-npx prisma generate       # Update Prisma client
-```
-
-### Email Testing in Development
-- Emails are logged to console in development mode
-- Check terminal output for email preview
-- No real emails are sent when `NODE_ENV=development`
-
-### Important Files for Development
-- `LOCAL_DEVELOPMENT_GUIDE.md` - Complete local setup guide
-- `scripts/dev-seed.ts` - Development database seeding
-- `lib/db-environment.ts` - Environment safety utilities
-
----
-*Last updated: July 2025*
-*Current schema: Purchase-based enrollment system*
-*Local development setup: Docker PostgreSQL on port 5433*
+*Last updated: January 2025*
+*Architecture: Next.js 15 + Prisma + PostgreSQL + NextAuth.js v5*
+*Database: Purchase/Enrollment-based system with enterprise safety features*
+*Local Development: Docker PostgreSQL on port 5433 with complete environment isolation*

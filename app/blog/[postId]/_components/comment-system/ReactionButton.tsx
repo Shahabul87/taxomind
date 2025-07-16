@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -57,21 +57,21 @@ export const ReactionButton = ({
     : null;
 
   // Debug log to see component props
+  const initialReactionsLength = useMemo(() => initialReactions?.length || 0, [initialReactions]);
+  
   useEffect(() => {
     console.log("ReactionButton mounted with:", { 
       postId, 
       commentId, 
       isReply, 
       parentCommentId,
-      reactionsCount: initialReactions?.length || 0 
+      reactionsCount: initialReactionsLength 
     });
-  }, []);
+  }, [commentId, postId, parentCommentId, isReply, initialReactionsLength]);
 
   // Update local reactions when initialReactions changes
   useEffect(() => {
-    if (JSON.stringify(initialReactions) !== JSON.stringify(localReactions)) {
-      setLocalReactions(initialReactions || []);
-    }
+    setLocalReactions(initialReactions || []);
   }, [initialReactions]);
 
   const fetchWithTimeout = async (url: string, options: RequestInit, timeout = 8000) => {

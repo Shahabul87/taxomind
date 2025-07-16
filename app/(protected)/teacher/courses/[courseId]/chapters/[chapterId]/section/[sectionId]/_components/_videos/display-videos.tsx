@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { Video as VideoIcon, Star, Play, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,13 +54,12 @@ export const DisplayVideos = ({
           >
             <div className="relative h-32 bg-gray-200 dark:bg-gray-800">
               {video.thumbnail ? (
-                <img
+                <Image
                   src={video.thumbnail}
                   alt={video.title}
+                  width={320}
+                  height={128}
                   className="h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
                 />
               ) : (
                 <div className="h-full w-full flex items-center justify-center bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30">

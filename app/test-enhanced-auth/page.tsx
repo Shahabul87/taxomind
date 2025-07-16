@@ -4,6 +4,7 @@ import { useCurrentUser, useCurrentRole, useHasPermission } from "@/hooks/use-en
 import { AdminGuard, TeacherGuard, StudentGuard, PermissionGuard, RoleBadge } from "@/components/auth/enhanced-role-guard";
 import { UserRole, Permission } from "@/types/auth";
 import { getRolePermissions } from "@/lib/auth/permissions";
+import Link from 'next/link';
 
 export default function TestEnhancedAuth() {
   const { user, loading, authenticated } = useCurrentUser();
@@ -22,9 +23,9 @@ export default function TestEnhancedAuth() {
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-          <a href="/auth/login" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+          <Link href="/auth/login" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
             Login
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -146,7 +147,7 @@ export default function TestEnhancedAuth() {
             <div className="space-y-3">
               <PermissionGuard 
                 permissions={[Permission.CREATE_COURSE]} 
-                fallback={<p className="text-purple-600 italic">❌ You don't have permission to create courses</p>}
+                fallback={<p className="text-purple-600 italic">❌ You don&apos;t have permission to create courses</p>}
               >
                 <div className="bg-purple-50 p-3 rounded border border-purple-200">
                   <p className="text-purple-800">✅ You can create courses!</p>
@@ -158,7 +159,7 @@ export default function TestEnhancedAuth() {
 
               <PermissionGuard 
                 permissions={[Permission.MANAGE_SETTINGS]} 
-                fallback={<p className="text-purple-600 italic">❌ You don't have permission to manage settings</p>}
+                fallback={<p className="text-purple-600 italic">❌ You don&apos;t have permission to manage settings</p>}
               >
                 <div className="bg-purple-50 p-3 rounded border border-purple-200">
                   <p className="text-purple-800">✅ You can manage system settings!</p>
@@ -175,25 +176,25 @@ export default function TestEnhancedAuth() {
         <div className="bg-gray-50 p-4 rounded-lg mt-6">
           <h3 className="text-lg font-semibold mb-3">🚀 Quick Actions</h3>
           <div className="flex flex-wrap gap-2">
-            <a href="/dashboard/user" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+            <Link href="/dashboard/user" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
               Dashboard
-            </a>
-            <a href="/courses" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+            </Link>
+            <Link href="/courses" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
               Courses
-            </a>
+            </Link>
             {canCreateCourse && (
-              <a href="/teacher/create" className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">
+              <Link href="/teacher/create" className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">
                 Create Course
-              </a>
+              </Link>
             )}
             {canAccessAdmin && (
-              <a href="/admin/dashboard" className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+              <Link href="/admin/dashboard" className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
                 Admin Panel
-              </a>
+              </Link>
             )}
-            <a href="/auth/login" className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+            <Link href="/auth/login" className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
               Login as Different User
-            </a>
+            </Link>
           </div>
         </div>
       </div>

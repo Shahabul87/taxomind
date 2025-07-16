@@ -7,7 +7,11 @@ interface ExamTabProps {
   courseId: string;
   chapterId: string;
   sectionId: string;
-  initialData: any;
+  initialData?: {
+    section?: {
+      title: string;
+    };
+  };
 }
 
 export const ExamTab = ({
@@ -35,7 +39,7 @@ export const ExamTab = ({
               courseId={courseId}
               chapterId={chapterId}
               sectionId={sectionId}
-              initialData={null}
+              initialData={initialData}
             />
           </div>
         </div>

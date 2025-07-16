@@ -381,7 +381,7 @@ export const ProgressiveDashboard = ({ className }: ProgressiveDashboardProps) =
                     Great Progress!
                   </h3>
                   <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                    You've unlocked {stats.unlockedFeatures} features and discovered {stats.discoveredFeatures} total.
+                    You&apos;ve unlocked {stats.unlockedFeatures} features and discovered {stats.discoveredFeatures} total.
                   </p>
                 </div>
               </div>

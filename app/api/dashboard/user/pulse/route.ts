@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     weekStart.setDate(now.getDate() - 7);
 
     // Current active session
-    const activeSession = await db.learningSession.findFirst({
+    const activeSession = await db.learning_sessions.findFirst({
       where: {
         userId: user.id,
         status: 'ACTIVE',
@@ -27,14 +27,14 @@ export async function GET(req: NextRequest) {
         }
       },
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true,
             imageUrl: true
           }
         },
-        chapter: {
+        Chapter: {
           select: {
             id: true,
             title: true
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Recent activities (last hour)
-    const recentActivities = await db.realtimeActivity.findMany({
+    const recentActivities = await db.realtime_activities.findMany({
       where: {
         userId: user.id,
         timestamp: {
@@ -55,20 +55,20 @@ export async function GET(req: NextRequest) {
         }
       },
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true,
             imageUrl: true
           }
         },
-        chapter: {
+        Chapter: {
           select: {
             id: true,
             title: true
           }
         },
-        section: {
+        Section: {
           select: {
             id: true,
             title: true
@@ -100,8 +100,8 @@ export async function GET(req: NextRequest) {
       timestamp: now.toISOString(),
       activeSession: activeSession ? {
         id: activeSession.id,
-        course: activeSession.course,
-        chapter: activeSession.chapter,
+        course: activeSession.Course,
+        chapter: activeSession.Chapter,
         duration: activeSession.duration,
         startTime: activeSession.startTime,
         engagementScore: activeSession.engagementScore,
@@ -112,9 +112,9 @@ export async function GET(req: NextRequest) {
         type: activity.activityType,
         action: activity.action,
         timestamp: activity.timestamp,
-        course: activity.course,
-        chapter: activity.chapter,
-        section: activity.section,
+        course: activity.Course,
+        chapter: activity.Chapter,
+        section: activity.Section,
         progress: activity.progress,
         score: activity.score
       })),
@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
 }
 
 async function getTodayStats(userId: string, todayStart: Date) {
-  const todayActivities = await db.realtimeActivity.findMany({
+  const todayActivities = await db.realtime_activities.findMany({
     where: {
       userId,
       timestamp: {
@@ -142,7 +142,7 @@ async function getTodayStats(userId: string, todayStart: Date) {
     }
   });
 
-  const todaySessions = await db.learningSession.findMany({
+  const todaySessions = await db.learning_sessions.findMany({
     where: {
       userId,
       startTime: {
@@ -196,7 +196,7 @@ async function getTodayStats(userId: string, todayStart: Date) {
 }
 
 async function getWeeklyMomentum(userId: string, weekStart: Date) {
-  const weeklyActivities = await db.realtimeActivity.findMany({
+  const weeklyActivities = await db.realtime_activities.findMany({
     where: {
       userId,
       timestamp: {
@@ -254,7 +254,7 @@ async function getLiveMetrics(userId: string) {
   const last15Minutes = new Date(Date.now() - 15 * 60 * 1000);
   const last30Minutes = new Date(Date.now() - 30 * 60 * 1000);
 
-  const recentActivity = await db.realtimeActivity.findFirst({
+  const recentActivity = await db.realtime_activities.findFirst({
     where: {
       userId,
       timestamp: {
@@ -266,7 +266,7 @@ async function getLiveMetrics(userId: string) {
     }
   });
 
-  const activitiesLast15Min = await db.realtimeActivity.count({
+  const activitiesLast15Min = await db.realtime_activities.count({
     where: {
       userId,
       timestamp: {
@@ -275,7 +275,7 @@ async function getLiveMetrics(userId: string) {
     }
   });
 
-  const activitiesLast30Min = await db.realtimeActivity.count({
+  const activitiesLast30Min = await db.realtime_activities.count({
     where: {
       userId,
       timestamp: {

@@ -146,7 +146,7 @@ export function SocialMediaConnect({
             ) : (
               <div className="flex flex-col items-center justify-center p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
                 <AlertCircle className="h-8 w-8 text-gray-400 mb-2" />
-                <p className="text-gray-500 dark:text-gray-400 text-center">You haven't connected any social platforms yet.</p>
+                <p className="text-gray-500 dark:text-gray-400 text-center">You haven&apos;t connected any social platforms yet.</p>
               </div>
             )}
           </div>

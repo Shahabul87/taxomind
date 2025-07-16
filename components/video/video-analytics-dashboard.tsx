@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -83,11 +83,7 @@ export function VideoAnalyticsDashboard({ courseId, isTeacher = false }: VideoAn
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7d');
 
-  useEffect(() => {
-    fetchVideoAnalytics();
-  }, [courseId, timeRange]);
-
-  const fetchVideoAnalytics = async () => {
+  const fetchVideoAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(
@@ -103,7 +99,11 @@ export function VideoAnalyticsDashboard({ courseId, isTeacher = false }: VideoAn
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId, timeRange, selectedVideo]);
+
+  useEffect(() => {
+    fetchVideoAnalytics();
+  }, [fetchVideoAnalytics]);
 
   if (loading) {
     return (

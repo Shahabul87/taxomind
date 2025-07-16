@@ -120,16 +120,18 @@ export async function POST(
         examData.questions.map((question, index) => 
           tx.examQuestion.create({
             data: {
+              id: crypto.randomUUID(),
               question: question.question,
               questionType: QuestionTypeMap[question.type],
               difficulty: DifficultyMap[question.difficulty],
               bloomsLevel: question.bloomsLevel ? BloomsMap[question.bloomsLevel] : null,
               points: question.points,
               order: index + 1,
-              options: question.options || null,
+              options: question.options || undefined,
               correctAnswer: question.correctAnswer,
               explanation: question.explanation || null,
               examId: createdExam.id,
+              updatedAt: new Date(),
             }
           })
         )
@@ -203,14 +205,14 @@ export async function GET(
         sectionId: params.sectionId
       },
       include: {
-        questions: {
+        ExamQuestion: {
           orderBy: {
             order: 'asc'
           }
         },
         _count: {
           select: {
-            userAttempts: true
+            UserExamAttempt: true
           }
         }
       },

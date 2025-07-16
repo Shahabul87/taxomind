@@ -1,7 +1,6 @@
 "use client";
 
 import axios from "axios";
-import MuxPlayer from "@mux/mux-player-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -11,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useConfettiStore } from "@/hooks/use-confetti-store";
 
 interface VideoPlayerProps {
-  playbackId: string;
+  videoUrl: string;
   courseId: string;
   chapterId: string;
   nextChapterId?: string;
@@ -21,7 +20,7 @@ interface VideoPlayerProps {
 };
 
 export const VideoPlayer = ({
-  playbackId,
+  videoUrl,
   courseId,
   chapterId,
   nextChapterId,
@@ -72,15 +71,17 @@ export const VideoPlayer = ({
         </div>
       )}
       {!isLocked && (
-        <MuxPlayer
+        <video
           title={title}
           className={cn(
+            "w-full h-full",
             !isReady && "hidden"
           )}
           onCanPlay={() => setIsReady(true)}
           onEnded={onEnd}
           autoPlay
-          playbackId={playbackId}
+          controls
+          src={videoUrl}
         />
       )}
     </div>

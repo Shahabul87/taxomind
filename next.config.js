@@ -117,11 +117,11 @@ const nextConfig = {
   // NO CUSTOM WEBPACK CONFIG - Let Next.js handle everything
   
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false, // ✅ Enable linting during builds
   },
 
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true,  // Temporarily disable TypeScript checking during builds
   },
 
   // Essential headers

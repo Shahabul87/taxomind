@@ -105,7 +105,7 @@ export const InterfaceModeToggle = ({
                   </p>
                   <ul className="text-xs text-purple-600 dark:text-purple-400 space-y-1 ml-3">
                     <li>• Custom AI prompts and parameters</li>
-                    <li>• Detailed Bloom's taxonomy controls</li>
+                    <li>• Detailed Bloom&apos;s taxonomy controls</li>
                     <li>• Advanced analytics and insights</li>
                     <li>• Bulk operations and batch processing</li>
                   </ul>

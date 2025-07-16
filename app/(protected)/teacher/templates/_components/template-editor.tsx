@@ -217,7 +217,8 @@ function BlockEditor({ block, onUpdate }: {
       return (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Image className="h-4 w-4 text-orange-600" />
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image className="h-4 w-4 text-orange-600" aria-hidden="true" />
             <Label className="text-sm font-medium">Image</Label>
           </div>
           <Input

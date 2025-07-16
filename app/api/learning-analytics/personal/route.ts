@@ -154,7 +154,7 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
             include: {
               sections: {
                 include: {
-                  userProgress: {
+                  user_progress: {
                     where: {
                       userId: userId
                     }

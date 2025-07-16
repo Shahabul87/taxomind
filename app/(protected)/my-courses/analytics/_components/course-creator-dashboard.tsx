@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Users,
@@ -120,7 +120,7 @@ export const CourseCreatorDashboard = ({
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'quarter' | 'year' | 'all'>('month');
   const [activeTab, setActiveTab] = useState('overview');
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/creator-analytics/dashboard', {
@@ -145,11 +145,11 @@ export const CourseCreatorDashboard = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [timeframe]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [timeframe]);
+  }, [fetchAnalytics]);
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -222,7 +222,7 @@ export const CourseCreatorDashboard = ({
         </div>
         <div className="flex items-center gap-3">
           <Select value={timeframe} onValueChange={(value: any) => setTimeframe(value)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -243,7 +243,7 @@ export const CourseCreatorDashboard = ({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -274,7 +274,7 @@ export const CourseCreatorDashboard = ({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -306,7 +306,7 @@ export const CourseCreatorDashboard = ({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -335,7 +335,7 @@ export const CourseCreatorDashboard = ({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <Card>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -362,7 +362,7 @@ export const CourseCreatorDashboard = ({
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
           <TabsTrigger value="overview">My Courses</TabsTrigger>
           <TabsTrigger value="learners">Learner Insights</TabsTrigger>
           <TabsTrigger value="engagement">Engagement</TabsTrigger>
@@ -372,7 +372,7 @@ export const CourseCreatorDashboard = ({
 
         <TabsContent value="overview" className="space-y-6">
           {/* Course Performance */}
-          <Card>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle>Course Performance</CardTitle>
               <CardDescription>
@@ -460,7 +460,7 @@ export const CourseCreatorDashboard = ({
         <TabsContent value="learners" className="space-y-6">
           {/* Learner Demographics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle>Experience Levels</CardTitle>
               </CardHeader>
@@ -484,7 +484,7 @@ export const CourseCreatorDashboard = ({
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle>Top Countries</CardTitle>
               </CardHeader>
@@ -500,7 +500,7 @@ export const CourseCreatorDashboard = ({
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle>Performance Overview</CardTitle>
               </CardHeader>
@@ -527,9 +527,9 @@ export const CourseCreatorDashboard = ({
           </div>
 
           {/* Cognitive Skills Progress */}
-          <Card>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
-              <CardTitle>Learners' Cognitive Skills Development</CardTitle>
+              <CardTitle>Learners&apos; Cognitive Skills Development</CardTitle>
               <CardDescription>
                 How learners are progressing across different thinking skills
               </CardDescription>
@@ -552,7 +552,7 @@ export const CourseCreatorDashboard = ({
 
         <TabsContent value="engagement" className="space-y-6">
           {/* Popular Sections */}
-          <Card>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle>Most Engaging Content</CardTitle>
             </CardHeader>
@@ -578,7 +578,7 @@ export const CourseCreatorDashboard = ({
           </Card>
 
           {/* Drop-off Points */}
-          <Card>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle>Areas for Improvement</CardTitle>
               <CardDescription>
@@ -609,7 +609,7 @@ export const CourseCreatorDashboard = ({
 
         <TabsContent value="feedback" className="space-y-6">
           {/* Community Reviews */}
-          <Card>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageCircle className="w-5 h-5" />
@@ -661,7 +661,7 @@ export const CourseCreatorDashboard = ({
 
         <TabsContent value="suggestions" className="space-y-6">
           {/* AI Suggestions */}
-          <Card>
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle>AI-Powered Improvement Suggestions</CardTitle>
               <CardDescription>

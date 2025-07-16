@@ -1,47 +1,17 @@
-import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 
+// TODO: Implement user progress tracking when UserProgress model is ready
 export async function PUT(
-  req: Request,
-  props: { params: Promise<{ courseId: string; sectionId: string }> }
+  req: NextRequest,
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
-  const params = await props.params;
-  try {
-    const user = await currentUser();
-    const { videoId, completed } = await req.json();
+  return NextResponse.json({ error: "User progress tracking not yet implemented" }, { status: 501 });
+}
 
-    if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    // Update or create progress record
-    const userProgress = await db.userProgress.upsert({
-      where: {
-        userId_chapterId: {
-          userId: user.id,
-          chapterId: videoId,
-        }
-      },
-      update: {
-        isCompleted: completed,
-      },
-      create: {
-        userId: user.id,
-        chapterId: videoId,
-        isCompleted: completed,
-        chapter: {
-          connect: { id: videoId }
-        },
-        section: {
-          connect: { id: params.sectionId }
-        }
-      },
-    });
-
-    return NextResponse.json(userProgress);
-  } catch (error) {
-    console.error("[COURSE_PROGRESS]", error);
-    return new NextResponse("Internal Error", { status: 500 });
-  }
-} 
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ courseId: string }> }
+) {
+  return NextResponse.json({ error: "User progress tracking not yet implemented" }, { status: 501 });
+}

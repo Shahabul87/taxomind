@@ -33,7 +33,7 @@ export async function PATCH(
         sectionId: params.sectionId,
       },
       include: {
-        questions: true
+        ExamQuestion: true
       }
     });
 
@@ -42,7 +42,7 @@ export async function PATCH(
     }
 
     // Check if exam has at least one question
-    if (!exam.questions || exam.questions.length === 0) {
+    if (!exam.ExamQuestion || exam.ExamQuestion.length === 0) {
       return new NextResponse("Exam must have at least one question before publishing", { status: 400 });
     }
 

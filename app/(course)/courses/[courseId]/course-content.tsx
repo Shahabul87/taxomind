@@ -252,7 +252,7 @@ export const CourseContent: React.FC<CourseContentProps> = ({
               <div className="flex items-center justify-center gap-2 text-blue-800 dark:text-blue-200">
                 <Info className="w-5 h-5" />
                 <span className="font-medium">
-                  You're viewing as a guest. Enroll to access all course content and track your progress.
+                  You&apos;re viewing as a guest. Enroll to access all course content and track your progress.
                 </span>
               </div>
               <div className="mt-2 text-center">

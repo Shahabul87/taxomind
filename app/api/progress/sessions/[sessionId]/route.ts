@@ -6,7 +6,7 @@ import { ProgressTracker } from "@/lib/progress-tracking";
 // Update learning session
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
     const session = await auth();
@@ -14,7 +14,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const sessionId = params.sessionId;
+    const { sessionId } = await params;
     const updateData = await req.json();
 
     // Verify session belongs to user
@@ -74,7 +74,7 @@ export async function PATCH(
 // End learning session
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
     const session = await auth();
@@ -82,7 +82,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const sessionId = params.sessionId;
+    const { sessionId } = await params;
     const { finalData } = await req.json();
 
     // Verify session belongs to user

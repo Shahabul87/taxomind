@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     // Create activity
     const activity = await db.activity.create({
       data: {
+        id: `activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         title,
         description,
         type,
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
         tags: tags || [],
         metadata: metadata || {},
         userId,
+        updatedAt: new Date()
       }
     });
     

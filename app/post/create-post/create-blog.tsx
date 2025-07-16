@@ -104,7 +104,7 @@ export const CreateNewBlogPage = () => {
             <div className="mb-6 relative">
               <div className="absolute -left-2 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
               <h2 className="text-xl font-medium text-gray-900 dark:text-white mb-2 pl-3">
-                What's your blog title?
+                What&apos;s your blog title?
               </h2>
               <p className="text-gray-500 dark:text-gray-400 text-sm pl-3">
                 Choose a title that captures attention and reflects your content.

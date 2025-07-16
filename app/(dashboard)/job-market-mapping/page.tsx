@@ -309,7 +309,7 @@ export default function JobMarketMappingInterface() {
                   </div>
                 </div>
                 <p className="text-lg font-semibold mt-4">Excellent Readiness</p>
-                <p className="text-sm text-gray-600">You're well-prepared for your target roles</p>
+                <p className="text-sm text-gray-600">You&apos;re well-prepared for your target roles</p>
               </CardContent>
             </Card>
 

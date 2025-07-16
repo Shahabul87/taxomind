@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import axios from "axios";
@@ -67,7 +67,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
     if (page !== pagination.page || initialComments.length === 0) {
       fetchComments(page, sortBy);
     }
-  }, [page, sortBy]);
+  }, [page, sortBy, fetchComments, pagination.page, initialComments.length]);
 
   // Handle URL parameter changes (for browser back/forward navigation)
   useEffect(() => {
@@ -86,9 +86,9 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
     if (urlPage !== pagination.page || (urlSortBy && urlSortBy !== sortBy)) {
       fetchComments(urlPage, urlSortBy || sortBy);
     }
-  }, [searchParams]);
+  }, [searchParams, sortBy, pagination.page, fetchComments]);
 
-  const updateUrlWithPage = (newPage: number) => {
+  const updateUrlWithPage = useCallback((newPage: number) => {
     // Create new URLSearchParams object
     const params = new URLSearchParams(searchParams.toString());
     
@@ -97,9 +97,9 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
     
     // Update the URL without refreshing
     router.push(`?${params.toString()}`, { scroll: false });
-  };
+  }, [searchParams, router]);
 
-  const fetchComments = async (pageToFetch = 1, sortOption = 'newest') => {
+  const fetchComments = useCallback(async (pageToFetch = 1, sortOption = 'newest') => {
     setIsLoading(true);
     try {
       // Build query params
@@ -178,7 +178,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [postId, updateUrlWithPage]);
 
   // Handle page change
   const handlePageChange = (newPage: number) => {

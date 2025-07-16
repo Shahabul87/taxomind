@@ -5,9 +5,10 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Loader2, PlusCircle, X, Headphones, Link, Music, Globe, Clipboard, Grip, Speaker } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { FavoriteAudio } from "@prisma/client";
 import { FavoriteAudioList } from "./fav-audio-link-list";
 import { motion, AnimatePresence } from "framer-motion";
@@ -156,7 +157,7 @@ export const FavoriteAudioLinkForm = ({
     mode: "onChange",
   });
 
-  const fetchAudioMetadata = async (url: string) => {
+  const fetchAudioMetadata = useCallback(async (url: string) => {
     try {
       setIsLoading(true);
       
@@ -210,10 +211,10 @@ export const FavoriteAudioLinkForm = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [form, detectAudioCategory]);
 
   // Helper function to try detecting the appropriate audio category
-  const detectAudioCategory = (metadata: any) => {
+  const detectAudioCategory = useCallback((metadata: any) => {
     if (!metadata) return;
     
     // Default categories based on platform and type
@@ -255,7 +256,7 @@ export const FavoriteAudioLinkForm = ({
     } else if (metadata.platform.includes('Audiobook') || metadata.title?.toLowerCase().includes('audiobook')) {
       form.setValue('category', 'Audiobooks');
     }
-  };
+  }, [form]);
 
   // Auto-detect platform from URL and fetch metadata
   useEffect(() => {
@@ -276,7 +277,7 @@ export const FavoriteAudioLinkForm = ({
     });
     
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, fetchAudioMetadata]);
 
   const { isSubmitting, isValid } = form.formState;
   const watchedValues = form.watch();
@@ -690,9 +691,11 @@ export const FavoriteAudioLinkForm = ({
                               {/* Audio artwork */}
                               {audioArtwork ? (
                                 <div className="w-full h-40 overflow-hidden">
-                                  <img 
+                                  <Image 
                                     src={audioArtwork} 
                                     alt="Audio artwork" 
+                                    width={400}
+                                    height={160}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                       e.currentTarget.style.display = 'none';
@@ -708,9 +711,11 @@ export const FavoriteAudioLinkForm = ({
                               <div className="p-4">
                                 <div className="flex items-center gap-2 mb-2">
                                   {audioFavicon ? (
-                                    <img 
+                                    <Image 
                                       src={audioFavicon} 
                                       alt="Platform favicon" 
+                                      width={20}
+                                      height={20}
                                       className="w-5 h-5 object-contain"
                                       onError={(e) => {
                                         e.currentTarget.style.display = 'none';

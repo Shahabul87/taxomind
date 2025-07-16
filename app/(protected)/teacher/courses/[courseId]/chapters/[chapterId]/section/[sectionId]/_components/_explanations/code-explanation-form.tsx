@@ -285,10 +285,10 @@ export const CodeExplanationForm = ({
                       <div className="ml-4 text-xs text-gray-500 dark:text-gray-400 max-w-xs">
                         <div>Valid: {isFormValid().toString()}</div>
                         <div>Errors: {Object.keys(form.formState.errors).join(', ') || 'None'}</div>
-                        <div>Title: "{form.getValues().title}" ({form.getValues().title?.length || 0})</div>
+                        <div>Title: &quot;{form.getValues().title}&quot; ({form.getValues().title?.length || 0})</div>
                         <div>Code: {form.getValues().code?.length || 0} chars</div>
                         <div>Explanation: {form.getValues().explanation?.length || 0} chars</div>
-                        <div className="break-all">Expl content: "{form.getValues().explanation?.substring(0, 50)}..."</div>
+                        <div className="break-all">Expl content: &quot;{form.getValues().explanation?.substring(0, 50)}...&quot;</div>
                       </div>
                     )}
                   </div>

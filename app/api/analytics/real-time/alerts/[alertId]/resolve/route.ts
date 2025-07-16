@@ -5,7 +5,7 @@ import { currentUser } from '@/lib/auth';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { alertId: string } }
+  { params }: { params: Promise<{ alertId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -13,7 +13,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { alertId } = params;
+    const { alertId } = await params;
     
     // In a real implementation, this would update the alert status in the database
     // For now, we'll just return success

@@ -15,7 +15,7 @@ export async function getSimilarPosts(postId: string, category: string | null) {
         published: true,
       },
       include: {
-        user: {
+        User: {
           select: {
             name: true,
             image: true,

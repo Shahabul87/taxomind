@@ -5,10 +5,11 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Loader2, PlusCircle, X, FileText, Link, Newspaper, Globe, Clipboard, Grip } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { FavoriteArticle } from "@prisma/client";
+import Image from "next/image";
 import { FavoriteArticleList } from "./fav-article-link-list";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -156,7 +157,7 @@ export const FavoriteArticleLinkForm = ({
     console.log("Watched Values:", watchedValues);
   }, [isFormComplete, isValid, watchedValues]);
 
-  const fetchArticleMetadata = async (url: string) => {
+  const fetchArticleMetadata = useCallback(async (url: string) => {
     try {
       setIsLoading(true);
       
@@ -205,10 +206,10 @@ export const FavoriteArticleLinkForm = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [form, detectArticleCategory]);
 
   // Helper function to try detecting the appropriate article category
-  const detectArticleCategory = (metadata: any) => {
+  const detectArticleCategory = useCallback((metadata: any) => {
     if (!metadata) return;
     
     // Check if we have any content keywords or description
@@ -253,7 +254,7 @@ export const FavoriteArticleLinkForm = ({
         form.setValue('category', 'Professional Development');
       }
     }
-  };
+  }, [form]);
 
   // Auto-detect platform from URL and fetch metadata
   useEffect(() => {
@@ -274,7 +275,7 @@ export const FavoriteArticleLinkForm = ({
     });
     
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, fetchArticleMetadata]);
 
   const pasteFromClipboard = async () => {
     try {
@@ -688,11 +689,12 @@ export const FavoriteArticleLinkForm = ({
                             )}>
                               {/* Article image */}
                               {articleImage ? (
-                                <div className="w-full h-40 overflow-hidden">
-                                  <img 
+                                <div className="w-full h-40 overflow-hidden relative">
+                                  <Image 
                                     src={articleImage} 
                                     alt="Article featured image" 
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
                                     onError={(e) => {
                                       e.currentTarget.style.display = 'none';
                                     }}
@@ -707,10 +709,12 @@ export const FavoriteArticleLinkForm = ({
                               <div className="p-4">
                                 <div className="flex items-center gap-2 mb-2">
                                   {articleFavicon ? (
-                                    <img 
+                                    <Image 
                                       src={articleFavicon} 
                                       alt="Platform favicon" 
-                                      className="w-5 h-5 object-contain"
+                                      width={20}
+                                      height={20}
+                                      className="object-contain"
                                       onError={(e) => {
                                         e.currentTarget.style.display = 'none';
                                         // Use platform icon as fallback

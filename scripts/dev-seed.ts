@@ -68,14 +68,14 @@ async function main() {
         {
           name: "Dev Teacher",
           email: "teacher@dev.local",
-          role: "USER",
+          role: "TEACHER",
           emailVerified: new Date(),
           password: hashedPassword,
         },
         {
           name: "Dev Student",
           email: "student@dev.local",
-          role: "USER", 
+          role: "STUDENT", 
           emailVerified: new Date(),
           password: hashedPassword,
         },
@@ -89,14 +89,14 @@ async function main() {
         {
           name: "John Doe",
           email: "john@dev.local",
-          role: "USER",
+          role: "TEACHER",
           emailVerified: new Date(),
           password: hashedPassword,
         },
         {
           name: "Jane Smith",
           email: "jane@dev.local",
-          role: "USER",
+          role: "STUDENT",
           emailVerified: new Date(),
           password: hashedPassword,
         }

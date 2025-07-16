@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,16 +84,7 @@ export function TemplateMarketplace({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    fetchTemplates();
-    fetchCategories();
-  }, [page, sortBy, sortOrder]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [templates, searchQuery, selectedCategory, selectedContentType, selectedTags, activeTab]);
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams({
@@ -120,24 +111,9 @@ export function TemplateMarketplace({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, sortBy, sortOrder, selectedContentType, selectedCategory, searchQuery]);
 
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch("/api/templates/categories");
-      const data = await response.json();
-
-      if (response.ok) {
-        setCategories(data.categories);
-        setContentTypes(data.contentTypes);
-        setPopularTags(data.popularTags);
-      }
-    } catch (error) {
-      console.error("Failed to fetch categories");
-    }
-  };
-
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = templates;
 
     // Apply active tab filter
@@ -175,6 +151,30 @@ export function TemplateMarketplace({
     }
 
     setFilteredTemplates(filtered);
+  }, [templates, searchQuery, selectedCategory, selectedContentType, selectedTags, activeTab]);
+
+  useEffect(() => {
+    fetchTemplates();
+    fetchCategories();
+  }, [fetchTemplates]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("/api/templates/categories");
+      const data = await response.json();
+
+      if (response.ok) {
+        setCategories(data.categories);
+        setContentTypes(data.contentTypes);
+        setPopularTags(data.popularTags);
+      }
+    } catch (error) {
+      console.error("Failed to fetch categories");
+    }
   };
 
   const handleApplyTemplate = async (template: Template) => {
@@ -414,7 +414,7 @@ export function TemplateMarketplace({
                 </SelectContent>
               </Select>
 
-              <Select value={sortBy} onValueChange={setSortBy}>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as "name" | "createdAt" | "usageCount" | "updatedAt")}>
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
@@ -465,7 +465,7 @@ export function TemplateMarketplace({
       )}
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "browse" | "trending" | "official")}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="browse">Browse All</TabsTrigger>
           <TabsTrigger value="trending">

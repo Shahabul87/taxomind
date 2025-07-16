@@ -167,7 +167,7 @@ export function OverviewTab({ analytics, performance, pulse }: OverviewTabProps)
                 <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
                   <Activity className="w-5 h-5 text-white" />
                 </div>
-                Today's Learning Activity
+                Today&apos;s Learning Activity
               </CardTitle>
             </CardHeader>
             <CardContent>

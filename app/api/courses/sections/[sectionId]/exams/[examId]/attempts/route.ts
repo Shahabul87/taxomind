@@ -25,7 +25,7 @@ export async function POST(
         isPublished: true,
       },
       include: {
-        userAttempts: {
+        UserExamAttempt: {
           where: {
             userId: user.id
           }
@@ -42,7 +42,7 @@ export async function POST(
 
     // Check if user has exceeded max attempts
     const maxAttempts = exam.attempts || 3;
-    if (exam.userAttempts.length >= maxAttempts) {
+    if (exam.UserExamAttempt.length >= maxAttempts) {
       return NextResponse.json(
         { error: `Maximum attempts (${maxAttempts}) reached for this exam` },
         { status: 400 }
@@ -50,7 +50,7 @@ export async function POST(
     }
 
     // Check if user has an in-progress attempt
-    const inProgressAttempt = exam.userAttempts.find(
+    const inProgressAttempt = exam.UserExamAttempt.find(
       attempt => attempt.status === 'IN_PROGRESS'
     );
 
@@ -71,17 +71,19 @@ export async function POST(
     // Create new attempt
     const newAttempt = await db.userExamAttempt.create({
       data: {
+        id: crypto.randomUUID(),
         userId: user.id,
         examId: params.examId,
-        attemptNumber: exam.userAttempts.length + 1,
+        attemptNumber: exam.UserExamAttempt.length + 1,
         totalQuestions: questionCount,
         status: 'IN_PROGRESS',
         startedAt: new Date(),
+        updatedAt: new Date(),
       },
       include: {
-        exam: {
+        Exam: {
           include: {
-            questions: {
+            ExamQuestion: {
               orderBy: {
                 order: 'asc'
               },
@@ -135,14 +137,14 @@ export async function GET(
         examId: params.examId,
       },
       include: {
-        exam: {
+        Exam: {
           select: {
             id: true,
             title: true,
             description: true,
             timeLimit: true,
             passingScore: true,
-            questions: {
+            ExamQuestion: {
               orderBy: {
                 order: 'asc'
               },
@@ -161,9 +163,9 @@ export async function GET(
             }
           }
         },
-        answers: {
+        UserAnswer: {
           include: {
-            question: {
+            ExamQuestion: {
               select: {
                 id: true,
                 question: true,

@@ -68,7 +68,7 @@ export async function getCalendarEvents(
 
     // Get events from database (with retry logic)
     let retries = 3;
-    let events = [];
+    let events: any[] = [];
     let lastError = null;
     
     while (retries > 0) {
@@ -157,11 +157,13 @@ export async function createCalendarEvent(data: CalendarEventInput): Promise<Cal
   const event = await db.calendarEvent.create({
     data: {
       ...restData,
+      id: crypto.randomUUID(), // Generate a unique ID
       allDay: data.isAllDay || data.allDay || false, // Use either property for compatibility
       userId: session.user.id,
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
       recurringEndDate: data.recurringEndDate ? new Date(data.recurringEndDate) : null,
+      updatedAt: new Date(),
     },
   });
 

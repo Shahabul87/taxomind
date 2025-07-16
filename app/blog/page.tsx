@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Search, TrendingUp, Clock, Eye, MessageCircle, ChevronRight, ChevronDown, Menu, Flame, Calendar } from "lucide-react";
 import MyPostCard from "./blog-card";
 import CompactCard from "./components/compact-card";
@@ -55,7 +55,7 @@ export default function BlogPage() {
   const [contentTopPadding, setContentTopPadding] = useState('6.75rem');
 
   // Calculate which tabs fit in the available space
-  const calculateVisibleTabs = () => {
+  const calculateVisibleTabs = useCallback(() => {
     if (!tabsContainerRef.current || categories.length === 0) return;
 
     const container = tabsContainerRef.current;
@@ -90,7 +90,7 @@ export default function BlogPage() {
       setVisibleTabs(categories.slice(0, minVisible));
       setHiddenTabs(categories.slice(minVisible));
     }
-  };
+  }, [categories]);
 
   // Handle responsive header height and tab calculation
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function BlogPage() {
     updateLayout();
     window.addEventListener('resize', updateLayout);
     return () => window.removeEventListener('resize', updateLayout);
-  }, [categories]);
+  }, [categories, calculateVisibleTabs]);
 
   // Fetch posts from API route
   useEffect(() => {
@@ -177,7 +177,7 @@ export default function BlogPage() {
     if (categories.length > 0) {
       setTimeout(calculateVisibleTabs, 200); // Allow time for DOM to update
     }
-  }, [categories]);
+  }, [categories, calculateVisibleTabs]);
 
   // Transform posts for card component
   const transformPostForCard = (post: Post): CardPost => ({

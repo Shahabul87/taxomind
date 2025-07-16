@@ -102,7 +102,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
               </div>
             ) : searchQuery.length >= 2 && searchResults.length === 0 ? (
               <div className="text-center py-8 text-gray-600 dark:text-gray-300">
-                <div>No results found for "{searchQuery}"</div>
+                <div>No results found for &quot;{searchQuery}&quot;</div>
                 {/* Debug button - only visible in development */}
                 {process.env.NODE_ENV === 'development' && (
                   <div className="mt-4 space-y-3">

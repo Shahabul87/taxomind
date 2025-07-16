@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   GraduationCap, 
@@ -90,11 +90,19 @@ export const ExamsContent = ({ sectionId, courseId, chapterId }: ExamsContentPro
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<"overview" | "analytics">("overview");
 
-  useEffect(() => {
-    fetchExams();
+  const fetchAnalytics = useCallback(async (examId: string) => {
+    try {
+      const response = await fetch(`/api/courses/sections/${sectionId}/exams/${examId}/analytics`);
+      if (response.ok) {
+        const data = await response.json();
+        setAnalytics(data);
+      }
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+    }
   }, [sectionId]);
 
-  const fetchExams = async () => {
+  const fetchExams = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/courses/sections/${sectionId}/exams`);
@@ -111,19 +119,11 @@ export const ExamsContent = ({ sectionId, courseId, chapterId }: ExamsContentPro
     } finally {
       setLoading(false);
     }
-  };
+  }, [sectionId, fetchAnalytics]);
 
-  const fetchAnalytics = async (examId: string) => {
-    try {
-      const response = await fetch(`/api/courses/sections/${sectionId}/exams/${examId}/analytics`);
-      if (response.ok) {
-        const data = await response.json();
-        setAnalytics(data);
-      }
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
-    }
-  };
+  useEffect(() => {
+    fetchExams();
+  }, [fetchExams]);
 
   const startExam = async (examId: string) => {
     try {

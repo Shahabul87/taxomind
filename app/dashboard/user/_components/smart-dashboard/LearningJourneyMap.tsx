@@ -225,7 +225,7 @@ export function LearningJourneyMap({ user }: LearningJourneyMapProps) {
                 <Progress value={currentNode.progress} className="h-3" />
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-400">
-                    Keep going! You're making great progress.
+                    Keep going! You&apos;re making great progress.
                   </span>
                   {currentNode.url && (
                     <Link href={currentNode.url}>

@@ -307,7 +307,7 @@ export const BloomsTaxonomyGuide = ({
                       colors.border,
                       colors.text
                     )}>
-                      "{QUESTION_EXAMPLES[level][currentExample[level]]}"
+                      &quot;{QUESTION_EXAMPLES[level][currentExample[level]]}&quot;
                     </div>
                   </div>
                 )}
@@ -360,7 +360,7 @@ export const BloomsTaxonomyGuide = ({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-blue-600" />
-                Bloom's Taxonomy Overview
+                Bloom&apos;s Taxonomy Overview
               </CardTitle>
               <CardDescription>
                 A framework for categorizing educational goals and measuring learning depth
@@ -400,7 +400,7 @@ export const BloomsTaxonomyGuide = ({
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
                 <Layers className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                Bloom's Taxonomy Pyramid
+                Bloom&apos;s Taxonomy Pyramid
               </CardTitle>
               <CardDescription className="text-slate-600 dark:text-slate-300">
                 Hover over each level to explore its significance in cognitive development and learning progression
@@ -413,7 +413,7 @@ export const BloomsTaxonomyGuide = ({
                   Interactive Learning Guide
                 </h3>
                 <p className="text-xs text-purple-700 dark:text-purple-300 leading-relaxed">
-                  Bloom's Taxonomy represents a hierarchical framework where each level builds upon the previous one. 
+                  Bloom&apos;s Taxonomy represents a hierarchical framework where each level builds upon the previous one. 
                   Hover over any level to discover its educational significance, recommended activities, and practical applications.
                 </p>
               </div>
@@ -580,7 +580,7 @@ export const BloomsTaxonomyGuide = ({
                             Example Question
                           </h4>
                           <p className="text-xs italic text-blue-700 dark:text-blue-300">
-                            "{QUESTION_EXAMPLES[hoveredLevel][currentExample[hoveredLevel]]}"
+                            &quot;{QUESTION_EXAMPLES[hoveredLevel][currentExample[hoveredLevel]]}&quot;
                           </p>
                         </div>
                       </div>
@@ -620,10 +620,10 @@ export const BloomsTaxonomyGuide = ({
                 <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg">
                   <GraduationCap className="h-6 w-6 text-white" />
                 </div>
-                Comprehensive Teaching Guide for Bloom's Taxonomy
+                Comprehensive Teaching Guide for Bloom&apos;s Taxonomy
               </CardTitle>
               <CardDescription className="text-slate-600 dark:text-slate-300">
-                Practical strategies, assessment techniques, and pedagogical approaches to effectively implement Bloom's Taxonomy in your classroom
+                Practical strategies, assessment techniques, and pedagogical approaches to effectively implement Bloom&apos;s Taxonomy in your classroom
               </CardDescription>
             </CardHeader>
           </Card>
@@ -657,7 +657,7 @@ export const BloomsTaxonomyGuide = ({
                     </div>
                     <div>
                       <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">Clear Learning Objectives</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">Connect specific learning objectives to corresponding Bloom's levels for transparent expectations.</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">Connect specific learning objectives to corresponding Bloom&apos;s levels for transparent expectations.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
@@ -727,7 +727,7 @@ export const BloomsTaxonomyGuide = ({
                 Level-Specific Teaching Strategies
               </CardTitle>
               <CardDescription className="text-slate-600 dark:text-slate-300">
-                Targeted approaches for each cognitive level in Bloom's Taxonomy
+                Targeted approaches for each cognitive level in Bloom&apos;s Taxonomy
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -97,18 +97,75 @@ export const CognitivePathwayVisualizer = ({
   view = 'student'
 }: CognitivePathwayVisualizerProps) => {
   const [pathway, setPathway] = useState<CognitivePathway | null>(null);
-  const [prerequisiteStatuses, setPrerequisiteStatuses] = useState<Record<BloomsLevel, PrerequisiteMasteryStatus>>({});
+  const [prerequisiteStatuses, setPrerequisiteStatuses] = useState<Record<BloomsLevel, PrerequisiteMasteryStatus>>({
+    REMEMBER: {
+      level: 'REMEMBER',
+      currentMastery: 0.9,
+      requiredMastery: 0.7,
+      masteryGap: 0,
+      isReady: true,
+      readinessScore: 0.9,
+      specificDeficits: [],
+      recommendedActions: []
+    },
+    UNDERSTAND: {
+      level: 'UNDERSTAND',
+      currentMastery: 0.8,
+      requiredMastery: 0.7,
+      masteryGap: 0,
+      isReady: true,
+      readinessScore: 0.8,
+      specificDeficits: [],
+      recommendedActions: []
+    },
+    APPLY: {
+      level: 'APPLY',
+      currentMastery: 0.6,
+      requiredMastery: 0.7,
+      masteryGap: 0.1,
+      isReady: false,
+      readinessScore: 0.6,
+      specificDeficits: [],
+      recommendedActions: []
+    },
+    ANALYZE: {
+      level: 'ANALYZE',
+      currentMastery: 0.4,
+      requiredMastery: 0.7,
+      masteryGap: 0.3,
+      isReady: false,
+      readinessScore: 0.4,
+      specificDeficits: [],
+      recommendedActions: []
+    },
+    EVALUATE: {
+      level: 'EVALUATE',
+      currentMastery: 0.2,
+      requiredMastery: 0.7,
+      masteryGap: 0.5,
+      isReady: false,
+      readinessScore: 0.2,
+      specificDeficits: [],
+      recommendedActions: []
+    },
+    CREATE: {
+      level: 'CREATE',
+      currentMastery: 0.1,
+      requiredMastery: 0.7,
+      masteryGap: 0.6,
+      isReady: false,
+      readinessScore: 0.1,
+      specificDeficits: [],
+      recommendedActions: []
+    }
+  });
   const [selectedLevel, setSelectedLevel] = useState<BloomsLevel | null>(null);
   const [activeTab, setActiveTab] = useState('pathway');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const mapper = CognitivePrerequisiteMapper.getInstance();
 
-  useEffect(() => {
-    analyzePathway();
-  }, [currentMasteryLevels, targetLevel]);
-
-  const analyzePathway = async () => {
+  const analyzePathway = useCallback(async () => {
     setIsAnalyzing(true);
     try {
       // Find the starting level (highest mastered level)
@@ -130,7 +187,7 @@ export const CognitivePathwayVisualizer = ({
       setPathway(generatedPathway);
 
       // Assess prerequisites for each level
-      const statuses: Record<BloomsLevel, PrerequisiteMasteryStatus> = {};
+      const statuses: Record<BloomsLevel, PrerequisiteMasteryStatus> = {} as any;
       for (const level of bloomsOrder) {
         statuses[level] = mapper.assessPrerequisiteMastery(level, currentMasteryLevels);
       }
@@ -141,7 +198,11 @@ export const CognitivePathwayVisualizer = ({
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [currentMasteryLevels, targetLevel, mapper]);
+
+  useEffect(() => {
+    analyzePathway();
+  }, [currentMasteryLevels, targetLevel, analyzePathway]);
 
   const getMasteryColor = (mastery: number) => {
     if (mastery >= 0.8) return "text-green-600 dark:text-green-400";
@@ -310,7 +371,7 @@ export const CognitivePathwayVisualizer = ({
             Prerequisite Mastery Matrix
           </CardTitle>
           <CardDescription>
-            Current mastery status for each cognitive level's prerequisites
+            Current mastery status for each cognitive level&apos;s prerequisites
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -377,7 +438,7 @@ export const CognitivePathwayVisualizer = ({
                     {status.recommendedActions.slice(0, 2).map((action, index) => (
                       <div key={index} className="text-xs p-2 bg-blue-50 dark:bg-blue-900/20 rounded flex items-center justify-between">
                         <span>{action.description}</span>
-                        <Badge variant="outline" size="sm">
+                        <Badge variant="outline">
                           {action.priority}
                         </Badge>
                       </div>
@@ -516,7 +577,7 @@ export const CognitivePathwayVisualizer = ({
             Cognitive Learning Pathway
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Personalized progression route through Bloom's taxonomy levels
+            Personalized progression route through Bloom&apos;s taxonomy levels
           </p>
         </div>
         <Button onClick={analyzePathway} variant="outline" size="sm">

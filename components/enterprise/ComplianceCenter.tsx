@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,11 +51,7 @@ export function ComplianceCenter({ className }: ComplianceCenterProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
 
-  useEffect(() => {
-    fetchComplianceData();
-  }, [search, frameworkFilter, statusFilter, severityFilter]);
-
-  const fetchComplianceData = async () => {
+  const fetchComplianceData = useCallback(async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams({
@@ -77,7 +73,11 @@ export function ComplianceCenter({ className }: ComplianceCenterProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [search, frameworkFilter, statusFilter, severityFilter]);
+
+  useEffect(() => {
+    fetchComplianceData();
+  }, [fetchComplianceData]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

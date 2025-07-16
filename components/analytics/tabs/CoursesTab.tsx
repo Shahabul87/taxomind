@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import Image from "next/image";
 
 interface CoursesTabProps {
   analytics: any;
@@ -21,9 +22,11 @@ export function CoursesTab({ analytics }: CoursesTabProps) {
               {analytics.learningMetrics.map((metric: any) => (
                 <div key={metric.id} className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 border border-border">
                   {metric.course?.imageUrl && (
-                    <img 
+                    <Image 
                       src={metric.course.imageUrl} 
                       alt={metric.course.title}
+                      width={64}
+                      height={64}
                       className="w-16 h-16 rounded-lg object-cover"
                     />
                   )}

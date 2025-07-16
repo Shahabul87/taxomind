@@ -310,7 +310,7 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
             className="px-3 py-4 border-b dark:border-gray-700/50 border-gray-200/50"
           >
             <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3 px-2">
-              TODAY'S PROGRESS
+              TODAY&apos;S PROGRESS
             </h3>
             
             {/* Daily Goal Progress */}

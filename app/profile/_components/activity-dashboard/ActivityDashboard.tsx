@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, Plus, ArrowUp, ArrowDown } from 'lucide-react';
 import { ActivityItem, ActivityFilterOptions, DailyActivities } from './types';
 import { fetchActivities } from './api-service';
@@ -38,7 +38,7 @@ const ActivityDashboard: React.FC<ActivityDashboardProps> = ({
   });
   
   // Load activities
-  const loadActivities = async (filterOptions?: ActivityFilterOptions) => {
+  const loadActivities = useCallback(async (filterOptions?: ActivityFilterOptions) => {
     setIsLoading(true);
     setError(null);
     
@@ -74,7 +74,7 @@ const ActivityDashboard: React.FC<ActivityDashboardProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
   
   // Group activities by date whenever activities change
   useEffect(() => {
@@ -85,7 +85,7 @@ const ActivityDashboard: React.FC<ActivityDashboardProps> = ({
   // Initial load
   useEffect(() => {
     loadActivities(filters);
-  }, [userId]);
+  }, [userId, loadActivities, filters]);
   
   // Handle filter changes
   const handleFilterChange = (newFilters: ActivityFilterOptions) => {
@@ -261,7 +261,7 @@ const ActivityDashboard: React.FC<ActivityDashboardProps> = ({
         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-8 text-center">
           <Calendar className="mx-auto w-12 h-12 text-slate-500 mb-3" />
           <h3 className="text-xl font-medium text-white mb-2">No Activities Found</h3>
-          <p className="text-slate-400 mb-4">You don't have any activities yet or none match your current filters.</p>
+          <p className="text-slate-400 mb-4">You don&apos;t have any activities yet or none match your current filters.</p>
           <button
             onClick={() => setShowCreateForm(true)}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-medium hover:from-indigo-700 hover:to-purple-800 transition-colors inline-flex items-center gap-1.5"

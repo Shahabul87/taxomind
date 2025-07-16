@@ -54,9 +54,9 @@ export async function DELETE(req: NextRequest) {
         userId: user.id,
       },
       include: {
-        childReplies: {
+        other_Reply: {
           include: {
-            childReplies: true // Fetch grandchildren too
+            other_Reply: true // Fetch grandchildren too
           }
         }
       }

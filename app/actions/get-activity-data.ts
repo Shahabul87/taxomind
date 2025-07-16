@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import { ActivityItem, ActivityStatus, ActivityType } from "../profile/_components/activity-dashboard/types";
+import { ActivityItem, ActivityStatus, ActivityType, ActivityPriority } from "../profile/_components/activity-dashboard/types";
 
 /**
  * Get real user activities from the database
@@ -9,7 +9,7 @@ export const getActivityData = async () => {
   try {
     const session = await auth();
     
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return null;
     }
     
@@ -47,11 +47,11 @@ const fetchRealActivities = async (userId: string): Promise<ActivityItem[]> => {
       description: activity.description || "",
       type: activity.type as ActivityType,
       status: activity.status as ActivityStatus,
-      priority: activity.priority || "medium",
+      priority: (activity.priority as ActivityPriority) || "medium",
       createdAt: activity.createdAt,
       updatedAt: activity.updatedAt,
-      dueDate: activity.dueDate,
-      completedDate: activity.completedDate,
+      dueDate: activity.dueDate || undefined,
+      completedDate: activity.completedDate || undefined,
       progress: activity.progress || 0,
       userId: activity.userId
     }));
@@ -73,11 +73,7 @@ const getActivitiesFromUserData = async (userId: string): Promise<ActivityItem[]
     const userData = await db.user.findUnique({
       where: { id: userId },
       include: {
-        posts: {
-          orderBy: { createdAt: 'desc' },
-          take: 10
-        },
-        ideas: {
+        Post: {
           orderBy: { createdAt: 'desc' },
           take: 10
         },
@@ -85,52 +81,28 @@ const getActivitiesFromUserData = async (userId: string): Promise<ActivityItem[]
           orderBy: { createdAt: 'desc' },
           take: 5
         },
-        profileLinks: {
-          orderBy: { createdAt: 'desc' },
-          take: 5
-        },
-        socialMediaAccounts: {
-          orderBy: { createdAt: 'desc' },
-          take: 5
-        }
       }
     });
 
     if (!userData) return [];
 
     // Convert posts to activities
-    userData.posts.forEach(post => {
+    userData.Post.forEach(post => {
       activities.push({
         id: `post_${post.id}`,
         title: `Blog Post: ${post.title}`,
-        description: post.content ? post.content.substring(0, 100) + "..." : "Blog post content",
+        description: post.body ? post.body.substring(0, 100) + "..." : "Blog post content",
         type: "script" as ActivityType,
         status: "completed" as ActivityStatus,
         priority: "medium",
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
-        completedDate: post.publishedAt || post.createdAt,
+        completedDate: post.published ? post.createdAt : undefined,
         progress: 100,
         userId
       });
     });
 
-    // Convert ideas to activities
-    userData.ideas.forEach(idea => {
-      activities.push({
-        id: `idea_${idea.id}`,
-        title: `Idea: ${idea.title}`,
-        description: idea.description || "New idea to explore",
-        type: "idea" as ActivityType,
-        status: idea.status === 'PUBLISHED' ? "completed" : "in-progress" as ActivityStatus,
-        priority: "medium",
-        createdAt: idea.createdAt,
-        updatedAt: idea.updatedAt,
-        completedDate: idea.status === 'PUBLISHED' ? idea.updatedAt : null,
-        progress: idea.status === 'PUBLISHED' ? 100 : 30,
-        userId
-      });
-    });
 
     // Convert courses to activities
     userData.courses.forEach(course => {
@@ -143,45 +115,12 @@ const getActivitiesFromUserData = async (userId: string): Promise<ActivityItem[]
         priority: "high",
         createdAt: course.createdAt,
         updatedAt: course.updatedAt,
-        completedDate: course.isPublished ? course.updatedAt : null,
+        completedDate: course.isPublished ? course.updatedAt : undefined,
         progress: course.isPublished ? 100 : 60,
         userId
       });
     });
 
-    // Convert profile links to activities
-    userData.profileLinks.forEach(link => {
-      activities.push({
-        id: `profile_${link.id}`,
-        title: `Connected: ${link.platform}`,
-        description: `Added profile link for ${link.platform}`,
-        type: "subscription" as ActivityType,
-        status: "completed" as ActivityStatus,
-        priority: "low",
-        createdAt: link.createdAt,
-        updatedAt: link.updatedAt,
-        completedDate: link.createdAt,
-        progress: 100,
-        userId
-      });
-    });
-
-    // Convert social media accounts to activities
-    userData.socialMediaAccounts.forEach(account => {
-      activities.push({
-        id: `social_${account.id}`,
-        title: `Connected: ${account.platform}`,
-        description: `Connected ${account.platform} account (@${account.username})`,
-        type: "subscription" as ActivityType,
-        status: account.isActive ? "completed" : "in-progress" as ActivityStatus,
-        priority: "medium",
-        createdAt: account.createdAt,
-        updatedAt: account.updatedAt,
-        completedDate: account.isActive ? account.createdAt : null,
-        progress: account.isActive ? 100 : 50,
-        userId
-      });
-    });
 
     // Sort by most recent first
     activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

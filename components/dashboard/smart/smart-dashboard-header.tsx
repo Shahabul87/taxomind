@@ -101,7 +101,7 @@ export default function SmartDashboardHeader({
               {aiInsights?.todayFocus && (
                 <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700">
                   <Target className="h-3 w-3 mr-1" />
-                  Today's Focus: {aiInsights.todayFocus}
+                  Today&apos;s Focus: {aiInsights.todayFocus}
                 </Badge>
               )}
               

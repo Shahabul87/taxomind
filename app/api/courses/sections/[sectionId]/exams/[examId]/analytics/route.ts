@@ -29,9 +29,9 @@ export async function GET(
         },
       },
       include: {
-        answers: {
+        UserAnswer: {
           include: {
-            question: {
+            ExamQuestion: {
               select: {
                 id: true,
                 question: true,
@@ -42,8 +42,8 @@ export async function GET(
             },
           },
         },
-        analytics: true,
-        exam: {
+        ExamAnalytics: true,
+        Exam: {
           select: {
             id: true,
             title: true,
@@ -84,11 +84,11 @@ export async function GET(
     // Question-level analysis
     const questionAnalysis = new Map();
     attempts.forEach(attempt => {
-      attempt.answers.forEach(answer => {
-        const questionId = answer.question.id;
+      attempt.UserAnswer.forEach(answer => {
+        const questionId = answer.ExamQuestion.id;
         if (!questionAnalysis.has(questionId)) {
           questionAnalysis.set(questionId, {
-            question: answer.question,
+            question: answer.ExamQuestion,
             attempts: [],
             correctCount: 0,
             totalAttempts: 0,
@@ -133,7 +133,7 @@ export async function GET(
       hasImproved: attempts.length > 1 && 
         (latestAttempt.scorePercentage || 0) > (attempts[0].scorePercentage || 0),
       averageTime: attempts.reduce((sum, attempt) => sum + (attempt.timeSpent || 0), 0) / attempts.length,
-      passingScore: latestAttempt.exam.passingScore,
+      passingScore: latestAttempt.Exam.passingScore,
     };
 
     // Time distribution analysis
@@ -143,9 +143,9 @@ export async function GET(
       averageTimePerQuestion: attempt.totalQuestions > 0 
         ? (attempt.timeSpent || 0) / attempt.totalQuestions 
         : 0,
-      timeLimit: attempt.exam.timeLimit,
-      timeUtilization: attempt.exam.timeLimit 
-        ? ((attempt.timeSpent || 0) / (attempt.exam.timeLimit * 60)) * 100 
+      timeLimit: attempt.Exam.timeLimit,
+      timeUtilization: attempt.Exam.timeLimit 
+        ? ((attempt.timeSpent || 0) / (attempt.Exam.timeLimit * 60)) * 100 
         : 0,
     }));
 
@@ -221,7 +221,7 @@ function generateRecommendations(
   // Question-type recommendations
   const difficultQuestions = questionAnalysis.filter(q => q.successRate < 50);
   if (difficultQuestions.length > 0) {
-    const questionTypes = [...new Set(difficultQuestions.map(q => q.question.questionType))];
+    const questionTypes = Array.from(new Set(difficultQuestions.map(q => q.question.questionType)));
     recommendations.push({
       type: 'study',
       title: 'Practice Question Types',

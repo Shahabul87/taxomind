@@ -15,47 +15,48 @@ export async function GET(req: NextRequest) {
     // Get active sessions in last 5 minutes
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     
-    const activeSessions = await db.studentInteraction.findMany({
+    const activeSessions = await db.userExamAttempt.findMany({
       where: {
-        timestamp: {
+        createdAt: {
           gte: fiveMinutesAgo
-        }
+        },
+        status: 'IN_PROGRESS'
       },
-      distinct: ['sessionId'],
+      distinct: ['userId'],
       select: {
-        sessionId: true,
-        studentId: true,
-        courseId: true
+        id: true,
+        userId: true,
+        examId: true
       }
     });
 
-    // Group by course for teachers
-    const sessionsByCourse = activeSessions.reduce((acc, session) => {
-      if (session.courseId) {
-        if (!acc[session.courseId]) {
-          acc[session.courseId] = {
-            courseId: session.courseId,
+    // Group by exam for teachers
+    const sessionsByExam = activeSessions.reduce((acc, session) => {
+      if (session.examId) {
+        if (!acc[session.examId]) {
+          acc[session.examId] = {
+            examId: session.examId,
             count: 0,
             students: new Set()
           };
         }
-        acc[session.courseId].count++;
-        if (session.studentId) {
-          acc[session.courseId].students.add(session.studentId);
+        acc[session.examId].count++;
+        if (session.userId) {
+          acc[session.examId].students.add(session.userId);
         }
       }
       return acc;
     }, {} as Record<string, any>);
 
     // Convert sets to counts
-    Object.values(sessionsByCourse).forEach((course: any) => {
-      course.uniqueStudents = course.students.size;
-      delete course.students;
+    Object.values(sessionsByExam).forEach((exam: any) => {
+      exam.uniqueStudents = exam.students.size;
+      delete exam.students;
     });
 
     return NextResponse.json({
       count: activeSessions.length,
-      courses: Object.values(sessionsByCourse),
+      exams: Object.values(sessionsByExam),
       timestamp: new Date()
     });
   } catch (error) {

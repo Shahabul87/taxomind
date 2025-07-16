@@ -127,11 +127,13 @@ export function CollaborativeEditor({
       if (user) {
         realtimeEngine.leaveDocument(documentId, user.id);
       }
-      if (wsRef.current) {
-        wsRef.current.close();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const currentWs = wsRef.current;
+      if (currentWs) {
+        currentWs.close();
       }
     };
-  }, [documentId, user, initialContent, readOnly]);
+  }, [documentId, user, initialContent, readOnly, setupWebSocketConnection]);
 
   // Set up WebSocket for real-time updates
   const setupWebSocketConnection = useCallback(() => {
@@ -197,7 +199,8 @@ export function CollaborativeEditor({
       }
     });
 
-  }, [documentId, user]);
+  }, [documentId, user, handleRemoteOperation]);
+
 
   // Handle remote operations
   const handleRemoteOperation = useCallback((operation: Operation) => {
@@ -451,7 +454,7 @@ export function CollaborativeEditor({
                 
                 {comment.highlightRange && (
                   <div className="text-xs bg-yellow-100 p-2 rounded">
-                    "{editorState.content.slice(comment.highlightRange.start, comment.highlightRange.end)}"
+                    &quot;{editorState.content.slice(comment.highlightRange.start, comment.highlightRange.end)}&quot;
                   </div>
                 )}
                 
@@ -636,7 +639,7 @@ export function CollaborativeEditor({
                   Add comment to selected text:
                 </div>
                 <div className="text-sm bg-yellow-100 p-2 rounded">
-                  "{editorState.content.slice(selectedText.start, selectedText.end)}"
+                  &quot;{editorState.content.slice(selectedText.start, selectedText.end)}&quot;
                 </div>
                 <Textarea
                   value={commentText}

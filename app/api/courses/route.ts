@@ -1,97 +1,96 @@
 import { NextResponse } from "next/server";
-import { withPermission } from "@/lib/api-protection";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-export const POST = withPermission("course:create", async (req: Request) => {
-  
+export async function POST(req: Request) {
   try {
+    console.log("[COURSES] Starting course creation request");
+    
+    // Get current user
     const user = await currentUser();
-    const { title } = await req.json();
-   
+    console.log("[COURSES] Full user object:", JSON.stringify(user, null, 2));
+    
     if (!user?.id) {
+      console.log("[COURSES] No user found - unauthorized");
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    const userId = user?.id
-
-    // Create course with cognitive analytics enabled by default
+    // Also check database for user role directly
+    const dbUser = await db.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, role: true }
+    });
+    console.log("[COURSES] Database user:", JSON.stringify(dbUser, null, 2));
+    
+    // Use database role as source of truth
+    const userRole = dbUser?.role;
+    console.log(`[COURSES] Final role check: session.role=${user.role}, db.role=${dbUser?.role}, using=${userRole}`);
+    
+    if (!userRole) {
+      console.log(`[COURSES] No role found for user`);
+      return new NextResponse("User role not found", { status: 403 });
+    }
+    
+    if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
+      console.log(`[COURSES] User role ${userRole} not authorized for course creation`);
+      return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
+    }
+    
+    console.log(`[COURSES] Role check passed: ${userRole}`);
+    
+    // Parse request body
+    const body = await req.json();
+    const { title, description, learningObjectives } = body;
+    console.log("[COURSES] Request body:", body);
+    
+    if (!title || title.trim().length === 0) {
+      console.log("[COURSES] Title validation failed");
+      return new NextResponse("Title is required", { status: 400 });
+    }
+    
+    console.log(`[COURSES] Creating course for user ${user.id} with title: ${title}`);
+    
+    // Create course with AI-generated data
     const course = await db.course.create({
       data: {
-        userId,
-        title,
-        // Auto-enable AI-powered features for new courses
-        courseGoals: "This course is designed with AI-powered cognitive development tracking using Bloom's taxonomy framework for optimal learning outcomes.",
+        userId: user.id,
+        title: title.trim(),
+        description: description || null,
+        courseGoals: learningObjectives || null, // Use courseGoals instead of learningObjectives
+        isPublished: false,
       }
     });
 
-    // Initialize cognitive analytics settings for the new course
-    try {
-      // Create initial AI-generated content record to track AI features usage
-      await db.aIGeneratedContent.create({
-        data: {
-          courseId: course.id,
-          title: "Cognitive Analytics Setup",
-          contentType: "COGNITIVE_ANALYTICS_SETUP",
-          prompt: "Auto-enabled cognitive analytics for course creation",
-          generatedContent: JSON.stringify({
-            bloomsAnalyticsEnabled: true,
-            adaptiveAssessmentEnabled: true,
-            cognitiveProgressTrackingEnabled: true,
-            aiRecommendationsEnabled: true,
-            setupDate: new Date().toISOString(),
-            features: [
-              "Bloom's taxonomy question mapping",
-              "Cognitive development tracking", 
-              "Adaptive difficulty adjustment",
-              "Learning analytics dashboard",
-              "AI-powered study recommendations"
-            ]
-          }),
-          model: "cognitive-analytics-system",
-          success: true,
-          metadata: JSON.stringify({
-            autoEnabled: true,
-            phase: "PHASE_1_ACTIVATION",
-            version: "1.0"
-          })
-        }
-      });
-
-      // Create initial learning metrics record for analytics tracking
-      await db.learningMetrics.create({
-        data: {
-          courseId: course.id,
-          userId: userId,
-          // Initialize with cognitive analytics baseline
-          completionRate: 0,
-          averageTimeSpent: 0,
-          totalInteractions: 0,
-          performanceScore: 0,
-          metadata: JSON.stringify({
-            cognitiveAnalyticsEnabled: true,
-            bloomsLevelsTracked: ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"],
-            adaptiveAssessmentActive: true,
-            aiRecommendationsActive: true
-          })
-        }
-      });
-
-      console.log(`[COURSES] Cognitive analytics auto-enabled for course: ${course.id}`);
-    } catch (analyticsError) {
-      // Log error but don't fail course creation
-      console.warn("[COURSES] Failed to initialize cognitive analytics:", analyticsError);
-    }
-
+    console.log(`[COURSES] Course created successfully: ${course.id}`);
     return NextResponse.json(course);
+    
   } catch (error) {
-    console.log("[COURSES]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error("[COURSES] Error creating course:", error);
+    
+    if (error instanceof Error) {
+      console.error("[COURSES] Error message:", error.message);
+      console.error("[COURSES] Error stack:", error.stack);
+      
+      // Check for specific Prisma errors
+      if (error.message.includes('Foreign key constraint')) {
+        return new NextResponse("Database constraint error", { status: 400 });
+      }
+      
+      if (error.message.includes('Unique constraint')) {
+        return new NextResponse("Duplicate course title", { status: 409 });
+      }
+      
+      if (error.message.includes('connect')) {
+        return new NextResponse("Database connection error", { status: 503 });
+      }
+    }
+    
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
-});
+}
 
 // Robust GET endpoint for courses listing - based on working homepage pattern
 export const GET = async (req: Request) => {
@@ -203,7 +202,7 @@ export const GET = async (req: Request) => {
         isPublished: course.isPublished,
         isFeatured: course.isFeatured,
         category: course.category,
-        chapters: course.chapters || [],
+        chapters: [],
         chaptersLength: course._count.chapters,
         createdAt: course.createdAt,
         updatedAt: course.updatedAt,

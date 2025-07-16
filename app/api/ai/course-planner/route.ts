@@ -6,7 +6,8 @@ import {
   CourseGenerationResponseSchema,
   type CourseGenerationRequest,
   type CourseGenerationResponse,
-  CourseDifficulty 
+  CourseDifficulty,
+  ContentType
 } from '@/lib/ai-course-types';
 
 // Force Node.js runtime for better compatibility
@@ -170,21 +171,21 @@ function generateMockResponse(request: CourseGenerationRequest): CourseGeneratio
           {
             title: "Course Overview and Objectives",
             description: "Introduction to the course structure and learning goals",
-            contentType: "video" as const,
+            contentType: ContentType.VIDEO,
             estimatedTime: "30 minutes",
             learningObjectives: ["Understand course structure", "Set learning expectations"]
           },
           {
             title: "Fundamental Concepts",
             description: "Core principles and terminology",
-            contentType: "article" as const,
+            contentType: ContentType.ARTICLE,
             estimatedTime: "2 hours",
             learningObjectives: ["Master key terminology", "Understand foundational concepts"]
           },
           {
             title: "Practical Exercise 1",
             description: "Hands-on practice with basic concepts",
-            contentType: "exercise" as const,
+            contentType: ContentType.EXERCISE,
             estimatedTime: "1.5 hours",
             learningObjectives: ["Apply learned concepts", "Build practical skills"]
           }
@@ -205,28 +206,28 @@ function generateMockResponse(request: CourseGenerationRequest): CourseGeneratio
           {
             title: "Advanced Concepts",
             description: "Deep dive into complex topics",
-            contentType: "video" as const,
+            contentType: ContentType.VIDEO,
             estimatedTime: "3 hours",
             learningObjectives: ["Understand advanced principles", "Learn complex problem-solving"]
           },
           {
             title: "Case Studies and Examples", 
             description: "Real-world applications and examples",
-            contentType: "article" as const,
+            contentType: ContentType.ARTICLE,
             estimatedTime: "2 hours",
             learningObjectives: ["Analyze real-world scenarios", "Learn from industry examples"]
           },
           {
             title: "Final Project",
             description: "Comprehensive project applying all learned concepts",
-            contentType: "exercise" as const,
+            contentType: ContentType.EXERCISE,
             estimatedTime: "3 hours",
             learningObjectives: ["Synthesize all learning", "Create portfolio-worthy work"]
           },
           {
             title: "Knowledge Assessment",
             description: "Test your understanding of advanced concepts",
-            contentType: "assessment" as const,
+            contentType: ContentType.ASSESSMENT,
             estimatedTime: "1 hour",
             learningObjectives: ["Validate learning outcomes", "Identify areas for improvement"]
           }

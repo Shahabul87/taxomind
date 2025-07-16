@@ -9,7 +9,6 @@ import { Clock, AlertCircle, CheckCircle, XCircle, TrendingUp, Users, FileText, 
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { ApprovalDashboard } from './_components/approval-dashboard';
-import { ApprovalList } from './_components/approval-list';
 import { ApprovalAnalytics } from './_components/approval-analytics';
 import { WorkflowTemplates } from './_components/workflow-templates';
 

@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     // Authenticate the user
     const user = await currentUser();
-    if (!user) {
+    if (!user || !user.id) {
       console.log("[COMMENT_REACTION] Unauthorized");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -161,6 +161,7 @@ async function handleCommentReaction(userId: string, type: string, commentId: st
             type,
             userId,
             commentId,
+            updatedAt: new Date(),
           },
         });
       }
@@ -283,6 +284,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
             type,
             userId,
             replyId,
+            updatedAt: new Date(),
           },
         });
         console.log("[COMMENT_REACTION] Created new reaction:", newReaction.id);
@@ -294,7 +296,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
           id: replyId,
         },
         include: {
-          reactions: {
+          Reaction: {
             include: {
               user: {
                 select: {
@@ -310,7 +312,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
       return updatedReply;
     });
 
-    console.log("[COMMENT_REACTION] Successfully processed reply reaction with reaction count:", result?.reactions?.length || 0);
+    console.log("[COMMENT_REACTION] Successfully processed reply reaction with reaction count:", result?.Reaction?.length || 0);
     return NextResponse.json(result);
   } catch (error) {
     console.error("[COMMENT_REACTION] Reply reaction error:", error);

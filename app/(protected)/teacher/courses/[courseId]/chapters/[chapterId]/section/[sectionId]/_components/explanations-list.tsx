@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Pencil, Trash2, Code2, Function } from "lucide-react";
+import { Pencil, Trash2, Code2, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -60,7 +60,7 @@ export const ExplanationsList = ({
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center h-full">
         {type === "math" ? (
-          <Function className="h-10 w-10 text-pink-400 dark:text-pink-600 mb-4" />
+          <Calculator className="h-10 w-10 text-pink-400 dark:text-pink-600 mb-4" />
         ) : (
           <Code2 className="h-10 w-10 text-cyan-400 dark:text-cyan-600 mb-4" />
         )}
@@ -109,7 +109,7 @@ export const ExplanationsList = ({
           )}>
             <div className="flex items-center space-x-2">
               {type === "math" ? (
-                <Function className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+                <Calculator className="h-5 w-5 text-pink-600 dark:text-pink-400" />
               ) : (
                 <Code2 className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
               )}

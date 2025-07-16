@@ -21,27 +21,11 @@ export async function getSmartDashboardData() {
     const userData = await db.user.findUnique({
       where: { id: userId },
       include: {
-        profileLinks: {
-          orderBy: { createdAt: 'desc' },
-          take: 10
-        },
-        posts: {
+        Post: {
           orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
             comments: {
-              take: 5
-            }
-          }
-        },
-        ideas: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          include: {
-            ideaLikes: {
-              take: 5
-            },
-            ideaComments: {
               take: 5
             }
           }
@@ -56,31 +40,31 @@ export async function getSmartDashboardData() {
             }
           }
         },
-        favoriteVideos: {
+        FavoriteVideo: {
           orderBy: { createdAt: 'desc' },
           take: 5
         },
-        favoriteAudios: {
+        FavoriteAudio: {
           orderBy: { createdAt: 'desc' },
           take: 5
         },
-        favoriteBlogs: {
+        FavoriteBlog: {
           orderBy: { createdAt: 'desc' },
           take: 5
         },
-        favoriteArticles: {
+        FavoriteArticle: {
           orderBy: { createdAt: 'desc' },
           take: 5
         },
-        socialMediaAccounts: {
+        SocialMediaAccount: {
           orderBy: { createdAt: 'desc' },
           take: 10
         },
-        goals: {
+        Goal: {
           orderBy: { createdAt: 'desc' },
           take: 20
         },
-        activities: {
+        Activity: {
           orderBy: { createdAt: 'desc' },
           take: 20
         }
@@ -93,7 +77,7 @@ export async function getSmartDashboardData() {
       orderBy: { createdAt: 'desc' },
       take: 50,
       include: {
-        course: {
+        Course: {
           include: {
             category: true
           }
@@ -124,14 +108,14 @@ export async function getSmartDashboardData() {
     // Generate AI-powered insights and recommendations with safe data
     const aiInsights = await generateAIInsights(userData, {
       analytics: userAnalytics.status === 'fulfilled' ? userAnalytics.value : [],
-      activities: userData.activities || [],
+      activities: userData.Activity || [],
       courses: userData.courses || [],
-      goals: userData.goals || []
+      goals: userData.Goal || []
     });
 
     const recommendations = await getPersonalizedRecommendations(userData, {
       learningHistory: userData.courses || [],
-      interests: [...(userData.favoriteVideos || []), ...(userData.favoriteBlogs || [])],
+      interests: [...(userData.FavoriteVideo || []), ...(userData.FavoriteBlog || [])],
       skillLevel: skillData.status === 'fulfilled' ? skillData.value : null
     });
 
@@ -140,7 +124,7 @@ export async function getSmartDashboardData() {
     const learningAnalytics = calculateLearningAnalytics({ ...userData, enrollments });
     
     // Generate smart activity categorization
-    const aiCategorizedActivities = categorizeActivitiesWithAI(userData.activities || []);
+    const aiCategorizedActivities = categorizeActivitiesWithAI(userData.Activity || []);
 
     // Calculate performance trends
     const performanceTrends = calculatePerformanceTrends(
@@ -187,7 +171,7 @@ export async function getSmartDashboardData() {
       skillBenchmarks: skillBenchmarks || {},
       benchmarks: benchmarks || {},
       enrollments: enrollments || [],
-      activities: userData?.activities || [],
+      activities: userData?.Activity || [],
       learningStyle: await determineLearningStyle(userData) || "visual"
     };
 
@@ -232,7 +216,7 @@ async function fetchPerformanceMetrics(userId: string) {
       where: { userId },
       take: 20,
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true,
@@ -244,11 +228,11 @@ async function fetchPerformanceMetrics(userId: string) {
 
     return enrollments.map(enrollment => {
       // Mock completion rate for now to avoid circular dependencies (consistent based on course ID)
-      const mockCompletionRate = Math.abs(enrollment.course.id.charCodeAt(0) + enrollment.course.id.charCodeAt(1)) % 100;
+      const mockCompletionRate = Math.abs(enrollment.Course.id.charCodeAt(0) + enrollment.Course.id.charCodeAt(1)) % 100;
       
       return {
-        courseId: enrollment.course.id,
-        courseName: enrollment.course.title,
+        courseId: enrollment.Course.id,
+        courseName: enrollment.Course.title,
         completionRate: mockCompletionRate,
         enrolledAt: enrollment.createdAt,
         lastAccessed: enrollment.updatedAt

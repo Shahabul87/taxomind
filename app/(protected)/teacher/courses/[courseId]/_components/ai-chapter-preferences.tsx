@@ -83,8 +83,16 @@ export const AIChapterPreferencesDialog = ({
       ...preferences,
       targetDuration: preferences.targetDuration === "custom" ? customDuration : preferences.targetDuration
     };
-    await onGenerate(finalPreferences);
-    setOpen(false);
+    
+    try {
+      await onGenerate(finalPreferences);
+      // Only close modal on successful completion
+      setOpen(false);
+    } catch (error) {
+      console.error('Chapter generation failed:', error);
+      // Keep modal open on error to allow retry
+      // The error will be handled by the parent component
+    }
   };
 
   const toggleFocusArea = (area: string) => {
@@ -264,11 +272,13 @@ export const AIChapterPreferencesDialog = ({
         <DialogFooter className="flex items-center justify-end gap-3 pt-6">
           <Button 
             variant="outline" 
-            onClick={() => setOpen(false)}
-            disabled={isGenerating}
+            onClick={() => {
+              // Force close the modal
+              setOpen(false);
+            }}
             className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
-            Cancel
+            {isGenerating ? "Stop & Close" : "Cancel"}
           </Button>
           <Button 
             onClick={handleGenerate}

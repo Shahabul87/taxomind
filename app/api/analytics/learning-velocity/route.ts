@@ -24,10 +24,14 @@ export async function GET(req: NextRequest) {
     startDate.setDate(startDate.getDate() - days);
 
     // Get completion data over time
-    const completions = await db.userSectionCompletion.findMany({
+    const completions = await db.user_progress.findMany({
       where: {
         userId: studentId,
-        section: {
+        sectionId: {
+          not: null
+        },
+        isCompleted: true,
+        Section: {
           chapter: {
             courseId: courseId
           }
@@ -40,7 +44,7 @@ export async function GET(req: NextRequest) {
         completedAt: 'asc'
       },
       include: {
-        section: {
+        Section: {
           include: {
             chapter: true
           }
@@ -157,10 +161,14 @@ async function getPeerVelocity(courseId: string, days: number) {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
-  const peerCompletions = await db.userSectionCompletion.groupBy({
+  const peerCompletions = await db.user_progress.groupBy({
     by: ['userId'],
     where: {
-      section: {
+      sectionId: {
+        not: null
+      },
+      isCompleted: true,
+      Section: {
         chapter: {
           courseId: courseId
         }

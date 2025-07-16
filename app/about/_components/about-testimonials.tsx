@@ -110,7 +110,7 @@ export const AboutTestimonials = () => {
               
               <div className="flex-1">
                 <p className="text-gray-700 dark:text-gray-300 text-lg md:text-xl italic mb-6">
-                  "{currentTestimonial.content}"
+                  &ldquo;{currentTestimonial.content}&rdquo;
                 </p>
                 
                 <div>

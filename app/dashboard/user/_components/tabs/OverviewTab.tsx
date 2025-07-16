@@ -116,7 +116,7 @@ export function OverviewTab({ user }: OverviewTabProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-purple-500" />
-                Today's Progress
+                Today&apos;s Progress
               </CardTitle>
             </CardHeader>
             <CardContent>

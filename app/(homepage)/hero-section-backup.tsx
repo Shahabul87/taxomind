@@ -300,7 +300,7 @@ export default function HeroSection() {
                 animate={isInView ? { opacity: 1, x: 0 } : {}}
                 transition={{ delay: 0.4 }}
               >
-                Through Bloom's Taxonomy
+                Through Bloom&apos;s Taxonomy
               </motion.span>
             </h1>
 
@@ -311,7 +311,7 @@ export default function HeroSection() {
               transition={{ delay: 0.5 }}
             >
               Track cognitive development across 6 scientifically-proven levels. 
-              Our AI adapts to each learner's unique journey, ensuring mastery at every stage.
+              Our AI adapts to each learner&apos;s unique journey, ensuring mastery at every stage.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -626,7 +626,7 @@ export default function HeroSection() {
                                 animate={{ scale: 1 }}
                                 transition={{ delay: 0.5, type: "spring" }}
                               >
-                                Bloom's Taxonomy
+                                Bloom&apos;s Taxonomy
                               </motion.span>
                               <motion.span 
                                 className="text-sm bg-emerald-500/20 px-4 py-2 rounded-full text-emerald-300 border border-emerald-500/30"
@@ -720,7 +720,7 @@ export default function HeroSection() {
                                 </div>
                                 <div className="mb-3">
                                   <p className="text-white font-medium">Concept: {level.interactiveDemo.concept}</p>
-                                  <p className="text-blue-300 mt-1">"{level.interactiveDemo.explanation}"</p>
+                                  <p className="text-blue-300 mt-1">&quot;{level.interactiveDemo.explanation}&quot;</p>
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <span className="text-sm text-gray-400">Understanding Level:</span>
@@ -878,22 +878,22 @@ export default function HeroSection() {
                             AI personalizes this timeline based on your learning style and progress
                           </p>
                         </div>
-                      </div>
+                      </motion.div>
                     </motion.div>
                   );
                 })}
               </AnimatePresence>
                 </div>
-              </motion.div>
-            </div>
+            </motion.div>
+          </div>
 
-              {/* User Types */}
-              <motion.div 
-                className="grid gap-4 mt-8"
-                initial={{ opacity: 0 }}
-                animate={showPyramid ? { opacity: 1 } : {}}
-                transition={{ delay: 1 }}
-              >
+          {/* User Types */}
+          <motion.div 
+            className="grid gap-4 mt-8"
+            initial={{ opacity: 0 }}
+            animate={showPyramid ? { opacity: 1 } : {}}
+            transition={{ delay: 1 }}
+          >
                 {userTypes.map((type, index) => (
                   <motion.div
                     key={type.title}
@@ -922,9 +922,8 @@ export default function HeroSection() {
                     </Link>
                   </motion.div>
                 ))}
-              </motion.div>
-            </motion.div>
-          </div>
+          </motion.div>
+        </div>
 
           {/* Trust indicators */}
           <motion.div

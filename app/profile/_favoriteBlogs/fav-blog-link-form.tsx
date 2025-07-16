@@ -5,9 +5,10 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Loader2, PlusCircle, X, Newspaper, Link, Globe, Clipboard, Grip } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { FavoriteBlog } from "@prisma/client";
 import { FavoriteBlogList } from "./fav-blog-link-list";
 import { motion, AnimatePresence } from "framer-motion";
@@ -120,7 +121,7 @@ export const FavoriteBlogLinkForm = ({
     mode: "onChange",
   });
 
-  const fetchBlogMetadata = async (url: string) => {
+  const fetchBlogMetadata = useCallback(async (url: string) => {
     try {
       setIsLoading(true);
       
@@ -148,7 +149,7 @@ export const FavoriteBlogLinkForm = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [form, setBlogFavicon, setBlogImage, setIsLoading]);
 
   // Auto-detect platform from URL and fetch metadata
   useEffect(() => {
@@ -182,7 +183,7 @@ export const FavoriteBlogLinkForm = ({
     });
     
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, fetchBlogMetadata]);
 
   const { isSubmitting, isValid } = form.formState;
   const watchedValues = form.watch();
@@ -588,9 +589,11 @@ export const FavoriteBlogLinkForm = ({
                               {/* Blog featured image */}
                               {blogImage ? (
                                 <div className="w-full h-32 overflow-hidden">
-                                  <img 
+                                  <Image 
                                     src={blogImage} 
                                     alt="Blog thumbnail" 
+                                    width={400}
+                                    height={128}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                       e.currentTarget.style.display = 'none';
@@ -606,9 +609,11 @@ export const FavoriteBlogLinkForm = ({
                               <div className="p-4">
                                 <div className="flex items-center gap-2 mb-2">
                                   {blogFavicon ? (
-                                    <img 
+                                    <Image 
                                       src={blogFavicon} 
                                       alt="Blog favicon" 
+                                      width={20}
+                                      height={20}
                                       className="w-5 h-5 object-contain"
                                       onError={(e) => {
                                         e.currentTarget.style.display = 'none';

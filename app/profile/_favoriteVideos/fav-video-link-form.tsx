@@ -8,6 +8,7 @@ import { Loader2, PlusCircle, X, VideoIcon, Link, Youtube, Clipboard, Grip } fro
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { FavoriteVideo } from "@prisma/client";
 import { FavoriteVideoList } from "./fav-video-link-list";
 import { motion, AnimatePresence } from "framer-motion";
@@ -108,7 +109,7 @@ export const FavoriteVideoLinkForm = ({
     mode: "onChange",
   });
 
-  const fetchVideoMetadata = async (url: string) => {
+  const fetchVideoMetadata = useCallback(async (url: string) => {
     console.log("Attempting to fetch metadata for:", url);
     try {
       setIsLoading(true);
@@ -162,7 +163,7 @@ export const FavoriteVideoLinkForm = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [form, videoThumbnail, setVideoThumbnail, setIsLoading]);
 
   // Immediately try to fetch metadata when URL changes
   useEffect(() => {
@@ -199,7 +200,7 @@ export const FavoriteVideoLinkForm = ({
     });
     
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, fetchVideoMetadata]);
 
   const toggleCreating = () => {
     setIsCreating((current) => !current);
@@ -618,9 +619,11 @@ export const FavoriteVideoLinkForm = ({
                               "flex items-center justify-center border border-gray-200 dark:border-gray-700"
                             )}>
                               {videoThumbnail ? (
-                                <img 
+                                <Image 
                                   src={videoThumbnail} 
                                   alt="Video thumbnail" 
+                                  width={400}
+                                  height={225}
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
@@ -684,7 +687,7 @@ export const FavoriteVideoLinkForm = ({
                         Paste a video URL
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                        Copy a video URL from YouTube, Vimeo, or other platforms and paste it below. We'll automatically fetch the details.
+                        Copy a video URL from YouTube, Vimeo, or other platforms and paste it below. We&apos;ll automatically fetch the details.
                       </p>
                     </div>
                     

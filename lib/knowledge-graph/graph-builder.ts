@@ -251,8 +251,7 @@ export class KnowledgeGraphBuilder {
         duration: video.duration,
         playbackUrl: video.playbackUrl,
         position: video.position,
-        sectionId: section.id,
-        muxData: video.muxData
+        sectionId: section.id
       },
       createdAt: video.createdAt,
       updatedAt: video.updatedAt

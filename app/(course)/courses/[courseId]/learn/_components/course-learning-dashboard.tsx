@@ -48,7 +48,7 @@ interface Course {
     image: string | null;
   };
   _count: {
-    enrollments: number;
+    Enrollment: number;
   };
   chapters: Array<{
     id: string;
@@ -61,7 +61,7 @@ interface Course {
       position: number;
       type?: string | null;
       duration?: number | null;
-      userProgress: Array<{
+      user_progress: Array<{
         isCompleted: boolean;
       }>;
       videos: Array<{ id: string; title: string; duration?: number | null }>;
@@ -70,7 +70,7 @@ interface Course {
       notes: Array<{ id: string; title: string }>;
       codeExplanations: Array<{ id: string; heading: string }>;
     }>;
-    userProgress: Array<{
+    user_progress: Array<{
       isCompleted: boolean;
     }>;
   }>;
@@ -103,7 +103,7 @@ export const CourseLearningDashboard = ({
   const findNextSection = () => {
     for (const chapter of course.chapters) {
       for (const section of chapter.sections) {
-        if (!section.userProgress.some(p => p.isCompleted)) {
+        if (!section.user_progress.some(p => p.isCompleted)) {
           return { chapter, section };
         }
       }
@@ -171,7 +171,7 @@ export const CourseLearningDashboard = ({
                 <Separator orientation="vertical" className="h-4" />
                 <div className="flex items-center gap-1">
                   <Users className="w-4 h-4" />
-                  <span>{course._count.enrollments} students</span>
+                  <span>{course._count.Enrollment} students</span>
                 </div>
                 <Separator orientation="vertical" className="h-4" />
                 <div className="flex items-center gap-1">
@@ -328,20 +328,20 @@ export const CourseLearningDashboard = ({
                   totalSections={totalSections}
                   completedSections={completedSections}
                 />
-                <RecentActivity course={course} />
+                <RecentActivity course={course as any} />
               </div>
               <div>
-                <LearningPath course={course} />
+                <LearningPath course={course as any} />
               </div>
             </div>
           )}
 
           {activeTab === 'content' && (
-            <CourseContentNavigation course={course} />
+            <CourseContentNavigation course={course as any} />
           )}
 
           {activeTab === 'progress' && (
-            <LearningPath course={course} detailed />
+            <LearningPath course={course as any} detailed />
           )}
         </motion.div>
       </div>

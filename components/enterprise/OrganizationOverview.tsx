@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,11 +51,7 @@ export function OrganizationOverview({ className }: OrganizationOverviewProps) {
     totalPages: 0,
   });
 
-  useEffect(() => {
-    fetchOrganizations();
-  }, [search, tierFilter, statusFilter, pagination.page]);
-
-  const fetchOrganizations = async () => {
+  const fetchOrganizations = useCallback(async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams({
@@ -82,7 +78,11 @@ export function OrganizationOverview({ className }: OrganizationOverviewProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [search, tierFilter, statusFilter, pagination.page, pagination.limit]);
+
+  useEffect(() => {
+    fetchOrganizations();
+  }, [fetchOrganizations]);
 
   const getSubscriptionTierColor = (tier: string) => {
     switch (tier) {

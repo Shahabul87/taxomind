@@ -210,7 +210,7 @@ export const HeroSection = () => {
         >
           <Sparkles className="w-5 h-5 text-yellow-400" />
           <span className="text-yellow-100 font-medium">
-            World's First Comprehensive Skill-Building Ecosystem
+            World&apos;s First Comprehensive Skill-Building Ecosystem
           </span>
         </motion.div>
       </motion.div>

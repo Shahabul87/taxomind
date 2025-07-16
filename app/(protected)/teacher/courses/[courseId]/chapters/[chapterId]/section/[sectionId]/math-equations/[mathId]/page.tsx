@@ -121,9 +121,7 @@ const MathEditPage = (props: MathEditPageProps) => {
             imageUrl: mathData.imageUrl || "",
             mode: mathData.mode || "equation",
           }}
-          isEdit={true}
-          editId={params.mathId}
-          onSuccess={() => {
+          onEquationAdded={() => {
             router.push(`/teacher/courses/${params.courseId}/chapters/${params.chapterId}/section/${params.sectionId}`);
             router.refresh();
           }}

@@ -17,6 +17,7 @@ export async function POST(req: Request) {
 
     const customTab = await db.customTab.create({
       data: {
+        id: crypto.randomUUID(),
         label,
         icon,
         userId: userId,

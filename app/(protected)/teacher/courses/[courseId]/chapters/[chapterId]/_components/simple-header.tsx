@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { UserRole } from "@prisma/client";
 
 interface SimpleHeaderProps {
@@ -32,7 +33,7 @@ export const SimpleHeader = ({ user }: SimpleHeaderProps) => {
                 </div>
                 {user.image && (
                   <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100">
-                    <img src={user.image} alt={user.name || 'User'} className="h-full w-full object-cover" />
+                    <Image src={user.image} alt={user.name || 'User'} className="h-full w-full object-cover" width={32} height={32} />
                   </div>
                 )}
               </div>

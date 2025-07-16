@@ -18,7 +18,7 @@ const updateOrganizationSchema = z.object({
 // GET /api/enterprise/organizations/[id] - Get organization details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -27,7 +27,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const organization = await db.organization.findUnique({
       where: { id },
@@ -130,7 +130,7 @@ export async function GET(
 // PATCH /api/enterprise/organizations/[id] - Update organization
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -139,7 +139,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateOrganizationSchema.parse(body);
 
@@ -207,7 +207,7 @@ export async function PATCH(
 // DELETE /api/enterprise/organizations/[id] - Delete organization
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -216,7 +216,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Get organization details for audit trail
     const organization = await db.organization.findUnique({

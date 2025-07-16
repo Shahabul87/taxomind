@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Image from "next/image";
 import { 
   BookOpen,
   PlayCircle,
@@ -222,10 +223,12 @@ export default function LearningProgressHub({
                       <CardContent className="p-6">
                         <div className="flex gap-4">
                           <div className="relative flex-shrink-0">
-                            <img
+                            <Image
                               src={course.imageUrl || "/placeholder-course.jpg"}
                               alt={course.title}
                               className="w-20 h-20 rounded-xl object-cover"
+                              width={80}
+                              height={80}
                             />
                           </div>
                           

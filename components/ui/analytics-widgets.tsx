@@ -375,7 +375,7 @@ export const BloomsProgressWidget: React.FC<BloomsProgressWidgetProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Award className="w-5 h-5" />
-          Bloom's Taxonomy Distribution
+          Bloom&apos;s Taxonomy Distribution
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -485,7 +485,7 @@ export const RealTimeWidget: React.FC<RealTimeWidgetProps> = ({
   );
 };
 
-export default {
+const AnalyticsWidgets = {
   MetricCard,
   ChartWidget,
   ProgressWidget,
@@ -493,3 +493,5 @@ export default {
   BloomsProgressWidget,
   RealTimeWidget,
 };
+
+export default AnalyticsWidgets;

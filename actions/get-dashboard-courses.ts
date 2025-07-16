@@ -36,7 +36,7 @@ async function fetchDashboardCoursesFromDatabase(userId: string): Promise<Dashbo
         userId: userId,
       },
       select: {
-        course: {
+        Course: {
           include: {
             category: true,
             chapters: {
@@ -49,7 +49,7 @@ async function fetchDashboardCoursesFromDatabase(userId: string): Promise<Dashbo
       }
     });
 
-    const courses = purchasedCourses.map((purchase) => purchase.course) as CourseWithProgressWithCategory[];
+    const courses = purchasedCourses.map((purchase) => purchase.Course) as CourseWithProgressWithCategory[];
 
     // Optimize: Batch load progress for all courses instead of individual calls
     const courseIds = courses.map(course => course.id);
@@ -63,7 +63,7 @@ async function fetchDashboardCoursesFromDatabase(userId: string): Promise<Dashbo
         progressPercentage = progressData.courseProgress.progressPercentage || 0;
       } else if (progressData?.chapterProgress && course.chapters.length > 0) {
         // Calculate progress from chapter completions if course progress not available
-        const completedChapters = progressData.chapterProgress.filter(cp => cp.isCompleted).length;
+        const completedChapters = progressData.chapterProgress.filter((cp: any) => cp.isCompleted).length;
         progressPercentage = (completedChapters / course.chapters.length) * 100;
       }
 

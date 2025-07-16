@@ -10,6 +10,7 @@ import { DashboardCard } from '@/components/ui/dashboard-card';
 import { PredictiveAnalytics } from '@/app/dashboard/user/_components/smart-dashboard/PredictiveAnalytics';
 import { RealtimePulse } from '@/app/dashboard/user/_components/smart-dashboard/RealtimePulse';
 import { cn } from '@/lib/utils';
+import Image from "next/image";
 
 interface DashboardViewProps {
   user: User;
@@ -254,9 +255,11 @@ export function DashboardView({ user, analytics, performance, className }: Dashb
                 {analytics.learningMetrics.slice(0, 5).map((metric: any) => (
                   <div key={metric.id} className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 border border-border hover:bg-muted/50 transition-colors">
                     {metric.course?.imageUrl && (
-                      <img 
+                      <Image 
                         src={metric.course.imageUrl} 
                         alt={metric.course.title}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-lg object-cover"
                       />
                     )}

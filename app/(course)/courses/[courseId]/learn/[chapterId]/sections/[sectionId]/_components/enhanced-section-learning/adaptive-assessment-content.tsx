@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Brain, 
@@ -97,11 +97,7 @@ export const AdaptiveAssessmentContent = ({ sectionId, courseId, chapterId }: Ad
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
   const [activeView, setActiveView] = useState<"overview" | "cognitive" | "recommendations" | "practice">("overview");
 
-  useEffect(() => {
-    fetchAnalysis();
-  }, [sectionId]);
-
-  const fetchAnalysis = async () => {
+  const fetchAnalysis = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/adaptive-assessment/analyze', {
@@ -124,7 +120,11 @@ export const AdaptiveAssessmentContent = ({ sectionId, courseId, chapterId }: Ad
     } finally {
       setLoading(false);
     }
-  };
+  }, [sectionId]);
+
+  useEffect(() => {
+    fetchAnalysis();
+  }, [fetchAnalysis]);
 
   const generateAdaptiveQuestions = async (focusMode: 'remedial' | 'advancement' | 'mixed' = 'mixed') => {
     try {
@@ -371,7 +371,7 @@ export const AdaptiveAssessmentContent = ({ sectionId, courseId, chapterId }: Ad
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="w-5 h-5 text-purple-600" />
-                Bloom's Taxonomy Analysis
+                Bloom&apos;s Taxonomy Analysis
               </CardTitle>
               <CardDescription>
                 Your performance across different cognitive levels

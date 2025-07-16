@@ -44,9 +44,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (user?.role) {
               const roleBasedUrl = getRedirectUrl(user.role);
               return `${baseUrl}${roleBasedUrl}`;
+            } else if (!user) {
+              // User not found - likely stale session from database switch
+              console.warn("User not found during redirect - clearing session");
+              return `${baseUrl}/auth/login`;
             }
           } catch (error) {
             console.error("Error fetching user for redirect:", error);
+            return `${baseUrl}/auth/login`;
           }
         }
       }

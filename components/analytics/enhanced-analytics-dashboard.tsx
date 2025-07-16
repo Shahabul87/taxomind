@@ -327,7 +327,7 @@ export function EnhancedAnalyticsDashboard({
     
     // Apply filters to data
     return data; // Simplified for now
-  }, [data, filters]);
+  }, [data]);
 
   // Data fetching
   const fetchAnalytics = useCallback(async () => {

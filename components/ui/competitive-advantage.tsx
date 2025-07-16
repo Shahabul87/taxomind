@@ -252,7 +252,7 @@ export const CompetitiveAdvantage = ({
         </h2>
         
         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-          The only learning management system with native Bloom's taxonomy integration, 
+          The only learning management system with native Bloom&apos;s taxonomy integration, 
           powered by advanced AI for pedagogically sound education.
         </p>
 

@@ -16,8 +16,8 @@ export async function POST(request: NextRequest, props: { params: Promise<{ cour
     const user = await currentUser();
     console.log("[CHAPTERS_CREATE] User authentication result:", user ? { id: user.id, email: user.email } : "No user");
     
-    const { title } = await request.json();
-    console.log("[CHAPTERS_CREATE] Request body - title:", title);
+    const { title, description, position, bloomsLevel } = await request.json();
+    console.log("[CHAPTERS_CREATE] Request body:", { title, description, position, bloomsLevel });
 
     if (!user?.id) {
       console.log("[CHAPTERS_CREATE] Error: No user ID found");
@@ -57,21 +57,26 @@ export async function POST(request: NextRequest, props: { params: Promise<{ cour
     
     console.log("[CHAPTERS_CREATE] Last chapter result:", lastChapter ? { id: lastChapter.id, position: lastChapter.position } : "No existing chapters");
 
-    const newPosition = lastChapter ? lastChapter.position + 1 : 1;
+    const newPosition = position || (lastChapter ? lastChapter.position + 1 : 1);
     console.log("[CHAPTERS_CREATE] New chapter position will be:", newPosition);
     
     // Create chapter with logging
     console.log("[CHAPTERS_CREATE] Creating new chapter with data:", {
       title,
+      description,
       courseId: params.courseId,
       position: newPosition,
+      bloomsLevel,
     });
     
     const chapter = await db.chapter.create({
       data: {
         title,
+        description: description || null,
         courseId: params.courseId,
         position: newPosition,
+        // Store bloomsLevel in description for now if no dedicated field exists
+        // TODO: Add bloomsLevel field to Chapter model if needed
       }
     });
 

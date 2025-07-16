@@ -1,5 +1,5 @@
 import { currentUser } from "@/lib/auth";
-import { Chapter, Course, UserProgress } from "@prisma/client"
+import { Chapter, Course, user_progress } from "@prisma/client"
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
@@ -10,7 +10,7 @@ import { CourseSidebarItem } from "./course-sidebar-item";
 interface CourseSidebarProps {
   course: Course & {
     chapters: (Chapter & {
-      userProgress: UserProgress[] | null;
+      user_progress: user_progress[] | null;
     })[]
   };
   progressCount: number;
@@ -58,7 +58,7 @@ export const CourseSidebar = async ({
             key={chapter.id}
             id={chapter.id}
             label={chapter.title}
-            isCompleted={!!chapter.userProgress?.[0]?.isCompleted}
+            isCompleted={!!chapter.user_progress?.[0]?.isCompleted}
             courseId={course.id}
             isLocked={!chapter.isFree && !purchase}
           />

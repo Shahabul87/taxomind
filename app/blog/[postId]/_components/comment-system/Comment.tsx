@@ -92,7 +92,7 @@ export const Comment = ({
     if (depth > 0) {
       console.log(`Reply comment ${localComment.id} with parent ${parentId || 'unknown'}, depth: ${depth}`);
     }
-  }, []);
+  }, [depth, localComment.id, parentId]);
   
   useEffect(() => {
     if (depth > 0) {

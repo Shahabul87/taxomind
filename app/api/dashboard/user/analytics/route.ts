@@ -14,13 +14,13 @@ export async function GET(req: NextRequest) {
     const courseId = searchParams.get('courseId');
     
     // Get user's learning metrics
-    const learningMetrics = await db.learningMetrics.findMany({
+    const learning_metrics = await db.learning_metrics.findMany({
       where: {
         userId: user.id,
         ...(courseId && { courseId })
       },
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true,
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Get performance metrics
-    const performanceMetrics = await db.performanceMetrics.findMany({
+    const performance_metrics = await db.performance_metrics.findMany({
       where: {
         userId: user.id,
         period: period as any
@@ -47,19 +47,19 @@ export async function GET(req: NextRequest) {
     });
 
     // Get recent learning sessions
-    const learningSessions = await db.learningSession.findMany({
+    const learning_sessions = await db.learning_sessions.findMany({
       where: {
         userId: user.id,
         ...(courseId && { courseId })
       },
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true
           }
         },
-        chapter: {
+        Chapter: {
           select: {
             id: true,
             title: true
@@ -73,13 +73,13 @@ export async function GET(req: NextRequest) {
     });
 
     // Get study streaks
-    const studyStreaks = await db.studyStreak.findMany({
+    const study_streakss = await db.study_streaks.findMany({
       where: {
         userId: user.id,
         ...(courseId && { courseId })
       },
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true
@@ -92,26 +92,26 @@ export async function GET(req: NextRequest) {
     });
 
     // Get user progress
-    const userProgress = await db.userProgress.findMany({
+    const user_progress = await db.user_progress.findMany({
       where: {
         userId: user.id,
         ...(courseId && { courseId })
       },
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true,
             imageUrl: true
           }
         },
-        chapter: {
+        Chapter: {
           select: {
             id: true,
             title: true
           }
         },
-        section: {
+        Section: {
           select: {
             id: true,
             title: true
@@ -124,13 +124,13 @@ export async function GET(req: NextRequest) {
     });
 
     // Get achievements
-    const achievements = await db.userAchievement.findMany({
+    const achievements = await db.user_achievements.findMany({
       where: {
         userId: user.id,
         ...(courseId && { courseId })
       },
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true
@@ -144,24 +144,24 @@ export async function GET(req: NextRequest) {
     });
 
     // Calculate aggregate statistics
-    const totalLearningTime = learningSessions.reduce((sum, session) => 
+    const totalLearningTime = learning_sessions.reduce((sum, session) => 
       sum + (session.duration || 0), 0
     );
 
-    const averageEngagementScore = learningMetrics.length > 0 
-      ? learningMetrics.reduce((sum, metric) => sum + metric.averageEngagementScore, 0) / learningMetrics.length
+    const averageEngagementScore = learning_metrics.length > 0 
+      ? learning_metrics.reduce((sum, metric) => sum + metric.averageEngagementScore, 0) / learning_metrics.length
       : 0;
 
-    const overallProgress = userProgress.length > 0
-      ? userProgress.reduce((sum, progress) => sum + progress.progressPercent, 0) / userProgress.length
+    const overallProgress = user_progress.length > 0
+      ? user_progress.reduce((sum, progress) => sum + progress.progressPercent, 0) / user_progress.length
       : 0;
 
-    const currentStreak = studyStreaks.length > 0
-      ? Math.max(...studyStreaks.map(streak => streak.currentStreak))
+    const currentStreak = study_streakss.length > 0
+      ? Math.max(...study_streakss.map(streak => streak.currentStreak))
       : 0;
 
     // Get recent activity trends
-    const recentSessions = learningSessions.slice(0, 7);
+    const recentSessions = learning_sessions.slice(0, 7);
     const weeklyActivity = recentSessions.map(session => ({
       date: session.startTime.toISOString().split('T')[0],
       duration: session.duration || 0,
@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
     }));
 
     // Performance trend analysis
-    const recentMetrics = performanceMetrics.slice(0, 7);
+    const recentMetrics = performance_metrics.slice(0, 7);
     const learningVelocityTrend = recentMetrics.length >= 2
       ? recentMetrics[0].learningVelocity > recentMetrics[recentMetrics.length - 1].learningVelocity
         ? 'IMPROVING' : 'DECLINING'
@@ -182,13 +182,13 @@ export async function GET(req: NextRequest) {
         overallProgress: Math.round(overallProgress),
         currentStreak,
         totalAchievements: achievements.length,
-        activeCourses: new Set(userProgress.map(p => p.courseId)).size
+        activeCourses: new Set(user_progress.map(p => p.courseId)).size
       },
-      learningMetrics,
-      performanceMetrics,
-      learningSessions: learningSessions.slice(0, 10),
-      studyStreaks,
-      userProgress,
+      learning_metrics,
+      performance_metrics,
+      learning_sessions: learning_sessions.slice(0, 10),
+      study_streakss,
+      user_progress,
       achievements,
       trends: {
         weeklyActivity,
@@ -197,19 +197,19 @@ export async function GET(req: NextRequest) {
         performanceTrend: recentMetrics.length > 0 ? recentMetrics[0].performanceTrend : 'STABLE'
       },
       insights: {
-        strongestSubjects: learningMetrics
+        strongestSubjects: learning_metrics
           .filter(m => m.averageEngagementScore > 80)
-          .map(m => m.course?.title)
+          .map(m => m.Course?.title)
           .filter(Boolean)
           .slice(0, 3),
-        areasForImprovement: learningMetrics
+        areasForImprovement: learning_metrics
           .filter(m => m.riskScore > 50)
-          .map(m => m.course?.title)
+          .map(m => m.Course?.title)
           .filter(Boolean)
           .slice(0, 3),
         recommendedStudyTime: Math.max(
           30, 
-          Math.round(totalLearningTime / Math.max(learningSessions.length, 1))
+          Math.round(totalLearningTime / Math.max(learning_sessions.length, 1))
         )
       }
     });

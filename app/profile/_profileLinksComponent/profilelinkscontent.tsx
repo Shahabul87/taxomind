@@ -31,17 +31,20 @@ export const ProfileLinksContent = ({ userId, profileLinks }: ProfileLinksConten
 
   // Debounced reorder function to avoid excessive API calls
   const debouncedReorder = useCallback(
-    debounce(async (updateData: { id: string; position: number }[]) => {
-      try {
-        await axios.put(`/api/users/${userId}/profile-links/reorder`, { list: updateData });
-        // No need for a toast on successful reordering as it's a common operation
-        router.refresh();
-      } catch (error) {
-        toast.error("Failed to save new order");
-      } finally {
-        setIsUpdating(false);
-      }
-    }, 600), // 600ms debounce delay - balance between responsiveness and reducing API calls
+    async (updateData: { id: string; position: number }[]) => {
+      const debouncedFn = debounce(async () => {
+        try {
+          await axios.put(`/api/users/${userId}/profile-links/reorder`, { list: updateData });
+          // No need for a toast on successful reordering as it's a common operation
+          router.refresh();
+        } catch (error) {
+          toast.error("Failed to save new order");
+        } finally {
+          setIsUpdating(false);
+        }
+      }, 600); // 600ms debounce delay - balance between responsiveness and reducing API calls
+      debouncedFn();
+    },
     [userId, router]
   );
 
@@ -301,7 +304,7 @@ const ProfileLinksPreview = ({ profileLinks }: { profileLinks: ProfileLink[] }) 
         </div>
         <h3 className="text-xl font-bold text-white mb-2">No Social Links Yet</h3>
         <p className="text-slate-400 max-w-md mx-auto text-base mb-6">
-          Your social links preview will appear here once you've added them.
+          Your social links preview will appear here once you&apos;ve added them.
         </p>
         <Button
           onClick={() => {}}

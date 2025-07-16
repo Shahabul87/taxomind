@@ -17,14 +17,15 @@ export async function GET(req: Request) {
     const now = new Date();
     const tasksWithDueReminders = await db.task.findMany({
       where: {
-        hasReminder: true,
-        reminderSent: false,
-        reminderDate: {
-          lte: now // Reminder time is now or has passed
+        dueDate: {
+          lte: now // Due date is now or has passed
+        },
+        status: {
+          not: 'COMPLETED'
         }
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -40,19 +41,19 @@ export async function GET(req: Request) {
     for (const task of tasksWithDueReminders) {
       try {
         // Based on the reminder type, send the appropriate notification
-        if (task.reminderType === "email" && task.user.email) {
+        if (task.User.email) {
           // Send email reminder
           await sendEmail({
-            to: task.user.email,
+            to: task.User.email,
             subject: `Reminder: ${task.title}`,
-            text: `You have a task due on ${task.dueDate.toLocaleDateString()}: ${task.title}${task.description ? `\n\n${task.description}` : ''}`,
+            text: `You have a task due on ${task.dueDate?.toLocaleDateString() || 'soon'}: ${task.title}${task.description ? `\n\n${task.description}` : ''}`,
             html: `
               <h2>Task Reminder</h2>
-              <p>You have a task due on <strong>${task.dueDate.toLocaleDateString()}</strong>:</p>
+              <p>You have a task due on <strong>${task.dueDate?.toLocaleDateString() || 'soon'}</strong>:</p>
               <h3>${task.title}</h3>
               ${task.description ? `<p>${task.description}</p>` : ''}
               <p>Priority: ${task.priority}</p>
-              <p>Category: ${task.category}</p>
+              <p>Status: ${task.status}</p>
               <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/profile">View in your dashboard</a></p>
             `
           });
@@ -61,14 +62,14 @@ export async function GET(req: Request) {
         // Update the task to mark the reminder as sent
         await db.task.update({
           where: { id: task.id },
-          data: { reminderSent: true }
+          data: { updatedAt: new Date() }
         });
         
         // Record successful processing
         results.push({
           taskId: task.id,
           userId: task.userId,
-          reminderType: task.reminderType,
+          reminderType: "email",
           status: "sent"
         });
       } catch (error) {
@@ -76,7 +77,7 @@ export async function GET(req: Request) {
         results.push({
           taskId: task.id,
           userId: task.userId,
-          reminderType: task.reminderType,
+          reminderType: "email",
           status: "error",
           error: (error as Error).message
         });

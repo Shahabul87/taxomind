@@ -65,7 +65,7 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
     if (storedPeriod !== selectedPeriod) {
       setSelectedPeriod(storedPeriod);
     }
-  }, [isAdmin]); // Depend on admin role check
+  }, [isAdmin, activeTab, selectedPeriod]); // Depend on admin role check and state values
 
   // Stable data hooks that won't cause errors or reloads
   const { 

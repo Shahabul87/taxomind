@@ -10,7 +10,6 @@ export type ChapterWithSectionsAndCourse = Chapter & {
     articles: any[];
     notes: any[];
     codeExplanations: any[];
-    userProgress: any[];
   })[];
   course: Course;
 };
@@ -65,11 +64,6 @@ export async function getChapter(
             codeExplanations: {
               orderBy: {
                 createdAt: 'desc'
-              }
-            },
-            userProgress: {
-              where: {
-                chapterId: chapterId
               }
             }
           }

@@ -5,7 +5,7 @@ import { UserRole } from "@prisma/client";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { templateId: string } }
+  { params }: { params: Promise<{ templateId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -13,8 +13,9 @@ export async function GET(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
+    const { templateId } = await params;
     const template = await db.contentTemplate.findUnique({
-      where: { id: params.templateId },
+      where: { id: templateId },
       include: {
         author: {
           select: {
@@ -49,7 +50,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { templateId: string } }
+  { params }: { params: Promise<{ templateId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -57,8 +58,9 @@ export async function PUT(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
+    const { templateId } = await params;
     const template = await db.contentTemplate.findUnique({
-      where: { id: params.templateId }
+      where: { id: templateId }
     });
 
     if (!template) {
@@ -81,7 +83,7 @@ export async function PUT(
     } = body;
 
     const updatedTemplate = await db.contentTemplate.update({
-      where: { id: params.templateId },
+      where: { id: templateId },
       data: {
         ...(name && { name }),
         ...(description !== undefined && { description }),
@@ -116,7 +118,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { templateId: string } }
+  { params }: { params: Promise<{ templateId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -124,8 +126,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
+    const { templateId } = await params;
     const template = await db.contentTemplate.findUnique({
-      where: { id: params.templateId }
+      where: { id: templateId }
     });
 
     if (!template) {
@@ -138,7 +141,7 @@ export async function DELETE(
     }
 
     await db.contentTemplate.delete({
-      where: { id: params.templateId }
+      where: { id: templateId }
     });
 
     return NextResponse.json({ message: "Template deleted successfully" });

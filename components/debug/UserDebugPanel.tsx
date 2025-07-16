@@ -52,14 +52,6 @@ export function UserDebugPanel({ className = "", defaultOpen = false }: UserDebu
   const [testData, setTestData] = useState({ platform: "Twitter", url: "https://twitter.com/test" });
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
-  // Only show in development or if explicitly enabled
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const isExplicitlyEnabled = typeof window !== 'undefined' && window.localStorage.getItem('debug-mode') === 'true';
-  
-  if (!isDevelopment && !isExplicitlyEnabled) {
-    return null;
-  }
-
   const fetchDebugData = async () => {
     setIsLoading(true);
     try {
@@ -107,7 +99,15 @@ export function UserDebugPanel({ className = "", defaultOpen = false }: UserDebu
     if (isOpen && !debugData) {
       fetchDebugData();
     }
-  }, [isOpen]);
+  }, [isOpen, debugData]); // Added missing dependency
+
+  // Only show in development or if explicitly enabled
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isExplicitlyEnabled = typeof window !== 'undefined' && window.localStorage.getItem('debug-mode') === 'true';
+  
+  if (!isDevelopment && !isExplicitlyEnabled) {
+    return null;
+  }
 
   if (!isOpen) {
     return (

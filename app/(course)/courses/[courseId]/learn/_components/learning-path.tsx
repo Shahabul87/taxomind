@@ -273,7 +273,7 @@ export const LearningPath = ({ course, detailed = false }: LearningPathProps) =>
             <Trophy className="w-8 h-8 mx-auto mb-2" />
             <h4 className="font-bold">Congratulations!</h4>
             <p className="text-sm text-yellow-100">
-              You've completed the entire course!
+              You&apos;ve completed the entire course!
             </p>
           </motion.div>
         )}

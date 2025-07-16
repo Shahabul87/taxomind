@@ -116,8 +116,7 @@ const titleVariants = {
     y: 0,
     scale: 1,
     transition: {
-      duration: 0.8,
-      ease: [0.25, 0.25, 0, 1]
+      duration: 0.8
     }
   }
 };
@@ -130,8 +129,7 @@ const subtitleVariants = {
     filter: "blur(0px)",
     transition: {
       duration: 0.8,
-      delay: 0.3,
-      ease: "easeOut"
+      delay: 0.3
     }
   }
 };
@@ -144,8 +142,7 @@ const featureVariants = {
     scale: 1,
     transition: {
       duration: 0.6,
-      delay: 0.8 + delay,
-      ease: [0.25, 0.25, 0, 1]
+      delay: 0.8 + delay
     }
   })
 };
@@ -156,8 +153,7 @@ const floatingAnimation = {
   scale: [1, 1.1, 1],
   transition: {
     duration: 8,
-    repeat: Infinity,
-    ease: "easeInOut"
+    repeat: Infinity
   }
 };
 
@@ -169,7 +165,6 @@ const brainFloatingAnimation = {
   transition: {
     duration: 10,
     repeat: Infinity,
-    ease: "easeInOut",
     delay: 1
   }
 };
@@ -398,7 +393,7 @@ export default function TaxoMindHeroSection() {
                 <span className="text-white/90">with</span>
                 <div className="relative">
                   <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent bg-300% animate-gradient">
-                    AI & Bloom's Taxonomy
+                    AI & Bloom&apos;s Taxonomy
                   </span>
                   <motion.div
                     className="absolute -top-3 -right-3"
@@ -419,7 +414,7 @@ export default function TaxoMindHeroSection() {
               Watch your learners progress through all 6 cognitive levels with our
               <span className="text-purple-300 font-medium"> AI-powered tracking system</span>. 
               Real-time visualization of cognitive development, personalized learning paths, 
-              and intelligent assessments that adapt to each learner's growth.
+              and intelligent assessments that adapt to each learner&apos;s growth.
             </motion.p>
           </motion.div>
 
@@ -832,7 +827,7 @@ export default function TaxoMindHeroSection() {
           >
             <div className="flex items-center space-x-2">
               <Brain className="h-5 w-5 text-purple-400" />
-              <span className="text-gray-300 font-medium">Bloom's Taxonomy</span>
+              <span className="text-gray-300 font-medium">Bloom&apos;s Taxonomy</span>
             </div>
             <div className="flex items-center space-x-2">
               <Shield className="h-5 w-5 text-emerald-400" />

@@ -52,7 +52,7 @@ const SectionPage = async (props: SectionPageProps) => {
               position: "asc",
             },
             include: {
-              userProgress: {
+              user_progress: {
                 where: {
                   userId: user.id,
                 },
@@ -99,7 +99,7 @@ const SectionPage = async (props: SectionPageProps) => {
   const completedSections = courseData.chapters.reduce(
     (acc, chapter) => 
       acc + chapter.sections.filter(section => 
-        section.userProgress.some(p => p.isCompleted)
+        section.user_progress.some(p => p.isCompleted)
       ).length,
     0
   );

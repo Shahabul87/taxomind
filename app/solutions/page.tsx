@@ -366,7 +366,7 @@ export default function SolutionsPage() {
             className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed mb-8 sm:mb-12 px-2"
             variants={itemVariants}
           >
-            Whether you're a student seeking personalized learning, an educator enhancing teaching effectiveness, 
+            Whether you&apos;re a student seeking personalized learning, an educator enhancing teaching effectiveness, 
             or an organization transforming workforce development, TaxoMind has the perfect solution for you.
           </motion.p>
 
@@ -545,7 +545,7 @@ export default function SolutionsPage() {
                         ))}
                       </div>
                       <p className="text-gray-300 text-lg leading-relaxed italic">
-                        "{testimonial.quote}"
+                        &ldquo;{testimonial.quote}&rdquo;
                       </p>
                     </div>
                     
@@ -582,7 +582,7 @@ export default function SolutionsPage() {
               </h3>
               <p className="text-base sm:text-lg text-gray-300 mb-6 sm:mb-8 px-2">
                 Join thousands of learners, educators, and organizations who have transformed 
-                their educational journey with TaxoMind's intelligent solutions.
+                their educational journey with TaxoMind&apos;s intelligent solutions.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">

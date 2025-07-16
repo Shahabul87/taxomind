@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,11 +19,7 @@ export function ApprovalAnalytics() {
   });
   const [contentType, setContentType] = useState<string>('all');
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [dateRange, contentType]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     if (!dateRange?.from || !dateRange?.to) return;
 
     try {
@@ -47,7 +43,11 @@ export function ApprovalAnalytics() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [dateRange, contentType]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [dateRange, contentType, fetchAnalytics]);
 
   const prepareChartData = (analytics: any) => {
     if (!analytics || !analytics.analytics) return [];
@@ -97,8 +97,8 @@ export function ApprovalAnalytics() {
       <div className="flex flex-wrap gap-4 items-center">
         <div>
           <DatePickerWithRange
-            date={dateRange}
-            onDateChange={setDateRange}
+            value={dateRange}
+            onChange={setDateRange}
             className="w-[280px]"
           />
         </div>

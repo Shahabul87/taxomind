@@ -213,7 +213,7 @@ export function CognitiveAnalytics({ user, className }: CognitiveAnalyticsProps)
           </div>
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-6 max-w-md">
             <p className="text-slate-900 dark:text-white font-semibold text-lg mb-2">Analyzing your cognitive patterns...</p>
-            <p className="text-slate-600 dark:text-slate-400">Processing learning data through Bloom's Taxonomy framework</p>
+            <p className="text-slate-600 dark:text-slate-400">Processing learning data through Bloom&apos;s Taxonomy framework</p>
           </div>
         </div>
       </div>
@@ -259,7 +259,7 @@ export function CognitiveAnalytics({ user, className }: CognitiveAnalyticsProps)
             Your Learning Intelligence Profile
           </h2>
           <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Advanced cognitive analysis based on Bloom's Taxonomy framework to understand your learning patterns and optimize your educational journey
+            Advanced cognitive analysis based on Bloom&apos;s Taxonomy framework to understand your learning patterns and optimize your educational journey
           </p>
         </motion.div>
 
@@ -277,7 +277,7 @@ export function CognitiveAnalytics({ user, className }: CognitiveAnalyticsProps)
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Cognitive Development Analysis</h3>
-                <p className="text-slate-600 dark:text-slate-400">Based on Bloom's Taxonomy Assessment</p>
+                <p className="text-slate-600 dark:text-slate-400">Based on Bloom&apos;s Taxonomy Assessment</p>
               </div>
             </div>
             <div className="text-center lg:text-right">
@@ -343,7 +343,7 @@ export function CognitiveAnalytics({ user, className }: CognitiveAnalyticsProps)
                 className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-xl"
               >
                 <BarChart3 className="w-4 h-4" />
-                <span className="hidden sm:inline">Bloom's Analysis</span>
+                <span className="hidden sm:inline">Bloom&apos;s Analysis</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="mindmap" 

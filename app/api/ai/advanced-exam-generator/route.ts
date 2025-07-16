@@ -9,13 +9,30 @@ import {
   ENHANCED_BLOOMS_FRAMEWORK
 } from '@/lib/ai-question-generator';
 import { BloomsLevel, QuestionType } from '@prisma/client';
+import { validateEnvVar, ENV_VARS } from '@/lib/env-validation';
+
+// Type definitions
+interface RawQuestion {
+  questionText: string;
+  type: string;
+  bloomsLevel: string;
+  options?: string[];
+  correctAnswer?: string;
+  explanation?: string;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
 
-// Initialize Anthropic client
+// Initialize Anthropic client with environment validation
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
+  apiKey: validateEnvVar(ENV_VARS.ANTHROPIC_API_KEY),
 });
 
 // Enhanced exam generation request schema
@@ -139,81 +156,100 @@ function generateSampleAnswer(level: BloomsLevel, type: QuestionType): string {
       MULTIPLE_CHOICE: 'A',
       TRUE_FALSE: 'True',
       SHORT_ANSWER: 'Basic factual recall answer',
-      ESSAY: 'Comprehensive factual summary'
+      ESSAY: 'Comprehensive factual summary',
+      FILL_IN_BLANK: 'Basic term or concept',
+      MATCHING: 'Match A-1',
+      ORDERING: '1, 2, 3, 4'
     },
     UNDERSTAND: {
       MULTIPLE_CHOICE: 'B',
       TRUE_FALSE: 'False',
       SHORT_ANSWER: 'Explanation showing comprehension',
-      ESSAY: 'Detailed explanation with examples'
+      ESSAY: 'Detailed explanation with examples',
+      FILL_IN_BLANK: 'Concept with understanding',
+      MATCHING: 'Match B-2',
+      ORDERING: '2, 1, 4, 3'
     },
     APPLY: {
       MULTIPLE_CHOICE: 'C',
       TRUE_FALSE: 'True',
       SHORT_ANSWER: 'Application of concept to new situation',
-      ESSAY: 'Detailed application with rationale'
+      ESSAY: 'Detailed application with rationale',
+      FILL_IN_BLANK: 'Applied term or formula',
+      MATCHING: 'Match C-3',
+      ORDERING: '3, 1, 2, 4'
     },
     ANALYZE: {
       MULTIPLE_CHOICE: 'D',
       TRUE_FALSE: 'False',
       SHORT_ANSWER: 'Analysis of components and relationships',
-      ESSAY: 'Systematic analysis with evidence'
+      ESSAY: 'Systematic analysis with evidence',
+      FILL_IN_BLANK: 'Analytical component',
+      MATCHING: 'Match D-4',
+      ORDERING: '4, 2, 1, 3'
     },
     EVALUATE: {
       MULTIPLE_CHOICE: 'A',
       TRUE_FALSE: 'True',
       SHORT_ANSWER: 'Evaluation with criteria and judgment',
-      ESSAY: 'Comprehensive evaluation with justification'
+      ESSAY: 'Comprehensive evaluation with justification',
+      FILL_IN_BLANK: 'Evaluative judgment',
+      MATCHING: 'Match E-5',
+      ORDERING: '1, 3, 2, 4'
     },
     CREATE: {
       MULTIPLE_CHOICE: 'B',
       TRUE_FALSE: 'False',
       SHORT_ANSWER: 'Original solution or creation',
-      ESSAY: 'Innovative solution with detailed rationale'
+      ESSAY: 'Innovative solution with detailed rationale',
+      FILL_IN_BLANK: 'Creative solution',
+      MATCHING: 'Match F-6',
+      ORDERING: '2, 4, 1, 3'
     }
   };
   
-  return answers[level][type] || 'Sample answer';
+  return answers[level]?.[type] || 'Sample answer';
 }
 
 /**
  * Validate and enhance AI-generated questions
  */
 async function validateAndEnhanceQuestions(
-  questions: any[], 
+  questions: RawQuestion[], 
   request: AdvancedExamGenerationRequest
-): Promise<{ questions: EnhancedQuestion[], validationResults: any[] }> {
+): Promise<{ questions: EnhancedQuestion[], validationResults: ValidationResult[] }> {
   const generator = AdvancedQuestionGenerator.getInstance();
   const enhancedQuestions: EnhancedQuestion[] = [];
-  const validationResults: any[] = [];
+  const validationResults: ValidationResult[] = [];
   
   for (const q of questions) {
     try {
       // Ensure required fields exist
       const enhancedQuestion: EnhancedQuestion = {
-        id: q.id || `q${enhancedQuestions.length + 1}`,
-        bloomsLevel: q.bloomsLevel || 'UNDERSTAND',
-        questionType: q.questionType || 'MULTIPLE_CHOICE',
-        question: q.question || 'Sample question',
+        id: `q${enhancedQuestions.length + 1}`,
+        bloomsLevel: (q.bloomsLevel as BloomsLevel) || 'UNDERSTAND',
+        questionType: (q.type as QuestionType) || 'MULTIPLE_CHOICE',
+        question: q.questionText || 'Sample question',
         options: q.options,
         correctAnswer: q.correctAnswer || 'A',
         explanation: q.explanation || 'Basic explanation',
-        cognitiveLoad: q.cognitiveLoad || 2,
-        difficulty: q.difficulty || 'medium',
-        points: q.points || 2,
-        assessmentCriteria: q.assessmentCriteria || ['Understanding', 'Accuracy'],
-        prerequisites: q.prerequisites || [],
-        learningObjective: q.learningObjective || 'Demonstrate understanding',
-        timeEstimate: q.timeEstimate || 5,
-        tags: q.tags || ['generated']
+        cognitiveLoad: 2,
+        difficulty: 'medium',
+        points: 2,
+        assessmentCriteria: ['Understanding', 'Accuracy'],
+        prerequisites: [],
+        learningObjective: 'Demonstrate understanding',
+        timeEstimate: 5,
+        tags: ['generated']
       };
       
       // Validate question if enabled
       if (request.enableQualityValidation) {
         const validation = generator.validateQuestionAlignment(enhancedQuestion);
         validationResults.push({
-          questionId: enhancedQuestion.id,
-          validation
+          isValid: validation.isValid,
+          errors: validation.suggestions || [],
+          warnings: validation.pedagogicalWarnings || []
         });
         
         // Only include valid questions or provide suggestions

@@ -47,18 +47,18 @@ export async function POST(
     const { answers, timeSpent } = parseResult.data;
 
     // Optimized: Fetch the attempt with exam and questions in one query
-    const attempt = await db.examAttempt.findUnique({
+    const attempt = await db.userExamAttempt.findUnique({
       where: {
         id: params.attemptId,
         userId: user.id,
         examId: params.examId,
       },
       include: {
-        exam: {
+        Exam: {
           include: {
-            questions: {
+            ExamQuestion: {
               orderBy: {
-                position: 'asc'
+                order: 'asc'
               }
             }
           }
@@ -73,7 +73,7 @@ export async function POST(
       );
     }
 
-    if (attempt.completedAt) {
+    if (attempt.submittedAt) {
       return NextResponse.json(
         { error: 'This exam has already been submitted' },
         { status: 400 }
@@ -86,7 +86,7 @@ export async function POST(
     let earnedPoints = 0;
 
     // Optimized: Prepare all answer data for batch insert
-    const answerData = attempt.exam.questions.map((question) => {
+    const answerData = attempt.Exam.ExamQuestion.map((question) => {
       const userAnswer = answers.find(a => a.questionId === question.id);
       const isCorrect = checkAnswer(question, userAnswer?.answer);
       const pointsEarned = isCorrect ? question.points : 0;
@@ -96,38 +96,40 @@ export async function POST(
       if (isCorrect) correctAnswers++;
 
       return {
+        id: crypto.randomUUID(),
         attemptId: params.attemptId,
         questionId: question.id,
-        userAnswer: userAnswer?.answer || null,
+        answer: userAnswer?.answer || null,
         isCorrect,
         pointsEarned,
         timeSpent: 0, // Could be calculated per question if needed
+        updatedAt: new Date(),
       };
     });
 
     // Calculate score
     const scorePercentage = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
-    const isPassed = scorePercentage >= attempt.exam.passingScore;
+    const isPassed = scorePercentage >= attempt.Exam.passingScore;
 
     // Optimized: Use transaction for batch operations
     const result = await db.$transaction(async (tx) => {
       // Batch insert all answers
-      await tx.questionAttempt.createMany({
+      await tx.userAnswer.createMany({
         data: answerData,
       });
 
       // Update the attempt
-      const updatedAttempt = await tx.examAttempt.update({
+      const updatedAttempt = await tx.userExamAttempt.update({
         where: {
           id: params.attemptId,
         },
         data: {
-          completedAt: new Date(),
+          submittedAt: new Date(),
           timeSpent,
-          score: scorePercentage,
-          passed: isPassed,
+          scorePercentage: scorePercentage,
+          isPassed: isPassed,
           correctAnswers,
-          totalQuestions: attempt.exam.questions.length,
+          totalQuestions: attempt.Exam.ExamQuestion.length,
         }
       });
 
@@ -141,7 +143,7 @@ export async function POST(
         scorePercentage,
         isPassed,
         correctAnswers,
-        totalQuestions: attempt.exam.questions.length,
+        totalQuestions: attempt.Exam.ExamQuestion.length,
         earnedPoints,
         totalPoints,
         timeSpent,

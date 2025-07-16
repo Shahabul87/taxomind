@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { randomBytes } from 'crypto';
+
+type PerformanceMetric = {
+  id: string;
+  userId: string;
+  date: Date;
+  period: string;
+  learningVelocity: number;
+  retentionRate: number;
+  engagementScore: number;
+  quizPerformance: number;
+  totalLearningTime: number;
+  activeTime: number;
+  sessionsCount: number;
+  averageSessionLength: number;
+  velocityTrend: string;
+  engagementTrend: string;
+  performanceTrend: string;
+  improvementRate: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,12 +49,12 @@ export async function GET(req: NextRequest) {
     );
 
     // Get current learning metrics
-    const currentMetrics = await db.learningMetrics.findMany({
+    const currentMetrics = await db.learning_metrics.findMany({
       where: {
         userId: user.id
       },
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true,
@@ -58,7 +80,7 @@ export async function GET(req: NextRequest) {
       summary,
       trends,
       comparative,
-      performanceMetrics: performanceMetrics.map(metric => ({
+      performanceMetrics: performanceMetrics.map((metric: PerformanceMetric) => ({
         date: metric.date,
         learningVelocity: metric.learningVelocity,
         retentionRate: metric.retentionRate,
@@ -73,10 +95,10 @@ export async function GET(req: NextRequest) {
         performanceTrend: metric.performanceTrend,
         improvementRate: metric.improvementRate
       })),
-      currentMetrics: currentMetrics.map(metric => ({
+      currentMetrics: currentMetrics.map((metric: any) => ({
         id: metric.id,
         courseId: metric.courseId,
-        course: metric.course,
+        course: metric.Course,
         overallProgress: metric.overallProgress,
         learningVelocity: metric.learningVelocity,
         engagementTrend: metric.engagementTrend,
@@ -100,7 +122,7 @@ async function getOrCreatePerformanceMetrics(
   endDate: Date,
   period: 'DAILY' | 'WEEKLY' | 'MONTHLY'
 ) {
-  const existingMetrics = await db.performanceMetrics.findMany({
+  const existingMetrics = await db.performance_metrics.findMany({
     where: {
       userId,
       period,
@@ -126,7 +148,7 @@ async function getOrCreatePerformanceMetrics(
   }
 
   // Return updated metrics
-  return await db.performanceMetrics.findMany({
+  return await db.performance_metrics.findMany({
     where: {
       userId,
       period,
@@ -160,7 +182,7 @@ async function calculateAndCreatePerformanceMetric(
   }
 
   // Get learning sessions for the period
-  const sessions = await db.learningSession.findMany({
+  const sessions = await db.learning_sessions.findMany({
     where: {
       userId,
       startTime: {
@@ -171,7 +193,7 @@ async function calculateAndCreatePerformanceMetric(
   });
 
   // Get activities for the period
-  const activities = await db.realtimeActivity.findMany({
+  const activities = await db.realtime_activities.findMany({
     where: {
       userId,
       timestamp: {
@@ -200,7 +222,7 @@ async function calculateAndCreatePerformanceMetric(
   const previousDate = new Date(date);
   previousDate.setDate(date.getDate() - (period === 'DAILY' ? 1 : period === 'WEEKLY' ? 7 : 30));
   
-  const previousMetric = await db.performanceMetrics.findFirst({
+  const previousMetric = await db.performance_metrics.findFirst({
     where: {
       userId,
       period,
@@ -229,8 +251,9 @@ async function calculateAndCreatePerformanceMetric(
     : 0;
 
   // Create performance metric
-  await db.performanceMetrics.create({
+  await db.performance_metrics.create({
     data: {
+      id: randomBytes(16).toString('hex'),
       userId,
       date,
       period,
@@ -245,7 +268,8 @@ async function calculateAndCreatePerformanceMetric(
       velocityTrend: velocityTrend as any,
       engagementTrend: engagementTrend as any,
       performanceTrend: performanceTrend as any,
-      improvementRate
+      improvementRate,
+      updatedAt: new Date()
     }
   });
 }
@@ -338,7 +362,7 @@ function calculateTrends(performanceMetrics: any[]) {
 
 async function getComparativeAnalysis(userId: string, period: 'DAILY' | 'WEEKLY' | 'MONTHLY') {
   // Get user's recent performance
-  const userMetrics = await db.performanceMetrics.findFirst({
+  const userMetrics = await db.performance_metrics.findFirst({
     where: {
       userId,
       period
@@ -357,7 +381,7 @@ async function getComparativeAnalysis(userId: string, period: 'DAILY' | 'WEEKLY'
   }
 
   // Get average metrics for comparison (this would be more sophisticated in production)
-  const avgMetrics = await db.performanceMetrics.aggregate({
+  const avgMetrics = await db.performance_metrics.aggregate({
     where: {
       period,
       date: {

@@ -119,6 +119,7 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
     }
 
     setIsGenerating(true);
+    let shouldCloseModal = false;
     
     try {
       const finalPrompt = isAdvancedMode && isAdvancedPromptsUnlocked ? getAdvancedPrompt() : (userPrompt || getDefaultPrompt());
@@ -165,9 +166,11 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
         // Safely call onGenerate
         try {
           onGenerate(data.content);
+          shouldCloseModal = true; // Mark for closure on success
         } catch (onGenerateError) {
           console.error('Error in onGenerate callback:', onGenerateError);
           toast.error('Failed to apply generated content');
+          // Don't close modal on callback error - user might want to retry
           return;
         }
         
@@ -181,13 +184,6 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
           }
         } catch (usageError) {
           console.warn('Failed to record feature usage:', usageError);
-        }
-        
-        // Reset state and close modal
-        if (isMounted) {
-          setUserPrompt("");
-          setFocusArea("");
-          setOpen(false);
         }
         
       } else {
@@ -204,10 +200,20 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
       } else {
         toast.error(`Failed to generate ${type}. ${error.message || 'Please try again.'}`);
       }
+      
+      // Don't close modal on error - allow user to retry
+      shouldCloseModal = false;
     } finally {
-      // Ensure we always reset the loading state if component is still mounted
-      if (isMounted) {
-        setIsGenerating(false);
+      // Always reset the loading state regardless of mount status
+      setIsGenerating(false);
+      
+      // Close modal and reset state only on successful generation
+      if (shouldCloseModal) {
+        // Reset form state
+        setUserPrompt("");
+        setFocusArea("");
+        // Close the modal
+        setOpen(false);
       }
     }
   };
@@ -229,7 +235,11 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
   };
 
   const defaultTrigger = (
-    <FeatureHint featureId="ai-course-assistant">
+    <FeatureHint 
+      featureId="ai-course-assistant"
+      title="AI Course Assistant"
+      description="Get intelligent suggestions and help with your course content"
+    >
       <Button
         variant="outline"
         size="sm"
@@ -356,7 +366,11 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
                   <Settings className="h-4 w-4" />
                   <span className="font-medium">Advanced Customization</span>
                   {!isAdvancedPromptsUnlocked && (
-                    <FeatureHint featureId="advanced-ai-prompts">
+                    <FeatureHint 
+                      featureId="advanced-ai-prompts"
+                      title="Advanced AI Prompts"
+                      description="Access advanced AI prompting features for better course generation"
+                    >
                       <Badge variant="outline" className="text-xs cursor-pointer">
                         <Star className="h-3 w-3 mr-1" />
                         Unlock Advanced Features
@@ -562,11 +576,14 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
           <div className="flex items-center gap-3">
             <Button 
               variant="outline" 
-              onClick={() => setOpen(false)}
-              disabled={isGenerating}
+              onClick={() => {
+                // Force close the modal and reset states
+                setIsGenerating(false);
+                setOpen(false);
+              }}
               className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
-              Cancel
+              {isGenerating ? "Stop & Close" : "Cancel"}
             </Button>
             <Button 
               onClick={handleGenerate}

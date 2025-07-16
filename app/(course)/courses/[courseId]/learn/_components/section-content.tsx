@@ -8,7 +8,7 @@ import { BlogContent } from "./blog-content";
 import { CodeExplanation } from "./code-explanation";
 import { NoteContent } from "./note-content";
 import { cn } from "@/lib/utils";
-import { Section, Chapter, Video as VideoType, Blog, Article, Note, CodeExplanation as CodeExplanationType, UserProgress } from "@prisma/client";
+import { Section, Chapter, Video as VideoType, Blog, Article, Note, CodeExplanation as CodeExplanationType, user_progress } from "@prisma/client";
 import { VideoContent } from "./video-content";
 import { useRouter } from "next/navigation";
 
@@ -21,7 +21,7 @@ interface SectionWithRelations extends Section {
   articles: Article[];
   notes: Note[];
   codeExplanations: CodeExplanationType[];
-  userProgress: UserProgress[];
+  user_progress: user_progress[];
 }
 
 interface SectionContentProps {

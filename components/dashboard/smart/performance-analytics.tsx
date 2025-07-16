@@ -386,7 +386,7 @@ export default function PerformanceAnalytics({
               ⏰ <strong>Optimal learning time:</strong> Your highest engagement occurs between 9-11 AM. Consider scheduling important lessons during this window.
             </p>
             <p className="text-gray-700 dark:text-gray-300">
-              🎯 <strong>Goal optimization:</strong> You're 15% more likely to complete goals when broken into smaller milestones. Consider restructuring your current objectives.
+              🎯 <strong>Goal optimization:</strong> You&apos;re 15% more likely to complete goals when broken into smaller milestones. Consider restructuring your current objectives.
             </p>
           </div>
         </div>

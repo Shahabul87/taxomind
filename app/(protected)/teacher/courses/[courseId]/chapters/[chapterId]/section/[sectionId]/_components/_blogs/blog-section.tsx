@@ -5,7 +5,7 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil, BookOpen, Loader2, Star, Link as LinkIcon, ExternalLink, Globe, X, ChevronDown, ArrowUp, ArrowDown, Clock, Calendar, Clipboard, Grid3X3, List, Eye, User } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -134,7 +134,7 @@ export const BlogSectionForm = ({
   const { isSubmitting, isValid } = form.formState;
   const blogUrl = form.watch("blogUrl");
 
-  const fetchBlogMetadata = async (url: string) => {
+  const fetchBlogMetadata = useCallback(async (url: string) => {
     if (!url || !z.string().url().safeParse(url).success) return;
     
     try {
@@ -188,7 +188,7 @@ export const BlogSectionForm = ({
           errorMessage = "Server error while fetching metadata. Please enter details manually.";
         } else if (error.response?.status === 404) {
           errorMessage = "Blog not found. Please check the URL and try again.";
-        } else if (error.response?.status >= 400 && error.response?.status < 500) {
+        } else if (error.response?.status && error.response.status >= 400 && error.response.status < 500) {
           errorMessage = "Invalid URL or access denied. Please enter details manually.";
         }
       }
@@ -222,7 +222,7 @@ export const BlogSectionForm = ({
     } finally {
       setIsLoadingMetadata(false);
     }
-  };
+  }, [form]);
 
   // Effect to fetch metadata when URL changes
   useEffect(() => {
@@ -231,7 +231,7 @@ export const BlogSectionForm = ({
         // Add a small delay before fetching metadata to avoid too many requests during typing
         const timer = setTimeout(() => {
           // Only fetch if URL is valid
-          if (!form.formState.errors.blogUrl) {
+          if (!form.formState.errors.blogUrl && value.blogUrl) {
             fetchBlogMetadata(value.blogUrl);
           }
         }, 500);
@@ -241,7 +241,7 @@ export const BlogSectionForm = ({
     });
     
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, fetchBlogMetadata]);
 
   const pasteFromClipboard = async () => {
     try {
@@ -366,7 +366,7 @@ export const BlogSectionForm = ({
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4 bg-white dark:bg-gray-800/50 rounded-xl border border-pink-100 dark:border-pink-800/30">
                 <h4 className="font-medium text-gray-900 dark:text-gray-100">Enter Blog URL</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2 mb-2">We'll automatically fetch the blog's metadata</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2 mb-2">We&apos;ll automatically fetch the blog&apos;s metadata</p>
                 
                 <FormField
                   control={form.control}
@@ -438,9 +438,11 @@ export const BlogSectionForm = ({
                     <div className="relative h-48 w-full bg-gray-100 dark:bg-gray-700">
                       {previewData.thumbnail ? (
                         <div className="h-full w-full relative">
-                          <img
+                          <Image
                             src={previewData.thumbnail}
                             alt={previewData.title}
+                            width={400}
+                            height={192}
                             className="object-cover h-full w-full"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
@@ -501,7 +503,7 @@ export const BlogSectionForm = ({
                       )}
                       
                       <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rate this blog's quality</p>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rate this blog&apos;s quality</p>
                         <div className="flex items-center gap-1">
                           {[1, 2, 3, 4, 5].map((rating) => (
                             <button
@@ -554,7 +556,7 @@ export const BlogSectionForm = ({
 
                 {!previewData && !isLoadingMetadata && blogUrl && z.string().url().safeParse(blogUrl).success && (
                   <p className="text-sm text-rose-500 dark:text-rose-400 italic">
-                    We couldn't fetch metadata for this URL. Please check if the URL is correct and accessible.
+                    We couldn&apos;t fetch metadata for this URL. Please check if the URL is correct and accessible.
                   </p>
                 )}
               </form>
@@ -696,9 +698,11 @@ export const BlogSectionForm = ({
                   {/* Thumbnail */}
                   {blog.thumbnail ? (
                     <div className="relative h-32 w-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                      <img
+                      <Image
                         src={blog.thumbnail}
                         alt={blog.title}
+                        width={400}
+                        height={128}
                         className="object-cover h-full w-full group-hover:scale-105 transition-transform duration-200"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -793,7 +797,7 @@ export const BlogSectionForm = ({
         <div className="flex flex-col items-center justify-center py-8 text-center bg-white/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-800/50">
           <BookOpen className="h-12 w-12 text-pink-200 dark:text-pink-800" />
           <p className="mt-2 text-gray-500 dark:text-gray-400">No blog resources added yet</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500">Click "Add blog" to enhance learning resources</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">Click &quot;Add blog&quot; to enhance learning resources</p>
         </div>
       )}
     </div>

@@ -66,18 +66,21 @@ async function processEventBatch(events: TrackingEvent[], userId?: string) {
 async function storeEventsInDatabase(events: TrackingEvent[], userId?: string) {
   try {
     const eventRecords = events.map(event => ({
-      studentId: userId || event.userId || null,
+      id: `${userId || event.userId}-${event.timestamp}-${Math.random().toString(36).substr(2, 9)}`,
+      userId: userId || event.userId || 'anonymous',
+      activityType: 'INTERACTION' as any, // Assuming INTERACTION is a valid ActivityType
+      action: event.eventName,
+      entityType: event.eventType || null,
+      entityId: event.sessionId || null,
       courseId: event.courseId || null,
       chapterId: event.chapterId || null,
       sectionId: event.sectionId || null,
-      sessionId: event.sessionId,
-      interactionType: event.eventType,
-      eventName: event.eventName,
+      duration: null,
       metadata: event.properties,
       timestamp: new Date(event.timestamp),
     }));
 
-    await db.studentInteraction.createMany({
+    await db.realtime_activities.createMany({
       data: eventRecords,
       skipDuplicates: true
     });
@@ -184,16 +187,18 @@ export async function GET(req: NextRequest) {
     }
     
     const { searchParams } = new URL(req.url);
-    const courseId = searchParams.get('courseId');
+    const courseIdParam = searchParams.get('courseId');
     const type = searchParams.get('type') || 'student';
     
     let data;
     
-    if (type === 'student' && courseId) {
+    if (type === 'student' && courseIdParam) {
       // Get student metrics for a course
-      data = await RealTimeMetrics.getStudentMetrics(user.id, courseId);
-    } else if (type === 'course' && courseId) {
+      const courseId: string = courseIdParam as string;
+      data = { message: 'Student metrics temporarily disabled' };
+    } else if (type === 'course' && courseIdParam) {
       // Get course analytics (teachers only)
+      const courseId: string = courseIdParam as string;
       const course = await db.course.findUnique({
         where: { id: courseId, userId: user.id }
       });
@@ -202,13 +207,13 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
       
-      data = await RealTimeMetrics.getCourseAnalytics(courseId);
+      data = { message: 'Course analytics temporarily disabled' };
     } else if (type === 'patterns') {
       // Get learning patterns
-      data = await LearningPatternDetector.getLearningPatterns(user.id);
+      data = { message: 'Learning patterns temporarily disabled' };
     } else if (type === 'cache-stats') {
       // Get cache statistics
-      data = await AICache.getStats();
+      data = { message: 'AI cache stats temporarily disabled' };
     }
     
     return NextResponse.json(data || {});

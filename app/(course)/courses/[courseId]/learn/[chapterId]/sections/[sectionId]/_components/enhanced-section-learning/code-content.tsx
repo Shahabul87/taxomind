@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Image from "next/image";
 import { Code, Copy, ExternalLink, Star, Zap, Brain, Grid3X3, List, ChevronDown, ChevronUp, Play, Expand } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -255,10 +256,12 @@ export const CodeContent = ({ codeExplanations }: CodeContentProps) => {
                             components={{
                               img: ({ node, ...props }) => (
                                 <div className="my-3 flex justify-center">
-                                  <img 
-                                    {...props} 
+                                  <Image 
+                                    src={props.src || ''}
+                                    alt={props.alt || "Code explanation image"}
+                                    width={320}
+                                    height={160}
                                     className="max-h-40 rounded-lg shadow-sm max-w-full h-auto" 
-                                    alt={props.alt || "Code explanation image"} 
                                   />
                                 </div>
                               ),

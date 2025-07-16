@@ -54,7 +54,7 @@ export const ExplanationActions = ({
       setEditingExplanation(explanationData);
       setEditModalOpen(true);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching explanation:", error);
       toast.error(`Failed to load explanation data: ${error.response?.status || 'Unknown error'}`);
     } finally {

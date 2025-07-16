@@ -25,7 +25,7 @@ const CoursesPage = async () => {
       },
       _count: {
         select: {
-          purchases: true,
+          Purchase: true,
           chapters: true
         }
       }
@@ -38,9 +38,9 @@ const CoursesPage = async () => {
   // Enhanced course stats
   const publishedCount = courses.filter(course => course.isPublished).length;
   const draftCount = courses.length - publishedCount;
-  const totalEnrollments = courses.reduce((sum, course) => sum + (course._count?.purchases || 0), 0);
+  const totalEnrollments = courses.reduce((sum, course) => sum + (course._count?.Purchase || 0), 0);
   const totalRevenue = courses.reduce((sum, course) => {
-    const enrollments = course._count?.purchases || 0;
+    const enrollments = course._count?.Purchase || 0;
     const price = course.price || 0;
     return sum + (enrollments * price);
   }, 0);

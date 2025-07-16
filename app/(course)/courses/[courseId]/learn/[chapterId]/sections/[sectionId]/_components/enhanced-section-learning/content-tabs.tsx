@@ -91,7 +91,7 @@ export const ContentTabs = ({
     if (availableContent.length > 0) {
       setActiveContentTab(availableContent[0].id as ContentSubTab);
     }
-  }, [availableContent.length]);
+  }, [availableContent]);
 
   return (
     <motion.div
@@ -223,7 +223,7 @@ export const ContentTabs = ({
                       >
                         <CodeContent codeExplanations={currentSection.codeExplanations.map(item => ({
                           ...item,
-                          title: item.heading,
+                          title: item.heading || 'Untitled',
                           description: item.explanation
                         }))} />
                       </motion.div>

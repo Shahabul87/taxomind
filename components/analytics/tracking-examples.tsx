@@ -8,6 +8,7 @@ import { useScrollTracking, useContentVisibility } from '@/hooks/use-scroll-trac
 import { useFormTracking, useQuizTracking } from '@/hooks/use-form-tracking';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import Link from 'next/link';
 
 // Example 1: Basic Click Tracking
 export function TrackedButton({ courseId }: { courseId?: string }) {
@@ -41,7 +42,7 @@ export function CourseCard({ course }: { course: any }) {
     <Card data-course-id={course.id} className="p-4">
       <h3>{course.title}</h3>
       <Button>View Course</Button>
-      <a href={`/courses/${course.id}`}>Learn More</a>
+      <Link href={`/courses/${course.id}`}>Learn More</Link>
       <button className="no-track">Settings</button> {/* This won't be tracked */}
     </Card>
   );
@@ -212,18 +213,18 @@ export function MainNavigation() {
 
   return (
     <nav className="main-nav">
-      <a 
+      <Link 
         href="/courses" 
         onClick={() => trackComponentClick('navigate', { destination: 'courses' })}
       >
         Courses
-      </a>
-      <a 
+      </Link>
+      <Link 
         href="/dashboard"
         onClick={() => trackComponentClick('navigate', { destination: 'dashboard' })}
       >
         Dashboard
-      </a>
+      </Link>
     </nav>
   );
 }

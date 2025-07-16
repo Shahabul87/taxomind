@@ -279,11 +279,11 @@ export const EnhancedAIExamAssistant = ({
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
             <span className="font-bold bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 dark:from-white dark:via-gray-200 dark:to-white bg-clip-text text-transparent">Enhanced AI Exam Assistant</span>
-            <Badge variant="secondary" className="text-xs">Bloom's Taxonomy</Badge>
+            <Badge variant="secondary" className="text-xs">Bloom&apos;s Taxonomy</Badge>
           </DialogTitle>
           <DialogDescription className="space-y-2">
             <span className="block text-gray-600 dark:text-gray-300">
-              Generate pedagogically sophisticated exam questions with advanced Bloom's taxonomy analysis
+              Generate pedagogically sophisticated exam questions with advanced Bloom&apos;s taxonomy analysis
             </span>
           </DialogDescription>
           <div className="flex items-center gap-2 text-sm bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg border border-indigo-200 dark:border-indigo-700 mt-2">
@@ -297,7 +297,7 @@ export const EnhancedAIExamAssistant = ({
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="basic">Basic Settings</TabsTrigger>
-            <TabsTrigger value="blooms">Bloom's Taxonomy</TabsTrigger>
+            <TabsTrigger value="blooms">Bloom&apos;s Taxonomy</TabsTrigger>
             <TabsTrigger value="objectives">Learning Goals</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
@@ -434,7 +434,7 @@ export const EnhancedAIExamAssistant = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Bloom's Taxonomy Distribution
+                  Bloom&apos;s Taxonomy Distribution
                 </Label>
                 <div className="flex items-center gap-2">
                   <input
@@ -515,7 +515,7 @@ export const EnhancedAIExamAssistant = ({
                 {getTotalQuestions() !== parseInt(questionCount) && (
                   <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs mt-1">
                     <AlertTriangle className="h-3 w-3" />
-                    <span>Distribution doesn't match total question count</span>
+                    <span>Distribution doesn&apos;t match total question count</span>
                   </div>
                 )}
               </div>
@@ -640,7 +640,7 @@ export const EnhancedAIExamAssistant = ({
                       className="rounded"
                     />
                     <Label htmlFor="autoOptimizeDistribution" className="text-sm">
-                      Auto-optimize Bloom's distribution
+                      Auto-optimize Bloom&apos;s distribution
                     </Label>
                   </div>
                 </div>
@@ -653,7 +653,7 @@ export const EnhancedAIExamAssistant = ({
                   AI will generate:
                 </h4>
                 <ul className="text-sm text-indigo-700 dark:text-indigo-300 space-y-1">
-                  <li>• {questionCount} questions with sophisticated Bloom's taxonomy mapping</li>
+                  <li>• {questionCount} questions with sophisticated Bloom&apos;s taxonomy mapping</li>
                   <li>• {targetAudience.charAt(0).toUpperCase() + targetAudience.slice(1)} level cognitive complexity</li>
                   <li>• {assessmentPurpose.charAt(0).toUpperCase() + assessmentPurpose.slice(1)} assessment design</li>
                   <li>• Detailed explanations and pedagogical rationale</li>

@@ -61,7 +61,7 @@ async function fetchCoursesFromDatabase(
             id: true,
           }
         },
-        enrollments: {
+        Enrollment: {
           where: {
             userId,
           }
@@ -77,7 +77,7 @@ async function fetchCoursesFromDatabase(
     const progressMap = await BatchQueryOptimizer.batchLoadUserProgress(userId, courseIds);
 
     const coursesWithProgress: CourseWithProgressWithCategory[] = courses.map(course => {
-      if (course.enrollments.length === 0) {
+      if (course.Enrollment.length === 0) {
         return {
           ...course,
           progress: null,

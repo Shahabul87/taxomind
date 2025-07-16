@@ -1937,8 +1937,10 @@ model user_progress {
 }
 
 enum UserRole {
-  USER
+  STUDENT
+  TEACHER
   ADMIN
+  USER
 }
 
 enum QuestionType {

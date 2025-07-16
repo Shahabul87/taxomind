@@ -77,8 +77,6 @@ interface CreateGroupFormProps {
 }
 
 export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProps) => {
-  if (!userId) return null;  // Early return if no userId
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentTab, setCurrentTab] = useState("basics");
   const [tags, setTags] = useState<string[]>([]);
@@ -108,6 +106,8 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
       autoApproveMembers: false,
     },
   });
+
+  if (!userId) return null;  // Early return if no userId
 
   const addTag = () => {
     if (newTag && newTag.trim() !== "" && !tags.includes(newTag.trim())) {
@@ -230,7 +230,7 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
                         />
                       </FormControl>
                       <FormDescription className="text-gray-500 dark:text-gray-400 text-sm">
-                        Choose a name that clearly describes your group's purpose
+                        Choose a name that clearly describes your group&apos;s purpose
                       </FormDescription>
                       <FormMessage className="text-red-500 dark:text-red-400" />
                     </FormItem>
@@ -255,7 +255,7 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
                         />
                       </FormControl>
                       <FormDescription className="text-gray-500 dark:text-gray-400 text-sm">
-                        This description will help potential members understand your group's purpose and activities
+                        This description will help potential members understand your group&apos;s purpose and activities
                       </FormDescription>
                       <FormMessage className="text-red-500 dark:text-red-400" />
                     </FormItem>
@@ -267,7 +267,7 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
                     Add Tags
                   </FormLabel>
                   <FormDescription className="text-gray-500 dark:text-gray-400 text-sm">
-                    Add keywords that represent your group's topics and interests
+                    Add keywords that represent your group&apos;s topics and interests
                   </FormDescription>
                   
                   <div className="flex gap-2">
@@ -356,7 +356,7 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
                         </SelectContent>
                       </Select>
                       <FormDescription className="text-gray-500 dark:text-gray-400 text-sm">
-                        Choose a category that best represents your group's focus
+                        Choose a category that best represents your group&apos;s focus
                       </FormDescription>
                       <FormMessage className="text-red-500 dark:text-red-400" />
                     </FormItem>
@@ -422,7 +422,7 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
                 <div>
                   <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">Group Profile Image</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    This image will be displayed as your group's avatar
+                    This image will be displayed as your group&apos;s avatar
                   </p>
                   
                   <FormField
@@ -571,7 +571,7 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
                       <h3 className="text-sm font-medium text-violet-800 dark:text-violet-300">Pro Tip</h3>
                       <p className="text-sm text-violet-700/80 dark:text-violet-400/80 mt-1">
                         High-quality images help your group stand out and attract more members. Use images that 
-                        represent your group's theme, purpose, or community spirit.
+                        represent your group&apos;s theme, purpose, or community spirit.
                       </p>
                     </div>
                   </div>
@@ -855,7 +855,7 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
                             ) : (
                               <div className="px-2 py-4 text-center">
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  You're not enrolled in any courses
+                                  You&apos;re not enrolled in any courses
                                 </p>
                               </div>
                             )}

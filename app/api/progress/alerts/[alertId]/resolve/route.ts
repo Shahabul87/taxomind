@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 // Resolve/dismiss a progress alert
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { alertId: string } }
+  { params }: { params: Promise<{ alertId: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,7 +13,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const alertId = params.alertId;
+    const { alertId } = await params;
 
     // Verify alert belongs to user
     const alert = await db.progressAlert.findFirst({

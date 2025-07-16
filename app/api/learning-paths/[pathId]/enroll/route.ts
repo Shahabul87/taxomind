@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { pathId: string } }
+  { params }: { params: Promise<{ pathId: string }> }
 ) {
   try {
     const session = await auth();
@@ -12,10 +12,11 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { pathId } = await params;
     // Check if path exists and is active
     const path = await db.learningPath.findFirst({
       where: {
-        id: params.pathId,
+        id: pathId,
         isActive: true,
       },
       include: {
@@ -37,7 +38,7 @@ export async function POST(
       where: {
         userId_pathId: {
           userId: session.user.id,
-          pathId: params.pathId,
+          pathId,
         }
       }
     });
@@ -53,7 +54,7 @@ export async function POST(
     const enrollment = await db.pathEnrollment.create({
       data: {
         userId: session.user.id,
-        pathId: params.pathId,
+        pathId: pathId,
         status: "ACTIVE",
         // Create progress entries for each node
         nodeProgress: {
@@ -88,7 +89,7 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { pathId: string } }
+  { params }: { params: Promise<{ pathId: string }> }
 ) {
   try {
     const session = await auth();
@@ -96,12 +97,13 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { pathId } = await params;
     // Get enrollment status
     const enrollment = await db.pathEnrollment.findUnique({
       where: {
         userId_pathId: {
           userId: session.user.id,
-          pathId: params.pathId,
+          pathId,
         }
       },
       include: {

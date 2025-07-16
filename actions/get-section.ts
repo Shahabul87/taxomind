@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { Section, Chapter, Video, Blog, Article, Note, CodeExplanation, UserProgress } from "@prisma/client";
+import { Section, Chapter, Video, Blog, Article, Note, CodeExplanation } from "@prisma/client";
+import type { user_progress } from "@prisma/client";
 
 export type SectionWithAllRelations = Section & {
   chapter: Chapter & {
@@ -12,7 +13,7 @@ export type SectionWithAllRelations = Section & {
   articles: Article[];
   notes: Note[];
   codeExplanations: CodeExplanation[];
-  userProgress: UserProgress[];
+  user_progress: user_progress[];
 };
 
 export async function getSection(
@@ -75,7 +76,7 @@ export async function getSection(
             createdAt: 'desc'
           }
         },
-        userProgress: {
+        user_progress: {
           where: {
             sectionId: sectionId
           }

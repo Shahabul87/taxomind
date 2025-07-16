@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -121,14 +121,16 @@ export function RealTimeDashboard({
     fetchInitialData();
 
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const ws = wsRef.current;
+      if (ws) {
+        ws.close();
       }
       if (refreshTimer.current) {
         clearInterval(refreshTimer.current);
       }
     };
-  }, [courseId]);
+  }, [fetchInitialData]);
 
   useEffect(() => {
     if (autoRefresh) {
@@ -138,7 +140,7 @@ export function RealTimeDashboard({
     }
 
     return () => stopAutoRefresh();
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, startAutoRefresh]);
 
   const initializeRealTimeConnection = () => {
     // In a real implementation, this would connect to a WebSocket server
@@ -146,23 +148,7 @@ export function RealTimeDashboard({
     console.log('Initializing real-time connection...');
   };
 
-  const fetchInitialData = async () => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        fetchCurrentMetrics(),
-        fetchStudentActivities(),
-        fetchContentAlerts()
-      ]);
-    } catch (error) {
-      console.error('Failed to fetch initial data:', error);
-      setIsConnected(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCurrentMetrics = async () => {
+  const fetchCurrentMetrics = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/analytics/real-time/metrics?${courseId ? `courseId=${courseId}&` : ''}timeRange=${selectedTimeRange}`
@@ -192,20 +178,17 @@ export function RealTimeDashboard({
         metricsHistory.current.shift();
       }
       setMetrics([...metricsHistory.current]);
-      
       setIsConnected(true);
     } catch (error) {
-      console.error('Failed to fetch metrics:', error);
+      console.error('Failed to fetch current metrics:', error);
       setIsConnected(false);
     }
-  };
+  }, [courseId, selectedTimeRange]);
 
-  const fetchStudentActivities = async () => {
-    if (view === 'student') return; // Students don't see other students' data
-
+  const fetchStudentActivities = useCallback(async () => {
     try {
       const response = await fetch(
-        `/api/analytics/real-time/activities?${courseId ? `courseId=${courseId}` : ''}`
+        `/api/analytics/real-time/activities?${courseId ? `courseId=${courseId}&` : ''}timeRange=${selectedTimeRange}`
       );
       
       if (!response.ok) throw new Error('Failed to fetch activities');
@@ -215,14 +198,12 @@ export function RealTimeDashboard({
     } catch (error) {
       console.error('Failed to fetch student activities:', error);
     }
-  };
+  }, [courseId, selectedTimeRange]);
 
-  const fetchContentAlerts = async () => {
-    if (view === 'student') return;
-
+  const fetchContentAlerts = useCallback(async () => {
     try {
       const response = await fetch(
-        `/api/analytics/real-time/alerts?${courseId ? `courseId=${courseId}` : ''}`
+        `/api/analytics/real-time/alerts?${courseId ? `courseId=${courseId}&` : ''}resolved=false`
       );
       
       if (!response.ok) throw new Error('Failed to fetch alerts');
@@ -230,18 +211,34 @@ export function RealTimeDashboard({
       const data = await response.json();
       setAlerts(data.alerts || []);
     } catch (error) {
-      console.error('Failed to fetch alerts:', error);
+      console.error('Failed to fetch content alerts:', error);
     }
-  };
+  }, [courseId]);
 
-  const startAutoRefresh = () => {
+  const fetchInitialData = useCallback(async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        fetchCurrentMetrics(),
+        fetchStudentActivities(),
+        fetchContentAlerts()
+      ]);
+    } catch (error) {
+      console.error('Failed to fetch initial data:', error);
+      setIsConnected(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchCurrentMetrics, fetchStudentActivities, fetchContentAlerts]);
+
+  const startAutoRefresh = useCallback(() => {
     stopAutoRefresh();
     refreshTimer.current = setInterval(() => {
       fetchCurrentMetrics();
       fetchStudentActivities();
       fetchContentAlerts();
     }, refreshInterval);
-  };
+  }, [refreshInterval, fetchCurrentMetrics, fetchStudentActivities, fetchContentAlerts]);
 
   const stopAutoRefresh = () => {
     if (refreshTimer.current) {

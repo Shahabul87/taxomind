@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { InteractiveSections } from "./_components/interactive-sections";
 import { TabsContainer } from "./_components/TabsContainer";
+import { AISectionAssistant } from "./_components/ai-section-assistant";
 
 const SectionIdPage = async (
   props: {
@@ -83,6 +84,17 @@ const SectionIdPage = async (
           mathExplanations: true,
         },
       },
+    },
+  });
+
+  const course = await db.course.findFirst({
+    where: {
+      id: params.courseId,
+      userId: user.id,
+    },
+    select: {
+      id: true,
+      title: true,
     },
   });
 
@@ -306,6 +318,36 @@ const SectionIdPage = async (
               articles: section.articles || [],
               notes: section.notes || []
             }}
+          />
+        </div>
+
+        {/* AI Section Assistant */}
+        <div className="mt-16">
+          {/* Section Header */}
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-2">
+              AI Content Assistant
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 text-base">
+              Get intelligent suggestions and generate content for this section
+            </p>
+          </div>
+          
+          <AISectionAssistant 
+            section={{
+              id: section.id,
+              title: section.title,
+              chapterId: section.chapterId,
+              courseId: params.courseId,
+              position: section.position,
+              isPublished: section.isPublished,
+              videos: section.videos,
+              blogs: section.blogs,
+              codeExplanations: section.codeExplanations,
+              mathEquations: section.mathExplanations
+            }}
+            chapterTitle={chapter.title}
+            courseTitle={course?.title}
           />
         </div>
 

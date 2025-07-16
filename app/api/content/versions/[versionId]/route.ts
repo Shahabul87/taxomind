@@ -2,18 +2,13 @@ import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/api-protection";
 import { ContentVersioningService } from "@/lib/content-versioning";
 
-interface RouteParams {
-  params: {
-    versionId: string;
-  };
-}
-
 export const GET = withAuth(async (
   request: NextRequest,
-  { params }: RouteParams
+  { params }: { params: Promise<{ versionId: string }> }
 ) => {
   try {
-    const version = await ContentVersioningService.getVersion(params.versionId);
+    const { versionId } = await params;
+    const version = await ContentVersioningService.getVersion(versionId);
     
     if (!version) {
       return Response.json(
@@ -34,15 +29,16 @@ export const GET = withAuth(async (
 
 export const PATCH = withAuth(async (
   request: NextRequest,
-  { params }: RouteParams
+  { params }: { params: Promise<{ versionId: string }> }
 ) => {
   try {
+    const { versionId } = await params;
     const body = await request.json();
     const { action } = body;
 
     switch (action) {
       case "publish":
-        const publishedVersion = await ContentVersioningService.publishVersion(params.versionId);
+        const publishedVersion = await ContentVersioningService.publishVersion(versionId);
         return Response.json({ version: publishedVersion });
 
       case "submit_for_review":
@@ -54,7 +50,7 @@ export const PATCH = withAuth(async (
           );
         }
         const approvals = await ContentVersioningService.submitForReview(
-          params.versionId,
+          versionId,
           reviewerIds
         );
         return Response.json({ approvals });
@@ -68,7 +64,7 @@ export const PATCH = withAuth(async (
           );
         }
         const approval = await ContentVersioningService.reviewVersion(
-          params.versionId,
+          versionId,
           approved,
           comments
         );

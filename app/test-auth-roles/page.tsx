@@ -1,6 +1,7 @@
 import { currentUser, currentRole } from "@/lib/auth";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default async function TestAuthRoles() {
   const session = await auth();
@@ -96,9 +97,9 @@ export default async function TestAuthRoles() {
               <a href="/my-courses" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
                 My Courses
               </a>
-              <a href="/teacher/courses" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+              <Link href="/teacher/courses" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
                 Manage Courses
-              </a>
+              </Link>
             </>
           )}
         </div>

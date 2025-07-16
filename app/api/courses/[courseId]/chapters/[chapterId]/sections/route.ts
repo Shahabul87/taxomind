@@ -12,7 +12,7 @@ export async function POST(
   const params = await props.params;
   try {
     const session = await auth();
-    const { title } = await req.json();
+    const { title, description, position, contentType, estimatedDuration, bloomsLevel, generatedContent } = await req.json();
 
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -40,7 +40,17 @@ export async function POST(
       },
     });
 
-    const newPosition = lastSection ? lastSection.position + 1 : 0;
+    const newPosition = position !== undefined ? position : (lastSection ? lastSection.position + 1 : 0);
+
+    // Convert duration string to minutes (integer) if provided
+    let durationInMinutes = null;
+    if (estimatedDuration) {
+      // Extract numbers from duration string like "15-20 minutes"
+      const match = estimatedDuration.match(/(\d+)/);
+      if (match) {
+        durationInMinutes = parseInt(match[1]);
+      }
+    }
 
     // Create the section
     const section = await db.section.create({
@@ -48,8 +58,23 @@ export async function POST(
         title,
         chapterId: params.chapterId,
         position: newPosition,
+        type: contentType || null,
+        duration: durationInMinutes,
+        // Store AI-generated metadata using existing fields
       },
     });
+
+    // If there's generated content, we could store it in a separate table or in the description
+    // For now, log it for development purposes
+    if (generatedContent) {
+      console.log('Section created with AI-generated content:', {
+        sectionId: section.id,
+        contentType,
+        bloomsLevel,
+        estimatedDuration,
+        generatedContent
+      });
+    }
 
     return NextResponse.json(section);
   } catch (error) {

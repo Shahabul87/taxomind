@@ -44,7 +44,7 @@ export default async function FavoriteBlogsPage() {
             </h1>
           </div>
           <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
-            Your saved blog posts and articles from around the web. Easily access and read interesting content you've bookmarked.
+            Your saved blog posts and articles from around the web. Easily access and read interesting content you&apos;ve bookmarked.
           </p>
         </div>
         

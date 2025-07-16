@@ -120,11 +120,11 @@ export default function BloomsTaxonomySection() {
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
             Powered by{" "}
             <span className="bg-gradient-to-r from-purple-600 to-pink-600 text-transparent bg-clip-text">
-              Bloom's Taxonomy
+              Bloom&apos;s Taxonomy
             </span>
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            Our AI-enhanced learning platform uses the scientifically-proven Bloom's Taxonomy 
+            Our AI-enhanced learning platform uses the scientifically-proven Bloom&apos;s Taxonomy 
             to guide learners through progressive cognitive development stages
           </p>
         </motion.div>

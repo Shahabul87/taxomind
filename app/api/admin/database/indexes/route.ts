@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 async function createPerformanceIndexes() {
   const indexes = [
     // Critical performance indexes
-    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_progress_user_chapter ON "UserProgress"("userId", "chapterId")`,
+    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_progress_user_chapter ON "user_progress"("userId", "chapterId")`,
     `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_enrollment_user_course ON "UserCourseEnrollment"("userId", "courseId")`,
     `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_course_published ON "Course"("isPublished")`,
     `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chapter_course_position ON "Chapter"("courseId", "position")`,

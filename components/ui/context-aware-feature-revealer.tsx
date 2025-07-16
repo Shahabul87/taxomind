@@ -258,6 +258,11 @@ export const ContextAwareFeatureRevealer = ({
 
   const [suggestedFeature, setSuggestedFeature] = useState<ProgressiveFeature | null>(null);
   const [showFeatureProgress, setShowFeatureProgress] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (currentPage) {
@@ -301,6 +306,10 @@ export const ContextAwareFeatureRevealer = ({
 
   const progressScore = getProgressScore();
   const unlockedFeatures = getUnlockedFeatures();
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <div className={cn('space-y-4', className)}>

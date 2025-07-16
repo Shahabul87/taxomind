@@ -435,7 +435,7 @@ export const MindForgeResourceCenter = () => {
           </h1>
 
           <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-8">
-            Everything you need to master MindForge's AI-powered learning platform. From getting started guides to advanced enterprise integrations.
+            Everything you need to master MindForge&apos;s AI-powered learning platform. From getting started guides to advanced enterprise integrations.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -708,7 +708,7 @@ export const MindForgeResourceCenter = () => {
             </div>
             <h3 className="text-xl font-semibold text-white mb-4">No resources found</h3>
             <p className="text-slate-400 mb-6">
-              Try adjusting your search terms or filters to find what you're looking for.
+              Try adjusting your search terms or filters to find what you&apos;re looking for.
             </p>
             <Button 
               onClick={() => {

@@ -42,7 +42,7 @@ export type OptimizedCourseQuery = Prisma.CourseGetPayload<{
   };
 }>;
 
-export type OptimizedUserProgressQuery = Prisma.UserProgressGetPayload<{
+export type OptimizedUserProgressQuery = Prisma.user_progressGetPayload<{
   include: {
     user: {
       select: {

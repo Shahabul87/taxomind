@@ -16,6 +16,7 @@ export async function POST(req: Request, props: { params: Promise<{ billId: stri
     // Create payment record
     const payment = await db.billPayment.create({
       data: {
+        id: `payment-${Date.now()}`,
         amount,
         method,
         reference,

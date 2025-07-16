@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useIntersectionObserver } from '@/hooks/use-intersection-observer';
 import { LoadingSpinner } from './ui/loading-spinner';
 import { ErrorBoundary } from './ui/error-boundary';
+import Image from 'next/image';
 
 interface ProgressiveLoaderProps {
   children: React.ReactNode;
@@ -211,13 +212,16 @@ export function ProgressiveImage({
       
       {/* Actual image */}
       {isLoaded && (
-        <img
+        <Image
           ref={imgRef}
           src={src}
           alt={alt}
           className={`transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
           loading={priority > 5 ? 'eager' : 'lazy'}
           sizes={sizes}
+          width={800}
+          height={600}
+          quality={quality}
         />
       )}
     </div>

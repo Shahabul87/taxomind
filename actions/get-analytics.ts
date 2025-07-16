@@ -2,18 +2,18 @@ import { db } from "@/lib/db";
 import { Course, Purchase } from "@prisma/client";
 
 type PurchaseWithCourse = Purchase & {
-  course: Course;
+  Course: Course;
 };
 
 const groupByCourse = (purchases: PurchaseWithCourse[]) => {
   const grouped: { [courseTitle: string]: number } = {};
   
   purchases.forEach((purchase) => {
-    const courseTitle = purchase.course.title;
+    const courseTitle = purchase.Course.title;
     if (!grouped[courseTitle]) {
       grouped[courseTitle] = 0;
     }
-    grouped[courseTitle] += purchase.course.price!;
+    grouped[courseTitle] += purchase.Course.price!;
   });
 
   return grouped;
@@ -23,12 +23,12 @@ export const getAnalytics = async (userId: string) => {
   try {
     const purchases = await db.purchase.findMany({
       where: {
-        course: {
+        Course: {
           userId: userId
         }
       },
       include: {
-        course: true,
+        Course: true,
       }
     });
 

@@ -24,13 +24,13 @@ const CourseLearningPage = async (
       }
     },
     include: {
-      course: {
+      Course: {
         include: {
           chapters: {
             include: {
               sections: {
                 include: {
-                  userProgress: {
+                  user_progress: {
                     where: {
                       userId: user.id
                     }
@@ -71,7 +71,7 @@ const CourseLearningPage = async (
                   position: 'asc'
                 }
               },
-              userProgress: {
+              user_progress: {
                 where: {
                   userId: user.id
                 }
@@ -104,14 +104,14 @@ const CourseLearningPage = async (
   }
 
   // Calculate overall progress
-  const totalSections = enrollment.course.chapters.reduce(
+  const totalSections = enrollment.Course.chapters.reduce(
     (acc, chapter) => acc + chapter.sections.length, 
     0
   );
   
-  const completedSections = enrollment.course.chapters.reduce(
+  const completedSections = enrollment.Course.chapters.reduce(
     (acc, chapter) => acc + chapter.sections.filter(
-      section => section.userProgress.some(progress => progress.isCompleted)
+      section => section.user_progress.some(progress => progress.isCompleted)
     ).length,
     0
   );
@@ -120,7 +120,7 @@ const CourseLearningPage = async (
 
   return (
     <CourseLearningDashboard 
-      course={enrollment.course}
+      course={enrollment.Course as any}
       user={{ ...user, id: user.id! }}
       progressPercentage={progressPercentage}
       totalSections={totalSections}

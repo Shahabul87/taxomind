@@ -133,8 +133,7 @@ const testimonialVariants = {
     y: 0,
     scale: 1,
     transition: {
-      duration: 0.5,
-      ease: [0.25, 0.25, 0, 1]
+      duration: 0.5
     }
   }
 };
@@ -145,8 +144,7 @@ const statVariants = {
     opacity: 1,
     scale: 1,
     transition: {
-      duration: 0.5,
-      ease: "easeOut"
+      duration: 0.5
     }
   }
 };
@@ -192,7 +190,7 @@ export default function TestimonialsSection() {
           
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
             See how students, educators, and organizations are achieving remarkable 
-            results with TaxoMind's intelligent learning platform.
+            results with TaxoMind&apos;s intelligent learning platform.
           </p>
         </motion.div>
 
@@ -259,7 +257,7 @@ export default function TestimonialsSection() {
 
                 {/* Testimonial text */}
                 <p className="text-gray-300 leading-relaxed mb-6 text-lg">
-                  "{testimonial.text}"
+                  &quot;{testimonial.text}&quot;
                 </p>
 
                 {/* Results highlight */}

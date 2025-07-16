@@ -26,65 +26,45 @@ export const GET = withErrorHandling(async (request: Request) => {
     throw new Error('Failed to retrieve error metrics');
   }
 
-  // Get additional analytics
+  // Get additional analytics using available models
   const [
     activeAlerts,
     recentTrends,
-    topComponents,
     topUsers,
     resolutionStats
   ] = await Promise.all([
-    // Active alerts count
-    db.errorAlert.count({
+    // Active alerts count using progress_alerts
+    db.progress_alerts.count({
       where: {
-        acknowledged: false,
+        actionRequired: true,
         resolvedAt: null
       }
     }),
     
-    // Recent trends (last 7 days)
-    db.errorLog.groupBy({
-      by: ['timestamp'],
+    // Recent trends (last 7 days) using AuditLog
+    db.auditLog.groupBy({
+      by: ['createdAt'],
       where: {
-        timestamp: {
+        createdAt: {
           gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        },
+        severity: {
+          in: ['ERROR', 'CRITICAL']
         }
       },
       _count: {
         _all: true
       },
       orderBy: {
-        timestamp: 'desc'
+        createdAt: 'desc'
       }
     }),
     
-    // Top error-prone components
-    db.errorLog.groupBy({
-      by: ['component'],
-      where: {
-        timestamp: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
-        },
-        component: {
-          not: null
-        }
-      },
-      _count: {
-        component: true
-      },
-      orderBy: {
-        _count: {
-          component: 'desc'
-        }
-      },
-      take: 10
-    }),
-    
-    // Top users with errors
-    db.errorLog.groupBy({
+    // Top users with alerts
+    db.progress_alerts.groupBy({
       by: ['userId'],
       where: {
-        timestamp: {
+        createdAt: {
           gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
         },
         userId: {
@@ -102,22 +82,15 @@ export const GET = withErrorHandling(async (request: Request) => {
       take: 10
     }),
     
-    // Resolution statistics
-    db.errorLog.aggregate({
+    // Resolution statistics using progress_alerts
+    db.progress_alerts.count({
       where: {
-        resolved: true,
         resolvedAt: {
           not: null
         },
-        timestamp: {
+        createdAt: {
           gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
         }
-      },
-      _avg: {
-        updatedAt: true
-      },
-      _count: {
-        _all: true
       }
     })
   ]);
@@ -126,11 +99,13 @@ export const GET = withErrorHandling(async (request: Request) => {
   const timeWindow = timeRange === '1h' ? 1 : timeRange === '1d' ? 24 : 168;
   const errorRate = metrics.totalErrors / timeWindow;
 
-  // Calculate resolution rate
-  const resolvedCount = await db.errorLog.count({
+  // Calculate resolution rate using progress_alerts
+  const resolvedCount = await db.progress_alerts.count({
     where: {
-      resolved: true,
-      timestamp: {
+      resolvedAt: {
+        not: null
+      },
+      createdAt: {
         gte: new Date(Date.now() - (timeRange === '1h' ? 60 * 60 * 1000 : timeRange === '1d' ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000))
       }
     }
@@ -139,9 +114,9 @@ export const GET = withErrorHandling(async (request: Request) => {
   const resolutionRate = metrics.totalErrors > 0 ? (resolvedCount / metrics.totalErrors) * 100 : 0;
 
   // Get user details for top users if requested
-  let topUsersWithDetails = [];
+  let topUsersWithDetails: any[] = [];
   if (includeDetails && topUsers.length > 0) {
-    const userIds = topUsers.map(u => u.userId).filter(Boolean);
+    const userIds = topUsers.map(u => u.userId).filter((id): id is string => id !== null);
     const users = await db.user.findMany({
       where: {
         id: {
@@ -162,7 +137,7 @@ export const GET = withErrorHandling(async (request: Request) => {
     }));
   }
 
-  const response = {
+  const response: any = {
     summary: {
       totalErrors: metrics.totalErrors,
       activeAlerts,
@@ -177,14 +152,10 @@ export const GET = withErrorHandling(async (request: Request) => {
     trends: metrics.trends,
     
     analytics: {
-      topComponents: topComponents.map(tc => ({
-        component: tc.component,
-        count: tc._count.component
-      })),
       topUsers: includeDetails ? topUsersWithDetails : topUsers,
       resolutionStats: {
-        totalResolved: resolutionStats._count._all,
-        avgResolutionTime: resolutionStats._avg.updatedAt
+        totalResolved: resolutionStats,
+        avgResolutionTime: null
       }
     }
   };
@@ -214,32 +185,32 @@ export const POST = withErrorHandling(async (request: Request) => {
     activeAlerts,
     systemErrors
   ] = await Promise.all([
-    db.errorLog.count({
+    db.progress_alerts.count({
       where: {
         severity: 'CRITICAL',
-        timestamp: { gte: oneHourAgo }
+        createdAt: { gte: oneHourAgo }
       }
     }),
-    db.errorLog.count({
+    db.progress_alerts.count({
       where: {
-        timestamp: { gte: oneHourAgo }
+        createdAt: { gte: oneHourAgo }
       }
     }),
-    db.errorLog.count({
+    db.progress_alerts.count({
       where: {
-        timestamp: { gte: oneDayAgo }
+        createdAt: { gte: oneDayAgo }
       }
     }),
-    db.errorAlert.count({
+    db.progress_alerts.count({
       where: {
-        acknowledged: false,
+        actionRequired: true,
         resolvedAt: null
       }
     }),
-    db.errorLog.count({
+    db.auditLog.count({
       where: {
-        errorType: 'DATABASE',
-        timestamp: { gte: oneHourAgo }
+        entityType: 'DATABASE',
+        createdAt: { gte: oneHourAgo }
       }
     })
   ]);

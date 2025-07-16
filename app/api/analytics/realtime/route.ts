@@ -22,21 +22,17 @@ export async function GET(request: NextRequest) {
           userId: user.id,
         },
         include: {
-          enrollments: {
+          Enrollment: {
             include: {
-              user: true,
+              User: true,
             },
           },
           chapters: {
             include: {
               sections: {
                 include: {
-                  exams: {
-                    include: {
-                      attempts: true,
-                    },
-                  },
-                  userProgress: true,
+                  exams: true,
+                  user_progress: true,
                 },
               },
             },
@@ -49,8 +45,8 @@ export async function GET(request: NextRequest) {
       }
 
       // Calculate real-time metrics
-      const totalEnrollments = course.enrollments.length;
-      const activeUsers = course.enrollments.filter(e => {
+      const totalEnrollments = course.Enrollment.length;
+      const activeUsers = course.Enrollment.filter(e => {
         const lastActivity = new Date(e.createdAt);
         const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         return lastActivity > dayAgo;
@@ -59,7 +55,7 @@ export async function GET(request: NextRequest) {
       const totalSections = course.chapters.reduce((acc, chapter) => acc + chapter.sections.length, 0);
       const completedSections = course.chapters.reduce((acc, chapter) => {
         return acc + chapter.sections.filter(section => 
-          section.userProgress.some(progress => progress.isCompleted)
+          section.user_progress.some(progress => progress.isCompleted)
         ).length;
       }, 0);
 
@@ -69,7 +65,7 @@ export async function GET(request: NextRequest) {
 
       const completedExams = course.chapters.reduce((acc, chapter) => 
         acc + chapter.sections.reduce((secAcc, section) => 
-          secAcc + section.exams.filter(exam => exam.attempts.length > 0).length, 0
+          secAcc + section.exams.length, 0
         ), 0
       );
 

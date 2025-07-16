@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -77,7 +77,7 @@ export const QuestionValidationWidget = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const validator = QuestionValidator.getInstance();
+  const validator = useCallback(() => QuestionValidator.getInstance(), [])();
 
   useEffect(() => {
     if (question.question && question.question.trim().length > 5) {
@@ -96,7 +96,7 @@ export const QuestionValidationWidget = ({
       setValidationResult(null);
       setIsLoading(false);
     }
-  }, [question, onValidationChange]);
+  }, [question, onValidationChange, validator]);
 
   if (!isVisible || !validationResult) {
     return null;
@@ -203,7 +203,7 @@ export const QuestionValidationWidget = ({
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="space-y-1">
                       <div className="flex justify-between">
-                        <span>Bloom's Alignment</span>
+                        <span>Bloom&apos;s Alignment</span>
                         <span className="font-medium">{Math.round(validationResult.criteria.bloomsAlignment * 100)}%</span>
                       </div>
                       <Progress value={validationResult.criteria.bloomsAlignment * 100} className="h-1" />

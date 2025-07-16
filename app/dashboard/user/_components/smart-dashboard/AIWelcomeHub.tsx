@@ -174,7 +174,7 @@ export function AIWelcomeHub({ user }: AIWelcomeHubProps) {
                   <div className="p-2 rounded-full bg-green-100">
                     <Target className="w-5 h-5 text-green-600" />
                   </div>
-                  <h3 className="font-semibold text-white">Today's Progress</h3>
+                  <h3 className="font-semibold text-white">Today&apos;s Progress</h3>
                 </div>
 
                 <div className="space-y-6">

@@ -33,8 +33,8 @@ export async function DELETE(
         sectionId: params.sectionId,
       },
       include: {
-        questions: true,
-        userAttempts: true
+        ExamQuestion: true,
+        UserExamAttempt: true
       }
     });
 
@@ -43,7 +43,7 @@ export async function DELETE(
     }
 
     // Prevent deletion if exam has user attempts
-    if (exam.userAttempts && exam.userAttempts.length > 0) {
+    if (exam.UserExamAttempt && exam.UserExamAttempt.length > 0) {
       return new NextResponse("Cannot delete exam with existing user attempts", { status: 400 });
     }
 
@@ -102,14 +102,14 @@ export async function GET(
         sectionId: params.sectionId,
       },
       include: {
-        questions: {
+        ExamQuestion: {
           orderBy: {
             order: 'asc'
           }
         },
         _count: {
           select: {
-            userAttempts: true
+            UserExamAttempt: true
           }
         }
       }

@@ -14,8 +14,6 @@ interface CalendarLayoutProps {
 }
 
 export const CalendarLayout = ({ userId }: CalendarLayoutProps) => {
-  if (!userId) return null;
-
   const searchParams = useSearchParams();
   const { settings } = useSettingsStore();
   const { syncSettings, isInitialized } = useSettingsSync();
@@ -30,6 +28,8 @@ export const CalendarLayout = ({ userId }: CalendarLayoutProps) => {
       });
     }
   }, [isInitialized, settings, syncSettings]);
+
+  if (!userId) return null;
 
   // Get filters from URL
   const filters = {

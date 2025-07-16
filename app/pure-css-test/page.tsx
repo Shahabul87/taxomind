@@ -3,7 +3,6 @@ export default function PureCSSTest() {
   return (
     <html>
       <head>
-        <link rel="stylesheet" href="/_next/static/css/app/layout.css" />
       </head>
       <body>
         <div style={{ padding: '20px' }}>

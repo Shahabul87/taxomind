@@ -4,6 +4,7 @@ import { ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 import axios from "axios";
 import { toast } from "sonner";
+import Image from "next/image";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
@@ -56,9 +57,11 @@ const ButtonWithClick = forwardRef<HTMLButtonElement, ButtonProps>(
             toast(
               <div className="space-y-2">
                 <p className="font-semibold">Thumbnail Preview</p>
-                <img 
+                <Image 
                   src={response.data.thumbnail_url} 
                   alt="Video thumbnail" 
+                  width={300}
+                  height={200}
                   className="w-full h-auto rounded-md"
                 />
               </div>,

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Star, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface ReviewCardProps {
   review: {
@@ -30,9 +31,11 @@ export const ReviewCard = ({ review, index }: ReviewCardProps) => {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           {review.user.image ? (
-            <img 
+            <Image
               src={review.user.image} 
               alt={review.user.name || "User"}
+              width={40}
+              height={40}
               className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
             />
           ) : (

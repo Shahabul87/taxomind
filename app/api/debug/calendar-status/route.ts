@@ -8,13 +8,14 @@ export async function GET() {
     auth: {
       status: "unknown",
       hasSession: false,
-      userId: null,
+      userId: null as string | null,
+      error: null as string | null,
     },
     database: {
       status: "unknown",
       connectionTest: false,
       eventCount: 0,
-      error: null,
+      error: null as string | null,
     },
     environment: {
       nodejs: process.version,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useEffect } from "react";
+import { useReducer, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -54,14 +54,14 @@ export const ExamCreationForm = ({
   const { isSubmitting, isValid } = form.formState;
 
   // Course context state
-  const courseContext: CourseContext = {
+  const [courseContext, setCourseContext] = useState<CourseContext>({
     courseId,
     chapterId,
     sectionId,
     courseTitle: "",
     chapterTitle: "",
     sectionTitle: "",
-  };
+  });
 
   // Fetch data on mount
   useEffect(() => {
@@ -71,25 +71,37 @@ export const ExamCreationForm = ({
         const sectionResponse = await axios.get(
           `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`
         );
-        courseContext.sectionTitle = sectionResponse.data.title || "";
+        const sectionTitle = sectionResponse.data.title || "";
 
         // Fetch chapter data
+        let chapterTitle = "";
         try {
           const chapterResponse = await axios.get(
             `/api/courses/${courseId}/chapters/${chapterId}`
           );
-          courseContext.chapterTitle = chapterResponse.data.title || "";
+          chapterTitle = chapterResponse.data.title || "";
         } catch (error) {
           console.warn("Failed to fetch chapter title:", error);
         }
 
         // Fetch course data
+        let courseTitle = "";
         try {
           const courseResponse = await axios.get(`/api/courses/${courseId}`);
-          courseContext.courseTitle = courseResponse.data.title || "";
+          courseTitle = courseResponse.data.title || "";
         } catch (error) {
           console.warn("Failed to fetch course title:", error);
         }
+
+        // Update course context
+        setCourseContext({
+          courseId,
+          chapterId,
+          sectionId,
+          courseTitle,
+          chapterTitle,
+          sectionTitle,
+        });
 
         // Fetch existing exams
         const examsResponse = await axios.get(
@@ -370,7 +382,7 @@ export const ExamCreationForm = ({
             Create an Exam
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6 max-w-md">
-            Create quizzes, assignments, and tests to assess your students' understanding of the
+            Create quizzes, assignments, and tests to assess your students&apos; understanding of the
             material
           </p>
           <Button

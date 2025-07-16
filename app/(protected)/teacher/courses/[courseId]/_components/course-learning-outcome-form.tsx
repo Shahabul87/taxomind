@@ -49,8 +49,8 @@ export const CourseLearningOutcomeForm = ({
   const router = useRouter();
 
   // Convert array to HTML string for display
-  const learningOutcomesHtml = initialData?.whatYouWillLearn?.length > 0 
-    ? `<ul class="list-disc pl-6 space-y-1 mb-3">${initialData.whatYouWillLearn.map(item => `<li class="text-slate-800 dark:text-slate-200 leading-relaxed">${item}</li>`).join('')}</ul>`
+  const learningOutcomesHtml = (initialData?.whatYouWillLearn?.length ?? 0) > 0 
+    ? `<ul class="list-disc pl-6 space-y-1 mb-3">${initialData.whatYouWillLearn!.map(item => `<li class="text-slate-800 dark:text-slate-200 leading-relaxed">${item}</li>`).join('')}</ul>`
     : "";
 
   useEffect(() => {

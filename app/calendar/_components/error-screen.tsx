@@ -29,7 +29,7 @@ export const ErrorScreen = ({
             </h3>
             <ul className="text-sm text-left space-y-2">
               <li>• Check your internet connection</li>
-              <li>• Make sure you're signed in</li>
+              <li>• Make sure you&apos;re signed in</li>
               <li>• Try refreshing the page</li>
               <li>• Clear your browser cache</li>
             </ul>

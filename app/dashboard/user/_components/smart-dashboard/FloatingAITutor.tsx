@@ -107,7 +107,7 @@ export function FloatingAITutor({ user }: FloatingAITutorProps) {
       suggestions: contextualSuggestions.slice(0, 3)
     };
     setMessages([welcomeMessage]);
-  }, [user.name]);
+  }, [user.name, contextualSuggestions]);
 
   // Auto-open based on user activity (simulate)
   useEffect(() => {

@@ -198,10 +198,10 @@ export class FeatureEngineer {
     return { average, count: scores.length };
   }
 
-  // Get learning patterns
+  // Get learning patterns (replaced with learning_metrics)
   private async getLearningPatterns(studentId: string) {
-    return db.learningPattern.findUnique({
-      where: { studentId }
+    return db.learning_metrics.findFirst({
+      where: { userId: studentId }
     });
   }
 

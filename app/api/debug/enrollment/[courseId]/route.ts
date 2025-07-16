@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { randomBytes } from 'crypto';
 
 export async function GET(
   request: NextRequest,
@@ -24,7 +25,7 @@ export async function GET(
         },
       },
       include: {
-        course: {
+        Course: {
           select: {
             title: true,
             price: true,
@@ -59,7 +60,7 @@ export async function GET(
         userId: user.id,
       },
       include: {
-        course: {
+        Course: {
           select: {
             title: true,
           }
@@ -91,7 +92,7 @@ export async function GET(
         exists: true,
         id: enrollment.id,
         createdAt: enrollment.createdAt,
-        course: enrollment.course.title,
+        course: enrollment.Course.title,
       } : {
         exists: false,
         message: 'No enrollment found for this course'
@@ -104,7 +105,7 @@ export async function GET(
         message: 'No Stripe customer record found'
       },
       recentEnrollments: recentEnrollments.map(e => ({
-        courseTitle: e.course.title,
+        courseTitle: e.Course.title,
         enrolledAt: e.createdAt,
       })),
       timestamp: new Date().toISOString(),
@@ -155,8 +156,10 @@ export async function POST(
     // Create enrollment manually (for testing)
     const enrollment = await db.enrollment.create({
       data: {
+        id: randomBytes(16).toString('hex'),
         userId: user.id,
         courseId: courseId,
+        updatedAt: new Date(),
       },
     });
 

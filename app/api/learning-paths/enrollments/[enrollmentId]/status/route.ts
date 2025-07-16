@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { enrollmentId: string } }
+  { params }: { params: Promise<{ enrollmentId: string }> }
 ) {
   try {
     const session = await auth();
@@ -12,6 +12,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { enrollmentId } = await params;
     const { status } = await req.json();
 
     if (!["ACTIVE", "PAUSED", "COMPLETED", "ABANDONED"].includes(status)) {
@@ -24,7 +25,7 @@ export async function PATCH(
     // Verify enrollment belongs to user
     const enrollment = await db.pathEnrollment.findFirst({
       where: {
-        id: params.enrollmentId,
+        id: enrollmentId,
         userId: session.user.id,
       },
     });
@@ -38,7 +39,7 @@ export async function PATCH(
 
     // Update enrollment status
     const updatedEnrollment = await db.pathEnrollment.update({
-      where: { id: params.enrollmentId },
+      where: { id: enrollmentId },
       data: {
         status,
         ...(status === "COMPLETED" ? { completedAt: new Date() } : {}),

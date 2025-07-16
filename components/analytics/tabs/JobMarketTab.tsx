@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -87,24 +87,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
     return () => clearTimeout(timer);
   }, [user]);
 
-  // Auto-refresh timer
-  useEffect(() => {
-    if (!autoRefreshEnabled) return;
-
-    const interval = setInterval(() => {
-      setRefreshCountdown(prev => {
-        if (prev <= 1) {
-          refreshMarketData();
-          return 300; // Reset to 5 minutes
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [autoRefreshEnabled]);
-
-  const refreshMarketData = () => {
+  const refreshMarketData = useCallback(() => {
     setIsLoading(true);
     // Simulate data refresh with slight variations
     setTimeout(() => {
@@ -121,7 +104,24 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
       setLastRefresh(new Date());
       setIsLoading(false);
     }, 1500);
-  };
+  }, []);
+
+  // Auto-refresh timer
+  useEffect(() => {
+    if (!autoRefreshEnabled) return;
+
+    const interval = setInterval(() => {
+      setRefreshCountdown(prev => {
+        if (prev <= 1) {
+          refreshMarketData();
+          return 300; // Reset to 5 minutes
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [autoRefreshEnabled, refreshMarketData]);
 
   const formatCountdown = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -482,7 +482,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
               Course Market Intelligence
             </h2>
             <p className="text-slate-600 dark:text-slate-400">
-              AI-powered analysis of your courses' market value and career potential
+              AI-powered analysis of your courses&apos; market value and career potential
             </p>
           </div>
           <div className="text-right space-y-2">

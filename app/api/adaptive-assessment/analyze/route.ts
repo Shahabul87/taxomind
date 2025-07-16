@@ -62,15 +62,15 @@ export async function POST(
     const attempts = await db.userExamAttempt.findMany({
       where: whereClause,
       include: {
-        exam: {
+        Exam: {
           select: {
             title: true,
             sectionId: true,
           }
         },
-        answers: {
+        UserAnswer: {
           include: {
-            question: {
+            ExamQuestion: {
               select: {
                 questionType: true,
                 difficulty: true,
@@ -175,9 +175,9 @@ function analyzeCognitiveLevels(attempts: any[]): CognitiveLevelAnalysis[] {
   attempts.forEach(attempt => {
     const timePerQuestion = attempt.timeSpent ? attempt.timeSpent / attempt.totalQuestions : 0;
     
-    attempt.answers.forEach((answer: any) => {
-      const bloomsLevel = answer.question.bloomsLevel || 'REMEMBER';
-      const difficulty = answer.question.difficulty?.toLowerCase() || 'medium';
+    attempt.UserAnswer.forEach((answer: any) => {
+      const bloomsLevel = answer.ExamQuestion.bloomsLevel || 'REMEMBER';
+      const difficulty = answer.ExamQuestion.difficulty?.toLowerCase() || 'medium';
       
       if (analysis[bloomsLevel]) {
         analysis[bloomsLevel].totalQuestions++;

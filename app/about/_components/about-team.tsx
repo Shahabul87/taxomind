@@ -120,7 +120,7 @@ export const AboutTeam = () => {
           className="mt-16 text-center"
         >
           <p className="text-gray-700 dark:text-gray-300 mb-6">
-            Want to join our team? We're always looking for passionate individuals.
+            Want to join our team? We&apos;re always looking for passionate individuals.
           </p>
           <a 
             href="/careers" 

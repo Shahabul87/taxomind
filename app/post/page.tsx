@@ -2,13 +2,14 @@ import { getPostsForHomepage } from "@/actions/get-all-posts";
 import PostCard from "./_components/post-card";
 
 interface SearchPageProps {
-  searchParams: {
-    title: string;
-    category: string;
-  };
+  searchParams: Promise<{
+    title?: string;
+    category?: string;
+  }>;
 }
 
 const PostsPage = async ({ searchParams }: SearchPageProps) => {
+  const searchParamsData = await searchParams;
   // Fetch posts for the homepage
   const posts = (await getPostsForHomepage()) || [];
 

@@ -94,7 +94,7 @@ export function useLearningSession(): LearningSessionHook {
         clearInterval(periodicUpdateRef.current);
       }
     };
-  }, [isTracking, sessionId, engagementScore, interactionCount, pauseCount, seekCount, strugglingIndicators]);
+  }, [isTracking, sessionId, engagementScore, interactionCount, pauseCount, seekCount, strugglingIndicators, updateProgress]);
 
   const startSession = async (courseId: string, chapterId?: string) => {
     try {
@@ -241,7 +241,7 @@ export function useLearningSession(): LearningSessionHook {
         endSession({ status: 'ABANDONED' });
       }
     };
-  }, []);
+  }, [isTracking, sessionId, endSession]);
 
   return {
     sessionId,

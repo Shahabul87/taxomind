@@ -128,14 +128,14 @@ async function getUserPerformanceData(userId: string, sectionId: string) {
   const attempts = await db.userExamAttempt.findMany({
     where: {
       userId,
-      exam: {
+      Exam: {
         sectionId
       }
     },
     include: {
-      answers: {
+      UserAnswer: {
         include: {
-          question: {
+          ExamQuestion: {
             select: {
               questionType: true,
               difficulty: true,
@@ -158,10 +158,10 @@ async function getUserPerformanceData(userId: string, sectionId: string) {
   const questionTypePerformance: { [key: string]: { correct: number; total: number } } = {};
 
   attempts.forEach(attempt => {
-    attempt.answers.forEach(answer => {
-      const blooms = answer.question.bloomsLevel || 'REMEMBER';
-      const difficulty = answer.question.difficulty || 'MEDIUM';
-      const questionType = answer.question.questionType || 'MULTIPLE_CHOICE';
+    attempt.UserAnswer.forEach(answer => {
+      const blooms = answer.ExamQuestion.bloomsLevel || 'REMEMBER';
+      const difficulty = answer.ExamQuestion.difficulty || 'MEDIUM';
+      const questionType = answer.ExamQuestion.questionType || 'MULTIPLE_CHOICE';
 
       // Track Bloom's performance
       if (!bloomsPerformance[blooms]) {

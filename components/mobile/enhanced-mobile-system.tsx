@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import { 
   Menu, X, ChevronLeft, ChevronRight, MoreHorizontal,
   Search, Bell, User, Home, BookOpen, BarChart3,
@@ -256,10 +257,12 @@ export const MobileCourseCard = ({
   return (
     <Card className="overflow-hidden">
       <div className="relative">
-        <img 
+        <Image 
           src={course.image} 
           alt={course.title}
           className="w-full h-48 object-cover"
+          width={400}
+          height={192}
         />
         <div className="absolute top-2 right-2 flex gap-2">
           <Button

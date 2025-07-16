@@ -77,6 +77,12 @@ export const getUserById = async (id: string) => {
     // Cache the result
     if (user) {
       userCache.set(id, { user, timestamp: Date.now() });
+    } else {
+      // Log missing user info for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`⚠️  User not found in database: ${id}`);
+        console.warn('This might indicate a stale session. Try clearing browser cookies or logging out/in.');
+      }
     }
     
     if (process.env.NODE_ENV === 'development') {

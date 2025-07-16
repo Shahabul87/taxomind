@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   User,
@@ -121,7 +121,7 @@ export const StudentProfileAnalytics = ({
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'semester' | 'all'>('month');
   const [activeTab, setActiveTab] = useState('overview');
 
-  const fetchStudentProfile = async () => {
+  const fetchStudentProfile = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/teacher-analytics/student-profile', {
@@ -148,11 +148,11 @@ export const StudentProfileAnalytics = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [courseId, studentId, timeframe]);
 
   useEffect(() => {
     fetchStudentProfile();
-  }, [courseId, studentId, timeframe]);
+  }, [courseId, studentId, timeframe, fetchStudentProfile]);
 
   const getRiskLevelColor = (level: string) => {
     switch (level) {
@@ -478,7 +478,7 @@ export const StudentProfileAnalytics = ({
                 Cognitive Level Analysis
               </CardTitle>
               <CardDescription>
-                Performance across different thinking skills (Bloom's Taxonomy)
+                Performance across different thinking skills (Bloom&apos;s Taxonomy)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -705,9 +705,9 @@ export const StudentProfileAnalytics = ({
                 <div className="text-center">
                   <div className={cn(
                     "text-3xl font-bold mb-2",
-                    profile.comparativeAnalysis.difference > 0 ? "text-green-600" : "text-red-600"
+                    profile.comparativeAnalysis.peerComparison.difference > 0 ? "text-green-600" : "text-red-600"
                   )}>
-                    {profile.comparativeAnalysis.difference > 0 ? '+' : ''}{profile.comparativeAnalysis.difference.toFixed(1)}%
+                    {profile.comparativeAnalysis.peerComparison.difference > 0 ? '+' : ''}{profile.comparativeAnalysis.peerComparison.difference.toFixed(1)}%
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     vs Class Average

@@ -1,7 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { CircleDollarSign, File, LayoutDashboard, ListChecks, AlertTriangle, CheckCircle2, Brain, Target, FileQuestion, Lightbulb, Sparkles } from "lucide-react";
+import { CircleDollarSign, File, LayoutDashboard, ListChecks, AlertTriangle, CheckCircle2, Brain, Target, FileQuestion, Lightbulb, Sparkles, BarChart3 } from "lucide-react";
 import { TitleForm } from "./_components/title-form";
 import { DescriptionForm } from "./_components/description-form";
 
@@ -16,16 +16,20 @@ import { cn } from "@/lib/utils";
 import { CourseImageUpload } from "./_components/course-image-upload";
 import { CourseLearningOutcomeForm } from "./_components/course-learning-outcome-form";
 import { BloomsTaxonomyGuide } from "./chapters/[chapterId]/section/[sectionId]/_components/blooms-taxonomy-guide";
-import { SimplifiedAICourseAssistant } from "./_components/simplified-ai-course-assistant";
 import { ContextAwareFeatureRevealer } from "@/components/ui/context-aware-feature-revealer";
+import { BlueprintIntegration } from "./_components/blueprint-integration";
+import { BloomsTaxonomyProgressTracker } from "./_components/blooms-taxonomy-progress-tracker";
+import { AdvancedAnalyticsDashboard } from "./_components/advanced-analytics-dashboard";
+import { SamIntegration } from "./_components/sam-integration-example";
 
+interface CourseIdPageProps {
+  params: Promise<{courseId: string}>;
+}
 
+export default async function CourseIdPage({ params: paramsPromise }: CourseIdPageProps) {
+  const params = await paramsPromise;
 
-const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
-  const params = await props.params;
-
-
-  const user:any = await currentUser();
+  const user = await currentUser();
 
   if(!user?.id){
       return redirect("/");
@@ -42,6 +46,13 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
      chapters: {
        orderBy: {
          position: "asc",
+       },
+       include: {
+         sections: {
+           orderBy: {
+             position: "asc",
+           },
+         },
        },
      },
      attachments: {
@@ -65,23 +76,22 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
  }
 
   // Define sections as individual items for tracking completion
-  const sections = {
+  const completionStatus = {
     titleDesc: Boolean(course.title && course.description),
     learningObj: Boolean(course.whatYouWillLearn && course.whatYouWillLearn.length > 0),
     image: Boolean(course.imageUrl),
-    pricing: Boolean(course.price !== null && course.price !== undefined),
+    price: Boolean(course.price !== null && course.price !== undefined),
     category: Boolean(course.categoryId),
-    // Chapter is complete if there's at least one chapter
     chapters: Boolean(course.chapters.length > 0),
     attachments: Boolean(course.attachments.length > 0)
   };
 
   // Log sections status to help debug
-  console.log("Sections status:", sections);
-  console.log("Completed sections:", Object.values(sections).filter(Boolean).length);
+  console.log("Sections status:", completionStatus);
+  console.log("Completed sections:", Object.values(completionStatus).filter(Boolean).length);
 
   // Calculate completed sections
-  const sectionValues = Object.values(sections);
+  const sectionValues = Object.values(completionStatus);
   const completedSections = sectionValues.filter(Boolean).length;
   const totalSections = sectionValues.length;
   
@@ -91,7 +101,6 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
   
   const completionText = `(${completedSections}/${totalSections})`;
   const completionPercentage = Math.round((completedSections / totalSections) * 100);
-
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 via-gray-50 to-white dark:from-gray-900 dark:via-gray-850 dark:to-gray-800">
@@ -196,6 +205,18 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
           />
         </div>
 
+        {/* Blueprint Integration - Shows AI-generated course structure if available */}
+        <div className="px-4 md:px-8 mb-6">
+          <BlueprintIntegration 
+            courseId={params.courseId}
+            currentCourse={{
+              title: course.title,
+              description: course.description || undefined,
+              chapters: course.chapters
+            }}
+          />
+        </div>
+
         {/* Main Content Grid */}
         <div className="px-4 md:px-8">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
@@ -206,13 +227,13 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                 "border border-gray-200/70 dark:border-gray-700/50",
                 "bg-white dark:bg-gray-800",
                 "shadow-md p-5 md:p-7",
-                sections.titleDesc ? "border-l-4 border-emerald-500" : ""
+                completionStatus.titleDesc ? "border-l-4 border-emerald-500" : ""
               )}>
                 <div className="flex items-center gap-x-3 mb-6">
-                  <IconBadge icon={LayoutDashboard} variant={sections.titleDesc ? "success" : "default"} />
+                  <IconBadge icon={LayoutDashboard} variant={completionStatus.titleDesc ? "success" : "default"} />
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     Basic Information
-                    {sections.titleDesc && (
+                    {completionStatus.titleDesc && (
                       <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
                         (Completed)
                       </span>
@@ -224,21 +245,21 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                   <TitleForm initialData={{ title: course.title ?? undefined, description: course.description ?? undefined }} courseId={course.id} />
                   <div className={cn(
                     "rounded-md overflow-hidden",
-                    sections.titleDesc ? "border-l-4 border-emerald-500" : ""
+                    completionStatus.titleDesc ? "border-l-4 border-emerald-500" : ""
                   )}>
                     <DescriptionForm initialData={course} courseId={course.id} />
                   </div>
                   <div className={cn(
-                    sections.learningObj ? "border-l-4 border-emerald-500 pl-4 py-2" : ""
+                    completionStatus.learningObj ? "border-l-4 border-emerald-500 pl-4 py-2" : ""
                   )}>
                     <div className="flex items-start gap-x-2">
-                      {sections.learningObj && (
+                      {completionStatus.learningObj && (
                         <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-1 flex-shrink-0" />
                       )}
                       <div className="w-full">
                         <h3 className="text-sm font-medium mb-2 flex items-center">
                           Learning Objectives
-                          {sections.learningObj && (
+                          {completionStatus.learningObj && (
                             <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
                               (Completed)
                             </span>
@@ -258,102 +279,39 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                 </div>
               </div>
 
-              {/* Smart AI Course Building Assistant */}
-              {!sections.titleDesc || !sections.learningObj ? (
-                <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[1px] rounded-xl">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-5">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
-                        <Brain className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">
-                          Need AI Help Building Your Course?
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Let our AI assistant help you create comprehensive course content faster
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {!sections.titleDesc && (
-                        <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-700">
-                          <div className="flex items-start gap-3">
-                            <Target className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                            <div>
-                              <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-1">
-                                Enhance Course Description
-                              </h4>
-                              <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                                Get AI-powered suggestions for compelling course titles and descriptions that attract students.
-                              </p>
-                              <button className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition-colors">
-                                Get AI Writing Help
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {!sections.learningObj && (
-                        <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-700">
-                          <div className="flex items-start gap-3">
-                            <Lightbulb className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5" />
-                            <div>
-                              <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-1">
-                                Generate Learning Objectives
-                              </h4>
-                              <p className="text-sm text-purple-700 dark:text-purple-300 mb-3">
-                                Create SMART learning objectives aligned with Bloom's taxonomy for better student outcomes.
-                              </p>
-                              <button className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-md transition-colors">
-                                AI Objective Builder
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {sections.titleDesc && sections.learningObj && (
-                      <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-700">
-                        <div className="flex items-center gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                          <div>
-                            <h4 className="font-medium text-green-800 dark:text-green-200">
-                              Great Progress! Ready for Advanced AI Features?
-                            </h4>
-                            <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                              Now that your basics are complete, unlock AI-powered chapter generation, content curation, and assessment creation.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : null}
 
-              {/* Enhanced AI Course Assistant */}
-              {sections.titleDesc && sections.learningObj && (
-                <div className={cn(
-                  "rounded-xl",
-                  "border border-gray-200/70 dark:border-gray-700/50",
-                  "bg-white dark:bg-gray-800",
-                  "shadow-md overflow-hidden"
-                )}>
-                  <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 p-[1px]">
-                    <div className="bg-white dark:bg-gray-800 p-5 md:p-7">
-                      <SimplifiedAICourseAssistant 
-                        courseId={params.courseId}
-                        courseTitle={course.title || "Your Course"}
-                        currentChapters={course.chapters.length}
-                      />
-                    </div>
+              {/* Bloom's Taxonomy Progress Tracker */}
+              <div className={cn(
+                "rounded-xl",
+                "border border-gray-200/70 dark:border-gray-700/50",
+                "bg-white dark:bg-gray-800",
+                "shadow-md overflow-hidden"
+              )}>
+                <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[1px]">
+                  <div className="bg-white dark:bg-gray-800 p-5 md:p-7">
+                    <BloomsTaxonomyProgressTracker 
+                      courseId={params.courseId}
+                      courseStructure={{
+                        id: course.id,
+                        title: course.title || "Untitled Course",
+                        chapters: course.chapters.map(chapter => ({
+                          id: chapter.id,
+                          title: chapter.title,
+                          bloomsLevel: undefined, // TODO: Add bloomsLevel to chapter model
+                          sections: chapter.sections.map(section => ({
+                            id: section.id,
+                            title: section.title,
+                            bloomsLevel: undefined, // TODO: Add bloomsLevel to section model
+                            contentType: undefined, // TODO: Add contentType to section model
+                            isPublished: section.isPublished
+                          }))
+                        }))
+                      }}
+                      view="teacher"
+                    />
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Bloom's Taxonomy Educational Design Guide */}
               <div className={cn(
@@ -373,7 +331,7 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                           Educational Design Assistant
                         </h2>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          AI-powered Bloom's taxonomy guide for cognitive learning design
+                          AI-powered Bloom&apos;s taxonomy guide for cognitive learning design
                         </p>
                       </div>
                     </div>
@@ -385,7 +343,7 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                           <div>
                             <h4 className="font-medium text-indigo-800 dark:text-indigo-200 mb-1">Smart Course Design</h4>
                             <p className="text-sm text-indigo-700 dark:text-indigo-300 leading-relaxed">
-                              Use our comprehensive Bloom's taxonomy guide to design cognitively progressive learning experiences. 
+                              Use our comprehensive Bloom&apos;s taxonomy guide to design cognitively progressive learning experiences. 
                               Create questions and assessments that build from basic recall to advanced creative thinking.
                             </p>
                           </div>
@@ -406,19 +364,20 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
 
             {/* Right Column */}
             <div className="space-y-6 md:space-y-8">
+
               {/* Chapters Section */}
               <div className={cn(
                 "rounded-xl",
                 "border border-gray-200/70 dark:border-gray-700/50",
                 "bg-white dark:bg-gray-800",
                 "shadow-md p-5 md:p-7",
-                sections.chapters ? "border-l-4 border-emerald-500" : ""
+                completionStatus.chapters ? "border-l-4 border-emerald-500" : ""
               )}>
                 <div className="flex items-center gap-x-3 mb-6">
-                  <IconBadge icon={ListChecks} variant={sections.chapters ? "success" : "default"} />
+                  <IconBadge icon={ListChecks} variant={completionStatus.chapters ? "success" : "default"} />
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     Course Chapters
-                    {sections.chapters && (
+                    {completionStatus.chapters && (
                       <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
                         (Completed)
                       </span>
@@ -426,76 +385,6 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                   </h2>
                 </div>
                 <ChaptersForm initialData={course} courseId={course.id} />
-                
-                {/* AI Chapter & Content Assistant */}
-                {sections.titleDesc && sections.learningObj && (
-                  <div className="mt-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 p-[1px] rounded-xl">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-4">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg">
-                          <Brain className="h-4 w-4 text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-gray-100">
-                            AI-Powered Content Creation
-                          </h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            Generate chapters, sections, and assessments automatically
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {!sections.chapters ? (
-                          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-700">
-                            <div className="flex items-start gap-2">
-                              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-                              <div>
-                                <h5 className="font-medium text-emerald-800 dark:text-emerald-200 text-sm mb-1">
-                                  Generate Course Structure
-                                </h5>
-                                <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-2">
-                                  Let AI create a complete chapter outline based on your course objectives and industry best practices.
-                                </p>
-                                <button className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded">
-                                  Auto-Generate Chapters
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="p-3 bg-teal-50 dark:bg-teal-950/20 rounded-lg border border-teal-200 dark:border-teal-700">
-                            <div className="flex items-start gap-2">
-                              <Target className="w-4 h-4 text-teal-600 dark:text-teal-400 mt-0.5" />
-                              <div>
-                                <h5 className="font-medium text-teal-800 dark:text-teal-200 text-sm mb-1">
-                                  Enhance Existing Chapters
-                                </h5>
-                                <p className="text-xs text-teal-700 dark:text-teal-300 mb-2">
-                                  Use AI to add detailed sections, practice exercises, and assessments to your chapters.
-                                </p>
-                                <button className="text-xs bg-teal-600 hover:bg-teal-700 text-white px-2 py-1 rounded">
-                                  Enhance with AI
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <button className="flex items-center gap-1 p-2 bg-cyan-50 dark:bg-cyan-950/20 text-cyan-700 dark:text-cyan-300 rounded hover:bg-cyan-100 dark:hover:bg-cyan-950/40 transition-colors">
-                            <FileQuestion className="w-3 h-3" />
-                            AI Quiz Generator
-                          </button>
-                          <button className="flex items-center gap-1 p-2 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors">
-                            <Lightbulb className="w-3 h-3" />
-                            Content Curator
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Price Section */}
@@ -504,13 +393,13 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                 "border border-gray-200/70 dark:border-gray-700/50",
                 "bg-white dark:bg-gray-800",
                 "shadow-md p-5 md:p-7",
-                sections.pricing ? "border-l-4 border-emerald-500" : ""
+                completionStatus.price ? "border-l-4 border-emerald-500" : ""
               )}>
                 <div className="flex items-center gap-x-3 mb-6">
-                  <IconBadge icon={CircleDollarSign} variant={sections.pricing ? "success" : "default"} />
+                  <IconBadge icon={CircleDollarSign} variant={completionStatus.price ? "success" : "default"} />
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     Sell your course
-                    {sections.pricing && (
+                    {completionStatus.price && (
                       <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
                         (Completed)
                       </span>
@@ -538,13 +427,13 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                   {/* Category */}
                   <div className={cn(
                     "p-4 rounded-md",
-                    sections.category ? "border-l-4 border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/5" : "bg-gray-50 dark:bg-gray-800/60"
+                    completionStatus.category ? "border-l-4 border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/5" : "bg-gray-50 dark:bg-gray-800/60"
                   )}>
                     <div className="flex items-center gap-x-3 mb-4">
-                      <IconBadge icon={ListChecks} size="sm" variant={sections.category ? "success" : "default"} />
+                      <IconBadge icon={ListChecks} size="sm" variant={completionStatus.category ? "success" : "default"} />
                       <h3 className="font-medium text-gray-900 dark:text-gray-100">
                         Category
-                        {sections.category && (
+                        {completionStatus.category && (
                           <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
                             (Completed)
                           </span>
@@ -564,13 +453,13 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                   {/* Course Image */}
                   <div className={cn(
                     "p-4 rounded-md",
-                    sections.image ? "border-l-4 border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/5" : "bg-gray-50 dark:bg-gray-800/60"
+                    completionStatus.image ? "border-l-4 border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/5" : "bg-gray-50 dark:bg-gray-800/60"
                   )}>
                     <div className="flex items-center gap-x-3 mb-4">
-                      <IconBadge icon={File} size="sm" variant={sections.image ? "success" : "default"} />
+                      <IconBadge icon={File} size="sm" variant={completionStatus.image ? "success" : "default"} />
                       <h3 className="font-medium text-gray-900 dark:text-gray-100">
                         Course Image
-                        {sections.image && (
+                        {completionStatus.image && (
                           <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
                             (Completed)
                           </span>
@@ -591,13 +480,13 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                 "border border-gray-200/70 dark:border-gray-700/50",
                 "bg-white dark:bg-gray-800",
                 "shadow-md p-5 md:p-7",
-                sections.attachments ? "border-l-4 border-emerald-500" : ""
+                completionStatus.attachments ? "border-l-4 border-emerald-500" : ""
               )}>
                 <div className="flex items-center gap-x-3 mb-6">
-                  <IconBadge icon={File} variant={sections.attachments ? "success" : "default"} />
+                  <IconBadge icon={File} variant={completionStatus.attachments ? "success" : "default"} />
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     Resources & Attachments
-                    {sections.attachments && (
+                    {completionStatus.attachments && (
                       <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
                         (Completed)
                       </span>
@@ -606,13 +495,62 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                 </div>
                 <AttachmentForm initialData={course} courseId={course.id} />
               </div>
+
+              {/* Advanced Analytics Dashboard */}
+              {completionStatus.titleDesc && completionStatus.learningObj && completionStatus.chapters && (
+                <div className="backdrop-blur-md bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 border border-white/20 shadow-xl rounded-xl relative overflow-hidden">
+                  {/* Background Orbs */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/20 to-blue-400/20 rounded-full blur-xl transform translate-x-16 -translate-y-16"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-purple-400/20 to-cyan-400/20 rounded-full blur-xl transform -translate-x-12 translate-y-12"></div>
+                  
+                  <div className="relative z-10 p-5 md:p-7">
+                    <div className="flex items-center gap-x-3 mb-6">
+                      <div className="p-2 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500">
+                        <BarChart3 className="h-5 w-5 text-white" />
+                      </div>
+                      <h2 className="text-xl font-semibold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
+                        Advanced Course Analytics
+                        <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
+                          (Premium Feature)
+                        </span>
+                      </h2>
+                    </div>
+                    <AdvancedAnalyticsDashboard 
+                      courseId={params.courseId}
+                      courseTitle={course.title || "Your Course"}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Improved SAM Assistant */}
+      <SamIntegration 
+        courseId={params.courseId}
+        courseData={{
+          id: course.id,
+          title: course.title || "Untitled Course",
+          description: course.description,
+          isPublished: course.isPublished,
+          categoryId: course.categoryId,
+          whatYouWillLearn: course.whatYouWillLearn || [],
+          chapters: course.chapters.map(chapter => ({
+            id: chapter.id,
+            title: chapter.title,
+            isPublished: chapter.isPublished,
+            sections: chapter.sections?.map(section => ({
+              id: section.id,
+              title: section.title,
+              isPublished: section.isPublished
+            })) || []
+          }))
+        }}
+        completionStatus={completionStatus}
+        variant="floating"
+      />
     </div>
   );
 }
-
-
-export default CourseIdPage;

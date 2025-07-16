@@ -251,41 +251,42 @@ function normalizeUserData(platform: string, rawData: any) {
 
 async function saveSocialAccount(userId: string, platform: string, accountData: any) {
   try {
-    await prisma.socialAccount.upsert({
+    await prisma.socialMediaAccount.upsert({
       where: {
-        userId_platform: {
+        userId_platform_platformUserId: {
           userId,
-          platform: platform.toUpperCase(),
+          platform: platform.toUpperCase() as any,
+          platformUserId: accountData.id || accountData.platformUserId || 'unknown',
         },
       },
       update: {
         accessToken: accountData.access_token,
         refreshToken: accountData.refresh_token,
-        expiresAt: accountData.expires_in 
+        tokenExpiresAt: accountData.expires_in 
           ? new Date(Date.now() + accountData.expires_in * 1000)
           : null,
         username: accountData.username,
         displayName: accountData.displayName,
         profileImageUrl: accountData.profileImageUrl,
         followerCount: accountData.followerCount,
-        metadata: accountData,
         lastSyncAt: new Date(),
       },
       create: {
+        id: `${userId}-${platform}`,
         userId,
-        platform: platform.toUpperCase(),
-        platformUserId: accountData.platformUserId,
+        platform: platform.toUpperCase() as any,
+        platformUserId: accountData.platformUserId || accountData.id || 'unknown',
+        username: accountData.username || '',
         accessToken: accountData.access_token,
         refreshToken: accountData.refresh_token,
-        expiresAt: accountData.expires_in 
+        tokenExpiresAt: accountData.expires_in 
           ? new Date(Date.now() + accountData.expires_in * 1000)
           : null,
-        username: accountData.username,
         displayName: accountData.displayName,
         profileImageUrl: accountData.profileImageUrl,
-        followerCount: accountData.followerCount,
-        metadata: accountData,
+        followerCount: accountData.followerCount || 0,
         lastSyncAt: new Date(),
+        updatedAt: new Date(),
       },
     });
   } catch (error) {

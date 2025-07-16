@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
+import Image from 'next/image';
 import { BookOpen, Calculator, ChevronDown, ChevronUp, Code2, Loader2, PlusCircle, RefreshCw, XCircle } from 'lucide-react';
 import { InlineMath, BlockMath } from 'react-katex';
 import "katex/dist/katex.min.css";
@@ -222,9 +223,11 @@ export const MathEquationsList = ({ courseId, chapterId, sectionId, refreshTrigg
                     {imageUrl && (
                       <div className="py-4 flex justify-center mb-4">
                         <div className="rounded-lg shadow-sm max-w-full overflow-hidden">
-                          <img 
+                          <Image 
                             src={imageUrl} 
-                            alt={equation.heading} 
+                            alt={equation.heading}
+                            width={400}
+                            height={300}
                             className="max-w-full h-auto"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;

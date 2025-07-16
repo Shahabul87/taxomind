@@ -7,7 +7,7 @@ import { currentUser } from '@/lib/auth';
 export async function GET(req: NextRequest) {
   try {
     const user = await currentUser();
-    if (!user) {
+    if (!user || !user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -70,29 +70,55 @@ async function getRealTimeMetrics(courseId: string | null, timeFilter: any, user
     ...(courseId && { courseId })
   };
 
-  const activeUsers = await db.studentInteraction.findMany({
+  // Use exam attempts as proxy for active users
+  const activeUsers = await db.userExamAttempt.findMany({
     where: {
-      ...recentFilter,
-      studentId: { not: null }
+      createdAt: recentFilter.timestamp,
+      ...(courseId && {
+        exam: {
+          section: {
+            chapter: {
+              courseId
+            }
+          }
+        }
+      })
     },
-    distinct: ['studentId'],
-    select: { studentId: true }
+    distinct: ['userId'],
+    select: { userId: true }
   });
 
-  // Total interactions in time range
-  const totalInteractions = await db.studentInteraction.count({
-    where: baseFilter
+  // Total exam attempts in time range
+  const totalInteractions = await db.userExamAttempt.count({
+    where: {
+      createdAt: baseFilter.timestamp,
+      ...(courseId && {
+        exam: {
+          section: {
+            chapter: {
+              courseId
+            }
+          }
+        }
+      })
+    }
   });
 
-  // Current video watchers
-  const currentVideosWatching = await db.studentInteraction.count({
+  // Current active exam takers (in progress status)
+  const currentVideosWatching = await db.userExamAttempt.count({
     where: {
-      ...recentFilter,
-      eventName: {
-        in: ['video_play', 'video_progress']
-      }
-    },
-    distinct: ['sessionId']
+      createdAt: recentFilter.timestamp,
+      status: 'IN_PROGRESS',
+      ...(courseId && {
+        exam: {
+          section: {
+            chapter: {
+              courseId
+            }
+          }
+        }
+      })
+    }
   });
 
   // Get engagement scores
@@ -124,28 +150,31 @@ async function getRealTimeMetrics(courseId: string | null, timeFilter: any, user
 }
 
 async function getEngagementMetrics(courseId: string | null, timeFilter: any) {
-  const metrics = await db.learningMetric.aggregate({
+  const metrics = await db.learning_metrics.aggregate({
     where: {
       ...(courseId && { courseId }),
-      updatedAt: timeFilter,
-      engagementScore: { not: null }
+      lastActivityDate: timeFilter
     },
     _avg: {
-      engagementScore: true
+      riskScore: true
     }
   });
 
+  // Convert risk score to engagement score (inverted)
+  const avgRiskScore = metrics._avg.riskScore || 0;
+  const engagementScore = Math.max(0, (1 - avgRiskScore) * 100);
+
   return {
-    averageScore: metrics._avg.engagementScore || 0
+    averageScore: engagementScore
   };
 }
 
 async function getCompletionMetrics(courseId: string | null, timeFilter: any) {
   // Get enrollments and completions
-  const enrollments = await db.userCourseEnrollment.findMany({
+  const enrollments = await db.enrollment.findMany({
     where: {
       ...(courseId && { courseId }),
-      enrolledAt: timeFilter
+      createdAt: timeFilter
     }
   });
 
@@ -153,54 +182,90 @@ async function getCompletionMetrics(courseId: string | null, timeFilter: any) {
     return { averageCompletion: 0 };
   }
 
-  const totalProgress = enrollments.reduce(
-    (sum, enrollment) => sum + (enrollment.progressPercentage || 0), 
-    0
-  );
+  // Calculate completion rate based on exam attempts
+  let totalCompletedExams = 0;
+  let totalExamAttempts = 0;
+
+  for (const enrollment of enrollments) {
+    const examAttempts = await db.userExamAttempt.count({
+      where: {
+        userId: enrollment.userId,
+        Exam: {
+          section: {
+            chapter: {
+              courseId: enrollment.courseId
+            }
+          }
+        }
+      }
+    });
+
+    const completedExams = await db.userExamAttempt.count({
+      where: {
+        userId: enrollment.userId,
+        status: 'GRADED',
+        Exam: {
+          section: {
+            chapter: {
+              courseId: enrollment.courseId
+            }
+          }
+        }
+      }
+    });
+
+    totalExamAttempts += examAttempts;
+    totalCompletedExams += completedExams;
+  }
+
+  const completionRate = totalExamAttempts > 0 ? (totalCompletedExams / totalExamAttempts) * 100 : 0;
 
   return {
-    averageCompletion: totalProgress / enrollments.length
+    averageCompletion: completionRate
   };
 }
 
 async function getStrugglingStudentsCount(courseId: string | null, timeFilter: any) {
   // Students with low engagement scores or many struggle indicators
-  const strugglingFromMetrics = await db.learningMetric.count({
+  const strugglingFromMetrics = await db.learning_metrics.count({
     where: {
       ...(courseId && { courseId }),
-      updatedAt: timeFilter,
-      engagementScore: { lt: 50 }
+      lastActivityDate: timeFilter,
+      riskScore: { gte: 0.7 } // High risk score indicates struggling
     }
   });
 
-  // Students with many recent seeks/pauses (struggle indicators)
-  const recentStruggles = await db.studentInteraction.groupBy({
-    by: ['studentId'],
+  // Students with low exam scores (struggle indicators)
+  const lowScoreAttempts = await db.userExamAttempt.groupBy({
+    by: ['userId'],
     where: {
-      ...(courseId && { courseId }),
-      timestamp: timeFilter,
-      eventName: {
-        in: ['video_seek', 'video_pause']
-      },
-      studentId: { not: null }
+      createdAt: timeFilter,
+      scorePercentage: { lt: 40 }, // Low scores
+      ...(courseId && {
+        Exam: {
+          section: {
+            chapter: {
+              courseId
+            }
+          }
+        }
+      })
     },
-    _count: true,
-    having: {
-      _count: {
-        _gte: 10 // More than 10 struggles in time period
-      }
-    }
+    _count: true
   });
 
-  return Math.max(strugglingFromMetrics, recentStruggles.length);
+  // Filter users with at least 2 low-score attempts
+  const strugglingUsers = lowScoreAttempts.filter(attempt => attempt._count >= 2);
+
+  return Math.max(strugglingFromMetrics, strugglingUsers.length);
 }
 
 async function getTopPerformersCount(courseId: string | null, timeFilter: any) {
-  const topPerformers = await db.learningMetric.count({
+  const topPerformers = await db.learning_metrics.count({
     where: {
       ...(courseId && { courseId }),
-      updatedAt: timeFilter,
-      engagementScore: { gte: 80 }
+      lastActivityDate: timeFilter,
+      riskScore: { lte: 0.2 } // Low risk score indicates top performers
     }
   });
 
@@ -208,21 +273,21 @@ async function getTopPerformersCount(courseId: string | null, timeFilter: any) {
 }
 
 async function calculateSystemLoad(): Promise<number> {
-  // Calculate system load based on recent activity
+  // Calculate system load based on recent exam activity
   const now = new Date();
   const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
 
-  const recentInteractions = await db.studentInteraction.count({
+  const recentExamAttempts = await db.userExamAttempt.count({
     where: {
-      timestamp: {
+      createdAt: {
         gte: oneMinuteAgo
       }
     }
   });
 
-  // Normalize to 0-100 scale (assuming 1000 interactions per minute = 100% load)
-  const maxInteractionsPerMinute = 1000;
-  const load = Math.min((recentInteractions / maxInteractionsPerMinute) * 100, 100);
+  // Normalize to 0-100 scale (assuming 50 exam attempts per minute = 100% load)
+  const maxAttemptsPerMinute = 50;
+  const load = Math.min((recentExamAttempts / maxAttemptsPerMinute) * 100, 100);
 
   return Math.round(load);
 }

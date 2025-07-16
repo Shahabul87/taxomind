@@ -25,9 +25,9 @@ export function useDynamicImport<T = any>(
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      const module = await importFn();
+      const importedModule = await importFn();
       setState({
-        component: module.default,
+        component: importedModule.default,
         loading: false,
         error: null,
       });
@@ -126,8 +126,8 @@ export function useProgressiveImport<T extends Record<string, any>>(
     setErrors(prev => ({ ...prev, [key]: null }));
 
     try {
-      const module = await importFn();
-      setComponents(prev => ({ ...prev, [key]: module.default }));
+      const importedModule = await importFn();
+      setComponents(prev => ({ ...prev, [key]: importedModule.default }));
       setLoading(prev => ({ ...prev, [key]: false }));
       
       const loadedCount = Object.keys(components).length + 1;

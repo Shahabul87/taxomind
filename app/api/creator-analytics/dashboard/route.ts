@@ -165,7 +165,7 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
       isPublished: true
     },
     include: {
-      purchases: {
+      Purchase: {
         where: {
           createdAt: {
             gte: timeFilter
@@ -176,7 +176,7 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
         include: {
           sections: {
             include: {
-              userProgress: {
+              user_progress: {
                 where: {
                   updatedAt: {
                     gte: timeFilter
@@ -185,16 +185,16 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
               },
               exams: {
                 include: {
-                  userAttempts: {
+                  UserExamAttempt: {
                     where: {
                       startedAt: {
                         gte: timeFilter
                       }
                     },
                     include: {
-                      answers: {
+                      UserAnswer: {
                         include: {
-                          question: {
+                          ExamQuestion: {
                             select: {
                               bloomsLevel: true,
                               difficulty: true
@@ -202,7 +202,7 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
                           }
                         }
                       },
-                      user: {
+                      User: {
                         select: {
                           id: true,
                           name: true,
@@ -222,7 +222,7 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
 
   // Calculate overview metrics
   const totalCourses = createdCourses.length;
-  const allPurchases = createdCourses.flatMap(course => course.purchases);
+  const allPurchases = createdCourses.flatMap(course => course.Purchase);
   const totalLearners = new Set(allPurchases.map(p => p.userId)).size;
   
   // Mock data for metrics not in current schema
@@ -240,7 +240,7 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
   const sectionEngagement: any[] = [];
 
   createdCourses.forEach(course => {
-    const coursePurchases = course.purchases;
+    const coursePurchases = course.Purchase;
     const learners = coursePurchases.length;
     
     // Calculate completion rate
@@ -248,7 +248,7 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
     const completedByLearner = new Map();
     
     allSections.forEach(section => {
-      section.userProgress.forEach(progress => {
+      section.user_progress.forEach(progress => {
         if (progress.isCompleted) {
           const userId = progress.userId;
           if (!completedByLearner.has(userId)) {
@@ -267,7 +267,7 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
 
     // Collect exam attempts for this course
     const courseExamAttempts = course.chapters.flatMap(ch => 
-      ch.sections.flatMap(s => s.exams.flatMap(e => e.userAttempts))
+      ch.sections.flatMap(s => s.exams.flatMap(e => e.UserExamAttempt))
     );
     allExamAttempts.push(...courseExamAttempts);
 
@@ -285,7 +285,7 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
 
     // Track section engagement
     allSections.forEach(section => {
-      const sectionProgress = section.userProgress.length;
+      const sectionProgress = section.user_progress.length;
       const engagementScore = sectionProgress > 0 ? (sectionProgress / learners) * 100 : 0;
       
       sectionEngagement.push({
@@ -360,8 +360,8 @@ function calculateLearnersCognitiveProgress(examAttempts: any[]): any {
     let total = 0;
 
     examAttempts.forEach(attempt => {
-      attempt.answers.forEach((answer: any) => {
-        if (answer.question.bloomsLevel === level) {
+      attempt.UserAnswer.forEach((answer: any) => {
+        if (answer.ExamQuestion.bloomsLevel === level) {
           total++;
           if (answer.isCorrect) correct++;
         }
@@ -440,9 +440,9 @@ function generateMockFeedback(courses: any[], purchases: any[]): any[] {
   const feedback: any[] = [];
   
   courses.slice(0, 3).forEach(course => {
-    const coursePurchases = course.purchases.slice(0, 3);
+    const coursePurchases = course.Purchase.slice(0, 3);
     
-    coursePurchases.forEach((purchase, index) => {
+    coursePurchases.forEach((purchase: any, index: number) => {
       feedback.push({
         courseId: course.id,
         courseTitle: course.title,

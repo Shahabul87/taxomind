@@ -20,14 +20,11 @@ export async function getProfileData() {
         id: session.user.id
       },
       include: {
-        profileLinks: true,
-        ideas: true,
-        posts: true,
-        favoriteVideos: true,
-        favoriteAudios: true, 
-        favoriteBlogs: true,
-        favoriteArticles: true,
-        subscriptions: true,
+        Post: true,
+        FavoriteVideo: true,
+        FavoriteAudio: true, 
+        FavoriteBlog: true,
+        FavoriteArticle: true,
         courses: {
           include: {
             category: true,
@@ -50,12 +47,12 @@ export async function getProfileData() {
 
     // Try to add enhanced data if tables exist, but don't fail if they don't
     let enhancedData = {
-      socialMediaAccounts: [],
-      contentCollections: [],
-      contentItems: [],
-      userSubscriptions: [],
-      goals: [],
-      userAnalytics: []
+      socialMediaAccounts: [] as any[],
+      contentCollections: [] as any[],
+      contentItems: [] as any[],
+      userSubscriptions: [] as any[],
+      goals: [] as any[],
+      userAnalytics: [] as any[]
     };
 
     try {
@@ -71,7 +68,7 @@ export async function getProfileData() {
       const contentCollections = await db.contentCollection.findMany({
         where: { userId: session.user.id },
         include: {
-          contentItems: {
+          ContentItem: {
             orderBy: {
               createdAt: 'desc'
             }

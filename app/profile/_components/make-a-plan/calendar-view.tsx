@@ -702,14 +702,10 @@ export function CalendarView({ userId }: CalendarViewProps) {
     });
     
     // Current time indicator position (only for today)
-    const currentTimePosition = useMemo(() => {
-      const now = new Date();
-      if (!days.some(day => isSameDay(day, now))) return null;
-      
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      return (hours * 60 + minutes) / (24 * 60) * 100;
-    }, [days]);
+    const now = new Date();
+    const currentTimePosition = !days.some(day => isSameDay(day, now)) 
+      ? null 
+      : ((now.getHours() * 60 + now.getMinutes()) / (24 * 60) * 100);
     
     return (
       <div className="space-y-4">
@@ -930,51 +926,45 @@ export function CalendarView({ userId }: CalendarViewProps) {
     const currentHour = today.getHours();
     
     // Current time indicator position (only for today)
-    const currentTimePosition = useMemo(() => {
-      if (!isSameDay(currentDate, new Date())) return null;
-      
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      return (hours * 60 + minutes) / (24 * 60) * 100;
-    }, [currentDate]);
+    const now = new Date();
+    const currentTimePosition = !isSameDay(currentDate, now) 
+      ? null 
+      : ((now.getHours() * 60 + now.getMinutes()) / (24 * 60) * 100);
     
     // Group events by hour for easier rendering
-    const eventsByHour = useMemo(() => {
-      const hourMap: Record<number, CalendarEvent[]> = {};
+    const hourMap: Record<number, CalendarEvent[]> = {};
+    
+    // Initialize all hours
+    hours.forEach(hour => {
+      hourMap[hour] = [];
+    });
+    
+    console.log('Current date for day view:', format(currentDate, 'yyyy-MM-dd'));
+    
+    // Group events
+    filteredEvents.forEach(event => {
+      const startDate = parseEventDate(event.startDate);
+      const isSameDayResult = isSameDay(startDate, currentDate);
       
-      // Initialize all hours
-      hours.forEach(hour => {
-        hourMap[hour] = [];
+      console.log(`Day view - checking event "${event.title}":`, {
+        eventDate: format(startDate, 'yyyy-MM-dd'),
+        currentDate: format(currentDate, 'yyyy-MM-dd'),
+        matches: isSameDayResult
       });
       
-      console.log('Current date for day view:', format(currentDate, 'yyyy-MM-dd'));
-      
-      // Group events
-      filteredEvents.forEach(event => {
-        const startDate = parseEventDate(event.startDate);
-        const isSameDayResult = isSameDay(startDate, currentDate);
-        
-        console.log(`Day view - checking event "${event.title}":`, {
-          eventDate: format(startDate, 'yyyy-MM-dd'),
-          currentDate: format(currentDate, 'yyyy-MM-dd'),
-          matches: isSameDayResult
-        });
-        
-        if (isSameDayResult) {
-          if (getEventAllDay(event)) {
-            // Place all-day events at the top
-            if (!hourMap[-1]) hourMap[-1] = [];
-            hourMap[-1].push(event);
-          } else {
-            const hour = startDate.getHours();
-            hourMap[hour].push(event);
-          }
+      if (isSameDayResult) {
+        if (getEventAllDay(event)) {
+          // Place all-day events at the top
+          if (!hourMap[-1]) hourMap[-1] = [];
+          hourMap[-1].push(event);
+        } else {
+          const hour = startDate.getHours();
+          hourMap[hour].push(event);
         }
-      });
-      
-      return hourMap;
-    }, [filteredEvents, currentDate, hours]);
+      }
+    });
+    
+    const eventsByHour = hourMap;
     
     return (
       <div className="relative">

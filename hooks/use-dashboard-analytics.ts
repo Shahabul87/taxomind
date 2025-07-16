@@ -134,7 +134,7 @@ interface DashboardAnalytics {
   performanceMetrics: PerformanceMetric[];
   learningSessions: LearningSession[];
   studyStreaks: StudyStreak[];
-  userProgress: UserProgress[];
+  user_progress: UserProgress[];
   achievements: UserAchievement[];
   trends: Trends;
   insights: Insights;
@@ -177,7 +177,7 @@ export function useDashboardAnalytics(
 
   useEffect(() => {
     fetchAnalytics();
-  }, [period, courseId]);
+  }, [period, courseId, fetchAnalytics]);
 
   const refreshAnalytics = () => {
     fetchAnalytics();
@@ -276,7 +276,7 @@ export function useRealtimeActivity(
 
   useEffect(() => {
     fetchActivity();
-  }, [limit, activityType, courseId]);
+  }, [limit, activityType, courseId, fetchActivity]);
 
   return {
     activities,
@@ -327,7 +327,7 @@ export function usePerformanceMetrics(
 
   useEffect(() => {
     fetchPerformance();
-  }, [period, days]);
+  }, [period, days, fetchPerformance]);
 
   return {
     data,

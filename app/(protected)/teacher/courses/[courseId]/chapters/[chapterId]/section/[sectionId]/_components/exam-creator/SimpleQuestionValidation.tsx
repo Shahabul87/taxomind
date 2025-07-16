@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -35,7 +35,7 @@ export function SimpleQuestionValidation({
   const [validationResult, setValidationResult] = useState<SimpleValidationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const validateQuestion = (q: typeof question): SimpleValidationResult => {
+  const validateQuestion = useCallback((q: typeof question): SimpleValidationResult => {
     let score = 0;
     const issues: string[] = [];
     const suggestions: string[] = [];
@@ -123,7 +123,7 @@ export function SimpleQuestionValidation({
       suggestions,
       isValid: score >= 60 && issues.length === 0
     };
-  };
+  }, []);
 
   useEffect(() => {
     if (question.question && question.question.trim().length > 3) {
@@ -141,7 +141,7 @@ export function SimpleQuestionValidation({
       setValidationResult(null);
       setIsLoading(false);
     }
-  }, [question, onValidationChange]);
+  }, [question, onValidationChange, validateQuestion]);
 
   if (!isVisible || isLoading) {
     return isLoading ? (

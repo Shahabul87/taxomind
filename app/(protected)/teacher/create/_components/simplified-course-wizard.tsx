@@ -267,7 +267,7 @@ export const SimplifiedCourseWizard = ({
                   Choose Your Course Template
                 </CardTitle>
                 <CardDescription>
-                  Select a template that best matches your course type. We'll set up smart defaults for you.
+                  Select a template that best matches your course type. We&apos;ll set up smart defaults for you.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -340,7 +340,7 @@ export const SimplifiedCourseWizard = ({
                   Course Basics
                 </CardTitle>
                 <CardDescription>
-                  Tell us about your course. We'll use AI to help generate additional content.
+                  Tell us about your course. We&apos;ll use AI to help generate additional content.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

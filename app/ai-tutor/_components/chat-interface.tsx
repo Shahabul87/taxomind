@@ -142,14 +142,13 @@ export const ChatInterface = ({
     return (
       <ReactMarkdown
         components={{
-          code({node, inline, className, children, ...props}) {
+          code({node, className, children, ...props}) {
             const match = /language-(\w+)/.exec(className || '');
-            return !inline && match ? (
+            return match ? (
               <SyntaxHighlighter
-                style={prismLight}
+                style={prismLight as any}
                 language={match[1]}
                 PreTag="div"
-                {...props}
               >
                 {String(children).replace(/\n$/, '')}
               </SyntaxHighlighter>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import {
   Type, 
   FileText, 
   Video, 
-  Image, 
+  Image as ImageIcon, 
   Code, 
   List, 
   Quote, 
@@ -81,14 +82,16 @@ export function TemplatePreview({ templateData, onClose, className }: TemplatePr
           <div className={cn("space-y-2", alignment === "center" && "text-center")}>
             <div className="bg-gray-100 p-8 rounded-lg flex items-center justify-center min-h-48">
               {block.content?.url ? (
-                <img 
+                <Image 
                   src={block.content.url} 
-                  alt={block.content.alt || "Image"} 
+                  alt={block.content.alt || "Template content image"} 
+                  width={500}
+                  height={300}
                   className="max-w-full max-h-48 object-contain rounded"
                 />
               ) : (
                 <div className="flex items-center gap-2 text-gray-500">
-                  <Image className="h-6 w-6" />
+                  <ImageIcon className="h-6 w-6" />
                   <span>Image placeholder</span>
                 </div>
               )}
@@ -148,7 +151,7 @@ export function TemplatePreview({ templateData, onClose, className }: TemplatePr
             )}
           >
             <p className="text-gray-700">
-              "{block.content?.text || "No quote text provided"}"
+              &ldquo;{block.content?.text || 'No quote text provided'}&rdquo;
             </p>
             {block.content?.author && (
               <footer className="text-gray-500 text-sm mt-2">
@@ -246,7 +249,7 @@ export function TemplatePreview({ templateData, onClose, className }: TemplatePr
                         {block.type === "heading" && <Type className="h-3 w-3 text-blue-600" />}
                         {block.type === "paragraph" && <FileText className="h-3 w-3 text-green-600" />}
                         {block.type === "video" && <Video className="h-3 w-3 text-purple-600" />}
-                        {block.type === "image" && <Image className="h-3 w-3 text-orange-600" />}
+                        {block.type === "image" && <ImageIcon className="h-3 w-3 text-orange-600" />}
                         {block.type === "code" && <Code className="h-3 w-3 text-gray-600" />}
                         {block.type === "list" && <List className="h-3 w-3 text-indigo-600" />}
                         {block.type === "quote" && <Quote className="h-3 w-3 text-amber-600" />}

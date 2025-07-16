@@ -1,5 +1,4 @@
 import { CourseCardHome } from "@/components/course-card-home";
-import { Course, Chapter, Category } from "@prisma/client";
 
 // Helper function to extract text from HTML
 const extractTextFromHtml = (html: string | null): string => {
@@ -14,11 +13,24 @@ const extractTextFromHtml = (html: string | null): string => {
     .replace(/&#39;/g, "'");
 };
 
+type CourseWithProgressWithCategory = {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  price?: number | null;
+  isPublished: boolean;
+  isFeatured: boolean;
+  category: any;
+  chapters: { id: string }[];
+  cleanDescription?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 interface FeaturedCoursesProps {
-  courses: (Course & {
-    chapters?: Chapter[];
-    category?: Category | null;
-  })[];
+  courses: CourseWithProgressWithCategory[];
 }
 
 export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {

@@ -69,7 +69,6 @@ const titleVariants = {
     scale: 1,
     transition: {
       duration: 0.8,
-      ease: [0.25, 0.25, 0, 1],
       staggerChildren: 0.2
     }
   }
@@ -83,7 +82,6 @@ const wordVariants = {
     rotateX: 0,
     transition: {
       duration: 0.6,
-      ease: "easeOut"
     }
   }
 };
@@ -97,7 +95,6 @@ const subtitleVariants = {
     transition: {
       duration: 0.8,
       delay: 0.5,
-      ease: "easeOut"
     }
   }
 };
@@ -121,7 +118,6 @@ const buttonVariants = {
     scale: 1,
     transition: {
       duration: 0.5,
-      ease: "easeOut"
     }
   }
 };
@@ -145,8 +141,7 @@ const featureVariants = {
     scale: 1,
     rotateY: 0,
     transition: {
-      duration: 0.6,
-      ease: [0.25, 0.25, 0, 1]
+      duration: 0.6
     }
   }
 };
@@ -159,7 +154,6 @@ const testimonialVariants = {
     transition: {
       duration: 0.5,
       delay: 1.5 + index * 0.1,
-      ease: "easeOut"
     }
   })
 };
@@ -171,8 +165,7 @@ const floatingAnimation1 = {
   scale: [1, 1.2, 1],
   transition: {
     duration: 6,
-    repeat: Infinity,
-    ease: "easeInOut"
+    repeat: Infinity
   }
 };
 
@@ -183,7 +176,6 @@ const floatingAnimation2 = {
   transition: {
     duration: 8,
     repeat: Infinity,
-    ease: "easeInOut",
     delay: 1
   }
 };
@@ -195,7 +187,6 @@ const floatingAnimation3 = {
   transition: {
     duration: 7,
     repeat: Infinity,
-    ease: "easeInOut",
     delay: 2
   }
 };
@@ -303,7 +294,7 @@ export default function HomeHeroSection() {
               className="absolute -top-8 sm:-top-12 md:-top-16 -left-8 sm:-left-12 md:-left-16 w-16 sm:w-20 md:w-32 h-16 sm:h-20 md:h-32"
               initial={{ opacity: 0, scale: 0, rotate: -180 }}
               animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ delay: 0.8, duration: 1, ease: "easeOut" }}
+              transition={{ delay: 0.8, duration: 1 }}
             >
               <div className="w-full h-full bg-gradient-to-r from-purple-400 via-pink-400 to-blue-500 rounded-full opacity-30 blur-2xl animate-pulse"></div>
             </motion.div>
@@ -401,8 +392,8 @@ export default function HomeHeroSection() {
                     <Star key={i} className="w-2 h-2 sm:w-3 sm:h-3 fill-current" />
                   ))}
                 </div>
-                <span className="text-gray-300 hidden sm:inline">"{testimonial.text}"</span>
-                <span className="text-gray-300 sm:hidden">"Great!"</span>
+                <span className="text-gray-300 hidden sm:inline">&quot;{testimonial.text}&quot;</span>
+                <span className="text-gray-300 sm:hidden">&quot;Great!&quot;</span>
                 <span className="text-gray-400 text-xs hidden md:inline">- {testimonial.name}</span>
               </motion.div>
             ))}
@@ -467,7 +458,7 @@ export default function HomeHeroSection() {
                 whileHover={{ 
                   y: -10,
                   scale: 1.02,
-                  transition: { duration: 0.3, ease: "easeOut" }
+                  transition: { duration: 0.3 }
                 }}
               >
                 <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl blur opacity-25 group-hover:opacity-75 transition duration-300"></div>

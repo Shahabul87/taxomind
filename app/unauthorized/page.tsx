@@ -17,7 +17,7 @@ export default function UnauthorizedPage() {
         </CardHeader>
         <CardContent className="text-center space-y-4">
           <p className="text-gray-600">
-            You don't have permission to access this resource. Please contact your administrator if you believe this is an error.
+            You don&apos;t have permission to access this resource. Please contact your administrator if you believe this is an error.
           </p>
           <div className="space-y-2">
             <Button asChild className="w-full">

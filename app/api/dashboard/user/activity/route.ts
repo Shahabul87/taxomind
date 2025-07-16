@@ -15,27 +15,27 @@ export async function GET(req: NextRequest) {
     const courseId = searchParams.get('courseId');
     
     // Get recent activities
-    const activities = await db.realtimeActivity.findMany({
+    const activities = await db.realtime_activities.findMany({
       where: {
         userId: user.id,
         ...(activityType && { activityType: activityType as any }),
         ...(courseId && { courseId })
       },
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true,
             imageUrl: true
           }
         },
-        chapter: {
+        Chapter: {
           select: {
             id: true,
             title: true
           }
         },
-        section: {
+        Section: {
           select: {
             id: true,
             title: true
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const todayActivities = await db.realtimeActivity.count({
+    const todayActivities = await db.realtime_activities.count({
       where: {
         userId: user.id,
         timestamp: {
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     
-    const weeklyActivities = await db.realtimeActivity.count({
+    const weeklyActivities = await db.realtime_activities.count({
       where: {
         userId: user.id,
         timestamp: {
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Get activity distribution by type
-    const activityDistribution = await db.realtimeActivity.groupBy({
+    const activityDistribution = await db.realtime_activities.groupBy({
       by: ['activityType'],
       where: {
         userId: user.id,
@@ -121,9 +121,9 @@ export async function GET(req: NextRequest) {
         duration: activity.duration,
         progress: activity.progress,
         score: activity.score,
-        course: activity.course,
-        chapter: activity.chapter,
-        section: activity.section,
+        course: activity.Course,
+        chapter: activity.Chapter,
+        section: activity.Section,
         metadata: activity.metadata
       })),
       statistics: {
@@ -188,8 +188,9 @@ export async function POST(req: NextRequest) {
     } = body;
 
     // Create new activity record
-    const activity = await db.realtimeActivity.create({
+    const activity = await db.realtime_activities.create({
       data: {
+        id: crypto.randomUUID(),
         userId: user.id,
         activityType,
         action,
@@ -245,7 +246,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function calculateStreakDays(userId: string): Promise<number> {
-  const activities = await db.realtimeActivity.findMany({
+  const activities = await db.realtime_activities.findMany({
     where: {
       userId,
       activityType: {
@@ -289,7 +290,7 @@ async function updateLearningSession(
     progress?: number;
   }
 ) {
-  const existingSession = await db.learningSession.findFirst({
+  const existingSession = await db.learning_sessions.findFirst({
     where: {
       userId,
       id: sessionId
@@ -297,7 +298,7 @@ async function updateLearningSession(
   });
 
   if (existingSession) {
-    await db.learningSession.update({
+    await db.learning_sessions.update({
       where: { id: sessionId },
       data: {
         endTime: new Date(),
@@ -308,7 +309,7 @@ async function updateLearningSession(
       }
     });
   } else {
-    await db.learningSession.create({
+    await db.learning_sessions.create({
       data: {
         id: sessionId,
         userId,
@@ -318,7 +319,8 @@ async function updateLearningSession(
         duration: data.duration || 0,
         completionPercentage: data.progress || 0,
         interactionCount: 1,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        updatedAt: new Date()
       }
     });
   }
@@ -334,7 +336,7 @@ async function updateUserProgress(
     timeSpent?: number;
   }
 ) {
-  const existing = await db.userProgress.findFirst({
+  const existing = await db.user_progress.findFirst({
     where: {
       userId,
       courseId: data.courseId,
@@ -344,7 +346,7 @@ async function updateUserProgress(
   });
 
   if (existing) {
-    await db.userProgress.update({
+    await db.user_progress.update({
       where: { id: existing.id },
       data: {
         progressPercent: Math.max(existing.progressPercent, data.progress),
@@ -355,8 +357,9 @@ async function updateUserProgress(
       }
     });
   } else {
-    await db.userProgress.create({
+    await db.user_progress.create({
       data: {
+        id: crypto.randomUUID(),
         userId,
         courseId: data.courseId,
         chapterId: data.chapterId,
@@ -365,7 +368,8 @@ async function updateUserProgress(
         timeSpent: data.timeSpent || 0,
         isCompleted: data.progress >= 100,
         completedAt: data.progress >= 100 ? new Date() : null,
-        lastAccessedAt: new Date()
+        lastAccessedAt: new Date(),
+        updatedAt: new Date()
       }
     });
   }
@@ -382,7 +386,7 @@ async function checkAchievements(
 ) {
   // First course achievement
   if (activityType === 'COURSE_START') {
-    const existingAchievement = await db.userAchievement.findFirst({
+    const existingAchievement = await db.user_achievements.findFirst({
       where: {
         userId,
         achievementType: 'FIRST_COURSE'
@@ -390,8 +394,9 @@ async function checkAchievements(
     });
 
     if (!existingAchievement) {
-      await db.userAchievement.create({
+      await db.user_achievements.create({
         data: {
+          id: crypto.randomUUID(),
           userId,
           achievementType: 'FIRST_COURSE',
           title: 'First Steps',
@@ -406,8 +411,9 @@ async function checkAchievements(
 
   // Course completion achievement
   if (activityType === 'COURSE_COMPLETE') {
-    await db.userAchievement.create({
+    await db.user_achievements.create({
       data: {
+        id: crypto.randomUUID(),
         userId,
         achievementType: 'COURSE_COMPLETION',
         title: 'Course Complete',

@@ -78,7 +78,7 @@ export default async function FavoriteArticlesPage() {
             {featuredArticles.length > 0 && (
               <section>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
-                  <Eye className="h-5 w-5 mr-2 text-orange-500" /> Editor's Pick
+                  <Eye className="h-5 w-5 mr-2 text-orange-500" /> Editor&apos;s Pick
                 </h2>
                 <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow">
                   <div className="grid grid-cols-1 md:grid-cols-2">

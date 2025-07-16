@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Brain, Briefcase, BarChart, Activity, Zap, BookOpen,
-  Heart, Clock, MapPin, Star, Target, Cpu
+  Heart, Clock, MapPin, Star, Target, Cpu, Users
 } from 'lucide-react';
 
 export function IntelligentFeaturesMenu() {

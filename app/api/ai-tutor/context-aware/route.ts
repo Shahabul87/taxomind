@@ -189,7 +189,7 @@ async function gatherStudentContext(userId: string, courseId?: string, sectionId
     const examAttempts = await db.userExamAttempt.findMany({
       where: {
         userId,
-        exam: courseId ? {
+        Exam: courseId ? {
           section: {
             chapter: {
               courseId
@@ -198,9 +198,9 @@ async function gatherStudentContext(userId: string, courseId?: string, sectionId
         } : undefined
       },
       include: {
-        answers: {
+        UserAnswer: {
           include: {
-            question: {
+            ExamQuestion: {
               select: {
                 bloomsLevel: true,
                 difficulty: true
@@ -222,8 +222,8 @@ async function gatherStudentContext(userId: string, courseId?: string, sectionId
     // Analyze Bloom's levels performance
     const bloomsPerformance: { [key: string]: { correct: number; total: number } } = {};
     examAttempts.forEach(attempt => {
-      attempt.answers.forEach(answer => {
-        const bloomsLevel = answer.question.bloomsLevel || 'REMEMBER';
+      attempt.UserAnswer.forEach(answer => {
+        const bloomsLevel = answer.ExamQuestion.bloomsLevel || 'REMEMBER';
         if (!bloomsPerformance[bloomsLevel]) {
           bloomsPerformance[bloomsLevel] = { correct: 0, total: 0 };
         }
@@ -258,7 +258,7 @@ async function gatherStudentContext(userId: string, courseId?: string, sectionId
           include: {
             sections: {
               include: {
-                userProgress: {
+                user_progress: {
                   where: { userId }
                 }
               }
@@ -270,7 +270,7 @@ async function gatherStudentContext(userId: string, courseId?: string, sectionId
 
     const totalSections = courseProgress?.chapters.reduce((sum, chapter) => sum + chapter.sections.length, 0) || 0;
     const completedSections = courseProgress?.chapters.reduce((sum, chapter) => 
-      sum + chapter.sections.filter(section => section.userProgress.some(p => p.isCompleted)).length, 0
+      sum + chapter.sections.filter(section => section.user_progress.some(p => p.isCompleted)).length, 0
     ) || 0;
 
     // Calculate consistency
@@ -343,7 +343,7 @@ async function gatherCourseContext(courseId?: string, chapterId?: string, sectio
       chapter: currentChapter ? {
         title: currentChapter.title,
         description: currentChapter.description || '',
-        learningOutcomes: currentChapter.learningOutcome ? [currentChapter.learningOutcome] : []
+        learningOutcomes: currentChapter.learningOutcomes ? [currentChapter.learningOutcomes] : []
       } : {
         title: '',
         description: '',

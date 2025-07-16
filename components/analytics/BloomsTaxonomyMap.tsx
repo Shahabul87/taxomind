@@ -86,7 +86,7 @@ export function BloomsTaxonomyMap({ levels }: BloomsTaxonomyMapProps) {
             <div className="p-2 bg-slate-200 dark:bg-slate-700 rounded-lg">
               <Search className="w-5 h-5 text-slate-600 dark:text-slate-300" />
             </div>
-            Bloom's Taxonomy Cognitive Pyramid
+            Bloom&apos;s Taxonomy Cognitive Pyramid
           </CardTitle>
         </CardHeader>
         <CardContent>

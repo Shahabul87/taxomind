@@ -39,10 +39,11 @@ export async function GET(request: Request) {
     const $ = cheerio.load(response.data);
     
     // Extract metadata - try multiple approaches to get the most accurate title
-    let title = $('meta[property="og:title"]').attr('content') || 
-                $('meta[name="twitter:title"]').attr('content') || 
-                $('h1').first().text() ||
-                $('title').text();
+    let title: string | null = $('meta[property="og:title"]').attr('content') || 
+                               $('meta[name="twitter:title"]').attr('content') || 
+                               $('h1').first().text() ||
+                               $('title').text() ||
+                               null;
     
     // Clean up the title
     title = title ? title.trim() : null;
@@ -240,7 +241,7 @@ export async function GET(request: Request) {
         favicon: null,
         image: null,
         success: false,
-        error: error.message || "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error"
       }, { status: 200 }); // Return 200 even for errors to handle gracefully on client
     }
   }
@@ -275,7 +276,7 @@ async function handleMediumUrl(url: string) {
     if (scriptData) {
       try {
         // Extract JSON data
-        const jsonMatch = scriptData.match(/\{.*\}/s);
+        const jsonMatch = scriptData.match(/\{.*\}/gm);
         if (jsonMatch) {
           const articleData = JSON.parse(jsonMatch[0]);
           

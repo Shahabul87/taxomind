@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -150,17 +150,14 @@ export const CourseAnalyticsDashboard = ({
   
   const { 
     recordFeatureUsage, 
-    isFeatureUnlocked,
-    getProgressStats
+    isFeatureUnlocked
   } = useProgressiveDisclosure();
   
   const isCognitiveAnalyticsUnlocked = isFeatureUnlocked('cognitive-analytics');
   const isPredictiveAnalyticsUnlocked = isFeatureUnlocked('predictive-analytics');
   const isBasicAnalyticsUnlocked = isFeatureUnlocked('basic-analytics');
-  
-  const progressStats = getProgressStats();
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/teacher-analytics/course-overview', {
@@ -198,11 +195,11 @@ export const CourseAnalyticsDashboard = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [courseId, timeframe, isAdvancedMode, isPredictiveAnalyticsUnlocked, isCognitiveAnalyticsUnlocked, recordFeatureUsage]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [courseId, timeframe, isAdvancedMode]);
+  }, [courseId, timeframe, isAdvancedMode, fetchAnalytics]);
   
   const toggleSection = (sectionId: string) => {
     setHiddenSections(prev => 
@@ -319,7 +316,11 @@ export const CourseAnalyticsDashboard = ({
             className="flex-1 max-w-md"
           />
           <div className="flex items-center gap-4">
-            <FeatureProgressIndicator className="w-48" />
+            <FeatureProgressIndicator 
+              className="w-48"
+              totalFeatures={10}
+              unlockedFeatures={5}
+            />
             {!isAdvancedMode && (
               <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 <Info className="w-4 h-4" />
@@ -480,7 +481,11 @@ export const CourseAnalyticsDashboard = ({
                       Real-time AI Analysis
                     </Badge>
                     {!isPredictiveAnalyticsUnlocked && (
-                      <FeatureHint featureId="predictive-analytics">
+                      <FeatureHint 
+                        featureId="predictive-analytics"
+                        title="Predictive Analytics"
+                        description="Advanced AI-powered analytics and predictions"
+                      >
                         <Badge variant="outline" className="cursor-pointer">
                           <Crown className="w-3 h-3 mr-1" />
                           Unlock Advanced
@@ -562,7 +567,11 @@ export const CourseAnalyticsDashboard = ({
                             <Activity className="w-5 h-5 text-purple-600" />
                             <h4 className="font-semibold text-purple-800 dark:text-purple-200">Cognitive Development</h4>
                             {!isCognitiveAnalyticsUnlocked && (
-                              <FeatureHint featureId="cognitive-analytics">
+                              <FeatureHint 
+                                featureId="cognitive-analytics"
+                                title="Cognitive Analytics"
+                                description="Advanced cognitive development tracking and insights"
+                              >
                                 <Badge variant="outline" className="text-xs cursor-pointer">
                                   <Star className="w-3 h-3 mr-1" />
                                   Unlock
@@ -685,7 +694,7 @@ export const CourseAnalyticsDashboard = ({
                                 </li>
                                 <li className="flex items-center gap-2">
                                   <Brain className="w-3 h-3 text-purple-500" />
-                                  Increase "Apply" level questions by 25%
+                                  Increase &quot;Apply&quot; level questions by 25%
                                 </li>
                               </ul>
                             </div>
@@ -758,7 +767,7 @@ export const CourseAnalyticsDashboard = ({
                 Cognitive Level Performance
               </CardTitle>
               <CardDescription>
-                Student performance across Bloom's taxonomy levels
+                Student performance across Bloom&apos;s taxonomy levels
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -8,32 +8,30 @@ export const getUserData = async (userId: string) => {
         accounts: true,
         courses: true,
         twoFactorConfirmation: true,
-        profileLinks: true,
-        posts: {
+        Post: {
           include: {
             comments: true,
-            replies: true,
-            user: true,
-            reactions: true,
-            postchapter: true,
-            imageSections: true
+            Reply: true,
+            User: true,
+            PostChapterSection: true,
+            PostImageSection: true
           }
         },
-        comments: {
+        Comment: {
           include: {
             replies: true
           }
         },
-        videos: true,
-        blogs: true,
-        articles: true,
-        notes: true,
-        favoriteVideos: true,
-        favoriteAudios: true,
-        favoriteArticles: true,
-        favoriteBlogs: true,
-        favoriteImages: true,
-        subscriptions: true
+        Video: true,
+        Blog: true,
+        Article: true,
+        Note: true,
+        FavoriteVideo: true,
+        FavoriteAudio: true,
+        FavoriteArticle: true,
+        FavoriteBlog: true,
+        FavoriteImage: true,
+        UserSubscription: true
       }
     });
 

@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Editor } from '@monaco-editor/react';
@@ -240,10 +241,12 @@ export const CodeBlockTabs = ({
                       components={{
                         img: ({ node, ...props }) => (
                           <div className="my-2 flex justify-center">
-                            <img 
-                              {...props} 
+                            <Image 
+                              src={props.src || ''}
+                              alt={props.alt || "Explanation image"}
+                              width={256}
+                              height={128}
                               className="max-h-32 rounded shadow-sm max-w-full h-auto" 
-                              alt={props.alt || "Explanation image"} 
                             />
                           </div>
                         ),

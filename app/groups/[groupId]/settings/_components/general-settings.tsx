@@ -117,7 +117,7 @@ export function GeneralSettings({ group, currentUser, isCreator }: GeneralSettin
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">General Information</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Update your group's basic information.
+          Update your group&apos;s basic information.
         </p>
       </div>
 

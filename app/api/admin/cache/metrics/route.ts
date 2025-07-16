@@ -186,8 +186,8 @@ async function getCacheKeys() {
     const keysWithInfo = await Promise.all(
       sampleKeys.map(async (key) => {
         try {
-          const ttl = await redis.ttl ? await redis.ttl(key) : -1;
-          const value = await redis.get(key);
+          const ttl = redis && await redis.ttl ? await redis.ttl(key) : -1;
+          const value = redis ? await redis.get(key) : null;
           
           return {
             key,
@@ -231,7 +231,7 @@ async function getCacheHealth() {
 
   try {
     // Test Redis connection
-    const pingResult = await redis.ping();
+    const pingResult = redis ? await redis.ping() : 'Redis not available';
     
     return {
       status: 'healthy',

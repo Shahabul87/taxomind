@@ -40,7 +40,7 @@ export async function GET() {
         sessionUserId: session?.user?.id || null,
         dbConnected,
         eventCount: isAuthenticated ? eventCount : null,
-        prismaVersion: db._engineConfig?.version || "unknown",
+        prismaVersion: "unknown",
       },
       error: errorMessage,
     });

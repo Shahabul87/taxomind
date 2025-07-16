@@ -2,18 +2,13 @@ import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/api-protection";
 import { ContentVersioningService } from "@/lib/content-versioning";
 
-interface RouteParams {
-  params: {
-    versionId: string;
-  };
-}
-
 export const GET = withAuth(async (
   request: NextRequest,
-  { params }: RouteParams
+  { params }: { params: Promise<{ versionId: string }> }
 ) => {
   try {
-    const content = await ContentVersioningService.getContentAtVersion(params.versionId);
+    const { versionId } = await params;
+    const content = await ContentVersioningService.getContentAtVersion(versionId);
     
     if (!content) {
       return Response.json(

@@ -126,7 +126,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
   return (
     <div className="-mt-16">
       <CourseCard 
-        course={course} 
+        course={course as any} 
         userId={user?.id}
         isEnrolled={!!enrollment}
       />

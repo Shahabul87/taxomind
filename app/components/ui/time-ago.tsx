@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
 
 interface TimeAgoProps {
@@ -17,7 +17,7 @@ export function TimeAgo({ date, className }: TimeAgoProps) {
   const [hasMounted, setHasMounted] = useState(false);
   
   // Parse date if it's a string
-  const dateObj = date instanceof Date ? date : new Date(date);
+  const dateObj = useMemo(() => date instanceof Date ? date : new Date(date), [date]);
   
   useEffect(() => {
     // Mark as mounted on first client render
