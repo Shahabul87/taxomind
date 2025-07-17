@@ -1,18 +1,30 @@
 
+// Keeping the old imports commented for reference
+// import { UniversalSamProvider } from './_components/universal-sam-provider';
+// import { UniversalSamAssistant } from './_components/universal-sam-assistant';
+
+// Using Enhanced SAM AI Assistant
+import { EnhancedSamProvider } from './_components/enhanced-sam-provider';
+import { EnhancedSamAssistant } from './_components/enhanced-sam-assistant';
+import { TeacherPageContextInjector } from './_components/teacher-page-context-injector';
 
 type Props = {
     children: React.ReactNode;
   };
   
-  const MainLayout = ({
+  const TeacherLayout = ({
     children,
   }: Props) => {
     return (
-      <div className="">
-        {children}
-      </div>
+      <EnhancedSamProvider>
+        <TeacherPageContextInjector />
+        <div className="">
+          {children}
+        </div>
+        <EnhancedSamAssistant />
+      </EnhancedSamProvider>
     );
   };
   
-  export default MainLayout;
+  export default TeacherLayout;
   

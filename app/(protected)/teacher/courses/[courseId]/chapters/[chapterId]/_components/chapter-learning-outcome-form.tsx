@@ -197,6 +197,7 @@ export const ChapterLearningOutcomeForm = ({
           <form
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-4 mt-4"
+            data-form="chapter-learning-outcomes"
           >
             <FormField
               control={form.control}

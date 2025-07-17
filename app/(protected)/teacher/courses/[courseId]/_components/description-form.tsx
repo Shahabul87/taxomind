@@ -202,6 +202,11 @@ export const DescriptionForm = ({
       ) : (
         <Form {...form}>
           <form
+            id="course-description-form"
+            data-form="course-description"
+            data-purpose="update-course-description"
+            data-entity-type="course"
+            data-entity-id={courseId}
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-4 mt-4"
             onKeyDown={(e) => {
@@ -216,12 +221,16 @@ export const DescriptionForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <div className="bg-white dark:bg-slate-800 rounded-md">
+                    <div className="bg-white dark:bg-slate-800 rounded-md" data-form="course-description">
                       <TipTapEditor
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="Write a description for your course..."
                         editorClassName="[&_.tiptap]:!text-black dark:[&_.tiptap]:!text-gray-200 min-h-[150px]"
+                        name="description"
+                        data-field-purpose="course-description"
+                        data-validation="required,min:10"
+                        data-content-type="rich-text"
                       />
                     </div>
                   </FormControl>

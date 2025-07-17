@@ -83,6 +83,10 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
     <div className="p-6">
       <Form {...form}>
         <form
+          id="create-course-form"
+          data-form="create-course"
+          data-purpose="create-new-course"
+          data-entity-type="course"
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-8"
         >
@@ -99,6 +103,10 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
                     disabled={isSubmitting}
                     placeholder="e.g. 'Advanced Web Development with Next.js'"
                     {...field}
+                    name="title"
+                    data-field-purpose="course-title"
+                    data-validation="required,min:3,max:100"
+                    data-content-type="course-title"
                     className={cn(
                       "text-base font-medium transition-all duration-200",
                       "bg-white dark:bg-gray-900/50",

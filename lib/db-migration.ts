@@ -12,11 +12,9 @@ export const db = (() => {
   if (!dbInstance) {
     if ((isProduction || isStaging) && strictMode) {
       console.log('[DB Migration] Using EnterpriseDB for enhanced safety');
-      dbInstance = new EnterpriseDB({
-        strictMode: true,
-        auditEnabled: true,
-        blockCrossEnv: true,
-      });
+      // Return the enterprise db proxy from enterprise-db.ts
+      const { db: enterpriseDb } = require('./enterprise-db');
+      dbInstance = enterpriseDb as any;
     } else {
       const globalForPrisma = globalThis as unknown as {
         prisma: PrismaClient | undefined;
@@ -43,12 +41,9 @@ export function getEnterpriseDB(options?: {
   userContext?: { id: string; role: string };
   auditEnabled?: boolean;
 }) {
-  return new EnterpriseDB({
-    strictMode: strictMode || isProduction || isStaging,
-    auditEnabled: options?.auditEnabled ?? true,
-    blockCrossEnv: true,
-    userContext: options?.userContext,
-  });
+  // Return the enterprise db proxy from enterprise-db.ts
+  const { db: enterpriseDb } = require('./enterprise-db');
+  return enterpriseDb;
 }
 
 export async function migrateToEnterpriseDB<T>(

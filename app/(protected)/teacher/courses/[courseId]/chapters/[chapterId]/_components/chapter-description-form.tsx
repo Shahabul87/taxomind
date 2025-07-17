@@ -206,7 +206,7 @@ export const ChapterDescriptionForm = ({
                       "rounded-lg shadow-lg",
                       "border border-gray-200 dark:border-gray-700/50",
                       "bg-white dark:bg-gray-900/50"
-                    )}>
+                    )} data-form="chapter-description">
                       <TipTapEditor
                         value={field.value}
                         onChange={field.onChange}

@@ -16,6 +16,7 @@
   "scripts": {
     "dev": "node scripts/load-env.js && next dev",
     "build": "NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && node scripts/validate-env.js && NODE_OPTIONS='--max-old-space-size=8192' next build",
+    "build:safe": "bash scripts/build-production.sh",
     "start": "node scripts/load-env.js && next start",
     "validate:env": "node scripts/validate-env.js",
     "prebuild": "node scripts/validate-env.js",

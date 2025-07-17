@@ -12,6 +12,7 @@ import { ChapterActions } from "./chapter-actions";
 import { ChapterLearningOutcomeForm } from "./chapter-learning-outcome-form";
 import { ChaptersSectionForm } from "./chapter-section-form";
 import { AIChapterContentGenerator } from "./ai-chapter-content-generator";
+import { ChapterSamIntegration } from "./chapter-sam-integration";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,13 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
     )}>
       <TourStyles />
       {showTour && <GuidedTour config={aiChapterCreationTour} />}
+      
+      {/* SAM Integration for Chapter Context */}
+      <ChapterSamIntegration 
+        chapter={chapter} 
+        courseId={params.courseId} 
+        chapterId={params.chapterId} 
+      />
       
       {/* Warning Banner */}
       {!chapter.isPublished && (

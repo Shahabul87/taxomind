@@ -173,6 +173,7 @@ function BlockEditor({ block, onUpdate }: {
             onChange={(e) => handleContentChange({ text: e.target.value })}
             placeholder="Enter heading text..."
             className="font-medium"
+            data-form="template-heading"
           />
         </div>
       );
@@ -189,6 +190,7 @@ function BlockEditor({ block, onUpdate }: {
             onChange={(e) => handleContentChange({ text: e.target.value })}
             placeholder="Enter paragraph text..."
             rows={4}
+            data-form="template-paragraph"
           />
         </div>
       );
@@ -204,11 +206,13 @@ function BlockEditor({ block, onUpdate }: {
             value={block.content?.url || ""}
             onChange={(e) => handleContentChange({ url: e.target.value })}
             placeholder="Enter video URL..."
+            data-form="template-video-url"
           />
           <Input
             value={block.content?.title || ""}
             onChange={(e) => handleContentChange({ ...block.content, title: e.target.value })}
             placeholder="Video title (optional)..."
+            data-form="template-video-title"
           />
         </div>
       );
@@ -495,6 +499,7 @@ export function TemplateEditor({
                 value={templateData.name}
                 onChange={(e) => setTemplateData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter template name..."
+                data-form="template-name"
               />
             </div>
             <div>
@@ -503,7 +508,7 @@ export function TemplateEditor({
                 value={templateData.contentType}
                 onValueChange={(contentType) => setTemplateData(prev => ({ ...prev, contentType }))}
               >
-                <SelectTrigger>
+                <SelectTrigger data-form="template-content-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -526,6 +531,7 @@ export function TemplateEditor({
               onChange={(e) => setTemplateData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Describe this template..."
               rows={2}
+              data-form="template-description"
             />
           </div>
 
@@ -536,6 +542,7 @@ export function TemplateEditor({
               value={templateData.category}
               onChange={(e) => setTemplateData(prev => ({ ...prev, category: e.target.value }))}
               placeholder="Template category..."
+              data-form="template-category"
             />
           </div>
 
@@ -554,6 +561,7 @@ export function TemplateEditor({
                 onChange={(e) => setNewTag(e.target.value)}
                 placeholder="Add a tag..."
                 onKeyPress={(e) => e.key === 'Enter' && addTag()}
+                data-form="template-tag"
               />
               <Button onClick={addTag} size="sm">Add</Button>
             </div>

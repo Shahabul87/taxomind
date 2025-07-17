@@ -324,6 +324,7 @@ export const ChaptersForm = ({
                           {...field}
                           disabled={isSubmitting}
                           placeholder="e.g. 'Introduction to the course'"
+                          data-form="chapter-title"
                           className={cn(
                             "bg-white dark:bg-gray-900/50",
                             "border-gray-200 dark:border-gray-700/50",

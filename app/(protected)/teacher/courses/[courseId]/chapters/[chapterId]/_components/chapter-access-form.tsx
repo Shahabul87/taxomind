@@ -161,6 +161,7 @@ export const ChapterAccessForm = ({
                           checked={field.value}
                           onCheckedChange={field.onChange}
                           disabled={isSubmitting}
+                          data-form="chapter-access"
                           className={cn(
                             "data-[state=checked]:bg-gradient-to-r",
                             field.value 

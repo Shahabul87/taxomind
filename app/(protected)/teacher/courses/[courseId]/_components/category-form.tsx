@@ -484,6 +484,7 @@ export const CategoryForm = ({
                               <Input
                                 {...field}
                                 placeholder="Search for a category..."
+                                data-form="category-search"
                                 className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 pl-10 pr-4 h-11 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                                 ref={inputRef}
                               />
@@ -657,7 +658,7 @@ export const CategoryForm = ({
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Input type="hidden" {...field} />
+                                <Input type="hidden" {...field} data-form="category-id" />
                               </FormControl>
                               <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
                             </FormItem>
@@ -683,6 +684,7 @@ export const CategoryForm = ({
                                     disabled={isSubmitting || categoryType !== "new"}
                                     placeholder="e.g. Data Visualization, UI Design, Machine Learning..."
                                     {...field}
+                                    data-form="new-category-name"
                                     onChange={(e) => {
                                       field.onChange(e);
                                       // Trigger validation on change

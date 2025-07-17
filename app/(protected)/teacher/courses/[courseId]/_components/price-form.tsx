@@ -194,6 +194,7 @@ export const PriceForm = ({
                             step="0.01"
                             disabled={isSubmitting}
                             placeholder="Set your price"
+                            data-form="course-price"
                             className={cn(
                               "bg-white dark:bg-gray-900/50",
                               "border-gray-200 dark:border-gray-700/50",

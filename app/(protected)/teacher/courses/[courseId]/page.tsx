@@ -21,6 +21,9 @@ import { BlueprintIntegration } from "./_components/blueprint-integration";
 import { BloomsTaxonomyProgressTracker } from "./_components/blooms-taxonomy-progress-tracker";
 import { AdvancedAnalyticsDashboard } from "./_components/advanced-analytics-dashboard";
 import { SamIntegration } from "./_components/sam-integration-example";
+// import { CoursePageSamIntegration } from "./_components/course-page-sam-integration";
+import { SimpleCourseContext } from "@/app/(protected)/teacher/_components/simple-course-context";
+// import { TestComponent } from "@/app/(protected)/teacher/_components/test-component";
 
 interface CourseIdPageProps {
   params: Promise<{courseId: string}>;
@@ -104,6 +107,34 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 via-gray-50 to-white dark:from-gray-900 dark:via-gray-850 dark:to-gray-800">
+      {/* Enhanced SAM Context Injection */}
+      <SimpleCourseContext
+        course={{
+          id: course.id,
+          title: course.title,
+          description: course.description,
+          whatYouWillLearn: course.whatYouWillLearn || [],
+          isPublished: course.isPublished,
+          categoryId: course.categoryId,
+          price: course.price,
+          imageUrl: course.imageUrl,
+          chapters: course.chapters.map(chapter => ({
+            id: chapter.id,
+            title: chapter.title,
+            description: chapter.description,
+            isPublished: chapter.isPublished,
+            isFree: chapter.isFree,
+            position: chapter.position,
+            sections: chapter.sections?.map(section => ({
+              id: section.id,
+              title: section.title,
+              isPublished: section.isPublished
+            }))
+          }))
+        }}
+        completionStatus={completionStatus}
+      />
+      
       <div className="pt-8 pb-20">
         {/* Header Section with integrated Banner and Course Setup */}
         <div className="px-4 md:px-8 mb-8">

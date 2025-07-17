@@ -239,6 +239,7 @@ export const ChaptersSectionForm = ({
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-4"
+                  data-form="chapter-sections"
                 >
                   <FormField
                     control={form.control}

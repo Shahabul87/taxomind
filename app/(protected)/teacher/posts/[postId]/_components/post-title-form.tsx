@@ -100,6 +100,7 @@ export const PostTitleForm = ({
                       {...field}
                       disabled={isSubmitting}
                       placeholder="e.g. 'Introduction to Programming'"
+                      data-form="post-title"
                       className="bg-white dark:bg-gray-900/50 border-gray-200/50 dark:border-gray-700/50 text-gray-900 dark:text-gray-200 focus:ring-purple-500/20 dark:focus:ring-purple-500/30 focus:border-purple-500/30 dark:focus:border-purple-500/30 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     />
                   </FormControl>

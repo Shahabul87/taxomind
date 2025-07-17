@@ -220,6 +220,11 @@ export const TitleForm = ({
       {isEditing && (
         <Form {...form}>
           <form
+            id="course-title-form"
+            data-form="course-title"
+            data-purpose="update-course-title"
+            data-entity-type="course"
+            data-entity-id={courseId}
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-4 mt-4"
           >
@@ -231,8 +236,12 @@ export const TitleForm = ({
                   <FormControl>
                     <Input
                       {...field}
+                      name="title"
                       disabled={isSubmitting}
                       placeholder="e.g. 'Advanced Web Development'"
+                      data-field-purpose="course-title"
+                      data-validation="required,min:3,max:100"
+                      data-content-type="course-title"
                       className={cn(
                         "bg-white dark:bg-gray-900/50",
                         "border-gray-200 dark:border-gray-700/50",

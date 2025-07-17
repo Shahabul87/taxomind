@@ -158,6 +158,7 @@ export const PostCategory = ({
                     <FormControl>
                       <SelectTrigger 
                         className="bg-white dark:bg-gray-900/50 border-gray-200/50 dark:border-gray-700/50 text-gray-900 dark:text-gray-200 focus:ring-purple-500/20 dark:focus:ring-purple-500/30 focus:border-purple-500/30 dark:focus:border-purple-500/30"
+                        data-form="post-category"
                       >
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>

@@ -33,6 +33,7 @@ export function ExamForm({ form, onSubmit, onCancel, isSubmitting, isValid }: Ex
                     disabled={isSubmitting}
                     placeholder="e.g. 'Module 1 Assessment'"
                     {...field}
+                    data-form="exam-title"
                     className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-blue-500/20 dark:focus:ring-blue-400/20"
                   />
                 </FormControl>
@@ -53,6 +54,7 @@ export function ExamForm({ form, onSubmit, onCancel, isSubmitting, isValid }: Ex
                     type="number"
                     disabled={isSubmitting}
                     {...field}
+                    data-form="exam-time-limit"
                     className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 w-full"
                   />
                 </FormControl>
@@ -74,6 +76,7 @@ export function ExamForm({ form, onSubmit, onCancel, isSubmitting, isValid }: Ex
                   disabled={isSubmitting}
                   placeholder="Describe what this exam will cover, learning objectives, and any special instructions..."
                   {...field}
+                  data-form="exam-description"
                   className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 min-h-[120px] resize-none"
                 />
               </FormControl>
