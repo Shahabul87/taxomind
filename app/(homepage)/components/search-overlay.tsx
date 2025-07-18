@@ -34,7 +34,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
 
   return (
     <div 
-      className="fixed top-16 left-0 right-0 z-40 w-full dark:bg-gray-900/95 bg-white/95 backdrop-blur-md border-b dark:border-gray-800 border-gray-200 shadow-lg transition-all"
+      className="fixed top-16 left-0 right-0 z-60 w-full dark:bg-gray-900/95 bg-white/95 backdrop-blur-md border-b dark:border-gray-800 border-gray-200 shadow-lg transition-all"
       ref={searchContainerRef}
     >
       <div className="max-w-3xl mx-auto px-4 py-4">

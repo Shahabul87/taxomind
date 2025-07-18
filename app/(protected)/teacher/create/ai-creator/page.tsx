@@ -173,7 +173,7 @@ export default function AICreatorPage() {
   React.useEffect(() => {
     samMemory.startSession('ai-course-creator');
     samMemory.updateCurrentPage(`ai-creator-step-${step}`);
-  }, []);
+  }, [step]);
 
   // Update current step in SAM memory
   React.useEffect(() => {

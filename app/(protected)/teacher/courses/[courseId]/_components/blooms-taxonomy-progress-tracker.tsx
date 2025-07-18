@@ -299,7 +299,7 @@ export const BloomsTaxonomyProgressTracker = ({
     } finally {
       setIsLoading(false);
     }
-  }, [courseStructure, generateRecommendations]);
+  }, [courseStructure, generateRecommendations, generateGaps]);
 
   useEffect(() => {
     analyzeBloomsDistribution();

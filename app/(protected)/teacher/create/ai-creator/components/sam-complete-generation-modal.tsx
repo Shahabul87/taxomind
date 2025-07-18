@@ -82,7 +82,7 @@ export function SAMCompleteGenerationModal({
                   SAM Complete Course Generation
                 </DialogTitle>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                  Generate your entire course structure using SAM's contextual knowledge
+                  Generate your entire course structure using SAM&apos;s contextual knowledge
                 </p>
               </div>
             </div>
@@ -99,7 +99,7 @@ export function SAMCompleteGenerationModal({
           <Card className="p-4 backdrop-blur-sm bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-white/20">
             <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
               <Brain className="h-4 w-4 text-indigo-600" />
-              SAM's Context Knowledge
+              SAM&apos;s Context Knowledge
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div>

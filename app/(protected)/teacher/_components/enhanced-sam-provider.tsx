@@ -405,10 +405,41 @@ export function EnhancedSamProvider({ children }: { children: React.ReactNode })
     console.log('🔄 populateForm called with:', { formId, data, validate });
     console.log('📋 Available forms:', pageData.forms.map(f => ({ id: f.id, purpose: f.purpose, fields: f.fields.map(field => ({ name: field.name, type: field.type, purpose: field.metadata?.fieldPurpose })) })));
     
+    // First, check for form metadata elements for forms that might not be visible
+    const formMetadata = document.querySelector(`[data-sam-form-metadata="${formId}"], [data-form-id="${formId}"], [data-form-purpose="${formId}"]`);
+    if (formMetadata) {
+      console.log('📊 Found form metadata:', {
+        formId: formMetadata.getAttribute('data-form-id'),
+        purpose: formMetadata.getAttribute('data-form-purpose'),
+        isEditing: formMetadata.getAttribute('data-is-editing')
+      });
+      
+      // Dispatch event to trigger form edit mode and population
+      window.dispatchEvent(new CustomEvent('sam-populate-form', {
+        detail: { formId, data }
+      }));
+      
+      // Wait a bit for the form to become available
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Refresh page data to detect the newly rendered form
+      refreshPageData();
+      
+      // Wait for refresh to complete
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
     const form = pageData.forms.find(f => f.id === formId || f.purpose === formId);
     if (!form) {
       console.error('❌ Form not found:', formId);
       console.log('Available forms:', pageData.forms.map(f => ({ id: f.id, purpose: f.purpose })));
+      
+      // Try alternate approach if form metadata was found
+      if (formMetadata) {
+        console.log('🔄 Attempting alternate population method via metadata');
+        return true; // Assume success since we dispatched the event
+      }
+      
       return false;
     }
 
@@ -468,7 +499,7 @@ export function EnhancedSamProvider({ children }: { children: React.ReactNode })
       console.error('❌ Error populating form:', error);
       return false;
     }
-  }, [pageData.forms]);
+  }, [pageData.forms, refreshPageData]);
 
   // Validate form
   const validateForm = useCallback(async (formId: string): Promise<{

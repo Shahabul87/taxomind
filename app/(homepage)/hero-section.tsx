@@ -180,80 +180,100 @@ export default function HeroSection() {
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [hoveredLevel, setHoveredLevel] = useState<number | null>(null);
   const [showPyramid, setShowPyramid] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const activeLevel = selectedLevel || hoveredLevel || 1;
 
   useEffect(() => {
+    // Set mounted state for hydration protection
+    setMounted(true);
+    
+    // Check for reduced motion preference
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    
+    const handleChange = (e: MediaQueryListEvent) => {
+      setPrefersReducedMotion(e.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  useEffect(() => {
     if (isInView) {
-      setTimeout(() => setShowPyramid(true), 500);
+      setTimeout(() => setShowPyramid(true), prefersReducedMotion ? 100 : 500);
     }
-  }, [isInView]);
+  }, [isInView, prefersReducedMotion]);
 
   return (
     <section 
       ref={sectionRef}
       className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900/10 to-slate-900 flex items-center"
     >
-      {/* Animated background pattern */}
+      {/* Animated background pattern - Optimized for mobile */}
       <div className="absolute inset-0">
-        {/* Neural network pattern */}
-        <div className="absolute inset-0 opacity-20">
-          <svg className="w-full h-full" viewBox="0 0 1200 800">
-            <defs>
-              <linearGradient id="neuralGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.6"/>
-                <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.4"/>
-                <stop offset="100%" stopColor="#06B6D4" stopOpacity="0.6"/>
-              </linearGradient>
-            </defs>
-            <g stroke="url(#neuralGradient)" strokeWidth="1" fill="none">
-              {[0, 1, 2].map((i) => (
-                <motion.path
-                  key={i}
-                  d={`M${100 + i * 50},${200 + i * 200} Q${300 + i * 200},${100 + i * 100} ${500 + i * 200},${200 + i * 200} T${900 + i * 200},${200 + i * 200}`}
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 0.6 }}
-                  transition={{ duration: 3, delay: 1 + i * 0.5 }}
-                />
-              ))}
-            </g>
-          </svg>
-        </div>
+        {/* Neural network pattern - Hidden on mobile for performance */}
+        {mounted && !prefersReducedMotion && (
+          <div className="absolute inset-0 opacity-20 hidden lg:block">
+            <svg className="w-full h-full" viewBox="0 0 1200 800">
+              <defs>
+                <linearGradient id="neuralGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.6"/>
+                  <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.4"/>
+                  <stop offset="100%" stopColor="#06B6D4" stopOpacity="0.6"/>
+                </linearGradient>
+              </defs>
+              <g stroke="url(#neuralGradient)" strokeWidth="1" fill="none">
+                {[0, 1, 2].map((i) => (
+                  <motion.path
+                    key={i}
+                    d={`M${100 + i * 50},${200 + i * 200} Q${300 + i * 200},${100 + i * 100} ${500 + i * 200},${200 + i * 200} T${900 + i * 200},${200 + i * 200}`}
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.6 }}
+                    transition={{ duration: 3, delay: 1 + i * 0.5 }}
+                  />
+                ))}
+              </g>
+            </svg>
+          </div>
+        )}
 
-        {/* Floating orbs */}
+        {/* Floating orbs - Simplified animations on mobile, static if reduced motion */}
         <motion.div 
-          className="absolute top-20 left-20 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl"
-          animate={{
-            x: [0, 50, 0],
-            y: [0, -30, 0],
-          }}
+          className="absolute top-20 left-20 w-32 sm:w-48 md:w-72 h-32 sm:h-48 md:h-72 bg-purple-500/20 rounded-full blur-3xl"
+          animate={mounted && !prefersReducedMotion ? {
+            x: [0, 15, 0],
+            y: [0, -10, 0],
+          } : {}}
           transition={{
-            duration: 15,
-            repeat: Infinity,
+            duration: mounted && !prefersReducedMotion ? 15 : 0,
+            repeat: mounted && !prefersReducedMotion ? Infinity : 0,
             ease: "easeInOut"
           }}
         />
         <motion.div 
-          className="absolute bottom-20 right-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
-          animate={{
-            x: [0, -30, 0],
-            y: [0, 50, 0],
-          }}
+          className="absolute bottom-20 right-20 w-32 sm:w-48 md:w-96 h-32 sm:h-48 md:h-96 bg-blue-500/20 rounded-full blur-3xl"
+          animate={mounted && !prefersReducedMotion ? {
+            x: [0, -10, 0],
+            y: [0, 15, 0],
+          } : {}}
           transition={{
-            duration: 20,
-            repeat: Infinity,
+            duration: mounted && !prefersReducedMotion ? 20 : 0,
+            repeat: mounted && !prefersReducedMotion ? Infinity : 0,
             ease: "easeInOut"
           }}
         />
         <motion.div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.1, 0.2, 0.1],
-          }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 sm:w-48 md:w-80 h-32 sm:h-48 md:h-80 bg-emerald-500/10 rounded-full blur-3xl"
+          animate={mounted && !prefersReducedMotion ? {
+            scale: [1, 1.05, 1],
+            opacity: [0.1, 0.12, 0.1],
+          } : {}}
           transition={{
-            duration: 10,
-            repeat: Infinity,
+            duration: mounted && !prefersReducedMotion ? 10 : 0,
+            repeat: mounted && !prefersReducedMotion ? Infinity : 0,
             ease: "easeInOut"
           }}
         />
@@ -285,7 +305,7 @@ export default function HeroSection() {
             </motion.div>
 
             {/* Main headline */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 sm:mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 leading-tight">
               <motion.span 
                 className="block text-white mb-2"
                 initial={{ opacity: 0, x: -20 }}
@@ -330,12 +350,14 @@ export default function HeroSection() {
                     Start Your Journey
                     <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-2xl"
-                    initial={{ x: "-100%" }}
-                    animate={{ x: "100%" }}
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                  />
+                  {!prefersReducedMotion && (
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-2xl hidden md:block"
+                      initial={{ x: "-100%" }}
+                      animate={{ x: "100%" }}
+                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                    />
+                  )}
                 </Button>
               </Link>
               
@@ -353,7 +375,7 @@ export default function HeroSection() {
           </motion.div>
 
           {/* Interactive Bloom's Taxonomy Pyramid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 md:gap-10 lg:gap-12 items-start">
             {/* Interactive Pyramid Visualization */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
@@ -382,6 +404,14 @@ export default function HeroSection() {
                       onMouseEnter={() => setHoveredLevel(level.level)}
                       onMouseLeave={() => setHoveredLevel(null)}
                       onClick={() => setSelectedLevel(level.level)}
+                      onTouchStart={() => {
+                        setHoveredLevel(level.level);
+                        setSelectedLevel(level.level);
+                      }}
+                      onTouchEnd={() => {
+                        // Keep hover state for mobile to show details
+                        setTimeout(() => setHoveredLevel(null), 3000);
+                      }}
                       style={{ width: `${width}%` }}
                       className={`
                         relative cursor-pointer transition-all duration-500 group mx-auto lg:mx-0
@@ -390,20 +420,21 @@ export default function HeroSection() {
                     >
                       {/* Compact Level Card */}
                       <div className={`
-                        relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-4 
+                        relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-5 min-h-[60px] sm:min-h-[70px]
                         bg-gradient-to-r ${isActive || isHovered ? level.color : level.lightColor}
                         ${isActive ? 'shadow-2xl shadow-purple-500/25' : isHovered ? 'shadow-xl' : 'shadow-lg'}
                         transform transition-all duration-500 border-2
                         ${isHovered ? 'border-white/30' : 'border-transparent'}
+                        touch-manipulation
                       `}>
                         <div className="flex items-center justify-between text-white">
                           <div className="flex items-center gap-2 sm:gap-3">
                             <motion.div 
-                              className="p-1.5 sm:p-2 bg-white/20 rounded-lg backdrop-blur-sm"
+                              className="p-2 sm:p-3 bg-white/20 rounded-lg backdrop-blur-sm"
                               animate={isActive || isHovered ? { rotate: 360, scale: 1.1 } : { scale: 1 }}
                               transition={{ duration: 0.5 }}
                             >
-                              <level.icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                              <level.icon className="w-5 h-5 sm:w-6 sm:h-6" />
                             </motion.div>
                             <div>
                               <h4 className="font-semibold text-base sm:text-lg">{level.name}</h4>
@@ -483,7 +514,7 @@ export default function HeroSection() {
                 transition={{ delay: 2 }}
               >
                 <p className="text-sm text-gray-400 italic">
-                  💡 Hover over each level to see detailed explanations
+                  💡 <span className="md:hidden">Tap</span><span className="hidden md:inline">Hover over</span> each level to see detailed explanations
                 </p>
               </motion.div>
             </motion.div>
@@ -498,7 +529,7 @@ export default function HeroSection() {
                 className="relative"
               >
                 <div className="sticky top-4">
-                  <h3 className="text-2xl font-bold text-white mb-6 text-center lg:text-left">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-6 text-center lg:text-left">
                     <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
                       Cognitive Level Deep Dive
                     </span>
@@ -547,7 +578,7 @@ export default function HeroSection() {
                               </motion.div>
                               <div className="flex-1">
                                 <motion.h4 
-                                  className="text-4xl font-bold text-white mb-3"
+                                  className="text-2xl sm:text-3xl font-bold text-white mb-3"
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
                                   transition={{ delay: 0.2 }}
@@ -555,7 +586,7 @@ export default function HeroSection() {
                                   {level.name}
                                 </motion.h4>
                                 <motion.p 
-                                  className="text-gray-300 text-xl leading-relaxed mb-4"
+                                  className="text-gray-300 text-base sm:text-lg leading-relaxed mb-4"
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
                                   transition={{ delay: 0.3 }}
@@ -592,7 +623,7 @@ export default function HeroSection() {
                             </div>
 
                             {/* Three-Column Information Layout */}
-                            <div className="grid md:grid-cols-3 gap-4 mb-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                               {/* What It Is */}
                               <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-xl p-4 border border-purple-500/20">
                                 <div className="flex items-center gap-2 mb-3">
@@ -625,89 +656,51 @@ export default function HeroSection() {
                             <div className="mt-6 mb-6">
                               <h6 className="text-sm font-semibold text-gray-400 mb-4">Visual Learning Representation:</h6>
                               <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-2xl p-6 border border-slate-600/50">
-                                {/* Different visual for each level */}
-                                {level.level === 1 && (
+                                {/* Different visual for each level - Optimized animations */}
+                                {mounted && level.level === 1 && (
                                   // Remember - Memory Cards Animation
                                   <div className="flex items-center justify-center space-x-4">
                                     {[1, 2, 3].map((card) => (
                                       <motion.div
                                         key={card}
                                         className="w-16 h-24 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg"
-                                        animate={{ 
+                                        animate={!prefersReducedMotion ? { 
                                           rotateY: [0, 180, 0],
                                           scale: [1, 1.05, 1]
-                                        }}
-                                        transition={{ 
+                                        } : {}}
+                                        transition={!prefersReducedMotion ? { 
                                           duration: 2,
                                           delay: card * 0.3,
                                           repeat: Infinity,
                                           repeatDelay: 3
-                                        }}
+                                        } : {}}
                                       >
                                         <span className="text-white font-bold text-lg">{card}</span>
                                       </motion.div>
                                     ))}
                                     <motion.div
                                       className="text-yellow-400"
-                                      animate={{ opacity: [0.5, 1, 0.5] }}
-                                      transition={{ duration: 1.5, repeat: Infinity }}
+                                      animate={!prefersReducedMotion ? { opacity: [0.5, 1, 0.5] } : {}}
+                                      transition={!prefersReducedMotion ? { duration: 1.5, repeat: Infinity } : {}}
                                     >
                                       <span className="text-sm">💡 Memory Recall</span>
                                     </motion.div>
                                   </div>
                                 )}
 
-                                {level.level === 2 && (
-                                  // Understand - Concept Map
+                                {mounted && level.level === 2 && (
+                                  // Understand - Concept Map (Simplified on mobile)
                                   <div className="relative w-full h-32">
-                                    <svg viewBox="0 0 300 120" className="w-full h-full">
-                                      <defs>
-                                        <linearGradient id="conceptGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                          <stop offset="0%" stopColor="#6366f1" />
-                                          <stop offset="100%" stopColor="#8b5cf6" />
-                                        </linearGradient>
-                                      </defs>
-                                      {/* Central concept */}
-                                      <motion.circle
-                                        cx="150" cy="60" r="25"
-                                        fill="url(#conceptGrad)"
-                                        animate={{ scale: [1, 1.1, 1] }}
-                                        transition={{ duration: 2, repeat: Infinity }}
-                                      />
-                                      <text x="150" y="65" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">
-                                        Core
-                                      </text>
-                                      
-                                      {/* Connected concepts */}
-                                      {[
-                                        { x: 75, y: 30, label: "A" },
-                                        { x: 225, y: 30, label: "B" },
-                                        { x: 75, y: 90, label: "C" },
-                                        { x: 225, y: 90, label: "D" }
-                                      ].map((node, i) => (
-                                        <g key={i}>
-                                          <motion.line
-                                            x1="150" y1="60"
-                                            x2={node.x} y2={node.y}
-                                            stroke="#6366f1"
-                                            strokeWidth="2"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1, delay: i * 0.2 }}
-                                          />
-                                          <motion.circle
-                                            cx={node.x} cy={node.y} r="15"
-                                            fill="#4f46e5"
-                                            initial={{ scale: 0 }}
-                                            animate={{ scale: 1 }}
-                                            transition={{ delay: 0.5 + i * 0.2 }}
-                                          />
-                                          <text x={node.x} y={node.y + 5} textAnchor="middle" fill="white" fontSize="10">
-                                            {node.label}
-                                          </text>
-                                        </g>
-                                      ))}
-                                    </svg>
+                                    <div className="flex items-center justify-center h-full">
+                                      <div className="grid grid-cols-3 gap-4 items-center">
+                                        <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold">A</div>
+                                        <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">Core</div>
+                                        <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold">B</div>
+                                      </div>
+                                    </div>
+                                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-indigo-300 text-xs font-medium">
+                                      🔗 Concept Connections
+                                    </div>
                                   </div>
                                 )}
 
@@ -747,40 +740,20 @@ export default function HeroSection() {
                                 )}
 
                                 {level.level === 4 && (
-                                  // Analyze - Data Patterns
+                                  // Analyze - Data Patterns (Simplified on mobile)
                                   <div className="w-full h-32">
-                                    <svg viewBox="0 0 300 120" className="w-full h-full">
-                                      <defs>
-                                        <linearGradient id="analyzeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                          <stop offset="0%" stopColor="#06b6d4" />
-                                          <stop offset="100%" stopColor="#0891b2" />
-                                        </linearGradient>
-                                      </defs>
-                                      {/* Bar chart */}
+                                    <div className="flex items-end justify-center gap-2 h-24">
                                       {[20, 35, 55, 45, 70, 60].map((height, i) => (
-                                        <motion.rect
+                                        <div
                                           key={i}
-                                          x={30 + i * 40}
-                                          y={100 - height}
-                                          width="25"
-                                          height={height}
-                                          fill="url(#analyzeGrad)"
-                                          initial={{ height: 0, y: 100 }}
-                                          animate={{ height, y: 100 - height }}
-                                          transition={{ duration: 1, delay: i * 0.1 }}
+                                          className="w-6 bg-gradient-to-t from-cyan-500 to-cyan-600 rounded-t"
+                                          style={{ height: `${height}%` }}
                                         />
                                       ))}
-                                      {/* Trend line */}
-                                      <motion.path
-                                        d="M 42 80 Q 82 65 122 45 T 202 40 T 282 30"
-                                        stroke="#fbbf24"
-                                        strokeWidth="3"
-                                        fill="none"
-                                        initial={{ pathLength: 0 }}
-                                        animate={{ pathLength: 1 }}
-                                        transition={{ duration: 2, delay: 0.8 }}
-                                      />
-                                    </svg>
+                                    </div>
+                                    <div className="text-center mt-2 text-cyan-300 text-xs font-medium">
+                                      📊 Data Analysis
+                                    </div>
                                   </div>
                                 )}
 
@@ -880,7 +853,7 @@ export default function HeroSection() {
                             {/* Learning Examples */}
                             <div className="mt-6">
                               <h6 className="text-sm font-semibold text-gray-400 mb-3">Learning Activities:</h6>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                 {level.examples.map((example, i) => (
                                   <motion.div
                                     key={i}

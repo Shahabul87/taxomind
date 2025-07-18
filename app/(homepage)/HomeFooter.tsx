@@ -88,7 +88,7 @@ export const HomeFooter = () => {
         
         <div className="container mx-auto px-4 relative">
           {/* Footer Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 mb-16">
             {/* Brand Section */}
             <div className="space-y-6">
               <Link href="/" className="flex items-center space-x-2">
@@ -185,9 +185,9 @@ export const HomeFooter = () => {
           {/* Bottom Bar */}
           <div className="border-t border-slate-700 pt-8 mt-8">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-              <div className="text-sm space-y-2 md:space-y-0">
+              <div className="text-sm space-y-2 md:space-y-0 text-center md:text-left">
                 <p>© 2024 TaxoMind. All rights reserved.</p>
-                <div className="flex flex-wrap gap-4 text-gray-400">
+                <div className="flex flex-wrap gap-4 text-gray-400 justify-center md:justify-start">
                   <Link href="/terms" className="hover:text-purple-400 transition-colors">Terms</Link>
                   <Link href="/privacy" className="hover:text-purple-400 transition-colors">Privacy</Link>
                   <Link href="/cookies" className="hover:text-purple-400 transition-colors">Cookies</Link>

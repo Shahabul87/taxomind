@@ -369,7 +369,7 @@ export const SamCourseCreatorModal = ({
     } finally {
       setIsLoadingSuggestion(false);
     }
-  }, [step, disclosureState.userExperience, applySamSuggestion]);
+  }, [step, disclosureState.userExperience, applySamSuggestion, isLoadingSuggestion]);
 
   const validateForm = useCallback(async () => {
     if (isValidating) return;
@@ -532,7 +532,7 @@ export const SamCourseCreatorModal = ({
         clearTimeout(suggestionTimeoutRef.current);
       }
     };
-  }, [formData.courseTitle, formData.courseShortOverview, formData.targetAudience, formData.difficulty, formData.bloomsFocus, formData.studentBackground, formData.prerequisites, step, isLoadingSuggestion]);
+  }, [formData.courseTitle, formData.courseShortOverview, formData.targetAudience, formData.difficulty, formData.bloomsFocus, formData.studentBackground, formData.prerequisites, step, isLoadingSuggestion, getSamSuggestion]);
 
   // Cleanup when modal closes
   useEffect(() => {
@@ -1109,7 +1109,7 @@ export const SamCourseCreatorModal = ({
                     <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
                       <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 mb-2">
                         <Sparkles className="h-4 w-4" />
-                        <span className="font-medium text-sm">Sam's Title Suggestions</span>
+                        <span className="font-medium text-sm">Sam&apos;s Title Suggestions</span>
                         {isLoadingTitleSuggestions && (
                           <Loader2 className="h-3 w-3 animate-spin" />
                         )}
@@ -1211,7 +1211,7 @@ export const SamCourseCreatorModal = ({
                     <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
                       <div className="flex items-center gap-2 text-green-700 dark:text-green-300 mb-2">
                         <Lightbulb className="h-4 w-4" />
-                        <span className="font-medium text-sm">Sam's Overview Suggestions</span>
+                        <span className="font-medium text-sm">Sam&apos;s Overview Suggestions</span>
                         {isLoadingOverviewSuggestions && (
                           <Loader2 className="h-3 w-3 animate-spin" />
                         )}

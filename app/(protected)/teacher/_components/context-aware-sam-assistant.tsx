@@ -139,10 +139,10 @@ export function ContextAwareSamAssistant() {
       const contextualWelcome = generateContextualWelcome();
       setMessages([contextualWelcome]);
     }
-  }, [pageContext.pageName, messages.length]);
+  }, [pageContext.pageName, messages.length, generateContextualWelcome]);
 
   // Generate welcome message based on page context
-  const generateContextualWelcome = (): ChatMessage => {
+  const generateContextualWelcome = useCallback((): ChatMessage => {
     const getPageIcon = () => {
       switch (pageContext.pageType) {
         case 'courses': return '📚';
@@ -220,7 +220,7 @@ What would you like to work on today?`,
       timestamp: new Date(),
       suggestions: pageActions.slice(0, 4).map(action => action.label),
     };
-  };
+  }, [pageContext, pageActions]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -292,10 +292,10 @@ What would you like to work on today?`,
     } finally {
       setIsLoading(false);
     }
-  }, [pageContext, pathname, messages]);
+  }, [pageContext, pathname, messages, handleAction]);
 
   // Handle actions (navigation, form updates, etc.)
-  const handleAction = async (action: any) => {
+  const handleAction = useCallback(async (action: any) => {
     try {
       switch (action.type) {
         case 'navigation':
@@ -352,7 +352,7 @@ What would you like to work on today?`,
       console.error('Action error:', error);
       toast.error('Failed to perform action');
     }
-  };
+  }, [router]);
 
   // Quick action handler
   const handleQuickAction = useCallback((actionValue: string) => {

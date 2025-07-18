@@ -162,6 +162,11 @@ export const CategoryForm = ({
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [filteredOptions, setFilteredOptions] = useState<Array<{label: string, value: string}>>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingSamData, setPendingSamData] = useState<{ 
+    categoryId?: string; 
+    category?: string;
+    courseCategory?: string;
+  } | null>(null);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   
@@ -221,6 +226,74 @@ export const CategoryForm = ({
   const { isSubmitting, isValid } = form.formState;
   const categoryType = form.watch("categoryType");
   const searchQuery = form.watch("searchQuery");
+
+  // Listen for SAM form population events
+  useEffect(() => {
+    const handleSamFormPopulation = (event: CustomEvent) => {
+      console.log('📥 Category form received SAM populate event:', event.detail);
+      
+      if (event.detail?.formId === 'course-category-form' || 
+          event.detail?.formId === 'category-form' ||
+          event.detail?.formId === 'update-category' ||
+          event.detail?.formId === 'course-category') {
+        
+        console.log('✅ Matched form ID, opening edit mode');
+        // Auto-open edit mode when SAM tries to populate
+        setIsEditing(true);
+        
+        // Store the data to be populated
+        if (event.detail?.data?.categoryId || 
+            event.detail?.data?.category ||
+            event.detail?.data?.courseCategory) {
+          setPendingSamData(event.detail.data);
+        }
+      }
+    };
+
+    window.addEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
+    
+    return () => {
+      window.removeEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
+    };
+  }, []);
+
+  // Handle pending SAM data when form is ready
+  useEffect(() => {
+    if (pendingSamData && isEditing && form) {
+      const categoryValue = pendingSamData.categoryId || pendingSamData.category || pendingSamData.courseCategory;
+      if (categoryValue) {
+        console.log('📝 Setting category value:', categoryValue);
+        
+        // Check if the category exists in options
+        const existingCategory = combinedOptions.find(opt => 
+          opt.value === categoryValue || opt.label.toLowerCase() === categoryValue.toLowerCase()
+        );
+        
+        if (existingCategory) {
+          // Use existing category
+          form.setValue("categoryType", "existing");
+          form.setValue("categoryId", existingCategory.value);
+        } else {
+          // Create new category
+          form.setValue("categoryType", "new");
+          form.setValue("newCategory", categoryValue);
+        }
+        
+        form.trigger();
+        
+        // Dispatch success event
+        window.dispatchEvent(new CustomEvent('sam-form-populated', {
+          detail: {
+            formId: 'course-category-form',
+            success: true
+          }
+        }));
+        
+        // Clear pending data
+        setPendingSamData(null);
+      }
+    }
+  }, [pendingSamData, isEditing, form, combinedOptions]);
 
   // Filter options based on search term or group - more efficiently
   useEffect(() => {
@@ -350,6 +423,21 @@ export const CategoryForm = ({
       "shadow-sm",
       "transition-all duration-300"
     )}>
+      {/* Hidden metadata for SAM to detect the form even when not in edit mode */}
+      <div 
+        data-sam-form-metadata="course-category"
+        data-form-id="course-category-form"
+        data-form-purpose="update-category"
+        data-form-alternate-id="category-form"
+        data-form-type="category"
+        data-entity-type="course"
+        data-entity-id={courseId}
+        data-current-value={initialData?.categoryId || ""}
+        data-is-editing={isEditing.toString()}
+        data-field-name="categoryId"
+        data-field-type="select"
+        style={{ display: 'none' }}
+      />
       {!isEditing ? (
         <div className="relative p-5">
           {/* Background decoration */}

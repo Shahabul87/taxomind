@@ -179,7 +179,7 @@ export function SamCourseAssistant({
       userRole: 'teacher',
       pageContext: 'course-management'
     };
-  }, [courseData, completionStatus]);
+  }, [courseData, completionStatus, calculateCourseHealthScore]);
 
   const calculateCourseHealthScore = useCallback(() => {
     let score = 0;

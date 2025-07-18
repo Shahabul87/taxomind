@@ -87,6 +87,47 @@ app/
 - **Server Components**: Leverage Next.js 15 Server Components for performance
 - **Client Components**: Marked with 'use client' directive where needed
 
+#### 5. Next.js Image Optimization - CRITICAL RULE
+
+### ✅ CORRECT: Always Use Next.js Image Component
+```typescript
+// ALWAYS use Next.js Image component for better performance and SEO
+import Image from 'next/image';
+
+// For user avatars, profile pictures, etc.
+<Image
+  src={user.image}
+  alt={user.name || "User"}
+  width={40}
+  height={40}
+  className="w-full h-full object-cover rounded-full"
+/>
+
+// For responsive images with fill
+<div className="relative w-full h-48">
+  <Image
+    src="/course-thumbnail.jpg"
+    alt="Course thumbnail"
+    fill
+    className="object-cover"
+  />
+</div>
+```
+
+### ❌ AVOID: Regular img Tags
+```typescript
+// ❌ NEVER use regular img tags - causes ESLint warnings and performance issues
+<img src={user.image} alt={user.name} className="w-10 h-10" />
+```
+
+### 📋 Image Component Best Practices
+1. **Always provide width and height**: Required for layout stability
+2. **Use descriptive alt text**: Essential for accessibility and SEO
+3. **Use fill for responsive containers**: When dimensions are unknown
+4. **Import Image from next/image**: `import Image from 'next/image'`
+5. **Combine with Tailwind classes**: For responsive styling
+6. **Handle loading states**: Use `loading="lazy"` for below-the-fold images
+
 ## Database Query Patterns
 
 ### ✅ CORRECT: Current Database Relations
@@ -202,6 +243,282 @@ try {
 }
 ```
 
+## React Hook and ESLint Best Practices
+
+### 1. React Hook Dependencies - CRITICAL RULES
+
+#### ✅ CORRECT: useEffect with Complete Dependencies
+```typescript
+// ALWAYS include ALL dependencies that are used inside the hook
+useEffect(() => {
+  const fetchData = async () => {
+    if (courseId && userId) {
+      const data = await getCourse(courseId, userId);
+      setData(data);
+    }
+  };
+  fetchData();
+}, [courseId, userId]); // Include ALL variables used inside useEffect
+```
+
+#### ✅ CORRECT: useCallback with Complete Dependencies
+```typescript
+// ALWAYS include ALL dependencies for useCallback
+const handleSubmit = useCallback(async () => {
+  if (formData.title && formData.description && !isLoading) {
+    await submitForm(formData);
+  }
+}, [formData.title, formData.description, formData, isLoading]); // Include ALL variables used inside callback
+```
+
+#### ❌ AVOID: Missing Dependencies
+```typescript
+// ❌ NEVER do this - missing dependencies cause stale closures
+useEffect(() => {
+  fetchData(courseId, userId);
+}, []); // Missing courseId and userId dependencies
+
+// ❌ NEVER do this - missing function dependencies
+const handleClick = useCallback(() => {
+  processData(formData);
+}, []); // Missing formData dependency
+```
+
+### 2. Function Dependencies in useEffect
+
+#### ✅ CORRECT: Wrap Functions in useCallback
+```typescript
+// When a function is used as a dependency, wrap it in useCallback
+const fetchUserData = useCallback(async () => {
+  if (!userId || isLoading) return;
+  
+  try {
+    const userData = await getUserById(userId);
+    setUserData(userData);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+  }
+}, [userId, isLoading]); // Include all dependencies used inside the function
+
+// Then use it in useEffect
+useEffect(() => {
+  fetchUserData();
+}, [fetchUserData]); // Include the wrapped function as dependency
+```
+
+#### ✅ CORRECT: Alternative - Move Function Inside useEffect
+```typescript
+// Alternative: Move the function inside useEffect to avoid dependency issues
+useEffect(() => {
+  const fetchUserData = async () => {
+    if (!userId || isLoading) return;
+    
+    try {
+      const userData = await getUserById(userId);
+      setUserData(userData);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
+  };
+  
+  fetchUserData();
+}, [userId, isLoading]); // Only include primitive dependencies
+```
+
+### 3. HTML Entity Escaping
+
+#### ✅ CORRECT: Use HTML Entities for Apostrophes
+```typescript
+// ALWAYS use &apos; for apostrophes in JSX
+<span>SAM&apos;s AI Assistant</span>
+<p>User&apos;s Profile Settings</p>
+<div>Don&apos;t forget to save</div>
+```
+
+#### ❌ AVOID: Unescaped Apostrophes
+```typescript
+// ❌ NEVER use raw apostrophes in JSX
+<span>SAM's AI Assistant</span>     // ESLint error
+<p>User's Profile Settings</p>      // ESLint error
+<div>Don't forget to save</div>     // ESLint error
+```
+
+### 4. State Dependencies Pattern
+
+#### ✅ CORRECT: Include State Variables in Dependencies
+```typescript
+// When using state variables in hooks, include them in dependencies
+const [isGenerating, setIsGenerating] = useState(false);
+const [formData, setFormData] = useState(initialData);
+
+const generateContent = useCallback(async () => {
+  if (isGenerating || !formData.title) return; // Using state variables
+  
+  setIsGenerating(true);
+  try {
+    const content = await generateAIContent(formData);
+    setContent(content);
+  } finally {
+    setIsGenerating(false);
+  }
+}, [isGenerating, formData.title, formData]); // Include ALL state variables used
+```
+
+### 5. Complex Object Dependencies
+
+#### ✅ CORRECT: Handle Complex Object Dependencies
+```typescript
+// When using complex objects, include specific properties
+const formData = {
+  courseTitle: '',
+  courseOverview: '',
+  courseCategory: '',
+  targetAudience: '',
+  // ... other properties
+};
+
+const validateForm = useCallback(() => {
+  if (formData.courseTitle && formData.courseOverview) {
+    return true;
+  }
+  return false;
+}, [
+  formData.courseTitle,     // Include specific properties
+  formData.courseOverview,
+  formData.courseCategory,
+  formData.targetAudience,
+  formData                  // Include the entire object as backup
+]);
+```
+
+### 6. Timeout and Cleanup Dependencies
+
+#### ✅ CORRECT: Include Cleanup Functions in Dependencies
+```typescript
+// When using timeouts or intervals, include cleanup dependencies
+useEffect(() => {
+  const timeoutId = setTimeout(() => {
+    if (searchQuery && searchQuery.length > 2 && !isSearching) {
+      performSearch(searchQuery);
+    }
+  }, 500);
+
+  return () => clearTimeout(timeoutId);
+}, [searchQuery, isSearching, performSearch]); // Include ALL dependencies used
+```
+
+### 7. Mandatory ESLint Rules to Follow
+
+#### A. React Hooks Rules
+- `react-hooks/exhaustive-deps`: ALWAYS include all dependencies
+- `react-hooks/rules-of-hooks`: Use hooks only at the top level
+
+#### B. JSX Rules
+- `react/no-unescaped-entities`: Use HTML entities for special characters
+- `react/jsx-key`: Provide unique keys for list items
+
+#### C. Next.js Optimization Rules
+- `@next/next/no-img-element`: ALWAYS use Next.js Image component instead of `<img>`
+- `@next/next/no-page-custom-font`: Use Next.js font optimization
+- `@next/next/no-css-tags`: Use Next.js built-in CSS support
+
+#### D. Example of Complete Hook Pattern
+```typescript
+// COMPLETE EXAMPLE: All best practices combined
+const MyComponent = ({ courseId, userId }: Props) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+
+  // ✅ Proper useCallback with all dependencies
+  const fetchCourseData = useCallback(async () => {
+    if (!courseId || !userId || isLoading) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const courseData = await getCourseData(courseId, userId);
+      setData(courseData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [courseId, userId, isLoading]); // All dependencies included
+
+  // ✅ Proper useEffect with function dependency
+  useEffect(() => {
+    fetchCourseData();
+  }, [fetchCourseData]); // Include the wrapped function
+
+  // ✅ Proper timeout cleanup
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (data && !isLoading) {
+        console.log('Data loaded successfully');
+      }
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [data, isLoading]); // All dependencies included
+
+  return (
+    <div>
+      {/* ✅ Proper HTML entity usage */}
+      <h1>User&apos;s Course: {data?.title}</h1>
+      <p>Course Creator&apos;s Dashboard</p>
+    </div>
+  );
+};
+```
+
+### 8. Quick Reference Checklist
+
+Before writing any component with hooks:
+
+1. **✅ useEffect Dependencies**: Include ALL variables used inside the effect
+2. **✅ useCallback Dependencies**: Include ALL variables used inside the callback
+3. **✅ Function Dependencies**: Wrap functions in useCallback if used as dependencies
+4. **✅ State Dependencies**: Include state variables used in conditions
+5. **✅ Object Dependencies**: Include specific object properties used
+6. **✅ HTML Entities**: Use `&apos;` for apostrophes, `&quot;` for quotes
+7. **✅ Cleanup Functions**: Include cleanup dependencies in useEffect
+8. **✅ Next.js Image Component**: Use `Image` from `next/image` instead of `<img>` tags
+9. **✅ Always Run**: `npm run lint` before committing to catch issues early
+
+### 9. Common Pitfalls to Avoid
+
+#### ❌ NEVER Do These:
+```typescript
+// ❌ Empty dependency array when variables are used
+useEffect(() => {
+  doSomething(prop1, prop2);
+}, []); // Should include [prop1, prop2]
+
+// ❌ Missing function dependencies
+const callback = useCallback(() => {
+  handleData(formData);
+}, []); // Should include [formData]
+
+// ❌ Unescaped apostrophes
+<span>User's Profile</span> // Should be User&apos;s Profile
+
+// ❌ Missing state dependencies
+const handler = useCallback(() => {
+  if (isLoading) return; // Using isLoading but not in dependencies
+  processData();
+}, [processData]); // Should include [isLoading, processData]
+
+// ❌ Using regular img tags instead of Next.js Image component
+<img src={user.avatar} alt="User avatar" className="w-10 h-10" />
+// Should be: 
+import Image from 'next/image';
+<Image src={user.avatar} alt="User avatar" width={40} height={40} className="w-10 h-10" />
+```
+
+This comprehensive guide ensures all React Hook and ESLint issues are prevented during development.
+
 ## Schema Verification Commands
 
 ```bash
@@ -260,12 +577,18 @@ npx prisma migrate dev    # Apply migrations in development
 
 ### 3. After Making Changes
 ```bash
-npm run lint              # Check code style
+npm run lint              # Check code style - MANDATORY before committing
 npm run validate:env      # Validate environment configuration
 npm run build            # Verify build succeeds (includes env validation)
 npm run test             # Run test suite
 npx prisma generate      # Update Prisma client if schema changed
 ```
+
+**CRITICAL**: Always run `npm run lint` after making any React component changes to catch:
+- Missing useEffect/useCallback dependencies
+- Unescaped HTML entities
+- Regular `<img>` tags instead of Next.js `Image` component
+- Other ESLint rule violations
 
 ## Important Files and Locations
 
@@ -311,3 +634,4 @@ npx prisma generate      # Update Prisma client if schema changed
 *Architecture: Next.js 15 + Prisma + PostgreSQL + NextAuth.js v5*
 *Database: Purchase/Enrollment-based system with enterprise safety features*
 *Local Development: Docker PostgreSQL on port 5433 with complete environment isolation*
+*ESLint: Comprehensive React Hook and HTML entity validation enabled*

@@ -260,7 +260,7 @@ What would you like me to help you with?`,
       console.error('Action execution error:', error);
       toast.error('Failed to perform action');
     }
-  }, [populateForm, submitForm, validateForm, router, refreshPageData, navigateWorkflow, pageData.availableActions]);
+  }, [populateForm, submitForm, validateForm, router, refreshPageData, navigateWorkflow, pageData.availableActions, pageData.forms]);
 
   // Send message with enhanced context
   const sendMessage = useCallback(async (content: string) => {

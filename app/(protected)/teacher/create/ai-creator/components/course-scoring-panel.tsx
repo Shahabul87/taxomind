@@ -107,7 +107,7 @@ export function CourseScoringPanel({ formData, onUpdateFormData, className }: Co
   };
 
   // Generate enhanced title suggestions with scoring
-  const generateTitleSuggestions = async () => {
+  const generateTitleSuggestions = useCallback(async () => {
     if (!formData.courseTitle || isGeneratingTitles) return;
     
     setIsGeneratingTitles(true);
@@ -141,10 +141,10 @@ export function CourseScoringPanel({ formData, onUpdateFormData, className }: Co
     } finally {
       setIsGeneratingTitles(false);
     }
-  };
+  }, [formData.courseTitle, formData.courseShortOverview, formData.courseCategory, formData.courseSubcategory, formData.courseIntent, formData.targetAudience, isGeneratingTitles]);
 
   // Generate overview suggestions with web search
-  const generateOverviewSuggestions = async () => {
+  const generateOverviewSuggestions = useCallback(async () => {
     if (!formData.courseTitle || isGeneratingOverviews) return;
     
     setIsGeneratingOverviews(true);
@@ -178,7 +178,7 @@ export function CourseScoringPanel({ formData, onUpdateFormData, className }: Co
     } finally {
       setIsGeneratingOverviews(false);
     }
-  };
+  }, [formData.courseTitle, formData.courseShortOverview, formData.courseCategory, formData.courseSubcategory, formData.courseIntent, formData.targetAudience, isGeneratingOverviews]);
 
   const copyTitle = (title: string) => {
     onUpdateFormData((prev: any) => ({ ...prev, courseTitle: title }));
@@ -261,7 +261,7 @@ export function CourseScoringPanel({ formData, onUpdateFormData, className }: Co
     }, 2000); // Wait 2 seconds after user stops typing
 
     return () => clearTimeout(timeoutId);
-  }, [formData.courseTitle]);
+  }, [formData.courseTitle, generateTitleSuggestions, isGeneratingTitles]);
 
   // Auto-generate overview suggestions when title changes
   useEffect(() => {
@@ -273,7 +273,7 @@ export function CourseScoringPanel({ formData, onUpdateFormData, className }: Co
     }, 2500); // Wait 2.5 seconds after user stops typing
 
     return () => clearTimeout(timeoutId);
-  }, [formData.courseTitle]);
+  }, [formData.courseTitle, generateOverviewSuggestions, isGeneratingOverviews]);
 
   return (
     <div className={cn("space-y-4", className)}>

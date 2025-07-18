@@ -5,7 +5,7 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil, DollarSign } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,6 +40,11 @@ export const PriceForm = ({
   courseId,
 }: PriceFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [pendingSamData, setPendingSamData] = useState<{ 
+    price?: number; 
+    coursePrice?: number; 
+    amount?: number 
+  } | null>(null);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -50,6 +55,59 @@ export const PriceForm = ({
   });
 
   const { isSubmitting, isValid } = form.formState;
+
+  // Listen for SAM form population events
+  useEffect(() => {
+    const handleSamFormPopulation = (event: CustomEvent) => {
+      console.log('📥 Price form received SAM populate event:', event.detail);
+      
+      if (event.detail?.formId === 'course-price-form' || 
+          event.detail?.formId === 'price-form' ||
+          event.detail?.formId === 'update-price' ||
+          event.detail?.formId === 'course-price') {
+        
+        console.log('✅ Matched form ID, opening edit mode');
+        // Auto-open edit mode when SAM tries to populate
+        setIsEditing(true);
+        
+        // Store the data to be populated
+        if (event.detail?.data?.price !== undefined || 
+            event.detail?.data?.coursePrice !== undefined ||
+            event.detail?.data?.amount !== undefined) {
+          setPendingSamData(event.detail.data);
+        }
+      }
+    };
+
+    window.addEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
+    
+    return () => {
+      window.removeEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
+    };
+  }, []);
+
+  // Handle pending SAM data when form is ready
+  useEffect(() => {
+    if (pendingSamData && isEditing && form) {
+      const priceValue = pendingSamData.price ?? pendingSamData.coursePrice ?? pendingSamData.amount;
+      if (priceValue !== undefined) {
+        console.log('📝 Setting price value:', priceValue);
+        form.setValue("price", priceValue);
+        form.trigger("price");
+        
+        // Dispatch success event
+        window.dispatchEvent(new CustomEvent('sam-form-populated', {
+          detail: {
+            formId: 'course-price-form',
+            success: true
+          }
+        }));
+        
+        // Clear pending data
+        setPendingSamData(null);
+      }
+    }
+  }, [pendingSamData, isEditing, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -105,6 +163,21 @@ export const PriceForm = ({
       "backdrop-blur-sm",
       "transition-all duration-200"
     )}>
+      {/* Hidden metadata for SAM to detect the form even when not in edit mode */}
+      <div 
+        data-sam-form-metadata="course-price"
+        data-form-id="course-price-form"
+        data-form-purpose="update-price"
+        data-form-alternate-id="price-form"
+        data-form-type="price"
+        data-entity-type="course"
+        data-entity-id={courseId}
+        data-current-value={initialData?.price || 0}
+        data-is-editing={isEditing.toString()}
+        data-field-name="price"
+        data-field-type="number"
+        style={{ display: 'none' }}
+      />
       <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
         <div className="space-y-1">
           <div className="flex items-center gap-x-2">
@@ -177,6 +250,11 @@ export const PriceForm = ({
           >
             <Form {...form}>
               <form
+                id="course-price-form"
+                data-form="course-price"
+                data-purpose="update-price"
+                data-entity-type="course"
+                data-entity-id={courseId}
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-4 mt-4"
               >

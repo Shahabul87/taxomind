@@ -42,11 +42,8 @@ export const DescriptionForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-
-  // Prevent hydration issues
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const [samTriggerEdit, setSamTriggerEdit] = useState(false);
+  const [pendingSamData, setPendingSamData] = useState<{ description?: string; content?: string } | null>(null);
 
   const toggleEdit = () => setIsEditing((current) => !current);
 
@@ -58,6 +55,71 @@ export const DescriptionForm = ({
       description: initialData?.description || "",
     },
   });
+
+  // Prevent hydration issues
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Listen for SAM form population events
+  useEffect(() => {
+    const handleSamFormPopulation = (event: CustomEvent) => {
+      console.log('📥 Description form received SAM populate event:', event.detail);
+      
+      if (event.detail?.formId === 'course-description-form' || 
+          event.detail?.formId === 'course-description' ||
+          event.detail?.formId === 'update-course-description' ||
+          event.detail?.formId === 'update-description' ||
+          event.detail?.formId === 'general-form') {
+        
+        console.log('✅ Matched form ID, opening edit mode');
+        // Auto-open edit mode when SAM tries to populate
+        setIsEditing(true);
+        setSamTriggerEdit(true);
+        
+        // Store the data to be populated
+        if (event.detail?.data?.description || event.detail?.data?.content) {
+          setPendingSamData(event.detail.data);
+        }
+      }
+    };
+
+    window.addEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
+    
+    return () => {
+      window.removeEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
+    };
+  }, []);
+
+  // Handle pending SAM data when form is ready
+  useEffect(() => {
+    if (pendingSamData && isEditing && form) {
+      const descriptionValue = pendingSamData.description || pendingSamData.content;
+      if (descriptionValue) {
+        console.log('📝 Setting description value:', descriptionValue.substring(0, 100) + '...');
+        form.setValue("description", descriptionValue);
+        form.trigger("description");
+        
+        // Dispatch success event
+        window.dispatchEvent(new CustomEvent('sam-form-populated', {
+          detail: {
+            formId: 'course-description-form',
+            success: true
+          }
+        }));
+        
+        // Clear pending data
+        setPendingSamData(null);
+      }
+    }
+  }, [pendingSamData, isEditing, form]);
+
+  // Update form when SAM triggers edit mode with pre-existing description
+  useEffect(() => {
+    if (samTriggerEdit && initialData?.description) {
+      form.setValue("description", initialData.description);
+    }
+  }, [samTriggerEdit, initialData?.description, form]);
 
   const { isValid } = form.formState;
 
@@ -132,6 +194,21 @@ export const DescriptionForm = ({
       "rounded-md",
       isEditing ? "p-0" : "p-4 bg-slate-50 dark:bg-slate-800/50"
     )}>
+      {/* Hidden metadata for SAM to detect the form even when not in edit mode */}
+      <div 
+        data-sam-form-metadata="course-description"
+        data-form-id="course-description-form"
+        data-form-purpose="update-course-description"
+        data-form-alternate-id="update-description"
+        data-form-type="description"
+        data-entity-type="course"
+        data-entity-id={courseId}
+        data-current-value={initialData?.description || ""}
+        data-is-editing={isEditing.toString()}
+        data-field-name="description"
+        data-field-type="rich-text"
+        style={{ display: 'none' }}
+      />
       <div className="font-medium flex items-center justify-between">
         Course description
         <div className="flex gap-2">

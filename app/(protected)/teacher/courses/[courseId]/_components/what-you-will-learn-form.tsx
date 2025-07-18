@@ -5,7 +5,7 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Pencil, PlusCircle, CheckCircle2, Lightbulb, GraduationCap, ChevronDown, ChevronUp, Trash2, Save, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,11 @@ export const WhatYouWillLearnForm = ({
   const [isAdding, setIsAdding] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [globalLoading, setGlobalLoading] = useState(false);
+  const [pendingSamData, setPendingSamData] = useState<{ 
+    learningObjectives?: string[]; 
+    whatYouWillLearn?: string[]; 
+    objectives?: string[] 
+  } | null>(null);
   const router = useRouter();
 
   const form = useForm<FormValues>({
@@ -89,6 +94,79 @@ export const WhatYouWillLearnForm = ({
   });
 
   const { isSubmitting, isValid } = form.formState;
+
+  // Listen for SAM form population events
+  useEffect(() => {
+    const handleSamFormPopulation = (event: CustomEvent) => {
+      console.log('📥 Learning objectives form received SAM populate event:', event.detail);
+      
+      if (event.detail?.formId === 'learning-objectives-form' || 
+          event.detail?.formId === 'learning-objectives' ||
+          event.detail?.formId === 'what-you-will-learn-form' ||
+          event.detail?.formId === 'what-you-will-learn' ||
+          event.detail?.formId === 'objectives-form') {
+        
+        console.log('✅ Matched form ID for learning objectives');
+        
+        // Store the data to be populated
+        if (event.detail?.data?.learningObjectives || 
+            event.detail?.data?.whatYouWillLearn || 
+            event.detail?.data?.objectives) {
+          setPendingSamData(event.detail.data);
+        }
+      }
+    };
+
+    window.addEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
+    
+    return () => {
+      window.removeEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
+    };
+  }, []);
+
+  // Handle pending SAM data when ready
+  useEffect(() => {
+    if (pendingSamData) {
+      const objectives = pendingSamData.learningObjectives || 
+                       pendingSamData.whatYouWillLearn || 
+                       pendingSamData.objectives;
+      
+      if (objectives && Array.isArray(objectives)) {
+        console.log('📝 Setting learning objectives:', objectives);
+        
+        // Clear existing objectives
+        const currentLength = fields.length;
+        for (let i = currentLength - 1; i >= 0; i--) {
+          remove(i);
+        }
+        
+        // Add new objectives
+        objectives.forEach((objective, index) => {
+          append({
+            value: objective,
+            id: `objective-${Date.now()}-${index}`,
+            isEditing: false,
+            isNew: true,
+            isSaving: false
+          });
+        });
+        
+        // Dispatch success event
+        window.dispatchEvent(new CustomEvent('sam-form-populated', {
+          detail: {
+            formId: 'learning-objectives-form',
+            success: true,
+            count: objectives.length
+          }
+        }));
+        
+        toast.success(`Added ${objectives.length} learning objectives from SAM`);
+        
+        // Clear pending data
+        setPendingSamData(null);
+      }
+    }
+  }, [pendingSamData, fields.length, remove, append]);
 
   // Add a new objective
   const handleAddObjective = () => {
@@ -261,6 +339,21 @@ export const WhatYouWillLearnForm = ({
 
   return (
     <div className="mt-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+      {/* Hidden metadata for SAM to detect the form */}
+      <div 
+        data-sam-form-metadata="learning-objectives"
+        data-form-id="learning-objectives-form"
+        data-form-purpose="learning-objectives"
+        data-form-alternate-id="what-you-will-learn-form"
+        data-form-type="array"
+        data-entity-type="course"
+        data-entity-id={courseId}
+        data-current-value={JSON.stringify(initialData?.whatYouWillLearn || [])}
+        data-field-name="whatYouWillLearn"
+        data-field-type="array"
+        data-array-item-type="string"
+        style={{ display: 'none' }}
+      />
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-700 dark:to-purple-800 p-5">
         <div className="font-medium flex items-center justify-between text-white">
           <div className="flex items-center space-x-2">

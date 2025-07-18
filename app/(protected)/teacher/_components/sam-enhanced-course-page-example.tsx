@@ -262,7 +262,7 @@ export function EnhancedCoursePageExample({
             SAM is now aware of your course context and can help you with:
           </p>
           <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-            <li>• Generate learning objectives using Bloom's taxonomy</li>
+            <li>• Generate learning objectives using Bloom&apos;s taxonomy</li>
             <li>• Create well-structured chapters and sections</li>
             <li>• Analyze and improve your course structure</li>
             <li>• Provide content optimization suggestions</li>

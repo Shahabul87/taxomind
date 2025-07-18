@@ -50,7 +50,7 @@ function HeaderFallback() {
   return (
     <header className="fixed top-0 left-0 right-0 w-full z-[50] bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full relative overflow-hidden">
-        <div className="flex justify-between items-center h-16 relative">
+        <div className="flex justify-between items-center h-14 sm:h-16 relative">
           {/* Logo */}
           <div className="flex items-center space-x-2 pl-8 md:pl-0">
             <div className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 bg-purple-400 rounded animate-pulse" />
@@ -143,7 +143,7 @@ export default async function RootLayout({
             
             {/* Main layout with sidebar and content */}
             <Suspense fallback={
-              <div className="pt-16 min-h-screen bg-slate-900 flex items-center justify-center">
+              <div className="pt-14 sm:pt-16 min-h-screen bg-slate-900 flex items-center justify-center">
                 <div className="text-white">Loading...</div>
               </div>
             }>

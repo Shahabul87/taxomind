@@ -78,7 +78,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
   }, [chapter, courseId, chapterId, refreshPageData, injectPageContext]);
 
   // Form interaction functions that SAM can use
-  const formInteractions = {
+  const formInteractions = useMemo(() => ({
     
     // Title form interaction
     updateChapterTitle: async (title: string) => {
@@ -259,7 +259,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
         toast.error('Failed to unpublish chapter');
       }
     }
-  };
+  }), [courseId, chapterId, router, chapter.sections.length]);
 
   // Make form interactions available globally for SAM
   useEffect(() => {
@@ -269,7 +269,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
     return () => {
       delete (window as any).chapterFormInteractions;
     };
-  }, []);
+  }, [formInteractions]);
 
   return null; // This component doesn't render anything, just provides context
 }

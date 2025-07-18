@@ -73,7 +73,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
     } finally {
       setIsGeneratingObjectives(false);
     }
-  }, [formData, objectiveCount]);
+  }, [formData, objectiveCount, isGeneratingObjectives]);
 
   // Generate Bloom's taxonomy recommendations
   const generateBloomsRecommendations = useCallback(async () => {
@@ -111,7 +111,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
     } finally {
       setIsGeneratingBlooms(false);
     }
-  }, [formData]);
+  }, [formData, isGeneratingBlooms]);
 
   const insertObjective = (objective: string) => {
     const newGoal = objective.trim();
@@ -146,7 +146,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
     <div className={cn("space-y-4", className)}>
       <div className="text-center">
         <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-          SAM's Learning Design Assistance
+          SAM&apos;s Learning Design Assistance
         </h3>
         <p className="text-sm text-slate-600 dark:text-slate-400">
           Get AI-powered suggestions for learning objectives and cognitive focus
@@ -253,7 +253,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-green-600" />
-              SAM's Bloom's Recommendations
+              SAM&apos;s Bloom&apos;s Recommendations
             </h3>
             <Button 
               size="sm" 
@@ -293,7 +293,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
               <div className="p-3 backdrop-blur-sm bg-white/70 dark:bg-slate-800/70 rounded-lg border border-white/20">
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="h-3 w-3 text-blue-600" />
-                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">SAM's Analysis</span>
+                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">SAM&apos;s Analysis</span>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
                   {bloomsRecommendations.recommendations?.reasoning}

@@ -18,8 +18,7 @@ import { CourseLearningOutcomeForm } from "./_components/course-learning-outcome
 import { BloomsTaxonomyGuide } from "./chapters/[chapterId]/section/[sectionId]/_components/blooms-taxonomy-guide";
 import { ContextAwareFeatureRevealer } from "@/components/ui/context-aware-feature-revealer";
 import { BlueprintIntegration } from "./_components/blueprint-integration";
-import { BloomsTaxonomyProgressTracker } from "./_components/blooms-taxonomy-progress-tracker";
-import { AdvancedAnalyticsDashboard } from "./_components/advanced-analytics-dashboard";
+import { CourseDepthAnalyzer } from "./_components/course-depth-analyzer";
 import { SamIntegration } from "./_components/sam-integration-example";
 // import { CoursePageSamIntegration } from "./_components/course-page-sam-integration";
 import { SimpleCourseContext } from "@/app/(protected)/teacher/_components/simple-course-context";
@@ -106,7 +105,7 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
   const completionPercentage = Math.round((completedSections / totalSections) * 100);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-gray-50 to-white dark:from-gray-900 dark:via-gray-850 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Enhanced SAM Context Injection */}
       <SimpleCourseContext
         course={{
@@ -134,110 +133,148 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
         }}
         completionStatus={completionStatus}
       />
+
+      {/* Floating Background Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-10 right-10 w-72 h-72 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-10 left-10 w-80 h-80 bg-gradient-to-br from-blue-400/15 to-cyan-400/15 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-indigo-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse delay-2000" />
+      </div>
       
-      <div className="pt-8 pb-20">
-        {/* Header Section with integrated Banner and Course Setup */}
-        <div className="px-4 md:px-8 mb-8">
-          <div className={cn(
-            "relative overflow-hidden rounded-2xl",
-            "border border-gray-200/70 dark:border-gray-700/50",
-            "bg-white dark:bg-gray-800",
-            "shadow-lg"
-          )}>
-            {/* Background decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-100/50 dark:bg-purple-900/20 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-100/50 dark:bg-indigo-900/20 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl"></div>
-            
-            {/* Banner for unpublished status */}
-            {!course.isPublished && (
-              <div className="relative border-b border-orange-200 dark:border-orange-800/30">
-                <div className="px-6 py-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/40 dark:to-amber-950/30">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0">
-                      <AlertTriangle className="h-5 w-5 text-orange-500 dark:text-orange-400" />
+      <div className="pt-6 pb-16 relative">
+        {/* Full-Width Course Setup Header with Glass Effects */}
+        <div className="w-full mb-8">
+          {/* Banner for unpublished status */}
+          {!course.isPublished && (
+            <div className="w-full mb-6">
+              <div className="mx-4 md:mx-6 lg:mx-8">
+                <div className="w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-orange-300/60 dark:border-orange-600/60 shadow-xl p-4 md:p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 backdrop-blur-sm shadow-lg">
+                      <AlertTriangle className="h-5 w-5 text-white flex-shrink-0" />
                     </div>
-                    <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
-                      This course is unpublished. It will not be visible to students.
-                    </p>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+                        This course is unpublished. It will not be visible to students.
+                      </p>
+                      <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                        Complete at least {minSectionsRequired} sections and click publish to make it available.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
-            
-            {/* Course Setup Header */}
-            <div className="p-6 md:p-8 relative z-10">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 dark:from-purple-600 dark:to-indigo-700 shadow-md">
-                      <LayoutDashboard className="h-5 w-5 text-white" />
+            </div>
+          )}
+
+          {/* Main Course Setup Header - Full Width */}
+          <div className="w-full">
+            <div className="mx-4 md:mx-6 lg:mx-8">
+              <div className="relative group w-full">
+                {/* Floating background orb for the header */}
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/40 via-purple-600/40 to-pink-600/40 rounded-3xl blur-2xl group-hover:blur-xl transition-all duration-500"></div>
+                
+                {/* Main glass container */}
+                <div className="relative w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl border border-slate-300/60 dark:border-slate-600/60 shadow-xl p-6 md:p-8 lg:p-10">
+                  {/* Header Section */}
+                  <div className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-8">
+                    {/* Left: Icon and Title */}
+                    <div className="flex items-center gap-6">
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 backdrop-blur-sm shadow-xl">
+                        <LayoutDashboard className="h-8 w-8 text-white" />
+                      </div>
+                      <div className="text-center lg:text-left">
+                        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                          Course Setup
+                        </h1>
+                        <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm md:text-base">
+                          Configure your course settings and content
+                        </p>
+                      </div>
                     </div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-                      Course Setup
-                    </h1>
+                    
+                    {/* Right: Actions */}
+                    <div className="flex items-center gap-4">
+                      <Actions
+                        disabled={!isPublishable}
+                        courseId={params.courseId}
+                        isPublished={course.isPublished}
+                      />
+                    </div>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        Completion {completionText}
-                      </span>
-                    </div>
-                    
-                    {/* Progress bar */}
-                    <div className="w-full max-w-xs h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div 
-                        className={cn(
-                          "h-full rounded-full transition-all duration-500",
-                          completionPercentage < 30 ? "bg-amber-500" : 
-                          completionPercentage < 70 ? "bg-indigo-500" : 
-                          "bg-emerald-500"
+                  {/* Progress Section */}
+                  <div className="w-full bg-white/90 dark:bg-slate-700/90 backdrop-blur-md rounded-2xl border border-slate-300/50 dark:border-slate-500/50 shadow-lg p-4 md:p-6">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                      {/* Progress Info */}
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 backdrop-blur-sm shadow-xl">
+                          <BarChart3 className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                            Progress {completionText}
+                          </p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300">
+                            {completionPercentage}% complete
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Progress Bar */}
+                      <div className="flex-1 min-w-0 max-w-md">
+                        <div className="w-full h-3 bg-slate-300/70 dark:bg-slate-600/70 rounded-full overflow-hidden backdrop-blur-sm shadow-inner">
+                          <div 
+                            className={cn(
+                              "h-full rounded-full transition-all duration-700 shadow-md",
+                              completionPercentage < 30 ? "bg-gradient-to-r from-amber-500 to-orange-600" : 
+                              completionPercentage < 70 ? "bg-gradient-to-r from-blue-500 to-indigo-600" : 
+                              "bg-gradient-to-r from-emerald-500 to-teal-600"
+                            )}
+                            style={{ width: `${completionPercentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      {/* Publication Status */}
+                      <div className="flex items-center gap-2">
+                        {isPublishable ? (
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 dark:bg-emerald-400/20 border border-emerald-500/40 dark:border-emerald-400/40 backdrop-blur-sm">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+                            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Ready to publish</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 dark:bg-amber-400/20 border border-amber-500/40 dark:border-amber-400/40 backdrop-blur-sm">
+                            <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+                            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Needs more content</span>
+                          </div>
                         )}
-                        style={{ width: `${completionPercentage}%` }}
-                      ></div>
-                    </div>
-                    
-                    {/* Publication status */}
-                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                      {isPublishable && <CheckCircle2 className="h-4 w-4" />}
-                      <span className="text-xs font-medium">
-                        {completedSections >= totalSections 
-                          ? "All sections completed!" 
-                          : isPublishable 
-                            ? `${completedSections}/${minSectionsRequired}+ sections complete - Ready to publish` 
-                            : `${completedSections}/${minSectionsRequired} sections needed to publish`}
-                      </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                
-                <Actions
-                  disabled={!isPublishable}
-                  courseId={params.courseId}
-                  isPublished={course.isPublished}
-                />
               </div>
             </div>
           </div>
         </div>
 
         {/* Progressive Feature Discovery */}
-        <div className="px-4 md:px-8 mb-6">
+        <div className="px-4 md:px-6 mb-4">
           <ContextAwareFeatureRevealer
             userId={userId}
             currentPage="course-creation"
             contextualData={{
               coursesCreated: 1,
               chaptersCreated: course.chapters.length,
-              studentsEnrolled: 0, // This would come from actual enrollment data
-              examAttempts: 0, // This would come from actual exam data
-              bloomsLevels: 3 // This would be calculated from actual exam questions
+              studentsEnrolled: 0,
+              examAttempts: 0,
+              bloomsLevels: 3
             }}
           />
         </div>
 
-        {/* Blueprint Integration - Shows AI-generated course structure if available */}
-        <div className="px-4 md:px-8 mb-6">
+        {/* Blueprint Integration */}
+        <div className="px-4 md:px-6 mb-4">
           <BlueprintIntegration 
             courseId={params.courseId}
             currentCourse={{
@@ -248,229 +285,68 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
           />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="px-4 md:px-8">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
+        {/* Course Structure - Two Column Layout */}
+        <div className="px-4 md:px-6 mb-8">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {/* Left Column */}
-            <div className="space-y-6 md:space-y-8">
-              <div className={cn(
-                "rounded-xl",
-                "border border-gray-200/70 dark:border-gray-700/50",
-                "bg-white dark:bg-gray-800",
-                "shadow-md p-5 md:p-7",
-                completionStatus.titleDesc ? "border-l-4 border-emerald-500" : ""
-              )}>
-                <div className="flex items-center gap-x-3 mb-6">
-                  <IconBadge icon={LayoutDashboard} variant={completionStatus.titleDesc ? "success" : "default"} />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            <div className="space-y-4">
+              {/* Basic Information */}
+              <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                    <LayoutDashboard className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h2 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                     Basic Information
-                    {completionStatus.titleDesc && (
-                      <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
-                        (Completed)
-                      </span>
-                    )}
                   </h2>
+                  {completionStatus.titleDesc && (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  )}
                 </div>
                 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <TitleForm initialData={{ title: course.title ?? undefined, description: course.description ?? undefined }} courseId={course.id} />
-                  <div className={cn(
-                    "rounded-md overflow-hidden",
-                    completionStatus.titleDesc ? "border-l-4 border-emerald-500" : ""
-                  )}>
-                    <DescriptionForm initialData={course} courseId={course.id} />
-                  </div>
-                  <div className={cn(
-                    completionStatus.learningObj ? "border-l-4 border-emerald-500 pl-4 py-2" : ""
-                  )}>
-                    <div className="flex items-start gap-x-2">
+                  <DescriptionForm initialData={course} courseId={course.id} />
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      Learning Objectives
                       {completionStatus.learningObj && (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-1 flex-shrink-0" />
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                       )}
-                      <div className="w-full">
-                        <h3 className="text-sm font-medium mb-2 flex items-center">
-                          Learning Objectives
-                          {completionStatus.learningObj && (
-                            <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
-                              (Completed)
-                            </span>
-                          )}
-                        </h3>
-                        <CourseLearningOutcomeForm
-                          initialData={{ 
-                            whatYouWillLearn: course.whatYouWillLearn || [],
-                            title: course.title ?? undefined,
-                            description: course.description ?? undefined
-                          }}
-                          courseId={course.id}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-
-              {/* Bloom's Taxonomy Progress Tracker */}
-              <div className={cn(
-                "rounded-xl",
-                "border border-gray-200/70 dark:border-gray-700/50",
-                "bg-white dark:bg-gray-800",
-                "shadow-md overflow-hidden"
-              )}>
-                <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[1px]">
-                  <div className="bg-white dark:bg-gray-800 p-5 md:p-7">
-                    <BloomsTaxonomyProgressTracker 
-                      courseId={params.courseId}
-                      courseStructure={{
-                        id: course.id,
-                        title: course.title || "Untitled Course",
-                        chapters: course.chapters.map(chapter => ({
-                          id: chapter.id,
-                          title: chapter.title,
-                          bloomsLevel: undefined, // TODO: Add bloomsLevel to chapter model
-                          sections: chapter.sections.map(section => ({
-                            id: section.id,
-                            title: section.title,
-                            bloomsLevel: undefined, // TODO: Add bloomsLevel to section model
-                            contentType: undefined, // TODO: Add contentType to section model
-                            isPublished: section.isPublished
-                          }))
-                        }))
+                    </h3>
+                    <CourseLearningOutcomeForm
+                      initialData={{ 
+                        whatYouWillLearn: course.whatYouWillLearn || [],
+                        title: course.title ?? undefined,
+                        description: course.description ?? undefined
                       }}
-                      view="teacher"
+                      courseId={course.id}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Bloom's Taxonomy Educational Design Guide */}
-              <div className={cn(
-                "rounded-xl",
-                "border border-gray-200/70 dark:border-gray-700/50",
-                "bg-white dark:bg-gray-800",
-                "shadow-md overflow-hidden"
-              )}>
-                <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[1px]">
-                  <div className="bg-white dark:bg-gray-800 p-5 md:p-7">
-                    <div className="flex items-center gap-x-3 mb-6">
-                      <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg">
-                        <Brain className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                          Educational Design Assistant
-                        </h2>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          AI-powered Bloom&apos;s taxonomy guide for cognitive learning design
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700">
-                        <div className="flex items-start gap-3">
-                          <Target className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <h4 className="font-medium text-indigo-800 dark:text-indigo-200 mb-1">Smart Course Design</h4>
-                            <p className="text-sm text-indigo-700 dark:text-indigo-300 leading-relaxed">
-                              Use our comprehensive Bloom&apos;s taxonomy guide to design cognitively progressive learning experiences. 
-                              Create questions and assessments that build from basic recall to advanced creative thinking.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-1">
-                        <BloomsTaxonomyGuide
-                          showQuestionExamples={true}
-                          isInteractive={true}
-                        />
-                      </div>
-                    </div>
+              {/* Course Settings */}
+              <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                    <LayoutDashboard className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6 md:space-y-8">
-
-              {/* Chapters Section */}
-              <div className={cn(
-                "rounded-xl",
-                "border border-gray-200/70 dark:border-gray-700/50",
-                "bg-white dark:bg-gray-800",
-                "shadow-md p-5 md:p-7",
-                completionStatus.chapters ? "border-l-4 border-emerald-500" : ""
-              )}>
-                <div className="flex items-center gap-x-3 mb-6">
-                  <IconBadge icon={ListChecks} variant={completionStatus.chapters ? "success" : "default"} />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                    Course Chapters
-                    {completionStatus.chapters && (
-                      <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
-                        (Completed)
-                      </span>
-                    )}
-                  </h2>
-                </div>
-                <ChaptersForm initialData={course} courseId={course.id} />
-              </div>
-
-              {/* Price Section */}
-              <div className={cn(
-                "rounded-xl",
-                "border border-gray-200/70 dark:border-gray-700/50",
-                "bg-white dark:bg-gray-800",
-                "shadow-md p-5 md:p-7",
-                completionStatus.price ? "border-l-4 border-emerald-500" : ""
-              )}>
-                <div className="flex items-center gap-x-3 mb-6">
-                  <IconBadge icon={CircleDollarSign} variant={completionStatus.price ? "success" : "default"} />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                    Sell your course
-                    {completionStatus.price && (
-                      <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
-                        (Completed)
-                      </span>
-                    )}
-                  </h2>
-                </div>
-                <PriceForm initialData={course} courseId={course.id} />
-              </div>
-
-              {/* Course Settings Section - Moved from left column */}
-              <div className={cn(
-                "rounded-xl",
-                "border border-gray-200/70 dark:border-gray-700/50",
-                "bg-white dark:bg-gray-800",
-                "shadow-md p-5 md:p-7"
-              )}>
-                <div className="flex items-center gap-x-3 mb-6">
-                  <IconBadge icon={LayoutDashboard} />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                     Course Settings
                   </h2>
                 </div>
                 
-                <div className="space-y-6">
-                  {/* Category */}
-                  <div className={cn(
-                    "p-4 rounded-md",
-                    completionStatus.category ? "border-l-4 border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/5" : "bg-gray-50 dark:bg-gray-800/60"
-                  )}>
-                    <div className="flex items-center gap-x-3 mb-4">
-                      <IconBadge icon={ListChecks} size="sm" variant={completionStatus.category ? "success" : "default"} />
-                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                        Category
-                        {completionStatus.category && (
-                          <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
-                            (Completed)
-                          </span>
-                        )}
-                      </h3>
-                    </div>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <ListChecks className="h-4 w-4" />
+                      Category
+                      {completionStatus.category && (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      )}
+                    </h3>
                     <CategoryForm
                       initialData={course}
                       courseId={course.id}
@@ -481,22 +357,14 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
                     />
                   </div>
                   
-                  {/* Course Image */}
-                  <div className={cn(
-                    "p-4 rounded-md",
-                    completionStatus.image ? "border-l-4 border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/5" : "bg-gray-50 dark:bg-gray-800/60"
-                  )}>
-                    <div className="flex items-center gap-x-3 mb-4">
-                      <IconBadge icon={File} size="sm" variant={completionStatus.image ? "success" : "default"} />
-                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                        Course Image
-                        {completionStatus.image && (
-                          <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
-                            (Completed)
-                          </span>
-                        )}
-                      </h3>
-                    </div>
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <File className="h-4 w-4" />
+                      Course Image
+                      {completionStatus.image && (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      )}
+                    </h3>
                     <CourseImageUpload 
                       courseId={params.courseId}
                       initialImage={course.imageUrl}
@@ -504,72 +372,144 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
                   </div>
                 </div>
               </div>
-              
-              {/* Attachments Section */}
-              <div className={cn(
-                "rounded-xl",
-                "border border-gray-200/70 dark:border-gray-700/50",
-                "bg-white dark:bg-gray-800",
-                "shadow-md p-5 md:p-7",
-                completionStatus.attachments ? "border-l-4 border-emerald-500" : ""
-              )}>
-                <div className="flex items-center gap-x-3 mb-6">
-                  <IconBadge icon={File} variant={completionStatus.attachments ? "success" : "default"} />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                    Resources & Attachments
-                    {completionStatus.attachments && (
-                      <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
-                        (Completed)
-                      </span>
-                    )}
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              {/* Chapters */}
+              <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                    <ListChecks className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                    Course Chapters
                   </h2>
+                  {completionStatus.chapters && (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  )}
                 </div>
-                <AttachmentForm initialData={course} courseId={course.id} />
+                <ChaptersForm initialData={course} courseId={course.id} />
               </div>
 
-              {/* Advanced Analytics Dashboard */}
-              {completionStatus.titleDesc && completionStatus.learningObj && completionStatus.chapters && (
-                <div className="backdrop-blur-md bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 border border-white/20 shadow-xl rounded-xl relative overflow-hidden">
-                  {/* Background Orbs */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/20 to-blue-400/20 rounded-full blur-xl transform translate-x-16 -translate-y-16"></div>
-                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-purple-400/20 to-cyan-400/20 rounded-full blur-xl transform -translate-x-12 translate-y-12"></div>
-                  
-                  <div className="relative z-10 p-5 md:p-7">
-                    <div className="flex items-center gap-x-3 mb-6">
-                      <div className="p-2 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500">
-                        <BarChart3 className="h-5 w-5 text-white" />
-                      </div>
-                      <h2 className="text-xl font-semibold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
-                        Advanced Course Analytics
-                        <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400">
-                          (Premium Feature)
-                        </span>
-                      </h2>
+              {/* Pricing & Resources */}
+              <div className="space-y-4">
+                {/* Price */}
+                <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                      <CircleDollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
                     </div>
-                    <AdvancedAnalyticsDashboard 
-                      courseId={params.courseId}
-                      courseTitle={course.title || "Your Course"}
-                    />
+                    <h2 className="text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                      Pricing
+                    </h2>
+                    {completionStatus.price && (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    )}
+                  </div>
+                  <PriceForm initialData={course} courseId={course.id} />
+                </div>
+
+                {/* Attachments */}
+                <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                      <File className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <h2 className="text-lg font-semibold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                      Resources
+                    </h2>
+                    {completionStatus.attachments && (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    )}
+                  </div>
+                  <AttachmentForm initialData={course} courseId={course.id} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Course Depth Analyzer Section */}
+        <div className="px-4 md:px-6">
+          <div className="max-w-7xl mx-auto">
+            {/* Colored Box Header */}
+            <div className="mb-8 flex justify-center">
+              <div className="relative group">
+                {/* Floating background orb for the header */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/40 to-indigo-600/40 rounded-2xl blur-xl group-hover:blur-lg transition-all duration-300"></div>
+                
+                {/* Main colored box */}
+                <div className="relative backdrop-blur-md bg-gradient-to-r from-purple-600/90 via-indigo-600/90 to-blue-600/90 border border-white/20 rounded-2xl p-6 shadow-2xl">
+                  <div className="flex items-center justify-center gap-4">
+                    {/* Icon with enhanced styling */}
+                    <div className="p-3 rounded-xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-lg">
+                      <Brain className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    
+                    {/* Header content */}
+                    <div className="text-center">
+                      <h2 className="text-3xl font-bold text-white drop-shadow-lg">
+                        Course Depth Analysis
+                      </h2>
+                      <p className="text-sm text-white/90 mt-2 font-medium drop-shadow-sm">
+                        AI-powered insights into your course&apos;s cognitive depth and learning taxonomy
+                      </p>
+                    </div>
+                    
+                    {/* Decorative elements */}
+                    <div className="hidden md:flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse"></div>
+                      <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse delay-200"></div>
+                      <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse delay-400"></div>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
+
+            {/* Course Depth Analyzer */}
+            <CourseDepthAnalyzer
+              courseId={params.courseId}
+              courseData={{
+                id: course.id,
+                title: course.title || "Untitled Course",
+                description: course.description || "",
+                whatYouWillLearn: course.whatYouWillLearn || [],
+                chapters: course.chapters.map(chapter => ({
+                  id: chapter.id,
+                  title: chapter.title || "Untitled Chapter",
+                  description: chapter.description || "",
+                  isPublished: chapter.isPublished,
+                  isFree: chapter.isFree,
+                  position: chapter.position,
+                  sections: chapter.sections?.map(section => ({
+                    id: section.id,
+                    title: section.title || "Untitled Section",
+                    description: section.description || "",
+                    position: section.position,
+                    isPublished: section.isPublished
+                  })) || []
+                }))
+              }}
+              completionStatus={completionStatus}
+            />
           </div>
         </div>
       </div>
 
       {/* Improved SAM Assistant */}
       <SamIntegration 
-        courseId={params.courseId}
-        courseData={{
-          id: course.id,
-          title: course.title || "Untitled Course",
-          description: course.description,
-          isPublished: course.isPublished,
-          categoryId: course.categoryId,
-          whatYouWillLearn: course.whatYouWillLearn || [],
-          chapters: course.chapters.map(chapter => ({
-            id: chapter.id,
+          courseId={params.courseId}
+          courseData={{
+            id: course.id,
+            title: course.title || "Untitled Course",
+            description: course.description,
+            isPublished: course.isPublished,
+            categoryId: course.categoryId,
+            whatYouWillLearn: course.whatYouWillLearn || [],
+            chapters: course.chapters.map(chapter => ({
+              id: chapter.id,
             title: chapter.title,
             isPublished: chapter.isPublished,
             sections: chapter.sections?.map(section => ({

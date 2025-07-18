@@ -18,6 +18,13 @@ import {
   Users,
   X
 } from "lucide-react";
+
+interface MenuItem {
+  icon: any;
+  label: string;
+  link: string;
+  description: string;
+}
 import { LogoutButton } from "@/components/auth/logout-button";
 import Image from "next/image";
 
@@ -34,8 +41,19 @@ interface UserMenuProps {
 export const UserMenu = ({ user }: UserMenuProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const dashboardLink = user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard/user";
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Close modal when clicking outside
   useEffect(() => {
@@ -65,33 +83,61 @@ export const UserMenu = ({ user }: UserMenuProps) => {
     };
   }, []);
 
-  const menuSections = [
+  // Mobile navigation includes sidebar items + user menu items
+  const mobileMenuSections = [
     {
       title: "Navigation",
       items: [
-        { icon: LayoutDashboard, label: "Dashboard", link: dashboardLink },
-        { icon: User, label: "My Profile", link: "/settings" },
-        { icon: Bookmark, label: "My Courses", link: "/my-courses" },
-        { icon: MessageCircle, label: "My Posts", link: "/my-posts" },
-        { icon: Users, label: "Study Groups", link: "/groups" },
+        { icon: LayoutDashboard, label: "Dashboard", link: dashboardLink, description: "Overview & analytics" },
+        { icon: User, label: "Profile Manager", link: "/profile", description: "Personal information" },
+        { icon: Settings, label: "Settings", link: "/settings", description: "Preferences & privacy" },
       ]
     },
     {
-      title: "Account & Settings",
+      title: "Learning",
       items: [
-        { icon: Settings, label: "Account Settings", link: "/settings" },
-        { icon: Bell, label: "Notifications", link: "/settings#notifications" },
-        { icon: CreditCard, label: "Billing & Plans", link: "/settings#billing" },
+        { icon: Bookmark, label: "My Courses", link: "/my-courses", description: "Your enrolled courses" },
+        { icon: MessageCircle, label: "Study Groups", link: "/groups", description: "Collaborate with others" },
+        { icon: Award, label: "Analytics", link: "/analytics", description: "Track your progress" },
       ]
     },
     {
-      title: "Support & Help",
+      title: "Tools & Support",
       items: [
-        { icon: HelpCircle, label: "Help Center", link: "/help" },
-        { icon: MessageCircle, label: "Contact Support", link: "/support" },
+        { icon: Bell, label: "Notifications", link: "/settings#notifications", description: "Manage alerts" },
+        { icon: CreditCard, label: "Billing", link: "/settings#billing", description: "Plans & payments" },
+        { icon: HelpCircle, label: "Help Center", link: "/help", description: "Documentation & guides" },
       ]
     }
   ];
+
+  // Desktop navigation (simplified)
+  const desktopMenuSections = [
+    {
+      title: "Quick Access",
+      items: [
+        { icon: LayoutDashboard, label: "Dashboard", link: dashboardLink, description: "Overview & analytics" },
+        { icon: User, label: "Profile", link: "/profile", description: "Personal information" },
+      ]
+    },
+    {
+      title: "Account",
+      items: [
+        { icon: Settings, label: "Settings", link: "/settings", description: "Preferences & privacy" },
+        { icon: Bell, label: "Notifications", link: "/settings#notifications", description: "Manage alerts" },
+        { icon: CreditCard, label: "Billing", link: "/settings#billing", description: "Plans & payments" },
+      ]
+    },
+    {
+      title: "Support",
+      items: [
+        { icon: HelpCircle, label: "Help Center", link: "/help", description: "Documentation & guides" },
+        { icon: MessageCircle, label: "Contact Us", link: "/support", description: "Get assistance" },
+      ]
+    }
+  ];
+
+  const menuSections = isMobile ? mobileMenuSections : desktopMenuSections;
 
   const getAvatarFallback = (name?: string | null) => {
     if (!name) return "U";
@@ -104,17 +150,17 @@ export const UserMenu = ({ user }: UserMenuProps) => {
   };
 
   return (
-    <div className="relative hidden md:block" ref={menuRef}>
+    <div className="relative block" ref={menuRef}>
       {/* User Avatar Container */}
       <div className="relative">
         <button
           onClick={() => setIsModalOpen(!isModalOpen)}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          className="relative flex items-center justify-center group"
+          className="relative flex items-center justify-center group focus:outline-none focus:ring-2 focus:ring-purple-500/20 rounded-full p-1"
           aria-label="User menu"
         >
-          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/50 hover:border-purple-400 group-hover:scale-105 transition-all duration-200 shadow-md hover:shadow-purple-500/25">
+          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/40 hover:border-purple-400/60 group-hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
             {user?.image ? (
               <Image
                 src={user.image}
@@ -123,57 +169,72 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                 className="object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-inner">
                 {getAvatarFallback(user?.name)}
               </div>
             )}
             
             {/* Status indicator */}
-            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900 shadow-sm"></div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 shadow-sm"></div>
           </div>
         </button>
         
-        {/* HOVER TOOLTIP - Simple design showing name/email */}
+        {/* HOVER TOOLTIP - Elegant design showing name/email (Desktop only) */}
         <AnimatePresence>
-          {isHovered && !isModalOpen && (
+          {isHovered && !isModalOpen && !isMobile && (
             <motion.div
-              initial={{ opacity: 0, y: 5, scale: 0.95 }}
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 5, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="fixed right-4 top-16 w-64 z-[99999] pointer-events-none"
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: [0.4, 0.0, 0.2, 1] }}
+              className="fixed right-4 top-16 w-72 z-[99999] pointer-events-none"
             >
-              <div className="p-3 rounded-lg bg-slate-800 backdrop-blur-md border border-slate-600 shadow-xl">
+              <div className="p-4 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/60 shadow-2xl">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-purple-500/60 flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/60 shadow-lg flex-shrink-0">
                     {user?.image ? (
                       <Image
                         src={user.image}
                         alt={user.name || "User"}
-                        width={32}
-                        height={32}
+                        width={40}
+                        height={40}
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
+                      <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
                         {getAvatarFallback(user?.name)}
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium text-sm truncate">{user?.name || "User"}</p>
-                    <p className="text-slate-300 text-xs truncate">{user?.email || "No email"}</p>
+                    <p className="text-gray-900 dark:text-white font-semibold text-sm truncate">{user?.name || "User"}</p>
+                    <p className="text-gray-600 dark:text-gray-300 text-xs truncate">{user?.email || "No email"}</p>
+                    <div className="flex items-center mt-1">
+                      <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-500/30">
+                        {user?.role === "ADMIN" ? (
+                          <>
+                            <ShieldCheck className="w-3 h-3 mr-1" />
+                            Admin
+                          </>
+                        ) : (
+                          <>
+                            <Award className="w-3 h-3 mr-1" />
+                            Member
+                          </>
+                        )}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                {/* Small arrow pointer */}
-                <div className="absolute -top-1 right-4 w-2 h-2 bg-slate-800 border-l border-t border-slate-600 transform rotate-45"></div>
+                {/* Elegant arrow pointer */}
+                <div className="absolute -top-2 right-6 w-4 h-4 bg-white/95 dark:bg-gray-900/95 border-l border-t border-gray-200/60 dark:border-gray-700/60 transform rotate-45"></div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* CLICK MODAL - Full featured menu with different design */}
+      {/* CLICK MODAL - Professional and elegant design */}
       <AnimatePresence>
         {isModalOpen && (
           <>
@@ -182,29 +243,33 @@ export const UserMenu = ({ user }: UserMenuProps) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[99998]"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[99998]"
               onClick={() => setIsModalOpen(false)}
             />
             
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              initial={{ opacity: 0, y: 12, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="fixed right-4 top-16 w-80 rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-gray-600/50 shadow-2xl overflow-hidden z-[99999]"
+              exit={{ opacity: 0, y: 12, scale: 0.95 }}
+              transition={{ duration: 0.25, ease: [0.4, 0.0, 0.2, 1] }}
+              className={`fixed ${
+                isMobile 
+                  ? "inset-x-4 top-16 bottom-4 w-auto" 
+                  : "right-4 top-16 w-96"
+              } rounded-3xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/60 shadow-2xl overflow-hidden z-[99999]`}
             >
               {/* Modal Header with User Info */}
-              <div className="relative p-5 bg-gradient-to-br from-indigo-800 via-purple-800 to-pink-800 border-b border-gray-600">
+              <div className="relative p-6 bg-gradient-to-br from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b border-gray-200/50 dark:border-gray-700/50">
                 {/* Close button */}
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="absolute top-3 right-3 p-1 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                  className="absolute top-4 right-4 p-2 rounded-xl bg-gray-200/80 hover:bg-gray-300 dark:bg-gray-700/80 dark:hover:bg-gray-600 transition-colors"
                 >
-                  <X className="w-4 h-4 text-gray-200" />
+                  <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                 </button>
                 
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-purple-400/70 shadow-lg flex-shrink-0">
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-purple-500/30 shadow-lg flex-shrink-0 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
                     {user?.image ? (
                       <Image
                         src={user.image}
@@ -220,19 +285,19 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-white font-semibold text-lg truncate">{user?.name || "User"}</h3>
-                    <p className="text-gray-200 text-sm truncate">{user?.email || ""}</p>
-                    <div className="flex items-center mt-2">
-                      <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full bg-purple-500/50 text-purple-100 border border-purple-400/50">
+                    <h3 className="text-gray-900 dark:text-white font-bold text-xl truncate">{user?.name || "User"}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm truncate mt-1">{user?.email || ""}</p>
+                    <div className="flex items-center mt-3">
+                      <span className="inline-flex items-center text-xs px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-500/30 font-medium">
                         {user?.role === "ADMIN" ? (
                           <>
-                            <ShieldCheck className="w-3 h-3 mr-1" />
+                            <ShieldCheck className="w-3 h-3 mr-1.5" />
                             Administrator
                           </>
                         ) : (
                           <>
-                            <Award className="w-3 h-3 mr-1" />
-                            Member
+                            <Award className="w-3 h-3 mr-1.5" />
+                            Premium Member
                           </>
                         )}
                       </span>
@@ -242,43 +307,53 @@ export const UserMenu = ({ user }: UserMenuProps) => {
               </div>
 
               {/* Menu Sections */}
-              <div className="max-h-[400px] overflow-y-auto py-2 bg-gray-900/95 backdrop-blur-sm">
+              <div className={`${
+                isMobile ? "flex-1" : "max-h-[420px]"
+              } overflow-y-auto py-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm`}>
                 {menuSections.map((section, sectionIndex) => (
-                  <div key={section.title} className={sectionIndex !== 0 ? "mt-1 pt-3 border-t border-gray-700" : ""}>
-                    <p className="px-4 py-2 text-xs text-gray-400 uppercase tracking-wider font-medium">
+                  <div key={section.title} className={sectionIndex !== 0 ? "mt-6 pt-4 border-t border-gray-200/50 dark:border-gray-700/50" : ""}>
+                    <h4 className="px-6 pb-3 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">
                       {section.title}
-                    </p>
+                    </h4>
                     
-                    {section.items.map((item) => (
-                      <Link key={item.label} href={item.link} onClick={handleMenuItemClick}>
-                        <motion.div
-                          whileHover={{ x: 4, backgroundColor: "rgba(255, 255, 255, 0.1)" }}
-                          whileTap={{ scale: 0.98 }}
-                          className="flex items-center px-4 py-3 text-gray-200 hover:text-white transition-colors cursor-pointer group mx-2 rounded-lg"
-                        >
-                          <div className="w-9 h-9 mr-3 rounded-lg bg-gray-700 flex items-center justify-center group-hover:bg-indigo-600/60 transition-colors">
-                            <item.icon className="w-4 h-4 text-indigo-400 group-hover:text-indigo-300" />
-                          </div>
-                          <span className="font-medium text-sm">{item.label}</span>
-                        </motion.div>
-                      </Link>
-                    ))}
+                    <div className="space-y-1">
+                      {section.items.map((item) => (
+                        <Link key={item.label} href={item.link} onClick={handleMenuItemClick}>
+                          <motion.div
+                            whileHover={{ x: 4, scale: 1.01 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="flex items-center px-6 py-3 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white transition-all cursor-pointer group mx-3 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-800/60"
+                          >
+                            <div className="w-10 h-10 mr-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-gradient-to-br group-hover:from-purple-500/20 group-hover:to-indigo-500/20 transition-all">
+                              <item.icon className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-semibold text-sm">{item.label}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.description}</div>
+                            </div>
+                          </motion.div>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* Logout Section */}
-              <div className="p-2 border-t border-gray-600 bg-gray-800">
+              <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-red-50/50 to-pink-50/50 dark:from-red-900/10 dark:to-pink-900/10">
                 <LogoutButton className="w-full">
                   <motion.div
-                    whileHover={{ x: 4, backgroundColor: "rgba(239, 68, 68, 0.15)" }}
+                    whileHover={{ x: 4, scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex items-center px-4 py-3 text-red-400 hover:text-red-300 rounded-lg transition-colors cursor-pointer mx-2"
+                    className="flex items-center px-6 py-3 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 rounded-xl transition-all cursor-pointer mx-3 hover:bg-red-100/80 dark:hover:bg-red-900/20"
                   >
-                    <div className="w-9 h-9 mr-3 rounded-lg bg-red-900/50 flex items-center justify-center">
-                      <LogOut className="w-4 h-4" />
+                    <div className="w-10 h-10 mr-4 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                      <LogOut className="w-5 h-5" />
                     </div>
-                    <span className="font-medium text-sm">Sign Out</span>
+                    <div className="flex-1">
+                      <div className="font-semibold text-sm">Sign Out</div>
+                      <div className="text-xs text-red-500 dark:text-red-400 mt-0.5">End your session</div>
+                    </div>
                   </motion.div>
                 </LogoutButton>
               </div>

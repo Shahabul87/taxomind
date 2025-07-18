@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil, Sparkles, Loader2 } from "lucide-react";
 import { AIGenerationPreferencesDialog, type AIGenerationPreferences } from "./ai-generation-preferences";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ export const TitleForm = ({
 }: TitleFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [pendingSamData, setPendingSamData] = useState<{ title?: string; name?: string; courseTitle?: string } | null>(null);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -49,6 +50,58 @@ export const TitleForm = ({
   });
 
   const { isSubmitting, isValid } = form.formState;
+
+  // Listen for SAM form population events
+  useEffect(() => {
+    const handleSamFormPopulation = (event: CustomEvent) => {
+      console.log('📥 Title form received SAM populate event:', event.detail);
+      
+      if (event.detail?.formId === 'course-title-form' || 
+          event.detail?.formId === 'course-title' ||
+          event.detail?.formId === 'update-course-title' ||
+          event.detail?.formId === 'update-title' ||
+          event.detail?.formId === 'title-form') {
+        
+        console.log('✅ Matched form ID, opening edit mode');
+        // Auto-open edit mode when SAM tries to populate
+        setIsEditing(true);
+        
+        // Store the data to be populated
+        if (event.detail?.data?.title || event.detail?.data?.name || event.detail?.data?.courseTitle) {
+          setPendingSamData(event.detail.data);
+        }
+      }
+    };
+
+    window.addEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
+    
+    return () => {
+      window.removeEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
+    };
+  }, []);
+
+  // Handle pending SAM data when form is ready
+  useEffect(() => {
+    if (pendingSamData && isEditing && form) {
+      const titleValue = pendingSamData.title || pendingSamData.name || pendingSamData.courseTitle;
+      if (titleValue) {
+        console.log('📝 Setting title value:', titleValue);
+        form.setValue("title", titleValue);
+        form.trigger("title");
+        
+        // Dispatch success event
+        window.dispatchEvent(new CustomEvent('sam-form-populated', {
+          detail: {
+            formId: 'course-title-form',
+            success: true
+          }
+        }));
+        
+        // Clear pending data
+        setPendingSamData(null);
+      }
+    }
+  }, [pendingSamData, isEditing, form]);
 
   const generateTitle = async (preferences: AIGenerationPreferences) => {
     if (!initialData.description) {
@@ -134,6 +187,21 @@ export const TitleForm = ({
       "backdrop-blur-sm",
       "transition-all duration-200"
     )}>
+      {/* Hidden metadata for SAM to detect the form even when not in edit mode */}
+      <div 
+        data-sam-form-metadata="course-title"
+        data-form-id="course-title-form"
+        data-form-purpose="update-course-title"
+        data-form-alternate-id="update-title"
+        data-form-type="title"
+        data-entity-type="course"
+        data-entity-id={courseId}
+        data-current-value={initialData?.title || ""}
+        data-is-editing={isEditing.toString()}
+        data-field-name="title"
+        data-field-type="text"
+        style={{ display: 'none' }}
+      />
       <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
         <div className="space-y-1">
           <div className="flex items-center gap-x-2">

@@ -364,104 +364,8 @@ What would you like me to help you with today?`,
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Main message handler with intelligent processing
-  const sendMessage = useCallback(async (content: string) => {
-    const messageContent = content.trim();
-    if (!messageContent) return;
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: messageContent,
-      timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setIsLoading(true);
-
-    try {
-      // Detect intent and required action
-      const intent = detectIntent(messageContent);
-      
-      const response = await fetch('/api/sam/intelligent-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: messageContent,
-          intent,
-          context: courseContext,
-          conversationHistory: messages.slice(-5)
-        }),
-      });
-
-      if (!response.ok) throw new Error(`API Error: ${response.status}`);
-
-      const result = await response.json();
-      
-      // Handle form updates if action is provided
-      if (result.action) {
-        await handleFormAction(result.action);
-      }
-      
-      const samMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'sam',
-        content: result.response,
-        timestamp: new Date(),
-        suggestions: result.suggestions || [],
-        action: result.action
-      };
-      
-      setMessages(prev => [...prev, samMessage]);
-      
-    } catch (error) {
-      console.error('SAM Error:', error);
-      
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'sam',
-        content: "I apologize, but I encountered an error. Please try again or rephrase your request.",
-        timestamp: new Date(),
-        isError: true,
-        suggestions: ["Try again", "Rephrase request"]
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
-      toast.error('Failed to process request');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [courseContext, messages]);
-
-  // Detect user intent
-  const detectIntent = (message: string): string => {
-    const lower = message.toLowerCase();
-    
-    if (lower.includes('objective') && (lower.includes('generate') || lower.includes('create'))) {
-      return 'generate_objectives';
-    }
-    if (lower.includes('chapter') && (lower.includes('generate') || lower.includes('create'))) {
-      return 'generate_chapters';
-    }
-    if (lower.includes('chapter') && (lower.includes('delete') || lower.includes('remove') || lower.includes('clear'))) {
-      return 'delete_chapters';
-    }
-    if (lower.includes('analyze') || lower.includes('review')) {
-      return 'analyze_course';
-    }
-    if (lower.includes('bloom') || lower.includes('taxonomy')) {
-      return 'blooms_analysis';
-    }
-    if (lower.includes('improve') || lower.includes('enhance')) {
-      return 'improve_content';
-    }
-    
-    return 'general_help';
-  };
-
   // Handle form actions
-  const handleFormAction = async (action: any) => {
+  const handleFormAction = useCallback(async (action: any) => {
     try {
       switch (action.type) {
         case 'update_objectives':
@@ -541,6 +445,102 @@ What would you like me to help you with today?`,
       console.error('Form action error:', error);
       toast.error('Failed to update form');
     }
+  }, [onUpdateLearningObjectives, onUpdateChapters, onUpdateTitle, onUpdateDescription, onDeleteChapters, setChapterMemory, chapterMemory]);
+
+  // Main message handler with intelligent processing
+  const sendMessage = useCallback(async (content: string) => {
+    const messageContent = content.trim();
+    if (!messageContent) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: messageContent,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
+
+    try {
+      // Detect intent and required action
+      const intent = detectIntent(messageContent);
+      
+      const response = await fetch('/api/sam/intelligent-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: messageContent,
+          intent,
+          context: courseContext,
+          conversationHistory: messages.slice(-5)
+        }),
+      });
+
+      if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+      const result = await response.json();
+      
+      // Handle form updates if action is provided
+      if (result.action) {
+        await handleFormAction(result.action);
+      }
+      
+      const samMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'sam',
+        content: result.response,
+        timestamp: new Date(),
+        suggestions: result.suggestions || [],
+        action: result.action
+      };
+      
+      setMessages(prev => [...prev, samMessage]);
+      
+    } catch (error) {
+      console.error('SAM Error:', error);
+      
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'sam',
+        content: "I apologize, but I encountered an error. Please try again or rephrase your request.",
+        timestamp: new Date(),
+        isError: true,
+        suggestions: ["Try again", "Rephrase request"]
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      toast.error('Failed to process request');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [courseContext, messages, handleFormAction]);
+
+  // Detect user intent
+  const detectIntent = (message: string): string => {
+    const lower = message.toLowerCase();
+    
+    if (lower.includes('objective') && (lower.includes('generate') || lower.includes('create'))) {
+      return 'generate_objectives';
+    }
+    if (lower.includes('chapter') && (lower.includes('generate') || lower.includes('create'))) {
+      return 'generate_chapters';
+    }
+    if (lower.includes('chapter') && (lower.includes('delete') || lower.includes('remove') || lower.includes('clear'))) {
+      return 'delete_chapters';
+    }
+    if (lower.includes('analyze') || lower.includes('review')) {
+      return 'analyze_course';
+    }
+    if (lower.includes('bloom') || lower.includes('taxonomy')) {
+      return 'blooms_analysis';
+    }
+    if (lower.includes('improve') || lower.includes('enhance')) {
+      return 'improve_content';
+    }
+    
+    return 'general_help';
   };
 
   // Quick action handler

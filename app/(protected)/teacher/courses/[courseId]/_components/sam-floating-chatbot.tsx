@@ -158,7 +158,7 @@ export function SamFloatingChatbot({
         "Help with publishing readiness"
       ]
     }]);
-  }, [courseData.title]);
+  }, [courseData.title, courseData.chapters, courseData.isPublished, courseData.whatYouWillLearn.length]);
 
   const buildCourseContext = useCallback(() => {
     const completionPercentage = Object.values(completionStatus).filter(Boolean).length / Object.keys(completionStatus).length * 100;
@@ -184,7 +184,7 @@ export function SamFloatingChatbot({
       healthScore: calculateCourseHealthScore(),
       pageContext: 'course-management'
     };
-  }, [courseData, completionStatus]);
+  }, [courseData, completionStatus, calculateCourseHealthScore]);
 
   const calculateCourseHealthScore = useCallback(() => {
     let score = 0;
