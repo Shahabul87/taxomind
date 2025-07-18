@@ -1,0 +1,744 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Anthropic } from '@anthropic-ai/sdk';
+import { currentUser } from '@/lib/auth';
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await currentUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { 
+      interactionType,
+      contentContext,
+      userInput,
+      learningState,
+      assistanceLevel 
+    } = await request.json();
+
+    let response;
+
+    switch (interactionType) {
+      case 'video_timestamp_help':
+        response = await handleVideoTimestampHelp(contentContext, userInput, learningState);
+        break;
+      case 'code_line_explanation':
+        response = await handleCodeLineExplanation(contentContext, userInput, learningState);
+        break;
+      case 'text_concept_clarification':
+        response = await handleTextConceptClarification(contentContext, userInput, learningState);
+        break;
+      case 'image_annotation':
+        response = await handleImageAnnotation(contentContext, userInput, learningState);
+        break;
+      case 'quiz_hint_request':
+        response = await handleQuizHintRequest(contentContext, userInput, learningState, assistanceLevel);
+        break;
+      case 'document_navigation':
+        response = await handleDocumentNavigation(contentContext, userInput, learningState);
+        break;
+      case 'concept_connection':
+        response = await handleConceptConnection(contentContext, userInput, learningState);
+        break;
+      case 'study_session_guidance':
+        response = await handleStudySessionGuidance(contentContext, userInput, learningState);
+        break;
+      default:
+        return NextResponse.json({ error: 'Unknown interaction type' }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      response,
+      interactionType,
+      timestamp: new Date().toISOString(),
+      followUpSuggestions: generateFollowUpSuggestions(interactionType, response, learningState)
+    });
+
+  } catch (error) {
+    console.error('Content companion error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process content interaction' },
+      { status: 500 }
+    );
+  }
+}
+
+async function handleVideoTimestampHelp(
+  contentContext: any,
+  userInput: any,
+  learningState: any
+): Promise<any> {
+  const { videoTitle, timestamp, transcriptSegment, userQuestion } = userInput;
+  
+  const systemPrompt = `You are SAM, an AI tutor helping with video content. The student is watching a video and has a specific question about content at a particular timestamp.
+
+**Video Context:**
+- Title: ${videoTitle}
+- Timestamp: ${timestamp}
+- Transcript at this time: ${transcriptSegment}
+
+**Learning State:**
+- Current topic: ${learningState.currentTopic}
+- Difficulty level: ${learningState.difficultyLevel}
+- Learning style: ${learningState.learningStyle}
+
+Provide contextual help that:
+1. Addresses the specific question about this moment in the video
+2. Connects to broader concepts being taught
+3. Suggests related timestamps or concepts to explore
+4. Provides visual or practical examples if helpful
+5. Offers interactive exercises related to this concept`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1000,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Student question at ${timestamp}: "${userQuestion}"` }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'video_help',
+    explanation: responseText,
+    relatedTimestamps: extractRelatedTimestamps(responseText),
+    practiceExercises: extractPracticeExercises(responseText),
+    conceptConnections: extractConceptConnections(responseText),
+    visualAids: extractVisualAidSuggestions(responseText)
+  };
+}
+
+async function handleCodeLineExplanation(
+  contentContext: any,
+  userInput: any,
+  learningState: any
+): Promise<any> {
+  const { codeSnippet, lineNumber, language, userQuestion } = userInput;
+  
+  const systemPrompt = `You are SAM, an AI tutor helping with code understanding. The student is looking at a specific line of code and needs explanation.
+
+**Code Context:**
+- Language: ${language}
+- Line ${lineNumber}: ${codeSnippet}
+- Student question: ${userQuestion}
+
+**Learning State:**
+- Programming experience: ${learningState.programmingLevel}
+- Current topic: ${learningState.currentTopic}
+- Learning style: ${learningState.learningStyle}
+
+Provide:
+1. Clear explanation of what this specific line does
+2. How it fits into the broader program flow
+3. Common mistakes or misconceptions about this concept
+4. Interactive exercises to practice this concept
+5. Related programming concepts to explore
+6. Step-by-step breakdown if complex`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1000,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Explain this code line: "${codeSnippet}" (line ${lineNumber})` }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'code_explanation',
+    explanation: responseText,
+    codeFlow: extractCodeFlow(responseText),
+    commonMistakes: extractCommonMistakes(responseText),
+    practiceExercises: extractCodePracticeExercises(responseText),
+    relatedConcepts: extractRelatedConcepts(responseText),
+    stepByStep: extractStepByStep(responseText)
+  };
+}
+
+async function handleTextConceptClarification(
+  contentContext: any,
+  userInput: any,
+  learningState: any
+): Promise<any> {
+  const { textSegment, concept, userQuestion } = userInput;
+  
+  const systemPrompt = `You are SAM, an AI tutor helping with text comprehension. The student is reading educational content and needs clarification on a specific concept.
+
+**Text Context:**
+- Text segment: "${textSegment}"
+- Concept in question: ${concept}
+- Student question: ${userQuestion}
+
+**Learning State:**
+- Reading level: ${learningState.readingLevel}
+- Subject area: ${learningState.subjectArea}
+- Learning style: ${learningState.learningStyle}
+
+Provide:
+1. Clear, simple explanation of the concept
+2. Real-world examples and analogies
+3. How this concept connects to other ideas in the text
+4. Interactive questions to check understanding
+5. Visual representations if helpful
+6. Related concepts to explore`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1000,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Please clarify this concept: "${concept}" from the text: "${textSegment}"` }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'concept_clarification',
+    explanation: responseText,
+    realWorldExamples: extractRealWorldExamples(responseText),
+    analogies: extractAnalogies(responseText),
+    checkingQuestions: extractCheckingQuestions(responseText),
+    visualRepresentations: extractVisualRepresentations(responseText),
+    relatedConcepts: extractRelatedConcepts(responseText)
+  };
+}
+
+async function handleImageAnnotation(
+  contentContext: any,
+  userInput: any,
+  learningState: any
+): Promise<any> {
+  const { imageDescription, annotationPoint, userQuestion } = userInput;
+  
+  const systemPrompt = `You are SAM, an AI tutor helping with image analysis. The student is looking at an educational image and has a question about a specific part.
+
+**Image Context:**
+- Description: ${imageDescription}
+- Point of interest: ${annotationPoint}
+- Student question: ${userQuestion}
+
+**Learning State:**
+- Visual learning preference: ${learningState.visualLearning}
+- Subject area: ${learningState.subjectArea}
+- Current topic: ${learningState.currentTopic}
+
+Provide:
+1. Detailed explanation of the specific element they're asking about
+2. How this element relates to the whole image
+3. Educational significance and context
+4. Interactive questions about other parts of the image
+5. Suggestions for related visual materials
+6. Connections to broader concepts`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1000,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Student is asking about "${annotationPoint}" in the image. Question: "${userQuestion}"` }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'image_annotation',
+    explanation: responseText,
+    wholeImageContext: extractWholeImageContext(responseText),
+    educationalSignificance: extractEducationalSignificance(responseText),
+    explorationQuestions: extractExplorationQuestions(responseText),
+    relatedVisuals: extractRelatedVisuals(responseText),
+    conceptConnections: extractConceptConnections(responseText)
+  };
+}
+
+async function handleQuizHintRequest(
+  contentContext: any,
+  userInput: any,
+  learningState: any,
+  assistanceLevel: string
+): Promise<any> {
+  const { question, studentAnswer, questionType, bloomsLevel } = userInput;
+  
+  const systemPrompt = `You are SAM, an AI tutor providing quiz assistance. The student is taking a quiz and needs help, but you must provide hints without giving away the answer.
+
+**Quiz Context:**
+- Question: ${question}
+- Student's current answer: ${studentAnswer}
+- Question type: ${questionType}
+- Bloom's level: ${bloomsLevel}
+- Assistance level: ${assistanceLevel} (minimal, moderate, substantial)
+
+**Learning State:**
+- Performance level: ${learningState.performanceLevel}
+- Learning style: ${learningState.learningStyle}
+- Subject mastery: ${learningState.subjectMastery}
+
+Based on the assistance level, provide:
+- Minimal: Gentle nudges and clarifying questions
+- Moderate: Conceptual hints and related examples
+- Substantial: Step-by-step guidance without direct answers
+
+Always encourage independent thinking and learning.`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 800,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Student needs ${assistanceLevel} help with: "${question}". Their current answer: "${studentAnswer}"` }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'quiz_hint',
+    hint: responseText,
+    assistanceLevel,
+    encouragement: extractEncouragement(responseText),
+    guidingQuestions: extractGuidingQuestions(responseText),
+    conceptualHints: extractConceptualHints(responseText),
+    nextSteps: extractNextSteps(responseText)
+  };
+}
+
+async function handleDocumentNavigation(
+  contentContext: any,
+  userInput: any,
+  learningState: any
+): Promise<any> {
+  const { documentType, currentSection, navigationQuery } = userInput;
+  
+  const systemPrompt = `You are SAM, an AI tutor helping with document navigation. The student is working with a large document and needs help finding specific information.
+
+**Document Context:**
+- Type: ${documentType}
+- Current section: ${currentSection}
+- What they're looking for: ${navigationQuery}
+
+**Learning State:**
+- Study goals: ${learningState.studyGoals}
+- Time available: ${learningState.timeAvailable}
+- Priority topics: ${learningState.priorityTopics}
+
+Provide:
+1. Specific sections or pages to check
+2. Keywords to search for
+3. Related concepts they might also find useful
+4. Efficient reading strategies for this type of content
+5. How to organize their findings
+6. Study schedule suggestions`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 800,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Help me navigate this ${documentType} to find: "${navigationQuery}"` }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'document_navigation',
+    navigationGuidance: responseText,
+    suggestedSections: extractSuggestedSections(responseText),
+    searchKeywords: extractSearchKeywords(responseText),
+    readingStrategies: extractReadingStrategies(responseText),
+    organizationTips: extractOrganizationTips(responseText),
+    studySchedule: extractStudySchedule(responseText)
+  };
+}
+
+async function handleConceptConnection(
+  contentContext: any,
+  userInput: any,
+  learningState: any
+): Promise<any> {
+  const { concept1, concept2, connectionType } = userInput;
+  
+  const systemPrompt = `You are SAM, an AI tutor helping students understand connections between concepts. This is crucial for deep learning and knowledge integration.
+
+**Concept Connection:**
+- First concept: ${concept1}
+- Second concept: ${concept2}
+- Connection type: ${connectionType} (similarity, difference, cause-effect, part-whole, etc.)
+
+**Learning State:**
+- Subject area: ${learningState.subjectArea}
+- Current unit: ${learningState.currentUnit}
+- Learning objectives: ${learningState.learningObjectives}
+
+Provide:
+1. Clear explanation of how these concepts connect
+2. Visual or conceptual frameworks to understand the relationship
+3. Real-world examples of this connection
+4. How understanding this connection helps with learning
+5. Other concepts that relate to both
+6. Interactive exercises to reinforce the connection`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1000,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Help me understand the ${connectionType} connection between "${concept1}" and "${concept2}"` }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'concept_connection',
+    connectionExplanation: responseText,
+    conceptualFramework: extractConceptualFramework(responseText),
+    realWorldExamples: extractRealWorldExamples(responseText),
+    learningBenefits: extractLearningBenefits(responseText),
+    relatedConcepts: extractRelatedConcepts(responseText),
+    reinforcementExercises: extractReinforcementExercises(responseText)
+  };
+}
+
+async function handleStudySessionGuidance(
+  contentContext: any,
+  userInput: any,
+  learningState: any
+): Promise<any> {
+  const { sessionGoals, timeAvailable, energyLevel, contentType } = userInput;
+  
+  const systemPrompt = `You are SAM, an AI tutor providing personalized study session guidance. Help the student make the most of their study time.
+
+**Study Session:**
+- Goals: ${sessionGoals}
+- Time available: ${timeAvailable}
+- Energy level: ${energyLevel}
+- Content type: ${contentType}
+
+**Learning State:**
+- Study preferences: ${learningState.studyPreferences}
+- Weak areas: ${learningState.weakAreas}
+- Strong areas: ${learningState.strongAreas}
+- Previous session performance: ${learningState.lastSessionPerformance}
+
+Provide:
+1. Optimized study schedule for this session
+2. Specific techniques for this content type
+3. Energy management strategies
+4. Progress checkpoints
+5. Motivation and focus techniques
+6. Suggestions for next session`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1000,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `I have ${timeAvailable} to study ${contentType}. My energy level is ${energyLevel} and I want to ${sessionGoals}` }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'study_session_guidance',
+    studyPlan: responseText,
+    timeBreakdown: extractTimeBreakdown(responseText),
+    studyTechniques: extractStudyTechniques(responseText),
+    energyManagement: extractEnergyManagement(responseText),
+    progressCheckpoints: extractProgressCheckpoints(responseText),
+    motivationStrategies: extractMotivationStrategies(responseText),
+    nextSessionPrep: extractNextSessionPrep(responseText)
+  };
+}
+
+function generateFollowUpSuggestions(
+  interactionType: string,
+  response: any,
+  learningState: any
+): string[] {
+  const suggestions = [];
+  
+  switch (interactionType) {
+    case 'video_timestamp_help':
+      suggestions.push(
+        "Ask about another part of the video",
+        "Request practice exercises on this concept",
+        "Explore related concepts",
+        "Get study tips for video content"
+      );
+      break;
+    case 'code_line_explanation':
+      suggestions.push(
+        "Ask about the next line of code",
+        "Request debugging help",
+        "Get coding practice problems",
+        "Explore related programming concepts"
+      );
+      break;
+    case 'text_concept_clarification':
+      suggestions.push(
+        "Ask about related concepts",
+        "Request more examples",
+        "Get comprehension questions",
+        "Explore connections to other topics"
+      );
+      break;
+    case 'quiz_hint_request':
+      suggestions.push(
+        "Ask for a different type of hint",
+        "Request concept review",
+        "Get study strategies",
+        "Practice similar questions"
+      );
+      break;
+    default:
+      suggestions.push(
+        "Ask a follow-up question",
+        "Request more examples",
+        "Get practice exercises",
+        "Explore related topics"
+      );
+  }
+  
+  return suggestions;
+}
+
+// Helper functions to extract specific information
+function extractRelatedTimestamps(text: string): string[] {
+  const timestampRegex = /(\d{1,2}:\d{2}|\d{1,2}:\d{2}:\d{2})/g;
+  const matches = text.match(timestampRegex);
+  return matches ? matches.slice(0, 3) : [];
+}
+
+function extractPracticeExercises(text: string): string[] {
+  const exerciseRegex = /(?:practice|exercise|try):\s*([^.!?]+)/gi;
+  const matches = text.match(exerciseRegex);
+  return matches ? matches.map(m => m.replace(/(?:practice|exercise|try):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractConceptConnections(text: string): string[] {
+  const connectionRegex = /(?:connect|relate|similar|link).*?to\s+([^.!?]+)/gi;
+  const matches = text.match(connectionRegex);
+  return matches ? matches.map(m => m.trim()).slice(0, 3) : [];
+}
+
+function extractVisualAidSuggestions(text: string): string[] {
+  const visualRegex = /(?:visual|diagram|chart|graph|image):\s*([^.!?]+)/gi;
+  const matches = text.match(visualRegex);
+  return matches ? matches.map(m => m.replace(/(?:visual|diagram|chart|graph|image):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractCodeFlow(text: string): string[] {
+  const flowRegex = /(?:flow|sequence|order|step):\s*([^.!?]+)/gi;
+  const matches = text.match(flowRegex);
+  return matches ? matches.map(m => m.replace(/(?:flow|sequence|order|step):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractCommonMistakes(text: string): string[] {
+  const mistakeRegex = /(?:mistake|error|wrong|avoid):\s*([^.!?]+)/gi;
+  const matches = text.match(mistakeRegex);
+  return matches ? matches.map(m => m.replace(/(?:mistake|error|wrong|avoid):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractCodePracticeExercises(text: string): string[] {
+  const exerciseRegex = /(?:practice|exercise|try|code):\s*([^.!?]+)/gi;
+  const matches = text.match(exerciseRegex);
+  return matches ? matches.map(m => m.replace(/(?:practice|exercise|try|code):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractRelatedConcepts(text: string): string[] {
+  const conceptRegex = /(?:related|similar|concept|topic):\s*([^.!?]+)/gi;
+  const matches = text.match(conceptRegex);
+  return matches ? matches.map(m => m.replace(/(?:related|similar|concept|topic):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractStepByStep(text: string): string[] {
+  const stepRegex = /(?:step|first|second|third|then|next|finally):\s*([^.!?]+)/gi;
+  const matches = text.match(stepRegex);
+  return matches ? matches.map(m => m.replace(/(?:step|first|second|third|then|next|finally):\s*/i, '').trim()).slice(0, 5) : [];
+}
+
+function extractRealWorldExamples(text: string): string[] {
+  const exampleRegex = /(?:example|instance|case|real world):\s*([^.!?]+)/gi;
+  const matches = text.match(exampleRegex);
+  return matches ? matches.map(m => m.replace(/(?:example|instance|case|real world):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractAnalogies(text: string): string[] {
+  const analogyRegex = /(?:like|similar to|imagine|think of):\s*([^.!?]+)/gi;
+  const matches = text.match(analogyRegex);
+  return matches ? matches.map(m => m.replace(/(?:like|similar to|imagine|think of):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractCheckingQuestions(text: string): string[] {
+  const questionRegex = /(?:question|ask|consider|think):\s*([^.!?]*\?)/gi;
+  const matches = text.match(questionRegex);
+  return matches ? matches.map(m => m.replace(/(?:question|ask|consider|think):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractVisualRepresentations(text: string): string[] {
+  const visualRegex = /(?:visual|diagram|chart|graph|picture):\s*([^.!?]+)/gi;
+  const matches = text.match(visualRegex);
+  return matches ? matches.map(m => m.replace(/(?:visual|diagram|chart|graph|picture):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractWholeImageContext(text: string): string {
+  const contextRegex = /(?:overall|whole|entire|complete).*?image:\s*([^.!?]+)/i;
+  const match = text.match(contextRegex);
+  return match ? match[1].trim() : '';
+}
+
+function extractEducationalSignificance(text: string): string {
+  const significanceRegex = /(?:significant|important|educational|learning):\s*([^.!?]+)/i;
+  const match = text.match(significanceRegex);
+  return match ? match[1].trim() : '';
+}
+
+function extractExplorationQuestions(text: string): string[] {
+  const questionRegex = /(?:explore|investigate|examine):\s*([^.!?]*\?)/gi;
+  const matches = text.match(questionRegex);
+  return matches ? matches.map(m => m.replace(/(?:explore|investigate|examine):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractRelatedVisuals(text: string): string[] {
+  const visualRegex = /(?:related|similar|other).*?(?:visual|image|diagram):\s*([^.!?]+)/gi;
+  const matches = text.match(visualRegex);
+  return matches ? matches.map(m => m.replace(/(?:related|similar|other).*?(?:visual|image|diagram):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractEncouragement(text: string): string {
+  const encouragementRegex = /(?:good|great|excellent|keep|continue):\s*([^.!?]+)/i;
+  const match = text.match(encouragementRegex);
+  return match ? match[1].trim() : "You're doing great! Keep thinking through this.";
+}
+
+function extractGuidingQuestions(text: string): string[] {
+  const questionRegex = /(?:consider|think|what if|how about):\s*([^.!?]*\?)/gi;
+  const matches = text.match(questionRegex);
+  return matches ? matches.map(m => m.replace(/(?:consider|think|what if|how about):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractConceptualHints(text: string): string[] {
+  const hintRegex = /(?:hint|clue|think about|remember):\s*([^.!?]+)/gi;
+  const matches = text.match(hintRegex);
+  return matches ? matches.map(m => m.replace(/(?:hint|clue|think about|remember):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractNextSteps(text: string): string[] {
+  const stepRegex = /(?:next|then|after|try):\s*([^.!?]+)/gi;
+  const matches = text.match(stepRegex);
+  return matches ? matches.map(m => m.replace(/(?:next|then|after|try):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractSuggestedSections(text: string): string[] {
+  const sectionRegex = /(?:section|chapter|page|part):\s*([^.!?]+)/gi;
+  const matches = text.match(sectionRegex);
+  return matches ? matches.map(m => m.replace(/(?:section|chapter|page|part):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractSearchKeywords(text: string): string[] {
+  const keywordRegex = /(?:keyword|search|find|look for):\s*([^.!?]+)/gi;
+  const matches = text.match(keywordRegex);
+  return matches ? matches.map(m => m.replace(/(?:keyword|search|find|look for):\s*/i, '').trim()).slice(0, 5) : [];
+}
+
+function extractReadingStrategies(text: string): string[] {
+  const strategyRegex = /(?:strategy|approach|method|technique):\s*([^.!?]+)/gi;
+  const matches = text.match(strategyRegex);
+  return matches ? matches.map(m => m.replace(/(?:strategy|approach|method|technique):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractOrganizationTips(text: string): string[] {
+  const tipRegex = /(?:organize|structure|arrange|tip):\s*([^.!?]+)/gi;
+  const matches = text.match(tipRegex);
+  return matches ? matches.map(m => m.replace(/(?:organize|structure|arrange|tip):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractStudySchedule(text: string): string[] {
+  const scheduleRegex = /(?:schedule|time|plan|allocate):\s*([^.!?]+)/gi;
+  const matches = text.match(scheduleRegex);
+  return matches ? matches.map(m => m.replace(/(?:schedule|time|plan|allocate):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractConceptualFramework(text: string): string {
+  const frameworkRegex = /(?:framework|structure|model|relationship):\s*([^.!?]+)/i;
+  const match = text.match(frameworkRegex);
+  return match ? match[1].trim() : '';
+}
+
+function extractLearningBenefits(text: string): string[] {
+  const benefitRegex = /(?:benefit|advantage|help|improve):\s*([^.!?]+)/gi;
+  const matches = text.match(benefitRegex);
+  return matches ? matches.map(m => m.replace(/(?:benefit|advantage|help|improve):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractReinforcementExercises(text: string): string[] {
+  const exerciseRegex = /(?:exercise|practice|reinforce|strengthen):\s*([^.!?]+)/gi;
+  const matches = text.match(exerciseRegex);
+  return matches ? matches.map(m => m.replace(/(?:exercise|practice|reinforce|strengthen):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractTimeBreakdown(text: string): string[] {
+  const timeRegex = /(?:minutes|hours|time|spend):\s*([^.!?]+)/gi;
+  const matches = text.match(timeRegex);
+  return matches ? matches.map(m => m.replace(/(?:minutes|hours|time|spend):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractStudyTechniques(text: string): string[] {
+  const techniqueRegex = /(?:technique|method|approach|strategy):\s*([^.!?]+)/gi;
+  const matches = text.match(techniqueRegex);
+  return matches ? matches.map(m => m.replace(/(?:technique|method|approach|strategy):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractEnergyManagement(text: string): string[] {
+  const energyRegex = /(?:energy|focus|concentration|break):\s*([^.!?]+)/gi;
+  const matches = text.match(energyRegex);
+  return matches ? matches.map(m => m.replace(/(?:energy|focus|concentration|break):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractProgressCheckpoints(text: string): string[] {
+  const checkpointRegex = /(?:checkpoint|check|review|progress):\s*([^.!?]+)/gi;
+  const matches = text.match(checkpointRegex);
+  return matches ? matches.map(m => m.replace(/(?:checkpoint|check|review|progress):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractMotivationStrategies(text: string): string[] {
+  const motivationRegex = /(?:motivation|motivate|encourage|inspire):\s*([^.!?]+)/gi;
+  const matches = text.match(motivationRegex);
+  return matches ? matches.map(m => m.replace(/(?:motivation|motivate|encourage|inspire):\s*/i, '').trim()).slice(0, 3) : [];
+}
+
+function extractNextSessionPrep(text: string): string[] {
+  const prepRegex = /(?:next session|prepare|tomorrow|later):\s*([^.!?]+)/gi;
+  const matches = text.match(prepRegex);
+  return matches ? matches.map(m => m.replace(/(?:next session|prepare|tomorrow|later):\s*/i, '').trim()).slice(0, 3) : [];
+}

@@ -24,7 +24,6 @@ import { SmartActionDashboard } from './smart-dashboard/SmartActionDashboard';
 import { GamificationEngine } from './smart-dashboard/GamificationEngine';
 import { PredictiveAnalytics } from './smart-dashboard/PredictiveAnalytics';
 import { RealtimePulse } from './smart-dashboard/RealtimePulse';
-import { FloatingAITutor } from './smart-dashboard/FloatingAITutor';
 
 interface AdaptiveDashboardProps {
   user: User;
@@ -396,7 +395,6 @@ export function AdaptiveDashboard({ user }: AdaptiveDashboardProps) {
         </motion.div>
 
         {/* Floating AI Tutor */}
-        <FloatingAITutor user={user} />
       </motion.div>
     </div>
   );

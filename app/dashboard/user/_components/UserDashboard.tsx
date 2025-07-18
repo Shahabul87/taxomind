@@ -8,7 +8,6 @@ import { CommunityImpactCenter } from './smart-dashboard/CommunityImpactCenter';
 import { GamificationEngine } from './smart-dashboard/GamificationEngine';
 import { PredictiveAnalytics } from './smart-dashboard/PredictiveAnalytics';
 import { RealtimePulse } from './smart-dashboard/RealtimePulse';
-import { FloatingAITutor } from './smart-dashboard/FloatingAITutor';
 import { ProgressMonitor } from './smart-dashboard/ProgressMonitor';
 import { ProgressTrackingDemo } from './smart-dashboard/ProgressTrackingDemo';
 import { IntelligentOnboarding } from '@/components/ui/intelligent-onboarding';
@@ -101,7 +100,6 @@ export function UserDashboard({ user }: UserDashboardProps) {
         </div>
 
         {/* Floating AI Tutor */}
-        <FloatingAITutor user={user} />
         
         {/* Floating Onboarding Trigger */}
         <OnboardingTrigger

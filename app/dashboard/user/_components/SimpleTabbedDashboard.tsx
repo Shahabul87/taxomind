@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 import { OverviewTab } from './tabs/OverviewTab';
 import { LearningTab } from './tabs/LearningTab';
 import { AchievementsTab } from './tabs/AchievementsTab';
-import { FloatingAITutor } from './smart-dashboard/FloatingAITutor';
 
 interface SimpleTabbedDashboardProps {
   user: User;
@@ -192,7 +191,6 @@ export function SimpleTabbedDashboard({ user }: SimpleTabbedDashboardProps) {
         </div>
 
         {/* Floating AI Tutor */}
-        <FloatingAITutor user={user} />
       </div>
     </div>
   );

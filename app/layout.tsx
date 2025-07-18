@@ -17,6 +17,8 @@ import { currentUser } from '@/lib/auth';
 import LayoutWithSidebar from '@/components/layout/layout-with-sidebar';
 import ClientToaster from '@/components/client-toaster';
 import { Suspense } from 'react';
+import { SAMGlobalProvider } from '@/components/sam/sam-global-provider';
+import { SAMGlobalAssistant } from '@/components/sam/sam-global-assistant';
 
 // Force dynamic rendering for the entire app
 export const dynamic = 'force-dynamic';
@@ -133,25 +135,30 @@ export default async function RootLayout({
         <Providers session={session}>
           <ConfettiProvider />
           <ClientToaster />
-          <PageBackground>
-            {/* Fixed header with suspense boundary */}
-            <div className="fixed top-0 left-0 right-0 z-[50]">
-              <Suspense fallback={<HeaderFallback />}>
-                <AsyncHeader />
-              </Suspense>
-            </div>
-            
-            {/* Main layout with sidebar and content */}
-            <Suspense fallback={
-              <div className="pt-14 sm:pt-16 min-h-screen bg-slate-900 flex items-center justify-center">
-                <div className="text-white">Loading...</div>
+          <SAMGlobalProvider>
+            <PageBackground>
+              {/* Fixed header with suspense boundary */}
+              <div className="fixed top-0 left-0 right-0 z-[50]">
+                <Suspense fallback={<HeaderFallback />}>
+                  <AsyncHeader />
+                </Suspense>
               </div>
-            }>
-              <AsyncLayoutWithSidebar>
-                {children}
-              </AsyncLayoutWithSidebar>
-            </Suspense>
-          </PageBackground>
+              
+              {/* Main layout with sidebar and content */}
+              <Suspense fallback={
+                <div className="pt-14 sm:pt-16 min-h-screen bg-slate-900 flex items-center justify-center">
+                  <div className="text-white">Loading...</div>
+                </div>
+              }>
+                <AsyncLayoutWithSidebar>
+                  {children}
+                </AsyncLayoutWithSidebar>
+              </Suspense>
+            </PageBackground>
+            
+            {/* Global SAM AI Tutor - Available across all authenticated pages */}
+            <SAMGlobalAssistant />
+          </SAMGlobalProvider>
         </Providers>
       </body>
     </html>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useEnhancedSam } from '../../../../../_components/enhanced-sam-provider';
+import { useSAMGlobal } from '@/components/sam/sam-global-provider';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -13,7 +13,7 @@ interface ChapterSamIntegrationProps {
 }
 
 export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterSamIntegrationProps) {
-  const { refreshPageData, injectPageContext } = useEnhancedSam();
+  const { updateContext } = useSAMGlobal();
   const router = useRouter();
   const [formRefs, setFormRefs] = useState<{
     titleForm?: HTMLFormElement;
@@ -26,7 +26,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
   // Update SAM with comprehensive chapter context
   useEffect(() => {
     // Inject chapter-specific context into Enhanced SAM
-    injectPageContext({
+    updateContext({
       serverData: {
         entityType: 'chapter',
         entityId: chapterId,
@@ -71,11 +71,11 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
     
     // Also refresh page data for form detection
     const timer = setTimeout(() => {
-      refreshPageData();
+      // Context updated successfully
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [chapter, courseId, chapterId, refreshPageData, injectPageContext]);
+  }, [chapter, courseId, chapterId, updateContext]);
 
   // Form interaction functions that SAM can use
   const formInteractions = useMemo(() => ({

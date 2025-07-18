@@ -8,7 +8,6 @@ import { User } from "next-auth";
 import { HomeSidebar } from "@/components/ui/home-sidebar";
 
 // Import existing smart dashboard components
-import { FloatingAITutor } from './smart-dashboard/FloatingAITutor';
 
 // Import new tab components
 import { OverviewTab } from './tabs/OverviewTab';
@@ -116,7 +115,6 @@ export function TabbedDashboard({ user }: TabbedDashboardProps) {
         </div>
 
         {/* Floating AI Tutor */}
-        <FloatingAITutor user={user} />
       </div>
     </div>
   );

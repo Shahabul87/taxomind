@@ -59,10 +59,10 @@ export default function EnrolledCourses({ courses }: EnrolledCoursesProps) {
             <h3 className="text-gray-900 dark:text-white font-medium">No courses enrolled yet</h3>
             <p className="text-gray-500 dark:text-gray-400 mt-1 mb-4">Browse our catalog to find courses that interest you</p>
             <Link
-              href="/courses"
+              href="/teacher/courses"
               className="inline-flex items-center px-4 py-2 rounded-lg bg-purple-600 text-white shadow-sm text-sm font-medium hover:bg-purple-700 transition-colors"
             >
-              Browse Courses <ChevronRight className="ml-1 h-4 w-4" />
+              All Courses <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
         )}

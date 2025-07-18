@@ -460,8 +460,8 @@ export const MyCoursesDashboard = ({
                       : "Explore our course catalog to start your learning journey"
                   }
                   icon={<BookOpen className="w-10 h-10 text-gray-500" />}
-                  actionLink="/discover"
-                  actionText="Browse Courses"
+                  actionLink="/teacher/courses"
+                  actionText="All Courses"
                 />
               ) : (
                 <motion.div 

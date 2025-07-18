@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useEnhancedSam } from './enhanced-sam-provider';
+import { useSAMGlobal } from '@/components/sam/sam-global-provider';
 
 interface PageSamContextOptions {
   // Entity information
@@ -58,7 +58,7 @@ interface PageSamContextOptions {
  * Use this in your page components to provide SAM with detailed context
  */
 export function usePageSamContext(options: PageSamContextOptions) {
-  const { injectPageContext } = useEnhancedSam();
+  const { updateContext } = useSAMGlobal();
   
   useEffect(() => {
     // Build the context object
@@ -79,7 +79,7 @@ export function usePageSamContext(options: PageSamContextOptions) {
     };
     
     // Inject into SAM
-    injectPageContext(context);
+    updateContext(context);
     
     // Also emit custom event for other components
     window.dispatchEvent(new CustomEvent('sam-context-update', {
@@ -94,7 +94,7 @@ export function usePageSamContext(options: PageSamContextOptions) {
     options.metadata,
     options.workflow,
     options.capabilities,
-    injectPageContext
+    updateContext
   ]);
   
   // Return helper functions
@@ -106,7 +106,7 @@ export function usePageSamContext(options: PageSamContextOptions) {
           ...updates
         }
       };
-      injectPageContext(context);
+      updateContext(context);
     },
     
     // Trigger SAM refresh

@@ -10,8 +10,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
 
 export const QuickActions = () => {
+  const router = useRouter();
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <Card className="bg-white/50 dark:bg-gray-800/50 hover:shadow-md transition-all border border-gray-200 dark:border-gray-700/50">
@@ -39,8 +41,12 @@ export const QuickActions = () => {
           <CardDescription>Find courses that match your goals</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" className="w-full text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border-purple-200 dark:border-purple-500/20 hover:bg-purple-50 dark:hover:bg-purple-500/10">
-            Browse Courses
+          <Button 
+            variant="outline" 
+            className="w-full text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border-purple-200 dark:border-purple-500/20 hover:bg-purple-50 dark:hover:bg-purple-500/10"
+            onClick={() => router.push('/teacher/courses')}
+          >
+            All Courses
           </Button>
         </CardContent>
       </Card>

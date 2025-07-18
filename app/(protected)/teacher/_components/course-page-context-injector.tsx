@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useEnhancedSam } from './enhanced-sam-provider';
+import { useSAMGlobal } from '@/components/sam/sam-global-provider';
 
 interface CoursePageContextInjectorProps {
   course?: {
@@ -95,7 +95,7 @@ export function CoursePageContextInjector({
   categories = [],
   completionStatus = {}
 }: CoursePageContextInjectorProps) {
-  const { injectPageContext } = useEnhancedSam();
+  const { updateContext } = useSAMGlobal();
 
   useEffect(() => {
     // Determine the primary entity and build context
@@ -185,7 +185,7 @@ export function CoursePageContextInjector({
     const capabilities = buildCapabilities(entityType, entityData, relatedData, permissions);
 
     // Inject comprehensive context
-    injectPageContext({
+    updateContext({
       serverData: {
         entityType,
         entityId,
@@ -212,7 +212,7 @@ export function CoursePageContextInjector({
       stats: relatedData.stats
     });
 
-  }, [course, chapter, section, categories, completionStatus, injectPageContext]);
+  }, [course, chapter, section, categories, completionStatus, updateContext]);
 
   return null; // This component doesn't render anything
 }

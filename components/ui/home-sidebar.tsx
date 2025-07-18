@@ -192,7 +192,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
       icon: <IconBook className="w-5 h-5" />,
       submenu: [
         { label: "My Courses", href: "/my-courses" },
-        { label: "Browse Courses", href: "/courses" },
+        { label: "All Courses", href: "/teacher/courses" },
         { label: "Create Course", href: "/teacher/create" },
       ],
     },

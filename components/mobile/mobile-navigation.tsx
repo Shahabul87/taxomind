@@ -72,7 +72,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
         icon: <IconBook className="w-5 h-5" />,
         submenu: [
           { id: 'my-courses', label: 'My Courses', icon: <IconBook className="w-4 h-4" />, href: '/my-courses' },
-          { id: 'browse-courses', label: 'Browse Courses', icon: <IconSearch className="w-4 h-4" />, href: '/teacher/courses' },
+          { id: 'all-courses', label: 'All Courses', icon: <IconSearch className="w-4 h-4" />, href: '/teacher/courses' },
           { id: 'create-course', label: 'Create Course', icon: <IconPlus className="w-4 h-4" />, href: '/teacher/create', roles: ['TEACHER', 'ADMIN'] }
         ]
       },
