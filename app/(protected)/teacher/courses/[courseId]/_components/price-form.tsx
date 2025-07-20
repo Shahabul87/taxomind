@@ -221,14 +221,16 @@ export const PriceForm = ({
         </div>
         <Button
           onClick={() => setIsEditing(!isEditing)}
-          variant="ghost"
+          variant="outline"
           size="sm"
           className={cn(
-            "text-emerald-700 dark:text-emerald-300",
-            "hover:text-emerald-800 dark:hover:text-emerald-200",
-            "hover:bg-emerald-50 dark:hover:bg-emerald-500/10",
+            "text-purple-700 dark:text-purple-300",
+            "border-purple-200 dark:border-purple-700",
+            "hover:text-purple-800 dark:hover:text-purple-200",
+            "hover:bg-purple-50 dark:hover:bg-purple-500/10",
             "w-full sm:w-auto",
-            "justify-center"
+            "justify-center",
+            "transition-all duration-200"
           )}
         >
           {isEditing ? (

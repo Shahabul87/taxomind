@@ -29,6 +29,14 @@ interface LearningContext {
   userRole?: string;
   learningObjectives?: string[];
   studentLevel?: string;
+  // Enhanced context awareness
+  contextData?: any;
+  pageType?: string;
+  entityType?: string;
+  entityData?: any;
+  formData?: Record<string, any>;
+  analysisMode?: 'basic' | 'contextual' | 'deep';
+  lastContextUpdate?: Date;
 }
 
 const SAMGlobalContext = createContext<SAMGlobalContextType | undefined>(undefined);
@@ -66,6 +74,10 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Real course data loading
+  const [courseData, setCourseData] = useState<any>(null);
+  const [chapterData, setChapterData] = useState<any>(null);
+
   // Context detection from URL and session
   const learningContext = useMemo((): LearningContext => {
     if (!pathname) return customContext;
@@ -83,6 +95,9 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
       sectionId: sectionMatch?.[1],
       currentPage: pathname,
       userRole: session?.user?.role || 'student',
+      subject: courseData?.title || customContext.subject,
+      currentTopic: chapterData?.title || customContext.currentTopic,
+      learningObjectives: courseData?.learningObjectives || customContext.learningObjectives,
       ...customContext
     };
 
@@ -105,7 +120,70 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
     }
 
     return baseContext;
-  }, [pathname, session, customContext]);
+  }, [pathname, session, customContext, courseData, chapterData]);
+  
+  // Load course data when courseId changes
+  useEffect(() => {
+    const courseId = learningContext.courseId;
+    if (!courseId) {
+      setCourseData(null);
+      return;
+    }
+    
+    const loadCourseData = async () => {
+      try {
+        // Try to get course data from the page context first
+        const pageTitle = document.title;
+        const courseTitle = document.querySelector('h1')?.textContent;
+        
+        if (courseTitle && courseTitle !== pageTitle) {
+          setCourseData({
+            id: courseId,
+            title: courseTitle,
+            learningObjectives: [], // Could be extracted from page
+          });
+        }
+        
+        // Optionally make API call for full course data
+        // const response = await fetch(`/api/courses/${courseId}`);
+        // if (response.ok) {
+        //   const course = await response.json();
+        //   setCourseData(course);
+        // }
+      } catch (error) {
+        console.error('Error loading course data:', error);
+      }
+    };
+    
+    loadCourseData();
+  }, [learningContext.courseId]);
+  
+  // Load chapter data when chapterId changes
+  useEffect(() => {
+    const chapterId = learningContext.chapterId;
+    if (!chapterId) {
+      setChapterData(null);
+      return;
+    }
+    
+    const loadChapterData = async () => {
+      try {
+        // Extract chapter title from page
+        const chapterTitle = document.querySelector('h1, h2')?.textContent;
+        
+        if (chapterTitle) {
+          setChapterData({
+            id: chapterId,
+            title: chapterTitle,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading chapter data:', error);
+      }
+    };
+    
+    loadChapterData();
+  }, [learningContext.chapterId]);
 
   // Determine tutor mode based on context
   const tutorMode = useMemo((): 'teacher' | 'student' | 'admin' => {

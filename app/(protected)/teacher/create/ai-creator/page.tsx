@@ -9,11 +9,12 @@ import { StreamingGenerationModal } from "@/components/course-creation/streaming
 import { SamErrorBoundary } from "@/components/ui/sam-error-boundary";
 import { ArrowRight, ArrowLeft, Sparkles, Home, AlertTriangle, BookOpen, RefreshCw, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 // Import modular components
 import { useSamWizard } from "./hooks/use-sam-wizard";
 import { useSamCompleteGeneration, useSamContextGathering } from "./hooks/use-sam-complete-generation";
-import { samMemory } from "@/lib/sam-memory-system";
+// Note: samMemory imported dynamically to avoid SSR issues
 import { CourseBasicsStep } from "./components/steps/course-basics-step";
 import { TargetAudienceStep } from "./components/steps/target-audience-step";
 import { CourseStructureStep } from "./components/steps/course-structure-step";
@@ -41,6 +42,7 @@ const STEP_DESCRIPTIONS = [
 export default function AICreatorPage() {
   const router = useRouter();
   const [showCompleteGenerationModal, setShowCompleteGenerationModal] = React.useState(false);
+  const [isCreatingCourse, setIsCreatingCourse] = React.useState(false);
   
   const {
     // State
@@ -102,16 +104,20 @@ export default function AICreatorPage() {
         onGenerationComplete: (result) => {
           console.log('Complete generation finished:', result);
           
-          // Save generated structure to SAM memory
-          samMemory.saveGeneratedStructure({
-            courseDescription: result.courseDescription,
-            enhancedObjectives: result.learningObjectives,
-            chapters: result.chapters,
-            generationMethod: 'sam-complete'
-          });
-          
-          // Track successful generation
-          samMemory.incrementSuccessfulGenerations();
+          // Save generated structure to SAM memory (client-side only)
+          if (typeof window !== 'undefined') {
+            import('@/lib/sam-memory-system').then(({ samMemory }) => {
+              samMemory.saveGeneratedStructure({
+                courseDescription: result.courseDescription,
+                enhancedObjectives: result.learningObjectives,
+                chapters: result.chapters,
+                generationMethod: 'sam-complete'
+              });
+              
+              // Track successful generation
+              samMemory.incrementSuccessfulGenerations();
+            });
+          }
           
           // Optionally refresh SAM suggestion after generation
           getSamSuggestion('course_structure_complete');
@@ -136,48 +142,230 @@ export default function AICreatorPage() {
     }
   };
 
+  // New unified course generation handler
+  const handleGenerateCompleteeCourse = async () => {
+    setIsCreatingCourse(true);
+    
+    try {
+      // Debug: Log the form data to see what we're sending
+      console.log('Form data for course creation:', {
+        title: formData.courseTitle,
+        description: formData.courseShortOverview,
+        whatYouWillLearn: formData.courseGoals,
+        category: formData.courseCategory,
+        subcategory: formData.courseSubcategory,
+      });
+
+      // Step 1: Create the course with final review data
+      const courseData = {
+        title: formData.courseTitle,
+        description: formData.courseShortOverview,
+        learningObjectives: formData.courseGoals || [], // API expects 'learningObjectives'
+      };
+
+      // Note: Category handling will be done on the course edit page
+      // The /api/courses POST endpoint doesn't support categoryId during creation
+
+      console.log('Sending course data:', courseData);
+
+      const courseResponse = await fetch('/api/courses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(courseData),
+      });
+
+      if (!courseResponse.ok) {
+        const errorText = await courseResponse.text();
+        console.error('Course creation failed:', courseResponse.status, errorText);
+        throw new Error(`Failed to create course: ${courseResponse.status} - ${errorText}`);
+      }
+
+      const course = await courseResponse.json();
+      console.log('Course created:', course);
+
+      // Step 2: Generate chapters using SAM AI
+      let successfulChapters = []; // Declare variable at proper scope
+
+      const chaptersResponse = await fetch('/api/sam/ai-tutor/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: `Generate ${formData.chapterCount || 5} comprehensive chapter titles for the course: "${formData.courseTitle}"
+
+Course Details:
+- Description: ${formData.courseShortOverview}
+- Category: ${formData.courseCategory}
+- Target Audience: ${formData.targetAudience}
+- Difficulty: ${formData.difficulty}
+- Learning Objectives: ${formData.courseGoals?.join(', ') || 'Not specified'}
+- Bloom's Focus: ${formData.bloomsFocus?.join(', ') || 'Not specified'}
+
+Please generate exactly ${formData.chapterCount || 5} chapter titles that:
+1. Follow a logical learning progression
+2. Cover all aspects of the course description
+3. Are appropriate for ${formData.difficulty} level learners
+4. Support the learning objectives
+
+Format as:
+1. [Chapter Title]
+2. [Chapter Title]
+3. [Chapter Title]
+etc.`,
+          context: {
+            pageData: { 
+              pageType: 'course_creation',
+              title: 'Chapter Generation',
+              forms: []
+            },
+            learningContext: { 
+              userRole: 'teacher',
+              courseCreationMode: true,
+              chapterGenerationMode: true
+            },
+            gamificationState: {},
+            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
+            emotion: 'engaged'
+          }
+        }),
+      });
+
+      if (chaptersResponse.ok) {
+        const chaptersResult = await chaptersResponse.json();
+        console.log('SAM chapters response:', chaptersResult.response);
+        
+        // Parse chapter titles from SAM's response
+        const chapterMatches = chaptersResult.response.match(/\d+\.\s*(.+)/g);
+        console.log('Chapter matches found:', chapterMatches);
+        
+        if (chapterMatches && chapterMatches.length > 0) {
+          console.log(`Creating ${chapterMatches.length} chapters for course ${course.id}`);
+          
+          // Create chapters for the course
+          const chapterPromises = chapterMatches.slice(0, formData.chapterCount || 5).map(async (match, index) => {
+            const title = match.replace(/^\d+\.\s*/, '').trim();
+            console.log(`Creating chapter ${index + 1}: "${title}"`);
+            
+            try {
+              const chapterResponse = await fetch(`/api/courses/${course.id}/chapters`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  title,
+                  position: index + 1,
+                }),
+              });
+              
+              if (chapterResponse.ok) {
+                const chapter = await chapterResponse.json();
+                console.log(`Chapter created successfully:`, chapter);
+                return chapter;
+              } else {
+                const errorText = await chapterResponse.text();
+                console.error(`Failed to create chapter "${title}":`, chapterResponse.status, errorText);
+              }
+            } catch (error) {
+              console.error(`Error creating chapter: ${title}`, error);
+            }
+            return null;
+          });
+
+          const createdChapters = await Promise.all(chapterPromises);
+          successfulChapters = createdChapters.filter(chapter => chapter !== null);
+          console.log(`Successfully created ${successfulChapters.length} chapters`);
+        } else {
+          console.warn('No chapter titles found in SAM response');
+        }
+      } else {
+        console.error('Failed to generate chapters:', chaptersResponse.status);
+      }
+
+      // Step 3: Save progress to SAM memory and redirect
+      if (typeof window !== 'undefined') {
+        import('@/lib/sam-memory-system').then(({ samMemory }) => {
+          samMemory.saveGeneratedStructure({
+            courseDescription: formData.courseShortOverview,
+            enhancedObjectives: formData.courseGoals || [],
+            chapters: [], // Chapters are now created directly
+            generationMethod: 'unified-creation'
+          });
+          samMemory.incrementSuccessfulGenerations();
+        });
+      }
+
+      // Success message and redirect
+      toast.success(`Course "${course.title}" created successfully with ${successfulChapters.length} chapters!`);
+      
+      // Redirect to course editing page (skip blueprint stage)
+      router.push(`/teacher/courses/${course.id}`);
+      
+    } catch (error) {
+      console.error('Error creating course:', error);
+      toast.error('Failed to create course. Please try again.');
+    } finally {
+      setIsCreatingCourse(false);
+    }
+  };
+
   // SAM Memory Integration - Save wizard data as user progresses
   React.useEffect(() => {
-    // Save form data to SAM memory whenever it changes
-    if (formData.courseTitle || formData.courseShortOverview) {
-      samMemory.saveWizardData({
-        courseTitle: formData.courseTitle || '',
-        courseShortOverview: formData.courseShortOverview || '',
-        courseCategory: formData.courseCategory || '',
-        courseSubcategory: formData.courseSubcategory,
-        targetAudience: formData.targetAudience || '',
-        difficulty: formData.difficulty || '',
-        courseIntent: formData.courseIntent,
-        courseGoals: formData.courseGoals || [],
-        bloomsFocus: formData.bloomsFocus || [],
-        preferredContentTypes: formData.preferredContentTypes || [],
-        chapterCount: formData.chapterCount || 8,
-        sectionsPerChapter: formData.sectionsPerChapter || 3,
-        includeAssessments: formData.includeAssessments || false
+    // Save form data to SAM memory whenever it changes (client-side only)
+    if ((formData.courseTitle || formData.courseShortOverview) && typeof window !== 'undefined') {
+      import('@/lib/sam-memory-system').then(({ samMemory }) => {
+        samMemory.saveWizardData({
+          courseTitle: formData.courseTitle || '',
+          courseShortOverview: formData.courseShortOverview || '',
+          courseCategory: formData.courseCategory || '',
+          courseSubcategory: formData.courseSubcategory,
+          targetAudience: formData.targetAudience || '',
+          difficulty: formData.difficulty || '',
+          courseIntent: formData.courseIntent,
+          courseGoals: formData.courseGoals || [],
+          bloomsFocus: formData.bloomsFocus || [],
+          preferredContentTypes: formData.preferredContentTypes || [],
+          chapterCount: formData.chapterCount || 8,
+          sectionsPerChapter: formData.sectionsPerChapter || 3,
+          includeAssessments: formData.includeAssessments || false
+        });
       });
     }
   }, [formData]);
 
   // Save SAM interactions to memory
   React.useEffect(() => {
-    if (samSuggestion) {
-      samMemory.addWizardInteraction({
-        type: 'suggestion',
-        content: typeof samSuggestion === 'string' ? samSuggestion : JSON.stringify(samSuggestion),
-        step: step
+    if (samSuggestion && typeof window !== 'undefined') {
+      import('@/lib/sam-memory-system').then(({ samMemory }) => {
+        samMemory.addWizardInteraction({
+          type: 'suggestion',
+          content: typeof samSuggestion === 'string' ? samSuggestion : JSON.stringify(samSuggestion),
+          step: step
+        });
       });
     }
   }, [samSuggestion, step]);
 
   // Initialize SAM session
   React.useEffect(() => {
-    samMemory.startSession('ai-course-creator');
-    samMemory.updateCurrentPage(`ai-creator-step-${step}`);
+    if (typeof window !== 'undefined') {
+      import('@/lib/sam-memory-system').then(({ samMemory }) => {
+        samMemory.startSession('ai-course-creator');
+        samMemory.updateCurrentPage(`ai-creator-step-${step}`);
+      });
+    }
   }, [step]);
 
   // Update current step in SAM memory
   React.useEffect(() => {
-    samMemory.updateCurrentPage(`ai-creator-step-${step}`);
+    if (typeof window !== 'undefined') {
+      import('@/lib/sam-memory-system').then(({ samMemory }) => {
+        samMemory.updateCurrentPage(`ai-creator-step-${step}`);
+      });
+    }
   }, [step]);
 
   // Step validation
@@ -380,47 +568,28 @@ export default function AICreatorPage() {
                   </div>
 
                   {isLastStep ? (
-                    <div className="flex gap-2">
-                      {/* Generate Course Structure with SAM */}
-                      <Button
-                        onClick={handleOpenCompleteGeneration}
-                        disabled={!canProceed}
-                        variant="outline"
-                        className={cn(
-                          "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-emerald-300 dark:border-emerald-600",
-                          "text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/30",
-                          "shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105",
-                          "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                        )}
-                      >
-                        <Brain className="h-4 w-4 mr-2" />
-                        Generate Course Structure
-                      </Button>
-                      
-                      {/* Original Generate Course Button */}
-                      <Button
-                        onClick={handleGenerate}
-                        disabled={!canProceed || isGenerating}
-                        className={cn(
-                          "bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600",
-                          "shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105",
-                          "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
-                          isGenerating && "animate-pulse"
-                        )}
-                      >
-                        {isGenerating ? (
-                          <>
-                            <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
-                            Generating Course...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Generate Course
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                    <Button
+                      onClick={handleGenerateCompleteeCourse}
+                      disabled={!canProceed || isCreatingCourse}
+                      className={cn(
+                        "bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600",
+                        "shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105",
+                        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
+                        isCreatingCourse && "animate-pulse"
+                      )}
+                    >
+                      {isCreatingCourse ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                          Creating Course...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Generate Course
+                        </>
+                      )}
+                    </Button>
                   ) : (
                     <Button
                       onClick={handleNext}
@@ -482,26 +651,7 @@ export default function AICreatorPage() {
           </div>
         </div>
 
-        {/* Streaming Generation Modal */}
-        <StreamingGenerationModal
-          isOpen={showStreamingModal}
-          onClose={() => setShowStreamingModal(false)}
-          formData={formData}
-          onComplete={handleStreamingComplete}
-          onError={handleStreamingError}
-        />
-
-        {/* SAM Complete Generation Modal */}
-        <SAMCompleteGenerationModal
-          isOpen={showCompleteGenerationModal}
-          onClose={handleCloseCompleteGenerationModal}
-          isGenerating={isCompleteGenerating}
-          progress={generationProgress}
-          error={generationError}
-          onGenerate={handleCompleteGeneration}
-          formData={formData}
-          samContext={gatherSamContext(formData, typeof samSuggestion === 'string' ? samSuggestion : JSON.stringify(samSuggestion) || '')}
-        />
+        {/* Note: Removed old generation modals - now using unified course creation */}
       </div>
     </SamErrorBoundary>
   );

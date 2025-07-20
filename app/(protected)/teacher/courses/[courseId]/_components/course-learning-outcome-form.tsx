@@ -257,10 +257,11 @@ export const CourseLearningOutcomeForm = ({
           />
           <Button
             onClick={() => setIsEditing(!isEditing)}
-            variant="ghost"
+            variant="outline"
             size="sm"
             className={cn(
               "text-purple-700 dark:text-purple-300",
+              "border-purple-200 dark:border-purple-700",
               "hover:text-purple-800 dark:hover:text-purple-200",
               "hover:bg-purple-50 dark:hover:bg-purple-500/10",
               "w-full sm:w-auto",

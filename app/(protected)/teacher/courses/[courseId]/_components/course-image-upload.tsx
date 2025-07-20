@@ -92,14 +92,16 @@ export const CourseImageUpload = ({
             <>
               <Button
                 onClick={() => setIsEditing(false)}
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className={cn(
-                  "text-rose-700 dark:text-rose-300",
-                  "hover:text-rose-800 dark:hover:text-rose-200",
-                  "hover:bg-rose-50 dark:hover:bg-rose-500/10",
+                  "text-purple-700 dark:text-purple-300",
+                  "border-purple-200 dark:border-purple-700",
+                  "hover:text-purple-800 dark:hover:text-purple-200",
+                  "hover:bg-purple-50 dark:hover:bg-purple-500/10",
                   "w-full sm:w-auto",
-                  "justify-center"
+                  "justify-center",
+                  "transition-all duration-200"
                 )}
                 disabled={uploading}
               >
@@ -107,14 +109,16 @@ export const CourseImageUpload = ({
               </Button>
               <Button
                 onClick={() => document.getElementById('imageUpload')?.click()}
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className={cn(
-                  "text-blue-700 dark:text-blue-300",
-                  "hover:text-blue-800 dark:hover:text-blue-200",
-                  "hover:bg-blue-50 dark:hover:bg-blue-500/10",
+                  "text-purple-700 dark:text-purple-300",
+                  "border-purple-200 dark:border-purple-700",
+                  "hover:text-purple-800 dark:hover:text-purple-200",
+                  "hover:bg-purple-50 dark:hover:bg-purple-500/10",
                   "w-full sm:w-auto",
-                  "justify-center"
+                  "justify-center",
+                  "transition-all duration-200"
                 )}
                 disabled={uploading}
               >
@@ -134,14 +138,16 @@ export const CourseImageUpload = ({
           ) : (
             <Button
               onClick={() => setIsEditing(true)}
-              variant="ghost"
+              variant="outline"
               size="sm"
               className={cn(
-                "text-blue-700 dark:text-blue-300",
-                "hover:text-blue-800 dark:hover:text-blue-200",
-                "hover:bg-blue-50 dark:hover:bg-blue-500/10",
+                "text-purple-700 dark:text-purple-300",
+                "border-purple-200 dark:border-purple-700",
+                "hover:text-purple-800 dark:hover:text-purple-200",
+                "hover:bg-purple-50 dark:hover:bg-purple-500/10",
                 "w-full sm:w-auto",
-                "justify-center"
+                "justify-center",
+                "transition-all duration-200"
               )}
               disabled={uploading}
             >

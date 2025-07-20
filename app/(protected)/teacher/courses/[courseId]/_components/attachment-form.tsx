@@ -86,14 +86,16 @@ export const AttachmentForm = ({
         </div>
         <Button
           onClick={() => setIsEditing(!isEditing)}
-          variant="ghost"
+          variant="outline"
           size="sm"
           className={cn(
-            "text-blue-700 dark:text-blue-300",
-            "hover:text-blue-800 dark:hover:text-blue-200",
-            "hover:bg-blue-50 dark:hover:bg-blue-500/10",
+            "text-purple-700 dark:text-purple-300",
+            "border-purple-200 dark:border-purple-700",
+            "hover:text-purple-800 dark:hover:text-purple-200",
+            "hover:bg-purple-50 dark:hover:bg-purple-500/10",
             "w-full sm:w-auto",
-            "justify-center"
+            "justify-center",
+            "transition-all duration-200"
           )}
         >
           {isEditing ? (

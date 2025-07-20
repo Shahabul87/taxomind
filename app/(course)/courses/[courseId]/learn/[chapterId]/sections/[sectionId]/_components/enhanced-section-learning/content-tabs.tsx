@@ -25,14 +25,13 @@ import { CodeContent } from "./code-content";
 import { NotesContent } from "./notes-content";
 import { ExamsContent } from "./exams-content";
 import { AdaptiveAssessmentContent } from "./adaptive-assessment-content";
-import { ContextAwareTutor } from "./context-aware-tutor";
 
 type ContentSubTab = "videos" | "blogs" | "articles" | "code";
 
 interface ContentTabsProps {
   currentSection: Section;
-  activeTab: "content" | "notes" | "discussion" | "exams" | "adaptive" | "tutor";
-  setActiveTab: (tab: "content" | "notes" | "discussion" | "exams" | "adaptive" | "tutor") => void;
+  activeTab: "content" | "notes" | "discussion" | "exams" | "adaptive";
+  setActiveTab: (tab: "content" | "notes" | "discussion" | "exams" | "adaptive") => void;
   courseId: string;
   chapterId: string;
   courseTitle?: string;
@@ -108,7 +107,6 @@ export const ContentTabs = ({
             { id: "notes", label: "My Notes", icon: StickyNote },
             { id: "exams", label: "Exams", icon: GraduationCap },
             { id: "adaptive", label: "Adaptive Assessment", icon: Brain },
-            { id: "tutor", label: "AI Tutor", icon: MessageCircle },
             { id: "discussion", label: "Discussion", icon: MessageCircle },
           ].map((tab) => (
             <button
@@ -285,23 +283,6 @@ export const ContentTabs = ({
             </motion.div>
           )}
 
-          {activeTab === "tutor" && (
-            <motion.div
-              key="tutor"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <ContextAwareTutor 
-                courseId={courseId}
-                chapterId={chapterId}
-                sectionId={currentSection.id}
-                sectionTitle={currentSection.title}
-                chapterTitle={chapterTitle || ""}
-                courseTitle={courseTitle || ""}
-              />
-            </motion.div>
-          )}
 
           {activeTab === "discussion" && (
             <motion.div

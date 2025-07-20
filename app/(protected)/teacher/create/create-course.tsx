@@ -15,6 +15,7 @@ export const CreateNewCoursePage = () => {
     window.location.href = '/teacher/create/ai-creator';
   };
 
+
   return (
     <section className="w-full max-w-6xl mx-auto">
       <div className="w-full">

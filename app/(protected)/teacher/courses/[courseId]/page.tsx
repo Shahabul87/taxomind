@@ -285,19 +285,18 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
           />
         </div>
 
-        {/* Course Structure - Two Column Layout */}
+        {/* Course Information - Two Column Layout */}
         <div className="px-4 md:px-6 mb-8">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {/* Left Column */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Left Column - Course Title and Description */}
             <div className="space-y-4">
-              {/* Basic Information */}
               <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
                     <LayoutDashboard className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   </div>
                   <h2 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                    Basic Information
+                    Course Title & Description
                   </h2>
                   {completionStatus.titleDesc && (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -307,167 +306,149 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
                 <div className="space-y-4">
                   <TitleForm initialData={{ title: course.title ?? undefined, description: course.description ?? undefined }} courseId={course.id} />
                   <DescriptionForm initialData={course} courseId={course.id} />
-                  <div>
-                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <Target className="h-4 w-4" />
-                      Learning Objectives
-                      {completionStatus.learningObj && (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      )}
-                    </h3>
-                    <CourseLearningOutcomeForm
-                      initialData={{ 
-                        whatYouWillLearn: course.whatYouWillLearn || [],
-                        title: course.title ?? undefined,
-                        description: course.description ?? undefined
-                      }}
-                      courseId={course.id}
-                    />
-                  </div>
                 </div>
               </div>
 
-              {/* Course Settings */}
+              {/* Learning Objectives */}
               <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
-                    <LayoutDashboard className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                  <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                    Course Settings
-                  </h2>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <ListChecks className="h-4 w-4" />
-                      Category
-                      {completionStatus.category && (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      )}
-                    </h3>
-                    <CategoryForm
-                      initialData={course}
-                      courseId={course.id}
-                      options={categories.map((category) => ({
-                        label: category.name,
-                        value: category.id,
-                      }))}
-                    />
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <File className="h-4 w-4" />
-                      Course Image
-                      {completionStatus.image && (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      )}
-                    </h3>
-                    <CourseImageUpload 
-                      courseId={params.courseId}
-                      initialImage={course.imageUrl}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-4">
-              {/* Chapters */}
-              <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
-                    <ListChecks className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   </div>
                   <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                    Course Chapters
+                    Learning Objectives
                   </h2>
-                  {completionStatus.chapters && (
+                  {completionStatus.learningObj && (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                   )}
                 </div>
-                <ChaptersForm initialData={course} courseId={course.id} />
+                
+                <CourseLearningOutcomeForm
+                  initialData={{ 
+                    whatYouWillLearn: course.whatYouWillLearn || [],
+                    title: course.title ?? undefined,
+                    description: course.description ?? undefined
+                  }}
+                  courseId={course.id}
+                />
+              </div>
+            </div>
+
+            {/* Right Column - Category, Price, Image */}
+            <div className="space-y-4">
+              {/* Course Category */}
+              <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                    <ListChecks className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    Course Category
+                  </h2>
+                  {completionStatus.category && (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  )}
+                </div>
+                
+                <CategoryForm
+                  initialData={course}
+                  courseId={course.id}
+                  options={categories.map((category) => ({
+                    label: category.name,
+                    value: category.id,
+                  }))}
+                />
               </div>
 
-              {/* Pricing & Resources */}
-              <div className="space-y-4">
-                {/* Price */}
-                <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
-                      <CircleDollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    </div>
-                    <h2 className="text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                      Pricing
-                    </h2>
-                    {completionStatus.price && (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    )}
+              {/* Course Price */}
+              <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                    <CircleDollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
-                  <PriceForm initialData={course} courseId={course.id} />
+                  <h2 className="text-lg font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    Course Price
+                  </h2>
+                  {completionStatus.price && (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  )}
                 </div>
+                
+                <PriceForm initialData={course} courseId={course.id} />
+              </div>
 
-                {/* Attachments */}
-                <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
-                      <File className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <h2 className="text-lg font-semibold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                      Resources
-                    </h2>
-                    {completionStatus.attachments && (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    )}
+              {/* Course Image */}
+              <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                    <File className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <AttachmentForm initialData={course} courseId={course.id} />
+                  <h2 className="text-lg font-semibold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                    Course Image
+                  </h2>
+                  {completionStatus.image && (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  )}
                 </div>
+                
+                <CourseImageUpload 
+                  courseId={params.courseId}
+                  initialImage={course.imageUrl}
+                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Course Depth Analyzer Section */}
-        <div className="px-4 md:px-6">
-          <div className="max-w-7xl mx-auto">
-            {/* Colored Box Header */}
-            <div className="mb-8 flex justify-center">
-              <div className="relative group">
-                {/* Floating background orb for the header */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/40 to-indigo-600/40 rounded-2xl blur-xl group-hover:blur-lg transition-all duration-300"></div>
-                
-                {/* Main colored box */}
-                <div className="relative backdrop-blur-md bg-gradient-to-r from-purple-600/90 via-indigo-600/90 to-blue-600/90 border border-white/20 rounded-2xl p-6 shadow-2xl">
-                  <div className="flex items-center justify-center gap-4">
-                    {/* Icon with enhanced styling */}
-                    <div className="p-3 rounded-xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-lg">
-                      <Brain className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    
-                    {/* Header content */}
-                    <div className="text-center">
-                      <h2 className="text-3xl font-bold text-white drop-shadow-lg">
-                        Course Depth Analysis
-                      </h2>
-                      <p className="text-sm text-white/90 mt-2 font-medium drop-shadow-sm">
-                        AI-powered insights into your course&apos;s cognitive depth and learning taxonomy
-                      </p>
-                    </div>
-                    
-                    {/* Decorative elements */}
-                    <div className="hidden md:flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse"></div>
-                      <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse delay-200"></div>
-                      <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse delay-400"></div>
-                    </div>
-                  </div>
-                </div>
+        {/* Course Chapters - Single Column */}
+        <div className="px-4 md:px-6 mb-8">
+          <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                <ListChecks className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
+              <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                Course Chapters
+              </h2>
+              {completionStatus.chapters && (
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              )}
             </div>
+            <ChaptersForm initialData={course} courseId={course.id} />
+          </div>
+        </div>
 
+        {/* Resources - Single Column */}
+        <div className="px-4 md:px-6 mb-8">
+          <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                <File className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h2 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Course Resources
+              </h2>
+              {completionStatus.attachments && (
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              )}
+            </div>
+            <AttachmentForm initialData={course} courseId={course.id} />
+          </div>
+        </div>
+
+        {/* Course Depth Analysis - Single Column */}
+        <div className="px-4 md:px-6 mb-8">
+          <div className="backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl rounded-xl p-4">
+            {/* Header Section */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm">
+                <Brain className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h2 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Course Depth Analysis
+              </h2>
+            </div>
+            
             {/* Course Depth Analyzer */}
             <CourseDepthAnalyzer
               courseId={params.courseId}

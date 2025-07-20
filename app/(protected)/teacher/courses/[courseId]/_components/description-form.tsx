@@ -4,7 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, Sparkles, Loader2 } from "lucide-react";
+import { Pencil, Sparkles, Loader2, FileText } from "lucide-react";
 import { AICourseAssistant } from "./ai-course-assistant";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { Course } from "@prisma/client";
-import TipTapEditor from "@/components/tiptap/editor";
+import { SAMEnhancedEditor } from "@/components/tiptap/sam-enhanced-editor";
 import ContentViewer from "@/components/tiptap/content-viewer";
 
 interface DescriptionFormProps {
@@ -44,6 +44,8 @@ export const DescriptionForm = ({
   const [isMounted, setIsMounted] = useState(false);
   const [samTriggerEdit, setSamTriggerEdit] = useState(false);
   const [pendingSamData, setPendingSamData] = useState<{ description?: string; content?: string } | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [truncatedContent, setTruncatedContent] = useState("");
 
   const toggleEdit = () => setIsEditing((current) => !current);
 
@@ -60,6 +62,28 @@ export const DescriptionForm = ({
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Handle content truncation
+  useEffect(() => {
+    if (!isMounted) return;
+    
+    const truncateHtml = (html: string, maxLength: number) => {
+      if (typeof window === 'undefined') return html;
+      
+      const div = document.createElement('div');
+      div.innerHTML = html || '';
+      const text = div.textContent || div.innerText;
+      if (text.length <= maxLength) return html;
+      return text.substring(0, maxLength).trim() + '...';
+    };
+
+    if (initialData.description) {
+      setTruncatedContent(isExpanded 
+        ? initialData.description 
+        : truncateHtml(initialData.description, 300)
+      );
+    }
+  }, [isExpanded, initialData.description, isMounted]);
 
   // Listen for SAM form population events
   useEffect(() => {
@@ -191,8 +215,12 @@ export const DescriptionForm = ({
 
   return (
     <div className={cn(
-      "rounded-md",
-      isEditing ? "p-0" : "p-4 bg-slate-50 dark:bg-slate-800/50"
+      "p-4 rounded-xl",
+      "border border-gray-200 dark:border-gray-700/50",
+      "bg-white/50 dark:bg-gray-800/40",
+      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
+      "transition-all duration-200",
+      "backdrop-blur-sm"
     )}>
       {/* Hidden metadata for SAM to detect the form even when not in edit mode */}
       <div 
@@ -209,9 +237,63 @@ export const DescriptionForm = ({
         data-field-type="rich-text"
         style={{ display: 'none' }}
       />
-      <div className="font-medium flex items-center justify-between">
-        Course description
-        <div className="flex gap-2">
+      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-x-2">
+            <div className="p-2 w-fit rounded-md bg-purple-50 dark:bg-purple-500/10">
+              <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <p className="text-base sm:text-lg font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
+              Course Description
+            </p>
+          </div>
+          {!isEditing && (
+            <div className="mt-2">
+              {!initialData.description ? (
+                <div className="space-y-2">
+                  <p className="text-sm italic text-slate-600 dark:text-slate-400">
+                    No course description yet
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500">
+                    Provide a detailed description of what this course covers, who it&apos;s for, and what makes it valuable.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <ContentViewer 
+                    content={truncatedContent || initialData.description} 
+                    className={cn(
+                      "text-slate-800 dark:text-slate-200 prose prose-sm max-w-none",
+                      "prose-headings:text-slate-900 dark:prose-headings:text-slate-100",
+                      "prose-p:text-slate-800 dark:prose-p:text-slate-200",
+                      "prose-strong:text-slate-900 dark:prose-strong:text-white",
+                      "prose-ul:list-disc prose-ul:pl-5 prose-ul:text-slate-800 dark:prose-ul:text-slate-200",
+                      "prose-li:text-slate-800 dark:prose-li:text-slate-200 prose-li:mb-1",
+                      "prose-ol:list-decimal prose-ol:pl-5 prose-ol:text-slate-800 dark:prose-ol:text-slate-200",
+                      "prose-a:text-purple-600 dark:prose-a:text-purple-400"
+                    )}
+                  />
+                  {initialData.description && initialData.description.length > 300 && (
+                    <Button
+                      onClick={() => setIsExpanded(!isExpanded)}
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "text-purple-700 dark:text-purple-300",
+                        "hover:text-purple-800 dark:hover:text-purple-200",
+                        "p-0 h-auto",
+                        "text-sm font-medium"
+                      )}
+                    >
+                      {isExpanded ? "Show Less" : "Show More"}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
           <ErrorBoundary
             fallback={
               <Button 
@@ -232,14 +314,21 @@ export const DescriptionForm = ({
               onGenerate={handleAIGenerate}
               disabled={!initialData.title}
               trigger={
-                <Button 
+                <Button
                   variant="outline"
-                  type="button"
                   size="sm"
                   disabled={!initialData.title}
-                  className="text-xs h-8"
+                  className={cn(
+                    "text-purple-700 dark:text-purple-300",
+                    "border-purple-200 dark:border-purple-700",
+                    "hover:text-purple-800 dark:hover:text-purple-200",
+                    "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+                    "w-full sm:w-auto",
+                    "justify-center",
+                    "transition-all duration-200"
+                  )}
                 >
-                  <Sparkles className="h-3 w-3 mr-1" />
+                  <Sparkles className="h-4 w-4 mr-2" />
                   Generate with AI
                 </Button>
               }
@@ -247,36 +336,31 @@ export const DescriptionForm = ({
           </ErrorBoundary>
           <Button 
             onClick={toggleEdit} 
-            variant="ghost"
+            variant="outline"
             type="button"
-            className="text-xs h-8"
+            size="sm"
+            className={cn(
+              "text-purple-700 dark:text-purple-300",
+              "border-purple-200 dark:border-purple-700",
+              "hover:text-purple-800 dark:hover:text-purple-200",
+              "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+              "w-full sm:w-auto",
+              "justify-center",
+              "transition-all duration-200"
+            )}
           >
             {isEditing ? (
               <>Cancel</>
             ) : (
               <>
-                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                <Pencil className="h-4 w-4 mr-2" />
                 Edit
               </>
             )}
           </Button>
         </div>
       </div>
-      {!isEditing ? (
-        <div className={cn(
-          "text-sm mt-2",
-          !initialData.description && "text-slate-500 italic"
-        )}>
-          {initialData.description ? (
-            <ContentViewer 
-              content={initialData.description} 
-              className="text-black dark:text-gray-200 prose-sm max-w-full"
-            />
-          ) : (
-            <p>No description</p>
-          )}
-        </div>
-      ) : (
+      {isEditing && (
         <Form {...form}>
           <form
             id="course-description-form"
@@ -299,15 +383,16 @@ export const DescriptionForm = ({
                 <FormItem>
                   <FormControl>
                     <div className="bg-white dark:bg-slate-800 rounded-md" data-form="course-description">
-                      <TipTapEditor
+                      <SAMEnhancedEditor
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="Write a description for your course..."
                         editorClassName="[&_.tiptap]:!text-black dark:[&_.tiptap]:!text-gray-200 min-h-[150px]"
-                        name="description"
-                        data-field-purpose="course-description"
-                        data-validation="required,min:10"
-                        data-content-type="rich-text"
+                        samEnabled={true}
+                        context={{
+                          courseId,
+                          formType: 'description',
+                        }}
                       />
                     </div>
                   </FormControl>

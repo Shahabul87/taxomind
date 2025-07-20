@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Bot, BookOpen, Sparkles, Users, Clock, Brain } from "lucide-react";
+import { Bot, BookOpen, Sparkles, Users, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +18,8 @@ export const CourseCreatorSelection = ({
 }: CourseCreatorSelectionProps) => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
+
         {/* Creator Options */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Classic Creator */}
@@ -116,6 +117,7 @@ export const CourseCreatorSelection = ({
               </div>
             </div>
           </div>
+
         </div>
 
         {/* Quick comparison */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSAMGlobal } from '@/components/sam/sam-global-provider';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';

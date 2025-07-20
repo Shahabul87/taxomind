@@ -3,6 +3,150 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import anthropic from '@/lib/anthropic-client';
 
+// Import SAM evaluation engines
+async function integrateSAMEngineAnalysis(courseContent: any) {
+  const samAnalysis = {
+    bloomsAnalysis: await analyzeBlooms(courseContent),
+    marketAnalysis: await analyzeMarket(courseContent),
+    qualityAnalysis: await analyzeQuality(courseContent),
+    completionAnalysis: analyzeCompletion(courseContent)
+  };
+  
+  return samAnalysis;
+}
+
+// SAM Blooms Analysis Engine Integration
+async function analyzeBlooms(courseContent: any) {
+  try {
+    // Use SAM Blooms Engine for detailed analysis
+    const response = await fetch('http://localhost:3000/api/sam/blooms-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        courseId: courseContent.courseId,
+        content: {
+          title: courseContent.title,
+          description: courseContent.description,
+          objectives: courseContent.learningObjectives,
+          chapters: courseContent.chapters
+        }
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.analysis || {};
+    }
+  } catch (error) {
+    console.error('SAM Blooms analysis failed:', error);
+  }
+  
+  return generateFallbackBloomsAnalysis(courseContent);
+}
+
+// SAM Market Analysis Engine Integration  
+async function analyzeMarket(courseContent: any) {
+  try {
+    const response = await fetch('http://localhost:3000/api/sam/course-market-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        course: {
+          title: courseContent.title,
+          description: courseContent.description,
+          category: courseContent.category,
+          price: courseContent.price
+        }
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.analysis || {};
+    }
+  } catch (error) {
+    console.error('SAM Market analysis failed:', error);
+  }
+  
+  return generateFallbackMarketAnalysis(courseContent);
+}
+
+// SAM Quality Analysis Engine Integration
+async function analyzeQuality(courseContent: any) {
+  const qualityMetrics = {
+    contentDepth: calculateContentDepth(courseContent),
+    structureQuality: calculateStructureQuality(courseContent),
+    completionScore: courseContent.completionPercentage,
+    engagementPotential: calculateEngagementPotential(courseContent),
+    marketReadiness: calculateMarketReadiness(courseContent)
+  };
+  
+  qualityMetrics.overallScore = Math.round(
+    (qualityMetrics.contentDepth + 
+     qualityMetrics.structureQuality + 
+     qualityMetrics.completionScore + 
+     qualityMetrics.engagementPotential + 
+     qualityMetrics.marketReadiness) / 5
+  );
+  
+  return qualityMetrics;
+}
+
+// Form Completion Analysis
+function analyzeCompletion(courseContent: any) {
+  const completionAnalysis = {
+    titleDescription: {
+      completed: Boolean(courseContent.title && courseContent.description),
+      score: (courseContent.title ? 50 : 0) + (courseContent.description ? 50 : 0),
+      feedback: generateTitleDescFeedback(courseContent),
+      recommendations: generateTitleDescRecommendations(courseContent)
+    },
+    learningObjectives: {
+      completed: courseContent.learningObjectives.length > 0,
+      score: Math.min(courseContent.learningObjectives.length * 20, 100),
+      feedback: generateObjectivesFeedback(courseContent),
+      bloomsAlignment: assessBloomsAlignment(courseContent.learningObjectives),
+      recommendations: generateObjectivesRecommendations(courseContent)
+    },
+    category: {
+      completed: courseContent.category !== 'Uncategorized',
+      score: courseContent.category !== 'Uncategorized' ? 100 : 0,
+      feedback: generateCategoryFeedback(courseContent),
+      marketFit: assessMarketFit(courseContent),
+      recommendations: generateCategoryRecommendations(courseContent)
+    },
+    pricing: {
+      completed: courseContent.price !== null,
+      score: courseContent.price !== null ? 100 : 0,
+      feedback: generatePricingFeedback(courseContent),
+      marketAnalysis: analyzePricingStrategy(courseContent),
+      recommendations: generatePricingRecommendations(courseContent)
+    },
+    courseImage: {
+      completed: courseContent.hasImage,
+      score: courseContent.hasImage ? 100 : 0,
+      feedback: generateImageFeedback(courseContent),
+      recommendations: generateImageRecommendations(courseContent)
+    },
+    chapters: {
+      completed: courseContent.chaptersCount > 0,
+      score: Math.min(courseContent.chaptersCount * 25, 100),
+      feedback: generateChaptersFeedback(courseContent),
+      structureAnalysis: analyzeChapterStructure(courseContent),
+      recommendations: generateChaptersRecommendations(courseContent)
+    },
+    resources: {
+      completed: courseContent.attachmentsCount > 0,
+      score: Math.min(courseContent.attachmentsCount * 20, 100),
+      feedback: generateResourcesFeedback(courseContent),
+      adequacyAnalysis: analyzeResourceAdequacy(courseContent),
+      recommendations: generateResourcesRecommendations(courseContent)
+    }
+  };
+  
+  return completionAnalysis;
+}
+
 // Bloom's Taxonomy levels with descriptors
 const BLOOMS_LEVELS = {
   remember: {
@@ -52,10 +196,11 @@ export async function POST(req: NextRequest) {
 
     const { courseId } = await req.json();
 
-    // Fetch complete course data
+    // Fetch complete course data with ALL form data
     const course = await db.course.findUnique({
       where: { id: courseId },
       include: {
+        category: true,
         chapters: {
           orderBy: {
             position: "asc"
@@ -67,6 +212,18 @@ export async function POST(req: NextRequest) {
               }
             }
           }
+        },
+        attachments: {
+          orderBy: {
+            createdAt: "desc"
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
         }
       }
     });
@@ -75,39 +232,125 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    // Prepare content for analysis
-    const courseContent = {
-      title: course.title,
-      description: course.description || '',
-      learningObjectives: course.whatYouWillLearn || [],
-      chapters: course.chapters.map(ch => ({
-        title: ch.title,
-        description: ch.description || '',
-        learningOutcome: ch.learningOutcome || '',
-        sections: ch.sections.map(s => ({
-          title: s.title,
-          description: s.description || ''
-        }))
-      }))
+    // Calculate completion status for all forms
+    const completionStatus = {
+      titleDesc: Boolean(course.title && course.description),
+      learningObj: Boolean(course.whatYouWillLearn && course.whatYouWillLearn.length > 0),
+      image: Boolean(course.imageUrl),
+      price: Boolean(course.price !== null && course.price !== undefined),
+      category: Boolean(course.categoryId),
+      chapters: Boolean(course.chapters.length > 0),
+      attachments: Boolean(course.attachments.length > 0)
     };
 
-    // Call AI for deep analysis
-    const analysisPrompt = `Analyze this course content for Bloom's Taxonomy alignment and depth:
+    // Calculate completion metrics
+    const completedSections = Object.values(completionStatus).filter(Boolean).length;
+    const totalSections = Object.values(completionStatus).length;
+    const completionPercentage = Math.round((completedSections / totalSections) * 100);
 
-Course Title: ${courseContent.title}
-Description: ${courseContent.description}
+    // Prepare comprehensive content for analysis
+    const courseContent = {
+      // Basic Course Information
+      title: course.title || 'Untitled Course',
+      description: course.description || '',
+      learningObjectives: course.whatYouWillLearn || [],
+      
+      // Course Metadata
+      category: course.category?.name || 'Uncategorized',
+      price: course.price || 0,
+      priceType: course.price === 0 ? 'Free' : 'Paid',
+      hasImage: Boolean(course.imageUrl),
+      imageUrl: course.imageUrl,
+      isPublished: course.isPublished,
+      
+      // Completion Status Analysis
+      completionStatus,
+      completionPercentage,
+      completedSections,
+      totalSections,
+      readinessScore: completionPercentage,
+      
+      // Content Structure
+      chaptersCount: course.chapters.length,
+      sectionsCount: course.chapters.reduce((total, ch) => total + ch.sections.length, 0),
+      attachmentsCount: course.attachments.length,
+      
+      // Detailed Chapter Analysis
+      chapters: course.chapters.map(ch => ({
+        title: ch.title || 'Untitled Chapter',
+        description: ch.description || '',
+        learningOutcome: ch.learningOutcome || '',
+        isPublished: ch.isPublished,
+        isFree: ch.isFree,
+        position: ch.position,
+        sectionsCount: ch.sections.length,
+        sections: ch.sections.map(s => ({
+          title: s.title || 'Untitled Section',
+          description: s.description || '',
+          position: s.position,
+          isPublished: s.isPublished
+        }))
+      })),
+      
+      // Resources and Attachments
+      resources: course.attachments.map(att => ({
+        name: att.name,
+        url: att.url,
+        type: att.name.split('.').pop()?.toLowerCase() || 'unknown'
+      })),
+      
+      // Course Creator Information
+      creator: {
+        name: course.user?.name || 'Unknown Creator',
+        email: course.user?.email
+      },
+      
+      // Add courseId for SAM integration
+      courseId: courseId
+    };
+
+    // Integrate SAM Engine Analysis
+    console.log('Integrating SAM engines for comprehensive analysis...');
+    const samAnalysis = await integrateSAMEngineAnalysis(courseContent);
+
+    // Call AI for comprehensive analysis
+    const analysisPrompt = `Conduct a comprehensive course depth analysis using Bloom's Taxonomy and educational best practices:
+
+## COURSE OVERVIEW
+Title: ${courseContent.title}
+Category: ${courseContent.category}
+Price: ${courseContent.priceType} (${courseContent.price === 0 ? 'Free' : '$' + courseContent.price})
+Status: ${courseContent.isPublished ? 'Published' : 'Draft'}
+
+## COMPLETION STATUS ANALYSIS
+Overall Completion: ${courseContent.completionPercentage}% (${courseContent.completedSections}/${courseContent.totalSections} sections)
+- Title & Description: ${completionStatus.titleDesc ? '✓' : '✗'}
+- Learning Objectives: ${completionStatus.learningObj ? '✓' : '✗'} 
+- Category: ${completionStatus.category ? '✓' : '✗'}
+- Pricing: ${completionStatus.price ? '✓' : '✗'}
+- Course Image: ${completionStatus.image ? '✓' : '✗'}
+- Chapters: ${completionStatus.chapters ? '✓' : '✗'} (${courseContent.chaptersCount} chapters)
+- Resources: ${completionStatus.attachments ? '✓' : '✗'} (${courseContent.attachmentsCount} files)
+
+## COURSE CONTENT STRUCTURE
+Description: ${courseContent.description || 'No description provided'}
 Learning Objectives: ${JSON.stringify(courseContent.learningObjectives, null, 2)}
+Total Sections: ${courseContent.sectionsCount} across ${courseContent.chaptersCount} chapters
 Chapters: ${JSON.stringify(courseContent.chapters, null, 2)}
 
-Provide a detailed analysis in JSON format with:
-1. Overall taxonomy distribution (percentage for each Bloom's level)
-2. Detailed breakdown by chapter
-3. Learning objectives classification
-4. Depth score (0-100)
-5. Balance score (0-100)
-6. Specific gaps and weaknesses
-7. Actionable recommendations
-8. Example improvements for each weak area
+Provide a comprehensive course analysis in JSON format covering:
+
+## ANALYSIS REQUIREMENTS:
+1. **Bloom's Taxonomy Distribution** (percentage for each cognitive level)
+2. **Form Completion Analysis** (evaluate each course setup form)
+3. **Content Quality Assessment** (depth, engagement, clarity)
+4. **Structure Optimization** (chapter flow, section organization)
+5. **Learning Objectives Evaluation** (SMART criteria, Bloom's alignment)
+6. **Course Readiness Assessment** (publishing requirements)
+7. **Market Positioning Analysis** (category fit, pricing strategy)
+8. **Resource Adequacy** (attachments, supporting materials)
+9. **Specific Improvement Recommendations** (prioritized by impact)
+10. **Next Action Steps** (immediate tasks for improvement)
 
 Use this exact JSON structure:
 {
@@ -148,18 +391,118 @@ Use this exact JSON structure:
       "description": ""
     }
   ],
+  "formCompletionAnalysis": {
+    "titleDescription": {
+      "completed": false,
+      "score": 0,
+      "feedback": "",
+      "recommendations": []
+    },
+    "learningObjectives": {
+      "completed": false,
+      "score": 0,
+      "feedback": "",
+      "bloomsAlignment": "",
+      "recommendations": []
+    },
+    "category": {
+      "completed": false,
+      "score": 0,
+      "feedback": "",
+      "marketFit": "",
+      "recommendations": []
+    },
+    "pricing": {
+      "completed": false,
+      "score": 0,
+      "feedback": "",
+      "marketAnalysis": "",
+      "recommendations": []
+    },
+    "courseImage": {
+      "completed": false,
+      "score": 0,
+      "feedback": "",
+      "recommendations": []
+    },
+    "chapters": {
+      "completed": false,
+      "score": 0,
+      "feedback": "",
+      "structureAnalysis": "",
+      "recommendations": []
+    },
+    "resources": {
+      "completed": false,
+      "score": 0,
+      "feedback": "",
+      "adequacyAnalysis": "",
+      "recommendations": []
+    }
+  },
+  "courseQualityMetrics": {
+    "overallScore": 0,
+    "contentDepth": 0,
+    "structureQuality": 0,
+    "engagementPotential": 0,
+    "marketReadiness": 0,
+    "publishingReadiness": 0
+  },
   "recommendations": [
     {
-      "priority": "high|medium|low",
-      "type": "content|structure|activity",
+      "priority": "critical|high|medium|low",
+      "type": "content|structure|completion|marketing|technical",
+      "category": "title|description|objectives|chapters|resources|pricing|image",
       "title": "",
       "description": "",
-      "examples": []
+      "impact": "",
+      "effort": "low|medium|high",
+      "examples": [],
+      "actionSteps": []
     }
-  ]
+  ],
+  "nextActions": [
+    {
+      "order": 1,
+      "action": "",
+      "reason": "",
+      "estimatedTime": "",
+      "category": ""
+    }
+  ],
+  "bloomsInsights": {
+    "dominantLevel": "",
+    "missingLevels": [],
+    "balanceScore": 0,
+    "improvementSuggestions": []
+  }
 }`;
 
-    const response = await anthropic.messages.create({
+    // Retry logic for Anthropic API calls
+    async function callAnthropicWithRetry(messageRequest: any, maxRetries: number = 3): Promise<any> {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await anthropic.messages.create(messageRequest);
+        } catch (error: any) {
+          console.error(`Anthropic API attempt ${attempt} failed:`, error);
+          
+          // Check if it's a rate limit or overload error
+          if (error.status === 529 || error.status === 503 || error.status === 429) {
+            if (attempt < maxRetries) {
+              const delay = 1000 * Math.pow(2, attempt - 1); // Exponential backoff
+              console.log(`Retrying course depth analysis in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              continue;
+            }
+          }
+          
+          // If it's not a retryable error or we've exhausted retries, throw
+          throw error;
+        }
+      }
+    }
+
+    const response = await callAnthropicWithRetry({
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 4000,
       temperature: 0.3,
@@ -190,17 +533,32 @@ Use this exact JSON structure:
       analysis = generateFallbackAnalysis(courseContent);
     }
 
-    // Calculate additional metrics
+    // Calculate additional metrics with SAM integration
     const enhancedAnalysis = {
       ...analysis,
+      
+      // Add SAM Engine Results
+      samEngineResults: {
+        bloomsAnalysis: samAnalysis.bloomsAnalysis,
+        marketAnalysis: samAnalysis.marketAnalysis,
+        qualityMetrics: samAnalysis.qualityAnalysis,
+        completionAnalysis: samAnalysis.completionAnalysis
+      },
+      
+      // Override form completion analysis with SAM results
+      formCompletionAnalysis: samAnalysis.completionAnalysis,
+      courseQualityMetrics: samAnalysis.qualityAnalysis,
+      
       metadata: {
         analyzedAt: new Date().toISOString(),
         courseId,
         totalChapters: course.chapters.length,
-        totalObjectives: courseContent.learningObjectives.length
+        totalObjectives: courseContent.learningObjectives.length,
+        completionPercentage: courseContent.completionPercentage,
+        samEnginesUsed: ['bloomsAnalysis', 'marketAnalysis', 'qualityAnalysis', 'completionAnalysis']
       },
-      insights: generateInsights(analysis),
-      improvementPlan: generateImprovementPlan(analysis)
+      insights: generateInsights(analysis, samAnalysis),
+      improvementPlan: generateImprovementPlan(analysis, samAnalysis)
     };
 
     return NextResponse.json({
@@ -208,12 +566,29 @@ Use this exact JSON structure:
       analysis: enhancedAnalysis
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Course depth analysis error:', error);
+    
+    // Handle specific Anthropic API errors
+    let errorMessage = 'Failed to analyze course depth';
+    let statusCode = 500;
+    
+    if (error.status === 529) {
+      errorMessage = 'AI service is currently overloaded. Please try again in a few minutes.';
+      statusCode = 503;
+    } else if (error.status === 429) {
+      errorMessage = 'Too many requests. Please wait a moment before trying again.';
+      statusCode = 429;
+    } else if (error.status === 503) {
+      errorMessage = 'AI service is temporarily unavailable. Please try again later.';
+      statusCode = 503;
+    }
+    
     return NextResponse.json({
-      error: 'Failed to analyze course depth',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+      error: errorMessage,
+      details: error instanceof Error ? error.message : 'Unknown error',
+      retryable: [529, 503, 429].includes(error.status)
+    }, { status: statusCode });
   }
 }
 
@@ -302,35 +677,425 @@ function detectPrimaryBloomsLevel(text: string): string {
   return 'Remember';
 }
 
-function generateInsights(analysis: any): string[] {
+// Enhanced SAM Integration Helper Functions
+function generateTitleDescFeedback(courseContent: any): string {
+  if (!courseContent.title) {
+    return 'Course title is missing. A compelling title is essential for attracting learners.';
+  }
+  if (!courseContent.description) {
+    return 'Course description is missing. A detailed description helps learners understand what they will gain.';
+  }
+  if (courseContent.title.length < 10) {
+    return 'Course title is too short. Consider a more descriptive title that clearly communicates the course value.';
+  }
+  if (courseContent.description.length < 100) {
+    return 'Course description is too brief. Expand to include learning outcomes, target audience, and key benefits.';
+  }
+  return 'Title and description are well-developed and provide clear course information.';
+}
+
+function generateTitleDescRecommendations(courseContent: any): string[] {
+  const recommendations = [];
+  if (!courseContent.title) {
+    recommendations.push('Create a compelling course title that includes key benefits and target audience');
+  }
+  if (!courseContent.description || courseContent.description.length < 100) {
+    recommendations.push('Write a comprehensive description covering learning outcomes, prerequisites, and course structure');
+  }
+  if (courseContent.title && courseContent.title.length > 60) {
+    recommendations.push('Consider shortening the title while maintaining clarity and appeal');
+  }
+  return recommendations;
+}
+
+function generateObjectivesFeedback(courseContent: any): string {
+  const objectives = courseContent.learningObjectives || [];
+  if (objectives.length === 0) {
+    return 'No learning objectives defined. Clear objectives are crucial for student success and course effectiveness.';
+  }
+  if (objectives.length < 3) {
+    return 'Too few learning objectives. Consider adding 3-8 specific, measurable objectives.';
+  }
+  if (objectives.length > 10) {
+    return 'Too many learning objectives may overwhelm learners. Consider consolidating to 5-8 core objectives.';
+  }
+  return `${objectives.length} learning objectives defined. Ensure they follow SMART criteria and cover different Bloom\'s levels.`;
+}
+
+function assessBloomsAlignment(objectives: string[]): string {
+  if (!objectives || objectives.length === 0) {
+    return 'No objectives to assess for Bloom\'s alignment';
+  }
+  
+  const bloomsKeywords = {
+    remember: ['define', 'identify', 'list', 'name', 'recall', 'recognize'],
+    understand: ['explain', 'summarize', 'interpret', 'classify', 'compare'],
+    apply: ['apply', 'demonstrate', 'solve', 'use', 'implement'],
+    analyze: ['analyze', 'examine', 'investigate', 'categorize'],
+    evaluate: ['evaluate', 'judge', 'critique', 'assess', 'defend'],
+    create: ['create', 'design', 'develop', 'formulate', 'construct']
+  };
+  
+  const levels = new Set();
+  objectives.forEach(obj => {
+    const lowerObj = obj.toLowerCase();
+    for (const [level, keywords] of Object.entries(bloomsKeywords)) {
+      if (keywords.some(keyword => lowerObj.includes(keyword))) {
+        levels.add(level);
+        break;
+      }
+    }
+  });
+  
+  return `Covers ${levels.size} Bloom\'s levels: ${Array.from(levels).join(', ')}`;
+}
+
+function generateObjectivesRecommendations(courseContent: any): string[] {
+  const recommendations = [];
+  const objectives = courseContent.learningObjectives || [];
+  
+  if (objectives.length === 0) {
+    recommendations.push('Define 5-8 specific learning objectives using action verbs');
+    recommendations.push('Ensure objectives are measurable and aligned with course assessments');
+  } else if (objectives.length < 3) {
+    recommendations.push('Add more learning objectives to comprehensively cover course content');
+  }
+  
+  recommendations.push('Use Bloom\'s taxonomy verbs to create objectives at different cognitive levels');
+  recommendations.push('Make objectives specific, measurable, achievable, relevant, and time-bound (SMART)');
+  
+  return recommendations;
+}
+
+function generateCategoryFeedback(courseContent: any): string {
+  const category = courseContent.category;
+  if (category === 'Uncategorized') {
+    return 'Course needs proper categorization for discoverability and market positioning.';
+  }
+  return `Course is categorized as ${category}. Ensure this aligns with content and target audience.`;
+}
+
+function assessMarketFit(courseContent: any): string {
+  const category = courseContent.category;
+  if (category === 'Uncategorized') {
+    return 'Cannot assess market fit without proper categorization';
+  }
+  
+  // Simple market fit assessment based on category
+  const highDemandCategories = ['Technology', 'Business', 'Data Science', 'Marketing', 'Design'];
+  const isHighDemand = highDemandCategories.some(cat => category.includes(cat));
+  
+  return isHighDemand ? 'Good market fit - high demand category' : 'Moderate market fit - consider niche positioning';
+}
+
+function generateCategoryRecommendations(courseContent: any): string[] {
+  const recommendations = [];
+  if (courseContent.category === 'Uncategorized') {
+    recommendations.push('Select an appropriate category that matches your course content');
+    recommendations.push('Research competitor courses in your chosen category');
+  }
+  recommendations.push('Verify your category choice aligns with learner expectations');
+  return recommendations;
+}
+
+function generatePricingFeedback(courseContent: any): string {
+  const price = courseContent.price;
+  if (price === null || price === undefined) {
+    return 'Pricing strategy not defined. Consider your target audience, competition, and value proposition.';
+  }
+  if (price === 0) {
+    return 'Free course strategy can increase enrollment but may affect perceived value.';
+  }
+  return `Course priced at $${price}. Ensure pricing reflects course value and market positioning.`;
+}
+
+function analyzePricingStrategy(courseContent: any): string {
+  const price = courseContent.price;
+  if (price === null) return 'No pricing strategy defined';
+  if (price === 0) return 'Free strategy for maximum reach';
+  if (price < 50) return 'Low-price strategy for accessibility';
+  if (price < 200) return 'Moderate pricing for value-conscious learners';
+  return 'Premium pricing strategy';
+}
+
+function generatePricingRecommendations(courseContent: any): string[] {
+  const recommendations = [];
+  const price = courseContent.price;
+  
+  if (price === null) {
+    recommendations.push('Research competitor pricing in your category');
+    recommendations.push('Consider value-based pricing aligned with learning outcomes');
+  }
+  recommendations.push('Test different price points to optimize revenue');
+  recommendations.push('Consider offering payment plans or tiered pricing');
+  
+  return recommendations;
+}
+
+function generateImageFeedback(courseContent: any): string {
+  if (!courseContent.hasImage) {
+    return 'Course image missing. A compelling image increases enrollment by up to 40%.';
+  }
+  return 'Course image uploaded. Ensure it\'s high-quality and represents course content effectively.';
+}
+
+function generateImageRecommendations(courseContent: any): string[] {
+  const recommendations = [];
+  if (!courseContent.hasImage) {
+    recommendations.push('Add a professional course image that represents your content');
+    recommendations.push('Use high-resolution images (minimum 1200x675px)');
+  }
+  recommendations.push('Ensure image includes relevant visual elements for your topic');
+  recommendations.push('Test different images to see which performs better');
+  return recommendations;
+}
+
+function generateChaptersFeedback(courseContent: any): string {
+  const count = courseContent.chaptersCount;
+  if (count === 0) {
+    return 'No chapters created. Course structure is essential for organized learning.';
+  }
+  if (count < 3) {
+    return 'Consider adding more chapters for comprehensive coverage.';
+  }
+  if (count > 15) {
+    return 'Many chapters - ensure each has substantial content and clear learning outcomes.';
+  }
+  return `${count} chapters created. Good structure for comprehensive learning.`;
+}
+
+function analyzeChapterStructure(courseContent: any): string {
+  const chapters = courseContent.chapters || [];
+  if (chapters.length === 0) return 'No structure to analyze';
+  
+  const sectionsPerChapter = chapters.map((ch: any) => ch.sectionsCount || 0);
+  const avgSections = sectionsPerChapter.reduce((a: number, b: number) => a + b, 0) / chapters.length;
+  
+  return `Average ${avgSections.toFixed(1)} sections per chapter. ${chapters.length} total chapters.`;
+}
+
+function generateChaptersRecommendations(courseContent: any): string[] {
+  const recommendations = [];
+  const count = courseContent.chaptersCount;
+  
+  if (count === 0) {
+    recommendations.push('Create 5-8 chapters with clear learning progression');
+    recommendations.push('Each chapter should have 3-5 sections for optimal learning');
+  } else if (count < 3) {
+    recommendations.push('Add more chapters to provide comprehensive coverage');
+  }
+  
+  recommendations.push('Ensure logical flow between chapters');
+  recommendations.push('Include learning objectives for each chapter');
+  
+  return recommendations;
+}
+
+function generateResourcesFeedback(courseContent: any): string {
+  const count = courseContent.attachmentsCount;
+  if (count === 0) {
+    return 'No resources attached. Additional materials enhance learning effectiveness.';
+  }
+  return `${count} resources attached. Ensure they\'re relevant and add value to learning.`;
+}
+
+function analyzeResourceAdequacy(courseContent: any): string {
+  const count = courseContent.attachmentsCount;
+  const chaptersCount = courseContent.chaptersCount;
+  
+  if (count === 0) return 'No resources available';
+  if (chaptersCount === 0) return 'Resources available but no chapter structure';
+  
+  const resourcesPerChapter = count / chaptersCount;
+  if (resourcesPerChapter < 1) return 'Consider adding more resources per chapter';
+  if (resourcesPerChapter > 5) return 'Many resources - ensure quality over quantity';
+  
+  return `Good resource distribution: ${resourcesPerChapter.toFixed(1)} resources per chapter`;
+}
+
+function generateResourcesRecommendations(courseContent: any): string[] {
+  const recommendations = [];
+  const count = courseContent.attachmentsCount;
+  
+  if (count === 0) {
+    recommendations.push('Add relevant resources like PDFs, worksheets, or reference materials');
+    recommendations.push('Include practical exercises and templates');
+  }
+  
+  recommendations.push('Organize resources by chapter or topic');
+  recommendations.push('Ensure all resources are accessible and properly formatted');
+  
+  return recommendations;
+}
+
+function calculateContentDepth(courseContent: any): number {
+  let score = 0;
+  
+  // Title and description depth
+  if (courseContent.title && courseContent.title.length > 20) score += 10;
+  if (courseContent.description && courseContent.description.length > 200) score += 15;
+  
+  // Learning objectives depth
+  const objectives = courseContent.learningObjectives || [];
+  if (objectives.length >= 5) score += 20;
+  
+  // Chapter depth
+  if (courseContent.chaptersCount >= 5) score += 25;
+  if (courseContent.sectionsCount >= 15) score += 20;
+  
+  // Resource depth
+  if (courseContent.attachmentsCount >= 3) score += 10;
+  
+  return Math.min(score, 100);
+}
+
+function calculateStructureQuality(courseContent: any): number {
+  let score = 0;
+  
+  // Basic structure
+  if (courseContent.chaptersCount > 0) score += 30;
+  if (courseContent.sectionsCount > 0) score += 20;
+  
+  // Structure balance
+  if (courseContent.chaptersCount >= 3 && courseContent.chaptersCount <= 12) score += 20;
+  
+  // Section distribution
+  const avgSectionsPerChapter = courseContent.chaptersCount > 0 
+    ? courseContent.sectionsCount / courseContent.chaptersCount 
+    : 0;
+  if (avgSectionsPerChapter >= 2 && avgSectionsPerChapter <= 6) score += 15;
+  
+  // Learning objectives alignment
+  const objectives = courseContent.learningObjectives || [];
+  if (objectives.length >= 3) score += 15;
+  
+  return Math.min(score, 100);
+}
+
+function calculateEngagementPotential(courseContent: any): number {
+  let score = 0;
+  
+  // Content variety
+  if (courseContent.chaptersCount > 0) score += 20;
+  if (courseContent.attachmentsCount > 0) score += 15;
+  
+  // Description engagement
+  if (courseContent.description && courseContent.description.length > 150) score += 15;
+  
+  // Visual appeal
+  if (courseContent.hasImage) score += 20;
+  
+  // Learning objectives clarity
+  const objectives = courseContent.learningObjectives || [];
+  if (objectives.length >= 3) score += 15;
+  
+  // Course structure
+  if (courseContent.sectionsCount >= 10) score += 15;
+  
+  return Math.min(score, 100);
+}
+
+function calculateMarketReadiness(courseContent: any): number {
+  let score = 0;
+  
+  // Essential elements
+  if (courseContent.title) score += 15;
+  if (courseContent.description && courseContent.description.length > 100) score += 15;
+  if (courseContent.hasImage) score += 15;
+  if (courseContent.category !== 'Uncategorized') score += 15;
+  if (courseContent.price !== null) score += 10;
+  
+  // Content readiness
+  if (courseContent.chaptersCount >= 3) score += 15;
+  if (courseContent.sectionsCount >= 8) score += 10;
+  
+  // Learning objectives
+  const objectives = courseContent.learningObjectives || [];
+  if (objectives.length >= 3) score += 5;
+  
+  return Math.min(score, 100);
+}
+
+function generateFallbackBloomsAnalysis(courseContent: any): any {
+  const objectives = courseContent.learningObjectives || [];
+  const distribution = {
+    remember: 20,
+    understand: 25,
+    apply: 25,
+    analyze: 15,
+    evaluate: 10,
+    create: 5
+  };
+  
+  return {
+    distribution,
+    levelProgression: ['Foundation', 'Application', 'Analysis'],
+    recommendations: [
+      'Add more higher-order thinking activities',
+      'Include practical application exercises',
+      'Develop critical evaluation tasks'
+    ]
+  };
+}
+
+function generateFallbackMarketAnalysis(courseContent: any): any {
+  return {
+    demandLevel: 'medium',
+    competitionLevel: 'moderate',
+    priceRecommendation: {
+      suggested: 99,
+      range: { min: 49, max: 199 }
+    },
+    marketPosition: 'developing',
+    growthPotential: 65
+  };
+}
+
+function generateInsights(analysis: any, samAnalysis: any): string[] {
   const insights = [];
-  const dist = analysis.overallDistribution;
+  const dist = analysis.overallDistribution || {};
   
   // Check for imbalances
-  if (dist.remember + dist.understand > 60) {
+  if ((dist.remember || 0) + (dist.understand || 0) > 60) {
     insights.push('Course is heavily focused on lower-order thinking skills');
   }
   
-  if (dist.create < 10) {
+  if ((dist.create || 0) < 10) {
     insights.push('Limited opportunities for creative synthesis and original work');
   }
   
-  if (dist.evaluate < 15) {
+  if ((dist.evaluate || 0) < 15) {
     insights.push('Students need more opportunities to develop critical judgment');
   }
   
-  if (analysis.scores.balance < 70) {
+  if (analysis.scores?.balance < 70) {
     insights.push('Consider rebalancing content across all Bloom\'s levels');
+  }
+  
+  // Add SAM-powered insights
+  if (samAnalysis?.qualityAnalysis?.overallScore < 70) {
+    insights.push('Course quality metrics suggest need for content enhancement');
+  }
+  
+  if (samAnalysis?.marketAnalysis?.demandLevel === 'low') {
+    insights.push('Market analysis indicates low demand - consider repositioning');
   }
   
   return insights;
 }
 
-function generateImprovementPlan(analysis: any): any {
+function generateImprovementPlan(analysis: any, samAnalysis: any): any {
+  const recommendations = analysis.recommendations || [];
+  
   return {
-    immediate: analysis.recommendations.filter((r: any) => r.priority === 'high'),
-    shortTerm: analysis.recommendations.filter((r: any) => r.priority === 'medium'),
-    longTerm: analysis.recommendations.filter((r: any) => r.priority === 'low'),
-    timeline: '4-6 weeks for full implementation'
+    immediate: recommendations.filter((r: any) => r.priority === 'critical' || r.priority === 'high'),
+    shortTerm: recommendations.filter((r: any) => r.priority === 'medium'),
+    longTerm: recommendations.filter((r: any) => r.priority === 'low'),
+    timeline: '4-6 weeks for full implementation',
+    samPoweredActions: [
+      'Run comprehensive Bloom\'s analysis',
+      'Optimize market positioning',
+      'Enhance content quality metrics'
+    ]
   };
 }

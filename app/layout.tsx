@@ -19,6 +19,7 @@ import ClientToaster from '@/components/client-toaster';
 import { Suspense } from 'react';
 import { SAMGlobalProvider } from '@/components/sam/sam-global-provider';
 import { SAMGlobalAssistant } from '@/components/sam/sam-global-assistant';
+import { SAMContextManager } from '@/components/sam/sam-context-manager';
 
 // Force dynamic rendering for the entire app
 export const dynamic = 'force-dynamic';
@@ -137,6 +138,9 @@ export default async function RootLayout({
           <ClientToaster />
           <SAMGlobalProvider>
             <PageBackground>
+              {/* SAM Context Manager - runs in background */}
+              <SAMContextManager />
+              
               {/* Fixed header with suspense boundary */}
               <div className="fixed top-0 left-0 right-0 z-[50]">
                 <Suspense fallback={<HeaderFallback />}>

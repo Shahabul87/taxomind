@@ -8,6 +8,18 @@ import { useSession } from 'next-auth/react';
 // Import Global SAM AI Tutor instead
 import { useSAMGlobal } from '@/components/sam/sam-global-provider';
 
+// Import database functions - Note: These should only be used in server actions/API routes
+import {
+  awardSAMPoints,
+  unlockSAMBadge,
+  updateSAMStreak,
+  recordSAMInteraction,
+  updateSAMLearningProfile,
+  getSAMLearningProfile
+} from '@/lib/sam-database';
+import { SAMBadgeType, BadgeLevel, SAMInteractionType } from '@prisma/client';
+import { trackAchievementProgress } from '@/lib/sam-achievement-engine';
+
 // Educational context types
 interface LearningContext {
   userRole: 'student' | 'teacher' | 'admin';
@@ -172,6 +184,45 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
     achievements: [],
   });
   
+  // Load gamification data from API
+  useEffect(() => {
+    const loadGamificationData = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const courseId = learningContext.currentCourse?.id;
+        const params = new URLSearchParams();
+        if (courseId) {
+          params.set('courseId', courseId);
+        }
+        
+        const response = await fetch(`/api/sam/stats?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch SAM stats');
+        }
+        
+        const { data: stats } = await response.json();
+        
+        setGamificationState(prev => ({
+          ...prev,
+          points: stats.totalPoints,
+          level: Math.floor(stats.totalPoints / 1000) + 1,
+          badges: [], // Will be populated from SAMBadge records
+          streaks: {
+            current: stats.streaks[0]?.currentStreak || 0,
+            longest: stats.streaks[0]?.longestStreak || 0,
+            lastActivity: stats.streaks[0]?.lastActivityDate || new Date(),
+          },
+          achievements: [] // Will be populated from achievements system
+        }));
+      } catch (error) {
+        console.error('Error loading gamification data:', error);
+      }
+    };
+    
+    loadGamificationData();
+  }, [user?.id, learningContext.currentCourse?.id]);
+  
   const [tutorPersonality, setTutorPersonality] = useState<TutorPersonality>({
     tone: 'encouraging',
     teachingMethod: 'socratic',
@@ -305,70 +356,191 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
   }, []);
   
   // Gamification methods
-  const awardPoints = useCallback((points: number, reason: string) => {
-    setGamificationState(prev => {
-      const newPoints = prev.points + points;
-      const newLevel = Math.floor(newPoints / 1000) + 1; // Level up every 1000 points
-      
-      return {
-        ...prev,
-        points: newPoints,
-        level: newLevel,
-      };
-    });
+  const awardPoints = useCallback(async (points: number, reason: string) => {
+    if (!user?.id) return;
     
-    // Track the award
-    trackInteraction('points_awarded', { points, reason });
-  }, [trackInteraction]);
+    try {
+      // Update local state immediately for responsiveness
+      setGamificationState(prev => {
+        const newPoints = prev.points + points;
+        const newLevel = Math.floor(newPoints / 1000) + 1;
+        
+        return {
+          ...prev,
+          points: newPoints,
+          level: newLevel,
+        };
+      });
+      
+      // Save to database using API
+      await fetch('/api/sam/points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          points,
+          reason,
+          source: 'ai_tutor',
+          courseId: learningContext.currentCourse?.id,
+          chapterId: learningContext.currentChapter?.id,
+          sectionId: learningContext.currentSection?.id,
+        }),
+      });
+      
+      // Record the interaction
+      await fetch('/api/sam/interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          interactionType: 'POINTS_AWARDED',
+          context: { points, reason, learningContext },
+          result: { newPoints: gamificationState.points + points },
+          courseId: learningContext.currentCourse?.id,
+          chapterId: learningContext.currentChapter?.id,
+          sectionId: learningContext.currentSection?.id,
+        }),
+      });
+    } catch (error) {
+      console.error('Error awarding points:', error);
+    }
+  }, [user?.id, learningContext, gamificationState.points]);
   
-  const unlockBadge = useCallback((badgeId: string) => {
-    const badges: Record<string, { name: string; description: string }> = {
-      first_lesson: { name: 'First Steps', description: 'Completed your first lesson' },
-      week_streak: { name: 'Dedicated Learner', description: 'Maintained a 7-day streak' },
-      perfect_exam: { name: 'Perfectionist', description: 'Scored 100% on an exam' },
-      helper: { name: 'Peer Helper', description: 'Helped 5 other students' },
+  const unlockBadge = useCallback(async (badgeId: string) => {
+    if (!user?.id) return;
+    
+    const badges: Record<string, { name: string; description: string; type: SAMBadgeType; level: BadgeLevel }> = {
+      first_lesson: { 
+        name: 'First Steps', 
+        description: 'Completed your first lesson',
+        type: 'LEARNING_MILESTONE' as SAMBadgeType,
+        level: 'BRONZE' as BadgeLevel
+      },
+      week_streak: { 
+        name: 'Dedicated Learner', 
+        description: 'Maintained a 7-day streak',
+        type: 'CONSISTENCY' as SAMBadgeType,
+        level: 'SILVER' as BadgeLevel
+      },
+      perfect_exam: { 
+        name: 'Perfectionist', 
+        description: 'Scored 100% on an exam',
+        type: 'ACHIEVEMENT' as SAMBadgeType,
+        level: 'GOLD' as BadgeLevel
+      },
+      helper: { 
+        name: 'Peer Helper', 
+        description: 'Helped 5 other students',
+        type: 'COLLABORATION' as SAMBadgeType,
+        level: 'SILVER' as BadgeLevel
+      },
     };
     
     const badge = badges[badgeId];
     if (badge) {
-      setGamificationState(prev => ({
-        ...prev,
-        badges: [
-          ...prev.badges,
-          {
-            id: badgeId,
-            name: badge.name,
+      try {
+        // Update local state
+        const newBadge = {
+          id: badgeId,
+          name: badge.name,
+          description: badge.description,
+          earnedAt: new Date(),
+        };
+        
+        setGamificationState(prev => ({
+          ...prev,
+          badges: [...prev.badges, newBadge],
+        }));
+        
+        // Save to database using API
+        await fetch('/api/sam/badges', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            badgeType: badge.type,
+            level: badge.level,
             description: badge.description,
-            earnedAt: new Date(),
-          },
-        ],
-      }));
-    }
-  }, []);
-  
-  const updateStreak = useCallback(() => {
-    setGamificationState(prev => {
-      const lastActivity = new Date(prev.streaks.lastActivity);
-      const today = new Date();
-      const daysDiff = Math.floor((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
-      
-      let newCurrent = prev.streaks.current;
-      if (daysDiff === 1) {
-        newCurrent = prev.streaks.current + 1;
-      } else if (daysDiff > 1) {
-        newCurrent = 1;
+            requirements: { badgeId, context: learningContext },
+            courseId: learningContext.currentCourse?.id,
+            chapterId: learningContext.currentChapter?.id,
+          }),
+        });
+        
+        // Record the interaction
+        await fetch('/api/sam/interactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            interactionType: 'BADGE_UNLOCKED',
+            context: { badgeId, badge: newBadge, learningContext },
+            result: { badgeUnlocked: true },
+            courseId: learningContext.currentCourse?.id,
+            chapterId: learningContext.currentChapter?.id,
+            sectionId: learningContext.currentSection?.id,
+          }),
+        });
+      } catch (error) {
+        console.error('Error unlocking badge:', error);
       }
+    }
+  }, [user?.id, learningContext]);
+  
+  const updateStreak = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const today = new Date();
       
-      return {
-        ...prev,
-        streaks: {
+      setGamificationState(prev => {
+        const lastActivity = new Date(prev.streaks.lastActivity);
+        const daysDiff = Math.floor((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
+        
+        let newCurrent = prev.streaks.current;
+        if (daysDiff === 1) {
+          newCurrent = prev.streaks.current + 1;
+        } else if (daysDiff > 1) {
+          newCurrent = 1;
+        }
+        
+        const newStreaks = {
           current: newCurrent,
           longest: Math.max(newCurrent, prev.streaks.longest),
           lastActivity: today,
-        },
-      };
-    });
-  }, []);
+        };
+        
+        // Save to database using API
+        fetch('/api/sam/streaks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            streakType: 'daily_learning',
+            currentStreak: newCurrent,
+            longestStreak: newStreaks.longest,
+            courseId: learningContext.currentCourse?.id,
+          }),
+        }).catch(console.error);
+        
+        // Record the interaction
+        fetch('/api/sam/interactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            interactionType: 'STREAK_UPDATED',
+            context: { streakType: 'daily_learning', streaks: newStreaks, learningContext },
+            result: { newCurrent, newLongest: newStreaks.longest },
+            courseId: learningContext.currentCourse?.id,
+            chapterId: learningContext.currentChapter?.id,
+            sectionId: learningContext.currentSection?.id,
+          }),
+        }).catch(console.error);
+        
+        return {
+          ...prev,
+          streaks: newStreaks,
+        };
+      });
+    } catch (error) {
+      console.error('Error updating streak:', error);
+    }
+  }, [user?.id, learningContext]);
   
   // Personality adjustment
   const adjustPersonality = useCallback((personality: Partial<TutorPersonality>) => {
@@ -503,20 +675,81 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
     return [];
   }, [learningContext, learningStyle]);
   
-  // Progress tracking
-  const trackInteraction = useCallback((type: string, data: any) => {
-    // Send to analytics API
-    fetch('/api/sam/ai-tutor/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+  // Progress tracking with achievement engine
+  const trackInteraction = useCallback(async (type: string, data: any) => {
+    if (!user?.id) return;
+    
+    try {
+      // Track achievements and get rewards
+      const result = await trackAchievementProgress(
+        user.id,
         type,
         data,
-        timestamp: new Date(),
-        context: learningContext,
-      }),
-    }).catch(console.error);
-  }, [learningContext]);
+        {
+          courseId: learningContext.currentCourse?.id,
+          chapterId: learningContext.currentChapter?.id,
+          sectionId: learningContext.currentSection?.id,
+        }
+      );
+      
+      // Update local gamification state with new points and achievements
+      if (result.pointsAwarded > 0) {
+        setGamificationState(prev => ({
+          ...prev,
+          points: prev.points + result.pointsAwarded,
+          level: Math.floor((prev.points + result.pointsAwarded) / 1000) + 1,
+        }));
+      }
+      
+      // Show notifications for achievements and level ups
+      if (result.achievementsUnlocked.length > 0) {
+        result.achievementsUnlocked.forEach(achievement => {
+          console.log(`🏆 Achievement unlocked: ${achievement.name}`);
+        });
+      }
+      
+      if (result.challengesCompleted.length > 0) {
+        result.challengesCompleted.forEach(challenge => {
+          console.log(`🎯 Challenge completed: ${challenge.name}`);
+        });
+      }
+      
+      if (result.levelUp) {
+        console.log(`🚀 Level up! You are now level ${result.levelUp.newLevel}`);
+      }
+    } catch (error) {
+      console.error('Error tracking interaction with achievement engine:', error);
+      
+      // Fallback to basic interaction recording
+      const interactionTypeMap: Record<string, SAMInteractionType> = {
+        'question_asked': 'QUESTION_ASKED',
+        'answer_provided': 'ANSWER_PROVIDED',
+        'content_generated': 'CONTENT_GENERATED',
+        'feedback_given': 'FEEDBACK_GIVEN',
+        'explanation_requested': 'EXPLANATION_REQUESTED',
+        'help_requested': 'HELP_REQUESTED',
+        'concept_explained': 'CONCEPT_EXPLAINED',
+        'practice_completed': 'PRACTICE_COMPLETED',
+        'assessment_taken': 'ASSESSMENT_TAKEN',
+        'progress_reviewed': 'PROGRESS_REVIEWED',
+      };
+      
+      const interactionType = interactionTypeMap[type] || 'QUESTION_ASKED';
+      
+      fetch('/api/sam/interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          interactionType,
+          context: { type, data, learningContext },
+          result: data,
+          courseId: learningContext.currentCourse?.id,
+          chapterId: learningContext.currentChapter?.id,
+          sectionId: learningContext.currentSection?.id,
+        }),
+      }).catch(console.error);
+    }
+  }, [user?.id, learningContext]);
   
   const getProgressInsights = useCallback(async (): Promise<any> => {
     const response = await fetch('/api/sam/ai-tutor/insights', {

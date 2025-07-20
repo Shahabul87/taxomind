@@ -482,10 +482,17 @@ export const CategoryForm = ({
               
               <Button
                 onClick={() => setIsEditing(true)}
+                variant="outline"
                 size="sm"
-                className="rounded-full bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/30 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 shadow-sm px-4"
+                className={cn(
+                  "text-purple-700 dark:text-purple-300",
+                  "border-purple-200 dark:border-purple-700",
+                  "hover:text-purple-800 dark:hover:text-purple-200",
+                  "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+                  "transition-all duration-200"
+                )}
               >
-                <Pencil className="h-3.5 w-3.5 mr-2" />
+                <Pencil className="h-4 w-4 mr-2" />
                 {initialData.categoryId ? "Change" : "Select"}
               </Button>
             </div>
@@ -507,9 +514,15 @@ export const CategoryForm = ({
               onClick={() => setIsEditing(false)}
               variant="outline"
               size="sm"
-              className="rounded-full text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+              className={cn(
+                "text-purple-700 dark:text-purple-300",
+                "border-purple-200 dark:border-purple-700",
+                "hover:text-purple-800 dark:hover:text-purple-200",
+                "hover:bg-purple-50 dark:hover:bg-purple-500/10",
+                "transition-all duration-200"
+              )}
             >
-              <X className="h-3.5 w-3.5 mr-1.5" />
+              <X className="h-4 w-4 mr-2" />
               Cancel
             </Button>
           </div>

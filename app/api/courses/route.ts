@@ -53,13 +53,25 @@ export async function POST(req: Request) {
     
     console.log(`[COURSES] Creating course for user ${user.id} with title: ${title}`);
     
+    // Handle learning objectives - convert array to string for courseGoals or use whatYouWillLearn array
+    let courseGoalsString = null;
+    let whatYouWillLearnArray = [];
+    
+    if (learningObjectives && Array.isArray(learningObjectives)) {
+      // Use whatYouWillLearn for the array of objectives
+      whatYouWillLearnArray = learningObjectives;
+      // Create a summary string for courseGoals
+      courseGoalsString = `This course includes ${learningObjectives.length} learning objectives covering the key concepts and practical skills needed.`;
+    }
+    
     // Create course with AI-generated data
     const course = await db.course.create({
       data: {
         userId: user.id,
         title: title.trim(),
         description: description || null,
-        courseGoals: learningObjectives || null, // Use courseGoals instead of learningObjectives
+        courseGoals: courseGoalsString,
+        whatYouWillLearn: whatYouWillLearnArray,
         isPublished: false,
       }
     });

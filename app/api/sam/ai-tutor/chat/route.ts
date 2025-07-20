@@ -31,9 +31,8 @@ export async function POST(request: NextRequest) {
     // Build context-aware system prompt
     const systemPrompt = buildSystemPrompt(learningContext, tutorPersonality, pageData);
     
-    // Build conversation history
+    // Build conversation history (exclude system message from messages array)
     const messages = [
-      { role: 'system', content: systemPrompt },
       ...conversationHistory.slice(-5).map((msg: any) => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
         content: msg.content
@@ -46,6 +45,7 @@ export async function POST(request: NextRequest) {
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 2000,
       temperature: 0.7,
+      system: systemPrompt,
       messages: messages as any
     });
 
@@ -122,22 +122,41 @@ function buildSystemPrompt(learningContext: any, tutorPersonality: any, pageData
   } else if (learningContext.userRole === 'teacher') {
     return `${basePrompt}
 
-**Your Role as Teaching Assistant:**
+**Your Role as Teaching Assistant & Course Creator:**
 - Help teachers create engaging content
-- Assist with course design and structure
-- Generate assessment materials
+- Assist with course design and structure using Bloom's taxonomy
+- Generate assessment materials and rubrics
 - Provide student insights and analytics
 - Help with administrative tasks
 - Suggest pedagogical improvements
 - Automate repetitive tasks
+- **COURSE CREATION EXPERTISE**: Create comprehensive courses with quality scoring, market analysis, and structured learning paths
+
+**Course Creation Capabilities:**
+- **Title Generation**: Create compelling, SEO-optimized course titles with market analysis
+- **Course Structure**: Design learning paths using Bloom's taxonomy (Remember → Understand → Apply → Analyze → Evaluate → Create)
+- **Quality Scoring**: Evaluate course completeness, engagement, and pedagogical effectiveness
+- **Learning Objectives**: Create SMART goals aligned with educational standards
+- **Content Architecture**: Organize chapters, sections, and assessments logically
+- **Target Audience Analysis**: Define learner personas and prerequisites
+- **Market Research**: Analyze competitors and positioning strategies
+
+**Available Actions for Course Creation:**
+When users request course creation help, you can use these action commands:
+- [ACTION:GENERATE_TITLES|topic|audience|difficulty] - Generate course titles
+- [ACTION:CREATE_STRUCTURE|topic|chapters|level] - Design course architecture  
+- [ACTION:QUALITY_SCORE|course_data] - Evaluate course quality
+- [ACTION:LEARNING_OBJECTIVES|topic|bloom_levels] - Create learning goals
+- [ACTION:MARKET_ANALYSIS|topic|category] - Research market positioning
 
 **Guidelines:**
-- Focus on educational best practices
-- Suggest evidence-based teaching methods
-- Help with content creation and curation
-- Provide actionable student insights
-- Assist with form filling and data entry
-- Offer creative teaching ideas`;
+- Focus on educational best practices and evidence-based teaching methods
+- Help with content creation and curation using pedagogical expertise
+- Provide actionable student insights and course improvement recommendations
+- Assist with form filling and data entry when needed
+- Offer creative teaching ideas and innovative learning approaches
+- **For course creation requests**: Guide users through a structured process, use quality scoring, and leverage market analysis
+- **Always use action commands** when users need specific course creation functionality`;
   }
 
   return basePrompt;
@@ -206,6 +225,63 @@ function parseAction(actionText: string, learningContext: any, pageData: any): a
           url: params[0]
         }
       };
+
+    // COURSE CREATION ACTIONS
+    case 'GENERATE_TITLES':
+      return {
+        type: 'course_creation_action',
+        details: {
+          action: 'generate_titles',
+          topic: params[0],
+          audience: params[1],
+          difficulty: params[2],
+          apiEndpoint: '/api/sam/title-suggestions'
+        }
+      };
+
+    case 'CREATE_STRUCTURE':
+      return {
+        type: 'course_creation_action',
+        details: {
+          action: 'create_structure',
+          topic: params[0],
+          chapters: parseInt(params[1] || '5'),
+          level: params[2],
+          apiEndpoint: '/api/sam/generate-course-structure-complete'
+        }
+      };
+
+    case 'QUALITY_SCORE':
+      return {
+        type: 'course_creation_action',
+        details: {
+          action: 'quality_score',
+          courseData: params[0],
+          apiEndpoint: '/api/sam/validate'
+        }
+      };
+
+    case 'LEARNING_OBJECTIVES':
+      return {
+        type: 'course_creation_action',
+        details: {
+          action: 'learning_objectives',
+          topic: params[0],
+          bloomLevels: params[1]?.split(',') || ['UNDERSTAND', 'APPLY'],
+          apiEndpoint: '/api/sam/learning-objectives'
+        }
+      };
+
+    case 'MARKET_ANALYSIS':
+      return {
+        type: 'course_creation_action',
+        details: {
+          action: 'market_analysis',
+          topic: params[0],
+          category: params[1],
+          apiEndpoint: '/api/sam/course-market-analysis'
+        }
+      };
     
     default:
       return null;
@@ -223,8 +299,13 @@ function generateContextualSuggestions(learningContext: any, pageData: any): str
     );
   } else if (learningContext.userRole === 'teacher') {
     suggestions.push(
-      "Generate course content",
+      "Create a new course with AI",
+      "Generate course title ideas",
+      "Design course structure",
+      "Generate learning objectives",
       "Create assessment questions",
+      "Analyze course market potential",
+      "Generate course content",
       "Analyze student performance"
     );
   }
@@ -234,7 +315,17 @@ function generateContextualSuggestions(learningContext: any, pageData: any): str
     suggestions.push("Help me fill out this form");
   }
   
-  return suggestions;
+  // Add course creation specific suggestions
+  if (pageData.pageType === 'course_creation' || pageData.title?.includes('create')) {
+    suggestions.push(
+      "Help me brainstorm course ideas",
+      "Generate compelling course titles",
+      "Create course structure using Bloom's taxonomy",
+      "Analyze target audience needs"
+    );
+  }
+  
+  return suggestions.slice(0, 3); // Limit to 3 suggestions
 }
 
 function determineResponseEmotion(

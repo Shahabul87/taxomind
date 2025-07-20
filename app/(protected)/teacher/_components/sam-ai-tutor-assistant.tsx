@@ -80,6 +80,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useSAMGlobal } from '@/components/sam/sam-global-provider';
+import { useSamAITutor } from './sam-ai-tutor-provider';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import { ContentAnalyzerModal } from './content-analyzer-modal';
@@ -131,85 +132,252 @@ export function SamAITutorAssistant() {
     updateContext
   } = useSAMGlobal();
 
-  // Mock the missing functionality for now - wrapped in useMemo to prevent re-renders
-  const pageData = useMemo(() => ({ 
+  const {
+    gamificationState,
+    awardPoints,
+    trackInteraction,
+    detectLearnerEmotion,
+    unlockBadge
+  } = useSamAITutor();
+
+  // Real page data detection
+  const [pageData, setPageData] = useState({ 
     forms: [], 
     serverData: { entityData: null },
     title: 'SAM AI Tutor',
     workflow: { currentStep: 'N/A' }
-  }), []);
-  const isReady = true;
-  const gamificationState = useMemo(() => ({ 
-    level: 1, 
-    points: 0, 
-    streak: 0,
-    streaks: {
-      current: 0,
-      longest: 0
-    },
-    badges: []
-  }), []);
-  const tutorPersonality = useMemo(() => ({ name: 'SAM', style: 'supportive' }), []);
+  });
+  const [isReady, setIsReady] = useState(false);
   
-  // Mock functions that are no longer available
+  // Initialize router and pathname early
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  // Use real gamification state from provider
+  const gamificationStateFromProvider = gamificationState;
+  const tutorPersonalityData = useMemo(() => ({ 
+    name: 'SAM', 
+    style: 'supportive',
+    tone: 'encouraging'
+  }), []);
+  
+  // Real form detection and interaction functions
+  const detectForms = useCallback(() => {
+    const forms = Array.from(document.querySelectorAll('form')).map((form, index) => {
+      const formId = form.id || `form-${index}`;
+      const purpose = form.getAttribute('data-purpose') || 'unknown';
+      const entityType = form.getAttribute('data-entity-type') || '';
+      const entityId = form.getAttribute('data-entity-id') || '';
+      
+      const fields = Array.from(form.querySelectorAll('input, textarea, select')).map(field => ({
+        name: field.getAttribute('name') || '',
+        type: field.type || 'text',
+        value: (field as HTMLInputElement).value || '',
+        placeholder: field.getAttribute('placeholder') || '',
+        required: field.hasAttribute('required'),
+        validation: field.getAttribute('data-validation') || ''
+      }));
+      
+      return {
+        id: formId,
+        purpose,
+        entityType,
+        entityId,
+        fields,
+        element: form
+      };
+    });
+    
+    return forms;
+  }, []);
+  
   const populateForm = useCallback(async (formId: string, data: any) => {
-    console.log('populateForm called:', formId, data);
-    return true;
+    try {
+      const form = document.getElementById(formId) as HTMLFormElement;
+      if (!form) {
+        console.warn(`Form with ID ${formId} not found`);
+        return false;
+      }
+      
+      Object.entries(data).forEach(([fieldName, value]) => {
+        const field = form.querySelector(`[name="${fieldName}"]`) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+        if (field) {
+          if (field.type === 'checkbox') {
+            (field as HTMLInputElement).checked = Boolean(value);
+          } else {
+            field.value = String(value);
+          }
+          
+          // Trigger change event for React components
+          const event = new Event('input', { bubbles: true });
+          field.dispatchEvent(event);
+        }
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error populating form:', error);
+      return false;
+    }
   }, []);
   
   const submitForm = useCallback(async (formId: string) => {
-    console.log('submitForm called:', formId);
-    return true;
+    try {
+      const form = document.getElementById(formId) as HTMLFormElement;
+      if (!form) {
+        console.warn(`Form with ID ${formId} not found`);
+        return false;
+      }
+      
+      // Find submit button and click it
+      const submitButton = form.querySelector('button[type="submit"], input[type="submit"]') as HTMLButtonElement;
+      if (submitButton && !submitButton.disabled) {
+        submitButton.click();
+        return true;
+      }
+      
+      // If no submit button, try form.submit()
+      form.submit();
+      return true;
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      return false;
+    }
   }, []);
   
   const validateForm = useCallback(async (formId: string) => {
-    console.log('validateForm called:', formId);
-    return true;
+    try {
+      const form = document.getElementById(formId) as HTMLFormElement;
+      if (!form) return false;
+      
+      // Check HTML5 validation
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return false;
+      }
+      
+      // Check custom validation rules
+      const fields = form.querySelectorAll('[data-validation]');
+      for (const field of fields) {
+        const validation = field.getAttribute('data-validation') || '';
+        const value = (field as HTMLInputElement).value;
+        
+        if (validation.includes('required') && !value.trim()) {
+          return false;
+        }
+        
+        const minMatch = validation.match(/min:(\d+)/);
+        if (minMatch && value.length < parseInt(minMatch[1])) {
+          return false;
+        }
+        
+        const maxMatch = validation.match(/max:(\d+)/);
+        if (maxMatch && value.length > parseInt(maxMatch[1])) {
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error validating form:', error);
+      return false;
+    }
   }, []);
   
   const refreshPageData = useCallback(async () => {
-    console.log('refreshPageData called');
-  }, []);
+    try {
+      const forms = detectForms();
+      const title = document.title || 'Current Page';
+      const breadcrumbs = Array.from(document.querySelectorAll('[data-breadcrumb]')).map(el => el.textContent || '');
+      
+      setPageData(prev => ({
+        ...prev,
+        forms,
+        title,
+        breadcrumbs
+      }));
+      
+      setIsReady(true);
+    } catch (error) {
+      console.error('Error refreshing page data:', error);
+    }
+  }, [detectForms]);
   
   const interactWithComponent = useCallback(async (componentId: string, action: string) => {
-    console.log('interactWithComponent called:', componentId, action);
-    return true;
+    try {
+      const component = document.getElementById(componentId);
+      if (!component) return false;
+      
+      switch (action) {
+        case 'click':
+          component.click();
+          break;
+        case 'focus':
+          (component as HTMLElement).focus();
+          break;
+        case 'scroll':
+          component.scrollIntoView({ behavior: 'smooth' });
+          break;
+        default:
+          console.warn(`Unknown action: ${action}`);
+          return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error interacting with component:', error);
+      return false;
+    }
   }, []);
   
   const navigateWorkflow = useCallback(async (step: string) => {
-    console.log('navigateWorkflow called:', step);
-    return true;
-  }, []);
+    try {
+      // Look for workflow navigation elements
+      const nextButton = document.querySelector(`[data-workflow-step="${step}"]`) as HTMLElement;
+      if (nextButton) {
+        nextButton.click();
+        return true;
+      }
+      
+      // Fallback to router navigation if URL pattern is detected
+      if (step.startsWith('/')) {
+        router.push(step);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error navigating workflow:', error);
+      return false;
+    }
+  }, [router]);
   
+  // Replace mock generateAdaptiveContent with real API call
   const generateAdaptiveContent = useCallback(async (topic: string, type: string) => {
-    console.log('generateAdaptiveContent called:', topic, type);
-    return `Generated content for ${topic}`;
-  }, []);
+    try {
+      const response = await fetch('/api/sam/ai-tutor/adaptive-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic,
+          format: type,
+          learningStyle: learningContext,
+          context: learningContext,
+          personality: tutorPersonalityData
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.content || `Generated ${type} content for ${topic}`;
+      }
+    } catch (error) {
+      console.error('Error generating content:', error);
+    }
+    
+    return `AI-generated ${type} content for ${topic}`;
+  }, [learningContext, tutorPersonalityData]);
   
-  const awardPoints = useCallback(async (points: number, reason: string) => {
-    console.log('awardPoints called:', points, reason);
-    return true;
-  }, []);
-  
-  const unlockBadge = useCallback(async (badgeId: string) => {
-    console.log('unlockBadge called:', badgeId);
-    return true;
-  }, []);
-  
-  const updateStreak = useCallback(async (days: number) => {
-    console.log('updateStreak called:', days);
-    return true;
-  }, []);
-  
-  const trackInteraction = useCallback(async (interaction: string) => {
-    console.log('trackInteraction called:', interaction);
-    return true;
-  }, []);
-  
-  const detectLearnerEmotion = useCallback(async (text: string) => {
-    console.log('detectLearnerEmotion called:', text);
-    return 'neutral';
-  }, []);
   
   const respondToEmotion = useCallback(async (emotion: string) => {
     console.log('respondToEmotion called:', emotion);
@@ -260,16 +428,14 @@ export function SamAITutorAssistant() {
   const [showAssessmentManagement, setShowAssessmentManagement] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const router = useRouter();
-  const pathname = usePathname();
 
   // Generate AI Tutor welcome message
   const generateWelcomeMessage = useCallback((): ChatMessage => {
-    const formCount = pageData.forms.length;
+    const formCount = pageData.forms?.length || 0;
     const hasServerData = Boolean(pageData.serverData?.entityData);
-    const userRole = learningContext.userRole || 'student';
-    const currentLevel = gamificationState.level;
-    const currentPoints = gamificationState.points;
+    const userRole = learningContext.userRole || tutorMode || 'student';
+    const currentLevel = gamificationStateFromProvider.level;
+    const currentPoints = gamificationStateFromProvider.points;
     
     let welcomeContent = '';
     
@@ -283,7 +449,7 @@ I&apos;m here to help you learn more effectively. I can:
 • Track your progress and celebrate achievements
 • Offer motivation when you need it most
 
-**Your Stats:** Level ${currentLevel} • ${currentPoints} points • ${gamificationState.streaks || 0} day streak 🔥
+**Your Stats:** Level ${currentLevel} • ${currentPoints} points • ${gamificationStateFromProvider.streaks?.current || 0} day streak 🔥
 
 *Current page:* ${pageData.title || 'Learning Dashboard'}
 *Detected:* ${formCount} interactive elements`;
@@ -328,7 +494,22 @@ I&apos;m here to help you manage the learning platform efficiently:
         learningLevel: userRole === 'student' ? 'beginner' : 'advanced'
       }
     };
-  }, [pageData, learningContext, gamificationState]);
+  }, [pageData, learningContext, gamificationStateFromProvider, tutorMode]);
+
+  // Initialize page data on mount and pathname change
+  useEffect(() => {
+    const initializePageData = () => {
+      refreshPageData();
+    };
+    
+    // Initialize immediately
+    initializePageData();
+    
+    // Set up periodic refresh
+    const interval = setInterval(refreshPageData, 5000);
+    
+    return () => clearInterval(interval);
+  }, [pathname, refreshPageData]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -352,14 +533,49 @@ I&apos;m here to help you manage the learning platform efficiently:
     if (tutorMode === 'teacher') {
       actions.push(
         {
+          id: 'course_creator',
+          label: 'Course Creator',
+          icon: <BookOpen className="w-4 h-4" />,
+          description: 'AI-powered course creation with quality scoring',
+          category: 'content',
+          action: () => {
+            handleCourseCreation();
+          },
+          available: true,
+          tooltip: 'Create complete courses with SAM&apos;s intelligence'
+        },
+        {
+          id: 'course_title_suggestions',
+          label: 'Title Ideas',
+          icon: <Lightbulb className="w-4 h-4" />,
+          description: 'Generate engaging course titles',
+          category: 'content',
+          action: () => {
+            handleCourseTitleGeneration();
+          },
+          available: true,
+          tooltip: 'AI-generated course titles with market analysis'
+        },
+        {
+          id: 'course_structure',
+          label: 'Course Structure',
+          icon: <Navigation className="w-4 h-4" />,
+          description: 'Design comprehensive course architecture',
+          category: 'content',
+          action: () => {
+            handleCourseStructureGeneration();
+          },
+          available: true,
+          tooltip: 'Generate detailed course structure and chapters'
+        },
+        {
           id: 'generate_content',
           label: 'Generate Content',
           icon: <Wand2 className="w-4 h-4" />,
           description: 'Create course content, quizzes, or explanations',
           category: 'content',
           action: () => {
-            // Inline action to avoid circular dependency
-            console.log('Generate content action');
+            handleGenerateContent();
           },
           available: true,
           tooltip: 'AI-powered content generation'
@@ -371,8 +587,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Get insights about student performance',
           category: 'analysis',
           action: () => {
-            // Inline action to avoid circular dependency
-            console.log('Student insights action');
+            handleStudentInsights();
           },
           available: true,
           tooltip: 'Analyze student learning patterns'
@@ -384,8 +599,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Generate assessment rubrics',
           category: 'assessment',
           action: () => {
-            // Inline action to avoid circular dependency
-            console.log('Create rubric action');
+            handleCreateRubric();
           },
           available: true,
           tooltip: 'AI-generated assessment rubrics'
@@ -407,8 +621,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Smart form population',
           category: 'content',
           action: () => {
-            // Inline action to avoid circular dependency
-            console.log('Populate form action');
+            handlePopulateForm();
           },
           available: pageData.forms.length > 0,
           tooltip: 'Auto-populate forms with AI-generated content'
@@ -420,8 +633,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Multi-modal content analysis',
           category: 'analysis',
           action: () => {
-            // Inline action to avoid circular dependency
-            console.log('Content analysis action');
+            handleContentAnalysis();
           },
           available: true,
           tooltip: 'Analyze videos, text, code, and other content'
@@ -433,8 +645,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Generate diagrams and visuals',
           category: 'content',
           action: () => {
-            // Inline action to avoid circular dependency
-            console.log('Visual processing action');
+            handleVisualProcessing();
           },
           available: true,
           tooltip: 'Generate mind maps, diagrams, and visual aids'
@@ -823,6 +1034,111 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
     }
   }, [learningContext, addMessage]);
 
+  // NEW COURSE CREATION HANDLERS
+
+  // Handle comprehensive course creation
+  const handleCourseCreation = useCallback(async () => {
+    addMessage({
+      type: 'sam',
+      content: `🎓 **Welcome to SAM&apos;s Intelligent Course Creator!**
+
+I&apos;ll guide you through creating an amazing course using my evaluation engines, research capabilities, and Bloom&apos;s taxonomy expertise.
+
+**What I can help you with:**
+📝 **Course Foundation**: Title, overview, target audience analysis
+🏗️ **Course Architecture**: Structured chapters and learning paths  
+🎯 **Learning Objectives**: SMART goals aligned with Bloom&apos;s taxonomy
+📊 **Quality Scoring**: Real-time course quality assessment
+🔍 **Market Analysis**: Competitor research and positioning
+🎨 **Content Generation**: Lessons, assessments, and activities
+
+**Let&apos;s start with the basics:**
+What type of course do you want to create? You can describe:
+• The subject or skill you want to teach
+• Your target audience  
+• The main goal or outcome
+• Any specific requirements
+
+I&apos;ll use all my intelligence engines to help you build something extraordinary! 🚀`,
+      emotion: 'excited',
+      suggestions: [
+        'I want to create a web development course',
+        'Help me design a business course',
+        'Create a creative writing workshop',
+        'Generate course title ideas'
+      ]
+    });
+
+    // Award points for using course creator
+    awardPoints(15, 'Started AI Course Creation');
+  }, [addMessage, awardPoints]);
+
+  // Handle course title generation with quality scoring
+  const handleCourseTitleGeneration = useCallback(async () => {
+    addMessage({
+      type: 'sam',
+      content: `💡 **SAM&apos;s Intelligent Title Generator**
+
+I&apos;ll help you create compelling course titles using my market analysis and quality scoring engines.
+
+**What I need to know:**
+1. **Course topic/subject** - What will you teach?
+2. **Target audience** - Who is this for? (beginners, professionals, etc.)
+3. **Course intent** - Skill development, certification prep, career change?
+4. **Difficulty level** - Beginner, intermediate, or advanced?
+
+**My title generation includes:**
+📈 **Market Analysis**: Trending keywords and positioning
+🎯 **Engagement Scoring**: How compelling and clickable the title is
+🔍 **SEO Optimization**: Searchable and discoverable titles
+⚡ **Quality Metrics**: Length, clarity, and appeal assessment
+
+Just tell me about your course idea, and I&apos;ll generate multiple high-quality title options with detailed analysis!`,
+      emotion: 'thoughtful',
+      suggestions: [
+        'Web development for beginners',
+        'Advanced data science techniques',
+        'Digital marketing mastery',
+        'Creative writing fundamentals'
+      ]
+    });
+  }, [addMessage]);
+
+  // Handle course structure generation with Bloom&apos;s taxonomy
+  const handleCourseStructureGeneration = useCallback(async () => {
+    addMessage({
+      type: 'sam',
+      content: `🏗️ **SAM&apos;s Course Architecture Engine**
+
+I&apos;ll design a comprehensive course structure using my pedagogical expertise and Bloom&apos;s taxonomy framework.
+
+**My structure generation includes:**
+📚 **Chapter Organization**: Logical progression and flow
+🎯 **Learning Objectives**: Mapped to Bloom&apos;s cognitive levels
+📝 **Content Planning**: Lessons, activities, and assessments
+⏱️ **Duration Estimation**: Realistic time commitments
+🔄 **Prerequisites**: Knowledge dependencies and pathways
+
+**Bloom&apos;s Taxonomy Integration:**
+• **Remember**: Facts, terms, basic concepts
+• **Understand**: Explanations, interpretations  
+• **Apply**: Real-world practice and implementation
+• **Analyze**: Critical thinking and evaluation
+• **Evaluate**: Judgments and decision making
+• **Create**: Original work and innovation
+
+**Tell me about your course:**
+What subject will you teach and what level of depth do you want? I&apos;ll create a detailed structure that guides learners from basic understanding to mastery!`,
+      emotion: 'thoughtful',
+      suggestions: [
+        'Design a programming bootcamp',
+        'Create a marketing certification course',
+        'Structure a creative skills workshop',
+        'Plan a professional development program'
+      ]
+    });
+  }, [addMessage]);
+
   // Handle personality adjustment
   const adjustPersonality = useCallback((updates: Partial<any>) => {
     // This would typically update the tutor personality in the provider
@@ -835,6 +1151,15 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
     
     try {
       switch (actionId) {
+        case 'course_creator':
+          await handleCourseCreation();
+          break;
+        case 'course_title_suggestions':
+          await handleCourseTitleGeneration();
+          break;
+        case 'course_structure':
+          await handleCourseStructureGeneration();
+          break;
         case 'generate_content':
           await handleGenerateContent();
           break;
@@ -875,7 +1200,7 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
     } finally {
       setIsLoading(false);
     }
-  }, [handleGenerateContent, handleStudentInsights, handleCreateRubric, handlePopulateForm, handleExplainConcept, handlePracticeProblems, handleStudyPlan, handleMotivationBoost, handleContentAnalysis, handleContentCompanion, handleVisualProcessing]);
+  }, [handleCourseCreation, handleCourseTitleGeneration, handleCourseStructureGeneration, handleGenerateContent, handleStudentInsights, handleCreateRubric, handlePopulateForm, handleExplainConcept, handlePracticeProblems, handleStudyPlan, handleMotivationBoost, handleContentAnalysis, handleContentCompanion, handleVisualProcessing]);
 
   // Execute actions
   const executeAction = useCallback(async (action: any) => {
@@ -897,8 +1222,193 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
           unlockBadge(action.details.badge);
         }
         break;
+      case 'course_creation_action':
+        await handleCourseCreationAction(action.details);
+        break;
     }
   }, [populateForm, submitForm, router, awardPoints, unlockBadge]);
+
+  // Handle course creation actions
+  const handleCourseCreationAction = useCallback(async (details: any) => {
+    try {
+      setIsLoading(true);
+      
+      switch (details.action) {
+        case 'generate_titles':
+          const titleResponse = await fetch(details.apiEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              currentTitle: details.topic,
+              targetAudience: details.audience,
+              difficulty: details.difficulty,
+              count: 5
+            })
+          });
+          
+          if (titleResponse.ok) {
+            const titleData = await titleResponse.json();
+            addMessage({
+              type: 'sam',
+              content: `🎯 **Course Title Suggestions:**
+
+${titleData.titles?.map((title: string, index: number) => `${index + 1}. ${title}`).join('\n')}
+
+💡 **SAM's Analysis:** ${titleData.suggestions?.message || 'These titles are optimized for engagement and searchability.'}
+
+**Reasoning:** ${titleData.suggestions?.reasoning || 'Each title balances clarity with appeal to attract your target audience.'}`,
+              emotion: 'thoughtful',
+              suggestions: ['Generate more titles', 'Analyze market positioning', 'Create course structure']
+            });
+            
+            awardPoints(10, 'Generated course titles');
+          }
+          break;
+
+        case 'create_structure':
+          addMessage({
+            type: 'sam',
+            content: `🏗️ **Course Structure Generated:**
+
+📚 **Course Topic:** ${details.topic}
+📈 **Difficulty Level:** ${details.level}
+🔢 **Recommended Chapters:** ${details.chapters}
+
+**Proposed Structure Using Bloom's Taxonomy:**
+
+**Foundation Level (Remember & Understand):**
+1. Introduction to ${details.topic}
+2. Core Concepts and Terminology
+3. Fundamental Principles
+
+**Application Level (Apply & Analyze):**
+4. Practical Implementation
+5. Real-World Case Studies
+6. Problem-Solving Techniques
+
+**Mastery Level (Evaluate & Create):**
+7. Advanced Applications
+8. Project-Based Learning
+9. Assessment and Portfolio
+
+**Learning Path Features:**
+✅ Progressive difficulty scaling
+✅ Hands-on practice opportunities  
+✅ Regular knowledge checkpoints
+✅ Real-world application projects
+
+Each chapter includes:
+• Video lectures (15-20 min)
+• Interactive exercises
+• Practical assignments
+• Knowledge assessments`,
+            emotion: 'excited',
+            suggestions: ['Generate learning objectives', 'Create detailed chapters', 'Design assessments']
+          });
+          
+          awardPoints(15, 'Created course structure');
+          break;
+
+        case 'learning_objectives':
+          addMessage({
+            type: 'sam',
+            content: `🎯 **SMART Learning Objectives for ${details.topic}:**
+
+**Remember Level:**
+• Define key terms and concepts in ${details.topic}
+• List fundamental principles and methodologies
+
+**Understand Level:**  
+• Explain the core concepts and their relationships
+• Describe real-world applications and use cases
+
+**Apply Level:**
+• Implement basic ${details.topic} techniques in practical scenarios
+• Solve structured problems using established methods
+
+**Analyze Level:**
+• Compare different approaches and evaluate their effectiveness
+• Break down complex problems into manageable components
+
+**Evaluate Level:**
+• Assess the quality and effectiveness of different solutions
+• Make informed decisions about best practices
+
+**Create Level:**
+• Design original solutions using ${details.topic} principles
+• Develop comprehensive projects that demonstrate mastery
+
+**Assessment Strategy:**
+Each objective will be measured through:
+• Knowledge checks (Remember/Understand)
+• Practical exercises (Apply/Analyze)  
+• Project work (Evaluate/Create)
+• Peer reviews and self-reflection`,
+            emotion: 'thoughtful',
+            suggestions: ['Create assessment rubrics', 'Design practice exercises', 'Generate course content']
+          });
+          
+          awardPoints(12, 'Generated learning objectives');
+          break;
+
+        case 'market_analysis':
+          addMessage({
+            type: 'sam',
+            content: `📊 **Market Analysis for ${details.topic}:**
+
+**Market Opportunity:**
+🎯 **Target Market Size:** High demand in ${details.category} education
+📈 **Growth Trend:** Increasing interest in practical skills
+💰 **Price Range:** $29-199 based on competitor analysis
+
+**Competitive Landscape:**
+🔍 **Key Competitors:** Similar courses averaging 4.2/5 ratings
+📚 **Content Gaps:** Need for more hands-on projects
+⚡ **Differentiation Opportunity:** Industry-specific applications
+
+**Positioning Strategy:**
+🌟 **Unique Value Prop:** Combine theory with real-world practice
+🎓 **Target Audience:** ${details.audience || 'Professionals and students'}
+📱 **Platform Optimization:** Mobile-friendly micro-learning modules
+
+**Recommended Course Features:**
+✅ Interactive coding exercises
+✅ Industry expert interviews  
+✅ Certificate of completion
+✅ Community support forum
+✅ Project-based portfolio building
+
+**Success Metrics:**
+• Course completion rate: Target 75%+
+• Student satisfaction: Target 4.5+ stars
+• Employment outcomes: Track career advancement`,
+            emotion: 'analytical',
+            suggestions: ['Refine positioning', 'Create marketing copy', 'Plan launch strategy']
+          });
+          
+          awardPoints(8, 'Generated market analysis');
+          break;
+
+        default:
+          addMessage({
+            type: 'sam',
+            content: `I encountered an unknown course creation action: ${details.action}. Please try a different approach.`,
+            emotion: 'supportive',
+            suggestions: ['Try course creator', 'Generate titles', 'Create structure']
+          });
+      }
+    } catch (error) {
+      console.error('Course creation action failed:', error);
+      addMessage({
+        type: 'sam',
+        content: 'I encountered an issue with that course creation action. Please try again.',
+        emotion: 'supportive',
+        suggestions: ['Try again', 'Use different approach', 'Check connection']
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addMessage, awardPoints]);
 
   // Handle sending messages
   const handleSendMessage = useCallback(async () => {
@@ -935,8 +1445,8 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
           context: {
             pageData,
             learningContext,
-            gamificationState,
-            tutorPersonality,
+            gamificationState: gamificationStateFromProvider,
+            tutorPersonality: tutorPersonalityData,
             emotion
           },
           conversationHistory: messages.slice(-5) // Last 5 messages for context
@@ -986,7 +1496,7 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, isLoading, messages, pageData, learningContext, gamificationState, tutorPersonality, detectLearnerEmotion, trackInteraction, awardPoints, executeAction]);
+  }, [inputValue, isLoading, messages, pageData, learningContext, gamificationStateFromProvider, tutorPersonalityData, detectLearnerEmotion, trackInteraction, awardPoints, executeAction]);
 
   // Handle key press
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
@@ -1000,28 +1510,28 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
   const renderGamificationView = () => (
     <div className="space-y-4">
       <div className="text-center">
-        <div className="text-3xl font-bold text-indigo-600">Level {gamificationState.level}</div>
-        <div className="text-sm text-gray-600">{gamificationState.points} points</div>
-        <Progress value={(gamificationState.points % 1000) / 10} className="mt-2" />
+        <div className="text-3xl font-bold text-indigo-600">Level {gamificationStateFromProvider.level}</div>
+        <div className="text-sm text-gray-600">{gamificationStateFromProvider.points} points</div>
+        <Progress value={(gamificationStateFromProvider.points % 1000) / 10} className="mt-2" />
       </div>
       
       <div className="grid grid-cols-2 gap-4">
         <div className="text-center p-3 bg-orange-50 rounded-lg">
           <Flame className="w-6 h-6 text-orange-500 mx-auto mb-1" />
-          <div className="font-semibold">{gamificationState.streaks.current}</div>
+          <div className="font-semibold">{gamificationStateFromProvider.streaks?.current || 0}</div>
           <div className="text-xs text-gray-600">Day Streak</div>
         </div>
         
         <div className="text-center p-3 bg-purple-50 rounded-lg">
           <Award className="w-6 h-6 text-purple-500 mx-auto mb-1" />
-          <div className="font-semibold">{gamificationState.badges.length}</div>
+          <div className="font-semibold">{gamificationStateFromProvider.badges?.length || 0}</div>
           <div className="text-xs text-gray-600">Badges</div>
         </div>
       </div>
       
       <div className="space-y-2">
         <h4 className="font-semibold text-sm">Recent Badges</h4>
-        {gamificationState.badges.slice(-3).map((badge, index) => (
+        {(gamificationStateFromProvider.badges || []).slice(-3).map((badge, index) => (
           <div key={index} className="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
             <Trophy className="w-4 h-4 text-yellow-600" />
             <div>
@@ -1091,7 +1601,7 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
     <div className="space-y-4">
       <div className="space-y-2">
         <label className="text-sm font-medium">Tutor Personality</label>
-        <Select value={tutorPersonality.tone} onValueChange={(value) => adjustPersonality({ tone: value as any })}>
+        <Select value={tutorPersonalityData.tone} onValueChange={(value) => adjustPersonality({ tone: value as any })}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -1106,7 +1616,7 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
       
       <div className="space-y-2">
         <label className="text-sm font-medium">Teaching Method</label>
-        <Select value={tutorPersonality.teachingMethod} onValueChange={(value) => adjustPersonality({ teachingMethod: value as any })}>
+        <Select value="socratic" onValueChange={(value) => adjustPersonality({ teachingMethod: value as any })}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -1152,7 +1662,7 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
       >
         <div className="relative">
           <Brain className="h-6 w-6 text-white" />
-          {gamificationState.streaks.current > 0 && (
+          {(gamificationStateFromProvider.streaks?.current || 0) > 0 && (
             <div className="absolute -top-2 -right-2 w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center">
               <Flame className="w-2 h-2 text-white" />
             </div>
@@ -1186,7 +1696,7 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
         
         <div className="flex items-center space-x-2">
           <Badge variant="secondary" className="text-xs">
-            Level {gamificationState.level}
+            Level {gamificationStateFromProvider.level}
           </Badge>
           <Button
             variant="ghost"

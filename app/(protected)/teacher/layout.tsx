@@ -1,4 +1,6 @@
 
+import { ComprehensiveSAMProvider } from './_components/comprehensive-sam-provider';
+import { SamAITutorAssistant } from './_components/sam-ai-tutor-assistant';
 import { TeacherPageContextInjector } from './_components/teacher-page-context-injector';
 
 type Props = {
@@ -9,10 +11,13 @@ type Props = {
     children,
   }: Props) => {
     return (
-      <div className="">
-        <TeacherPageContextInjector />
-        {children}
-      </div>
+      <ComprehensiveSAMProvider>
+        <div className="">
+          <TeacherPageContextInjector />
+          {children}
+          <SamAITutorAssistant />
+        </div>
+      </ComprehensiveSAMProvider>
     );
   };
   

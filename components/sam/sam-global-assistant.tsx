@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSAMGlobal } from './sam-global-provider';
+import { SAMContextualChat } from './sam-contextual-chat';
+import { useContextAwareSAM } from './sam-context-manager';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -204,10 +206,32 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
       let responseContent = '';
       switch (actionId) {
         case 'explain_page':
-          responseContent = `I can see you're on "${pageContext?.pageTitle || 'this page'}". This page appears to be designed for ${tutorMode === 'teacher' ? 'course management and content creation' : 'learning and studying'}. The main features I can help you with include the forms and buttons I've detected. Would you like me to walk you through how to use any specific feature?`;
+          const formsDetails = pageContext?.forms?.map(form => {
+            const fieldsWithValues = form.fields.filter(f => f.value).length;
+            const totalFields = form.fields.length;
+            return `${form.purpose !== 'unknown' ? form.purpose : form.id} (${fieldsWithValues}/${totalFields} fields filled)`;
+          }).join(', ') || 'no forms';
+          
+          responseContent = `I can see you're on "${pageContext?.pageTitle || 'this page'}" (${pageContext?.pageUrl || ''}). This page appears to be designed for ${tutorMode === 'teacher' ? 'course management and content creation' : 'learning and studying'}. 
+
+Current page status:
+• Forms detected: ${formsDetails}
+• Available buttons: ${pageContext?.buttons?.length || 0}
+• Page breadcrumbs: ${pageContext?.breadcrumbs?.join(' > ') || 'none'}
+
+I can help you fill forms, generate content, or explain how to use any specific feature. What would you like to focus on?`;
           break;
         case 'fill_forms':
-          responseContent = `I've detected ${pageContext?.forms?.length || 0} form(s) on this page. I can help you fill them out with relevant information. Which form would you like me to help you with? Just tell me what kind of content you'd like to create or update.`;
+          const formsInfo = pageContext?.forms?.map(form => {
+            const emptyFields = form.fields.filter(f => !f.value && !f.readOnly).length;
+            return `• ${form.purpose !== 'unknown' ? form.purpose : form.id}: ${emptyFields} empty field(s) that could be filled`;
+          }).join('\n') || '• No forms available to fill';
+          
+          responseContent = `I've detected ${pageContext?.forms?.length || 0} form(s) on this page:
+
+${formsInfo}
+
+Which form would you like me to help you with? I can generate content based on the form's purpose and existing data.`;
           break;
         case 'generate_content':
           responseContent = `I can help you create engaging educational content! I can generate course descriptions, learning objectives, chapter outlines, quiz questions, and more. What type of content would you like me to create for you?`;
@@ -248,18 +272,54 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
   useEffect(() => {
     const detectPageContext = async () => {
       try {
-        // Detect forms on the page
-        const forms = Array.from(document.querySelectorAll('form')).map((form, index) => ({
-          id: `form_${index}`,
-          element: form,
-          fields: Array.from(form.querySelectorAll('input, textarea, select')).map((field: any) => ({
-            name: field.name || `field_${index}`,
-            type: field.type || 'text',
-            value: field.value || '',
-            placeholder: field.placeholder || '',
-            label: field.labels?.[0]?.textContent || field.name || `Field ${index}`
-          }))
-        }));
+        // Enhanced form detection with better value extraction
+        const forms = Array.from(document.querySelectorAll('form')).map((form, index) => {
+          const formData = new FormData(form);
+          const formId = form.id || form.getAttribute('data-form') || `form_${index}`;
+          
+          const fields = Array.from(form.querySelectorAll('input, textarea, select')).map((field: any, fieldIndex) => {
+            // Get label text from various sources
+            let label = '';
+            if (field.labels && field.labels.length > 0) {
+              label = field.labels[0].textContent?.trim();
+            } else {
+              // Look for label by for attribute
+              const labelFor = document.querySelector(`label[for="${field.id}"]`);
+              if (labelFor) label = labelFor.textContent?.trim();
+              
+              // Look for parent label
+              const parentLabel = field.closest('label');
+              if (parentLabel) label = parentLabel.textContent?.trim();
+              
+              // Look for aria-label
+              if (!label) label = field.getAttribute('aria-label');
+              
+              // Look for preceding text or placeholder
+              if (!label) label = field.placeholder || field.name || `Field ${fieldIndex}`;
+            }
+
+            return {
+              name: field.name || `field_${fieldIndex}`,
+              type: field.type || field.tagName.toLowerCase(),
+              value: field.value || '',
+              placeholder: field.placeholder || '',
+              label: label || '',
+              id: field.id || '',
+              required: field.required || false,
+              disabled: field.disabled || false,
+              readOnly: field.readOnly || false
+            };
+          });
+
+          return {
+            id: formId,
+            element: form,
+            action: form.action || '',
+            method: form.method || 'GET',
+            fields: fields,
+            purpose: form.getAttribute('data-purpose') || 'unknown'
+          };
+        });
 
         // Detect page metadata
         const pageTitle = document.title;
@@ -316,7 +376,7 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
     }
   }, [isOpen, messages.length, tutorMode, quickActions.length, generateQuickActions, pageContext]);
 
-  // Handle sending messages
+  // Handle sending messages with enhanced context awareness
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return;
     
@@ -328,16 +388,66 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
     };
     
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
     setIsLoading(true);
     
     try {
-      // Simulate AI response
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Send to SAM API with full context
+      const response = await fetch('/api/sam/context-aware-assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: currentInput,
+          pathname: pageContext?.pageUrl || '',
+          pageContext: {
+            pageName: pageContext?.pageTitle || 'Unknown Page',
+            pageType: tutorMode === 'teacher' ? 'teacher-management' : 'student-learning',
+            breadcrumbs: pageContext?.breadcrumbs || [],
+            capabilities: ['form-detection', 'content-generation', 'page-analysis'],
+            dataContext: {
+              forms: pageContext?.forms?.map(form => ({
+                id: form.id,
+                purpose: form.purpose,
+                fields: form.fields.map(field => ({
+                  name: field.name,
+                  type: field.type,
+                  value: field.value,
+                  label: field.label,
+                  placeholder: field.placeholder,
+                  required: field.required
+                }))
+              })) || [],
+              buttons: pageContext?.buttons || [],
+              detectedAt: pageContext?.detectedAt || new Date().toISOString()
+            },
+            parentContext: {
+              courseId: pageContext?.pageUrl?.includes('/courses/') ? 
+                pageContext.pageUrl.split('/courses/')[1]?.split('/')[0] : null,
+              chapterId: pageContext?.pageUrl?.includes('/chapters/') ? 
+                pageContext.pageUrl.split('/chapters/')[1]?.split('/')[0] : null,
+              sectionId: pageContext?.pageUrl?.includes('/section/') ? 
+                pageContext.pageUrl.split('/section/')[1]?.split('/')[0] : null
+            }
+          },
+          conversationHistory: messages.slice(-5).map(msg => ({
+            role: msg.isUser ? 'user' : 'assistant',
+            content: msg.content
+          }))
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const data = await response.json();
       
       const aiResponse = {
         id: (Date.now() + 1).toString(),
-        content: `I understand you're asking about "${inputValue}". As your AI tutor, I'm here to help you learn and grow. What specific aspect would you like to explore further?`,
+        content: data.response || 'Sorry, I encountered an error processing your request.',
         isUser: false,
         timestamp: new Date()
       };
@@ -345,10 +455,45 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Fallback to enhanced local response
+      let fallbackResponse = '';
+      
+      if (currentInput.toLowerCase().includes('page') || currentInput.toLowerCase().includes('where')) {
+        fallbackResponse = `I can see you're on "${pageContext?.pageTitle || 'this page'}" (${pageContext?.pageUrl || 'unknown URL'}). This page has ${pageContext?.forms?.length || 0} form(s) and ${pageContext?.buttons?.length || 0} button(s). How can I help you with this page?`;
+      } else if (currentInput.toLowerCase().includes('form') || currentInput.toLowerCase().includes('field')) {
+        const formsInfo = pageContext?.forms?.map(form => 
+          `${form.purpose !== 'unknown' ? form.purpose : form.id}: ${form.fields.length} fields`
+        ).join(', ') || 'no forms detected';
+        fallbackResponse = `I can see these forms on this page: ${formsInfo}. Which form would you like help with?`;
+      } else if (currentInput.toLowerCase().includes('description') && pageContext?.forms?.length > 0) {
+        const descriptionField = pageContext.forms
+          .flatMap(form => form.fields)
+          .find(field => field.name.toLowerCase().includes('description') || field.label.toLowerCase().includes('description'));
+        
+        if (descriptionField) {
+          fallbackResponse = descriptionField.value 
+            ? `The current description is: "${descriptionField.value}". Would you like me to help improve or generate a new description?`
+            : `I found a description field that's currently empty. Would you like me to generate a description for you?`;
+        } else {
+          fallbackResponse = `I don't see a description field on this page. Could you point me to the specific field you'd like help with?`;
+        }
+      } else {
+        fallbackResponse = `I understand you're asking about "${currentInput}". I can see you're working on "${pageContext?.pageTitle || 'this page'}" with ${pageContext?.forms?.length || 0} form(s). How can I specifically help you?`;
+      }
+      
+      const aiResponse = {
+        id: (Date.now() + 1).toString(),
+        content: fallbackResponse,
+        isUser: false,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, aiResponse]);
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, isLoading]);
+  }, [inputValue, isLoading, pageContext, tutorMode, messages]);
 
   // Handle Enter key press
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
@@ -532,87 +677,13 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
                     <TabsTrigger value="context">Context</TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="chat" className="flex-1 flex flex-col m-4 mt-2">
-                    {/* Messages */}
-                    <ScrollArea className="flex-1 pr-2">
-                      <div className="space-y-4">
-                        {messages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={cn(
-                              "flex items-start space-x-3",
-                              message.isUser ? "justify-end" : "justify-start"
-                            )}
-                          >
-                            {!message.isUser && (
-                              <Avatar className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600">
-                                <AvatarFallback className="text-white text-sm font-semibold">
-                                  SAM
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                            <div
-                              className={cn(
-                                "max-w-[80%] rounded-lg p-3",
-                                message.isUser
-                                  ? "bg-blue-500 text-white"
-                                  : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                              )}
-                            >
-                              <p className="text-sm">{message.content}</p>
-                              <p className="text-xs opacity-70 mt-1">
-                                {message.timestamp.toLocaleTimeString()}
-                              </p>
-                            </div>
-                            {message.isUser && (
-                              <Avatar className="h-8 w-8 bg-gradient-to-br from-gray-400 to-gray-600">
-                                <AvatarFallback className="text-white text-sm font-semibold">
-                                  You
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                          </div>
-                        ))}
-                        {isLoading && (
-                          <div className="flex items-start space-x-3">
-                            <Avatar className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600">
-                              <AvatarFallback className="text-white text-sm font-semibold">
-                                SAM
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
-                              <div className="flex items-center space-x-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                  SAM is thinking...
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </ScrollArea>
-                    
-                    {/* Input Area */}
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex space-x-2">
-                        <Textarea
-                          placeholder="Ask SAM anything..."
-                          value={inputValue}
-                          onChange={(e) => setInputValue(e.target.value)}
-                          onKeyPress={handleKeyPress}
-                          className="flex-1 min-h-[40px] max-h-[120px] resize-none"
-                          rows={1}
-                        />
-                        <Button
-                          onClick={handleSendMessage}
-                          disabled={!inputValue.trim() || isLoading}
-                          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                  <TabsContent value="chat" className="flex-1 flex flex-col h-full">
+                    <SAMContextualChat 
+                      className="h-full border-0"
+                      position="embedded"
+                      theme="teacher"
+                      autoGreet={true}
+                    />
                   </TabsContent>
                   
                   <TabsContent value="actions" className="flex-1 m-4 mt-2">

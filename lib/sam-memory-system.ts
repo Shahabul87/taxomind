@@ -342,7 +342,10 @@ export class SamMemorySystem {
   // Persistence
   private saveContext(): void {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.context));
+      // Only save if we're in the browser (client-side)
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        localStorage.setItem(this.storageKey, JSON.stringify(this.context));
+      }
     } catch (error) {
       console.warn('Failed to save SAM context to localStorage:', error);
     }
@@ -350,9 +353,15 @@ export class SamMemorySystem {
 
   private loadContext(): void {
     try {
-      const saved = localStorage.getItem(this.storageKey);
-      if (saved) {
-        this.context = JSON.parse(saved);
+      // Check if we're in the browser (client-side)
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        const saved = localStorage.getItem(this.storageKey);
+        if (saved) {
+          this.context = JSON.parse(saved);
+        }
+      } else {
+        // Server-side rendering - initialize with empty context
+        this.context = {};
       }
     } catch (error) {
       console.warn('Failed to load SAM context from localStorage:', error);
@@ -362,7 +371,10 @@ export class SamMemorySystem {
 
   public clearContext(): void {
     this.context = {};
-    localStorage.removeItem(this.storageKey);
+    // Only clear if we're in the browser (client-side)
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      localStorage.removeItem(this.storageKey);
+    }
   }
 
   // Analysis and Insights

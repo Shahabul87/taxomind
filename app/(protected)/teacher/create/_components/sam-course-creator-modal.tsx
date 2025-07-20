@@ -344,24 +344,39 @@ export const SamCourseCreatorModal = ({
     try {
       trackAIFeatureUsage('sam_suggestions', { context, step });
       
-      const response = await fetch('/api/sam/suggestions', {
+      const response = await fetch('/api/sam/ai-tutor/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          context,
-          userInput: currentFormData,
-          step,
-          userExperience: disclosureState.userExperience
+          message: `Provide contextual suggestions for course creation step ${step}. Context: ${context}. Current course data: ${JSON.stringify(currentFormData)}. Give helpful advice and suggestions.`,
+          context: {
+            pageData: { 
+              pageType: 'course_creation',
+              title: 'Course Creator - Suggestions',
+              forms: []
+            },
+            learningContext: { 
+              userRole: 'teacher',
+              courseCreationMode: true,
+              currentStep: step
+            },
+            gamificationState: {},
+            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
+            emotion: 'engaged'
+          }
         }),
       });
 
       if (response.ok) {
-        const suggestion = await response.json();
+        const data = await response.json();
         setSamSuggestion({
-          ...suggestion,
-          action: suggestion.autoApplyable ? () => applySamSuggestion(suggestion) : undefined
+          message: data.response,
+          type: 'suggestion',
+          actionable: true,
+          confidence: 0.85,
+          action: undefined
         });
       }
     } catch (error) {
@@ -376,26 +391,42 @@ export const SamCourseCreatorModal = ({
     
     setIsValidating(true);
     try {
-      const response = await fetch('/api/sam/validate', {
+      const response = await fetch('/api/sam/ai-tutor/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          formData: formDataRef.current,
-          step,
-          userExperience: disclosureState.userExperience
+          message: `Validate course creation form data for step ${step}. Check for completeness, quality, and provide improvement suggestions. Form data: ${JSON.stringify(formDataRef.current)}`,
+          context: {
+            pageData: { 
+              pageType: 'course_creation',
+              title: 'Course Creator - Validation',
+              forms: []
+            },
+            learningContext: { 
+              userRole: 'teacher',
+              courseCreationMode: true,
+              currentStep: step
+            },
+            gamificationState: {},
+            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
+            emotion: 'engaged'
+          }
         }),
       });
 
       if (response.ok) {
-        const validation = await response.json();
-        setValidationErrors(validation.errors || {});
-        
-        // Show validation suggestions as Sam messages
-        if (validation.suggestions?.length > 0) {
-          setSamSuggestion(validation.suggestions[0]);
-        }
+        const data = await response.json();
+        // Clear previous errors and show SAM's validation feedback
+        setValidationErrors({});
+        setSamSuggestion({
+          message: data.response,
+          type: 'validation',
+          actionable: true,
+          confidence: 0.9,
+          action: undefined
+        });
       }
     } catch (error) {
       console.error('Error validating form:', error);
@@ -404,29 +435,46 @@ export const SamCourseCreatorModal = ({
     }
   }, [step, disclosureState.userExperience, isValidating]);
 
-  // Generate title suggestions
+  // Generate title suggestions using SAM AI Tutor
   const generateTitleSuggestions = useCallback(async (currentTitle: string) => {
     if (!currentTitle || currentTitle.length < 3 || isLoadingTitleSuggestions) return;
     
     setIsLoadingTitleSuggestions(true);
     try {
-      const response = await fetch('/api/sam/title-suggestions', {
+      const response = await fetch('/api/sam/ai-tutor/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          currentTitle,
-          category: formData.courseCategory,
-          intent: formData.courseIntent,
-          difficulty: formData.difficulty,
-          targetAudience: formData.targetAudience
+          message: `Generate 5 compelling course titles for: "${currentTitle}". Category: ${formData.courseCategory}, Difficulty: ${formData.difficulty}, Audience: ${formData.targetAudience}. [ACTION:GENERATE_TITLES|${currentTitle}|${formData.targetAudience}|${formData.difficulty}]`,
+          context: {
+            pageData: { 
+              pageType: 'course_creation',
+              title: 'Course Creator',
+              forms: []
+            },
+            learningContext: { 
+              userRole: 'teacher',
+              courseCreationMode: true
+            },
+            gamificationState: {},
+            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
+            emotion: 'engaged'
+          }
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setTitleSuggestions(data.suggestions || []);
+        // Extract titles from SAM's response
+        const titleMatches = data.response.match(/\d+\.\s*(.+?)(?=\n|$)/g);
+        if (titleMatches) {
+          const extractedTitles = titleMatches.map((match: string) => 
+            match.replace(/^\d+\.\s*/, '').trim()
+          );
+          setTitleSuggestions(extractedTitles);
+        }
       }
     } catch (error) {
       console.error('Error generating title suggestions:', error);
@@ -435,30 +483,46 @@ export const SamCourseCreatorModal = ({
     }
   }, [formData.courseCategory, formData.courseIntent, formData.difficulty, formData.targetAudience, isLoadingTitleSuggestions]);
 
-  // Generate overview suggestions
+  // Generate overview suggestions using SAM AI Tutor
   const generateOverviewSuggestions = useCallback(async (currentTitle: string) => {
     if (!currentTitle || currentTitle.length < 3 || isLoadingOverviewSuggestions) return;
     
     setIsLoadingOverviewSuggestions(true);
     try {
-      const response = await fetch('/api/sam/overview-suggestions', {
+      const response = await fetch('/api/sam/ai-tutor/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: currentTitle,
-          category: formData.courseCategory,
-          intent: formData.courseIntent,
-          difficulty: formData.difficulty,
-          targetAudience: formData.targetAudience,
-          currentOverview: formData.courseShortOverview
+          message: `Generate 3 compelling course overviews for course titled: "${currentTitle}". Category: ${formData.courseCategory}, Difficulty: ${formData.difficulty}, Audience: ${formData.targetAudience}. Focus on benefits and outcomes.`,
+          context: {
+            pageData: { 
+              pageType: 'course_creation',
+              title: 'Course Creator - Overview Generation',
+              forms: []
+            },
+            learningContext: { 
+              userRole: 'teacher',
+              courseCreationMode: true
+            },
+            gamificationState: {},
+            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
+            emotion: 'engaged'
+          }
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setOverviewSuggestions(data.suggestions || []);
+        // Extract overviews from SAM's response - look for numbered sections or bullet points
+        const overviewMatches = data.response.match(/(?:\d+\.|•)\s*(.+?)(?=\n\n|\n(?:\d+\.|•)|$)/gs);
+        if (overviewMatches) {
+          const extractedOverviews = overviewMatches.map((match: string) => 
+            match.replace(/^(?:\d+\.|•)\s*/, '').trim()
+          ).filter((overview: string) => overview.length > 30); // Filter out short matches
+          setOverviewSuggestions(extractedOverviews);
+        }
       }
     } catch (error) {
       console.error('Error generating overview suggestions:', error);

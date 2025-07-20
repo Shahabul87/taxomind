@@ -92,24 +92,39 @@ export function useSamWizard() {
         try {
           trackAIFeatureUsage('sam_suggestions', { context, step });
           
-          const response = await fetch('/api/sam/suggestions', {
+          const response = await fetch('/api/sam/ai-tutor/chat', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              context,
-              userInput: formData,
-              step,
-              userExperience: disclosureState.userExperience
+              message: `Provide contextual suggestions for course creation step ${step}. Context: ${context}. Current course data: ${JSON.stringify(formData)}. Give helpful advice and suggestions.`,
+              context: {
+                pageData: { 
+                  pageType: 'course_creation',
+                  title: 'AI Course Creator - Suggestions',
+                  forms: []
+                },
+                learningContext: { 
+                  userRole: 'teacher',
+                  courseCreationMode: true,
+                  currentStep: step
+                },
+                gamificationState: {},
+                tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
+                emotion: 'engaged'
+              }
             }),
           });
 
           if (response.ok) {
-            const suggestion = await response.json();
+            const data = await response.json();
             setSamSuggestion({
-              ...suggestion,
-              action: suggestion.autoApplyable ? () => applySamSuggestion(suggestion) : undefined
+              message: data.response,
+              type: 'suggestion',
+              actionable: true,
+              confidence: 0.85,
+              action: undefined
             });
           } else {
             throw new Error(`Sam suggestion failed: ${response.status}`);
@@ -138,26 +153,42 @@ export function useSamWizard() {
       fn: async () => {
         setIsValidating(true);
         try {
-          const response = await fetch('/api/sam/validate', {
+          const response = await fetch('/api/sam/ai-tutor/chat', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              formData,
-              step,
-              userExperience: disclosureState.userExperience
+              message: `Validate course creation form data for step ${step}. Check for completeness, quality, and provide improvement suggestions. Form data: ${JSON.stringify(formData)}`,
+              context: {
+                pageData: { 
+                  pageType: 'course_creation',
+                  title: 'AI Course Creator - Validation',
+                  forms: []
+                },
+                learningContext: { 
+                  userRole: 'teacher',
+                  courseCreationMode: true,
+                  currentStep: step
+                },
+                gamificationState: {},
+                tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
+                emotion: 'engaged'
+              }
             }),
           });
 
           if (response.ok) {
-            const validation = await response.json();
-            setValidationErrors(validation.errors || {});
-            
-            // Show validation suggestions as Sam messages
-            if (validation.suggestions?.length > 0) {
-              setSamSuggestion(validation.suggestions[0]);
-            }
+            const data = await response.json();
+            // Clear previous errors and show SAM's validation feedback
+            setValidationErrors({});
+            setSamSuggestion({
+              message: data.response,
+              type: 'validation',
+              actionable: true,
+              confidence: 0.9,
+              action: undefined
+            });
           } else {
             throw new Error(`Sam validation failed: ${response.status}`);
           }
@@ -191,11 +222,8 @@ export function useSamWizard() {
       setSamSuggestion(null);
       setValidationErrors({});
       
-      // Get encouragement for the new step
-      setTimeout(() => getSamSuggestion('general_encouragement'), 500);
-      
-      // Auto-validate new step if needed
-      setTimeout(() => validateForm(), 1000);
+      // Note: Auto-suggestions and validation removed to prevent costly API calls
+      // Users can manually request SAM suggestions when needed
     }
   }, [step, completeStep, formData, getSamSuggestion, validateForm]);
 
