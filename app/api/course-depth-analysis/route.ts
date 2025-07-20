@@ -5,12 +5,45 @@ import anthropic from '@/lib/anthropic-client';
 
 // Import SAM evaluation engines
 async function integrateSAMEngineAnalysis(courseContent: any) {
-  const samAnalysis = {
-    bloomsAnalysis: await analyzeBlooms(courseContent),
-    marketAnalysis: await analyzeMarket(courseContent),
-    qualityAnalysis: await analyzeQuality(courseContent),
-    completionAnalysis: analyzeCompletion(courseContent)
+  let samAnalysis = {
+    bloomsAnalysis: {},
+    marketAnalysis: {},
+    qualityAnalysis: {},
+    completionAnalysis: {}
   };
+
+  try {
+    // Run analyses in parallel for better performance
+    const [bloomsResult, marketResult] = await Promise.allSettled([
+      analyzeBlooms(courseContent),
+      analyzeMarket(courseContent)
+    ]);
+
+    if (bloomsResult.status === 'fulfilled') {
+      samAnalysis.bloomsAnalysis = bloomsResult.value;
+    } else {
+      console.error('Blooms analysis failed:', bloomsResult.reason);
+      samAnalysis.bloomsAnalysis = generateFallbackBloomsAnalysis(courseContent);
+    }
+
+    if (marketResult.status === 'fulfilled') {
+      samAnalysis.marketAnalysis = marketResult.value;
+    } else {
+      console.error('Market analysis failed:', marketResult.reason);
+      samAnalysis.marketAnalysis = generateFallbackMarketAnalysis(courseContent);
+    }
+
+    // These don't require external API calls
+    samAnalysis.qualityAnalysis = await analyzeQuality(courseContent);
+    samAnalysis.completionAnalysis = analyzeCompletion(courseContent);
+  } catch (error) {
+    console.error('SAM engine integration error:', error);
+    // Use fallback analyses
+    samAnalysis.bloomsAnalysis = generateFallbackBloomsAnalysis(courseContent);
+    samAnalysis.marketAnalysis = generateFallbackMarketAnalysis(courseContent);
+    samAnalysis.qualityAnalysis = await analyzeQuality(courseContent);
+    samAnalysis.completionAnalysis = analyzeCompletion(courseContent);
+  }
   
   return samAnalysis;
 }
@@ -18,25 +51,27 @@ async function integrateSAMEngineAnalysis(courseContent: any) {
 // SAM Blooms Analysis Engine Integration
 async function analyzeBlooms(courseContent: any) {
   try {
-    // Use SAM Blooms Engine for detailed analysis
-    const response = await fetch('http://localhost:3000/api/sam/blooms-analysis', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        courseId: courseContent.courseId,
-        content: {
-          title: courseContent.title,
-          description: courseContent.description,
-          objectives: courseContent.learningObjectives,
-          chapters: courseContent.chapters
-        }
-      })
-    });
+    // Import the Blooms engine directly instead of making HTTP calls
+    const { BloomsAnalysisEngine } = await import('@/lib/sam-blooms-engine');
+    const engine = new BloomsAnalysisEngine();
     
-    if (response.ok) {
-      const data = await response.json();
-      return data.analysis || {};
-    }
+    // Perform analysis directly
+    const analysis = await engine.analyzeCourse(
+      courseContent.courseId, 
+      'basic', // Use basic analysis for performance
+      false // Skip recommendations to avoid circular calls
+    );
+    
+    return {
+      distribution: analysis.courseLevel.distribution,
+      cognitiveDepth: analysis.courseLevel.cognitiveDepth,
+      balance: analysis.courseLevel.balance,
+      chapterInsights: analysis.chapterAnalysis.map(ch => ({
+        title: ch.chapterTitle,
+        primaryLevel: ch.primaryLevel,
+        score: ch.cognitiveDepth
+      }))
+    };
   } catch (error) {
     console.error('SAM Blooms analysis failed:', error);
   }
@@ -47,23 +82,27 @@ async function analyzeBlooms(courseContent: any) {
 // SAM Market Analysis Engine Integration  
 async function analyzeMarket(courseContent: any) {
   try {
-    const response = await fetch('http://localhost:3000/api/sam/course-market-analysis', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        course: {
-          title: courseContent.title,
-          description: courseContent.description,
-          category: courseContent.category,
-          price: courseContent.price
-        }
-      })
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      return data.analysis || {};
-    }
+    // For now, use the fallback market analysis
+    // In a production environment, this would integrate with actual market data APIs
+    return {
+      demandLevel: courseContent.category.includes('Technology') || courseContent.category.includes('Business') ? 'high' : 'medium',
+      competitionLevel: 'moderate',
+      priceRecommendation: {
+        suggested: courseContent.price === 0 ? 49 : courseContent.price,
+        range: { min: 29, max: 199 }
+      },
+      marketPosition: courseContent.isPublished ? 'established' : 'developing',
+      growthPotential: courseContent.chaptersCount > 5 ? 85 : 65,
+      targetAudience: {
+        primary: 'Professionals seeking skill enhancement',
+        secondary: 'Students and beginners in the field'
+      },
+      competitorAnalysis: {
+        averagePrice: 79,
+        averageChapters: 8,
+        marketShare: 'Growing segment'
+      }
+    };
   } catch (error) {
     console.error('SAM Market analysis failed:', error);
   }

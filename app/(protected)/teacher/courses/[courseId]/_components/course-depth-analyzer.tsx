@@ -38,6 +38,7 @@ interface CourseDepthAnalyzerProps {
     whatYouWillLearn?: string[];
     chapters: any[];
   };
+  completionStatus?: any;
 }
 
 interface AnalysisData {
