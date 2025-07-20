@@ -82,22 +82,31 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [showSamChat, setShowSamChat] = useState(false);
+  const [hasInitialAnalysis, setHasInitialAnalysis] = useState(false);
+  const [isCached, setIsCached] = useState(false);
 
   // Analyze course depth
-  const analyzeCourse = useCallback(async () => {
+  const analyzeCourse = useCallback(async (forceReanalyze = false) => {
     setIsAnalyzing(true);
     try {
       const response = await fetch('/api/course-depth-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId })
+        body: JSON.stringify({ courseId, forceReanalyze })
       });
 
       if (!response.ok) throw new Error('Analysis failed');
 
       const data = await response.json();
       setAnalysisData(data.analysis);
-      toast.success('Course analysis completed successfully!');
+      setIsCached(data.cached || false);
+      setHasInitialAnalysis(true);
+      
+      if (data.cached) {
+        toast.info('Loaded cached analysis (content unchanged)');
+      } else {
+        toast.success('Course analysis completed successfully!');
+      }
     } catch (error) {
       console.error('Analysis error:', error);
       toast.error('Failed to analyze course depth');
@@ -106,12 +115,12 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
     }
   }, [courseId]);
 
-  // Auto-analyze on mount if no data
+  // Check for existing analysis on mount (without forcing re-analysis)
   useEffect(() => {
-    if (!analysisData && courseData.chapters.length > 0) {
-      analyzeCourse();
+    if (!hasInitialAnalysis && courseData.chapters.length > 0) {
+      analyzeCourse(false); // Don't force, use cache if available
     }
-  }, [analysisData, courseData.chapters.length, analyzeCourse]);
+  }, [hasInitialAnalysis, courseData.chapters.length, analyzeCourse]);
 
   // Calculate overall score
   const overallScore = analysisData 
@@ -188,12 +197,20 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
       </div>
 
       <div className="backdrop-blur-md bg-white/80 dark:bg-slate-800/80 border border-white/20 shadow-2xl p-6 space-y-6 relative rounded-2xl">
+        {/* Cached Indicator */}
+        {isCached && analysisData && (
+          <div className="absolute top-4 left-4 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white/60 dark:bg-slate-900/60 px-3 py-1.5 rounded-full backdrop-blur-sm border border-gray-200/30 dark:border-gray-700/30">
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <span>Using cached analysis</span>
+          </div>
+        )}
+        
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={analyzeCourse}
+            onClick={() => analyzeCourse(true)} // Force re-analysis
             disabled={isAnalyzing}
             className="bg-white/60 dark:bg-slate-800/60 border-white/30 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-slate-800/70"
           >
@@ -446,7 +463,7 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
             Click the analyze button to get insights into your course depth
           </p>
           <Button 
-            onClick={analyzeCourse}
+            onClick={() => analyzeCourse(false)} // Use cache if available
             className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg"
           >
             <BarChart3 className="h-4 w-4 mr-2" />

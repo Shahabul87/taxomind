@@ -3026,10 +3026,12 @@ model CourseBloomsAnalysis {
   skillsMatrix       Json
   gapAnalysis        Json
   recommendations    Json
+  contentHash        String?  // Hash of course content to detect changes
   analyzedAt         DateTime @default(now())
   course             Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@index([courseId])
+  @@index([contentHash])
 }
 
 model SectionBloomsMapping {

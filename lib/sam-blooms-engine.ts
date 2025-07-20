@@ -140,7 +140,8 @@ export class BloomsAnalysisEngine {
   async analyzeCourse(
     courseId: string,
     depth: 'basic' | 'detailed' | 'comprehensive' = 'detailed',
-    includeRecommendations = true
+    includeRecommendations = true,
+    forceReanalyze = false
   ): Promise<BloomsAnalysisResponse> {
     // Get course data with all content
     const course = await db.course.findUnique({
@@ -160,6 +161,7 @@ export class BloomsAnalysisEngine {
             },
           },
         },
+        attachments: true,
       },
     });
 
@@ -167,25 +169,35 @@ export class BloomsAnalysisEngine {
       throw new Error('Course not found');
     }
 
+    // Generate content hash
+    const { generateCourseContentHash } = await import('@/lib/course-content-hash');
+    const currentContentHash = generateCourseContentHash(course);
+
     // Check for existing analysis
     const existingAnalysis = await db.courseBloomsAnalysis.findUnique({
       where: { courseId },
     });
 
-    const hoursSinceLastAnalysis = existingAnalysis
-      ? (Date.now() - existingAnalysis.analyzedAt.getTime()) / (1000 * 60 * 60)
-      : Infinity;
-
-    // Use cached analysis if recent
-    if (existingAnalysis && hoursSinceLastAnalysis < 48 && depth === 'basic') {
+    // Use cached analysis if content hasn't changed and not forced
+    if (existingAnalysis && !forceReanalyze && existingAnalysis.contentHash === currentContentHash) {
+      console.log(`Using cached analysis for course ${courseId} - content unchanged`);
       return this.parseStoredAnalysis(existingAnalysis);
+    }
+
+    // Log why we're re-analyzing
+    if (forceReanalyze) {
+      console.log(`Forced re-analysis for course ${courseId}`);
+    } else if (existingAnalysis && existingAnalysis.contentHash !== currentContentHash) {
+      console.log(`Re-analyzing course ${courseId} - content has changed`);
+    } else {
+      console.log(`First-time analysis for course ${courseId}`);
     }
 
     // Perform new analysis
     const analysis = await this.performAnalysis(course, depth, includeRecommendations);
 
-    // Store the analysis
-    await this.storeAnalysis(courseId, analysis);
+    // Store the analysis with content hash
+    await this.storeAnalysis(courseId, analysis, currentContentHash);
 
     // Store section mappings
     await this.storeSectionMappings(analysis.chapterAnalysis);
@@ -844,7 +856,7 @@ Description: ${section.description || 'No description'}
     ];
   }
 
-  private async storeAnalysis(courseId: string, analysis: BloomsAnalysisResponse): Promise<void> {
+  private async storeAnalysis(courseId: string, analysis: BloomsAnalysisResponse, contentHash?: string): Promise<void> {
     const data = {
       courseId,
       bloomsDistribution: analysis.courseLevel.distribution,
@@ -853,6 +865,7 @@ Description: ${section.description || 'No description'}
       skillsMatrix: analysis.studentImpact.skillsDeveloped,
       gapAnalysis: analysis.learningPathway.gaps,
       recommendations: analysis.recommendations,
+      contentHash: contentHash || null,
       analyzedAt: new Date(),
     };
     
