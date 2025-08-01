@@ -36,7 +36,8 @@ import {
   MapPin,
   Activity,
   Loader2,
-  LogOut
+  LogOut,
+  Shield
 } from 'lucide-react';
 
 // Component imports
@@ -64,9 +65,11 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   const [showFavoritesDropdown, setShowFavoritesDropdown] = useState(false);
   const [showAIToolsDropdown, setShowAIToolsDropdown] = useState(false);
   const [showDesktopAIToolsDropdown, setShowDesktopAIToolsDropdown] = useState(false);
+  const [showDesktopIntelligentLMSDropdown, setShowDesktopIntelligentLMSDropdown] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const desktopAIToolsRef = useRef<HTMLDivElement>(null);
+  const desktopIntelligentLMSRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   
@@ -199,6 +202,25 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
     };
   }, [showDesktopAIToolsDropdown]);
 
+  // Handle click outside for desktop Intelligent LMS dropdown
+  useEffect(() => {
+    if (!showDesktopIntelligentLMSDropdown) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        desktopIntelligentLMSRef.current && 
+        !desktopIntelligentLMSRef.current.contains(event.target as Node)
+      ) {
+        setShowDesktopIntelligentLMSDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDesktopIntelligentLMSDropdown]);
+
   // Close mobile menu when route changes
   useEffect(() => {
     setIsOpen(false);
@@ -296,10 +318,91 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                   <span>Features</span>
                 </Link>
               </div>
-              <div className="relative">
-                <Link href="/solutions" className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium">
-                  Solutions
-                </Link>
+              <div className="relative" ref={desktopIntelligentLMSRef}>
+                <button
+                  onClick={() => setShowDesktopIntelligentLMSDropdown(!showDesktopIntelligentLMSDropdown)}
+                  className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium flex items-center space-x-1"
+                  aria-expanded={showDesktopIntelligentLMSDropdown}
+                  aria-haspopup="true"
+                >
+                  <span>Intelligent LMS</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showDesktopIntelligentLMSDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {/* Desktop Intelligent LMS Dropdown */}
+                <AnimatePresence>
+                  {showDesktopIntelligentLMSDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute top-full left-0 mt-2 w-80 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl z-50"
+                    >
+                      <div className="p-3">
+                        <Link 
+                          href="/intelligent-lms/overview" 
+                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+                          onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
+                        >
+                          <Sparkles className="w-5 h-5 mr-3 mt-0.5 group-hover:text-purple-400 transition-colors flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">Why Taxomind?</div>
+                            <div className="text-xs text-gray-500 mt-0.5">Discover our AI-powered intelligent features</div>
+                          </div>
+                        </Link>
+                        
+                        <Link 
+                          href="/intelligent-lms/sam-ai-assistant" 
+                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+                          onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
+                        >
+                          <Brain className="w-5 h-5 mr-3 mt-0.5 group-hover:text-blue-400 transition-colors flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">SAM AI Assistant</div>
+                            <div className="text-xs text-gray-500 mt-0.5">Your intelligent teaching & learning companion</div>
+                          </div>
+                        </Link>
+                        
+                        <Link 
+                          href="/intelligent-lms/evaluation-standards" 
+                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+                          onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
+                        >
+                          <Shield className="w-5 h-5 mr-3 mt-0.5 group-hover:text-green-400 transition-colors flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">Evaluation Standards</div>
+                            <div className="text-xs text-gray-500 mt-0.5">12+ international standards compliance</div>
+                          </div>
+                        </Link>
+                        
+                        <Link 
+                          href="/intelligent-lms/adaptive-learning" 
+                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+                          onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
+                        >
+                          <Zap className="w-5 h-5 mr-3 mt-0.5 group-hover:text-yellow-400 transition-colors flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">Adaptive Learning</div>
+                            <div className="text-xs text-gray-500 mt-0.5">Personalized learning paths & recommendations</div>
+                          </div>
+                        </Link>
+                        
+                        <Link 
+                          href="/intelligent-lms/course-intelligence" 
+                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+                          onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
+                        >
+                          <Activity className="w-5 h-5 mr-3 mt-0.5 group-hover:text-cyan-400 transition-colors flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">Course Intelligence</div>
+                            <div className="text-xs text-gray-500 mt-0.5">AI-powered course creation & optimization</div>
+                          </div>
+                        </Link>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               <div className="relative" ref={desktopAIToolsRef}>
                 <button
@@ -690,12 +793,12 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     </button>
                     
                     <button
-                      onClick={() => handleEnhancedLinkClick('/solutions', 'solutions')}
+                      onClick={() => handleEnhancedLinkClick('/intelligent-lms/overview', 'intelligent-lms')}
                       className="group flex items-center w-full px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                      aria-label="Navigate to solutions page"
+                      aria-label="Navigate to intelligent LMS page"
                     >
-                      <Cpu className="w-5 h-5 mr-3 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
-                      <span className="font-medium">Solutions</span>
+                      <Sparkles className="w-5 h-5 mr-3 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
+                      <span className="font-medium">Intelligent LMS</span>
                       <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
                     </button>
                   </section>

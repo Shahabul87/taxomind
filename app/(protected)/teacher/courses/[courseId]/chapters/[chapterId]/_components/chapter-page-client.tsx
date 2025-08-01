@@ -11,7 +11,7 @@ import { ChapterAccessForm } from "./chapter-access-form";
 import { ChapterActions } from "./chapter-actions";
 import { ChapterLearningOutcomeForm } from "./chapter-learning-outcome-form";
 import { ChaptersSectionForm } from "./chapter-section-form";
-import { AIChapterContentGenerator } from "./ai-chapter-content-generator";
+import { AIChapterContentGeneratorEnhanced } from "./ai-chapter-content-generator-enhanced";
 import { ChapterSamIntegration } from "./chapter-sam-integration";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -413,8 +413,8 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
         </div>
       </div>
 
-      {/* AI Chapter Content Generator Modal */}
-      <AIChapterContentGenerator
+      {/* AI Chapter Content Generator Modal - Enhanced with SAM */}
+      <AIChapterContentGeneratorEnhanced
         open={showAIGenerator}
         onClose={() => setShowAIGenerator(false)}
         chapter={chapter}

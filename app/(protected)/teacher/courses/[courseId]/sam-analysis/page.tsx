@@ -15,7 +15,7 @@ import {
   FileText,
   Download,
   RefreshCw,
-  ChartBar
+  BarChart3
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -157,7 +157,7 @@ export default function SAMAnalysisPage() {
             {isLoading ? (
               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <ChartBar className="w-4 h-4 mr-2" />
+              <BarChart3 className="w-4 h-4 mr-2" />
             )}
             Run Full Analysis
           </Button>

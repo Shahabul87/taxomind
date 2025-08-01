@@ -2,7 +2,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CircleDollarSign, File, LayoutDashboard, ListChecks, AlertTriangle, CheckCircle2, Brain, Target, FileQuestion, Lightbulb, Sparkles, BarChart3 } from "lucide-react";
-import { TitleForm } from "./_components/title-form";
+import { TitleFormEnhanced } from "./_components/title-form-enhanced";
 import { DescriptionForm } from "./_components/description-form";
 
 import { CategoryForm } from "./_components/category-form";
@@ -304,7 +304,15 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
                 </div>
                 
                 <div className="space-y-4">
-                  <TitleForm initialData={{ title: course.title ?? undefined, description: course.description ?? undefined }} courseId={course.id} />
+                  <TitleFormEnhanced 
+                    initialData={{ 
+                      title: course.title ?? undefined, 
+                      description: course.description ?? undefined,
+                      category: course.categoryId ? { id: course.categoryId, name: categories.find(cat => cat.id === course.categoryId)?.name || '' } : undefined,
+                      learningObjectives: course.whatYouWillLearn || []
+                    }} 
+                    courseId={course.id} 
+                  />
                   <DescriptionForm initialData={course} courseId={course.id} />
                 </div>
               </div>

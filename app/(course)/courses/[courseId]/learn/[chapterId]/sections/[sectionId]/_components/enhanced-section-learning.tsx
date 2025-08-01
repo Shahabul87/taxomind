@@ -25,11 +25,11 @@ import {
   ChapterNavigation,
   SectionHeader,
   VideoPlayerSection,
-  ContentTabs,
   NavigationFooter,
   EnhancedSectionLearningProps,
   ChapterWithProgress
 } from "./enhanced-section-learning/";
+import { ContentTabsEnhanced } from "./enhanced-section-learning/content-tabs-enhanced";
 
 export const EnhancedSectionLearning = ({
   user,
@@ -47,7 +47,7 @@ export const EnhancedSectionLearning = ({
 }: EnhancedSectionLearningProps) => {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<"content" | "notes" | "discussion" | "exams" | "adaptive" | "tutor">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "notes" | "discussion" | "exams" | "adaptive" | "resources">("content");
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [expandedChapters, setExpandedChapters] = useState<string[]>([chapterId]);
@@ -280,8 +280,8 @@ export const EnhancedSectionLearning = ({
               chapterId={chapterId}
             />
 
-            {/* Content Tabs */}
-            <ContentTabs
+            {/* Enhanced Content Tabs with Resource Intelligence */}
+            <ContentTabsEnhanced
               currentSection={currentSection}
               activeTab={activeTab}
               setActiveTab={setActiveTab}

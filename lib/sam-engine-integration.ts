@@ -2,6 +2,9 @@ import { MarketAnalysisEngine } from './sam-market-engine';
 import { BloomsAnalysisEngine } from './sam-blooms-engine';
 import { AdvancedExamEngine } from './sam-exam-engine';
 import { CourseGuideEngine } from './sam-course-guide-engine';
+import { SAMTrendsEngine } from './sam-trends-engine';
+import { SAMNewsEngine } from './sam-news-engine';
+import { SAMResearchEngine } from './sam-research-engine';
 import { db } from '@/lib/db';
 
 export interface SAMEngineContext {
@@ -13,6 +16,9 @@ export interface SAMEngineContext {
     enableBloomsTracking?: boolean;
     enableAdaptiveLearning?: boolean;
     enableCourseGuide?: boolean;
+    enableTrendsAnalysis?: boolean;
+    enableNewsIntegration?: boolean;
+    enableResearchAccess?: boolean;
   };
 }
 
@@ -24,12 +30,15 @@ export interface IntegratedAnalysis {
   examRecommendations?: any;
   courseGuide?: any;
   studentProgress?: any;
+  trendsAnalysis?: any;
+  newsDigest?: any;
+  researchPapers?: any;
   integratedRecommendations: IntegratedRecommendation[];
   actionPlan: ActionPlan;
 }
 
 export interface IntegratedRecommendation {
-  source: 'market' | 'blooms' | 'exam' | 'guide' | 'integrated';
+  source: 'market' | 'blooms' | 'exam' | 'guide' | 'integrated' | 'trends' | 'news' | 'research';
   priority: 'critical' | 'high' | 'medium' | 'low';
   category: string;
   title: string;
@@ -60,12 +69,18 @@ export class SAMEngineIntegration {
   private bloomsEngine: BloomsAnalysisEngine;
   private examEngine: AdvancedExamEngine;
   private guideEngine: CourseGuideEngine;
+  private trendsEngine: SAMTrendsEngine;
+  private newsEngine: SAMNewsEngine;
+  private researchEngine: SAMResearchEngine;
 
   constructor() {
     this.marketEngine = new MarketAnalysisEngine();
     this.bloomsEngine = new BloomsAnalysisEngine();
     this.examEngine = new AdvancedExamEngine();
     this.guideEngine = new CourseGuideEngine();
+    this.trendsEngine = new SAMTrendsEngine();
+    this.newsEngine = new SAMNewsEngine();
+    this.researchEngine = new SAMResearchEngine();
   }
 
   async performIntegratedAnalysis(
@@ -77,7 +92,14 @@ export class SAMEngineIntegration {
     }
 
     // Run all analyses in parallel
-    const [marketAnalysis, bloomsAnalysis, courseGuide] = await Promise.all([
+    const [
+      marketAnalysis, 
+      bloomsAnalysis, 
+      courseGuide,
+      trendsAnalysis,
+      newsDigest,
+      researchPapers
+    ] = await Promise.all([
       context.enginePreferences?.enableMarketAnalysis !== false
         ? this.marketEngine.analyzeCourse(context.courseId, 'comprehensive')
         : null,
@@ -86,6 +108,15 @@ export class SAMEngineIntegration {
         : null,
       context.enginePreferences?.enableCourseGuide !== false && context.role === 'ADMIN'
         ? this.guideEngine.generateCourseGuide(context.courseId)
+        : null,
+      context.enginePreferences?.enableTrendsAnalysis !== false
+        ? this.getTrendsForCourse(context.courseId)
+        : null,
+      context.enginePreferences?.enableNewsIntegration !== false
+        ? this.getRelevantNews(context.courseId)
+        : null,
+      context.enginePreferences?.enableResearchAccess !== false
+        ? this.getRelatedResearch(context.courseId)
         : null,
     ]);
 
@@ -107,7 +138,10 @@ export class SAMEngineIntegration {
       bloomsAnalysis,
       examRecommendations,
       courseGuide,
-      studentProgress
+      studentProgress,
+      trendsAnalysis,
+      newsDigest,
+      researchPapers
     );
 
     // Create action plan
@@ -130,6 +164,9 @@ export class SAMEngineIntegration {
       examRecommendations,
       courseGuide,
       studentProgress,
+      trendsAnalysis,
+      newsDigest,
+      researchPapers,
       integratedRecommendations,
       actionPlan,
     };
@@ -373,7 +410,10 @@ export class SAMEngineIntegration {
     bloomsAnalysis: any,
     examRecommendations: any,
     courseGuide: any,
-    studentProgress: any
+    studentProgress: any,
+    trendsAnalysis: any,
+    newsDigest: any,
+    researchPapers: any
   ): IntegratedRecommendation[] {
     const recommendations: IntegratedRecommendation[] = [];
 
@@ -411,12 +451,68 @@ export class SAMEngineIntegration {
       });
     }
 
+    // Trends-based recommendations
+    if (trendsAnalysis?.relevantTrends) {
+      trendsAnalysis.relevantTrends.forEach((trend: any) => {
+        if (trend.impact === 'transformative' || trend.impact === 'high') {
+          recommendations.push({
+            source: 'trends',
+            priority: trend.impact === 'transformative' ? 'high' : 'medium',
+            category: 'innovation',
+            title: `Incorporate ${trend.title} into curriculum`,
+            description: trend.description,
+            actions: trend.educationalImplications || ['Research trend applications', 'Update course content'],
+            expectedImpact: `Stay ahead of industry trends and prepare students for future`,
+          });
+        }
+      });
+    }
+
+    // News-based recommendations
+    if (newsDigest?.educationalNews) {
+      const criticalNews = newsDigest.educationalNews.filter((news: any) => 
+        news.impactLevel === 'critical' || news.impactLevel === 'high'
+      );
+      
+      criticalNews.forEach((news: any) => {
+        recommendations.push({
+          source: 'news',
+          priority: news.impactLevel === 'critical' ? 'high' : 'medium',
+          category: 'awareness',
+          title: `Action required: ${news.title}`,
+          description: news.summary,
+          actions: news.keyTakeaways || ['Review news impact', 'Update teaching approach'],
+          expectedImpact: 'Stay informed about industry developments',
+        });
+      });
+    }
+
+    // Research-based recommendations
+    if (researchPapers?.relevantPapers) {
+      researchPapers.relevantPapers
+        .filter((paper: any) => paper.educationalValue.teachingValue > 80)
+        .forEach((paper: any) => {
+          recommendations.push({
+            source: 'research',
+            priority: 'medium',
+            category: 'academic',
+            title: `Implement findings from: ${paper.title}`,
+            description: `High-value research with ${paper.citations} citations`,
+            actions: paper.contributions.slice(0, 3),
+            expectedImpact: 'Evidence-based teaching improvements',
+          });
+        });
+    }
+
     // Integrated recommendations based on cross-analysis
     const integratedInsights = this.generateIntegratedInsights(
       marketAnalysis,
       bloomsAnalysis,
       courseGuide,
-      studentProgress
+      studentProgress,
+      trendsAnalysis,
+      newsDigest,
+      researchPapers
     );
 
     recommendations.push(...integratedInsights);
@@ -446,7 +542,10 @@ export class SAMEngineIntegration {
     marketAnalysis: any,
     bloomsAnalysis: any,
     courseGuide: any,
-    studentProgress: any
+    studentProgress: any,
+    trendsAnalysis: any,
+    newsDigest: any,
+    researchPapers: any
   ): IntegratedRecommendation[] {
     const insights: IntegratedRecommendation[] = [];
 
@@ -486,6 +585,81 @@ export class SAMEngineIntegration {
         expectedImpact: 'Increase completion rate by 30%',
         dependencies: ['content', 'technology'],
       });
+    }
+
+    // Cross-reference trends with research
+    if (trendsAnalysis?.relevantTrends && researchPapers?.relevantPapers) {
+      const emergingTrends = trendsAnalysis.relevantTrends.filter((t: any) => 
+        t.timeframe === 'emerging' && t.relevance > 80
+      );
+      
+      if (emergingTrends.length > 0) {
+        insights.push({
+          source: 'integrated',
+          priority: 'high',
+          category: 'innovation',
+          title: 'Align Course with Emerging Research Trends',
+          description: 'Strong correlation between emerging trends and recent research indicates opportunity for innovation',
+          actions: [
+            'Review emerging trend applications in education',
+            'Incorporate research-backed methodologies',
+            'Create experimental modules for early adoption',
+            'Partner with researchers for content validation'
+          ],
+          expectedImpact: 'Position course as cutting-edge and research-backed',
+          dependencies: ['research', 'content', 'partnerships'],
+        });
+      }
+    }
+
+    // News impact on course relevance
+    if (newsDigest?.weeklyDigest && marketAnalysis) {
+      const hasBreakingNews = newsDigest.weeklyDigest.topStories.some((story: any) => 
+        story.impactLevel === 'critical'
+      );
+      
+      if (hasBreakingNews && marketAnalysis.competition?.position !== 'leader') {
+        insights.push({
+          source: 'integrated',
+          priority: 'critical',
+          category: 'competitive',
+          title: 'Urgent: Update Course Based on Industry Developments',
+          description: 'Recent critical news requires immediate course updates to maintain relevance',
+          actions: [
+            'Review breaking news impact on course content',
+            'Update modules affected by industry changes',
+            'Communicate updates to current students',
+            'Create supplementary content addressing changes'
+          ],
+          expectedImpact: 'Maintain course relevance and competitive edge',
+          dependencies: ['content', 'communication'],
+        });
+      }
+    }
+
+    // Research-driven quality improvements
+    if (researchPapers?.educationalPapers && bloomsAnalysis?.courseLevel) {
+      const highValuePapers = researchPapers.educationalPapers.filter((p: any) => 
+        p.educationalValue.teachingValue > 90
+      );
+      
+      if (highValuePapers.length > 0 && bloomsAnalysis.courseLevel.overallScore < 70) {
+        insights.push({
+          source: 'integrated',
+          priority: 'high',
+          category: 'quality',
+          title: 'Implement Research-Proven Teaching Methods',
+          description: 'High-value educational research can significantly improve course quality',
+          actions: [
+            'Apply evidence-based teaching strategies',
+            'Restructure content based on learning science',
+            'Implement validated assessment methods',
+            'Monitor improvement metrics'
+          ],
+          expectedImpact: 'Improve learning outcomes by 25-40%',
+          dependencies: ['pedagogy', 'assessment', 'analytics'],
+        });
+      }
     }
 
     return insights;
@@ -636,5 +810,120 @@ export class SAMEngineIntegration {
     });
     
     return user?.role || 'USER';
+  }
+
+  // New engine integration methods
+  private async getTrendsForCourse(courseId: string): Promise<any> {
+    try {
+      // Get course details to determine relevant trends
+      const course = await db.course.findUnique({
+        where: { id: courseId },
+        select: { 
+          title: true, 
+          description: true, 
+          categoryId: true,
+          category: { select: { name: true } }
+        }
+      });
+
+      if (!course) return null;
+
+      // Search for relevant trends based on course topic
+      const trends = await this.trendsEngine.searchTrends(
+        course.category?.name || course.title
+      );
+
+      // Get educational trends
+      const educationalTrends = await this.trendsEngine.getEducationalTrends();
+
+      return {
+        relevantTrends: trends.slice(0, 5),
+        educationalTrends: educationalTrends.slice(0, 3),
+        trendingNow: await this.trendsEngine.getTrendingNow()
+      };
+    } catch (error) {
+      console.error('Error getting trends for course:', error);
+      return null;
+    }
+  }
+
+  private async getRelevantNews(courseId: string): Promise<any> {
+    try {
+      // Get course details
+      const course = await db.course.findUnique({
+        where: { id: courseId },
+        select: { 
+          title: true, 
+          description: true,
+          category: { select: { name: true } }
+        }
+      });
+
+      if (!course) return null;
+
+      // Get educational news
+      const educationalNews = await this.newsEngine.getEducationalNews();
+
+      // Search for course-specific news
+      const relevantNews = await this.newsEngine.searchNews(
+        course.category?.name || course.title
+      );
+
+      // Get latest digest
+      const digest = await this.newsEngine.getNewsDigest();
+
+      return {
+        educationalNews: educationalNews.slice(0, 5),
+        courseRelatedNews: relevantNews.slice(0, 5),
+        weeklyDigest: digest,
+        trendingTopics: await this.newsEngine.getTrendingTopics()
+      };
+    } catch (error) {
+      console.error('Error getting news for course:', error);
+      return null;
+    }
+  }
+
+  private async getRelatedResearch(courseId: string): Promise<any> {
+    try {
+      // Get course details
+      const course = await db.course.findUnique({
+        where: { id: courseId },
+        select: { 
+          title: true, 
+          description: true,
+          category: { select: { name: true } }
+        }
+      });
+
+      if (!course) return null;
+
+      // Search for relevant research papers
+      const papers = await this.researchEngine.searchPapers({
+        query: course.category?.name || course.title,
+        filters: {
+          difficulty: 'intermediate'
+        },
+        sort: 'relevance',
+        limit: 10
+      });
+
+      // Get educational papers
+      const educationalPapers = await this.researchEngine.getEducationalPapers(
+        'intermediate'
+      );
+
+      // Get research trends
+      const trends = await this.researchEngine.getResearchTrends();
+
+      return {
+        relevantPapers: papers.slice(0, 5),
+        educationalPapers: educationalPapers.slice(0, 3),
+        researchTrends: trends.slice(0, 3)
+      };
+    } catch (error) {
+      console.error('Error getting research for course:', error);
+      return null;
+    }
   }
 }

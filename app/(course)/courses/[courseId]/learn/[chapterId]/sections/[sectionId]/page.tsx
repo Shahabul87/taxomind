@@ -4,7 +4,7 @@ import { getCourse } from "@/actions/get-course";
 import { getChapter } from "@/actions/get-chapter";
 import { getSection } from "@/actions/get-section";
 import { db } from "@/lib/db";
-import { EnhancedSectionLearning } from "./_components/enhanced-section-learning";
+import { EnhancedSectionLearningPersonalized } from "./_components/enhanced-section-learning-personalized";
 
 interface SectionPageProps {
   params: Promise<{
@@ -127,7 +127,7 @@ const SectionPage = async (props: SectionPageProps) => {
   }
 
   return (
-    <EnhancedSectionLearning
+    <EnhancedSectionLearningPersonalized
       user={user as any}
       course={courseData}
       currentChapter={currentChapter}

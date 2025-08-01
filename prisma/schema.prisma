@@ -115,6 +115,18 @@ model User {
   StudentCognitiveProfile                 StudentCognitiveProfile?
   BloomsPerformanceMetric                 BloomsPerformanceMetric[]
   TeacherInsights                         TeacherInsights[]
+  PredictiveLearningAnalysis              PredictiveLearningAnalysis[]
+  PersonalizedResourceRecommendation      PersonalizedResourceRecommendation[]
+  LearningStyleAnalysis                   LearningStyleAnalysis[]
+  ContentOptimization                     ContentOptimization[]
+  EmotionalStateAnalysis                  EmotionalStateAnalysis[]
+  MotivationProfile                       MotivationProfile[]
+  PersonalizedLearningPath                PersonalizedLearningPath[]
+  PersonalizationResult                   PersonalizationResult[]
+  CognitiveFitnessAssessment              CognitiveFitnessAssessment[]
+  LearningDNA                             LearningDNA[]
+  StudyBuddy                              StudyBuddy[]
+  QuantumLearningPath                     QuantumLearningPath[]
 }
 
 model Account {
@@ -231,6 +243,10 @@ model Course {
   CourseGuideAnalysis         CourseGuideAnalysis?
   TeacherInsights             TeacherInsights[]
   CourseOptimizationSuggestion CourseOptimizationSuggestion[]
+  MultiMediaAnalysis          MultiMediaAnalysis[]
+  MultiModalAnalysis          MultiModalAnalysis[]
+  PredictiveLearningAnalysis  PredictiveLearningAnalysis[]
+  PricingExperiment           PricingExperiment[]
 }
 
 model Attachment {
@@ -274,6 +290,7 @@ model Chapter {
   samInteractions     SAMInteraction[]      @relation("SAMChapterInteractions")
   samPoints           SAMPoints[]           @relation("SAMChapterPoints")
   user_progress       user_progress[]
+  MultiMediaAnalysis  MultiMediaAnalysis[]
 
   @@index([courseId])
 }
@@ -2121,9 +2138,23 @@ model CollaborationSession {
   duration           Int?
   isActive           Boolean       @default(true)
   organization       Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // New fields for enhanced collaboration analytics
+  courseId           String?
+  chapterId          String?
+  initiatorId        String?
+  sessionType        String?       // discussion, co-creation, peer-review, etc.
+  activities         Json?         // Array of collaboration activities
+  metrics            Json?         // Session metrics
+  insights           Json?         // Generated insights
+  contributions      CollaborationContribution[]
+  reactions          CollaborationReaction[]
+  analytics          CollaborationAnalytics?
 
   @@index([organizationId, contentId, isActive])
   @@index([sessionId, isActive])
+  @@index([courseId, isActive])
+  @@index([initiatorId])
   @@map("collaboration_sessions")
 }
 
@@ -3198,4 +3229,513 @@ model CourseOptimizationSuggestion {
 
   @@index([courseId, status])
   @@index([suggestionType])
+}
+
+// ==========================================
+// MULTI-MODAL CONTENT INTELLIGENCE ENGINE
+// ==========================================
+
+model MultiMediaAnalysis {
+  id                 String   @id @default(uuid())
+  courseId           String
+  chapterId          String?
+  contentType        String   // 'video', 'audio', 'interactive'
+  contentUrl         String?
+  analysis           Json     // Complete analysis results
+  engagementScore    Float?
+  accessibilityScore Float?
+  effectivenessScore Float?
+  metadata           Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  course             Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter            Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
+  @@index([courseId, contentType])
+  @@index([chapterId])
+}
+
+model MultiModalAnalysis {
+  id         String   @id @default(uuid())
+  courseId   String
+  insights   Json     // Comprehensive multi-modal insights
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+}
+
+// ==========================================
+// PREDICTIVE LEARNING INTELLIGENCE ENGINE
+// ==========================================
+
+model PredictiveLearningAnalysis {
+  id             String   @id @default(uuid())
+  userId         String?
+  courseId       String?
+  predictionType String   // 'OUTCOME', 'RISK_ANALYSIS', 'INTERVENTION_PLAN', 'VELOCITY_OPTIMIZATION', 'SUCCESS_PROBABILITY'
+  predictionData Json     // Complete prediction results
+  confidence     Float    // Confidence score for the prediction
+  accuracy       Float?   // Actual accuracy (updated after validation)
+  validated      Boolean  @default(false)
+  validatedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course         Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([userId, predictionType])
+  @@index([courseId, predictionType])
+  @@index([createdAt])
+}
+
+// ==========================================
+// RESOURCE INTELLIGENCE HUB ENGINE
+// ==========================================
+
+model ResourceDiscovery {
+  id               String   @id @default(uuid())
+  topicId          String
+  topicName        String
+  resources        Json     // Array of discovered resources
+  resourceCount    Int
+  avgQualityScore  Float
+  metadata         Json?
+  discoveredAt     DateTime @default(now())
+  
+  @@index([topicId])
+  @@index([topicName])
+}
+
+model ResourceROIAnalysis {
+  id                 String   @id @default(uuid())
+  resourceUrl        String
+  resourceTitle      String
+  costBenefitRatio   Float
+  learningEfficiency Float
+  recommendation     String   // 'highly-recommended', 'recommended', 'consider-alternatives', 'not-recommended'
+  analysis           Json     // Complete ROI analysis
+  analyzedAt         DateTime @default(now())
+  
+  @@index([resourceUrl])
+  @@index([recommendation])
+}
+
+model PersonalizedResourceRecommendation {
+  id                String   @id @default(uuid())
+  userId            String
+  recommendations   Json     // Array of personalized recommendations
+  topRecommendation String
+  avgMatchScore     Float
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+}
+
+// ==========================================
+// CONTENT GENERATION ASSISTANT ENGINE
+// ==========================================
+
+model GeneratedContent {
+  id           String   @id @default(uuid())
+  contentType  String   // 'course', 'assessment', 'study-guide', 'exercise', 'localized'
+  content      Json     // Complete generated content
+  metadata     Json?    // Additional metadata
+  quality      Float?   // Quality score if evaluated
+  usage        Int      @default(0) // Times used
+  feedback     Json?    // User feedback
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([contentType, createdAt])
+  @@index([quality])
+}
+
+// ==========================================
+// ADVANCED PERSONALIZATION ENGINE
+// ==========================================
+
+model LearningStyleAnalysis {
+  id               String   @id @default(uuid())
+  userId           String
+  primaryStyle     String   // 'visual', 'auditory', 'kinesthetic', 'reading-writing', 'mixed'
+  secondaryStyle   String?
+  styleStrengths   Json     // Scores for each learning style
+  evidenceFactors  String[]
+  confidence       Float
+  analyzedAt       DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, analyzedAt])
+}
+
+model ContentOptimization {
+  id                String   @id @default(uuid())
+  userId            String
+  contentId         String
+  adaptations       Json     // Content adaptations applied
+  presentationOrder String[]
+  optimizationData  Json     // Complete optimization details
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, contentId])
+}
+
+model EmotionalStateAnalysis {
+  id              String   @id @default(uuid())
+  userId          String
+  currentEmotion  String   // 'motivated', 'frustrated', 'confused', 'confident', 'anxious', 'neutral'
+  confidence      Float
+  trend           String   // 'improving', 'stable', 'declining'
+  indicators      Json     // Emotion indicators data
+  recommendations String[]
+  analyzedAt      DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, analyzedAt])
+}
+
+model MotivationProfile {
+  id                  String   @id @default(uuid())
+  userId              String
+  intrinsicFactors    Json     // Internal motivation factors
+  extrinsicFactors    Json     // External motivation factors
+  currentLevel        Float
+  triggers            String[]
+  barriers            String[]
+  sustainabilityScore Float
+  analyzedAt          DateTime @default(now())
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
+
+model PersonalizedLearningPath {
+  id                String   @id @default(uuid())
+  pathId            String   @unique
+  userId            String
+  targetOutcome     String
+  nodes             Json     // Learning nodes in the path
+  edges             Json     // Connections between nodes
+  estimatedDuration Float
+  alternativePaths  Json     // Alternative learning paths
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+  @@index([pathId])
+}
+
+model PersonalizationResult {
+  id              String   @id @default(uuid())
+  userId          String
+  recommendations Json     // Personalization recommendations
+  adaptations     Json     // Applied adaptations
+  insights        Json     // Extracted insights
+  confidence      Float
+  appliedAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, appliedAt])
+}
+
+// Enterprise Intelligence Models
+model OrganizationAnalytics {
+  id                     String   @id @default(uuid())
+  organizationId         String
+  totalLearners          Int
+  activeLearners         Int
+  engagementRate         Float
+  completionRate         Float
+  averageSkillGrowth     Float
+  departmentMetrics      Json     // Top performing departments
+  skillGaps              Json     // Skill gap analysis
+  roiMetrics             Json     // Learning ROI metrics
+  complianceMetrics      Json     // Compliance status
+  budgetMetrics          Json     // Budget analysis
+  analyzedAt             DateTime @default(now())
+  
+  @@index([organizationId, analyzedAt])
+}
+
+model WorkforcePrediction {
+  id                  String   @id @default(uuid())
+  organizationId      String
+  timeHorizon         Int      // Months
+  currentCapabilities Json     // Current capability matrix
+  futureNeeds         Json     // Predicted future skill needs
+  developmentPlan     Json     // Generated development plan
+  talentMetrics       Json     // Talent pipeline metrics
+  predictedAt         DateTime @default(now())
+  
+  @@index([organizationId, predictedAt])
+}
+
+model ExecutiveReport {
+  id               String   @id @default(uuid())
+  reportId         String   @unique
+  organizationId   String
+  reportType       String   // monthly, quarterly, annual
+  executiveSummary String   @db.Text
+  keyMetrics       Json     // Key performance metrics
+  trends           Json     // Trend analysis
+  recommendations  Json     // Strategic recommendations
+  risks            Json     // Identified risks
+  opportunities    Json     // Growth opportunities
+  generatedAt      DateTime @default(now())
+  
+  @@index([organizationId, reportType, generatedAt])
+  @@index([reportId])
+}
+
+// Financial Intelligence Models
+model FinancialSnapshot {
+  id                      String   @id @default(uuid())
+  organizationId          String
+  totalRevenue            Float
+  totalCosts              Float
+  netProfit               Float
+  profitMargin            Float
+  activeSubscribers       Int
+  monthlyRecurringRevenue Float
+  metrics                 Json     // Complete financial metrics
+  period                  String   // Date range identifier
+  createdAt               DateTime @default(now())
+  
+  @@index([organizationId, createdAt])
+  @@index([period])
+}
+
+model PricingExperiment {
+  id           String   @id @default(uuid())
+  experimentId String   @unique
+  courseId     String?
+  name         String
+  variant      String
+  originalPrice Float
+  testPrice    Float
+  startDate    DateTime
+  endDate      DateTime?
+  conversions  Int      @default(0)
+  revenue      Float    @default(0)
+  views        Int      @default(0)
+  status       String   // active, completed, paused
+  significance Float?   // Statistical significance
+  winner       String?  // control or variant
+  createdAt    DateTime @default(now())
+  course       Course?  @relation(fields: [courseId], references: [id])
+  
+  @@index([courseId, status])
+  @@index([experimentId])
+}
+
+model SubscriptionAnalytics {
+  id                 String   @id @default(uuid())
+  organizationId     String
+  cohortMonth        String   // YYYY-MM format
+  initialSubscribers Int
+  activeSubscribers  Int
+  churnedSubscribers Int
+  upgrades           Int
+  downgrades         Int
+  revenue            Float
+  retentionRate      Float
+  ltv                Float    // Lifetime value
+  analyzedAt         DateTime @default(now())
+  
+  @@index([organizationId, cohortMonth])
+  @@unique([organizationId, cohortMonth])
+}
+
+// Real-Time Collaboration Analytics Models
+// Note: CollaborationSession already exists above
+model CollaborationContribution {
+  id               String   @id @default(uuid())
+  sessionId        String
+  userId           String
+  contributionType String   // message, question, answer, resource, edit, reaction
+  content          Json     // Contribution content
+  impact           Float    @default(0) // 0-1 impact score
+  timestamp        DateTime @default(now())
+  session          CollaborationSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  reactions        CollaborationReaction[]
+  
+  @@index([sessionId, userId])
+  @@index([contributionType])
+}
+
+model CollaborationReaction {
+  id             String   @id @default(uuid())
+  contributionId String
+  userId         String
+  reactionType   String   // like, helpful, insightful, question
+  sessionId      String
+  createdAt      DateTime @default(now())
+  contribution   CollaborationContribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  session        CollaborationSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  
+  @@index([contributionId])
+  @@index([userId])
+  @@unique([contributionId, userId, reactionType])
+}
+
+model CollaborationAnalytics {
+  id                   String   @id @default(uuid())
+  sessionId            String   @unique
+  sessionAnalytics     Json     // Overall session metrics
+  participantAnalytics Json     // Participant-level analytics
+  contentAnalytics     Json     // Content and topic analytics
+  networkAnalytics     Json     // Collaboration network analysis
+  generatedAt          DateTime @default(now())
+  session              CollaborationSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  
+  @@index([sessionId])
+}
+
+// Innovation Features Models
+// Cognitive Fitness
+model CognitiveFitnessAssessment {
+  id               String   @id @default(uuid())
+  userId           String
+  overallScore     Float
+  dimensions       Json     // Cognitive dimensions (memory, attention, etc.)
+  exercises        Json     // Recommended exercises
+  progress         Json     // Fitness progress tracking
+  recommendations  Json     // Personalized recommendations
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+}
+
+model FitnessSession {
+  id          String   @id @default(uuid())
+  userId      String
+  exerciseId  String
+  startTime   DateTime
+  endTime     DateTime?
+  duration    Float?   // Duration in minutes
+  performance Json?    // Performance metrics
+  status      String   // in_progress, completed, abandoned
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, exerciseId])
+  @@index([status])
+}
+
+model FitnessMilestone {
+  id           String   @id @default(uuid())
+  userId       String
+  name         String
+  dimension    String   // Which cognitive dimension
+  improvement  Float    // Improvement percentage
+  achievedAt   DateTime @default(now())
+  
+  @@index([userId, dimension])
+}
+
+// Learning DNA
+model LearningDNA {
+  id          String   @id @default(uuid())
+  userId      String
+  dnaSequence Json     // DNA sequence with segments
+  traits      Json     // Learning traits
+  heritage    Json     // Learning heritage and evolution
+  mutations   Json     // DNA mutations over time
+  phenotype   Json     // Expressed characteristics
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+}
+
+// Study Buddy
+model StudyBuddy {
+  id           String   @id @default(uuid())
+  buddyId      String   @unique
+  userId       String
+  name         String
+  personality  Json     // Buddy personality configuration
+  avatar       Json     // Avatar configuration
+  relationship Json     // Relationship metrics
+  capabilities Json     // Buddy capabilities
+  effectiveness Json?   // Effectiveness metrics
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interactions BuddyInteraction[]
+  adjustments  BuddyAdjustment[]
+  
+  @@index([userId, isActive])
+  @@index([buddyId])
+}
+
+model BuddyInteraction {
+  id               String   @id @default(uuid())
+  buddyId          String
+  userId           String
+  interactionType  String   // conversation, quiz, encouragement, challenge, celebration
+  content          Json     // Interaction content
+  userResponse     String?  // User's response
+  effectiveness    Float    @default(0) // 0-1 effectiveness score
+  createdAt        DateTime @default(now())
+  buddy            StudyBuddy @relation(fields: [buddyId], references: [buddyId], onDelete: Cascade)
+  
+  @@index([buddyId, userId])
+  @@index([interactionType])
+}
+
+model BuddyAdjustment {
+  id              String   @id @default(uuid())
+  buddyId         String
+  adjustmentType  String   // personality, communication, strictness
+  parameters      Json     // What was adjusted
+  reason          String   // Why it was adjusted
+  impact          Float?   // Measured impact
+  createdAt       DateTime @default(now())
+  buddy           StudyBuddy @relation(fields: [buddyId], references: [buddyId], onDelete: Cascade)
+  
+  @@index([buddyId])
+}
+
+// Quantum Learning Paths
+model QuantumLearningPath {
+  id               String   @id @default(uuid())
+  pathId           String   @unique
+  userId           String
+  learningGoal     String
+  superposition    Json     // Possible path states
+  entanglements    Json     // Path entanglements
+  probability      Json     // Success probabilities
+  coherenceLevel   Float    @default(1.0)
+  collapsed        Boolean  @default(false)
+  collapse         Json?    // Final collapsed state
+  finalStateId     String?  // ID of final quantum state
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  observations     QuantumObservation[]
+  
+  @@index([userId, isActive])
+  @@index([pathId])
+}
+
+model QuantumObservation {
+  id              String   @id @default(uuid())
+  pathId          String
+  observationId   String   @unique
+  observationType String   // progress_check, assessment, interaction
+  observer        String   // userId or system
+  impact          Json     // Observation impact on path
+  createdAt       DateTime @default(now())
+  path            QuantumLearningPath @relation(fields: [pathId], references: [pathId], onDelete: Cascade)
+  
+  @@index([pathId])
+  @@index([observationId])
 }

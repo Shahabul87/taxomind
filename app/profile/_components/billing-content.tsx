@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { BillCategory, BillStatus } from "@prisma/client";
 import { BillDashboard } from "./billing/bill-dashboard";
 import { BillVisualization } from "./billing/bill-visualization";
+import { FinancialIntelligenceDashboard } from "@/components/billing/financial-intelligence-dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -229,10 +230,11 @@ export const BillingContent = ({ userId }: { userId: string }) => {
   return (
     <div className="space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="plan">Plan</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="intelligence">Financial Intelligence</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
@@ -598,6 +600,23 @@ export const BillingContent = ({ userId }: { userId: string }) => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="intelligence" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Financial Intelligence</h2>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                Advanced financial analytics and insights powered by SAM AI
+              </p>
+            </div>
+          </div>
+
+          {/* Financial Intelligence Dashboard */}
+          <FinancialIntelligenceDashboard 
+            organizationId={userId} 
+            className="w-full"
+          />
         </TabsContent>
       </Tabs>
 

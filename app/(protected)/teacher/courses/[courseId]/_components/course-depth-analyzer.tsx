@@ -29,6 +29,7 @@ import { DepthInsightsPanel } from "./depth-insights-panel";
 import { ImprovementRecommendations } from "./improvement-recommendations";
 import { ChapterDepthAnalysis } from "./chapter-depth-analysis";
 import { toast } from "sonner";
+import { SamStandardsInfo, SamStandardsBadge } from "@/components/sam/sam-standards-info";
 
 interface CourseDepthAnalyzerProps {
   courseId: string;
@@ -53,7 +54,18 @@ interface AnalysisData {
   objectivesAnalysis: Array<{
     objective: string;
     bloomsLevel: string;
+    actionVerb?: string;
+    smartCriteria?: {
+      specific: { score: number; feedback: string };
+      measurable: { score: number; feedback: string };
+      achievable: { score: number; feedback: string };
+      relevant: { score: number; feedback: string };
+      timeBound: { score: number; feedback: string };
+    };
+    clarityScore?: number;
+    verbStrength?: 'weak' | 'moderate' | 'strong';
     suggestions: string[];
+    improvedVersion?: string;
   }>;
   scores: {
     depth: number;
@@ -68,13 +80,29 @@ interface AnalysisData {
   }>;
   recommendations: Array<{
     priority: 'high' | 'medium' | 'low';
-    type: 'content' | 'structure' | 'activity';
+    type: 'content' | 'structure' | 'activity' | 'assessment' | 'objectives';
+    category?: string;
     title: string;
     description: string;
+    impact?: string;
+    effort?: 'low' | 'medium' | 'high';
     examples: string[];
+    actionSteps?: string[];
   }>;
   insights?: string[];
   improvementPlan?: any;
+  samEngineResults?: {
+    bloomsAnalysis?: any;
+    marketAnalysis?: any;
+    qualityAnalysis?: any;
+    completionAnalysis?: any;
+  };
+  bloomsInsights?: {
+    dominantLevel: string;
+    missingLevels: string[];
+    balanceScore: number;
+    improvementSuggestions: string[];
+  };
 }
 
 export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyzerProps) {
@@ -205,36 +233,44 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
           </div>
         )}
         
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => analyzeCourse(true)} // Force re-analysis
-            disabled={isAnalyzing}
-            className="bg-white/60 dark:bg-slate-800/60 border-white/30 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-slate-800/70"
-          >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isAnalyzing && "animate-spin")} />
-            Re-analyze
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportReport}
-            disabled={!analysisData}
-            className="bg-white/60 dark:bg-slate-800/60 border-white/30 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-slate-800/70"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => askSam()}
-            className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg"
-          >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Ask SAM
-          </Button>
+        {/* Header with Standards Info */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <SamStandardsBadge />
+            <SamStandardsInfo />
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => analyzeCourse(true)} // Force re-analysis
+              disabled={isAnalyzing}
+              className="bg-white/60 dark:bg-slate-800/60 border-white/30 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-slate-800/70"
+            >
+              <RefreshCw className={cn("h-4 w-4 mr-2", isAnalyzing && "animate-spin")} />
+              Re-analyze
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportReport}
+              disabled={!analysisData}
+              className="bg-white/60 dark:bg-slate-800/60 border-white/30 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-slate-800/70"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => askSam()}
+              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Ask SAM
+            </Button>
+          </div>
         </div>
 
       {/* Loading State */}
@@ -313,6 +349,134 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6 mt-6">
+                {/* Course Health Score */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <Card className="p-6 backdrop-blur-md bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border-white/20 shadow-xl">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Brain className="h-5 w-5" />
+                      Course Cognitive Health
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <div className="relative inline-flex">
+                          <div className="w-32 h-32">
+                            <svg className="w-32 h-32 transform -rotate-90">
+                              <circle
+                                cx="64"
+                                cy="64"
+                                r="60"
+                                stroke="currentColor"
+                                strokeWidth="8"
+                                fill="none"
+                                className="text-gray-200 dark:text-gray-700"
+                              />
+                              <circle
+                                cx="64"
+                                cy="64"
+                                r="60"
+                                stroke="currentColor"
+                                strokeWidth="8"
+                                fill="none"
+                                strokeDasharray={`${2 * Math.PI * 60}`}
+                                strokeDashoffset={`${2 * Math.PI * 60 * (1 - overallScore / 100)}`}
+                                className={cn(
+                                  "transition-all duration-1000",
+                                  overallScore >= 80 ? "text-green-500" :
+                                  overallScore >= 60 ? "text-yellow-500" :
+                                  "text-red-500"
+                                )}
+                              />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className={cn("text-3xl font-bold", getScoreColor(overallScore))}>
+                                {overallScore}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                          Overall Course Quality
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Cognitive Depth</span>
+                          <span className={getScoreColor(analysisData.scores.depth)}>{analysisData.scores.depth}%</span>
+                        </div>
+                        <Progress value={analysisData.scores.depth} className="h-2" />
+                        
+                        <div className="flex justify-between text-sm">
+                          <span>Content Balance</span>
+                          <span className={getScoreColor(analysisData.scores.balance)}>{analysisData.scores.balance}%</span>
+                        </div>
+                        <Progress value={analysisData.scores.balance} className="h-2" />
+                        
+                        <div className="flex justify-between text-sm">
+                          <span>Complexity Level</span>
+                          <span className={getScoreColor(analysisData.scores.complexity)}>{analysisData.scores.complexity}%</span>
+                        </div>
+                        <Progress value={analysisData.scores.complexity} className="h-2" />
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Bloom's Insights */}
+                  <Card className="p-6 backdrop-blur-md bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-white/20 shadow-xl">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Sparkles className="h-5 w-5" />
+                      Bloom&apos;s Taxonomy Insights
+                    </h3>
+                    {analysisData.bloomsInsights ? (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm">
+                          <p className="text-sm font-medium mb-1">Dominant Level</p>
+                          <Badge className="mb-2" variant="secondary">
+                            {analysisData.bloomsInsights.dominantLevel}
+                          </Badge>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Your course primarily focuses on {analysisData.bloomsInsights.dominantLevel.toLowerCase()} level activities
+                          </p>
+                        </div>
+                        
+                        {analysisData.bloomsInsights.missingLevels.length > 0 && (
+                          <div className="p-4 bg-yellow-50/50 dark:bg-yellow-900/20 rounded-lg backdrop-blur-sm">
+                            <p className="text-sm font-medium mb-2">Missing Levels</p>
+                            <div className="flex flex-wrap gap-2">
+                              {analysisData.bloomsInsights.missingLevels.map((level, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  {level}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="p-4 bg-green-50/50 dark:bg-green-900/20 rounded-lg backdrop-blur-sm">
+                          <p className="text-sm font-medium mb-1">Balance Score</p>
+                          <div className="flex items-center gap-2">
+                            <Progress value={analysisData.bloomsInsights.balanceScore} className="flex-1 h-2" />
+                            <span className="text-sm font-medium">{analysisData.bloomsInsights.balanceScore}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm animate-pulse">
+                          <div className="h-4 w-24 bg-gray-300 dark:bg-gray-700 rounded mb-2"></div>
+                          <div className="h-6 w-32 bg-gray-300 dark:bg-gray-700 rounded mb-2"></div>
+                          <div className="h-3 w-full bg-gray-300 dark:bg-gray-700 rounded"></div>
+                        </div>
+                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Analyzing Bloom&apos;s taxonomy distribution...
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                </div>
+
                 {/* Bloom's Pyramid */}
                 <BloomsPyramidVisualization 
                   distribution={analysisData.overallDistribution}
@@ -393,49 +557,190 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
                 />
               </TabsContent>
 
-              <TabsContent value="objectives" className="mt-6">
-                <div className="space-y-4">
+              <TabsContent value="objectives" className="mt-6 space-y-6">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Target className="h-5 w-5" />
                     Learning Objectives Analysis
                   </h3>
-                  
-                  {analysisData.objectivesAnalysis.map((obj, index) => (
-                    <Card key={index} className="p-4 backdrop-blur-md bg-white/60 dark:bg-slate-800/60 border-white/20 shadow-lg hover:bg-white/70 dark:hover:bg-slate-800/70 transition-all duration-300">
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between">
-                          <p className="font-medium">{obj.objective}</p>
-                          <Badge variant="outline" className="ml-2 bg-white/50 dark:bg-slate-700/50 border-white/30">
-                            {obj.bloomsLevel}
-                          </Badge>
-                        </div>
-                        
-                        {obj.suggestions.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                              Suggestions:
-                            </p>
-                            {obj.suggestions.map((suggestion, idx) => (
-                              <p key={idx} className="text-sm text-gray-600 dark:text-gray-400 pl-4">
-                                • {suggestion}
-                              </p>
-                            ))}
-                          </div>
-                        )}
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => askSam(`Improve this learning objective: "${obj.objective}"`)}
-                          className="mt-2 bg-white/30 dark:bg-slate-800/30 border-white/20 backdrop-blur-sm hover:bg-white/50 dark:hover:bg-slate-800/50"
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Improve with SAM
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {analysisData.objectivesAnalysis.length} objectives analyzed
+                  </div>
                 </div>
+
+                {/* SMART Criteria Overview */}
+                <Card className="p-6 backdrop-blur-md bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-white/20 shadow-xl">
+                  <h4 className="font-semibold mb-4 flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5" />
+                    SMART Criteria Overview
+                  </h4>
+                  <div className="grid grid-cols-5 gap-3">
+                    {['Specific', 'Measurable', 'Achievable', 'Relevant', 'Time-bound'].map((criterion, idx) => {
+                      const avgScore = analysisData.objectivesAnalysis.reduce((acc, obj) => {
+                        const key = criterion.toLowerCase().replace('-', '') as keyof typeof obj.smartCriteria;
+                        return acc + (obj.smartCriteria?.[key]?.score || 0);
+                      }, 0) / (analysisData.objectivesAnalysis.length || 1);
+                      
+                      return (
+                        <div key={idx} className="text-center p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm">
+                          <p className="text-xs font-medium mb-1">{criterion}</p>
+                          <p className={cn("text-2xl font-bold", getScoreColor(avgScore))}>
+                            {Math.round(avgScore)}%
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+                
+                {/* Individual Objectives Analysis */}
+                <div className="space-y-4">
+                  {analysisData.objectivesAnalysis.map((obj, index) => {
+                    const smartAverage = obj.smartCriteria 
+                      ? Object.values(obj.smartCriteria).reduce((acc, criterion) => acc + criterion.score, 0) / 5
+                      : 0;
+                    
+                    return (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Card className="p-6 backdrop-blur-md bg-white/60 dark:bg-slate-800/60 border-white/20 shadow-lg hover:bg-white/70 dark:hover:bg-slate-800/70 transition-all duration-300">
+                          <div className="space-y-4">
+                            {/* Objective Header */}
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-semibold text-lg">{obj.objective}</p>
+                                <div className="flex items-center gap-3 mt-2">
+                                  <Badge variant="outline" className="bg-white/50 dark:bg-slate-700/50 border-white/30">
+                                    {obj.bloomsLevel}
+                                  </Badge>
+                                  {obj.actionVerb && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className={cn(
+                                        "bg-white/50 dark:bg-slate-700/50 border-white/30",
+                                        obj.verbStrength === 'strong' ? 'text-green-700 dark:text-green-400' :
+                                        obj.verbStrength === 'moderate' ? 'text-yellow-700 dark:text-yellow-400' :
+                                        'text-red-700 dark:text-red-400'
+                                      )}
+                                    >
+                                      Verb: {obj.actionVerb} ({obj.verbStrength})
+                                    </Badge>
+                                  )}
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm">Clarity:</span>
+                                    <span className={cn("font-semibold", getScoreColor(obj.clarityScore || 0))}>
+                                      {obj.clarityScore || 0}%
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">SMART Score</p>
+                                <p className={cn("text-2xl font-bold", getScoreColor(smartAverage))}>
+                                  {Math.round(smartAverage)}%
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* SMART Criteria Breakdown */}
+                            {obj.smartCriteria && (
+                              <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                                {Object.entries(obj.smartCriteria).map(([criterion, data]) => (
+                                  <div key={criterion} className="p-3 bg-white/50 dark:bg-slate-900/50 rounded-lg backdrop-blur-sm">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <p className="text-xs font-medium capitalize">{criterion}</p>
+                                      <span className={cn("text-sm font-bold", getScoreColor(data.score))}>
+                                        {data.score}%
+                                      </span>
+                                    </div>
+                                    <Progress value={data.score} className="h-1 mb-1" />
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                                      {data.feedback}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* Suggestions */}
+                            {obj.suggestions.length > 0 && (
+                              <div className="bg-blue-50/50 dark:bg-blue-900/20 p-4 rounded-lg backdrop-blur-sm">
+                                <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                                  <Lightbulb className="h-4 w-4" />
+                                  Improvement Suggestions
+                                </p>
+                                <ul className="space-y-1">
+                                  {obj.suggestions.map((suggestion, idx) => (
+                                    <li key={idx} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                      <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
+                                      <span>{suggestion}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {/* Improved Version */}
+                            {obj.improvedVersion && (
+                              <div className="bg-green-50/50 dark:bg-green-900/20 p-4 rounded-lg backdrop-blur-sm">
+                                <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                                  <Sparkles className="h-4 w-4" />
+                                  Suggested Improvement
+                                </p>
+                                <p className="text-sm text-gray-700 dark:text-gray-300 italic">
+                                  &ldquo;{obj.improvedVersion}&rdquo;
+                                </p>
+                              </div>
+                            )}
+                            
+                            {/* Actions */}
+                            <div className="flex items-center gap-2 pt-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => askSam(`Improve this learning objective: "${obj.objective}"`)}
+                                className="bg-white/30 dark:bg-slate-800/30 border-white/20 backdrop-blur-sm hover:bg-white/50 dark:hover:bg-slate-800/50"
+                              >
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Improve with SAM
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => askSam(`Create activities for this objective: "${obj.objective}"`)}
+                                className="bg-white/30 dark:bg-slate-800/30 border-white/20 backdrop-blur-sm hover:bg-white/50 dark:hover:bg-slate-800/50"
+                              >
+                                <Zap className="h-4 w-4 mr-2" />
+                                Generate Activities
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {/* Empty State */}
+                {analysisData.objectivesAnalysis.length === 0 && (
+                  <Card className="p-12 text-center backdrop-blur-md bg-white/60 dark:bg-slate-800/60 border-white/20 shadow-xl">
+                    <Target className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">
+                      No learning objectives found. Add objectives to your course for analysis.
+                    </p>
+                    <Button
+                      onClick={() => askSam("Help me create effective learning objectives for my course")}
+                      className="mt-4 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Create Objectives with SAM
+                    </Button>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="recommendations" className="mt-6">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 
 interface LearningSessionHook {
@@ -19,6 +19,9 @@ interface LearningSessionHook {
   recordSeek: () => void;
   markStruggling: (indicators: string[]) => void;
 }
+
+// Feature flag to control API calls - Set to true when database is ready
+const ENABLE_SESSION_API_CALLS = false;
 
 export function useLearningSession(): LearningSessionHook {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -71,6 +74,40 @@ export function useLearningSession(): LearningSessionHook {
     };
   }, [isTracking]);
 
+  const updateProgress = useCallback(async (data: {
+    completionPercentage?: number;
+    engagementScore?: number;
+    interactionCount?: number;
+    pauseCount?: number;
+    seekCount?: number;
+    strugglingIndicators?: string[];
+  }) => {
+    if (!sessionId) return;
+
+    // Skip API calls if disabled
+    if (!ENABLE_SESSION_API_CALLS) {
+      console.log('[Learning Session] API calls disabled - skipping progress update');
+      return;
+    }
+
+    try {
+      const response = await axios.patch(`/api/progress/sessions/${sessionId}`, {
+        ...data,
+        engagementScore: data.engagementScore ?? engagementScore,
+        interactionCount: data.interactionCount ?? interactionCount,
+        pauseCount: data.pauseCount ?? pauseCount,
+        seekCount: data.seekCount ?? seekCount,
+        strugglingIndicators: data.strugglingIndicators ?? strugglingIndicators
+      });
+
+      if (!response.data.success) {
+        console.error('Failed to update session progress');
+      }
+    } catch (error) {
+      console.error('Failed to update session progress:', error);
+    }
+  }, [sessionId, engagementScore, interactionCount, pauseCount, seekCount, strugglingIndicators]);
+
   // Periodic updates to server
   useEffect(() => {
     if (!isTracking || !sessionId) return;
@@ -96,7 +133,23 @@ export function useLearningSession(): LearningSessionHook {
     };
   }, [isTracking, sessionId, engagementScore, interactionCount, pauseCount, seekCount, strugglingIndicators, updateProgress]);
 
-  const startSession = async (courseId: string, chapterId?: string) => {
+  const startSession = useCallback(async (courseId: string, chapterId?: string) => {
+    // Skip API calls if disabled
+    if (!ENABLE_SESSION_API_CALLS) {
+      console.log('[Learning Session] API calls disabled - using mock session');
+      // Use mock session ID
+      setSessionId('mock-session-' + Date.now());
+      setIsTracking(true);
+      
+      // Reset all counters
+      setEngagementScore(100);
+      setInteractionCount(0);
+      setPauseCount(0);
+      setSeekCount(0);
+      setStrugglingIndicators([]);
+      return;
+    }
+
     try {
       const response = await axios.post('/api/progress/sessions', {
         courseId,
@@ -119,48 +172,28 @@ export function useLearningSession(): LearningSessionHook {
     } catch (error) {
       console.error('Failed to start learning session:', error);
     }
-  };
+  }, []);
 
-  const updateProgress = async (data: {
-    completionPercentage?: number;
-    engagementScore?: number;
-    interactionCount?: number;
-    pauseCount?: number;
-    seekCount?: number;
-    strugglingIndicators?: string[];
-  }) => {
+  const endSession = useCallback(async (finalData?: any) => {
     if (!sessionId) return;
 
-    try {
-      const response = await axios.patch(`/api/progress/sessions/${sessionId}`, {
-        ...data,
-        engagementScore: data.engagementScore ?? engagementScore,
-        interactionCount: data.interactionCount ?? interactionCount,
-        pauseCount: data.pauseCount ?? pauseCount,
-        seekCount: data.seekCount ?? seekCount,
-        strugglingIndicators: data.strugglingIndicators ?? strugglingIndicators
-      });
-
-      if (!response.data.success) {
-        console.error('Failed to update session progress');
-      }
-    } catch (error) {
-      console.error('Failed to update session progress:', error);
+    // Clear timers
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
     }
-  };
+    if (periodicUpdateRef.current) {
+      clearInterval(periodicUpdateRef.current);
+    }
 
-  const endSession = async (finalData?: any) => {
-    if (!sessionId) return;
+    // Skip API calls if disabled
+    if (!ENABLE_SESSION_API_CALLS) {
+      console.log('[Learning Session] API calls disabled - ending mock session');
+      setSessionId(null);
+      setIsTracking(false);
+      return;
+    }
 
     try {
-      // Clear timers
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-      if (periodicUpdateRef.current) {
-        clearInterval(periodicUpdateRef.current);
-      }
-
       const response = await axios.delete(`/api/progress/sessions/${sessionId}`, {
         data: {
           finalData: {
@@ -182,27 +215,27 @@ export function useLearningSession(): LearningSessionHook {
     } catch (error) {
       console.error('Failed to end learning session:', error);
     }
-  };
+  }, [sessionId, engagementScore, interactionCount, pauseCount, seekCount, strugglingIndicators]);
 
-  const recordInteraction = () => {
+  const recordInteraction = useCallback(() => {
     setInteractionCount(prev => prev + 1);
     
     // Positive interaction boosts engagement slightly
     setEngagementScore(prev => Math.min(100, prev + 1));
     
     lastActivityRef.current = new Date();
-  };
+  }, []);
 
-  const recordPause = () => {
+  const recordPause = useCallback(() => {
     setPauseCount(prev => prev + 1);
     
     // Too many pauses indicate confusion or difficulty
     if (pauseCount > 5) {
       setEngagementScore(prev => Math.max(0, prev - 5));
     }
-  };
+  }, [pauseCount]);
 
-  const recordSeek = () => {
+  const recordSeek = useCallback(() => {
     setSeekCount(prev => prev + 1);
     
     // Excessive seeking might indicate confusion
@@ -216,9 +249,9 @@ export function useLearningSession(): LearningSessionHook {
           : [...prev, 'excessive_seeking']
       );
     }
-  };
+  }, [seekCount]);
 
-  const markStruggling = (indicators: string[]) => {
+  const markStruggling = useCallback((indicators: string[]) => {
     setStrugglingIndicators(prev => {
       const newIndicators = [...prev];
       indicators.forEach(indicator => {
@@ -231,7 +264,7 @@ export function useLearningSession(): LearningSessionHook {
     
     // Significantly reduce engagement score when struggling
     setEngagementScore(prev => Math.max(0, prev - 20));
-  };
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {

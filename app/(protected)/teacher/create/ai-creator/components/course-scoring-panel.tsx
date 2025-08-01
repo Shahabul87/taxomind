@@ -168,7 +168,7 @@ export function CourseScoringPanel({ formData, onUpdateFormData, className }: Co
     } finally {
       setIsGeneratingTitles(false);
     }
-  }, [formData.courseTitle, formData.courseShortOverview, formData.courseCategory, formData.courseSubcategory, formData.courseIntent, formData.targetAudience, isGeneratingTitles]);
+  }, [formData.courseTitle, formData.courseCategory, formData.courseIntent, formData.targetAudience, isGeneratingTitles]);
 
   // Generate overview suggestions with web search using SAM AI Tutor
   const generateOverviewSuggestions = useCallback(async () => {
@@ -360,7 +360,7 @@ Make each overview unique, highlighting different aspects and benefits of the co
     } finally {
       setIsGeneratingOverviews(false);
     }
-  }, [formData.courseTitle, formData.courseShortOverview, formData.courseCategory, formData.courseSubcategory, formData.courseIntent, formData.targetAudience, isGeneratingOverviews]);
+  }, [formData.courseTitle, formData.courseCategory, formData.courseIntent, formData.targetAudience, isGeneratingOverviews]);
 
   const copyTitle = (title: string) => {
     onUpdateFormData((prev: any) => ({ ...prev, courseTitle: title }));

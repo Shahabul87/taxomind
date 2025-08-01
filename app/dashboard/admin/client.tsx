@@ -37,6 +37,9 @@ import {
   ClientAreaChart
 } from "@/components/charts/client-charts";
 
+// Enterprise Intelligence Dashboard
+import { EnterpriseIntelligenceDashboard } from "@/components/admin/enterprise-intelligence-dashboard";
+
 export function ClientAdminDashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -154,10 +157,11 @@ export function ClientAdminDashboard() {
       </div>
       
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-11">
+        <TabsList className="grid w-full grid-cols-4 h-11">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="content">Content</TabsTrigger>
+          <TabsTrigger value="enterprise">Enterprise Intelligence</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-4">
@@ -421,6 +425,10 @@ export function ClientAdminDashboard() {
               )}
             </div>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="enterprise" className="space-y-4">
+          <EnterpriseIntelligenceDashboard />
         </TabsContent>
       </Tabs>
     </div>

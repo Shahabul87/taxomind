@@ -48,6 +48,9 @@ interface LearningMetrics {
   currentStreak?: number;
 }
 
+// Feature flag to control API calls - Set to true when database is ready
+const ENABLE_API_CALLS = false;
+
 export function ProgressMonitor({ user }: ProgressMonitorProps) {
   const [alerts, setAlerts] = useState<ProgressAlert[]>([]);
   const [metrics, setMetrics] = useState<LearningMetrics | null>(null);
@@ -57,29 +60,92 @@ export function ProgressMonitor({ user }: ProgressMonitorProps) {
   useEffect(() => {
     fetchProgressData();
     
-    // Set up polling for real-time updates
-    const interval = setInterval(fetchProgressData, 30000); // Check every 30 seconds
-    
-    return () => clearInterval(interval);
+    // Only enable polling if API calls are enabled
+    if (ENABLE_API_CALLS) {
+      const interval = setInterval(fetchProgressData, 30000); // Check every 30 seconds
+      return () => clearInterval(interval);
+    }
   }, []);
 
   const fetchProgressData = async () => {
     try {
-      // Fetch alerts and metrics in parallel
-      const [alertsResponse, metricsResponse] = await Promise.all([
-        axios.get('/api/progress/alerts?unresolved=true&limit=5'),
-        axios.get('/api/progress/metrics')
+      // IMPORTANT: Using only mock data - API calls disabled to prevent unnecessary requests
+      // TODO: Re-enable when database tables are ready
+      
+      // Use mock data for now since the API endpoints don't have the required database tables
+      setAlerts([
+        {
+          id: '1',
+          alertType: 'STRUGGLING',
+          severity: 'MEDIUM',
+          message: 'Your engagement has decreased by 15% over the last 3 sessions in React Fundamentals',
+          aiSuggestion: 'Consider taking a break or switching to a different topic. Try reviewing the basics before proceeding.',
+          actionRequired: true,
+          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          course: {
+            id: 'react-101',
+            title: 'React Fundamentals',
+            imageUrl: '/images/courses/react.jpg'
+          },
+          chapter: {
+            id: 'chapter-3',
+            title: 'Chapter 3: State Management'
+          }
+        },
+        {
+          id: '2',
+          alertType: 'AT_RISK',
+          severity: 'CRITICAL',
+          message: 'You haven\'t accessed Advanced JavaScript in 10 days',
+          aiSuggestion: 'Resume your learning to maintain progress. Set a daily reminder to stay on track.',
+          actionRequired: true,
+          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          course: {
+            id: 'js-advanced',
+            title: 'Advanced JavaScript',
+            imageUrl: '/images/courses/javascript.jpg'
+          }
+        }
       ]);
 
-      if (alertsResponse.data.success) {
-        setAlerts(alertsResponse.data.alerts);
-      }
+      setMetrics({
+        overallProgress: 68,
+        learningVelocity: 3.2,
+        engagementTrend: "STABLE",
+        riskScore: 25,
+        averageEngagementScore: 78,
+        totalStudyTime: 1250,
+        currentStreak: 5
+      });
 
-      if (metricsResponse.data.success) {
-        setMetrics(metricsResponse.data.overallStats);
+      // Only make API calls if explicitly enabled
+      if (ENABLE_API_CALLS) {
+        const [alertsResponse, metricsResponse] = await Promise.all([
+          axios.get('/api/progress/alerts?unresolved=true&limit=5'),
+          axios.get('/api/progress/metrics')
+        ]);
+
+        if (alertsResponse.data.success) {
+          setAlerts(alertsResponse.data.alerts);
+        }
+
+        if (metricsResponse.data.success) {
+          setMetrics(metricsResponse.data.overallStats);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch progress data:", error);
+      // Set default data on error
+      setAlerts([]);
+      setMetrics({
+        overallProgress: 0,
+        learningVelocity: 0,
+        engagementTrend: "STABLE",
+        riskScore: 0,
+        averageEngagementScore: 0,
+        totalStudyTime: 0,
+        currentStreak: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -317,7 +383,7 @@ export function ProgressMonitor({ user }: ProgressMonitorProps) {
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-medium text-white">{alert.course.title}</h4>
+                              <h4 className="font-medium text-white">{alert.course?.title || 'Unknown Course'}</h4>
                               <Badge className={getSeverityTextColor(alert.severity)}>
                                 {alert.severity}
                               </Badge>

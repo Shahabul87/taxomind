@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Taxomind** is an intelligent learning management system (LMS) built with Next.js 15, featuring AI-powered adaptive learning, real-time analytics, and enterprise-grade security. The platform supports multiple learning paths with role-based access control for students, teachers, and administrators.
 
+IMPORTANT: Always check build errors, lint error, unescaped entities errors, terminal errors after generating code
+
 ## Essential Development Commands
 
 ### Core Development
@@ -199,6 +201,49 @@ const courses = await db.course.findMany({
 - **Test Types**: Unit, integration, and e2e testing support
 - **Coverage**: 70% minimum threshold for branches, functions, lines, statements
 - **Path Mapping**: Matches application path aliases
+
+## Lucide React Icon Import Best Practices
+
+### ✅ CORRECT Icon Names
+When importing icons from lucide-react, ensure you use the correct icon names:
+```typescript
+// ✅ Correct icon names
+import { 
+  BarChart3,    // NOT ChartBar
+  Shield,       // Available icon
+  X,            // Available icon
+  Brain,        // Available icon
+  // ... other icons
+} from 'lucide-react';
+```
+
+### ❌ Common Icon Name Mistakes
+```typescript
+// ❌ These icon names don't exist in lucide-react
+ChartBar     // Use BarChart3 instead
+ChartLine    // Use LineChart instead
+BarGraph     // Use BarChart3 instead
+```
+
+### 📋 Icon Import Checklist
+1. **Always verify icon names**: Check lucide.dev for the exact icon name
+2. **Import all used icons**: Ensure every icon used in JSX is imported
+3. **Use consistent naming**: Follow the exact casing from lucide-react
+4. **Group imports**: Keep all lucide-react imports together
+
+### Example of Complete Icon Import
+```typescript
+import { 
+  Activity, 
+  ArrowRight,
+  BarChart3,     // For bar charts
+  Brain,         // For AI/intelligence features
+  CheckCircle2,  // For success states
+  Shield,        // For security/protection
+  X,             // For close/cancel actions
+  Zap            // For quick actions
+} from 'lucide-react';
+```
 
 ## Common Development Patterns
 

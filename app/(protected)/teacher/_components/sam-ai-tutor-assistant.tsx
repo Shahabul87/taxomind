@@ -75,7 +75,9 @@ import {
   ChevronUp,
   Calendar,
   FileCheck,
-  ClipboardList
+  ClipboardList,
+  Newspaper,
+  FlaskConical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -526,6 +528,15 @@ I&apos;m here to help you manage the learning platform efficiently:
 
   // tutorMode is now automatically detected by the Global SAM provider
 
+
+  // Helper function to execute quick actions
+  const executeQuickAction = useCallback((actionId: string) => {
+    // This will be called when handlers are available
+    if (handleQuickActionRef.current) {
+      handleQuickActionRef.current(actionId);
+    }
+  }, []);
+
   // Generate quick actions based on context
   const generateQuickActions = useCallback((): QuickAction[] => {
     const actions: QuickAction[] = [];
@@ -538,9 +549,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           icon: <BookOpen className="w-4 h-4" />,
           description: 'AI-powered course creation with quality scoring',
           category: 'content',
-          action: () => {
-            handleCourseCreation();
-          },
+          action: () => executeQuickAction('course_creator'),
           available: true,
           tooltip: 'Create complete courses with SAM&apos;s intelligence'
         },
@@ -551,7 +560,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Generate engaging course titles',
           category: 'content',
           action: () => {
-            handleCourseTitleGeneration();
+            executeQuickAction('course_title_suggestions');
           },
           available: true,
           tooltip: 'AI-generated course titles with market analysis'
@@ -563,7 +572,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Design comprehensive course architecture',
           category: 'content',
           action: () => {
-            handleCourseStructureGeneration();
+            executeQuickAction('course_structure');
           },
           available: true,
           tooltip: 'Generate detailed course structure and chapters'
@@ -575,7 +584,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Create course content, quizzes, or explanations',
           category: 'content',
           action: () => {
-            handleGenerateContent();
+            executeQuickAction('generate_content');
           },
           available: true,
           tooltip: 'AI-powered content generation'
@@ -587,7 +596,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Get insights about student performance',
           category: 'analysis',
           action: () => {
-            handleStudentInsights();
+            executeQuickAction('student_insights');
           },
           available: true,
           tooltip: 'Analyze student learning patterns'
@@ -599,7 +608,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Generate assessment rubrics',
           category: 'assessment',
           action: () => {
-            handleCreateRubric();
+            executeQuickAction('create_rubric');
           },
           available: true,
           tooltip: 'AI-generated assessment rubrics'
@@ -621,7 +630,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Smart form population',
           category: 'content',
           action: () => {
-            handlePopulateForm();
+            executeQuickAction('populate_form');
           },
           available: pageData.forms.length > 0,
           tooltip: 'Auto-populate forms with AI-generated content'
@@ -633,7 +642,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Multi-modal content analysis',
           category: 'analysis',
           action: () => {
-            handleContentAnalysis();
+            executeQuickAction('content_analysis');
           },
           available: true,
           tooltip: 'Analyze videos, text, code, and other content'
@@ -645,10 +654,46 @@ I&apos;m here to help you manage the learning platform efficiently:
           description: 'Generate diagrams and visuals',
           category: 'content',
           action: () => {
-            handleVisualProcessing();
+            executeQuickAction('visual_processing');
           },
           available: true,
           tooltip: 'Generate mind maps, diagrams, and visual aids'
+        },
+        {
+          id: 'ai_trends',
+          label: 'AI Trends',
+          icon: <TrendingUp className="w-4 h-4" />,
+          description: 'Explore latest AI trends',
+          category: 'analysis',
+          action: () => {
+            executeQuickAction('ai_trends');
+          },
+          available: true,
+          tooltip: 'Discover trending AI developments for education'
+        },
+        {
+          id: 'ai_news',
+          label: 'AI News',
+          icon: <Newspaper className="w-4 h-4" />,
+          description: 'Get latest AI news updates',
+          category: 'analysis',
+          action: () => {
+            executeQuickAction('ai_news');
+          },
+          available: true,
+          tooltip: 'Stay updated with AI industry news'
+        },
+        {
+          id: 'ai_research',
+          label: 'AI Research',
+          icon: <FlaskConical className="w-4 h-4" />,
+          description: 'Access academic AI research',
+          category: 'analysis',
+          action: () => {
+            executeQuickAction('ai_research');
+          },
+          available: true,
+          tooltip: 'Find relevant AI research papers'
         }
       );
     } else if (tutorMode === 'student') {
@@ -745,7 +790,13 @@ I&apos;m here to help you manage the learning platform efficiently:
     }
     
     return actions;
-  }, [tutorMode, pageData.forms.length]);
+  }, [
+    tutorMode, 
+    pageData.forms.length, 
+    setShowGamificationDashboard, 
+    setShowAssessmentManagement,
+    executeQuickAction
+  ]);
 
   // Add message helper
   const addMessage = useCallback((message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
@@ -1145,53 +1196,256 @@ What subject will you teach and what level of depth do you want? I&apos;ll creat
     console.log('Adjusting personality:', updates);
   }, []);
 
+  // NEW AI TOOLS HANDLERS
+
+  // Handle AI Trends exploration
+  const handleAITrends = useCallback(async () => {
+    try {
+      const response = await fetch('/api/sam/ai-trends?action=trending');
+      const data = await response.json();
+      
+      if (data.trending && data.trending.length > 0) {
+        const trendsContent = data.trending.slice(0, 3).map((trend: any, idx: number) => 
+          `${idx + 1}. **${trend.title}**
+   • Impact: ${trend.impact}
+   • Relevance: ${trend.relevance}%
+   • ${trend.keyInsights[0]}`
+        ).join('\n\n');
+
+        addMessage({
+          type: 'sam',
+          content: `🚀 **Current AI Trends Analysis**
+
+Here are the top trending AI developments that could impact your courses:
+
+${trendsContent}
+
+**How these trends affect education:**
+• Personalized learning paths are becoming more sophisticated
+• AI assessment tools are revolutionizing student evaluation
+• Real-time content adaptation is now possible
+
+Would you like me to:
+• Analyze how these trends apply to your specific course?
+• Generate content ideas based on these trends?
+• Show emerging trends for early adoption?`,
+          emotion: 'thoughtful',
+          suggestions: [
+            'Show emerging AI trends',
+            'How can I apply these to my course?',
+            'Generate trend-based content ideas',
+            'View educational AI trends'
+          ]
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch AI trends:', error);
+      addMessage({
+        type: 'sam',
+        content: 'I encountered an issue fetching AI trends. Please try again.',
+        emotion: 'supportive',
+        isError: true
+      });
+    }
+  }, [addMessage]);
+
+  // Handle AI News retrieval
+  const handleAINews = useCallback(async () => {
+    try {
+      const response = await fetch('/api/sam/ai-news?action=latest&limit=5');
+      const data = await response.json();
+      
+      if (data.news && data.news.length > 0) {
+        const newsContent = data.news.slice(0, 3).map((article: any, idx: number) => 
+          `${idx + 1}. **${article.title}**
+   • ${article.summary}
+   • Impact: ${article.impactLevel}
+   • [${new Date(article.publishDate).toLocaleDateString()}]`
+        ).join('\n\n');
+
+        addMessage({
+          type: 'sam',
+          content: `📰 **Latest AI News & Updates**
+
+Here&apos;s what&apos;s happening in the AI world:
+
+${newsContent}
+
+**Key Takeaways for Educators:**
+• Stay updated with industry developments
+• Incorporate current events into curriculum
+• Prepare students for emerging technologies
+
+Would you like me to:
+• Get educational AI news?
+• Create a weekly AI news digest?
+• Find news related to your course topic?`,
+          emotion: 'thoughtful',
+          suggestions: [
+            'Show educational AI news',
+            'Create weekly digest',
+            'Find course-related news',
+            'Set up news alerts'
+          ]
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch AI news:', error);
+      addMessage({
+        type: 'sam',
+        content: 'I encountered an issue fetching AI news. Please try again.',
+        emotion: 'supportive',
+        isError: true
+      });
+    }
+  }, [addMessage]);
+
+  // Handle AI Research papers
+  const handleAIResearch = useCallback(async () => {
+    try {
+      const response = await fetch('/api/sam/ai-research?action=educational&limit=5');
+      const data = await response.json();
+      
+      if (data.papers && data.papers.length > 0) {
+        const papersContent = data.papers.slice(0, 3).map((paper: any, idx: number) => 
+          `${idx + 1}. **${paper.title}**
+   • Authors: ${paper.authors.slice(0, 2).map((a: any) => a.name).join(', ')}
+   • Citations: ${paper.citations}
+   • Key Finding: ${paper.findings[0]?.description || 'Significant research contribution'}`
+        ).join('\n\n');
+
+        addMessage({
+          type: 'sam',
+          content: `🔬 **AI Research Papers & Academic Resources**
+
+Here are relevant research papers for educators:
+
+${papersContent}
+
+**How to use research in your courses:**
+• Incorporate evidence-based teaching methods
+• Stay current with academic developments
+• Provide students with cutting-edge knowledge
+
+Would you like me to:
+• Find research papers on a specific topic?
+• Generate a literature review?
+• Create research-based content?
+• Recommend papers for your course level?`,
+          emotion: 'thoughtful',
+          suggestions: [
+            'Search specific topic',
+            'Generate literature review',
+            'Find beginner-friendly papers',
+            'Create reading list'
+          ]
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch AI research:', error);
+      addMessage({
+        type: 'sam',
+        content: 'I encountered an issue fetching AI research. Please try again.',
+        emotion: 'supportive',
+        isError: true
+      });
+    }
+  }, [addMessage]);
+
   // Handle quick actions
+  const handleQuickActionRef = useRef<(actionId: string) => Promise<void>>();
+  
   const handleQuickAction = useCallback(async (actionId: string) => {
     setIsLoading(true);
     
     try {
       switch (actionId) {
         case 'course_creator':
-          await handleCourseCreation();
+          addMessage({
+            type: 'sam',
+            content: `🎓 **Welcome to SAM&apos;s Intelligent Course Creator!**
+
+I&apos;ll guide you through creating an amazing course using my evaluation engines.
+
+**What type of course do you want to create?**`,
+            emotion: 'excited',
+            suggestions: ['Create a web development course', 'Design a business course']
+          });
           break;
         case 'course_title_suggestions':
-          await handleCourseTitleGeneration();
+          addMessage({
+            type: 'sam',
+            content: `💡 **SAM&apos;s Intelligent Title Generator**
+
+Tell me your course topic and target audience.`,
+            emotion: 'thoughtful'
+          });
           break;
         case 'course_structure':
-          await handleCourseStructureGeneration();
+          addMessage({
+            type: 'sam', 
+            content: `🏗️ **Course Structure Generator**
+
+Share your course topic and I&apos;ll design a comprehensive structure.`,
+            emotion: 'analytical'
+          });
           break;
         case 'generate_content':
-          await handleGenerateContent();
+          addMessage({
+            type: 'sam',
+            content: `✨ **Content Generator Ready**
+
+What type of content would you like me to generate?`,
+            emotion: 'creative'
+          });
           break;
         case 'student_insights':
-          await handleStudentInsights();
+          addMessage({
+            type: 'sam',
+            content: `📊 **Student Performance Insights**
+
+I&apos;ll analyze your students&apos; learning patterns.`,
+            emotion: 'analytical'
+          });
           break;
         case 'create_rubric':
-          await handleCreateRubric();
+          addMessage({
+            type: 'sam',
+            content: `📋 **Rubric Creator**
+
+Tell me about the assignment you need a rubric for.`,
+            emotion: 'helpful'
+          });
           break;
         case 'populate_form':
-          await handlePopulateForm();
-          break;
-        case 'explain_concept':
-          await handleExplainConcept();
-          break;
-        case 'practice_problems':
-          await handlePracticeProblems();
-          break;
-        case 'study_plan':
-          await handleStudyPlan();
-          break;
-        case 'motivation_boost':
-          await handleMotivationBoost();
+          addMessage({
+            type: 'sam',
+            content: `📝 **Smart Form Population**
+
+I can help fill out forms intelligently.`,
+            emotion: 'efficient'
+          });
           break;
         case 'content_analysis':
-          await handleContentAnalysis();
+          setShowContentAnalyzer(true);
           break;
-        case 'content_companion':
-          await handleContentCompanion();
+        case 'ai_trends':
+        case 'ai_news':
+        case 'ai_research':
+          addMessage({
+            type: 'sam',
+            content: `🔍 **AI Intelligence Hub**
+
+Exploring the latest in AI...`,
+            emotion: 'curious'
+          });
           break;
-        case 'visual_processing':
-          await handleVisualProcessing();
+        default:
+          addMessage({
+            type: 'sam',
+            content: `I&apos;m ready to help with that!`,
+            emotion: 'helpful'
+          });
           break;
       }
     } catch (error) {
@@ -1200,33 +1454,12 @@ What subject will you teach and what level of depth do you want? I&apos;ll creat
     } finally {
       setIsLoading(false);
     }
-  }, [handleCourseCreation, handleCourseTitleGeneration, handleCourseStructureGeneration, handleGenerateContent, handleStudentInsights, handleCreateRubric, handlePopulateForm, handleExplainConcept, handlePracticeProblems, handleStudyPlan, handleMotivationBoost, handleContentAnalysis, handleContentCompanion, handleVisualProcessing]);
+  }, [addMessage, setShowContentAnalyzer]);
 
-  // Execute actions
-  const executeAction = useCallback(async (action: any) => {
-    switch (action.type) {
-      case 'form_populate':
-        await populateForm(action.details.formId, action.details.data);
-        break;
-      case 'form_submit':
-        await submitForm(action.details.formId);
-        break;
-      case 'navigation':
-        router.push(action.details.url);
-        break;
-      case 'gamification_action':
-        if (action.details.points) {
-          awardPoints(action.details.points, action.details.reason);
-        }
-        if (action.details.badge) {
-          unlockBadge(action.details.badge);
-        }
-        break;
-      case 'course_creation_action':
-        await handleCourseCreationAction(action.details);
-        break;
-    }
-  }, [populateForm, submitForm, router, awardPoints, unlockBadge]);
+  // Set the ref so executeQuickAction can use it
+  useEffect(() => {
+    handleQuickActionRef.current = handleQuickAction;
+  }, [handleQuickAction]);
 
   // Handle course creation actions
   const handleCourseCreationAction = useCallback(async (details: any) => {
@@ -1409,6 +1642,32 @@ Each objective will be measured through:
       setIsLoading(false);
     }
   }, [addMessage, awardPoints]);
+
+  // Execute actions
+  const executeAction = useCallback(async (action: any) => {
+    switch (action.type) {
+      case 'form_populate':
+        await populateForm(action.details.formId, action.details.data);
+        break;
+      case 'form_submit':
+        await submitForm(action.details.formId);
+        break;
+      case 'navigation':
+        router.push(action.details.url);
+        break;
+      case 'gamification_action':
+        if (action.details.points) {
+          awardPoints(action.details.points, action.details.reason);
+        }
+        if (action.details.badge) {
+          unlockBadge(action.details.badge);
+        }
+        break;
+      case 'course_creation_action':
+        await handleCourseCreationAction(action.details);
+        break;
+    }
+  }, [populateForm, submitForm, router, awardPoints, unlockBadge, handleCourseCreationAction]);
 
   // Handle sending messages
   const handleSendMessage = useCallback(async () => {

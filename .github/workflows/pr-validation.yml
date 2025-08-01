@@ -1,0 +1,186 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, dev]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Check PR title and description
+  pr-metadata:
+    name: Validate PR Metadata
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check PR title format
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+          
+      - name: Check PR size
+        uses: CodelyTV/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_label: 'size/XS'
+          xs_max_size: 10
+          s_label: 'size/S'
+          s_max_size: 100
+          m_label: 'size/M'
+          m_max_size: 500
+          l_label: 'size/L'
+          l_max_size: 1000
+          xl_label: 'size/XL'
+
+  # Run all quality checks
+  quality-checks:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Check code formatting
+        run: |
+          npx prettier --check "**/*.{js,jsx,ts,tsx,md,json}"
+        continue-on-error: true
+        
+      - name: Run ESLint
+        run: npm run lint -- --max-warnings=0
+        
+      - name: Check for console.log statements
+        run: |
+          if grep -r "console\.log" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --exclude-dir=node_modules --exclude-dir=.next .; then
+            echo "::warning::Found console.log statements. Please remove them before merging."
+          fi
+        continue-on-error: true
+        
+      - name: Check bundle size
+        run: |
+          npm run build
+          echo "Build successful. Checking bundle size..."
+          # Add bundle size checking logic here if needed
+
+  # Database schema validation
+  database-validation:
+    name: Validate Database Schema
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Validate Prisma schema
+        run: npx prisma validate
+        
+      - name: Check for pending migrations
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+        run: |
+          npx prisma generate
+          npx prisma db push --skip-generate
+          
+  # Comment on PR with check results
+  pr-comment:
+    name: PR Status Comment
+    runs-on: ubuntu-latest
+    needs: [pr-metadata, quality-checks, database-validation]
+    if: always()
+    
+    steps:
+      - name: Comment PR status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('## PR Validation Report')
+            );
+            
+            const body = `## PR Validation Report
+            
+            | Check | Status |
+            |-------|--------|
+            | PR Metadata | ${{ needs.pr-metadata.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            | Code Quality | ${{ needs.quality-checks.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            | Database Schema | ${{ needs.database-validation.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            
+            ---
+            _Last updated: ${new Date().toISOString()}_`;
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }

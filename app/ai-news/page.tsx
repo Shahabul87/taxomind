@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Newspaper, 
@@ -30,29 +30,41 @@ import {
   Pause,
   Volume2,
   Download,
-  MoreHorizontal
+  MoreHorizontal,
+  Award,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 interface NewsArticle {
-  id: string;
+  articleId: string;
   title: string;
   summary: string;
   content: string;
-  source: string;
-  author: string;
-  publishedAt: Date;
-  category: 'Breaking' | 'Research' | 'Industry' | 'Technology' | 'Education' | 'Policy';
+  articleUrl: string;
+  source: {
+    name: string;
+    url: string;
+  };
+  author?: string;
+  publishDate: Date;
+  category: string;
   tags: string[];
-  readTime: number;
-  views: number;
-  likes: number;
-  comments: number;
-  importance: 'Critical' | 'High' | 'Medium' | 'Low';
-  imageUrl?: string;
-  isBookmarked: boolean;
-  isLiked: boolean;
+  readingTime: number;
+  relevanceScore: number;
+  impactLevel: 'critical' | 'high' | 'medium' | 'low';
+  images?: {
+    url: string;
+    caption: string;
+  }[];
+  isBookmarked?: boolean;
+  isLiked?: boolean;
+  // Ranking properties
+  rankingScore?: number;
+  trendingStatus?: 'hot' | 'rising' | 'steady' | 'new';
+  qualityBadges?: string[];
 }
 
 interface NewsCategory {
@@ -67,102 +79,71 @@ export default function AINewsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedImportance, setSelectedImportance] = useState<string>('all');
-  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
+  const [isAutoRefresh, setIsAutoRefresh] = useState(false); // Manual refresh by default
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [useRealData, setUseRealData] = useState(false); // Toggle for real/demo data
 
-  const newsArticles: NewsArticle[] = [
-    {
-      id: '1',
-      title: 'OpenAI Announces Revolutionary GPT-5 with Enhanced Educational Capabilities',
-      summary: 'Latest language model promises unprecedented personalization in learning experiences with advanced reasoning capabilities.',
-      content: 'OpenAI today unveiled GPT-5, featuring groundbreaking improvements in educational applications...',
-      source: 'TechCrunch',
-      author: 'Sarah Johnson',
-      publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      category: 'Breaking',
-      tags: ['OpenAI', 'GPT-5', 'Education AI', 'LLM'],
-      readTime: 5,
-      views: 12547,
-      likes: 892,
-      comments: 156,
-      importance: 'Critical',
-      imageUrl: '/placeholder.svg',
-      isBookmarked: false,
-      isLiked: false
-    },
-    {
-      id: '2',
-      title: 'Stanford Research: AI Tutors Improve Student Performance by 40%',
-      summary: 'Comprehensive study shows significant learning gains when AI tutoring systems are integrated into traditional education.',
-      content: 'A groundbreaking study from Stanford University reveals that students using AI tutoring systems...',
-      source: 'Nature Education',
-      author: 'Dr. Michael Chen',
-      publishedAt: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-      category: 'Research',
-      tags: ['Stanford', 'AI Tutoring', 'Education Research', 'Performance'],
-      readTime: 8,
-      views: 8934,
-      likes: 567,
-      comments: 89,
-      importance: 'High',
-      isBookmarked: true,
-      isLiked: true
-    },
-    {
-      id: '3',
-      title: 'Microsoft Copilot for Education Reaches 10 Million Students Worldwide',
-      summary: 'Enterprise AI assistant adapted for educational environments shows massive adoption across global institutions.',
-      content: 'Microsoft announced that its Copilot for Education platform has reached a significant milestone...',
-      source: 'EdTech Weekly',
-      author: 'Jennifer Martinez',
-      publishedAt: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
-      category: 'Industry',
-      tags: ['Microsoft', 'Copilot', 'EdTech', 'Adoption'],
-      readTime: 4,
-      views: 6782,
-      likes: 423,
-      comments: 67,
-      importance: 'High',
-      isBookmarked: false,
-      isLiked: false
-    },
-    {
-      id: '4',
-      title: 'EU Proposes New AI Regulations for Educational Technology',
-      summary: 'European Union drafts comprehensive guidelines for AI use in education, focusing on privacy and ethical considerations.',
-      content: 'The European Union has released a draft proposal for regulating AI in educational settings...',
-      source: 'Reuters',
-      author: 'Hans Weber',
-      publishedAt: new Date(Date.now() - 18 * 60 * 60 * 1000), // 18 hours ago
-      category: 'Policy',
-      tags: ['EU', 'Regulation', 'AI Ethics', 'Privacy'],
-      readTime: 6,
-      views: 5234,
-      likes: 312,
-      comments: 45,
-      importance: 'Medium',
-      isBookmarked: false,
-      isLiked: false
-    },
-    {
-      id: '5',
-      title: 'Neural Networks Breakthrough: Understanding How Students Learn',
-      summary: 'New research uses advanced neural networks to decode learning patterns and optimize educational content delivery.',
-      content: 'Researchers at MIT have developed a novel neural network architecture that can analyze...',
-      source: 'MIT Technology Review',
-      author: 'Dr. Lisa Park',
-      publishedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-      category: 'Technology',
-      tags: ['Neural Networks', 'Learning Science', 'MIT', 'Optimization'],
-      readTime: 7,
-      views: 4156,
-      likes: 278,
-      comments: 34,
-      importance: 'Medium',
-      isBookmarked: true,
-      isLiked: false
+  // Fetch news from API
+  const fetchNews = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Set environment variable for real data if toggled
+      if (useRealData && typeof window !== 'undefined') {
+        localStorage.setItem('useRealNews', 'true');
+      } else if (typeof window !== 'undefined') {
+        localStorage.removeItem('useRealNews');
+      }
+      
+      const response = await fetch(`/api/sam/ai-news${useRealData ? '?realtime=true' : ''}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch news');
+      }
+      
+      const data = await response.json();
+      setNewsArticles(data.news || []);
+      setLastUpdated(new Date());
+      
+      // Update the real data toggle based on response
+      if (data.source === 'real') {
+        setUseRealData(true);
+      }
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      setError('Failed to load news. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  }, [useRealData]);
+
+  // Fetch news on mount and when auto-refresh is enabled
+  useEffect(() => {
+    fetchNews();
+    
+    // Auto-refresh every 5 minutes
+    if (isAutoRefresh) {
+      const interval = setInterval(fetchNews, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isAutoRefresh, fetchNews]);
+
+  // Category mappings for display
+  const categoryMappings: Record<string, string> = {
+    'breakthrough': 'Breaking',
+    'research': 'Research', 
+    'industry': 'Industry',
+    'product-launch': 'Technology',
+    'education': 'Education',
+    'policy': 'Policy',
+    'ethics': 'Ethics',
+    'startup': 'Startup',
+    'investment': 'Investment',
+    'partnership': 'Partnership'
+  };
 
   const newsCategories: NewsCategory[] = [
     { 
@@ -211,22 +192,23 @@ export default function AINewsPage() {
 
   const importanceOptions = [
     { value: 'all', label: 'All Importance' },
-    { value: 'Critical', label: 'Critical' },
-    { value: 'High', label: 'High' },
-    { value: 'Medium', label: 'Medium' },
-    { value: 'Low', label: 'Low' }
+    { value: 'critical', label: 'Critical' },
+    { value: 'high', label: 'High' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'low', label: 'Low' }
   ];
 
   const quickStats = [
-    { label: 'Today\'s Articles', value: '127', icon: Newspaper, color: 'text-blue-400' },
-    { label: 'Breaking News', value: '23', icon: AlertCircle, color: 'text-red-400' },
-    { label: 'Total Views', value: '2.4M', icon: Eye, color: 'text-emerald-400' },
-    { label: 'Active Sources', value: '89', icon: Globe, color: 'text-purple-400' }
+    { label: 'Today\'s Articles', value: newsArticles.length.toString(), icon: Newspaper, color: 'text-blue-400' },
+    { label: 'Breaking News', value: newsArticles.filter(a => a.category === 'breakthrough').length.toString(), icon: AlertCircle, color: 'text-red-400' },
+    { label: 'High Impact', value: newsArticles.filter(a => a.impactLevel === 'critical' || a.impactLevel === 'high').length.toString(), icon: TrendingUp, color: 'text-emerald-400' },
+    { label: 'News Sources', value: new Set(newsArticles.map(a => a.source.name)).size.toString(), icon: Globe, color: 'text-purple-400' }
   ];
 
   const filteredArticles = newsArticles.filter(article => {
-    const matchesCategory = selectedCategory === 'all' || article.category === selectedCategory;
-    const matchesImportance = selectedImportance === 'all' || article.importance === selectedImportance;
+    const displayCategory = categoryMappings[article.category] || article.category;
+    const matchesCategory = selectedCategory === 'all' || displayCategory === selectedCategory;
+    const matchesImportance = selectedImportance === 'all' || article.impactLevel === selectedImportance.toLowerCase();
     const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          article.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesImportance && matchesSearch;
@@ -234,10 +216,10 @@ export default function AINewsPage() {
 
   const getImportanceColor = (importance: string) => {
     switch (importance) {
-      case 'Critical': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'High': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-      case 'Medium': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'Low': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'critical': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'high': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+      case 'medium': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'low': return 'bg-green-500/20 text-green-400 border-green-500/30';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
@@ -366,6 +348,18 @@ export default function AINewsPage() {
               </div>
               
               <button
+                onClick={() => setUseRealData(!useRealData)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-xl border transition-colors ${
+                  useRealData 
+                    ? 'bg-emerald-600 border-emerald-500 text-white' 
+                    : 'bg-slate-800/50 border-slate-700 text-gray-400 hover:text-white'
+                }`}
+              >
+                {useRealData ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+                <span className="text-sm">{useRealData ? 'Real News' : 'Demo News'}</span>
+              </button>
+              
+              <button
                 onClick={() => setIsAutoRefresh(!isAutoRefresh)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-xl border transition-colors ${
                   isAutoRefresh 
@@ -377,6 +371,26 @@ export default function AINewsPage() {
                 <span className="text-sm">Auto-refresh</span>
               </button>
 
+              <Button 
+                onClick={fetchNews} 
+                variant="outline" 
+                size="sm" 
+                className="border-slate-700 text-gray-300"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-300 mr-2"></div>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    Refresh
+                  </>
+                )}
+              </Button>
+              
               <Button variant="outline" size="sm" className="border-slate-700 text-gray-300">
                 <Bell className="w-4 h-4 mr-2" />
                 Alerts
@@ -447,34 +461,86 @@ export default function AINewsPage() {
           {/* Main News Feed */}
           <div className="lg:col-span-3">
             <div className="space-y-6">
-              <AnimatePresence>
-                {filteredArticles.map((article, index) => (
-                  <motion.div
-                    key={article.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ delay: 0.1 * index }}
-                  >
-                    <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6 hover:bg-slate-800/60 transition-colors group cursor-pointer">
-                      <div className="flex items-start space-x-4">
-                        
-                        {/* Content */}
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <span className={`text-xs px-2 py-1 rounded-full border ${getImportanceColor(article.importance)}`}>
-                              {article.importance}
-                            </span>
-                            <span className="text-xs text-gray-400">{article.category}</span>
-                            <span className="text-xs text-gray-400">•</span>
-                            <span className="text-xs text-gray-400">{formatTimeAgo(article.publishedAt)}</span>
-                          </div>
+              {isLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading latest AI news...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">Error loading news</h3>
+                  <p className="text-gray-400 mb-4">{error}</p>
+                  <Button onClick={fetchNews} variant="outline" className="border-slate-700">
+                    Try Again
+                  </Button>
+                </div>
+              ) : (
+                <AnimatePresence>
+                  {filteredArticles.map((article, index) => (
+                    <motion.div
+                      key={article.articleId}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ delay: 0.1 * index }}
+                    >
+                      <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6 hover:bg-slate-800/60 transition-colors group">
+                        <div className="flex items-start space-x-4">
                           
-                          <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-blue-400 transition-colors">
-                            {article.title}
-                          </h3>
+                          {/* Content */}
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center space-x-3">
+                                {/* Trending indicator */}
+                                {article.trendingStatus === 'hot' && (
+                                  <span className="flex items-center space-x-1 text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                                    <Zap className="w-3 h-3" />
+                                    <span>HOT</span>
+                                  </span>
+                                )}
+                                {article.trendingStatus === 'rising' && (
+                                  <span className="flex items-center space-x-1 text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                    <TrendingUp className="w-3 h-3" />
+                                    <span>RISING</span>
+                                  </span>
+                                )}
+                                {article.trendingStatus === 'new' && (
+                                  <span className="flex items-center space-x-1 text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    <Sparkles className="w-3 h-3" />
+                                    <span>NEW</span>
+                                  </span>
+                                )}
+                                
+                                <span className={`text-xs px-2 py-1 rounded-full border ${getImportanceColor(article.impactLevel)}`}>
+                                  {article.impactLevel.toUpperCase()}
+                                </span>
+                                <span className="text-xs text-gray-400">{categoryMappings[article.category] || article.category}</span>
+                                <span className="text-xs text-gray-400">•</span>
+                                <span className="text-xs text-gray-400">{formatTimeAgo(new Date(article.publishDate))}</span>
+                              </div>
+                              
+                              {/* Ranking score */}
+                              {article.rankingScore && (
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs text-gray-500">Score:</span>
+                                  <span className="text-sm font-semibold text-emerald-400">{article.rankingScore}</span>
+                                </div>
+                              )}
+                            </div>
                           
-                          <p className="text-gray-300 mb-4 line-clamp-2">{article.summary}</p>
+                          <a 
+                            href={article.articleUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="block mb-3"
+                          >
+                            <h3 className="text-xl font-semibold text-white group-hover:text-blue-400 transition-colors">
+                              {article.title}
+                            </h3>
+                          </a>
+                          
+                          <p className="text-gray-300 mb-4 line-clamp-3">{article.summary}</p>
                           
                           <div className="flex flex-wrap gap-2 mb-4">
                             {article.tags.map((tag, tagIndex) => (
@@ -482,18 +548,34 @@ export default function AINewsPage() {
                                 #{tag}
                               </span>
                             ))}
+                            
+                            {/* Quality badges */}
+                            {article.qualityBadges && article.qualityBadges.map((badge, badgeIndex) => (
+                              <span key={`badge-${badgeIndex}`} className="flex items-center space-x-1 text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30">
+                                <Award className="w-3 h-3" />
+                                <span>{badge}</span>
+                              </span>
+                            ))}
                           </div>
                           
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4 text-sm text-gray-400">
-                              <span>{article.source}</span>
+                              <a 
+                                href={article.source.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="hover:text-blue-400 transition-colors"
+                              >
+                                {article.source.name}
+                              </a>
+                              {article.author && (
+                                <>
+                                  <span>•</span>
+                                  <span>{article.author}</span>
+                                </>
+                              )}
                               <span>•</span>
-                              <span>{article.readTime} min read</span>
-                              <span>•</span>
-                              <div className="flex items-center space-x-1">
-                                <Eye className="w-4 h-4" />
-                                <span>{article.views.toLocaleString()}</span>
-                              </div>
+                              <span>{article.readingTime} min read</span>
                             </div>
                             
                             <div className="flex items-center space-x-2">
@@ -510,9 +592,15 @@ export default function AINewsPage() {
                               <button className="p-2 rounded-lg hover:bg-slate-700 text-gray-400 transition-colors">
                                 <Share className="w-4 h-4" />
                               </button>
-                              <button className="p-2 rounded-lg hover:bg-slate-700 text-gray-400 transition-colors">
+                              <a 
+                                href={article.articleUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="p-2 rounded-lg hover:bg-slate-700 text-blue-400 transition-colors"
+                                title="Read full article"
+                              >
                                 <ExternalLink className="w-4 h-4" />
-                              </button>
+                              </a>
                             </div>
                           </div>
                         </div>
@@ -520,7 +608,8 @@ export default function AINewsPage() {
                     </Card>
                   </motion.div>
                 ))}
-              </AnimatePresence>
+                </AnimatePresence>
+              )}
 
               {filteredArticles.length === 0 && (
                 <div className="text-center py-12">

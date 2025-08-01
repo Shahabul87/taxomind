@@ -55,21 +55,28 @@ async function analyzeBlooms(courseContent: any) {
     const { BloomsAnalysisEngine } = await import('@/lib/sam-blooms-engine');
     const engine = new BloomsAnalysisEngine();
     
-    // Perform analysis directly
+    // Perform comprehensive analysis
     const analysis = await engine.analyzeCourse(
       courseContent.courseId, 
-      'basic', // Use basic analysis for performance
-      false // Skip recommendations to avoid circular calls
+      'detailed', // Use detailed analysis for comprehensive data
+      true // Include recommendations
     );
     
     return {
       distribution: analysis.courseLevel.distribution,
       cognitiveDepth: analysis.courseLevel.cognitiveDepth,
       balance: analysis.courseLevel.balance,
+      chapterAnalysis: analysis.chapterAnalysis,
+      learningPathway: analysis.learningPathway,
+      recommendations: analysis.recommendations,
+      studentImpact: analysis.studentImpact,
       chapterInsights: analysis.chapterAnalysis.map(ch => ({
+        id: ch.chapterId,
         title: ch.chapterTitle,
         primaryLevel: ch.primaryLevel,
-        score: ch.cognitiveDepth
+        score: ch.cognitiveDepth,
+        distribution: ch.bloomsDistribution,
+        sections: ch.sections
       }))
     };
   } catch (error) {
@@ -311,11 +318,13 @@ export async function POST(req: NextRequest) {
         console.log(`Using cached analysis for course ${courseId} - content unchanged`);
         
         // Return the cached analysis
+        const cachedDistribution = existingAnalysis.bloomsDistribution as any;
+        
         return NextResponse.json({
           success: true,
           cached: true,
           analysis: {
-            overallDistribution: existingAnalysis.bloomsDistribution as any,
+            overallDistribution: cachedDistribution,
             chapterAnalysis: [], // Would need to be stored separately for full cache
             objectivesAnalysis: [],
             scores: {
@@ -327,9 +336,10 @@ export async function POST(req: NextRequest) {
             gaps: existingAnalysis.gapAnalysis as any,
             recommendations: existingAnalysis.recommendations as any,
             insights: generateInsights(
-              { overallDistribution: existingAnalysis.bloomsDistribution as any },
+              { overallDistribution: cachedDistribution },
               {}
             ),
+            bloomsInsights: generateBloomsInsights(cachedDistribution, {}),
             metadata: {
               analyzedAt: existingAnalysis.analyzedAt.toISOString(),
               courseId,
@@ -448,6 +458,13 @@ Provide a comprehensive course analysis in JSON format covering:
 9. **Specific Improvement Recommendations** (prioritized by impact)
 10. **Next Action Steps** (immediate tasks for improvement)
 
+For Learning Objectives, analyze each objective and provide:
+- SMART criteria compliance (Specific, Measurable, Achievable, Relevant, Time-bound)
+- Bloom's taxonomy level mapping
+- Action verb strength assessment
+- Clarity score (1-100)
+- Improvement suggestions
+
 Use this exact JSON structure:
 {
   "overallDistribution": {
@@ -471,7 +488,18 @@ Use this exact JSON structure:
     {
       "objective": "",
       "bloomsLevel": "",
-      "suggestions": []
+      "actionVerb": "",
+      "smartCriteria": {
+        "specific": { "score": 0, "feedback": "" },
+        "measurable": { "score": 0, "feedback": "" },
+        "achievable": { "score": 0, "feedback": "" },
+        "relevant": { "score": 0, "feedback": "" },
+        "timeBound": { "score": 0, "feedback": "" }
+      },
+      "clarityScore": 0,
+      "verbStrength": "weak|moderate|strong",
+      "suggestions": [],
+      "improvedVersion": ""
     }
   ],
   "scores": {
@@ -644,6 +672,9 @@ Use this exact JSON structure:
       // Override form completion analysis with SAM results
       formCompletionAnalysis: samAnalysis.completionAnalysis,
       courseQualityMetrics: samAnalysis.qualityAnalysis,
+      
+      // Ensure bloomsInsights is always present
+      bloomsInsights: analysis.bloomsInsights || generateBloomsInsights(analysis.overallDistribution || {}, samAnalysis),
       
       metadata: {
         analyzedAt: new Date().toISOString(),
@@ -1148,22 +1179,70 @@ function calculateMarketReadiness(courseContent: any): number {
 function generateFallbackBloomsAnalysis(courseContent: any): any {
   const objectives = courseContent.learningObjectives || [];
   const distribution = {
-    remember: 20,
-    understand: 25,
-    apply: 25,
-    analyze: 15,
-    evaluate: 10,
-    create: 5
+    REMEMBER: 20,
+    UNDERSTAND: 25,
+    APPLY: 25,
+    ANALYZE: 15,
+    EVALUATE: 10,
+    CREATE: 5
   };
+  
+  // Generate chapter analysis based on available data
+  const chapterAnalysis = courseContent.chapters.map((chapter: any) => ({
+    chapterId: chapter.id || Math.random().toString(),
+    chapterTitle: chapter.title,
+    bloomsDistribution: distribution,
+    primaryLevel: 'UNDERSTAND' as const,
+    cognitiveDepth: 65,
+    sections: chapter.sections?.map((section: any) => ({
+      sectionId: section.id,
+      sectionTitle: section.title,
+      bloomsLevel: 'UNDERSTAND' as const,
+      activities: [],
+      learningObjectives: []
+    })) || []
+  }));
   
   return {
     distribution,
-    levelProgression: ['Foundation', 'Application', 'Analysis'],
-    recommendations: [
-      'Add more higher-order thinking activities',
-      'Include practical application exercises',
-      'Develop critical evaluation tasks'
-    ]
+    cognitiveDepth: 65,
+    balance: 'bottom-heavy' as const,
+    chapterAnalysis,
+    learningPathway: {
+      current: {
+        stages: [],
+        currentStage: 1,
+        completionPercentage: 40
+      },
+      recommended: {
+        stages: [],
+        currentStage: 0,
+        completionPercentage: 0
+      },
+      gaps: []
+    },
+    recommendations: {
+      contentAdjustments: [
+        {
+          type: 'add' as const,
+          bloomsLevel: 'CREATE' as const,
+          description: 'Add project-based learning activities',
+          impact: 'high' as const
+        }
+      ],
+      assessmentChanges: [],
+      activitySuggestions: []
+    },
+    studentImpact: {
+      skillsDeveloped: [],
+      cognitiveGrowth: {
+        currentLevel: 65,
+        projectedLevel: 85,
+        timeframe: '3-6 months',
+        keyMilestones: []
+      },
+      careerAlignment: []
+    }
   };
 }
 
@@ -1177,6 +1256,72 @@ function generateFallbackMarketAnalysis(courseContent: any): any {
     },
     marketPosition: 'developing',
     growthPotential: 65
+  };
+}
+
+function generateBloomsInsights(distribution: any, samAnalysis: any): any {
+  // Convert distribution keys to uppercase if needed
+  const normalizedDist: Record<string, number> = {};
+  Object.entries(distribution).forEach(([key, value]) => {
+    normalizedDist[key.toUpperCase()] = value as number;
+  });
+  
+  // Find dominant level
+  let dominantLevel = 'UNDERSTAND';
+  let maxPercentage = 0;
+  Object.entries(normalizedDist).forEach(([level, percentage]) => {
+    if (percentage > maxPercentage) {
+      maxPercentage = percentage;
+      dominantLevel = level;
+    }
+  });
+  
+  // Find missing levels (less than 5%)
+  const missingLevels: string[] = [];
+  ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'].forEach(level => {
+    if ((normalizedDist[level] || 0) < 5) {
+      missingLevels.push(level);
+    }
+  });
+  
+  // Calculate balance score
+  const idealDistribution = {
+    REMEMBER: 10,
+    UNDERSTAND: 20,
+    APPLY: 25,
+    ANALYZE: 20,
+    EVALUATE: 15,
+    CREATE: 10
+  };
+  
+  let balanceScore = 100;
+  Object.entries(idealDistribution).forEach(([level, ideal]) => {
+    const actual = normalizedDist[level] || 0;
+    const diff = Math.abs(actual - ideal);
+    balanceScore -= diff * 0.5; // Deduct 0.5 points per percentage point difference
+  });
+  balanceScore = Math.max(0, Math.round(balanceScore));
+  
+  // Generate improvement suggestions
+  const improvementSuggestions: string[] = [];
+  if ((normalizedDist.REMEMBER || 0) > 20) {
+    improvementSuggestions.push('Reduce memorization-focused content');
+  }
+  if ((normalizedDist.CREATE || 0) < 10) {
+    improvementSuggestions.push('Add more creative projects and synthesis activities');
+  }
+  if ((normalizedDist.EVALUATE || 0) < 10) {
+    improvementSuggestions.push('Include more critical evaluation and judgment tasks');
+  }
+  if (balanceScore < 70) {
+    improvementSuggestions.push('Rebalance activities across all cognitive levels');
+  }
+  
+  return {
+    dominantLevel,
+    missingLevels,
+    balanceScore,
+    improvementSuggestions
   };
 }
 

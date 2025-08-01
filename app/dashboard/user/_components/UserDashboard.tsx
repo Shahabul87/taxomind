@@ -10,6 +10,7 @@ import { PredictiveAnalytics } from './smart-dashboard/PredictiveAnalytics';
 import { RealtimePulse } from './smart-dashboard/RealtimePulse';
 import { ProgressMonitor } from './smart-dashboard/ProgressMonitor';
 import { ProgressTrackingDemo } from './smart-dashboard/ProgressTrackingDemo';
+import { SAMInnovationFeatures } from './smart-dashboard/SAMInnovationFeatures';
 import { IntelligentOnboarding } from '@/components/ui/intelligent-onboarding';
 import { useIntelligentOnboarding } from '@/hooks/use-intelligent-onboarding';
 import { OnboardingTrigger } from '@/components/ui/onboarding-trigger';
@@ -91,6 +92,11 @@ export function UserDashboard({ user }: UserDashboardProps) {
           {/* Progress Monitor */}
           <div className="mt-8">
             <ProgressMonitor user={user} />
+          </div>
+          
+          {/* SAM Innovation Features - New! */}
+          <div className="mt-8">
+            <SAMInnovationFeatures user={user} />
           </div>
           
           {/* Progress Tracking Demo */}

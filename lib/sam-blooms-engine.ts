@@ -137,6 +137,22 @@ export class BloomsAnalysisEngine {
     'CREATE',
   ];
 
+  // International Standards Compliance
+  private standards = {
+    primary: 'Bloom\'s Taxonomy (Anderson & Krathwohl, 2001)',
+    secondary: [
+      'Webb\'s Depth of Knowledge (DOK)',
+      'Marzano\'s New Taxonomy',
+      'Quality Matters Rubric (Alignment Standard 2)',
+    ],
+    compliance: {
+      bloomsTaxonomy: 'Full Implementation',
+      webbsDOK: 'Planned Integration',
+      marzanoTaxonomy: 'Planned Integration',
+      qualityMatters: 'Partial Implementation',
+    },
+  };
+
   async analyzeCourse(
     courseId: string,
     depth: 'basic' | 'detailed' | 'comprehensive' = 'detailed',

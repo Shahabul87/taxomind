@@ -384,7 +384,7 @@ export const SamCourseCreatorModal = ({
     } finally {
       setIsLoadingSuggestion(false);
     }
-  }, [step, disclosureState.userExperience, applySamSuggestion, isLoadingSuggestion]);
+  }, [step, isLoadingSuggestion]);
 
   const validateForm = useCallback(async () => {
     if (isValidating) return;
@@ -433,7 +433,7 @@ export const SamCourseCreatorModal = ({
     } finally {
       setIsValidating(false);
     }
-  }, [step, disclosureState.userExperience, isValidating]);
+  }, [step, isValidating]);
 
   // Generate title suggestions using SAM AI Tutor
   const generateTitleSuggestions = useCallback(async (currentTitle: string) => {
@@ -481,7 +481,7 @@ export const SamCourseCreatorModal = ({
     } finally {
       setIsLoadingTitleSuggestions(false);
     }
-  }, [formData.courseCategory, formData.courseIntent, formData.difficulty, formData.targetAudience, isLoadingTitleSuggestions]);
+  }, [formData.courseCategory, formData.difficulty, formData.targetAudience, isLoadingTitleSuggestions]);
 
   // Generate overview suggestions using SAM AI Tutor
   const generateOverviewSuggestions = useCallback(async (currentTitle: string) => {
@@ -529,7 +529,7 @@ export const SamCourseCreatorModal = ({
     } finally {
       setIsLoadingOverviewSuggestions(false);
     }
-  }, [formData.courseCategory, formData.courseIntent, formData.difficulty, formData.targetAudience, formData.courseShortOverview, isLoadingOverviewSuggestions]);
+  }, [formData.courseCategory, formData.difficulty, formData.targetAudience, isLoadingOverviewSuggestions]);
 
   // Debounced title suggestions
   useEffect(() => {

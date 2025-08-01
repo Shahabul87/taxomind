@@ -12,7 +12,10 @@ import {
   AlertCircle, 
   Calendar,
   DollarSign,
-  BarChart4
+  BarChart4,
+  Brain,
+  Activity,
+  Target
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -263,6 +266,143 @@ export function BillDashboard({ bills }: BillDashboardProps) {
             </div>
           </CardContent>
         </Card>
+      </div>
+      
+      {/* Financial Intelligence Insights */}
+      <div className="mt-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+            SAM Financial Intelligence
+          </h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Cost Optimization */}
+          <Card className={cn(
+            "border-gray-200 dark:border-gray-800",
+            "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20"
+          )}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300 flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Cost Optimization
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Potential monthly savings: <span className="font-semibold">${(totalAmount * 0.15).toFixed(2)}</span>
+                </p>
+                <p className="text-xs text-green-500 dark:text-green-400">
+                  {statusCounts.OVERDUE > 0 ? 'Reduce late fees by setting up auto-pay' : 'Great payment discipline!'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Spending Trends */}
+          <Card className={cn(
+            "border-gray-200 dark:border-gray-800",
+            "bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20"
+          )}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Spending Pattern
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-sm text-blue-600 dark:text-blue-400">
+                  {monthlyTrend.isPositive ? 'Spending decreased' : 'Spending increased'}
+                </p>
+                <div className="flex items-center gap-1">
+                  <span className={cn(
+                    "text-xs px-2 py-1 rounded-full",
+                    monthlyTrend.isPositive 
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                  )}>
+                    {monthlyTrend.trend}% {monthlyTrend.isPositive ? 'savings' : 'increase'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Payment Health */}
+          <Card className={cn(
+            "border-gray-200 dark:border-gray-800",
+            "bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20"
+          )}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                Payment Health
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-sm text-purple-600 dark:text-purple-400">
+                  Health Score: <span className="font-semibold">
+                    {Math.round(((statusCounts.PAID / Math.max(1, filteredBills.length)) * 100))}%
+                  </span>
+                </p>
+                <p className="text-xs text-purple-500 dark:text-purple-400">
+                  {statusCounts.OVERDUE === 0 
+                    ? 'Excellent payment history' 
+                    : `${statusCounts.OVERDUE} bill${statusCounts.OVERDUE > 1 ? 's' : ''} need attention`
+                  }
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* AI Recommendations */}
+        {(statusCounts.OVERDUE > 0 || dueSoonCount > 2) && (
+          <Card className={cn(
+            "mt-4",
+            "border-amber-200 dark:border-amber-800",
+            "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20"
+          )}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                SAM AI Recommendations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {statusCounts.OVERDUE > 0 && (
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      Priority: Address {statusCounts.OVERDUE} overdue bill{statusCounts.OVERDUE > 1 ? 's' : ''} to avoid additional fees
+                    </p>
+                  </div>
+                )}
+                {dueSoonCount > 2 && (
+                  <div className="flex items-start gap-2">
+                    <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      Consider setting up auto-pay for {dueSoonCount} upcoming bills to ensure timely payments
+                    </p>
+                  </div>
+                )}
+                {totalAmount > 0 && (
+                  <div className="flex items-start gap-2">
+                    <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      Review utility bills for potential savings through energy efficiency or plan changes
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

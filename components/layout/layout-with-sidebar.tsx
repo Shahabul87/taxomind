@@ -23,6 +23,11 @@ const SIDEBAR_HIDDEN_ROUTES = [
   "/ai-tutor",
   "/ai-news",
   "/ai-research",
+  "/intelligent-lms/overview",
+  "/intelligent-lms/sam-ai-assistant",
+  "/intelligent-lms/evaluation-standards",
+  "/intelligent-lms/adaptive-learning",
+  "/intelligent-lms/course-intelligence",
 ];
 
 // Routes that need full-width layout (no padding)
@@ -38,6 +43,11 @@ const FULL_WIDTH_ROUTES = [
   "/ai-tutor",
   "/ai-news",
   "/ai-research",
+  "/intelligent-lms/overview",
+  "/intelligent-lms/sam-ai-assistant",
+  "/intelligent-lms/evaluation-standards",
+  "/intelligent-lms/adaptive-learning",
+  "/intelligent-lms/course-intelligence",
 ];
 
 // Patterns for routes where the sidebar should be hidden
@@ -45,6 +55,7 @@ const SIDEBAR_HIDDEN_PATTERNS = [
   /^\/courses\/[^\/]+$/, // Course detail pages
   /^\/blog\/[^\/]+$/, 
   /^\/courses\/[^\/]+\/learn\/[^\/]+\/sections\/[^\/]+$/, // Course learning section pages
+  /^\/intelligent-lms\/.*$/, // All intelligent-lms pages
 ];
 
 export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarProps) {
@@ -80,7 +91,8 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
   
   // Determine if we're on a course page or full-width page
   const isCoursePage = pathname ? /^\/courses\/[^\/]+$/.test(pathname) : false;
-  const isFullWidthPage = pathname ? FULL_WIDTH_ROUTES.includes(pathname) : false;
+  const isIntelligentLMSPage = pathname ? /^\/intelligent-lms\/.*$/.test(pathname) : false;
+  const isFullWidthPage = pathname ? (FULL_WIDTH_ROUTES.includes(pathname) || isIntelligentLMSPage) : false;
 
   return (
     <div className={clsx(

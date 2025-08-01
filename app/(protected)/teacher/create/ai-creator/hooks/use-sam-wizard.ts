@@ -143,7 +143,7 @@ export function useSamWizard() {
       },
       delay: 1500
     });
-  }, [formData, step, isLoadingSuggestion, disclosureState.userExperience, debouncedCall]);
+  }, [formData, step, isLoadingSuggestion, debouncedCall]);
 
   const validateForm = useCallback(async () => {
     if (isValidating) return;
@@ -200,7 +200,7 @@ export function useSamWizard() {
       },
       delay: 2000
     });
-  }, [formData, step, disclosureState.userExperience, isValidating, debouncedCall]);
+  }, [formData, step, isValidating, debouncedCall, setValidationErrors]);
 
   const applySamSuggestion = (suggestion: SamSuggestion) => {
     // Apply smart defaults or other actions
@@ -225,7 +225,7 @@ export function useSamWizard() {
       // Note: Auto-suggestions and validation removed to prevent costly API calls
       // Users can manually request SAM suggestions when needed
     }
-  }, [step, completeStep, formData, getSamSuggestion, validateForm]);
+  }, [step, completeStep, formData, setSamSuggestion, setValidationErrors]);
 
   const handleBack = useCallback(() => {
     if (step > 1) {
