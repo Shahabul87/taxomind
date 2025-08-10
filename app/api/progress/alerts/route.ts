@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Get user's progress alerts
 export async function GET(req: NextRequest) {
@@ -155,7 +156,7 @@ export async function GET(req: NextRequest) {
     */
 
   } catch (error) {
-    console.error("Get progress alerts error:", error);
+    logger.error("Get progress alerts error:", error);
     return NextResponse.json(
       { error: "Failed to fetch progress alerts" },
       { status: 500 }
@@ -248,7 +249,7 @@ export async function POST(req: NextRequest) {
     */
 
   } catch (error) {
-    console.error("Create progress alert error:", error);
+    logger.error("Create progress alert error:", error);
     return NextResponse.json(
       { error: "Failed to create progress alert" },
       { status: 500 }

@@ -10,6 +10,7 @@ import { CalendarView } from "./make-a-plan/calendar-view";
 import { CoursePlanner } from "./make-a-plan/course-planner";
 import { ProgressDashboard } from "./make-a-plan/progress-dashboard";
 import { useToast } from "@/components/ui/use-toast";
+import { logger } from '@/lib/logger';
 
 interface MakeAPlanContentProps {
   userId: string;
@@ -23,7 +24,7 @@ export const MakeAPlanContent = ({ userId }: MakeAPlanContentProps) => {
   // Validate required props
   useEffect(() => {
     if (!userId) {
-      console.error("MakeAPlanContent: userId is required but was not provided");
+      logger.error("MakeAPlanContent: userId is required but was not provided");
       setError("User authentication error. Please try signing out and back in.");
       toast({
         title: "Error",

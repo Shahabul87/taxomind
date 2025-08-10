@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { v2 as cloudinary } from 'cloudinary';
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -56,7 +57,7 @@ export async function POST(
         },
         (error, result) => {
           if (error) {
-            console.error("Cloudinary upload error:", error);
+            logger.error("Cloudinary upload error:", error);
             reject(error);
           }
           resolve(result);
@@ -66,7 +67,7 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[MATH_EQUATION_IMAGE_UPLOAD]", error);
+    logger.error("[MATH_EQUATION_IMAGE_UPLOAD]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

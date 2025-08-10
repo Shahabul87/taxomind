@@ -3,6 +3,7 @@ import { currentUser } from '@/lib/auth';
 import { CourseGuideEngine } from '@/lib/sam-course-guide-engine';
 import { db } from '@/lib/db';
 import { Anthropic } from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Generate recommendations error:', error);
+    logger.error('Generate recommendations error:', error);
     return NextResponse.json(
       { error: 'Failed to generate recommendations' },
       { status: 500 }

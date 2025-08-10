@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from '@/lib/logger';
 import { 
   ArrowRight,
   Brain,
@@ -194,7 +195,7 @@ export const CognitivePathwayVisualizer = ({
       setPrerequisiteStatuses(statuses);
 
     } catch (error) {
-      console.error('Failed to analyze pathway:', error);
+      logger.error('Failed to analyze pathway:', error);
     } finally {
       setIsAnalyzing(false);
     }

@@ -39,7 +39,7 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
 
     return new NextResponse("Success", { status: 200 });
   } catch (error) {
-    console.log("[REORDER]", error);
+
     return new NextResponse("Internal Error", { status: 500 }); 
   }
 }

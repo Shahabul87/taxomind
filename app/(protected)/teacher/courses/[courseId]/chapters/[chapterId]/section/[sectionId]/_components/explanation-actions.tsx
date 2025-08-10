@@ -6,6 +6,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { DisplayExplanations } from "../_components/_explanations/components/display-explanations";
 import { CodeExplanationEditModal } from "../_components/_explanations/components/code-explanation-edit-modal";
+import { logger } from '@/lib/logger';
 
 interface ExplanationActionsProps {
   courseId: string;
@@ -55,7 +56,7 @@ export const ExplanationActions = ({
       setEditModalOpen(true);
       
     } catch (error: any) {
-      console.error("Error fetching explanation:", error);
+      logger.error("Error fetching explanation:", error);
       toast.error(`Failed to load explanation data: ${error.response?.status || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
@@ -69,7 +70,7 @@ export const ExplanationActions = ({
       await axios.delete(deleteEndpoint);
       router.refresh();
     } catch (error) {
-      console.error("Delete error:", error);
+      logger.error("Delete error:", error);
       throw error;
     }
   };

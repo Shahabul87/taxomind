@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ alerts });
   } catch (error) {
-    console.error('Content alerts error:', error);
+    logger.error('Content alerts error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch content alerts' },
       { status: 500 }
@@ -143,7 +144,7 @@ async function getStrugglePointAlerts(courseId: string | null) {
       }
     }
   } catch (error) {
-    console.error('Error fetching struggle point alerts:', error);
+    logger.error('Error fetching struggle point alerts:', error);
   }
 
   return alerts;
@@ -212,7 +213,7 @@ async function getDropoutRiskAlerts(courseId: string | null) {
       });
     }
   } catch (error) {
-    console.error('Error fetching dropout risk alerts:', error);
+    logger.error('Error fetching dropout risk alerts:', error);
   }
 
   return alerts;
@@ -276,7 +277,7 @@ async function getLowEngagementAlerts(courseId: string | null) {
       });
     }
   } catch (error) {
-    console.error('Error fetching low engagement alerts:', error);
+    logger.error('Error fetching low engagement alerts:', error);
   }
 
   return alerts;
@@ -320,7 +321,7 @@ async function getTechnicalIssueAlerts(courseId: string | null) {
       });
     }
   } catch (error) {
-    console.error('Error fetching technical issue alerts:', error);
+    logger.error('Error fetching technical issue alerts:', error);
   }
 
   return alerts;
@@ -412,7 +413,7 @@ async function getContentQualityAlerts(courseId: string | null) {
       }
     }
   } catch (error) {
-    console.error('Error fetching content quality alerts:', error);
+    logger.error('Error fetching content quality alerts:', error);
   }
 
   return alerts;
@@ -469,7 +470,7 @@ export async function POST(req: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('Alert action error:', error);
+    logger.error('Alert action error:', error);
     return NextResponse.json(
       { error: 'Failed to process alert action' },
       { status: 500 }
@@ -480,8 +481,7 @@ export async function POST(req: NextRequest) {
 async function resolveAlert(alertId: string, userId: string) {
   // In a real implementation, this would update an alerts table
   // For now, we'll just log the resolution
-  console.log(`Alert ${alertId} resolved by user ${userId}`);
-  
+
   // Could create an alert_resolutions table to track this
   // await db.alertResolution.create({
   //   data: {
@@ -494,10 +494,10 @@ async function resolveAlert(alertId: string, userId: string) {
 
 async function snoozeAlert(alertId: string, duration: number) {
   // Snooze alert for specified duration (in minutes)
-  console.log(`Alert ${alertId} snoozed for ${duration} minutes`);
+
 }
 
 async function escalateAlert(alertId: string, data: any) {
   // Escalate alert to higher priority or different team
-  console.log(`Alert ${alertId} escalated:`, data);
+
 }

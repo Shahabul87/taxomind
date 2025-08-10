@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(
   req: NextRequest,
@@ -79,7 +80,7 @@ export async function POST(
       enrollment,
     });
   } catch (error) {
-    console.error("Path enrollment error:", error);
+    logger.error("Path enrollment error:", error);
     return NextResponse.json(
       { error: "Failed to enroll in learning path" },
       { status: 500 }
@@ -132,7 +133,7 @@ export async function GET(
       enrollment,
     });
   } catch (error) {
-    console.error("Get enrollment error:", error);
+    logger.error("Get enrollment error:", error);
     return NextResponse.json(
       { error: "Failed to get enrollment status" },
       { status: 500 }

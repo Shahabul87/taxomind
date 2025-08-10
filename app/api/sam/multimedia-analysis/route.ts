@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { samMultiMediaEngine } from "@/lib/sam-multimedia-engine";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
       contentType,
     });
   } catch (error) {
-    console.error("Multi-modal analysis error:", error);
+    logger.error("Multi-modal analysis error:", error);
     return NextResponse.json(
       { error: "Failed to analyze content" },
       { status: 500 }
@@ -194,7 +195,7 @@ export async function GET(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Multi-modal report error:", error);
+    logger.error("Multi-modal report error:", error);
     return NextResponse.json(
       { error: "Failed to generate report" },
       { status: 500 }

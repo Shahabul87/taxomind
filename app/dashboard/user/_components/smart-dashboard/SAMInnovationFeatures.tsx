@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   Brain, 
   Dna, 
@@ -470,7 +471,7 @@ export function SAMInnovationFeatures({ user, className }: SAMInnovationFeatures
       setSelectedPath(mockQuantumPaths.find(p => p.status === "in-progress") || mockQuantumPaths[0]);
 
     } catch (error) {
-      console.error("Error fetching innovation data:", error);
+      logger.error("Error fetching innovation data:", error);
       toast.error("Failed to load SAM Innovation features");
     } finally {
       setIsLoading(false);

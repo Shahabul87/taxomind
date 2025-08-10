@@ -9,6 +9,7 @@ import { Smile, Send, Image as ImageIcon } from "lucide-react";
 import { EmojiPicker } from "./EmojiPicker";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
+import { logger } from '@/lib/logger';
 
 interface CommentBoxProps {
   postId: string;
@@ -43,7 +44,7 @@ export const CommentBox = ({
       await onSubmit(content);
       setContent("");
     } catch (error) {
-      console.error("Error submitting comment:", error);
+      logger.error("Error submitting comment:", error);
       
       let errorMessage = "Failed to submit comment";
       

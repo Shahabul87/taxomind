@@ -3,6 +3,7 @@
 import { EventEmitter } from 'events';
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 
 // Import all service classes
 import { EventTrackingService } from '@/lib/analytics/event-tracking-service';
@@ -43,11 +44,9 @@ export class MasterServiceCoordinator {
   // Main initialization method
   async initializeAllServices(): Promise<void> {
     if (this.initialized) {
-      console.log('Services already initialized');
+
       return;
     }
-
-    console.log('🚀 Starting Intelligent Learning Platform initialization...');
 
     try {
       // Phase 1: Core Infrastructure
@@ -69,8 +68,7 @@ export class MasterServiceCoordinator {
       await this.startHealthMonitoring();
       
       this.initialized = true;
-      console.log('✅ All services initialized successfully');
-      
+
       // Emit system ready event
       this.eventBus.emit('system:ready', {
         services: Array.from(this.services.keys()),
@@ -78,7 +76,7 @@ export class MasterServiceCoordinator {
       });
 
     } catch (error) {
-      console.error('❌ Failed to initialize services:', error);
+      logger.error('❌ Failed to initialize services:', error);
       await this.handleInitializationFailure(error);
       throw error;
     }
@@ -86,129 +84,121 @@ export class MasterServiceCoordinator {
 
   // Phase 1: Core Infrastructure Services
   async initializeCoreServices(): Promise<void> {
-    console.log('📊 Initializing Core Infrastructure Services...');
 
     // 1. Event Tracking Infrastructure
-    console.log('  • Initializing Event Tracking...');
+
     const eventTracker = new EventTrackingService();
     await this.initializeService('eventTracker', eventTracker);
 
     // 2. Redis Integration
-    console.log('  • Verifying Redis connection...');
+
     await this.verifyRedisConnection();
 
     // 3. Student Interactions Database
-    console.log('  • Verifying database schema...');
+
     await this.verifyDatabaseSchema();
 
     // 4. Learning Analytics API
-    console.log('  • Initializing Analytics Engine...');
+
     const analytics = new AnalyticsEngine();
     await this.initializeService('analytics', analytics);
 
     // 5. Click & Scroll Tracking (integrated with event tracker)
-    console.log('  • Setting up interaction tracking...');
+
     await this.setupInteractionTracking();
 
     // 6. Video Interaction Tracking (integrated with event tracker)
-    console.log('  • Setting up video tracking...');
+
     await this.setupVideoTracking();
 
     // 7. Real-time Analytics Dashboard
-    console.log('  • Initializing Real-time Dashboard...');
+
     const dashboard = new RealTimeDashboard();
     await this.initializeService('dashboard', dashboard);
     await dashboard.connect(analytics);
 
-    console.log('✅ Core Infrastructure Services initialized');
   }
 
   // Phase 2: Intelligence Layer Services
   async initializeIntelligenceServices(): Promise<void> {
-    console.log('🧠 Initializing Intelligence Layer Services...');
 
     // 8. Apache Kafka for Data Streaming
-    console.log('  • Verifying Kafka connection...');
+
     await this.verifyKafkaConnection();
 
     // 9. ML Model Training Pipeline
-    console.log('  • Initializing ML Pipeline...');
+
     const mlPipeline = new MLTrainingPipeline();
     await this.initializeService('mlPipeline', mlPipeline);
 
     // Initialize ML Prediction Service
-    console.log('  • Initializing ML Prediction Service...');
+
     const mlPrediction = new MLPredictionService();
     await this.initializeService('mlPrediction', mlPrediction);
 
     // 10. Knowledge Graph System
-    console.log('  • Building Knowledge Graph...');
+
     const knowledgeGraph = new KnowledgeGraphEngine();
     await this.initializeService('knowledgeGraph', knowledgeGraph);
     await knowledgeGraph.buildGraph();
 
     // Initialize Learning Path Service
-    console.log('  • Initializing Learning Path Service...');
+
     const learningPaths = new LearningPathService();
     await this.initializeService('learningPaths', learningPaths);
     await learningPaths.initialize(knowledgeGraph);
 
     // 11. Dynamic Content Reordering
-    console.log('  • Initializing Content Reordering Engine...');
+
     const contentEngine = new ContentReorderingEngine();
     await this.initializeService('contentEngine', contentEngine);
     await contentEngine.initialize();
 
     // 12. Prerequisite Dependency Tracking
-    console.log('  • Initializing Prerequisite Tracker...');
+
     const prerequisiteTracker = new PrerequisiteTracker();
     await this.initializeService('prerequisiteTracker', prerequisiteTracker);
 
     // 13. Cognitive Load Management
-    console.log('  • Initializing Cognitive Load Manager...');
+
     const cognitiveManager = new CognitiveLoadManager();
     await this.initializeService('cognitiveManager', cognitiveManager);
 
-    console.log('✅ Intelligence Layer Services initialized');
   }
 
   // Phase 3: Advanced Features
   async initializeAdvancedFeatures(): Promise<void> {
-    console.log('⚡ Initializing Advanced Features...');
 
     // 14. Microlearning Content Segmentation
-    console.log('  • Initializing Microlearning Engine...');
+
     const microlearning = new MicrolearningEngine();
     await this.initializeService('microlearning', microlearning);
 
     // 15. Emotion Detection & Sentiment Analysis
-    console.log('  • Initializing Emotion Detection...');
+
     const emotionService = new EmotionDetectionService();
     await this.initializeService('emotionService', emotionService);
 
     // 16. Spaced Repetition Optimization
-    console.log('  • Initializing Spaced Repetition Engine...');
+
     const spacedRepetition = new SpacedRepetitionService();
     await this.initializeService('spacedRepetition', spacedRepetition);
 
-    console.log('✅ Advanced Features initialized');
   }
 
   // Phase 4: External Integration & Career Mapping
   async initializeIntegrations(): Promise<void> {
-    console.log('🔗 Initializing Integration & Career Services...');
 
     // 17. External Platform Integrations
-    console.log('  • Initializing Integration Service...');
+
     const integrationService = new IntegrationService();
     await this.initializeService('integrationService', integrationService);
 
     // 18. Job Market Skill Mapping
-    console.log('  • Initializing Job Market Service...');
+
     const jobMarketService = new JobMarketService();
     await this.initializeService('jobMarketService', jobMarketService);
 
-    console.log('✅ Integration & Career Services initialized');
   }
 
   // Service initialization helper
@@ -227,9 +217,8 @@ export class MasterServiceCoordinator {
         errors: 0
       });
 
-      console.log(`    ✓ ${name} initialized`);
     } catch (error) {
-      console.error(`    ❌ Failed to initialize ${name}:`, error);
+      logger.error(`    ❌ Failed to initialize ${name}:`, error);
       this.healthStatus.set(name, {
         status: 'error',
         lastCheck: new Date(),
@@ -243,7 +232,6 @@ export class MasterServiceCoordinator {
 
   // Setup inter-service communication
   async setupServiceCommunication(): Promise<void> {
-    console.log('🔄 Setting up inter-service communication...');
 
     // Event routing configuration
     const eventRoutes = [
@@ -283,7 +271,6 @@ export class MasterServiceCoordinator {
     // Setup service-to-service communication
     await this.setupServiceConnections();
 
-    console.log('✅ Inter-service communication configured');
   }
 
   // Route events to multiple services
@@ -294,7 +281,7 @@ export class MasterServiceCoordinator {
         try {
           await service.handleEvent(eventName, data);
         } catch (error) {
-          console.error(`Error routing ${eventName} to ${serviceName}:`, error);
+          logger.error(`Error routing ${eventName} to ${serviceName}:`, error);
           this.updateServiceHealth(serviceName, 'error');
         }
       }
@@ -327,7 +314,6 @@ export class MasterServiceCoordinator {
 
   // Health monitoring
   async startHealthMonitoring(): Promise<void> {
-    console.log('🏥 Starting health monitoring...');
 
     setInterval(async () => {
       await this.performHealthChecks();
@@ -336,7 +322,6 @@ export class MasterServiceCoordinator {
     // Setup alerting
     await this.setupHealthAlerting();
 
-    console.log('✅ Health monitoring started');
   }
 
   async performHealthChecks(): Promise<void> {
@@ -414,7 +399,6 @@ export class MasterServiceCoordinator {
 
   // Student learning orchestration
   async processStudentLearningEvent(studentId: string, eventType: string, eventData: any): Promise<void> {
-    console.log(`Processing learning event: ${eventType} for student: ${studentId}`);
 
     try {
       // Route to event tracking
@@ -435,7 +419,7 @@ export class MasterServiceCoordinator {
       await this.triggerAdaptiveResponses(studentId, eventType, eventData);
 
     } catch (error) {
-      console.error(`Error processing learning event ${eventType}:`, error);
+      logger.error(`Error processing learning event ${eventType}:`, error);
       throw error;
     }
   }
@@ -473,16 +457,15 @@ export class MasterServiceCoordinator {
 
   // Shutdown services gracefully
   async shutdown(): Promise<void> {
-    console.log('🔄 Shutting down services...');
 
     const shutdownPromises = this.initializationOrder.reverse().map(async (serviceName) => {
       const service = this.services.get(serviceName);
       if (service && service.shutdown && typeof service.shutdown === 'function') {
         try {
           await service.shutdown();
-          console.log(`✓ ${serviceName} shutdown complete`);
+
         } catch (error) {
-          console.error(`❌ Error shutting down ${serviceName}:`, error);
+          logger.error(`❌ Error shutting down ${serviceName}:`, error);
         }
       }
     });
@@ -490,7 +473,7 @@ export class MasterServiceCoordinator {
     await Promise.allSettled(shutdownPromises);
     
     this.initialized = false;
-    console.log('✅ All services shutdown complete');
+
   }
 
   // Setup event bus
@@ -499,7 +482,7 @@ export class MasterServiceCoordinator {
     
     // Global error handler
     this.eventBus.on('error', (error) => {
-      console.error('EventBus error:', error);
+      logger.error('EventBus error:', error);
     });
   }
 
@@ -507,9 +490,9 @@ export class MasterServiceCoordinator {
   private async verifyRedisConnection(): Promise<void> {
     try {
       await redis.ping();
-      console.log('    ✓ Redis connection verified');
+
     } catch (error) {
-      console.error('    ❌ Redis connection failed:', error);
+      logger.error('    ❌ Redis connection failed:', error);
       throw error;
     }
   }
@@ -517,42 +500,42 @@ export class MasterServiceCoordinator {
   private async verifyDatabaseSchema(): Promise<void> {
     try {
       await db.$queryRaw`SELECT 1`;
-      console.log('    ✓ Database connection verified');
+
     } catch (error) {
-      console.error('    ❌ Database connection failed:', error);
+      logger.error('    ❌ Database connection failed:', error);
       throw error;
     }
   }
 
   private async verifyKafkaConnection(): Promise<void> {
     // Kafka connection verification would go here
-    console.log('    ✓ Kafka connection verified');
+
   }
 
   private async setupInteractionTracking(): Promise<void> {
     // Setup click and scroll tracking integration
-    console.log('    ✓ Interaction tracking configured');
+
   }
 
   private async setupVideoTracking(): Promise<void> {
     // Setup video interaction tracking
-    console.log('    ✓ Video tracking configured');
+
   }
 
   private async connectAnalyticsToDataSources(analytics: any): Promise<void> {
     // Connect analytics to all data sources
-    console.log('    ✓ Analytics connected to data sources');
+
   }
 
   private async connectMLPipelineToDataSources(mlPipeline: any): Promise<void> {
     // Connect ML pipeline to data sources
-    console.log('    ✓ ML Pipeline connected to data sources');
+
   }
 
   private async setupHealthAlerting(): Promise<void> {
     // Setup health alerting
     this.eventBus.on('service:health:error', async (data) => {
-      console.error(`🚨 Service health alert: ${data.serviceName} - ${data.error}`);
+      logger.error(`🚨 Service health alert: ${data.serviceName} - ${data.error}`);
       // Implement alerting logic (email, slack, etc.)
     });
   }
@@ -574,7 +557,7 @@ export class MasterServiceCoordinator {
   }
 
   private async handleInitializationFailure(error: any): Promise<void> {
-    console.error('🚨 System initialization failed, attempting cleanup...');
+    logger.error('🚨 System initialization failed, attempting cleanup...');
     
     // Attempt to shutdown any successfully initialized services
     await this.shutdown();

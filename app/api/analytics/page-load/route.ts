@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { performanceMonitoring } from '@/lib/performance-monitoring'
@@ -81,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, alerts: alerts.length })
   } catch (error) {
-    console.error('Error storing page load data:', error)
+    logger.error('Error storing page load data:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -178,7 +180,7 @@ export async function GET(req: NextRequest) {
       pageSpecific,
     })
   } catch (error) {
-    console.error('Error fetching page load data:', error)
+    logger.error('Error fetching page load data:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

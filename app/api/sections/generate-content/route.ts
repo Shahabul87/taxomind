@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   try {
-    console.log("[SECTION_GENERATION] Starting content generation");
-    
+
     // Get current user
     const user = await currentUser();
     
     if (!user?.id) {
-      console.log("[SECTION_GENERATION] No user found - unauthorized");
+
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     const userRole = dbUser?.role;
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      console.log(`[SECTION_GENERATION] User role ${userRole} not authorized`);
+
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
     
@@ -40,9 +40,7 @@ export async function POST(req: Request) {
       customPrompt, 
       context 
     } = body;
-    
-    console.log("[SECTION_GENERATION] Generating content for section:", sectionId, "Type:", contentType);
-    
+
     // Verify section ownership through course
     const course = await db.course.findUnique({
       where: {
@@ -77,9 +75,7 @@ export async function POST(req: Request) {
     } else {
       generatedContent = await generateContentByType(section, contentType, context);
     }
-    
-    console.log("[SECTION_GENERATION] Content generated successfully for section:", sectionId);
-    
+
     return NextResponse.json({
       content: generatedContent,
       contentType,
@@ -88,11 +84,11 @@ export async function POST(req: Request) {
     });
     
   } catch (error) {
-    console.error("[SECTION_GENERATION] Error:", error);
+    logger.error("[SECTION_GENERATION] Error:", error);
     
     if (error instanceof Error) {
-      console.error("[SECTION_GENERATION] Error message:", error.message);
-      console.error("[SECTION_GENERATION] Error stack:", error.stack);
+      logger.error("[SECTION_GENERATION] Error message:", error.message);
+      logger.error("[SECTION_GENERATION] Error stack:", error.stack);
     }
     
     return new NextResponse("Internal Server Error", { status: 500 });
@@ -100,8 +96,7 @@ export async function POST(req: Request) {
 }
 
 async function generateContentByType(section: any, contentType: string, context: any): Promise<string> {
-  console.log("[SECTION_GENERATION] Generating content by type:", contentType);
-  
+
   switch (contentType) {
     case 'video':
       return await generateVideoContent(section, context);
@@ -290,15 +285,13 @@ class ${section.title.replace(/\s+/g, '')} {
 
   // Initialize the main functionality
   initialize() {
-    console.log('Initializing ${section.title}...');
-    
+
     // Setup process
     this.setup();
     
     // Mark as initialized
     this.initialized = true;
-    
-    console.log('${section.title} initialized successfully');
+
     return this;
   }
 
@@ -306,8 +299,7 @@ class ${section.title.replace(/\s+/g, '')} {
   setup() {
     // Configuration logic here
     if (this.options.debug) {
-      console.log('Debug mode enabled');
-    }
+}
   }
 
   // Main processing method
@@ -335,7 +327,7 @@ class ${section.title.replace(/\s+/g, '')} {
       
       return step3;
     } catch (error) {
-      console.error('Error in performOperation:', error);
+      logger.error('Error in performOperation:', error);
       throw error;
     }
   }
@@ -375,7 +367,7 @@ const sampleData = {
 };
 
 const result = instance.process(sampleData);
-console.log('Result:', result);
+
 \`\`\`
 
 ### Explanation
@@ -673,8 +665,7 @@ By mastering ${section.title}, you'll be well-prepared to tackle the challenges 
 }
 
 async function generateEnhancementContent(section: any, enhancement: string, context: any): Promise<string> {
-  console.log("[SECTION_GENERATION] Generating enhancement content:", enhancement);
-  
+
   switch (enhancement) {
     case 'clarity':
       return await generateClarityEnhancement(section, context);

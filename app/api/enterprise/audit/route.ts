@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schemas
 const auditQuerySchema = z.object({
@@ -202,7 +203,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching audit logs:', error);
+    logger.error('Error fetching audit logs:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -272,7 +273,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating audit log:', error);
+    logger.error('Error creating audit log:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

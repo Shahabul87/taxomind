@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { ProgressTracker } from "@/lib/progress-tracking";
+import { logger } from '@/lib/logger';
 
 // Update learning session
 export async function PATCH(
@@ -83,7 +84,7 @@ export async function PATCH(
     */
 
   } catch (error) {
-    console.error("Update learning session error:", error);
+    logger.error("Update learning session error:", error);
     return NextResponse.json(
       { error: "Failed to update learning session" },
       { status: 500 }
@@ -166,7 +167,7 @@ export async function DELETE(
     */
 
   } catch (error) {
-    console.error("End learning session error:", error);
+    logger.error("End learning session error:", error);
     return NextResponse.json(
       { error: "Failed to end learning session" },
       { status: 500 }
@@ -225,7 +226,7 @@ async function triggerInterventionAlerts(session: any) {
 
     return alerts;
   } catch (error) {
-    console.error("Error creating intervention alerts:", error);
+    logger.error("Error creating intervention alerts:", error);
     return [];
   }
 }
@@ -331,7 +332,7 @@ async function updateLearningMetrics(userId: string, courseId: string) {
     });
 
   } catch (error) {
-    console.error("Error updating learning metrics:", error);
+    logger.error("Error updating learning metrics:", error);
   }
 }
 */

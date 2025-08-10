@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { logger } from '@/lib/logger';
 import { 
   AlertTriangle, 
   RefreshCw, 
@@ -48,7 +49,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     
     // Log error to monitoring service
     if (process.env.NODE_ENV === 'production') {
-      console.error('Error caught by boundary:', error, errorInfo);
+      logger.error('Error caught by boundary:', error, errorInfo);
     }
   }
 
@@ -86,7 +87,7 @@ export function DefaultErrorFallback({ error, resetError }: DefaultErrorFallback
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy error:', err);
+      logger.error('Failed to copy error:', err);
     }
   }, [error]);
 
@@ -356,7 +357,8 @@ interface RetryOptions {
 
 export function useRetry<T>(
   asyncFunction: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {
+}
 ) {
   const { maxRetries = 3, delay = 1000, onRetry } = options;
   const [isRetrying, setIsRetrying] = useState(false);
@@ -484,7 +486,7 @@ export function useErrorLogger() {
 
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.error('Error logged:', errorData);
+      logger.error('Error logged:', errorData);
     }
 
     // In production, you would send this to your error tracking service

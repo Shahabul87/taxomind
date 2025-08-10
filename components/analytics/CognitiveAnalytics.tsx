@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User } from 'next-auth';
+import { logger } from '@/lib/logger';
 import {
   Brain, Target, TrendingUp, AlertTriangle, CheckCircle,
   BookOpen, Lightbulb, Users, Star, ArrowRight, BarChart3,
@@ -194,7 +195,7 @@ export function CognitiveAnalytics({ user, className }: CognitiveAnalyticsProps)
 
         setCognitiveData(mockCognitiveProfile);
       } catch (error) {
-        console.error('Error fetching cognitive data:', error);
+        logger.error('Error fetching cognitive data:', error);
       } finally {
         setLoading(false);
       }

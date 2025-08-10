@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function DELETE(
   req: Request,
@@ -34,12 +35,10 @@ export async function DELETE(
 
     return NextResponse.json(deletedSubscription);
   } catch (error) {
-    console.error("[DELETE_SUBSCRIPTION_ERROR]", error);
+    logger.error("[DELETE_SUBSCRIPTION_ERROR]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
-
 
 export async function PATCH(
   req: Request,
@@ -99,7 +98,7 @@ export async function PATCH(
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[PATCH ERROR] Subscription Update:", error);
+    logger.error("[PATCH ERROR] Subscription Update:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

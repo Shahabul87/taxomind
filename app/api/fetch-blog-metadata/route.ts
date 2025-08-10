@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 import { load } from "cheerio";
+import { logger } from '@/lib/logger';
 
 // Add memory-safe axios configuration
 const axiosConfig = {
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(blogData);
   } catch (error) {
-    console.error('Error fetching blog metadata:', error);
+    logger.error('Error fetching blog metadata:', error);
     
     // Return a fallback response instead of failing completely
     const fallbackData = {
@@ -150,7 +151,7 @@ async function extractBlogMetadata(url: string) {
     };
 
   } catch (error) {
-    console.error('Error in extractBlogMetadata:', error);
+    logger.error('Error in extractBlogMetadata:', error);
     
     // Return minimal fallback data
     try {

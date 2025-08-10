@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { ContentReorderingEngine } from './reordering-engine';
+import { logger } from '@/lib/logger';
 import {
   ContentItem,
   StudentProfile,
@@ -329,10 +330,9 @@ export class AdaptiveContentService {
       
       // Update analytics
       await this.updateReorderingAnalytics(result);
-      
-      console.log(`Recorded adaptation for student ${result.sequence.studentId} with ${result.sequence.adaptations.length} changes`);
+
     } catch (error) {
-      console.error('Failed to record adaptation:', error);
+      logger.error('Failed to record adaptation:', error);
     }
   }
 
@@ -355,7 +355,7 @@ export class AdaptiveContentService {
       await this.updateAdaptationLearning(sequenceId, feedback);
       
     } catch (error) {
-      console.error('Failed to record feedback:', error);
+      logger.error('Failed to record feedback:', error);
     }
   }
 
@@ -413,7 +413,7 @@ export class AdaptiveContentService {
       const cached = await redis.get(cacheKey);
       return cached ? JSON.parse(cached) : null;
     } catch (error) {
-      console.error('Cache load error:', error);
+      logger.error('Cache load error:', error);
       return null;
     }
   }
@@ -422,7 +422,7 @@ export class AdaptiveContentService {
     try {
       await redis.setex(cacheKey, 1800, JSON.stringify(sequence)); // 30 minutes TTL
     } catch (error) {
-      console.error('Cache save error:', error);
+      logger.error('Cache save error:', error);
     }
   }
 
@@ -588,12 +588,12 @@ export class AdaptiveContentService {
 
   private async saveSequenceToDatabase(sequence: ContentSequence): Promise<void> {
     // Placeholder implementation
-    console.log('Saving sequence to database:', sequence.id);
+
   }
 
   private async updateReorderingAnalytics(result: ReorderingResult): Promise<void> {
     // Placeholder implementation
-    console.log('Updating analytics for result');
+
   }
 
   private async getSequenceById(sequenceId: string): Promise<ContentSequence | null> {
@@ -603,12 +603,12 @@ export class AdaptiveContentService {
 
   private async updateSequenceInDatabase(sequence: ContentSequence): Promise<void> {
     // Placeholder implementation
-    console.log('Updating sequence in database:', sequence.id);
+
   }
 
   private async updateAdaptationLearning(sequenceId: string, feedback: StudentFeedback): Promise<void> {
     // Placeholder implementation
-    console.log('Learning from feedback for sequence:', sequenceId);
+
   }
 
   private async getSequencesByTimeRange(courseId: string, timeRange: { start: Date; end: Date }): Promise<ContentSequence[]> {

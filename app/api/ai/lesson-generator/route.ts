@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import * as z from 'zod';
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -257,7 +258,7 @@ export async function POST(request: NextRequest) {
 
     // Check if ANTHROPIC_API_KEY is configured
     if (!process.env.ANTHROPIC_API_KEY) {
-      console.warn('ANTHROPIC_API_KEY not configured, using mock response');
+      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
       const mockContent = generateMockLessonContent(lessonRequest);
       return NextResponse.json({ success: true, content: mockContent });
     }
@@ -301,7 +302,7 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (apiError: any) {
-      console.error('Anthropic API error:', apiError);
+      logger.error('Anthropic API error:', apiError);
       
       // Fall back to mock response for API errors
       const mockContent = generateMockLessonContent(lessonRequest);
@@ -313,7 +314,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('Lesson generator error:', error);
+    logger.error('Lesson generator error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

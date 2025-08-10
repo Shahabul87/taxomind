@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
+import { logger } from '@/lib/logger';
 
 interface EnrollButtonProps {
   courseId: string;
@@ -27,18 +28,16 @@ export const EnrollButton = ({ courseId, price, userId }: EnrollButtonProps) => 
       setIsLoading(true);
       
       if (price === 0) {
-        console.log("Attempting free course enrollment...");
+
         const response = await axios.post(`/api/courses/${courseId}/enroll`);
-        console.log("Enrollment response:", response.data);
-        
+
         toast.success("Successfully enrolled in the course!");
         router.refresh(); // Refresh the page data
         router.push(`/courses/${courseId}/success?success=1`);
       } else {
-        console.log("Initiating paid course checkout...");
+
         const response = await axios.post(`/api/courses/${courseId}/checkout`);
-        console.log("Checkout response:", response.data);
-        
+
         if (response.data.url) {
           window.location.href = response.data.url;
         } else {
@@ -46,7 +45,7 @@ export const EnrollButton = ({ courseId, price, userId }: EnrollButtonProps) => 
         }
       }
     } catch (error: any) {
-      console.error("Enrollment error:", error);
+      logger.error("Enrollment error:", error);
       toast.error(error.response?.data || "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

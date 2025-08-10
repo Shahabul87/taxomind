@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 "use client";
 
 /**
@@ -91,7 +93,7 @@ export class IntelligentAICache {
           });
         }
       } catch (error) {
-        console.warn('Failed to load cache from storage:', error);
+        logger.warn('Failed to load cache from storage:', error);
       }
     }
   }
@@ -136,7 +138,7 @@ export class IntelligentAICache {
         const data = Object.fromEntries(this.cache.entries());
         localStorage.setItem('ai-cache-data', JSON.stringify(data));
       } catch (error) {
-        console.warn('Failed to persist cache to storage:', error);
+        logger.warn('Failed to persist cache to storage:', error);
       }
     }
   }

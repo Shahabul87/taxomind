@@ -50,8 +50,6 @@ export async function POST(
       },
     });
 
-    
-
     const newPosition = lastSection ? lastSection.position + 1 : 1;
  
     const section = await db.section.create({
@@ -62,11 +60,9 @@ export async function POST(
       }
     });
 
-  
-
     return NextResponse.json(section);
   } catch (error) {
-    console.log("[CHAPTERS]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

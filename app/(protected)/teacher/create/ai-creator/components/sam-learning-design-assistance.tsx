@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { BLOOMS_LEVELS } from '../types/sam-creator.types';
 import { Sparkles, Lightbulb, Plus, Loader2, ChevronUp, ChevronDown, AlertTriangle, CheckCircle, Info, Target } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface SamLearningDesignAssistanceProps {
   formData: {
@@ -68,7 +69,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
       setObjectiveSuggestions(result.objectives || []);
       setShowObjectiveSuggestions(true);
     } catch (error) {
-      console.error('Error generating learning objectives:', error);
+      logger.error('Error generating learning objectives:', error);
       toast.error('Failed to generate learning objectives');
     } finally {
       setIsGeneratingObjectives(false);
@@ -106,7 +107,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
       setBloomsRecommendations(result);
       setShowBloomsRecommendations(true);
     } catch (error) {
-      console.error('Error generating Bloom\'s recommendations:', error);
+      logger.error('Error generating Bloom\'s recommendations:', error);
       toast.error('Failed to generate Bloom\'s recommendations');
     } finally {
       setIsGeneratingBlooms(false);

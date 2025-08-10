@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateDynamicRoute } from "@/lib/auth-dynamic";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("[TEST_COURSE_ROUTE] Testing course route pattern");
-    
+
     const user = await authenticateDynamicRoute(request);
     
     if (!user) {
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error("[TEST_COURSE_ROUTE] Error:", error);
+    logger.error("[TEST_COURSE_ROUTE] Error:", error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -41,8 +41,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    console.log("[TEST_COURSE_ROUTE] Testing PATCH method");
-    
+
     const user = await authenticateDynamicRoute(request);
     
     if (!user) {
@@ -67,7 +66,7 @@ export async function PATCH(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error("[TEST_COURSE_ROUTE] PATCH Error:", error);
+    logger.error("[TEST_COURSE_ROUTE] PATCH Error:", error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

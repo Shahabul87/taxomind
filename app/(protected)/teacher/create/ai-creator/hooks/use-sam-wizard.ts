@@ -6,6 +6,7 @@ import { useSamDebounce } from '@/hooks/use-sam-debounce';
 import { useSamCache } from '@/hooks/use-sam-cache';
 import { useProgressiveCourseCreation } from '@/hooks/use-progressive-course-creation';
 import { trackAIFeatureUsage, trackFormProgress, trackGenerationStart, trackGenerationEnd } from '@/lib/analytics-tracker';
+import { logger } from '@/lib/logger';
 
 const TOTAL_STEPS = 4;
 
@@ -77,7 +78,7 @@ export function useSamWizard() {
         }
       }
     } catch (error) {
-      console.error('Error loading saved draft:', error);
+      logger.error('Error loading saved draft:', error);
     }
   }, []);
 
@@ -130,7 +131,7 @@ export function useSamWizard() {
             throw new Error(`Sam suggestion failed: ${response.status}`);
           }
         } catch (error) {
-          console.error('Error getting Sam suggestion:', error);
+          logger.error('Error getting Sam suggestion:', error);
           setSamSuggestion({
             message: "I'm having trouble right now. Please try again in a moment.",
             type: 'warning',
@@ -193,7 +194,7 @@ export function useSamWizard() {
             throw new Error(`Sam validation failed: ${response.status}`);
           }
         } catch (error) {
-          console.error('Error validating form:', error);
+          logger.error('Error validating form:', error);
         } finally {
           setIsValidating(false);
         }
@@ -283,12 +284,11 @@ export function useSamWizard() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Course creation failed:', response.status, errorText);
+        logger.error('Course creation failed:', response.status, errorText);
         throw new Error(`Failed to create course: ${response.status} - ${errorText}`);
       }
 
       const course = await response.json();
-      console.log('Course created:', course);
 
       // Store blueprint for course editing page
       sessionStorage.setItem(`course_blueprint_${course.id}`, JSON.stringify(blueprint));
@@ -296,7 +296,7 @@ export function useSamWizard() {
       // Navigate to course editing page
       router.push(`/teacher/courses/${course.id}`);
     } catch (error) {
-      console.error('Error creating course from blueprint:', error);
+      logger.error('Error creating course from blueprint:', error);
       toast.error('Failed to create course. Please try again.');
     }
   }, [generationId, router]);

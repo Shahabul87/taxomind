@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -59,14 +60,12 @@ export const PriceForm = ({
   // Listen for SAM form population events
   useEffect(() => {
     const handleSamFormPopulation = (event: CustomEvent) => {
-      console.log('📥 Price form received SAM populate event:', event.detail);
-      
+
       if (event.detail?.formId === 'course-price-form' || 
           event.detail?.formId === 'price-form' ||
           event.detail?.formId === 'update-price' ||
           event.detail?.formId === 'course-price') {
-        
-        console.log('✅ Matched form ID, opening edit mode');
+
         // Auto-open edit mode when SAM tries to populate
         setIsEditing(true);
         
@@ -91,7 +90,7 @@ export const PriceForm = ({
     if (pendingSamData && isEditing && form) {
       const priceValue = pendingSamData.price ?? pendingSamData.coursePrice ?? pendingSamData.amount;
       if (priceValue !== undefined) {
-        console.log('📝 Setting price value:', priceValue);
+
         form.setValue("price", priceValue);
         form.trigger("price");
         
@@ -111,9 +110,7 @@ export const PriceForm = ({
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      console.log("Submitting price:", values);
-      console.log("Course ID:", courseId);
-      
+
       const response = await axios.post(`/api/course-update`, {
         courseId: courseId,
         price: values.price
@@ -123,17 +120,16 @@ export const PriceForm = ({
         },
         timeout: 30000, // 30 second timeout
       });
-      
-      console.log("Price update response:", response.data);
+
       toast.success("Price updated");
       setIsEditing(false);
       router.refresh();
     } catch (error: any) {
-      console.error("Price update error:", error);
+      logger.error("Price update error:", error);
       
       if (error.response) {
-        console.error("Error response status:", error.response.status);
-        console.error("Error response data:", error.response.data);
+        logger.error("Error response status:", error.response.status);
+        logger.error("Error response data:", error.response.data);
         
         if (error.response.status === 401) {
           toast.error("Authentication failed. Please log in again.");
@@ -145,10 +141,10 @@ export const PriceForm = ({
           toast.error(`Error: ${error.response.data || 'Something went wrong'}`);
         }
       } else if (error.request) {
-        console.error("No response received:", error.request);
+        logger.error("No response received:", error.request);
         toast.error("Network error. Please check your connection.");
       } else {
-        console.error("Request setup error:", error.message);
+        logger.error("Request setup error:", error.message);
         toast.error("Something went wrong");
       }
     }

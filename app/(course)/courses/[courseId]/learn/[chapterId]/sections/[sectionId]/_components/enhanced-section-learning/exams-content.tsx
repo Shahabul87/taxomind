@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   GraduationCap, 
   Clock, 
@@ -98,7 +99,7 @@ export const ExamsContent = ({ sectionId, courseId, chapterId }: ExamsContentPro
         setAnalytics(data);
       }
     } catch (error) {
-      console.error("Error fetching analytics:", error);
+      logger.error("Error fetching analytics:", error);
     }
   }, [sectionId]);
 
@@ -115,7 +116,7 @@ export const ExamsContent = ({ sectionId, courseId, chapterId }: ExamsContentPro
         }
       }
     } catch (error) {
-      console.error("Error fetching exams:", error);
+      logger.error("Error fetching exams:", error);
     } finally {
       setLoading(false);
     }
@@ -136,7 +137,7 @@ export const ExamsContent = ({ sectionId, courseId, chapterId }: ExamsContentPro
         window.open(`/courses/${courseId}/learn/${chapterId}/sections/${sectionId}/exams/${examId}/take/${attempt.id}`, '_blank');
       }
     } catch (error) {
-      console.error("Error starting exam:", error);
+      logger.error("Error starting exam:", error);
     }
   };
 

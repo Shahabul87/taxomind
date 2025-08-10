@@ -10,6 +10,7 @@ import { LearningPathVisualization } from './learning-path-visualization';
 import { SkillsInventory } from './skills-inventory';
 import { Brain, ChartBar, Map, Sparkles, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/logger';
 
 interface StudentDashboardProps {
   userId: string;
@@ -38,7 +39,7 @@ export function StudentDashboard({ userId, courseId }: StudentDashboardProps) {
       setDashboardData(progressData.data);
       
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      logger.error('Error fetching dashboard data:', error);
       toast({
         title: 'Error',
         description: 'Failed to load dashboard data. Please try again.',

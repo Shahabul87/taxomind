@@ -3,6 +3,7 @@
 import { cacheManager, CacheLayer, CACHE_CONFIGS } from './cache-manager';
 import { redis, REDIS_KEYS, REDIS_TTL } from './config';
 import { RateLimiter } from './rate-limiter';
+import { logger } from '@/lib/logger';
 
 // Analytics data types
 interface AnalyticsData {
@@ -119,14 +120,15 @@ export class AnalyticsCacheManager {
       // Also store in time series for aggregation
       await this.addToTimeSeries(metricName, value, timestamp, dimensions);
     } catch (error) {
-      console.error('Error caching real-time metric:', error);
+      logger.error('Error caching real-time metric:', error);
     }
   }
 
   // Get real-time metrics
   async getRealTimeMetrics(
     metricName: string,
-    dimensions: Record<string, string> = {}
+    dimensions: Record<string, string> = {
+}
   ): Promise<MetricData[]> {
     try {
       const pattern = `realtime:${metricName}:*`;
@@ -143,7 +145,7 @@ export class AnalyticsCacheManager {
 
       return metrics.sort((a, b) => b.timestamp - a.timestamp);
     } catch (error) {
-      console.error('Error getting real-time metrics:', error);
+      logger.error('Error getting real-time metrics:', error);
       return [];
     }
   }
@@ -171,7 +173,7 @@ export class AnalyticsCacheManager {
         tags: ['dashboard', `user:${userId}`, `dashboard:${dashboardId}`]
       });
     } catch (error) {
-      console.error('Error caching dashboard data:', error);
+      logger.error('Error caching dashboard data:', error);
     }
   }
 
@@ -188,7 +190,7 @@ export class AnalyticsCacheManager {
         ANALYTICS_CACHE_CONFIG.DASHBOARD_DATA
       );
     } catch (error) {
-      console.error('Error getting cached dashboard data:', error);
+      logger.error('Error getting cached dashboard data:', error);
       return null;
     }
   }
@@ -215,7 +217,7 @@ export class AnalyticsCacheManager {
         tags: ['aggregated', `period:${period}`]
       });
     } catch (error) {
-      console.error('Error caching aggregated data:', error);
+      logger.error('Error caching aggregated data:', error);
     }
   }
 
@@ -236,7 +238,7 @@ export class AnalyticsCacheManager {
 
       return data;
     } catch (error) {
-      console.error('Error getting cached aggregated data:', error);
+      logger.error('Error getting cached aggregated data:', error);
       return null;
     }
   }
@@ -262,7 +264,7 @@ export class AnalyticsCacheManager {
         tags: ['user_analytics', `user:${userId}`]
       });
     } catch (error) {
-      console.error('Error caching user analytics:', error);
+      logger.error('Error caching user analytics:', error);
     }
   }
 
@@ -276,7 +278,7 @@ export class AnalyticsCacheManager {
         ANALYTICS_CACHE_CONFIG.USER_ANALYTICS
       );
     } catch (error) {
-      console.error('Error getting cached user analytics:', error);
+      logger.error('Error getting cached user analytics:', error);
       return null;
     }
   }
@@ -305,7 +307,7 @@ export class AnalyticsCacheManager {
         tags: ['report', `report:${reportId}`]
       });
     } catch (error) {
-      console.error('Error caching report data:', error);
+      logger.error('Error caching report data:', error);
     }
   }
 
@@ -323,7 +325,7 @@ export class AnalyticsCacheManager {
         ANALYTICS_CACHE_CONFIG.REPORTS_DATA
       );
     } catch (error) {
-      console.error('Error getting cached report data:', error);
+      logger.error('Error getting cached report data:', error);
       return null;
     }
   }
@@ -333,7 +335,8 @@ export class AnalyticsCacheManager {
     metricName: string,
     value: number,
     timestamp: number,
-    dimensions: Record<string, string> = {}
+    dimensions: Record<string, string> = {
+}
   ): Promise<void> {
     try {
       const key = `timeseries:${metricName}:${this.hashDimensions(dimensions)}`;
@@ -348,7 +351,7 @@ export class AnalyticsCacheManager {
       // Set expiry
       await redis.expire(key, 24 * 60 * 60); // 24 hours
     } catch (error) {
-      console.error('Error adding to time series:', error);
+      logger.error('Error adding to time series:', error);
     }
   }
 
@@ -396,7 +399,7 @@ export class AnalyticsCacheManager {
         aggregations
       };
     } catch (error) {
-      console.error('Error getting time series data:', error);
+      logger.error('Error getting time series data:', error);
       return null;
     }
   }
@@ -407,7 +410,7 @@ export class AnalyticsCacheManager {
       const tags = [`analytics`, type];
       await cacheManager.invalidateByTags(tags, CacheLayer.ANALYTICS);
     } catch (error) {
-      console.error('Error invalidating analytics cache:', error);
+      logger.error('Error invalidating analytics cache:', error);
     }
   }
 
@@ -417,7 +420,7 @@ export class AnalyticsCacheManager {
       const tags = [`user:${userId}`, 'user_analytics'];
       await cacheManager.invalidateByTags(tags, CacheLayer.ANALYTICS);
     } catch (error) {
-      console.error('Error invalidating user analytics cache:', error);
+      logger.error('Error invalidating user analytics cache:', error);
     }
   }
 
@@ -455,7 +458,7 @@ export class AnalyticsCacheManager {
         topMetrics
       };
     } catch (error) {
-      console.error('Error getting analytics cache stats:', error);
+      logger.error('Error getting analytics cache stats:', error);
       return {
         totalKeys: 0,
         hitRate: 0,
@@ -517,7 +520,7 @@ export class AnalyticsCacheManager {
         }
       }
     } catch (error) {
-      console.error('Error in background aggregation:', error);
+      logger.error('Error in background aggregation:', error);
     }
   }
 
@@ -573,7 +576,8 @@ export class AnalyticsCacheUtils {
       dataPoints: data.map(item => ({
         timestamp: item.timestamp,
         value: item.value,
-        tags: item.tags || {}
+        tags: item.tags || {
+}
       })),
       aggregations: {
         avg: values.reduce((sum, val) => sum + val, 0) / values.length,

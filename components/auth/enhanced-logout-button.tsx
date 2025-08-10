@@ -3,6 +3,7 @@
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { logger } from '@/lib/logger';
 
 interface EnhancedLogoutButtonProps {
   children?: React.ReactNode;
@@ -29,7 +30,7 @@ export const EnhancedLogoutButton = ({
       });
       
     } catch (error) {
-      console.error("Logout failed:", error);
+      logger.error("Logout failed:", error);
       // Fallback: manual redirect
       router.push(redirectTo);
     } finally {
@@ -60,7 +61,7 @@ export const useLogout = () => {
         redirect: true 
       });
     } catch (error) {
-      console.error("Logout failed:", error);
+      logger.error("Logout failed:", error);
       // Fallback
       window.location.href = redirectTo;
     } finally {

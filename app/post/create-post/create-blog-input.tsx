@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Edit3, ArrowRight, Loader2, Tag, X, Sparkles } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -107,11 +108,11 @@ export const CreateBlogInputSection = () => {
         window.location.href = `/post/${postId}`;
       } else {
         toast.error("Failed to create blog");
-        console.error("API response error:", response.data);
+        logger.error("API response error:", response.data);
       }
     } catch (error) {
       toast.error("Failed to create blog");
-      console.error("Blog creation error:", error);
+      logger.error("Blog creation error:", error);
     }
   };
 

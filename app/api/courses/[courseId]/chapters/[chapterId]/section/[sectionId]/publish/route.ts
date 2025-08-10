@@ -64,7 +64,7 @@ export async function PATCH(
 
     return new NextResponse(JSON.stringify(publishedSection), { status: 200, headers: {"Content-Type": "application/json"} });
   } catch (error) {
-    console.log("[CHAPTER_PUBLISH_ERROR]", error);
+
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

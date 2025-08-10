@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { generateSamSuggestion } from "@/lib/anthropic-client";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
     return NextResponse.json(suggestion);
     
   } catch (error) {
-    console.error("[SAM] Error generating suggestion:", error);
+    logger.error("[SAM] Error generating suggestion:", error);
     
     // Return a fallback response
     const fallbackResponse: SamResponse = {
@@ -137,7 +138,7 @@ async function generateContextualSuggestion(request: SamSuggestionRequest): Prom
     };
     
   } catch (error) {
-    console.error("[SAM] AI generation failed:", error);
+    logger.error("[SAM] AI generation failed:", error);
     
     // Return context-specific fallback
     return getFallbackResponse(context, userInput);

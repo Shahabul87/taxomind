@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { certificateService } from "@/lib/certificate/service";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Certificate generation API error:", error);
+    logger.error("Certificate generation API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

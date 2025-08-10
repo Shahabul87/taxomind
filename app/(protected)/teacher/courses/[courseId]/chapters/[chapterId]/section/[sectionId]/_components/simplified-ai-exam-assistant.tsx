@@ -127,7 +127,7 @@ export const SimplifiedAIExamAssistant = ({
     };
 
     // Mock generation for demo - replace with actual API call
-    console.log("Generating with config:", generationConfig);
+
     onGenerate([]);
   };
 

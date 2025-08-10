@@ -19,6 +19,7 @@ import { EnhancedSubscription } from "./types";
 import { PlusCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { logger } from '@/lib/logger';
 
 // Import form components
 import {
@@ -227,7 +228,7 @@ export const EnhancedSubscriptionForm = ({
       toggleCreating();
       router.refresh();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       toast.error("Something went wrong");
     } finally {
       setIsUpdating(false);
@@ -253,7 +254,7 @@ export const EnhancedSubscriptionForm = ({
       form.reset();
       router.refresh();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       toast.error("Something went wrong");
     } finally {
       setIsUpdating(false);

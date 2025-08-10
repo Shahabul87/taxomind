@@ -3,6 +3,7 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { BloomsLevel } from '@prisma/client';
 import { Anthropic } from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Generate study guide error:', error);
+    logger.error('Generate study guide error:', error);
     return NextResponse.json(
       { error: 'Failed to generate study guide' },
       { status: 500 }
@@ -113,7 +114,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get study guides error:', error);
+    logger.error('Get study guides error:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve study guides' },
       { status: 500 }
@@ -449,6 +450,6 @@ async function saveStudyGuide(
       },
     });
   } catch (error) {
-    console.error('Error saving study guide:', error);
+    logger.error('Error saving study guide:', error);
   }
 }

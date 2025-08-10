@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, RefreshCw, Home, Bug, Copy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -67,9 +68,9 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     };
 
     console.group('🚨 Global Error Boundary');
-    console.error('Error:', error);
-    console.error('Error Info:', errorInfo);
-    console.error('Error Data:', errorData);
+    logger.error('Error:', error);
+    logger.error('Error Info:', errorInfo);
+    logger.error('Error Data:', errorData);
     console.groupEnd();
 
     // Store in localStorage for debugging
@@ -82,7 +83,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       }
       localStorage.setItem('error_log', JSON.stringify(errorLog));
     } catch (e) {
-      console.warn('Failed to store error in localStorage:', e);
+      logger.warn('Failed to store error in localStorage:', e);
     }
   };
 
@@ -105,7 +106,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         })
       });
     } catch (e) {
-      console.warn('Failed to send error to monitoring service:', e);
+      logger.warn('Failed to send error to monitoring service:', e);
     }
   };
 
@@ -280,7 +281,7 @@ ${errorInfo?.componentStack}
 // Hook for programmatic error handling
 export const useErrorHandler = () => {
   const handleError = (error: Error, context?: string) => {
-    console.error(`Error in ${context || 'component'}:`, error);
+    logger.error(`Error in ${context || 'component'}:`, error);
     
     // Send to monitoring
     fetch('/api/error-monitoring', {
@@ -311,7 +312,7 @@ export const withAsyncErrorBoundary = <T extends any[], R>(
     try {
       return await asyncFn(...args);
     } catch (error) {
-      console.error(`Async error in ${context || 'function'}:`, error);
+      logger.error(`Async error in ${context || 'function'}:`, error);
       
       // Send to monitoring
       fetch('/api/error-monitoring', {

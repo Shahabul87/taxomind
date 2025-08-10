@@ -12,6 +12,7 @@ import Image from "next/image";
 import { FavoriteVideo } from "@prisma/client";
 import { FavoriteVideoList } from "./fav-video-link-list";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -110,7 +111,7 @@ export const FavoriteVideoLinkForm = ({
   });
 
   const fetchVideoMetadata = useCallback(async (url: string) => {
-    console.log("Attempting to fetch metadata for:", url);
+
     try {
       setIsLoading(true);
       
@@ -121,29 +122,28 @@ export const FavoriteVideoLinkForm = ({
           : url.split('v=')[1]?.split('&')[0];
           
         if (videoId) {
-          console.log("Extracted YouTube video ID:", videoId);
+
           setVideoThumbnail(`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`);
         }
       }
       
       // Use our API endpoint to fetch metadata
-      console.log("Calling API endpoint for metadata");
+
       const response = await axios.get(`/api/fetch-video-metadata?url=${encodeURIComponent(url)}`);
-      console.log("API response:", response.data);
-      
+
       if (response.data?.title) {
-        console.log("Setting title to:", response.data.title);
+
         form.setValue('title', response.data.title);
       }
       
       if (response.data?.thumbnail_url && !videoThumbnail) {
-        console.log("Setting thumbnail URL to:", response.data.thumbnail_url);
+
         setVideoThumbnail(response.data.thumbnail_url);
       }
       
       toast.success("Video details fetched");
     } catch (error) {
-      console.error("Error fetching video metadata:", error);
+      logger.error("Error fetching video metadata:", error);
       
       // Fallback for YouTube videos if API fails
       if (url.includes('youtube.com') || url.includes('youtu.be')) {
@@ -154,7 +154,7 @@ export const FavoriteVideoLinkForm = ({
         if (videoId) {
           // Generate a simple title based on video ID
           const simpleTitleFromId = `YouTube Video (${videoId})`;
-          console.log("Using fallback title:", simpleTitleFromId);
+
           form.setValue('title', simpleTitleFromId);
         }
       }
@@ -190,7 +190,7 @@ export const FavoriteVideoLinkForm = ({
         const timer = setTimeout(() => {
           // Only fetch if URL is valid
           if (form.formState.errors.url === undefined) {
-            console.log("URL changed and valid, fetching metadata");
+
             fetchVideoMetadata(url);
           }
         }, 500);
@@ -301,8 +301,7 @@ export const FavoriteVideoLinkForm = ({
   const pasteFromClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      console.log("Clipboard text:", text);
-      
+
       if (text.startsWith('http')) {
         form.setValue('url', text);
         await form.trigger('url');
@@ -315,8 +314,7 @@ export const FavoriteVideoLinkForm = ({
           try {
             // Call our API endpoint directly
             const response = await axios.get(`/api/fetch-video-metadata?url=${encodeURIComponent(text)}`);
-            console.log("Metadata response:", response.data);
-            
+
             if (response.data) {
               // Set the form values
               if (response.data.title) {
@@ -340,16 +338,16 @@ export const FavoriteVideoLinkForm = ({
               toast.error("Couldn't find video details. Please enter them manually.", { id: "fetching-metadata" });
             }
           } catch (error) {
-            console.error("Error fetching metadata:", error);
+            logger.error("Error fetching metadata:", error);
             toast.error("Couldn't fetch video details. Please enter them manually.", { id: "fetching-metadata" });
           }
         }
       } else {
-        console.log("Clipboard text is not a URL");
+
         toast.error("Clipboard content is not a valid URL");
       }
     } catch (err) {
-      console.error("Clipboard error:", err);
+      logger.error("Clipboard error:", err);
       toast.error("Unable to access clipboard");
     }
   };

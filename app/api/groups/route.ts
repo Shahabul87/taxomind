@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 const createGroupSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -109,7 +110,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(groupWithMember);
   } catch (error) {
-    console.error("[GROUPS_POST]", error);
+    logger.error("[GROUPS_POST]", error);
     if (error instanceof z.ZodError) {
       return new NextResponse("Invalid request data", { status: 422 });
     }

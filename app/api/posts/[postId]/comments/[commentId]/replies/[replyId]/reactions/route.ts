@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Helper function for safer error responses
 const createErrorResponse = (message: string, status = 500) => {
-  console.error(`[NESTED_REPLY_REACTIONS_POST] Error: ${message}`);
+  logger.error(`[NESTED_REPLY_REACTIONS_POST] Error: ${message}`);
   return NextResponse.json(
     { error: message },
     { status }
@@ -26,7 +27,7 @@ export async function POST(
         return createErrorResponse("Unauthorized", 401);
       }
     } catch (sessionError) {
-      console.error("[NESTED_REPLY_REACTIONS_POST] Session Error:", sessionError);
+      logger.error("[NESTED_REPLY_REACTIONS_POST] Session Error:", sessionError);
       return createErrorResponse("Authentication error. Please sign in again.", 401);
     }
 
@@ -36,7 +37,7 @@ export async function POST(
       const body = await req.json();
       type = body.type;
     } catch (parseError) {
-      console.error("[NESTED_REPLY_REACTIONS_POST] JSON Parse Error:", parseError);
+      logger.error("[NESTED_REPLY_REACTIONS_POST] JSON Parse Error:", parseError);
       return createErrorResponse("Invalid request format", 400);
     }
 
@@ -60,8 +61,6 @@ export async function POST(
     if (!replyId || typeof replyId !== 'string') {
       return createErrorResponse("Invalid reply ID", 400);
     }
-
-    console.log("[NESTED_REPLY_REACTIONS_POST]", { replyId, commentId, postId, type, userId: user.id });
 
     // First verify the post exists
     const post = await db.post.findUnique({
@@ -108,7 +107,7 @@ export async function POST(
     });
 
     if (!reply) {
-      console.log("Reply not found with:", { replyId, commentId, postId });
+
       return createErrorResponse("Reply not found", 404);
     }
 
@@ -183,7 +182,7 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[NESTED_REPLY_REACTIONS_POST]", error);
+    logger.error("[NESTED_REPLY_REACTIONS_POST]", error);
     
     // Provide more specific error messages based on error type
     if (error instanceof Error) {

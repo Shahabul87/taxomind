@@ -25,8 +25,7 @@ export class CacheInvalidation {
 
     // Also invalidate specific keys
     await invalidateKey(REDIS_KEYS.COURSE_DETAILS(courseId));
-    
-    console.log(`Cache invalidated for course: ${courseId}`);
+
   }
 
   /**
@@ -68,7 +67,6 @@ export class CacheInvalidation {
 
     await invalidateByTags(tags);
 
-    console.log(`Cache invalidated for analytics: user=${userId}, course=${courseId}`);
   }
 
   /**
@@ -76,7 +74,7 @@ export class CacheInvalidation {
    */
   static async invalidateSearch(): Promise<void> {
     await invalidateByTags(['search']);
-    console.log('Search cache invalidated');
+
   }
 
   /**
@@ -84,7 +82,7 @@ export class CacheInvalidation {
    */
   static async invalidateAllCourses(): Promise<void> {
     await invalidateByTags(['courses', 'course-list', 'search']);
-    console.log('All course caches invalidated');
+
   }
 
   /**
@@ -99,7 +97,6 @@ export class CacheInvalidation {
     await invalidateKey(REDIS_KEYS.USER_COURSES(userId));
     await invalidateKey(REDIS_KEYS.USER_ANALYTICS(userId));
 
-    console.log(`Dashboard cache invalidated for user: ${userId}`);
   }
 }
 

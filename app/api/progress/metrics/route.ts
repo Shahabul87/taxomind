@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Get user's learning metrics
 export async function GET(req: NextRequest) {
@@ -122,7 +123,7 @@ export async function GET(req: NextRequest) {
     }
 
   } catch (error) {
-    console.error("Get learning metrics error:", error);
+    logger.error("Get learning metrics error:", error);
     return NextResponse.json(
       { error: "Failed to fetch learning metrics" },
       { status: 500 }
@@ -197,7 +198,7 @@ export async function POST(req: NextRequest) {
     */
 
   } catch (error) {
-    console.error("Update learning metrics error:", error);
+    logger.error("Update learning metrics error:", error);
     return NextResponse.json(
       { error: "Failed to update learning metrics" },
       { status: 500 }

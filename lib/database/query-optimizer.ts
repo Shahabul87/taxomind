@@ -5,6 +5,7 @@
 
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 // Type definitions for optimized queries
 export type OptimizedCourseQuery = Prisma.CourseGetPayload<{
@@ -804,7 +805,7 @@ export class QueryPerformanceMonitor {
       
       // Log slow queries
       if (duration > 1000) {
-        console.warn(`Slow query detected: ${queryName} took ${duration}ms`);
+        logger.warn(`Slow query detected: ${queryName} took ${duration}ms`);
       }
     };
   }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import {
   Shield,
   TrendingUp,
@@ -224,7 +225,7 @@ export const EnterpriseIntelligenceDashboard = ({ className }: EnterpriseIntelli
         setBusinessIntelligence(getDemoBusinessIntelligence());
       }
     } catch (error) {
-      console.error("Failed to load enterprise intelligence data:", error);
+      logger.error("Failed to load enterprise intelligence data:", error);
       // Use demo data as fallback
       setSecurityMetrics(getDemoSecurityMetrics());
       setPerformanceMetrics(getDemoPerformanceMetrics());

@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function getUserDetails(userId: string) {
   try {
@@ -10,7 +11,7 @@ export async function getUserDetails(userId: string) {
     });
     return user;
   } catch (error) {
-    console.error("Error fetching user details:", error);
+    logger.error("Error fetching user details:", error);
     throw error;
   }
 } 

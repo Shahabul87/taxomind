@@ -6,6 +6,7 @@ import { PlusCircle, XCircle } from "lucide-react";
 import { FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface MathImageUploadProps {
   value: string;
@@ -63,7 +64,7 @@ export const MathImageUpload = ({
       }
     } catch (error) {
       toast.error("Something went wrong during upload");
-      console.error(error);
+      logger.error(error);
     } finally {
       setIsUploading(false);
       // Reset the input value so the same file can be selected again

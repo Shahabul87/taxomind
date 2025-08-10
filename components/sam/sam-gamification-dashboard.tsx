@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSamAITutor } from '@/app/(protected)/teacher/_components/sam-ai-tutor-provider';
+import { logger } from '@/lib/logger';
 import { 
   Trophy, 
   Target, 
@@ -103,7 +104,7 @@ export function SAMGamificationDashboard() {
           setChallenges(challengesData.data);
         }
       } catch (error) {
-        console.error('Error loading gamification data:', error);
+        logger.error('Error loading gamification data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -132,7 +133,7 @@ export function SAMGamificationDashboard() {
         trackInteraction('challenge_started', { challengeId });
       }
     } catch (error) {
-      console.error('Error starting challenge:', error);
+      logger.error('Error starting challenge:', error);
     }
   };
 

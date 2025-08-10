@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 // Get active sessions count
 export async function GET(req: NextRequest) {
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
       timestamp: new Date()
     });
   } catch (error) {
-    console.error('Active sessions error:', error);
+    logger.error('Active sessions error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch active sessions' },
       { status: 500 }

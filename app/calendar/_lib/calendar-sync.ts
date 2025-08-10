@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import { Credentials } from 'google-auth-library';
+import { logger } from '@/lib/logger';
 
 export class CalendarSync {
   private oauth2Client;
@@ -36,7 +37,7 @@ export class CalendarSync {
         source: 'google',
       }));
     } catch (error) {
-      console.error('Failed to sync with Google Calendar:', error);
+      logger.error('Failed to sync with Google Calendar:', error);
       throw error;
     }
   }
@@ -64,7 +65,7 @@ export class CalendarSync {
 
       return response.data;
     } catch (error) {
-      console.error('Failed to export to Google Calendar:', error);
+      logger.error('Failed to export to Google Calendar:', error);
       throw error;
     }
   }
@@ -93,7 +94,7 @@ export class CalendarSync {
 
       return response.data;
     } catch (error) {
-      console.error('Failed to update Google Calendar event:', error);
+      logger.error('Failed to update Google Calendar event:', error);
       throw error;
     }
   }
@@ -109,7 +110,7 @@ export class CalendarSync {
       
       return true;
     } catch (error) {
-      console.error('Failed to delete Google Calendar event:', error);
+      logger.error('Failed to delete Google Calendar event:', error);
       throw error;
     }
   }

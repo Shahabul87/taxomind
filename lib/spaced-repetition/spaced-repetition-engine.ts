@@ -59,8 +59,6 @@ export class SpacedRepetitionEngine {
     performance: ReviewPerformance,
     context?: any
   ): Promise<SpacedRepetitionResult> {
-    
-    console.log(`Processing review for student: ${studentId}, content: ${contentId}`);
 
     // Get current repetition state
     const currentState = await this.getCurrentRepetitionState(studentId, contentId);
@@ -158,8 +156,6 @@ export class SpacedRepetitionEngine {
     courseId: string,
     timeHorizon: number = 30 // days
   ): Promise<OptimizedScheduleResult> {
-    
-    console.log(`Optimizing review schedule for student: ${studentId}`);
 
     // Get all active items for the student
     const activeItems = await this.getActiveRepetitionItems(studentId, courseId);
@@ -217,8 +213,6 @@ export class SpacedRepetitionEngine {
     adaptationTrigger: AdaptationTrigger,
     contextData: any
   ): Promise<AdaptationResult> {
-    
-    console.log(`Adapting repetition parameters for student: ${studentId}`);
 
     // Get current state and history
     const currentState = await this.getCurrentRepetitionState(studentId, contentId);
@@ -346,8 +340,6 @@ export class SpacedRepetitionEngine {
     courseId: string,
     learningObjectives: string[]
   ): Promise<PathOptimizationResult> {
-    
-    console.log(`Generating learning path optimization for student: ${studentId}`);
 
     // Get student's current mastery state
     const masteryState = await this.getStudentMasteryState(studentId, courseId);
@@ -888,9 +880,7 @@ export class SpacedRepetitionEngine {
 
   // Stub methods for complex functionality
   private async initializeAlgorithms(): Promise<void> {
-    console.log('Initializing spaced repetition algorithms...');
-  }
-
+}
   private async getCurrentRepetitionState(studentId: string, contentId: string): Promise<RepetitionState> {
     // Would fetch from database
     return {
@@ -914,17 +904,11 @@ export class SpacedRepetitionEngine {
   }
 
   private async storeRepetitionResult(result: SpacedRepetitionResult): Promise<void> {
-    console.log('Storing repetition result:', result.id);
-  }
-
+}
   private async updateStudentProfile(studentId: string, result: SpacedRepetitionResult): Promise<void> {
-    console.log('Updating student profile for:', studentId);
-  }
-
+}
   private async updateForgettingCurve(studentId: string, contentId: string, result: SpacedRepetitionResult): Promise<void> {
-    console.log('Updating forgetting curve for:', studentId, contentId);
-  }
-
+}
   private async getStudentProfile(studentId: string): Promise<StudentRepetitionProfile> {
     // Would fetch comprehensive student profile
     return {
@@ -982,7 +966,8 @@ export class SpacedRepetitionEngine {
   private async calculateAdaptationMagnitude(analysis: any, state: RepetitionState, history: any[]): Promise<number> { return 0.1; }
   private async applyParameterAdaptations(state: RepetitionState, magnitude: number, analysis: any): Promise<RepetitionState> { return state; }
   private async validateAdaptation(original: RepetitionState, adapted: RepetitionState, analysis: any): Promise<any> { return { isValid: true, confidence: 0.8 }; }
-  private async applyAdaptations(studentId: string, contentId: string, parameters: RepetitionState): Promise<void> { }
+  private async applyAdaptations(studentId: string, contentId: string, parameters: RepetitionState): Promise<void> {
+}
 }
 
 // Supporting interfaces

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 interface UserPattern {
   sessionId: string;
@@ -75,7 +76,7 @@ export const useProgressiveCourseCreation = (userId?: string) => {
           }
         }
       } catch (error) {
-        console.error('Failed to initialize user patterns:', error);
+        logger.error('Failed to initialize user patterns:', error);
       }
     };
 
@@ -280,7 +281,7 @@ export const useProgressiveCourseCreation = (userId?: string) => {
         });
       }
     } catch (error) {
-      console.error('Failed to save user patterns:', error);
+      logger.error('Failed to save user patterns:', error);
     }
   }, [userId]);
 

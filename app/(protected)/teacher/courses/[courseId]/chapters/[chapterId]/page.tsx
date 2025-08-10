@@ -2,8 +2,7 @@ import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ChapterPageClient } from "./_components/chapter-page-client";
-
-
+import { logger } from '@/lib/logger';
 
 const ChapterIdPage = async (
   props: {
@@ -16,10 +15,6 @@ const ChapterIdPage = async (
   if (!user?.id) {
       return redirect("/");
     }
-
-
-
-
 
   const chapter = await db.chapter.findUnique({
     where: {
@@ -35,9 +30,8 @@ const ChapterIdPage = async (
     }
   });
 
-
   if (!chapter) {
-    console.error("Chapter not found");
+    logger.error("Chapter not found");
     return redirect("/");
   }
 

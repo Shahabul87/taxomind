@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { openai } from "@/lib/openai";
 import { anthropic } from "@/lib/anthropic";
+import { logger } from '@/lib/logger';
 
 // Types for Resource Intelligence Hub
 export interface Topic {
@@ -195,7 +196,7 @@ export class SAMResourceEngine {
       
       return limitedResources;
     } catch (error) {
-      console.error('Error discovering resources:', error);
+      logger.error('Error discovering resources:', error);
       throw new Error('Failed to discover resources');
     }
   }
@@ -285,7 +286,7 @@ export class SAMResourceEngine {
       
       return qualityScore;
     } catch (error) {
-      console.error('Error scoring resource quality:', error);
+      logger.error('Error scoring resource quality:', error);
       return this.getDefaultQualityScore();
     }
   }
@@ -342,7 +343,7 @@ export class SAMResourceEngine {
         alternativeLicenses
       };
     } catch (error) {
-      console.error('Error checking license compatibility:', error);
+      logger.error('Error checking license compatibility:', error);
       return {
         compatible: false,
         restrictions: ['Unable to verify license'],
@@ -396,7 +397,7 @@ export class SAMResourceEngine {
       
       return analysis;
     } catch (error) {
-      console.error('Error analyzing resource ROI:', error);
+      logger.error('Error analyzing resource ROI:', error);
       throw new Error('Failed to analyze resource ROI');
     }
   }
@@ -447,7 +448,7 @@ export class SAMResourceEngine {
       
       return recommendations;
     } catch (error) {
-      console.error('Error personalizing recommendations:', error);
+      logger.error('Error personalizing recommendations:', error);
       throw new Error('Failed to personalize recommendations');
     }
   }
@@ -466,7 +467,7 @@ export class SAMResourceEngine {
       if (result.status === 'fulfilled') {
         allResources.push(...result.value);
       } else {
-        console.error(`Failed to search ${sources[index]}:`, result.reason);
+        logger.error(`Failed to search ${sources[index]}:`, result.reason);
       }
     });
     

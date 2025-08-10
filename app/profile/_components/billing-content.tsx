@@ -27,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { logger } from '@/lib/logger';
 
 // Define the categories object with the required properties
 const categories = [
@@ -64,7 +65,7 @@ const safeFormatDate = (date: Date | string | null | undefined, formatStr: strin
   try {
     return format(dateObj, formatStr);
   } catch (error) {
-    console.error('Error formatting date:', error);
+    logger.error('Error formatting date:', error);
     return 'Date error';
   }
 };
@@ -138,10 +139,10 @@ export const BillingContent = ({ userId }: { userId: string }) => {
       setBills(processedBills);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.error('Error fetching bills:', error.response?.data);
+        logger.error('Error fetching bills:', error.response?.data);
         toast.error(error.response?.data || "Failed to fetch bills");
       } else {
-        console.error('Error fetching bills:', error);
+        logger.error('Error fetching bills:', error);
         toast.error("Failed to fetch bills");
       }
     } finally {
@@ -634,7 +635,7 @@ export const BillingContent = ({ userId }: { userId: string }) => {
         onOpenChange={(open) => setIsFilterOpen(open)}
         filters={{}}
         onApplyFilters={(filters) => {
-          console.log("Applied filters:", filters);
+
           // Here you would typically filter your bills based on the selected filters
         }}
         categories={categories.map(c => c.id)}
@@ -647,17 +648,17 @@ export const BillingContent = ({ userId }: { userId: string }) => {
             if (!open) setSelectedBill(null);
           }}
           onEdit={(bill) => {
-            console.log("Edit bill:", bill);
+
             // Here you would typically open the edit form
           }}
           onDelete={(id) => {
-            console.log("Delete bill:", id);
+
             // Here you would typically delete the bill
             setSelectedBill(null);
             fetchBills();
           }}
           onMarkAsPaid={(id) => {
-            console.log("Mark bill as paid:", id);
+
             // Here you would typically mark the bill as paid
             fetchBills();
           }}

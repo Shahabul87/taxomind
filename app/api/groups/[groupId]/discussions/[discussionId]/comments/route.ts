@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 const createCommentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty"),
@@ -54,7 +55,7 @@ export async function POST(
 
     return NextResponse.json(comment);
   } catch (error) {
-    console.error("[DISCUSSION_COMMENT]", error);
+    logger.error("[DISCUSSION_COMMENT]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -105,7 +106,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("[DISCUSSION_COMMENTS_GET]", error);
+    logger.error("[DISCUSSION_COMMENTS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

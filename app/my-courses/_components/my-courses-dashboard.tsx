@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Clock, BookOpen, Users, Star, BarChart, Plus, Search, Filter, CheckCircle2, Award, Zap, Trophy, TrendingUp, Calendar, Target, AlertTriangle, BarChart3 } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 import { CourseCard } from "./course-card";
 import { EmptyState } from "./empty-state";
@@ -69,7 +70,7 @@ export const MyCoursesDashboard = ({
         
         return true;
       } catch (error) {
-        console.warn("Error filtering enrolled course:", error);
+        logger.warn("Error filtering enrolled course:", error);
         return false;
       }
     })
@@ -92,7 +93,7 @@ export const MyCoursesDashboard = ({
         }
         return 0;
       } catch (error) {
-        console.warn("Error sorting enrolled courses:", error);
+        logger.warn("Error sorting enrolled courses:", error);
         return 0;
       }
     });
@@ -114,7 +115,7 @@ export const MyCoursesDashboard = ({
         
         return true;
       } catch (error) {
-        console.warn("Error filtering created course:", error);
+        logger.warn("Error filtering created course:", error);
         return false;
       }
     })
@@ -137,7 +138,7 @@ export const MyCoursesDashboard = ({
         }
         return 0;
       } catch (error) {
-        console.warn("Error sorting created courses:", error);
+        logger.warn("Error sorting created courses:", error);
         return 0;
       }
     });

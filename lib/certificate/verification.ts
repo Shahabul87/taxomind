@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { nanoid } from "nanoid";
 import QRCode from "qrcode";
+import { logger } from '@/lib/logger';
 
 export interface VerificationResult {
   isValid: boolean;
@@ -47,7 +48,7 @@ export class VerificationService {
       };
 
     } catch (error) {
-      console.error('Verification error:', error);
+      logger.error('Verification error:', error);
       return {
         isValid: false,
         credentialType: 'certificate',
@@ -259,7 +260,7 @@ export class VerificationService {
 
       return qrCodeDataUrl;
     } catch (error) {
-      console.error('QR code generation error:', error);
+      logger.error('QR code generation error:', error);
       throw new Error('Failed to generate QR code');
     }
   }

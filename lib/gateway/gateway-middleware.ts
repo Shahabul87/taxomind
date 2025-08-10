@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
+import { logger } from '@/lib/logger';
 
 export interface RequestLog {
   requestId: string;
@@ -96,7 +97,7 @@ export function logError(error: Error, requestId: string, context?: any): void {
     context,
   };
 
-  console.error('[ERROR]', JSON.stringify(log));
+  logger.error('[ERROR]', JSON.stringify(log));
   
   // In production, send to error tracking service
   if (process.env.NODE_ENV === 'production') {

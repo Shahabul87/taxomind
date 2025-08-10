@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   addDays, 
   subDays,
@@ -208,7 +209,7 @@ export function CalendarView({ userId }: CalendarViewProps) {
       setError(null);
       
       if (!userId) {
-        console.error("Missing userId in CalendarView");
+        logger.error("Missing userId in CalendarView");
         setError("User ID is required for loading events");
         return;
       }
@@ -240,13 +241,11 @@ export function CalendarView({ userId }: CalendarViewProps) {
       const fetchedEvents = await getCalendarEvents(start, end, userId);
       
       if (!fetchedEvents || !Array.isArray(fetchedEvents)) {
-        console.error("Invalid events data received:", fetchedEvents);
+        logger.error("Invalid events data received:", fetchedEvents);
         setError("Could not load calendar data. Please try again later.");
         return;
       }
-      
-      console.log(`Successfully loaded ${fetchedEvents.length} events`);
-      
+
       // Log more detailed event information for debugging
       if (fetchedEvents.length > 0) {
         fetchedEvents.forEach(event => {
@@ -258,12 +257,10 @@ export function CalendarView({ userId }: CalendarViewProps) {
           });
         });
       } else {
-        console.log('No events found for the current date range');
-      }
-      
+}
       setEvents(fetchedEvents);
     } catch (error) {
-      console.error("Failed to fetch events:", error);
+      logger.error("Failed to fetch events:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to load calendar events";
       toast.error(errorMessage);
       setError(errorMessage);
@@ -325,7 +322,7 @@ export function CalendarView({ userId }: CalendarViewProps) {
       toast.success("Event deleted successfully");
       fetchEvents();
     } catch (error) {
-      console.error("Error deleting event:", error);
+      logger.error("Error deleting event:", error);
       toast.error("Failed to delete event. Please try again.");
     }
   };

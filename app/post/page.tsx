@@ -1,5 +1,6 @@
 import { getPostsForHomepage } from "@/actions/get-all-posts";
 import PostCard from "./_components/post-card";
+import { logger } from '@/lib/logger';
 
 interface SearchPageProps {
   searchParams: Promise<{
@@ -15,7 +16,7 @@ const PostsPage = async ({ searchParams }: SearchPageProps) => {
 
   // Ensure posts are valid
   if (!Array.isArray(posts)) {
-    console.error("Invalid post data:", posts);
+    logger.error("Invalid post data:", posts);
     return <div>Error loading posts. Invalid data received.</div>;
   }
 

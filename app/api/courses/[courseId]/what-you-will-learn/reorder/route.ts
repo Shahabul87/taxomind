@@ -66,7 +66,7 @@ export async function PATCH(
     
     return NextResponse.json(updatedCourse);
   } catch (error) {
-    console.log("[OBJECTIVE_REORDER]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

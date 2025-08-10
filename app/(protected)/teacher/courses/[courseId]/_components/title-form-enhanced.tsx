@@ -4,6 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { logger } from '@/lib/logger';
 import { 
   Pencil, Sparkles, Loader2, Brain, Languages, 
   Target, BookOpen, Zap, RefreshCw, Globe,
@@ -153,7 +154,7 @@ export const TitleFormEnhanced = ({
         setGeneratedTitles(getDemoTitles());
       }
     } catch (error) {
-      console.error("Title generation error:", error);
+      logger.error("Title generation error:", error);
       toast.error("Failed to generate titles. Using demo suggestions.");
       setGeneratedTitles(getDemoTitles());
     } finally {

@@ -77,17 +77,7 @@ export function IntelligentSamIntegration({
   
   // Log capabilities on mount (for debugging)
   useEffect(() => {
-    console.log('Intelligent SAM initialized with capabilities:', {
-      canUpdateObjectives: !!onUpdateLearningObjectives,
-      canUpdateChapters: !!onUpdateChapters,
-      canUpdateTitle: !!onUpdateTitle,
-      canUpdateDescription: !!onUpdateDescription,
-      courseContext: {
-        title: courseData.title,
-        chapters: courseData.chapters.length,
-        objectives: courseData.whatYouWillLearn.length
-      }
-    });
+
   }, [courseData, onUpdateLearningObjectives, onUpdateChapters, onUpdateTitle, onUpdateDescription]);
 
   return (

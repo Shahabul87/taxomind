@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { logger } from '@/lib/logger';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
@@ -52,11 +53,12 @@ export default function JobMarketMappingInterface() {
         readiness: readiness.readiness || {},
         pathways: pathways.pathways || [],
         salaryInsights: {},
-        marketTrends: trends.trends || {}
+        marketTrends: trends.trends || {
+}
       });
       setIsLoading(false);
     } catch (error) {
-      console.error('Failed to fetch job market data:', error);
+      logger.error('Failed to fetch job market data:', error);
       setIsLoading(false);
     }
   };
@@ -82,7 +84,7 @@ export default function JobMarketMappingInterface() {
         await fetchJobMarketData();
       }
     } catch (error) {
-      console.error('Failed to generate mapping:', error);
+      logger.error('Failed to generate mapping:', error);
     }
     setIsGenerating(false);
   };
@@ -95,7 +97,7 @@ export default function JobMarketMappingInterface() {
         setJobMarketData(prev => prev ? { ...prev, salaryInsights: result.insights } : null);
       }
     } catch (error) {
-      console.error('Failed to get salary insights:', error);
+      logger.error('Failed to get salary insights:', error);
     }
   };
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { logger } from '@/lib/logger';
 import { 
   Card, 
   CardContent, 
@@ -114,7 +115,7 @@ export function SecureClientAdminDashboard() {
         toast.success("Dashboard refreshed successfully");
       }
     } catch (err) {
-      console.error("Dashboard error:", err);
+      logger.error("Dashboard error:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
       
       // Handle specific error types

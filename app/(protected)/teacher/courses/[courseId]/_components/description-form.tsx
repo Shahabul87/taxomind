@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { logger } from '@/lib/logger';
 import {
   Form,
   FormControl,
@@ -88,15 +89,13 @@ export const DescriptionForm = ({
   // Listen for SAM form population events
   useEffect(() => {
     const handleSamFormPopulation = (event: CustomEvent) => {
-      console.log('📥 Description form received SAM populate event:', event.detail);
-      
+
       if (event.detail?.formId === 'course-description-form' || 
           event.detail?.formId === 'course-description' ||
           event.detail?.formId === 'update-course-description' ||
           event.detail?.formId === 'update-description' ||
           event.detail?.formId === 'general-form') {
-        
-        console.log('✅ Matched form ID, opening edit mode');
+
         // Auto-open edit mode when SAM tries to populate
         setIsEditing(true);
         setSamTriggerEdit(true);
@@ -159,9 +158,7 @@ export const DescriptionForm = ({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true);
-      console.log("Submitting description update:", values);
-      console.log("Course ID:", courseId);
-      
+
       const response = await axios.post(`/api/course-update`, {
         courseId: courseId,
         description: values.description
@@ -171,17 +168,16 @@ export const DescriptionForm = ({
         },
         timeout: 30000, // 30 second timeout
       });
-      
-      console.log("Description update response:", response.data);
+
       toast.success("Course description updated");
       toggleEdit();
       router.refresh();
     } catch (error: any) {
-      console.error("Description update error:", error);
+      logger.error("Description update error:", error);
       
       if (error.response) {
-        console.error("Error response status:", error.response.status);
-        console.error("Error response data:", error.response.data);
+        logger.error("Error response status:", error.response.status);
+        logger.error("Error response data:", error.response.data);
         
         if (error.response.status === 401) {
           toast.error("Authentication failed. Please log in again.");
@@ -193,10 +189,10 @@ export const DescriptionForm = ({
           toast.error(`Error: ${error.response.data || 'Something went wrong'}`);
         }
       } else if (error.request) {
-        console.error("No response received:", error.request);
+        logger.error("No response received:", error.request);
         toast.error("Network error. Please check your connection.");
       } else {
-        console.error("Request setup error:", error.message);
+        logger.error("Request setup error:", error.message);
         toast.error("Something went wrong");
       }
     } finally {

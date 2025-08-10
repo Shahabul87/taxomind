@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Send, Loader2 } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 // Import modular components
 import { CodeFormHeader } from "./_CodeTabComponents/CodeFormHeader";
@@ -222,7 +223,7 @@ export const CodeExplanationForm = ({
       
     } catch (error) {
       toast.error("Something went wrong. Please try again.");
-      console.error("Submission error:", error);
+      logger.error("Submission error:", error);
     } finally {
       setIsSubmitting(false);
     }

@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { logger } from '@/lib/logger';
 
 export async function getProfileData() {
   const session = await auth();
@@ -12,7 +13,6 @@ export async function getProfileData() {
   }
 
   try {
-    console.log("[GET_PROFILE_DATA] Fetching data for user:", session.user.id);
 
     // Get basic user data first
     const userData = await db.user.findUnique({
@@ -39,11 +39,9 @@ export async function getProfileData() {
     });
 
     if (!userData) {
-      console.log("[GET_PROFILE_DATA] User not found");
+
       return null;
     }
-
-    console.log("[GET_PROFILE_DATA] Basic user data found");
 
     // Try to add enhanced data if tables exist, but don't fail if they don't
     let enhancedData = {
@@ -61,7 +59,7 @@ export async function getProfileData() {
       });
       enhancedData.socialMediaAccounts = socialAccounts;
     } catch (error) {
-      console.warn("[GET_PROFILE_DATA] Social media accounts not available:", error);
+      logger.warn("[GET_PROFILE_DATA] Social media accounts not available:", error);
     }
 
     try {
@@ -77,7 +75,7 @@ export async function getProfileData() {
       });
       enhancedData.contentCollections = contentCollections;
     } catch (error) {
-      console.warn("[GET_PROFILE_DATA] Content collections not available:", error);
+      logger.warn("[GET_PROFILE_DATA] Content collections not available:", error);
     }
 
     try {
@@ -93,7 +91,7 @@ export async function getProfileData() {
       });
       enhancedData.contentItems = contentItems;
     } catch (error) {
-      console.warn("[GET_PROFILE_DATA] Content items not available:", error);
+      logger.warn("[GET_PROFILE_DATA] Content items not available:", error);
     }
 
     try {
@@ -105,7 +103,7 @@ export async function getProfileData() {
       });
       enhancedData.userSubscriptions = userSubscriptions;
     } catch (error) {
-      console.warn("[GET_PROFILE_DATA] User subscriptions not available:", error);
+      logger.warn("[GET_PROFILE_DATA] User subscriptions not available:", error);
     }
 
     try {
@@ -117,7 +115,7 @@ export async function getProfileData() {
       });
       enhancedData.goals = goals;
     } catch (error) {
-      console.warn("[GET_PROFILE_DATA] Goals not available:", error);
+      logger.warn("[GET_PROFILE_DATA] Goals not available:", error);
     }
 
     try {
@@ -130,14 +128,13 @@ export async function getProfileData() {
       });
       enhancedData.userAnalytics = userAnalytics;
     } catch (error) {
-      console.warn("[GET_PROFILE_DATA] User analytics not available:", error);
+      logger.warn("[GET_PROFILE_DATA] User analytics not available:", error);
     }
 
-    console.log("[GET_PROFILE_DATA] Successfully fetched profile data");
     return { ...userData, ...enhancedData };
 
   } catch (error) {
-    console.error("[GET_PROFILE_DATA] Error fetching profile data:", error);
+    logger.error("[GET_PROFILE_DATA] Error fetching profile data:", error);
     return null;
   }
 } 

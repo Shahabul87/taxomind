@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
+import { logger } from '@/lib/logger';
 
 export async function POST(
   req: NextRequest,
@@ -16,7 +17,7 @@ export async function POST(
     // Check rate limiting
     const rateLimitResult = await isRateLimited(user.id, 'reply');
     if (rateLimitResult.limited) {
-      console.log(`[COMMENT_REPLY_POST] Rate limited: ${user.id}`, rateLimitResult);
+
       return NextResponse.json({ 
         error: getRateLimitMessage('reply', rateLimitResult.reset),
         rateLimitInfo: rateLimitResult
@@ -31,13 +32,6 @@ export async function POST(
       return NextResponse.json({ error: "Content is required" }, { status: 400 });
     }
 
-    console.log("[COMMENT_REPLY_POST] Processing reply:", { 
-      postId, 
-      commentId, 
-      parentReplyId: parentReplyId || "none", 
-      userId: user.id 
-    });
-
     // Check if comment exists
     const comment = await db.comment.findFirst({
       where: {
@@ -47,7 +41,7 @@ export async function POST(
     });
 
     if (!comment) {
-      console.log("[COMMENT_REPLY_POST] Comment not found:", { commentId, postId });
+
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
@@ -70,7 +64,7 @@ export async function POST(
       });
 
       if (!parentReply) {
-        console.log("[COMMENT_REPLY_POST] Parent reply not found:", { parentReplyId, commentId });
+
         return NextResponse.json({ error: "Parent reply not found" }, { status: 404 });
       }
 
@@ -84,7 +78,7 @@ export async function POST(
         
         // If we've gone too deep, we need to get the referenced parent
         if (replyDepth > 10) { // Hard limit on server side for safety
-          console.log("[COMMENT_REPLY_POST] Excessive nesting depth detected:", { depth: replyDepth, parentReplyId });
+
           return NextResponse.json({ 
             error: "Maximum reply nesting depth exceeded" 
           }, { status: 400 });
@@ -98,8 +92,7 @@ export async function POST(
           break;
         }
       }
-      
-      console.log("[COMMENT_REPLY_POST] Reply depth:", { depth: replyDepth, parentReplyId });
+
     }
 
     // Create reply with optional parentReplyId
@@ -132,10 +125,9 @@ export async function POST(
       },
     });
 
-    console.log("[COMMENT_REPLY_POST] Reply created successfully:", { replyId: reply.id });
     return NextResponse.json(reply);
   } catch (error) {
-    console.error("[COMMENT_REPLY_POST] Error:", error);
+    logger.error("[COMMENT_REPLY_POST] Error:", error);
     return NextResponse.json({ 
       error: error instanceof Error ? error.message : "Internal server error" 
     }, { status: 500 });
@@ -180,9 +172,8 @@ export async function GET(
 
     return NextResponse.json(replies);
   } catch (error) {
-    console.error("[REPLIES_GET]", error);
+    logger.error("[REPLIES_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
-
 

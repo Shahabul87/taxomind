@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -49,13 +50,12 @@ export async function GET(
   { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
-    console.log("[COURSE_ANALYTICS] Starting analytics generation");
-    
+
     // Get current user
     const user = await currentUser();
     
     if (!user?.id) {
-      console.log("[COURSE_ANALYTICS] No user found - unauthorized");
+
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
@@ -68,16 +68,14 @@ export async function GET(
     const userRole = dbUser?.role;
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      console.log(`[COURSE_ANALYTICS] User role ${userRole} not authorized`);
+
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
     
     const { courseId } = await params;
     const url = new URL(req.url);
     const timeframe = url.searchParams.get('timeframe') || '30d';
-    
-    console.log("[COURSE_ANALYTICS] Generating analytics for course:", courseId, "Timeframe:", timeframe);
-    
+
     // Verify course ownership
     const course = await db.course.findUnique({
       where: {
@@ -121,9 +119,7 @@ export async function GET(
     const analytics = await generateAnalyticsData(course, timeframe);
     const studentProgress = await generateStudentProgressData(course, timeframe);
     const contentAnalytics = await generateContentAnalyticsData(course, timeframe);
-    
-    console.log("[COURSE_ANALYTICS] Analytics generated successfully for course:", courseId);
-    
+
     return NextResponse.json({
       analytics,
       studentProgress,
@@ -131,11 +127,11 @@ export async function GET(
     });
     
   } catch (error) {
-    console.error("[COURSE_ANALYTICS] Error:", error);
+    logger.error("[COURSE_ANALYTICS] Error:", error);
     
     if (error instanceof Error) {
-      console.error("[COURSE_ANALYTICS] Error message:", error.message);
-      console.error("[COURSE_ANALYTICS] Error stack:", error.stack);
+      logger.error("[COURSE_ANALYTICS] Error message:", error.message);
+      logger.error("[COURSE_ANALYTICS] Error stack:", error.stack);
     }
     
     return new NextResponse("Internal Server Error", { status: 500 });
@@ -143,8 +139,7 @@ export async function GET(
 }
 
 async function generateAnalyticsData(course: any, timeframe: string): Promise<AnalyticsData> {
-  console.log("[COURSE_ANALYTICS] Generating analytics data");
-  
+
   // Calculate basic metrics
   const totalStudents = course.Purchase.length + course.Enrollment.length;
   const totalChapters = course.chapters.length;

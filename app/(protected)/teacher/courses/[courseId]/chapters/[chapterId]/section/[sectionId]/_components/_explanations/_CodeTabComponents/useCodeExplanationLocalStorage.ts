@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { logger } from '@/lib/logger';
 
 // Local storage hook for code explanations
 export function useCodeExplanationLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -15,11 +16,11 @@ export function useCodeExplanationLocalStorage<T>(key: string, initialValue: T):
         return JSON.parse(item);
       } catch {
         window.localStorage.removeItem(key);
-        console.warn(`Invalid JSON in localStorage for key: ${key}, using default value`);
+        logger.warn(`Invalid JSON in localStorage for key: ${key}, using default value`);
         return initialValue;
       }
     } catch (error) {
-      console.error("Error reading from localStorage:", error);
+      logger.error("Error reading from localStorage:", error);
       return initialValue;
     }
   });
@@ -32,7 +33,7 @@ export function useCodeExplanationLocalStorage<T>(key: string, initialValue: T):
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
     } catch (error) {
-      console.error("Error writing to localStorage:", error);
+      logger.error("Error writing to localStorage:", error);
     }
   };
 

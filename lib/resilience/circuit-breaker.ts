@@ -5,6 +5,7 @@
  */
 
 import { Redis } from '@upstash/redis';
+import { logger } from '@/lib/logger';
 
 export interface CircuitBreakerConfig {
   name: string;
@@ -123,7 +124,7 @@ export class CircuitBreaker {
     this.state = 'OPEN';
     this.resetTime = new Date(Date.now() + this.config.resetTimeout);
     
-    console.error(`[CIRCUIT_BREAKER] Circuit breaker OPENED for ${this.name}`);
+    logger.error(`[CIRCUIT_BREAKER] Circuit breaker OPENED for ${this.name}`);
     this.sendNotification('OPEN');
     this.persistStats();
   }
@@ -135,7 +136,7 @@ export class CircuitBreaker {
     this.state = 'HALF_OPEN';
     this.resetTime = undefined;
     
-    console.warn(`[CIRCUIT_BREAKER] Circuit breaker HALF-OPEN for ${this.name}`);
+    logger.warn(`[CIRCUIT_BREAKER] Circuit breaker HALF-OPEN for ${this.name}`);
     this.sendNotification('HALF_OPEN');
     this.persistStats();
   }
@@ -147,8 +148,7 @@ export class CircuitBreaker {
     this.state = 'CLOSED';
     this.failureCount = 0;
     this.resetTime = undefined;
-    
-    console.info(`[CIRCUIT_BREAKER] Circuit breaker CLOSED for ${this.name}`);
+
     this.sendNotification('CLOSE');
     this.persistStats();
   }
@@ -254,7 +254,6 @@ export class CircuitBreaker {
     return this.state === 'CLOSED' && errorRate < 50;
   }
 
-
   /**
    * Send notification about state changes
    */
@@ -263,7 +262,7 @@ export class CircuitBreaker {
       try {
         await this.notificationCallback(state, this.name);
       } catch (error) {
-        console.error(`[CIRCUIT_BREAKER] Failed to send notification:`, error);
+        logger.error(`[CIRCUIT_BREAKER] Failed to send notification:`, error);
       }
     }
   }
@@ -288,7 +287,7 @@ export class CircuitBreaker {
         3600 // Expire in 1 hour
       );
     } catch (error) {
-      console.error(`[CIRCUIT_BREAKER] Failed to persist state for ${this.name}:`, error);
+      logger.error(`[CIRCUIT_BREAKER] Failed to persist state for ${this.name}:`, error);
     }
   }
 
@@ -309,7 +308,7 @@ export class CircuitBreaker {
         })
       );
     } catch (error) {
-      console.error(`[CIRCUIT_BREAKER] Failed to persist stats for ${this.name}:`, error);
+      logger.error(`[CIRCUIT_BREAKER] Failed to persist stats for ${this.name}:`, error);
     }
   }
 
@@ -344,7 +343,7 @@ export class CircuitBreaker {
         }
       }
     } catch (error) {
-      console.error(`[CIRCUIT_BREAKER] Failed to restore state for ${this.name}:`, error);
+      logger.error(`[CIRCUIT_BREAKER] Failed to restore state for ${this.name}:`, error);
     }
   }
 
@@ -357,7 +356,7 @@ export class CircuitBreaker {
     }
     
     await this.persistStats();
-    console.log(`[CIRCUIT_BREAKER] Shutdown completed for ${this.name}`);
+
   }
 }
 
@@ -456,7 +455,6 @@ export class CircuitBreakerManager {
     return circuitBreaker;
   }
 
-
   /**
    * Get all circuit breaker statistics
    */
@@ -490,12 +488,11 @@ export class CircuitBreakerManager {
    * Handle circuit breaker state changes
    */
   private async handleStateChange(state: string, serviceName: string): Promise<void> {
-    console.log(`[CIRCUIT_BREAKER_MANAGER] State change: ${serviceName} -> ${state}`);
-    
+
     // In production, you could send alerts, update monitoring dashboards, etc.
     if (state === 'OPEN') {
       // Send critical alert
-      console.error(`[ALERT] Circuit breaker for ${serviceName} is now OPEN`);
+      logger.error(`[ALERT] Circuit breaker for ${serviceName} is now OPEN`);
     }
   }
 
@@ -506,7 +503,7 @@ export class CircuitBreakerManager {
     for (const circuitBreaker of this.circuitBreakers.values()) {
       circuitBreaker.reset();
     }
-    console.log('[CIRCUIT_BREAKER_MANAGER] All circuit breakers reset');
+
   }
 
   /**
@@ -516,7 +513,7 @@ export class CircuitBreakerManager {
     const shutdownPromises = Array.from(this.circuitBreakers.values()).map(cb => cb.shutdown());
     await Promise.all(shutdownPromises);
     this.circuitBreakers.clear();
-    console.log('[CIRCUIT_BREAKER_MANAGER] Shutdown completed');
+
   }
 }
 

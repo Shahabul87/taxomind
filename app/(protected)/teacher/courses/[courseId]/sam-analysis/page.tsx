@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { SAMAnalyticsDashboard } from '@/components/sam/sam-analytics-dashboard';
+import { logger } from '@/lib/logger';
 import { 
   TrendingUp, 
   Brain, 
@@ -34,7 +35,7 @@ export default function SAMAnalysisPage() {
         setAnalysisData(data.data);
       }
     } catch (error) {
-      console.error('Error loading analysis:', error);
+      logger.error('Error loading analysis:', error);
     }
   }, [courseId]);
 

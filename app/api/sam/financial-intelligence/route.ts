@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { samFinancialEngine } from "@/lib/sam-financial-engine";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Financial intelligence error:", error);
+    logger.error("Financial intelligence error:", error);
     return NextResponse.json(
       { error: "Failed to process financial intelligence request" },
       { status: 500 }
@@ -999,7 +1000,7 @@ export async function GET(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Error fetching financial data:", error);
+    logger.error("Error fetching financial data:", error);
     return NextResponse.json(
       { error: "Failed to fetch financial data" },
       { status: 500 }

@@ -4,6 +4,7 @@
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import { Pool } from 'pg';
+import { logger } from '@/lib/logger';
 
 export interface ConnectionPoolConfig {
   name: string;
@@ -85,21 +86,19 @@ export class ConnectionPoolManager {
     
     this.startMonitoring();
     this.startAutoScaling();
-    
-    console.log('[CONNECTION_POOL] Enterprise pool manager initialized');
+
   }
 
   // Basic pool management methods would go here...
   
   async closeAllPools(): Promise<void> {
-    console.log('[CONNECTION_POOL] Closing all pools...');
-    
+
     for (const [poolName, pool] of this.pools.entries()) {
       try {
         await pool.$disconnect();
-        console.log(`[CONNECTION_POOL] Closed pool: ${poolName}`);
+
       } catch (error) {
-        console.warn(`[CONNECTION_POOL] Error closing pool ${poolName}:`, error);
+        logger.warn(`[CONNECTION_POOL] Error closing pool ${poolName}:`, error);
       }
     }
     
@@ -107,9 +106,9 @@ export class ConnectionPoolManager {
     for (const [poolName, rawPool] of this.rawPools.entries()) {
       try {
         await rawPool.end();
-        console.log(`[CONNECTION_POOL] Closed raw pool: ${poolName}`);
+
       } catch (error) {
-        console.warn(`[CONNECTION_POOL] Error closing raw pool ${poolName}:`, error);
+        logger.warn(`[CONNECTION_POOL] Error closing raw pool ${poolName}:`, error);
       }
     }
     

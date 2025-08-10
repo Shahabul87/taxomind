@@ -42,7 +42,7 @@ export async function GET(
 
     return NextResponse.json(mathEquations);
   } catch (error) {
-    console.log("[MATH_EQUATIONS_GET]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -55,8 +55,6 @@ export async function POST(
   try {
     const user = await currentUser();
     const { title, equation, explanation, imageUrl, content, mode } = await req.json();
-
-    console.log("Received data:", { title, equation, explanation, imageUrl, content, mode });
 
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -106,11 +104,9 @@ export async function POST(
       }
     });
 
-    console.log("Created math equation:", mathEquation);
-
     return NextResponse.json(mathEquation);
   } catch (error) {
-    console.log("[MATH_EQUATION]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

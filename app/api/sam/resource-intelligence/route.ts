@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { samResourceEngine } from "@/lib/sam-resource-engine";
+import { logger } from '@/lib/logger';
 import {
   Topic,
   ResourceDiscoveryConfig,
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Resource intelligence error:", error);
+    logger.error("Resource intelligence error:", error);
     return NextResponse.json(
       { error: "Failed to process resource request" },
       { status: 500 }
@@ -292,7 +293,7 @@ export async function GET(req: NextRequest) {
       { status: 400 }
     );
   } catch (error) {
-    console.error("Error fetching resource data:", error);
+    logger.error("Error fetching resource data:", error);
     return NextResponse.json(
       { error: "Failed to fetch resource data" },
       { status: 500 }

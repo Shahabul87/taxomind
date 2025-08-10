@@ -3,6 +3,7 @@ import { EachMessagePayload } from 'kafkajs';
 import { initializeConsumer, KAFKA_TOPICS, KafkaMessage } from '../index';
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 
 // Process student interaction messages
 export async function processInteractionMessage(
@@ -36,7 +37,7 @@ export async function processInteractionMessage(
     await checkForAlertPatterns(data);
     
   } catch (error) {
-    console.error('Error processing interaction message:', error);
+    logger.error('Error processing interaction message:', error);
   }
 }
 
@@ -70,7 +71,7 @@ export async function processVideoAnalyticsMessage(
     }
     
   } catch (error) {
-    console.error('Error processing video analytics:', error);
+    logger.error('Error processing video analytics:', error);
   }
 }
 
@@ -115,7 +116,7 @@ export async function processLearningMetricsMessage(
     });
     
   } catch (error) {
-    console.error('Error processing learning metrics:', error);
+    logger.error('Error processing learning metrics:', error);
   }
 }
 
@@ -302,10 +303,9 @@ export async function startAnalyticsConsumer(): Promise<void> {
         eachMessage: processLearningMetricsMessage
       })
     ]);
-    
-    console.log('Analytics consumers started');
+
   } catch (error) {
-    console.error('Failed to start analytics consumers:', error);
+    logger.error('Failed to start analytics consumers:', error);
     throw error;
   }
 }

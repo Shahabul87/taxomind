@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { logger } from '@/lib/logger';
 import {
   Form,
   FormControl,
@@ -100,7 +101,7 @@ export const NewEventDialog = ({
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong");
-      console.error("Create event error:", error);
+      logger.error("Create event error:", error);
     } finally {
       setIsPending(false);
     }

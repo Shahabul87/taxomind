@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Environment Variable Validation Utility
  * Provides centralized validation for required environment variables
@@ -7,12 +9,12 @@ export function validateEnvVar(varName: string, required: boolean = true): strin
   const value = process.env[varName];
   
   if (required && !value) {
-    console.error(`❌ Required environment variable ${varName} is not set`);
+    logger.error(`❌ Required environment variable ${varName} is not set`);
     throw new Error(`Missing required environment variable: ${varName}`);
   }
   
   if (!value && !required) {
-    console.warn(`⚠️  Optional environment variable ${varName} is not set`);
+    logger.warn(`⚠️  Optional environment variable ${varName} is not set`);
   }
   
   return value;
@@ -29,7 +31,7 @@ export function validateRequiredEnvVars(varNames: string[]): void {
   
   if (missing.length > 0) {
     const errorMsg = `Missing required environment variables: ${missing.join(', ')}`;
-    console.error(`❌ ${errorMsg}`);
+    logger.error(`❌ ${errorMsg}`);
     throw new Error(errorMsg);
   }
 }

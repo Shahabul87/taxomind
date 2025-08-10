@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { auditLogger } from '@/lib/compliance/audit-logger';
 import { AuditEventType, AuditSeverity } from '@/lib/compliance/audit-logger';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -68,7 +69,7 @@ export async function GET(req: NextRequest) {
       report,
     });
   } catch (error) {
-    console.error('SOC2 report generation error:', error);
+    logger.error('SOC2 report generation error:', error);
     
     // Log the error
     await auditLogger.log(
@@ -130,7 +131,7 @@ export async function POST(req: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('SOC2 API error:', error);
+    logger.error('SOC2 API error:', error);
     
     return NextResponse.json(
       { error: 'Internal server error' },

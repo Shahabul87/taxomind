@@ -5,6 +5,7 @@ import { redis } from '@/lib/redis';
 import { FeatureEngineer } from './feature-engineering';
 import { NeuralNetworkModel } from './models/neural-network';
 import { ModelType, PredictionOutput, StudentFeatures } from './types';
+import { logger } from '@/lib/logger';
 
 export class MLPredictionService {
   private featureEngineer: FeatureEngineer;
@@ -46,7 +47,7 @@ export class MLPredictionService {
             predictions[modelType] = this.getDefaultPrediction(features);
           }
         } catch (error) {
-          console.error(`Prediction failed for ${modelType}:`, error);
+          logger.error(`Prediction failed for ${modelType}:`, error);
           predictions[modelType] = this.getDefaultPrediction(features);
         }
       }
@@ -57,7 +58,7 @@ export class MLPredictionService {
       return predictions as Record<ModelType, PredictionOutput>;
 
     } catch (error) {
-      console.error('Failed to get predictions:', error);
+      logger.error('Failed to get predictions:', error);
       throw error;
     }
   }
@@ -90,7 +91,7 @@ export class MLPredictionService {
       return prediction;
 
     } catch (error) {
-      console.error(`Failed to get ${modelType} prediction:`, error);
+      logger.error(`Failed to get ${modelType} prediction:`, error);
       const features = await this.featureEngineer.extractStudentFeatures(studentId, courseId);
       return this.getDefaultPrediction(features);
     }
@@ -121,7 +122,7 @@ export class MLPredictionService {
       });
 
       if (!modelRecord) {
-        console.warn(`No trained model found for ${modelType}`);
+        logger.warn(`No trained model found for ${modelType}`);
         return null;
       }
 
@@ -139,7 +140,7 @@ export class MLPredictionService {
       return model;
 
     } catch (error) {
-      console.error(`Failed to load model ${modelType}:`, error);
+      logger.error(`Failed to load model ${modelType}:`, error);
       return null;
     }
   }
@@ -248,7 +249,7 @@ export class MLPredictionService {
 
       await redis.setex(cacheKey, 3600, JSON.stringify(cacheData));
     } catch (error) {
-      console.error('Failed to cache predictions:', error);
+      logger.error('Failed to cache predictions:', error);
     }
   }
 
@@ -263,7 +264,7 @@ export class MLPredictionService {
       const cacheKey = `prediction:${studentId}:${courseId}:${modelType}`;
       await redis.setex(cacheKey, 3600, JSON.stringify(prediction));
     } catch (error) {
-      console.error('Failed to cache single prediction:', error);
+      logger.error('Failed to cache single prediction:', error);
     }
   }
 
@@ -281,7 +282,7 @@ export class MLPredictionService {
         return JSON.parse(cached);
       }
     } catch (error) {
-      console.error('Failed to get cached prediction:', error);
+      logger.error('Failed to get cached prediction:', error);
     }
     
     return null;
@@ -303,7 +304,7 @@ export class MLPredictionService {
         try {
           results[key] = await this.getPredictions(request.studentId, request.courseId);
         } catch (error) {
-          console.error(`Batch prediction failed for ${key}:`, error);
+          logger.error(`Batch prediction failed for ${key}:`, error);
           // Use default predictions for failed requests
           const features = await this.featureEngineer.extractStudentFeatures(
             request.studentId,
@@ -343,7 +344,7 @@ export class MLPredictionService {
 
       return 0.5; // Default confidence
     } catch (error) {
-      console.error('Failed to get prediction confidence:', error);
+      logger.error('Failed to get prediction confidence:', error);
       return 0.5;
     }
   }
@@ -367,18 +368,16 @@ export class MLPredictionService {
       'dropout_detection'
     ];
 
-    console.log('Warming up ML models...');
-    
     const warmupPromises = modelTypes.map(async (modelType) => {
       try {
         await this.getModel(modelType);
-        console.log(`✓ ${modelType} model loaded`);
+
       } catch (error) {
-        console.error(`✗ Failed to load ${modelType} model:`, error);
+        logger.error(`✗ Failed to load ${modelType} model:`, error);
       }
     });
 
     await Promise.all(warmupPromises);
-    console.log('Model warmup complete');
+
   }
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 import {
   User,
   TrendingUp,
@@ -143,7 +144,7 @@ export const StudentProfileAnalytics = ({
       const data = await response.json();
       setProfile(data.profile);
     } catch (error) {
-      console.error('Error fetching student profile:', error);
+      logger.error('Error fetching student profile:', error);
       toast.error('Failed to load student profile');
     } finally {
       setIsLoading(false);

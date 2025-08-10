@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +25,6 @@ export async function POST(request: NextRequest) {
     };
 
     // For now, just log the interaction
-    console.log('SAM AI Tutor Interaction:', interaction);
 
     // In a real implementation, you would save to database:
     // await db.learningInteraction.create({ data: interaction });
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Tracking error:', error);
+    logger.error('Tracking error:', error);
     return NextResponse.json(
       { error: 'Failed to track interaction' },
       { status: 500 }

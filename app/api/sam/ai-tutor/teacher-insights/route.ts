@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Teacher insights error:', error);
+    logger.error('Teacher insights error:', error);
     return NextResponse.json(
       { error: 'Failed to generate teacher insights' },
       { status: 500 }
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Teacher insights action error:', error);
+    logger.error('Teacher insights action error:', error);
     return NextResponse.json(
       { error: 'Failed to process teacher insights action' },
       { status: 500 }

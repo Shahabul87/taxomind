@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSAMGlobal } from './sam-global-provider';
+import { logger } from '@/lib/logger';
 
 export interface SAMContextData {
   url: string;
@@ -164,7 +165,7 @@ export function useContextAwareSAM() {
         try {
           entityData = await matchedPattern.dataFetcher(params);
         } catch (error) {
-          console.warn('SAM Context: Failed to fetch entity data:', error);
+          logger.warn('SAM Context: Failed to fetch entity data:', error);
         }
       }
 
@@ -179,7 +180,7 @@ export function useContextAwareSAM() {
 
       return context;
     } catch (error) {
-      console.error('SAM Context: Error fetching context data:', error);
+      logger.error('SAM Context: Error fetching context data:', error);
       return {
         url,
         pageType: 'error',
@@ -415,8 +416,6 @@ export function SAMContextManager() {
   // This component doesn't render anything visible
   // It just manages context in the background
   if (isLoading) {
-    console.log('SAM: Loading context data...');
-  }
-  
+}
   return null;
 }

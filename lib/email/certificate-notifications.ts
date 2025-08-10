@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { logger } from '@/lib/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -34,7 +35,7 @@ export async function sendCertificateEmail(
 
     return { success: true };
   } catch (error) {
-    console.error('Certificate email error:', error);
+    logger.error('Certificate email error:', error);
     return { 
       success: false, 
       error: 'Failed to send certificate email' 
@@ -56,7 +57,7 @@ export async function sendBadgeEmail(
 
     return { success: true };
   } catch (error) {
-    console.error('Badge email error:', error);
+    logger.error('Badge email error:', error);
     return { 
       success: false, 
       error: 'Failed to send badge email' 

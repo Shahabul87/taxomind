@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 // Form component continued
 
 export const SubscriptionLinkForm = ({
@@ -143,7 +145,7 @@ export const SubscriptionLinkForm = ({
       toggleCreating();
       router.refresh();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       toast.error("Something went wrong");
     } finally {
       setIsUpdating(false);
@@ -169,7 +171,7 @@ export const SubscriptionLinkForm = ({
       form.reset();
       router.refresh();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       toast.error("Something went wrong");
     } finally {
       setIsUpdating(false);

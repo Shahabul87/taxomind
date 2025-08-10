@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -116,7 +117,7 @@ export function SAMAnalyticsDashboard({ courseId }: SAMAnalyticsDashboardProps) 
           setAnalytics(data.data);
         }
       } catch (error) {
-        console.error('Error loading analytics:', error);
+        logger.error('Error loading analytics:', error);
       } finally {
         setIsLoading(false);
       }

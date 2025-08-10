@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import { 
   TEACHER_ACHIEVEMENTS, 
   CHALLENGES, 
@@ -160,7 +161,7 @@ export async function trackAchievementProgress(
       levelUp,
     };
   } catch (error) {
-    console.error('Error tracking achievement progress:', error);
+    logger.error('Error tracking achievement progress:', error);
     return {
       pointsAwarded: 0,
       achievementsUnlocked: [],
@@ -188,7 +189,7 @@ export async function getActiveChallenges(userId: string): Promise<Challenge[]> 
     const activeChallengeIds = activeParticipations.samActiveChallenges as string[];
     return CHALLENGES.filter(challenge => activeChallengeIds.includes(challenge.id));
   } catch (error) {
-    console.error('Error getting active challenges:', error);
+    logger.error('Error getting active challenges:', error);
     return [];
   }
 }
@@ -231,7 +232,7 @@ export async function startChallengeForUser(
 
     return true;
   } catch (error) {
-    console.error('Error starting challenge:', error);
+    logger.error('Error starting challenge:', error);
     return false;
   }
 }
@@ -267,7 +268,7 @@ async function checkChallengeCompletion(
     const currentProgress = interactions.length + (requirements.type === action ? 1 : 0);
     return currentProgress >= requirements.target;
   } catch (error) {
-    console.error('Error checking challenge completion:', error);
+    logger.error('Error checking challenge completion:', error);
     return false;
   }
 }
@@ -333,7 +334,7 @@ async function completeChallengeForUser(
       courseId: context?.courseId,
     });
   } catch (error) {
-    console.error('Error completing challenge:', error);
+    logger.error('Error completing challenge:', error);
   }
 }
 
@@ -365,7 +366,7 @@ export async function getAvailableChallengesForUser(userId: string): Promise<Cha
       return userLevel >= levelRequirements[challenge.difficulty];
     });
   } catch (error) {
-    console.error('Error getting available challenges:', error);
+    logger.error('Error getting available challenges:', error);
     return [];
   }
 }
@@ -412,7 +413,7 @@ export async function getUserAchievementSummary(userId: string): Promise<{
       recommendations,
     };
   } catch (error) {
-    console.error('Error getting user achievement summary:', error);
+    logger.error('Error getting user achievement summary:', error);
     return {
       level: 1,
       totalPoints: 0,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { samGenerationEngine } from "@/lib/sam-generation-engine";
+import { logger } from '@/lib/logger';
 import {
   LearningObjective,
   GenerationConfig,
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Content generation error:", error);
+    logger.error("Content generation error:", error);
     return NextResponse.json(
       { error: "Failed to generate content" },
       { status: 500 }
@@ -262,7 +263,7 @@ export async function GET(req: NextRequest) {
       total: formattedContent.length,
     });
   } catch (error) {
-    console.error("Error fetching generated content:", error);
+    logger.error("Error fetching generated content:", error);
     return NextResponse.json(
       { error: "Failed to fetch generated content" },
       { status: 500 }
@@ -318,7 +319,7 @@ export async function PATCH(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error updating content feedback:", error);
+    logger.error("Error updating content feedback:", error);
     return NextResponse.json(
       { error: "Failed to update content feedback" },
       { status: 500 }

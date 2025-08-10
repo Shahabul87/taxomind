@@ -5,6 +5,7 @@ import { Trash, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { logger } from '@/lib/logger';
 
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
@@ -44,7 +45,7 @@ export const Actions = ({
 
       router.refresh();
     } catch (error: any) {
-      console.error("Publish error:", error);
+      logger.error("Publish error:", error);
       if (error.response?.data) {
         toast.error(error.response.data);
       } else {
@@ -58,18 +59,16 @@ export const Actions = ({
   const onDelete = async () => {
     try {
       setIsDeleteLoading(true);
-      console.log(`[CLIENT] Attempting to delete course: ${courseId}`);
-      
+
       const response = await axios.delete(`/api/courses/${courseId}`);
-      console.log(`[CLIENT] Delete response:`, response.data);
-      
+
       toast.success("Course deleted successfully");
       router.refresh();
       router.push(`/teacher/courses`);
     } catch (error: any) {
-      console.error("[CLIENT] Delete error:", error);
-      console.error("[CLIENT] Error response:", error.response?.data);
-      console.error("[CLIENT] Error status:", error.response?.status);
+      logger.error("[CLIENT] Delete error:", error);
+      logger.error("[CLIENT] Error response:", error.response?.data);
+      logger.error("[CLIENT] Error status:", error.response?.status);
       
       // Enhanced error handling with specific messages
       if (error.response?.status === 404) {
@@ -84,7 +83,7 @@ export const Actions = ({
       } else if (error.response?.status === 403) {
         const errorData = error.response.data;
         toast.error("You don't have permission to delete this course.");
-        console.error("[CLIENT] Permission details:", errorData);
+        logger.error("[CLIENT] Permission details:", errorData);
       } else if (error.response?.status === 401) {
         toast.error("Please log in again to delete this course.");
         router.push("/auth/login");

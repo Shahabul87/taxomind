@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { BlockMath, InlineMath } from "react-katex";
 import { AlertCircle, Copy, Eye, EyeOff, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logger } from '@/lib/logger';
 import "katex/dist/katex.min.css";
 
 // Custom CSS to ensure equations are always visible
@@ -134,7 +135,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
       setTimeout(() => setCopied(false), 2000);
       onCopy?.();
     } catch (error) {
-      console.error("Failed to copy equation:", error);
+      logger.error("Failed to copy equation:", error);
     }
   };
 

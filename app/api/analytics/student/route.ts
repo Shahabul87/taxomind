@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -8,11 +9,11 @@ export async function GET(req: NextRequest) {
     try {
       user = await currentUser();
       if (!user) {
-        console.log("Analytics API: No authenticated user found, using demo data");
+
         user = { id: 'demo-user' };
       }
     } catch (error) {
-      console.log("Analytics API: Error in authentication, using demo data", error);
+
       user = { id: 'demo-user' };
     }
 
@@ -23,9 +24,8 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('endDate');
     
     // Log analytics request
-    console.log(`Analytics API: Fetching student data for user ${user.id}`);
+
     console.log(`Analytics API: Filters - courses: ${courseIds.length > 0 ? courseIds.join(', ') : 'all'}`);
-    console.log(`Analytics API: Filters - date range: ${startDate || 'none'} to ${endDate || 'none'}`);
 
     // In a real application, we would fetch this data from the database
     // based on the authenticated user and apply the filters
@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(studentData);
   } catch (error) {
-    console.error('Analytics API: Error fetching student data:', error);
+    logger.error('Analytics API: Error fetching student data:', error);
     return new NextResponse('Error fetching student data', { status: 500 });
   }
 } 

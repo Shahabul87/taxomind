@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -77,7 +78,7 @@ Return a JSON array of problems, each with:
     });
 
   } catch (error) {
-    console.error('Practice problems generation error:', error);
+    logger.error('Practice problems generation error:', error);
     return NextResponse.json(
       { error: 'Failed to generate practice problems' },
       { status: 500 }

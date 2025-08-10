@@ -12,6 +12,7 @@ import Image from "next/image";
 import { FavoriteBlog } from "@prisma/client";
 import { FavoriteBlogList } from "./fav-blog-link-list";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -144,7 +145,7 @@ export const FavoriteBlogLinkForm = ({
       
       toast.success("Blog details fetched");
     } catch (error) {
-      console.error("Error fetching blog metadata:", error);
+      logger.error("Error fetching blog metadata:", error);
       toast.error("Couldn't fetch blog details. Please enter them manually.");
     } finally {
       setIsLoading(false);
@@ -310,7 +311,7 @@ export const FavoriteBlogLinkForm = ({
               toast.error("Couldn't find blog details. Please enter them manually.", { id: "fetching-metadata" });
             }
           } catch (error) {
-            console.error("Error fetching metadata:", error);
+            logger.error("Error fetching metadata:", error);
             toast.error("Couldn't fetch blog details. Please enter them manually.", { id: "fetching-metadata" });
           }
         }

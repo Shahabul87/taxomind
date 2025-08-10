@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import { 
   ChapterGenerationRequestSchema, 
   ChapterGenerationResponseSchema,
@@ -249,7 +250,7 @@ export async function POST(request: NextRequest) {
 
     // Check if ANTHROPIC_API_KEY is configured
     if (!process.env.ANTHROPIC_API_KEY) {
-      console.warn('ANTHROPIC_API_KEY not configured, using mock response');
+      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
       const mockChapters = generateMockChapters(course, bulkRequest);
       return NextResponse.json({ success: true, data: mockChapters });
     }
@@ -288,7 +289,7 @@ export async function POST(request: NextRequest) {
         const jsonString = jsonMatch ? jsonMatch[0] : responseText;
         aiResponse = JSON.parse(jsonString);
       } catch (parseError) {
-        console.error('Failed to parse AI response as JSON:', parseError);
+        logger.error('Failed to parse AI response as JSON:', parseError);
         throw new Error('Invalid JSON response from AI model');
       }
 
@@ -301,14 +302,14 @@ export async function POST(request: NextRequest) {
           if (validationResult.success) {
             validatedChapters.push(validationResult.data);
           } else {
-            console.warn('Chapter validation failed:', validationResult.error);
+            logger.warn('Chapter validation failed:', validationResult.error);
           }
         }
       }
 
       // If we don't have enough valid chapters, fall back to mock
       if (validatedChapters.length < bulkRequest.chapterCount) {
-        console.warn('Insufficient valid chapters from AI, using mock response');
+        logger.warn('Insufficient valid chapters from AI, using mock response');
         const mockChapters = generateMockChapters(course, bulkRequest);
         return NextResponse.json({ 
           success: true, 
@@ -328,7 +329,7 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (apiError: any) {
-      console.error('Anthropic API error:', apiError);
+      logger.error('Anthropic API error:', apiError);
       
       // Fall back to mock response for API errors
       const mockChapters = generateMockChapters(course, bulkRequest);
@@ -340,7 +341,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('Bulk chapter generator error:', error);
+    logger.error('Bulk chapter generator error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

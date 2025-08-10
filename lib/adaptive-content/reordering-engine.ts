@@ -33,8 +33,6 @@ export class ContentReorderingEngine {
       throw new Error('No content items provided for reordering');
     }
 
-    console.log(`Reordering ${originalContent.length} items using ${strategy.algorithm} strategy`);
-
     // Apply the specified reordering algorithm
     const reorderedContent = await this.applyReorderingAlgorithm(
       originalContent,

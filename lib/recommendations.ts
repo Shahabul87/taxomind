@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 export interface Recommendation {
   id: string;
   type: 'course' | 'content' | 'skill' | 'goal' | 'connection' | 'path';
@@ -58,7 +60,7 @@ export async function getPersonalizedRecommendations(
 
     return recommendations.slice(0, 15); // Return top 15 recommendations
   } catch (error) {
-    console.error("Error generating recommendations:", error);
+    logger.error("Error generating recommendations:", error);
     return [];
   }
 }

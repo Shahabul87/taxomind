@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import Anthropic from "@anthropic-ai/sdk";
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -336,7 +337,7 @@ Return as JSON array with this structure:
 
     return paths;
   } catch (error) {
-    console.error("AI recommendation generation failed:", error);
+    logger.error("AI recommendation generation failed:", error);
     // Return fallback recommendations
     return generateFallbackRecommendations(analysis, availableCourses);
   }
@@ -521,7 +522,7 @@ export async function POST(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error("Learning path recommendation error:", error);
+    logger.error("Learning path recommendation error:", error);
     return NextResponse.json(
       { error: "Failed to generate recommendations" },
       { status: 500 }
@@ -574,7 +575,7 @@ export async function GET(req: NextRequest) {
       recommendations
     });
   } catch (error) {
-    console.error("Fetch recommendations error:", error);
+    logger.error("Fetch recommendations error:", error);
     return NextResponse.json(
       { error: "Failed to fetch recommendations" },
       { status: 500 }

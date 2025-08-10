@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { samPersonalizationEngine } from "@/lib/sam-personalization-engine";
+import { logger } from '@/lib/logger';
 import {
   LearningBehavior,
   PersonalizationContext,
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Personalization error:", error);
+    logger.error("Personalization error:", error);
     return NextResponse.json(
       { error: "Failed to process personalization request" },
       { status: 500 }
@@ -505,7 +506,7 @@ export async function GET(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Error fetching personalization data:", error);
+    logger.error("Error fetching personalization data:", error);
     return NextResponse.json(
       { error: "Failed to fetch personalization data" },
       { status: 500 }

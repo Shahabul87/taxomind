@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
 import axios from "axios";
 import { useToast } from "@/components/ui/use-toast";
+import { logger } from '@/lib/logger';
 
 // Mock data for available platforms to integrate with
 const availablePlatforms = [
@@ -72,7 +73,7 @@ export function SocialIntegration() {
         description: `Your ${platformId.replace('-social', '')} account has been connected.`,
       });
     } catch (error) {
-      console.error("Failed to connect:", error);
+      logger.error("Failed to connect:", error);
       toast({
         title: "Connection failed",
         description: "There was an error connecting your account. Please try again.",
@@ -99,7 +100,7 @@ export function SocialIntegration() {
         description: `Your ${platformId} account has been disconnected.`,
       });
     } catch (error) {
-      console.error("Failed to disconnect:", error);
+      logger.error("Failed to disconnect:", error);
       toast({
         title: "Disconnection failed",
         description: "There was an error disconnecting your account. Please try again.",

@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { logger } from '@/lib/logger';
 
 // Configuration for safe scraping
 const axiosConfig = {
@@ -37,32 +38,30 @@ interface ProfileMetadata {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[METADATA_EXTRACTION] Starting metadata extraction...');
-    
+
     const session = await auth();
     if (!session?.user?.id) {
-      console.log('[METADATA_EXTRACTION] Unauthorized request');
+
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    console.log('[METADATA_EXTRACTION] Request body:', body);
-    
+
     const { profileLinks } = body;
     
     if (!profileLinks || !Array.isArray(profileLinks)) {
-      console.log('[METADATA_EXTRACTION] Invalid profile links');
+
       return NextResponse.json({ error: 'Profile links are required' }, { status: 400 });
     }
 
     const results = await Promise.allSettled(
       profileLinks.map(async (link: any) => {
         try {
-          console.log(`[METADATA_EXTRACTION] Processing link: ${link.url} for platform: ${link.platform}`);
+
           const metadata = await extractProfileMetadata(link.url, link.platform);
           return { linkId: link.id, ...metadata };
         } catch (error) {
-          console.error(`[METADATA_EXTRACTION] Error processing ${link.url}:`, error);
+          logger.error(`[METADATA_EXTRACTION] Error processing ${link.url}:`, error);
           return { 
             linkId: link.id, 
             platform: link.platform,
@@ -81,11 +80,10 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log('[METADATA_EXTRACTION] Results:', processedResults);
     return NextResponse.json({ results: processedResults }, { status: 200 });
 
   } catch (error) {
-    console.error('[METADATA_EXTRACTION] Main error:', error);
+    logger.error('[METADATA_EXTRACTION] Main error:', error);
     return NextResponse.json(
       { error: 'Failed to extract profile metadata', details: error.message },
       { status: 500 }
@@ -96,9 +94,7 @@ export async function POST(request: NextRequest) {
 async function extractProfileMetadata(url: string, platform: string): Promise<ProfileMetadata> {
   const platformLower = platform.toLowerCase();
   const username = extractUsernameFromUrl(url);
-  
-  console.log(`[METADATA_EXTRACTION] Extracting metadata for ${platformLower}: ${url}`);
-  
+
   try {
     // Try to extract basic info from URL patterns first
     const urlBasedData = extractDataFromUrl(url, platformLower, username);
@@ -110,9 +106,7 @@ async function extractProfileMetadata(url: string, platform: string): Promise<Pr
       // Strategy 1: Try to fetch basic page metadata (this often works even when full scraping fails)
       extractedData = await tryBasicMetadataExtraction(url);
     } catch (error) {
-      console.log(`[METADATA_EXTRACTION] Basic extraction failed: ${error.message}`);
-    }
-    
+}
     // Combine URL-based data with any extracted data, then fill gaps with realistic mock data
     const combinedData = {
       ...urlBasedData,
@@ -120,12 +114,11 @@ async function extractProfileMetadata(url: string, platform: string): Promise<Pr
     };
     
     const finalData = generateSmartProfileData(platformLower, username, url, combinedData);
-    
-    console.log(`[METADATA_EXTRACTION] Final data for ${username}:`, finalData);
+
     return finalData;
     
   } catch (error) {
-    console.error(`[METADATA_EXTRACTION] Error extracting ${platformLower}:`, error);
+    logger.error(`[METADATA_EXTRACTION] Error extracting ${platformLower}:`, error);
     return {
       platform: platformLower,
       username,
@@ -174,9 +167,7 @@ async function tryBasicMetadataExtraction(url: string): Promise<Partial<ProfileM
   // - Open Graph data extraction
   // - Social media APIs (when available)
   // - Specialized scraping services
-  
-  console.log(`[METADATA_EXTRACTION] Attempting basic extraction for: ${url}`);
-  
+
   // For now, return empty object - this is where you'd implement actual extraction
   return {};
 }
@@ -369,7 +360,7 @@ function extractUsernameFromUrl(url: string): string {
     return parts[parts.length - 1] || 'unknown_user';
     
   } catch (error) {
-    console.error('Error extracting username from URL:', error);
+    logger.error('Error extracting username from URL:', error);
     return 'unknown_user';
   }
 } 

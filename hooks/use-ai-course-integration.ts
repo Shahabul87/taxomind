@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface UseAICourseIntegrationProps {
   courseId: string;
@@ -34,7 +35,7 @@ export const useAICourseIntegration = ({ courseId }: UseAICourseIntegrationProps
       toast.success("Learning objectives updated successfully");
       router.refresh();
     } catch (error: any) {
-      console.error("Error updating learning objectives:", error);
+      logger.error("Error updating learning objectives:", error);
       toast.error(error.message || "Failed to update learning objectives");
     } finally {
       setIsApplyingObjectives(false);
@@ -88,7 +89,7 @@ export const useAICourseIntegration = ({ courseId }: UseAICourseIntegrationProps
       toast.success(`Successfully created ${chapters.length} chapters with sections`);
       router.refresh();
     } catch (error: any) {
-      console.error("Error creating chapters:", error);
+      logger.error("Error creating chapters:", error);
       toast.error(error.message || "Failed to create chapter structure");
     } finally {
       setIsApplyingChapters(false);
@@ -118,7 +119,7 @@ export const useAICourseIntegration = ({ courseId }: UseAICourseIntegrationProps
       const data = await response.json();
       return data.data;
     } catch (error: any) {
-      console.error("Error generating chapter content:", error);
+      logger.error("Error generating chapter content:", error);
       toast.error(error.message || "Failed to generate chapter content");
       return null;
     }
@@ -149,7 +150,7 @@ export const useAICourseIntegration = ({ courseId }: UseAICourseIntegrationProps
       const data = await response.json();
       return data.data;
     } catch (error: any) {
-      console.error("Error curating section content:", error);
+      logger.error("Error curating section content:", error);
       toast.error(error.message || "Failed to curate section content");
       return null;
     }

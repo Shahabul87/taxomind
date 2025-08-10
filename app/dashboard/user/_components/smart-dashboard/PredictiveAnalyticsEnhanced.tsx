@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   TrendingUp, Brain, Target, Clock, 
   AlertCircle, CheckCircle2, Lightbulb, 
@@ -110,7 +111,7 @@ export function PredictiveAnalyticsEnhanced({ user, enrolledCourses = [] }: Pred
         toast.success("AI predictions updated successfully");
       }
     } catch (error) {
-      console.error("Failed to fetch SAM predictions:", error);
+      logger.error("Failed to fetch SAM predictions:", error);
       toast.error("Failed to load AI predictions");
     } finally {
       setIsLoadingSAM(false);
@@ -132,7 +133,7 @@ export function PredictiveAnalyticsEnhanced({ user, enrolledCourses = [] }: Pred
         setRiskAnalysis(response.data.data.risks[0]);
       }
     } catch (error) {
-      console.error("Failed to fetch risk analysis:", error);
+      logger.error("Failed to fetch risk analysis:", error);
     }
   }, [user.id, selectedCourse]);
 
@@ -151,7 +152,7 @@ export function PredictiveAnalyticsEnhanced({ user, enrolledCourses = [] }: Pred
         setCohortData(response.data.data);
       }
     } catch (error) {
-      console.error("Failed to fetch cohort comparison:", error);
+      logger.error("Failed to fetch cohort comparison:", error);
     }
   }, [user.id, selectedCourse]);
 

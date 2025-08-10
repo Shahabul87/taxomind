@@ -58,7 +58,7 @@ export async function PATCH(
 
     return NextResponse.json(publishedExam);
   } catch (error) {
-    console.log("[EXAM_PUBLISH]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

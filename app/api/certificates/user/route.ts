@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { certificateService } from "@/lib/certificate/service";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Get user certificates API error:", error);
+    logger.error("Get user certificates API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

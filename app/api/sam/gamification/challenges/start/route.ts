@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { startChallengeForUser } from '@/lib/sam-achievement-engine';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
       message: 'Challenge started successfully',
     });
   } catch (error) {
-    console.error('Error starting challenge:', error);
+    logger.error('Error starting challenge:', error);
     return NextResponse.json(
       { error: 'Failed to start challenge' },
       { status: 500 }

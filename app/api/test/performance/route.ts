@@ -5,6 +5,7 @@ import { getDashboardCourses } from "@/actions/get-dashboard-courses";
 import { QueryPerformanceMonitor } from "@/lib/database/query-optimizer";
 import { ServerActionCache } from "@/lib/redis/server-action-cache";
 import { redis } from "@/lib/redis/config";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Performance test API error:", error);
+    logger.error("Performance test API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

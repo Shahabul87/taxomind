@@ -9,6 +9,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -55,22 +56,17 @@ export const SectionAccessForm = ({
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      console.log("Updating section access:", {
-        sectionId,
-        values
-      });
-      
+
       const response = await axios.patch(
         `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`, 
         values
       );
 
-      console.log("Section access update response:", response.data);
       toast.success("Section access updated");
       setIsEditing(false);
       router.refresh();
     } catch (error: any) {
-      console.error("Section access update error:", error);
+      logger.error("Section access update error:", error);
       toast.error(error.response?.data || "Failed to update section access");
     }
   };

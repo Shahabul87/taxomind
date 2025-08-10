@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Camera, UploadCloud, X } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 import { Button } from "@/components/ui/button";
 
@@ -56,7 +57,7 @@ export const FileUpload = ({
       }
     } catch (error) {
       toast.error("Something went wrong during upload");
-      console.error(error);
+      logger.error(error);
     } finally {
       setIsUploading(false);
     }

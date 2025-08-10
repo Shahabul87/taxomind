@@ -1,4 +1,5 @@
 import { User } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 export interface AIInsight {
   id: string;
@@ -59,7 +60,7 @@ export async function generateAIInsights(
 
     return insights.slice(0, 10); // Return top 10 insights
   } catch (error) {
-    console.error("Error generating AI insights:", error);
+    logger.error("Error generating AI insights:", error);
     return [];
   }
 }

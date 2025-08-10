@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ objectives });
   } catch (error) {
-    console.error('Error generating learning objectives:', error);
+    logger.error('Error generating learning objectives:', error);
     return NextResponse.json({ error: 'Failed to generate learning objectives' }, { status: 500 });
   }
 }

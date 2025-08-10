@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(ticket);
   } catch (error) {
-    console.error("[SUPPORT_TICKET_POST]", error);
+    logger.error("[SUPPORT_TICKET_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

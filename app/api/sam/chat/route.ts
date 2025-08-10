@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[SAM-CHAT] Error:', error);
+    logger.error('[SAM-CHAT] Error:', error);
     return NextResponse.json(
       { error: 'Failed to generate SAM response' },
       { status: 500 }
@@ -97,7 +98,7 @@ async function generateContextualSAMResponse(
       };
     }
   } catch (anthropicError) {
-    console.error('Anthropic API error:', anthropicError);
+    logger.error('Anthropic API error:', anthropicError);
     
     // Intelligent fallback based on context
     return generateIntelligentFallback(message, context);

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Near the top of the file, add a helper function for safer error responses
 const createErrorResponse = (message: string, status = 500) => {
-  console.error(`[REACTIONS_POST] Error: ${message}`);
+  logger.error(`[REACTIONS_POST] Error: ${message}`);
   return NextResponse.json(
     { error: message },
     { status }
@@ -23,7 +24,7 @@ export async function POST(
         return createErrorResponse("Unauthorized", 401);
       }
     } catch (sessionError) {
-      console.error("[REACTIONS_POST] Session Error:", sessionError);
+      logger.error("[REACTIONS_POST] Session Error:", sessionError);
       return createErrorResponse("Authentication error. Please sign in again.", 401);
     }
 
@@ -49,8 +50,6 @@ export async function POST(
       return createErrorResponse("Invalid comment ID", 400);
     }
 
-    console.log("[REACTIONS_POST] Searching for comment:", { commentId, postId });
-
     // First verify the post exists
     const post = await db.post.findUnique({
       where: { id: postId },
@@ -58,7 +57,7 @@ export async function POST(
     });
 
     if (!post) {
-      console.log("[REACTIONS_POST] Post not found:", postId);
+
       return createErrorResponse("Post not found", 404);
     }
 
@@ -83,7 +82,7 @@ export async function POST(
     });
 
     if (!comment) {
-      console.log("[REACTIONS_POST] Comment not found:", { commentId, postId });
+
       // Let's check if the comment exists at all, regardless of postId
       const commentExists = await db.comment.findUnique({
         where: { id: commentId },
@@ -91,17 +90,9 @@ export async function POST(
       });
       
       if (commentExists) {
-        console.log("[REACTIONS_POST] Comment exists but with different postId:", commentExists);
-      }
-      
+}
       return createErrorResponse("Comment not found", 404);
     }
-
-    console.log("[REACTIONS_POST] Found comment:", { 
-      commentId: comment.id,
-      postId: comment.postId,
-      reactionCount: comment.reactions.length 
-    });
 
     // Handle the reaction in a transaction
     const result = await db.$transaction(async (tx) => {
@@ -115,7 +106,7 @@ export async function POST(
       });
 
       if (existingReaction) {
-        console.log("[REACTIONS_POST] Removing existing reaction:", existingReaction.id);
+
         // Remove existing reaction
         await tx.reaction.delete({
           where: {
@@ -123,7 +114,7 @@ export async function POST(
           },
         });
       } else {
-        console.log("[REACTIONS_POST] Creating new reaction");
+
         // Create new reaction
         await tx.reaction.create({
           data: {
@@ -184,11 +175,10 @@ export async function POST(
       return updatedComment;
     });
 
-    console.log("[REACTIONS_POST] Successfully processed reaction");
     return NextResponse.json(result);
   } catch (error) {
     // Improve error logging
-    console.error("[REACTIONS_POST] Unexpected error:", error);
+    logger.error("[REACTIONS_POST] Unexpected error:", error);
     
     // Provide more specific error messages based on error type
     if (error instanceof Error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getUserSAMStats } from '@/lib/sam-database';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
       data: stats,
     });
   } catch (error) {
-    console.error('Error fetching SAM stats:', error);
+    logger.error('Error fetching SAM stats:', error);
     return NextResponse.json(
       { error: 'Failed to fetch SAM stats' },
       { status: 500 }

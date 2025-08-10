@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { logger } from '@/lib/logger';
 import { 
   Select,
   SelectContent,
@@ -278,7 +279,7 @@ How can I help you improve your course today?`,
       setMessages(prev => [...prev, samMessage]);
       
     } catch (error) {
-      console.error('SAM Error:', error);
+      logger.error('SAM Error:', error);
       
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { recordSAMInteraction } from '@/lib/sam-database';
 import { SAMInteractionType } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
       data: interaction,
     });
   } catch (error) {
-    console.error('Error recording SAM interaction:', error);
+    logger.error('Error recording SAM interaction:', error);
     return NextResponse.json(
       { error: 'Failed to record SAM interaction' },
       { status: 500 }

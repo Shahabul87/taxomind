@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 // Add these exports to make the endpoint publicly accessible and not cached
 export const dynamic = 'force-dynamic';
@@ -64,8 +65,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('Mock search API received query:', query);
-    
     // Filter results based on query (case insensitive)
     const lowerQuery = query.toLowerCase();
     const filteredResults = mockResults.filter(result => 
@@ -85,7 +84,7 @@ export async function GET(request: NextRequest) {
       { status: 200, headers }
     );
   } catch (error) {
-    console.error('Mock search API error:', error);
+    logger.error('Mock search API error:', error);
     
     return new NextResponse(
       JSON.stringify({ 

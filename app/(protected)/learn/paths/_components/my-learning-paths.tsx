@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   Route, Clock, CheckCircle2, PlayCircle, 
   PauseCircle, MoreVertical, TrendingUp,
@@ -76,7 +77,7 @@ export const MyLearningPaths = ({ userId }: MyLearningPathsProps) => {
       const response = await axios.get("/api/learning-paths/enrollments");
       setEnrollments(response.data.enrollments || []);
     } catch (error) {
-      console.error("Failed to fetch enrollments:", error);
+      logger.error("Failed to fetch enrollments:", error);
       toast.error("Failed to load learning paths");
     } finally {
       setLoading(false);
@@ -91,7 +92,7 @@ export const MyLearningPaths = ({ userId }: MyLearningPathsProps) => {
       toast.success(`Path ${status.toLowerCase()}`);
       fetchEnrollments();
     } catch (error) {
-      console.error("Failed to update enrollment status:", error);
+      logger.error("Failed to update enrollment status:", error);
       toast.error("Failed to update status");
     }
   };

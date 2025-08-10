@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '@/lib/logger';
 import {
   BookOpen,
   Sun,
@@ -110,7 +111,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
         });
       }
     } catch (error) {
-      console.error('Analytics tracking error:', error);
+      logger.error('Analytics tracking error:', error);
     }
   }, [user?.id, user?.role]);
 
@@ -149,7 +150,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
             setIsLoading(false);
           }, 800);
         } catch (error) {
-          console.error('Failed to load user data:', error);
+          logger.error('Failed to load user data:', error);
           setIsLoading(false);
         }
       }
@@ -275,7 +276,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
     // If user presses Enter, perform search immediately
     if (e.key === 'Enter' && searchQuery.trim().length >= 2) {
       performSearch().catch(err => {
-        console.error("Search error when pressing Enter:", err);
+        logger.error("Search error when pressing Enter:", err);
       });
     }
     // If user presses Escape, close search

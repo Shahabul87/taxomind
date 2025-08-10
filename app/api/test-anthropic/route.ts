@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 // Anthropic API key from environment
 // IMPORTANT: In production, always use environment variables
@@ -8,11 +9,10 @@ const CLAUDE_MODEL = 'claude-3-5-sonnet-20241022';
 
 export async function GET(req: NextRequest) {
   try {
-    console.log("Test Anthropic API: Starting test");
-    
+
     // Check if API key is available
     if (!ANTHROPIC_API_KEY) {
-      console.error("Test Anthropic API: No Anthropic API key found in environment variables");
+      logger.error("Test Anthropic API: No Anthropic API key found in environment variables");
       return NextResponse.json({
         success: false,
         error: "API key not configured. Please set ANTHROPIC_API_KEY environment variable.",
@@ -21,8 +21,7 @@ export async function GET(req: NextRequest) {
     
     // Call Anthropic Claude API
     const apiUrl = 'https://api.anthropic.com/v1/messages';
-    console.log(`Test Anthropic API: Sending request to ${apiUrl}`);
-    
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -43,11 +42,9 @@ export async function GET(req: NextRequest) {
       }),
     });
 
-    console.log(`Test Anthropic API: Response status: ${response.status}`);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Test Anthropic API: Error:', errorText);
+      logger.error('Test Anthropic API: Error:', errorText);
       
       let errorData;
       try {
@@ -64,8 +61,7 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await response.json();
-    console.log("Test Anthropic API: Successfully received response");
-    
+
     // Return test results
     return NextResponse.json({
       success: true,
@@ -75,7 +71,7 @@ export async function GET(req: NextRequest) {
       response: data.content?.[0]?.text || "No response content",
     });
   } catch (error: any) {
-    console.error('Test Anthropic API: Unhandled error:', error);
+    logger.error('Test Anthropic API: Unhandled error:', error);
     return NextResponse.json({
       success: false, 
       error: error.message,

@@ -39,7 +39,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
 
     return NextResponse.json(updatedCourse);
   } catch (error) {
-    console.log("[COURSE_WHAT_YOU_WILL_LEARN]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -87,7 +87,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
 
     return NextResponse.json(updatedCourse);
   } catch (error) {
-    console.log("[COURSE_WHAT_YOU_WILL_LEARN_ADD]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

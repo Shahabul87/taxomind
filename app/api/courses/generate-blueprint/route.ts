@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/anthropic-client";
 import { AIErrorHandler } from "@/lib/error-handler";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -56,13 +57,10 @@ async function transformToLegacyBlueprint(
   
   const result = await AIErrorHandler.handleBlueprintGeneration(
     async () => {
-      console.log("[BLUEPRINT] Generating AI-powered course blueprint...");
-      
+
       // Use the new AI-powered generation
       const aiBlueprint = await generateCourseBlueprint(requirements);
-      
-      console.log("[BLUEPRINT] AI generation successful, transforming format...");
-      
+
       // Transform to legacy format
       const blueprint: CourseBlueprint = {
         id: blueprintId,
@@ -101,8 +99,7 @@ async function transformToLegacyBlueprint(
           contentTypeDistribution: aiBlueprint.metadata.contentTypeDistribution
         }
       };
-      
-      console.log("[BLUEPRINT] Transformation complete");
+
       return blueprint;
     },
     {
@@ -122,7 +119,7 @@ async function transformToLegacyBlueprint(
   if (result.success) {
     return result.data;
   } else {
-    console.error("[BLUEPRINT] All generation methods failed, throwing error");
+    logger.error("[BLUEPRINT] All generation methods failed, throwing error");
     throw result.error || new Error('Blueprint generation failed');
   }
 }
@@ -133,8 +130,7 @@ function generateFallbackBlueprint(
   userId: string,
   blueprintId: string
 ): CourseBlueprint {
-  console.log("[BLUEPRINT] Using fallback template-based generation");
-  
+
   // Map difficulty to Bloom's levels
   const bloomsMapping = {
     'BEGINNER': ['REMEMBER', 'UNDERSTAND'],
@@ -214,16 +210,14 @@ function generateFallbackBlueprint(
   };
 }
 
-
 export async function POST(req: Request) {
   try {
-    console.log("[BLUEPRINT] Starting course blueprint generation");
-    
+
     // Get current user
     const user = await currentUser();
     
     if (!user?.id) {
-      console.log("[BLUEPRINT] No user found - unauthorized");
+
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
@@ -236,16 +230,14 @@ export async function POST(req: Request) {
     const userRole = dbUser?.role;
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      console.log(`[BLUEPRINT] User role ${userRole} not authorized for blueprint generation`);
+
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
     
     // Parse request body
     const body = await req.json();
     const courseRequirements: CourseGenerationRequest = body;
-    
-    console.log("[BLUEPRINT] Course requirements:", courseRequirements);
-    
+
     // Validate required fields
     if (!courseRequirements.courseTitle || !courseRequirements.courseShortOverview) {
       return new NextResponse("Course title and overview are required", { status: 400 });
@@ -258,20 +250,17 @@ export async function POST(req: Request) {
     if (courseRequirements.chapterCount < 1 || courseRequirements.sectionsPerChapter < 1) {
       return new NextResponse("Invalid chapter or section count", { status: 400 });
     }
-    
-    console.log(`[BLUEPRINT] Generating AI-powered blueprint for user ${user.id}`);
-    
+
     // Generate course blueprint using enhanced error handling
     const blueprint = await transformToLegacyBlueprint(courseRequirements, user.id);
     
     // TODO: Store blueprint in database for future reference (requires CourseBlueprint model)
     // For now, we'll just return the generated blueprint without storing it
-    
-    console.log(`[BLUEPRINT] Blueprint generated successfully: ${blueprint.id}`);
+
     return NextResponse.json(blueprint);
     
   } catch (error) {
-    console.error("[BLUEPRINT] Error generating course blueprint:", error);
+    logger.error("[BLUEPRINT] Error generating course blueprint:", error);
     
     const errorMessage = AIErrorHandler.getUserFriendlyMessage(
       error as Error, 
@@ -279,8 +268,8 @@ export async function POST(req: Request) {
     );
     
     if (error instanceof Error) {
-      console.error("[BLUEPRINT] Error message:", error.message);
-      console.error("[BLUEPRINT] Error stack:", error.stack);
+      logger.error("[BLUEPRINT] Error message:", error.message);
+      logger.error("[BLUEPRINT] Error stack:", error.stack);
       
       // Return appropriate HTTP status based on error type
       if (error.message.includes('Rate limit') || error.message.includes('429')) {

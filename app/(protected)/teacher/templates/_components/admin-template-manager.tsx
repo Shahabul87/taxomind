@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { logger } from '@/lib/logger';
 import { 
   Shield, 
   Users, 
@@ -149,10 +150,10 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
       if (response.ok) {
         setAnalytics(data);
       } else {
-        console.error("Failed to fetch analytics");
+        logger.error("Failed to fetch analytics");
       }
     } catch (error) {
-      console.error("Failed to fetch analytics");
+      logger.error("Failed to fetch analytics");
     }
   };
 

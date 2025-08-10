@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { logger } from '@/lib/logger';
 import { 
   Users, BarChart, Eye, Shuffle, CheckCircle, Network,
   Activity, Video, Brain, AlertTriangle, TrendingUp
@@ -48,7 +49,7 @@ export function TeacherFeaturesTab({ analytics, performance }: TeacherFeaturesPr
       setFeaturesData(data);
       setIsLoading(false);
     } catch (error) {
-      console.error('Failed to fetch teacher features:', error);
+      logger.error('Failed to fetch teacher features:', error);
       setIsLoading(false);
     }
   };
@@ -251,7 +252,7 @@ export function TeacherFeaturesTab({ analytics, performance }: TeacherFeaturesPr
                 size="sm" 
                 className="w-full bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-white/80 dark:hover:bg-slate-700/80 transition-all duration-300"
                 onClick={() => {
-                  console.log(`Opening ${feature.name} details...`);
+
                 }}
               >
                 Open Tool

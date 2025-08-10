@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AlertTriangle, Bug, RefreshCw } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 interface DebugCalendarProps {
   userId: string;
@@ -28,7 +29,7 @@ export function DebugCalendar({ userId }: DebugCalendarProps) {
       setDebugInfo(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
-      console.error("Debug calendar error:", err);
+      logger.error("Debug calendar error:", err);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { accessController, SubscriptionTier } from "@/lib/tiered-access-control";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
         return new NextResponse("Invalid action", { status: 400 });
     }
   } catch (error) {
-    console.error("[SUBSCRIPTION_GET]", error);
+    logger.error("[SUBSCRIPTION_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
         return new NextResponse("Invalid action", { status: 400 });
     }
   } catch (error) {
-    console.error("[SUBSCRIPTION_POST]", error);
+    logger.error("[SUBSCRIPTION_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

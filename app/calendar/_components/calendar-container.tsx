@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { EventDetailsDialog } from "./event-details-dialog";
 import { EditEventDialog } from "./edit-event-dialog";
 import { ErrorScreen } from "./error-screen";
+import { logger } from '@/lib/logger';
 
 interface CalendarContainerProps {
   userId: string;
@@ -57,19 +58,19 @@ export const CalendarContainer = ({
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("API response not OK:", data);
+        logger.error("API response not OK:", data);
         throw new Error(data.error || "Failed to fetch events");
       }
 
       if (data.success) {
-        console.log("Events fetched successfully:", data.data.length);
+
         setEvents(data.data);
       } else {
-        console.error("API response indicated failure:", data);
+        logger.error("API response indicated failure:", data);
         throw new Error(data.error || "Failed to fetch events");
       }
     } catch (error) {
-      console.error("Error fetching events:", error);
+      logger.error("Error fetching events:", error);
       setError(error instanceof Error ? error.message : "Failed to load calendar events");
       handleCalendarError(error);
     } finally {
@@ -82,7 +83,7 @@ export const CalendarContainer = ({
   }, [fetchEvents]);
 
   const handleDateSelect = (date: Date) => {
-    console.log("Date selected:", date);
+
     setSelectedDate(date);
     setIsNewEventOpen(true);
   };

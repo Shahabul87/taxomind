@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -67,18 +68,10 @@ export async function POST(
     // If there's generated content, we could store it in a separate table or in the description
     // For now, log it for development purposes
     if (generatedContent) {
-      console.log('Section created with AI-generated content:', {
-        sectionId: section.id,
-        contentType,
-        bloomsLevel,
-        estimatedDuration,
-        generatedContent
-      });
-    }
-
+}
     return NextResponse.json(section);
   } catch (error) {
-    console.error("[SECTIONS]", error);
+    logger.error("[SECTIONS]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

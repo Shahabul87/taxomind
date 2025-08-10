@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -215,7 +216,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Dashboard analytics API error:', error);
+    logger.error('Dashboard analytics API error:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

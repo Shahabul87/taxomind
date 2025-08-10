@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { invalidateCache, getCommentKey } from "@/app/lib/cache";
+import { logger } from '@/lib/logger';
 
 // Get a single comment
 export async function GET(
@@ -68,7 +69,7 @@ export async function GET(
 
     return NextResponse.json(comment);
   } catch (error) {
-    console.error("[COMMENT_GET]", error);
+    logger.error("[COMMENT_GET]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -155,7 +156,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedComment);
   } catch (error) {
-    console.error("[COMMENT_PATCH]", error);
+    logger.error("[COMMENT_PATCH]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -232,12 +233,10 @@ export async function DELETE(
       invalidateCache(getCommentKey(commentId)),
       invalidateCache(`replies:${commentId}:*`),
     ]);
-    
-    console.log(`[COMMENT_DELETE] Invalidated cache for comment ${commentId} and its replies`);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[COMMENT_DELETE]", error);
+    logger.error("[COMMENT_DELETE]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

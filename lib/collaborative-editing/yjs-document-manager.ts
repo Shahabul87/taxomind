@@ -1,6 +1,7 @@
 import * as Y from 'yjs';
 import { db } from '@/lib/db';
 import { WebsocketProvider } from 'y-websocket';
+import { logger } from '@/lib/logger';
 
 export interface DocumentState {
   content: any;
@@ -79,7 +80,7 @@ export class YjsDocumentManager {
         Y.applyUpdate(doc, updates);
       }
     } catch (error) {
-      console.error('Error loading document state:', error);
+      logger.error('Error loading document state:', error);
     }
   }
 
@@ -95,7 +96,7 @@ export class YjsDocumentManager {
         },
       });
     } catch (error) {
-      console.error('Error saving document state:', error);
+      logger.error('Error saving document state:', error);
     }
   }
 
@@ -193,7 +194,7 @@ export class YjsDocumentManager {
         },
       });
     } catch (error) {
-      console.error('Error creating snapshot:', error);
+      logger.error('Error creating snapshot:', error);
     }
   }
 
@@ -221,7 +222,7 @@ export class YjsDocumentManager {
       // Save to database
       await this.saveDocumentState(sessionId, doc);
     } catch (error) {
-      console.error('Error restoring from snapshot:', error);
+      logger.error('Error restoring from snapshot:', error);
       throw error;
     }
   }
@@ -276,7 +277,7 @@ export class YjsDocumentManager {
         timestamp: activity.timestamp,
       }));
     } catch (error) {
-      console.error('Error getting document history:', error);
+      logger.error('Error getting document history:', error);
       return [];
     }
   }
@@ -339,7 +340,7 @@ export class YjsDocumentManager {
         }
       }
     } catch (error) {
-      console.error('Error cleaning up inactive documents:', error);
+      logger.error('Error cleaning up inactive documents:', error);
     }
   }
 
@@ -377,7 +378,7 @@ export class YjsDocumentManager {
         },
       });
     } catch (error) {
-      console.error('Error resolving conflict:', error);
+      logger.error('Error resolving conflict:', error);
       throw error;
     }
   }

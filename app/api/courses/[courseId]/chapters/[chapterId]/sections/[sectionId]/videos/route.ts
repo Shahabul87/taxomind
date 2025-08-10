@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -13,9 +14,6 @@ export async function POST(
   try {
     const session = await auth();
     const { title, description, videoUrl, rating } = await req.json();
-
-    console.log("Received video data:", { title, description, videoUrl });
-    console.log("Params:", params);
 
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -46,10 +44,9 @@ export async function POST(
       },
     });
 
-    console.log("Created video:", video);
     return NextResponse.json(video);
   } catch (error) {
-    console.error("[VIDEOS]", error);
+    logger.error("[VIDEOS]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -68,7 +65,7 @@ export async function GET(req: Request, props: { params: Promise<{ sectionId: st
 
     return NextResponse.json(videos);
   } catch (error) {
-    console.error("[VIDEOS_GET]", error);
+    logger.error("[VIDEOS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

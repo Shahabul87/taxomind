@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { logger } from '@/lib/logger';
 import { 
   Shield, AlertTriangle, CheckCircle, XCircle, Clock,
   Eye, Search, RefreshCw, Activity, TrendingUp, TrendingDown,
@@ -74,7 +75,7 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
         setSummary(data.data.summary);
       }
     } catch (error) {
-      console.error('Error fetching security data:', error);
+      logger.error('Error fetching security data:', error);
     } finally {
       setIsLoading(false);
     }

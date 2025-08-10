@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { logger } from '@/lib/logger';
 import { 
   Sparkles, 
   Target, 
@@ -152,7 +153,7 @@ export const BlueprintRefinementModal = ({
       setRefinementResult(result);
       toast.success("Blueprint refinement completed!");
     } catch (error) {
-      console.error('Refinement error:', error);
+      logger.error('Refinement error:', error);
       toast.error("Failed to refine blueprint. Please try again.");
     } finally {
       setIsRefining(false);

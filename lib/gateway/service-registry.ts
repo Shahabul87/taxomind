@@ -4,6 +4,7 @@
  */
 
 import { Redis } from 'ioredis';
+import { logger } from '@/lib/logger';
 
 export interface ServiceInstance {
   id: string;
@@ -176,7 +177,6 @@ export class ServiceRegistry {
       JSON.stringify(instance)
     );
 
-    console.log(`[SERVICE_REGISTRY] Registered service: ${instance.name}:${instance.id}`);
   }
 
   /**
@@ -192,7 +192,6 @@ export class ServiceRegistry {
     // Remove from Redis
     await this.redis.hdel(`service_registry:${serviceName}`, instanceId);
 
-    console.log(`[SERVICE_REGISTRY] Deregistered service: ${serviceName}:${instanceId}`);
   }
 
   /**
@@ -201,13 +200,13 @@ export class ServiceRegistry {
   async getHealthyService(serviceName: string): Promise<string | null> {
     const instances = this.services.get(serviceName);
     if (!instances || instances.length === 0) {
-      console.warn(`[SERVICE_REGISTRY] No instances found for service: ${serviceName}`);
+      logger.warn(`[SERVICE_REGISTRY] No instances found for service: ${serviceName}`);
       return null;
     }
 
     const healthyInstances = instances.filter(i => i.status === 'healthy');
     if (healthyInstances.length === 0) {
-      console.warn(`[SERVICE_REGISTRY] No healthy instances found for service: ${serviceName}`);
+      logger.warn(`[SERVICE_REGISTRY] No healthy instances found for service: ${serviceName}`);
       return null;
     }
 
@@ -354,7 +353,6 @@ export class ServiceRegistry {
       setTimeout(() => this.checkServiceHealth(serviceName), 1000);
     }
 
-    console.log('[SERVICE_REGISTRY] Started health checks for all services');
   }
 
   /**
@@ -393,7 +391,7 @@ export class ServiceRegistry {
       await this.redis.zremrangebyrank(`health_checks:${serviceName}:${instance.id}`, 0, -101);
 
       if (result.status === 'unhealthy') {
-        console.warn(
+        logger.warn(
           `[SERVICE_REGISTRY] Health check failed for ${serviceName}:${instance.id} - ${result.error}`
         );
       }
@@ -475,8 +473,7 @@ export class ServiceRegistry {
     }, config.healthCheckInterval);
 
     this.healthCheckIntervals.set(config.name, intervalId);
-    
-    console.log(`[SERVICE_REGISTRY] Added configuration for service: ${config.name}`);
+
   }
 
   /**
@@ -495,8 +492,7 @@ export class ServiceRegistry {
 
     // Remove all instances
     this.services.delete(serviceName);
-    
-    console.log(`[SERVICE_REGISTRY] Removed configuration for service: ${serviceName}`);
+
   }
 
   /**
@@ -509,7 +505,7 @@ export class ServiceRegistry {
     }
 
     this.healthCheckIntervals.clear();
-    console.log('[SERVICE_REGISTRY] Shutdown completed');
+
   }
 }
 

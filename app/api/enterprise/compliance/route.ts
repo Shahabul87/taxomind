@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schemas
 const complianceQuerySchema = z.object({
@@ -159,7 +160,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching compliance events:', error);
+    logger.error('Error fetching compliance events:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -223,7 +224,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error recording compliance event:', error);
+    logger.error('Error recording compliance event:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

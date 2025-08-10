@@ -4,6 +4,7 @@ import React, { Component, ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -26,11 +27,11 @@ export class AnalyticsErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('Analytics Error Boundary caught an error:', error, errorInfo);
+    logger.error('Analytics Error Boundary caught an error:', error, errorInfo);
     
     // Check if it's the specific Next.js headers error
     if (error.message.includes('headers') && error.message.includes('request scope')) {
-      console.warn('Headers called outside request scope - this is expected in client components');
+      logger.warn('Headers called outside request scope - this is expected in client components');
     }
   }
 

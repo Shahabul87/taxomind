@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   Edit3, Eye, Heart, MessageSquare, TrendingUp, 
   Plus, ArrowRight
@@ -41,7 +42,7 @@ export function PostAnalyticsWidget({ user, className }: PostAnalyticsWidgetProp
           setRecentPosts(postsResult.posts.slice(0, 3));
         }
       } catch (err) {
-        console.error("Failed to load post analytics:", err);
+        logger.error("Failed to load post analytics:", err);
       } finally {
         setLoading(false);
       }

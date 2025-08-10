@@ -6,6 +6,7 @@ import { CourseSidebar } from "../_components/course-sidebar";
 import { ChapterContent } from "../_components/course-content";
 import ConditionalHeader from "@/app/(homepage)/user-header";
 import { getCourse } from "@/actions/get-course";
+import { logger } from '@/lib/logger';
 
 interface ChapterPageProps {
   params: Promise<{
@@ -40,7 +41,7 @@ const ChapterIdPage = async (props: ChapterPageProps) => {
   const { course, error } = await getCourse(params.courseId);
 
   if (error) {
-    console.error("[COURSE_FETCH_ERROR]", error);
+    logger.error("[COURSE_FETCH_ERROR]", error);
     return redirect("/error");
   }
 

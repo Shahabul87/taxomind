@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { Section, Chapter, Video as VideoType, Blog, Article, Note, CodeExplanation as CodeExplanationType, user_progress } from "@prisma/client";
 import { VideoContent } from "./video-content";
 import { useRouter } from "next/navigation";
+import { logger } from '@/lib/logger';
 
 interface SectionWithRelations extends Section {
   chapter: Chapter & {
@@ -66,7 +67,7 @@ export const SectionContent = ({
       // Show loading state if needed
       router.push(path);
     } catch (error) {
-      console.error("Navigation failed:", error);
+      logger.error("Navigation failed:", error);
       // Fallback to window.location
       window.location.href = path;
     }
@@ -110,8 +111,6 @@ export const SectionContent = ({
             )}
           </div>
         </div>
-
-        
 
         {/* Navigation */}
         <div className="flex items-center justify-between mt-8">

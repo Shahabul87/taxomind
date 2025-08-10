@@ -304,9 +304,7 @@ export function reportBundleMetrics() {
   
   // Send to analytics or log
   if (process.env.NODE_ENV === 'development') {
-    console.log('Bundle Analysis Report:', report);
-  }
-  
+}
   return report;
 }
 

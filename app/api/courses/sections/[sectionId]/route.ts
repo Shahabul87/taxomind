@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request, props: { params: Promise<{ sectionId: string }> }) {
   const params = await props.params;
@@ -35,7 +36,7 @@ export async function GET(req: Request, props: { params: Promise<{ sectionId: st
 
     return NextResponse.json(section);
   } catch (error) {
-    console.error("[SECTION_GET]", error);
+    logger.error("[SECTION_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

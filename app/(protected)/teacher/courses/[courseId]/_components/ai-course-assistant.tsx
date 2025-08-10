@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useProgressiveDisclosure } from "@/hooks/use-progressive-disclosure";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface AICourseAssistantProps {
   courseTitle: string;
@@ -100,7 +101,7 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
       try {
         recordFeatureUsage('ai-course-assistant', 2);
       } catch (error) {
-        console.warn('Failed to record feature usage:', error);
+        logger.warn('Failed to record feature usage:', error);
       }
     }
   }, [open, recordFeatureUsage]);
@@ -168,7 +169,7 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
           onGenerate(data.content);
           shouldCloseModal = true; // Mark for closure on success
         } catch (onGenerateError) {
-          console.error('Error in onGenerate callback:', onGenerateError);
+          logger.error('Error in onGenerate callback:', onGenerateError);
           toast.error('Failed to apply generated content');
           // Don't close modal on callback error - user might want to retry
           return;
@@ -183,14 +184,14 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
             recordFeatureUsage('advanced-ai-prompts', 1);
           }
         } catch (usageError) {
-          console.warn('Failed to record feature usage:', usageError);
+          logger.warn('Failed to record feature usage:', usageError);
         }
         
       } else {
         throw new Error(data.error || 'Invalid response format');
       }
     } catch (error: any) {
-      console.error('AI generation error:', error);
+      logger.error('AI generation error:', error);
       
       // Handle different types of errors
       if (error.name === 'AbortError') {

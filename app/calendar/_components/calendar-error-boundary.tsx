@@ -3,6 +3,7 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +24,7 @@ export class CalendarErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Calendar error:", error, errorInfo);
+    logger.error("Calendar error:", error, errorInfo);
   }
 
   private handleRetry = () => {

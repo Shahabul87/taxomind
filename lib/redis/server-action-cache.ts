@@ -1,5 +1,6 @@
 import { redis, REDIS_KEYS, REDIS_TTL } from './config';
 import { CacheManager } from './cache-manager';
+import { logger } from '@/lib/logger';
 
 /**
  * Server Action Cache Integration
@@ -45,7 +46,7 @@ export class ServerActionCache {
             fromCache: true
           };
         } catch (error) {
-          console.warn('Failed to parse cached data for key:', key, error);
+          logger.warn('Failed to parse cached data for key:', key, error);
           // Clear corrupted cache entry
           await redis?.del(key);
         }
@@ -70,7 +71,7 @@ export class ServerActionCache {
 
       return { data, cached: true, fromCache: false };
     } catch (error) {
-      console.error(`Cache error for key ${key}:`, error);
+      logger.error(`Cache error for key ${key}:`, error);
       
       // If cache error and invalidateOnError is true, fetch fresh data
       if (options?.invalidateOnError) {
@@ -195,7 +196,7 @@ export class ServerActionCache {
         }
       }
     } catch (error) {
-      console.error('Cache invalidation error:', error);
+      logger.error('Cache invalidation error:', error);
     }
   }
 
@@ -208,7 +209,7 @@ export class ServerActionCache {
     try {
       await redis.del(key);
     } catch (error) {
-      console.error(`Cache key invalidation error for ${key}:`, error);
+      logger.error(`Cache key invalidation error for ${key}:`, error);
     }
   }
 
@@ -218,12 +219,11 @@ export class ServerActionCache {
   static async warmPopularCourses(fetchFn: () => Promise<any[]>): Promise<void> {
     try {
       const courses = await fetchFn();
-      console.log(`Cache warming: Pre-loading ${courses.length} popular courses`);
-      
+
       // This would trigger cache population for popular courses
       // Implementation depends on specific caching needs
     } catch (error) {
-      console.error('Cache warming error:', error);
+      logger.error('Cache warming error:', error);
     }
   }
 
@@ -250,7 +250,7 @@ export class ServerActionCache {
         hitRate: 0 // Would need tracking implementation
       };
     } catch (error) {
-      console.error('Cache stats error:', error);
+      logger.error('Cache stats error:', error);
       return { totalKeys: 0, memoryUsage: '0B' };
     }
   }

@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
+import { logger } from '@/lib/logger';
 import { 
   CheckCircle, XCircle, Clock, AlertTriangle, Search, Filter,
   FileText, Users, TrendingUp, Calendar, MessageCircle,
@@ -80,7 +81,7 @@ export function WorkflowDashboard({
       setAnalytics(analyticsData);
     } catch (error) {
       toast.error('Failed to load workflow data');
-      console.error(error);
+      logger.error(error);
     } finally {
       setLoading(false);
     }
@@ -135,7 +136,7 @@ export function WorkflowDashboard({
       loadData();
     } catch (error) {
       toast.error('Failed to submit action');
-      console.error(error);
+      logger.error(error);
     }
   };
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
     return NextResponse.json(validation);
     
   } catch (error) {
-    console.error("[VALIDATION] Error:", error);
+    logger.error("[VALIDATION] Error:", error);
     
     // Return basic validation result on error
     const fallbackResult: ValidationResult = {
@@ -236,7 +237,7 @@ Focus on actionable feedback that will help create a more successful course.`;
 
     return JSON.parse(content.text);
   } catch (error) {
-    console.error('Title validation error:', error);
+    logger.error('Title validation error:', error);
     return getBasicTitleValidation(title);
   }
 }
@@ -295,7 +296,7 @@ Return ONLY valid JSON with validation results and specific suggestions for impr
 
     return JSON.parse(content.text);
   } catch (error) {
-    console.error('Overview validation error:', error);
+    logger.error('Overview validation error:', error);
     return getBasicOverviewValidation(overview);
   }
 }
@@ -353,7 +354,7 @@ Return JSON with validation score, issues, and suggestions for improvement.`;
 
     return JSON.parse(content.text);
   } catch (error) {
-    console.error('Audience validation error:', error);
+    logger.error('Audience validation error:', error);
     return getBasicAudienceValidation(audience);
   }
 }

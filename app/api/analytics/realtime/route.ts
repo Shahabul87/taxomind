@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -163,7 +164,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(platformMetrics);
   } catch (error) {
-    console.error("[REALTIME_ANALYTICS_GET]", error);
+    logger.error("[REALTIME_ANALYTICS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

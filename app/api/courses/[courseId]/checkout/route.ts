@@ -87,7 +87,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
 
     return Response.json({ url: session.url });
   } catch (error) {
-    console.log("[COURSE_ID_CHECKOUT]", error);
+
     return new Response("Internal Error", { status: 500 });
   }
 }

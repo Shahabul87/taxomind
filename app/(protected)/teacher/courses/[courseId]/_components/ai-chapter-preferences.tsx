@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, Settings, Loader2, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CourseDifficulty } from "@/lib/ai-course-types";
+import { logger } from '@/lib/logger';
 
 export interface AIChapterGenerationPreferences {
   chapterCount: number;
@@ -89,7 +90,7 @@ export const AIChapterPreferencesDialog = ({
       // Only close modal on successful completion
       setOpen(false);
     } catch (error) {
-      console.error('Chapter generation failed:', error);
+      logger.error('Chapter generation failed:', error);
       // Keep modal open on error to allow retry
       // The error will be handled by the parent component
     }

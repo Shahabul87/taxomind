@@ -8,6 +8,7 @@ import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -53,7 +54,7 @@ export const PostTitleForm = ({
       setIsEditing(false);
       router.refresh();
     } catch (error) {
-      console.error("Error updating post:", error);
+      logger.error("Error updating post:", error);
       toast.error("Something went wrong");
     }
   };

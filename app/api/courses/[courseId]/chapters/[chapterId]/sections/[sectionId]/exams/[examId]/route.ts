@@ -66,7 +66,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: "Exam deleted successfully" });
   } catch (error) {
-    console.log("[EXAM_DELETE]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -121,7 +121,7 @@ export async function GET(
 
     return NextResponse.json({ success: true, exam });
   } catch (error) {
-    console.log("[EXAM_GET]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

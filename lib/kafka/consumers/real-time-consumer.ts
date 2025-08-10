@@ -3,6 +3,7 @@ import { EachMessagePayload } from 'kafkajs';
 import { initializeConsumer, KAFKA_TOPICS, KafkaMessage } from '../index';
 import { Server as SocketIOServer } from 'socket.io';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 
 let io: SocketIOServer | null = null;
 
@@ -16,22 +17,21 @@ export function initializeSocketIO(server: any): void {
   });
 
   io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
 
     // Join course-specific rooms
     socket.on('join_course', (courseId: string) => {
       socket.join(`course:${courseId}`);
-      console.log(`Socket ${socket.id} joined course:${courseId}`);
+
     });
 
     // Join admin room
     socket.on('join_admin', () => {
       socket.join('admin');
-      console.log(`Socket ${socket.id} joined admin room`);
+
     });
 
     socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
+
     });
   });
 }
@@ -64,7 +64,7 @@ export async function processRealTimeMessage(
     }
     
   } catch (error) {
-    console.error('Error processing real-time message:', error);
+    logger.error('Error processing real-time message:', error);
   }
 }
 
@@ -238,10 +238,9 @@ export async function startRealTimeConsumer(): Promise<void> {
     await consumer.run({
       eachMessage: processRealTimeMessage
     });
-    
-    console.log('Real-time consumer started');
+
   } catch (error) {
-    console.error('Failed to start real-time consumer:', error);
+    logger.error('Failed to start real-time consumer:', error);
     throw error;
   }
 }

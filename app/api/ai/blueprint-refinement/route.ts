@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import anthropic from "@/lib/anthropic-client";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -91,7 +92,7 @@ export async function POST(req: Request) {
     return Response.json(refinementResult);
 
   } catch (error) {
-    console.error('[BLUEPRINT_REFINEMENT] Error:', error);
+    logger.error('[BLUEPRINT_REFINEMENT] Error:', error);
     return new Response("Internal Server Error", { status: 500 });
   }
 }
@@ -195,7 +196,7 @@ Format your response as a JSON object with the structure matching the Refinement
         throw new Error('No JSON found in AI response');
       }
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
+      logger.error('Failed to parse AI response:', parseError);
       // Fallback: create a basic refinement result
       aiResult = createFallbackRefinementResult(request.blueprint);
     }
@@ -229,7 +230,7 @@ Format your response as a JSON object with the structure matching the Refinement
     return refinementResult;
 
   } catch (error) {
-    console.error('Error in blueprint refinement generation:', error);
+    logger.error('Error in blueprint refinement generation:', error);
     throw new Error('Failed to generate blueprint refinement');
   }
 }

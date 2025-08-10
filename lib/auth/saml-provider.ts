@@ -8,6 +8,7 @@ import { Strategy as SamlStrategy, Profile, VerifyWithRequest } from '@node-saml
 import { db } from '@/lib/db';
 import crypto from 'crypto';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // SAML Configuration Schema
 const SAMLConfigSchema = z.object({
@@ -217,7 +218,7 @@ export class SAMLProvider {
         },
       });
     } catch (error) {
-      console.error('Failed to log authentication:', error);
+      logger.error('Failed to log authentication:', error);
     }
   }
 
@@ -289,7 +290,7 @@ export async function validateSAMLConfig(config: any): Promise<boolean> {
     SAMLConfigSchema.parse(config);
     return true;
   } catch (error) {
-    console.error('Invalid SAML configuration:', error);
+    logger.error('Invalid SAML configuration:', error);
     return false;
   }
 }

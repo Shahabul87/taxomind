@@ -5,6 +5,7 @@
 
 import { scrypt } from '@noble/hashes/scrypt';
 import { randomBytes } from '@noble/hashes/utils';
+import { logger } from '@/lib/logger';
 
 // Utility to encode/decode base64
 const encodeBase64 = (bytes: Uint8Array): string => {
@@ -29,7 +30,7 @@ export const hashPassword = async (password: string): Promise<string> => {
     // Format: noble:salt:hash (both base64 encoded)
     return `noble:${encodeBase64(salt)}:${encodeBase64(hash)}`;
   } catch (error) {
-    console.error('Password hashing failed:', error);
+    logger.error('Password hashing failed:', error);
     throw new Error('Password hashing failed');
   }
 };
@@ -56,7 +57,7 @@ export const verifyPassword = async (plainPassword: string, hashedPassword: stri
       return verifyBcryptHash(plainPassword, hashedPassword);
     }
   } catch (error) {
-    console.error('Password verification failed:', error);
+    logger.error('Password verification failed:', error);
     return false;
   }
 };
@@ -90,7 +91,7 @@ const verifyNobleHash = (plainPassword: string, hashedPassword: string): boolean
     
     return result === 0;
   } catch (error) {
-    console.error('Noble hash verification failed:', error);
+    logger.error('Noble hash verification failed:', error);
     return false;
   }
 };
@@ -105,7 +106,7 @@ const verifyBcryptHash = async (plainPassword: string, hashedPassword: string): 
     const isNodejs = typeof process !== 'undefined' && process.versions && process.versions.node;
     
     if (!isNodejs) {
-      console.warn('Bcrypt verification skipped - Edge Runtime detected. Password migration required.');
+      logger.warn('Bcrypt verification skipped - Edge Runtime detected. Password migration required.');
       return false;
     }
 
@@ -116,23 +117,21 @@ const verifyBcryptHash = async (plainPassword: string, hashedPassword: string): 
       const isValid = await bcrypt.compare(plainPassword, hashedPassword);
       
       if (isValid) {
-        console.log('Legacy bcrypt password verified successfully. Consider migrating to new format.');
-      }
-      
+}
       return isValid;
     } catch (importError) {
-      console.warn('bcryptjs not available. Installing it temporarily for migration...');
+      logger.warn('bcryptjs not available. Installing it temporarily for migration...');
       
       // For production compatibility, we'll use a fallback verification
       // This is a temporary measure - users should migrate their passwords
-      console.warn(
+      logger.warn(
         'Legacy password detected. Please reset your password to use the new secure format.',
         'Hash format:', hashedPassword.substring(0, 10) + '...'
       );
       return false;
     }
   } catch (error) {
-    console.error('Bcrypt verification failed:', error);
+    logger.error('Bcrypt verification failed:', error);
     return false;
   }
 };

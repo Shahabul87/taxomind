@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { MicrolearningContentSegmenter } from './content-segmenter';
+import { logger } from '@/lib/logger';
 import {
   MicrolearningSegmentation,
   MicrolearningSegment,
@@ -47,8 +48,6 @@ export class MicrolearningService {
     learnerId: string,
     options?: MicrolearningOptions
   ): Promise<MicrolearningExperience> {
-    
-    console.log(`Creating microlearning experience: ${contentId} for ${learnerId}`);
 
     // Get or create personalized segmentation
     const segmentation = await this.segmenter.getPersonalizedSegmentation(
@@ -105,8 +104,6 @@ export class MicrolearningService {
     currentSegmentId: string,
     performanceData: SegmentPerformanceData
   ): Promise<MicrolearningSegmentResult> {
-    
-    console.log(`Progressing to next segment: ${currentSegmentId} -> next`);
 
     const experience = await this.getExperience(experienceId);
     
@@ -159,8 +156,6 @@ export class MicrolearningService {
     segmentId: string,
     realTimeData: RealTimeData
   ): Promise<SegmentAdaptationResult> {
-    
-    console.log(`Real-time adaptation for segment: ${segmentId}`);
 
     const experience = await this.getExperience(experienceId);
     
@@ -231,7 +226,8 @@ export class MicrolearningService {
   async getMicrolearningAnalytics(
     experienceId: string,
     timeRange: DateRange,
-    options: AnalyticsOptions = {}
+    options: AnalyticsOptions = {
+}
   ): Promise<MicrolearningAnalytics> {
     
     const experience = await this.getExperience(experienceId);
@@ -269,8 +265,6 @@ export class MicrolearningService {
     analyticsData: any[],
     optimizationGoals: OptimizationGoal[]
   ): Promise<OptimizationResult> {
-    
-    console.log(`Optimizing microlearning strategy for course: ${courseId}`);
 
     // Analyze current performance across all experiences
     const performanceAnalysis = await this.analyzeStrategyPerformance(
@@ -625,7 +619,7 @@ export class MicrolearningService {
         return experience;
       }
     } catch (error) {
-      console.error('Failed to load experience from cache:', error);
+      logger.error('Failed to load experience from cache:', error);
     }
 
     throw new Error(`Experience not found: ${experienceId}`);
@@ -641,7 +635,7 @@ export class MicrolearningService {
         JSON.stringify(experience)
       );
     } catch (error) {
-      console.error('Failed to cache experience:', error);
+      logger.error('Failed to cache experience:', error);
     }
   }
 
@@ -826,9 +820,7 @@ export class MicrolearningService {
 
   // Additional placeholder implementations for complex methods
   private async startSessionTracking(experience: MicrolearningExperience): Promise<void> {
-    console.log('Starting session tracking for experience:', experience.id);
-  }
-
+}
   private async applyRealTimeAdaptations(
     experience: MicrolearningExperience,
     segment: MicrolearningSegment,
@@ -852,9 +844,7 @@ export class MicrolearningService {
     fromSegmentId: string,
     toSegmentId: string
   ): Promise<void> {
-    console.log('Segment progression:', { experienceId: experience.id, from: fromSegmentId, to: toSegmentId });
-  }
-
+}
   private async completeExperience(
     experience: MicrolearningExperience,
     performanceData: SegmentPerformanceData
@@ -867,7 +857,8 @@ export class MicrolearningService {
       experience,
       adaptations: [],
       recommendations: [],
-      analytics: {}
+      analytics: {
+}
     };
   }
 
@@ -906,9 +897,7 @@ export class MicrolearningService {
   }
 
   private async logAdaptation(experience: MicrolearningExperience, segmentId: string, adaptations: SegmentAdaptation[], effectiveness: any): Promise<void> {
-    console.log('Adaptation logged:', { experienceId: experience.id, segmentId, adaptations: adaptations.length, effectiveness });
-  }
-
+}
   private async generateAdaptationRecommendations(experience: MicrolearningExperience, segment: MicrolearningSegment, effectiveness: any): Promise<any[]> {
     return [];
   }
@@ -937,7 +926,7 @@ export class MicrolearningService {
     try {
       await redis.setex(`analytics_${experienceId}`, 1800, JSON.stringify(analytics));
     } catch (error) {
-      console.error('Failed to cache analytics:', error);
+      logger.error('Failed to cache analytics:', error);
     }
   }
 
@@ -971,21 +960,27 @@ export class MicrolearningService {
   private calculateExpectedImpact(recommendations: any[]): any { return {}; }
   private estimateOptimizationTimeline(recommendations: any[]): any { return {}; }
   private async saveSessionState(experience: MicrolearningExperience): Promise<any> { return {}; }
-  private async pauseMonitoring(experience: MicrolearningExperience): Promise<void> { }
+  private async pauseMonitoring(experience: MicrolearningExperience): Promise<void> {
+}
   private async generatePauseAnalytics(experience: MicrolearningExperience, reason: PauseReason): Promise<any> { return {}; }
   private generateResumeToken(experience: MicrolearningExperience): string { return 'token'; }
   private async generatePauseRecommendations(experience: MicrolearningExperience, reason: PauseReason): Promise<any[]> { return []; }
   private validateResumeToken(experience: MicrolearningExperience, token: string): boolean { return true; }
-  private async restoreSessionState(experience: MicrolearningExperience, context?: LearningContext): Promise<void> { }
-  private async resumeMonitoring(experience: MicrolearningExperience): Promise<void> { }
+  private async restoreSessionState(experience: MicrolearningExperience, context?: LearningContext): Promise<void> {
+}
+  private async resumeMonitoring(experience: MicrolearningExperience): Promise<void> {
+}
   private async generateResumeAnalytics(experience: MicrolearningExperience, context?: LearningContext): Promise<any> { return {}; }
   private async getCurrentSegment(experience: MicrolearningExperience): Promise<MicrolearningSegment | null> { return null; }
   private async generateResumeRecommendations(experience: MicrolearningExperience, context?: LearningContext): Promise<any[]> { return []; }
   private async generateCompletionAnalytics(experience: MicrolearningExperience, data: SessionCompletionData): Promise<any> { return {}; }
-  private async updateLearnerProfile(learnerId: string, courseId: string, analytics: any): Promise<void> { }
-  private async stopMonitoring(experience: MicrolearningExperience): Promise<void> { }
+  private async updateLearnerProfile(learnerId: string, courseId: string, analytics: any): Promise<void> {
+}
+  private async stopMonitoring(experience: MicrolearningExperience): Promise<void> {
+}
   private async generateAchievements(experience: MicrolearningExperience, analytics: any): Promise<any[]> { return []; }
-  private async cleanupSession(experience: MicrolearningExperience): Promise<void> { }
+  private async cleanupSession(experience: MicrolearningExperience): Promise<void> {
+}
   private async generatePostCompletionRecommendations(experience: MicrolearningExperience, analytics: any): Promise<any[]> { return []; }
   private async generateNextSteps(experience: MicrolearningExperience, analytics: any): Promise<any[]> { return []; }
 }

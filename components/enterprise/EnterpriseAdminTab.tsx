@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { logger } from '@/lib/logger';
 import { 
   Building2, Shield, Activity, BarChart3, Users, BookOpen,
   AlertTriangle, CheckCircle, TrendingUp, RefreshCw, Settings,
@@ -97,7 +98,7 @@ export function EnterpriseAdminTab({ analytics, performance, className }: Enterp
       });
 
     } catch (error) {
-      console.error('Error fetching enterprise metrics:', error);
+      logger.error('Error fetching enterprise metrics:', error);
     } finally {
       setIsLoading(false);
     }

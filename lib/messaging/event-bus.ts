@@ -5,6 +5,7 @@
 
 import { Redis } from 'ioredis';
 import { EventEmitter } from 'events';
+import { logger } from '@/lib/logger';
 
 export interface EventMessage {
   id: string;
@@ -80,7 +81,7 @@ export class EventBus extends EventEmitter {
     };
 
     this.setupRedisSubscription();
-    console.log(`[EVENT_BUS] Initialized with instance ID: ${this.instanceId}`);
+
   }
 
   /**
@@ -92,13 +93,13 @@ export class EventBus extends EventEmitter {
         const event: EventMessage = JSON.parse(message);
         await this.processDistributedEvent(event);
       } catch (error) {
-        console.error('[EVENT_BUS] Failed to process distributed event:', error);
+        logger.error('[EVENT_BUS] Failed to process distributed event:', error);
       }
     });
 
     // Subscribe to global event channel
     this.redisSubscriber.subscribe('taxomind:events:*');
-    console.log('[EVENT_BUS] Subscribed to distributed events');
+
   }
 
   /**
@@ -115,7 +116,8 @@ export class EventBus extends EventEmitter {
       metadata?: Record<string, any>;
       persistent?: boolean;
       distributed?: boolean;
-    } = {}
+    } = {
+}
   ): Promise<EventMessage> {
     const event: EventMessage = {
       id: this.generateEventId(),
@@ -159,7 +161,7 @@ export class EventBus extends EventEmitter {
 
     } catch (error) {
       this.metrics.failedEvents++;
-      console.error(`[EVENT_BUS] Failed to publish event ${eventType}:`, error);
+      logger.error(`[EVENT_BUS] Failed to publish event ${eventType}:`, error);
       throw error;
     }
   }
@@ -176,7 +178,8 @@ export class EventBus extends EventEmitter {
       timeout?: number;
       deadLetterQueue?: boolean;
       errorHandling?: 'ignore' | 'retry' | 'dead-letter';
-    } = {}
+    } = {
+}
   ): string {
     const subscriptionId = this.generateSubscriptionId();
     const subscriberId = options.subscriberId || subscriptionId;
@@ -210,7 +213,6 @@ export class EventBus extends EventEmitter {
       await this.handleEvent(subscription, event);
     });
 
-    console.log(`[EVENT_BUS] Subscribed to ${eventType} with ID: ${subscriptionId}`);
     return subscriptionId;
   }
 
@@ -223,8 +225,7 @@ export class EventBus extends EventEmitter {
       this.subscriptions.delete(subscriptionId);
       this.removeAllListeners(subscription.eventType);
       this.metrics.activeSubscriptions = this.subscriptions.size;
-      
-      console.log(`[EVENT_BUS] Unsubscribed: ${subscriptionId}`);
+
       return true;
     }
     return false;
@@ -263,15 +264,14 @@ export class EventBus extends EventEmitter {
         
         const processingTime = Date.now() - startTime;
         this.updateAverageProcessingTime(processingTime);
-        
-        console.log(`[EVENT_BUS] Processed event ${event.type} by ${subscription.subscriberId} in ${processingTime}ms`);
+
         return;
 
       } catch (error) {
         attempt++;
         subscription.errorCount++;
         
-        console.error(`[EVENT_BUS] Handler error (attempt ${attempt}/${maxAttempts}):`, error);
+        logger.error(`[EVENT_BUS] Handler error (attempt ${attempt}/${maxAttempts}):`, error);
 
         if (attempt >= maxAttempts) {
           // All retries exhausted
@@ -297,7 +297,7 @@ export class EventBus extends EventEmitter {
 
     switch (errorHandling) {
       case 'ignore':
-        console.warn(`[EVENT_BUS] Ignoring failed event ${event.type} for ${subscription.subscriberId}`);
+        logger.warn(`[EVENT_BUS] Ignoring failed event ${event.type} for ${subscription.subscriberId}`);
         break;
 
       case 'dead-letter':
@@ -309,7 +309,7 @@ export class EventBus extends EventEmitter {
       case 'retry':
       default:
         subscription.status = 'error';
-        console.error(`[EVENT_BUS] Subscription ${subscription.id} marked as error state`);
+        logger.error(`[EVENT_BUS] Subscription ${subscription.id} marked as error state`);
         break;
     }
 
@@ -355,10 +355,8 @@ export class EventBus extends EventEmitter {
         JSON.stringify(deadLetterEvent)
       );
 
-      console.log(`[EVENT_BUS] Sent event ${event.id} to dead letter queue`);
-
     } catch (dlqError) {
-      console.error('[EVENT_BUS] Failed to send to dead letter queue:', dlqError);
+      logger.error('[EVENT_BUS] Failed to send to dead letter queue:', dlqError);
     }
   }
 
@@ -448,7 +446,7 @@ export class EventBus extends EventEmitter {
     const subscription = this.subscriptions.get(subscriptionId);
     if (subscription) {
       subscription.status = 'paused';
-      console.log(`[EVENT_BUS] Paused subscription: ${subscriptionId}`);
+
       return true;
     }
     return false;
@@ -462,7 +460,7 @@ export class EventBus extends EventEmitter {
     if (subscription && subscription.status === 'paused') {
       subscription.status = 'active';
       subscription.errorCount = 0;
-      console.log(`[EVENT_BUS] Resumed subscription: ${subscriptionId}`);
+
       return true;
     }
     return false;
@@ -502,11 +500,10 @@ export class EventBus extends EventEmitter {
         },
       });
 
-      console.log(`[EVENT_BUS] Reprocessed dead letter item: ${originalEvent.id}`);
       return true;
 
     } catch (error) {
-      console.error('[EVENT_BUS] Failed to reprocess dead letter item:', error);
+      logger.error('[EVENT_BUS] Failed to reprocess dead letter item:', error);
       return false;
     }
   }
@@ -532,7 +529,6 @@ export class EventBus extends EventEmitter {
       lastReset: new Date(),
     };
 
-    console.log('[EVENT_BUS] Metrics reset');
   }
 
   /**
@@ -620,7 +616,6 @@ export class EventBus extends EventEmitter {
    * Shutdown event bus
    */
   async shutdown(): Promise<void> {
-    console.log('[EVENT_BUS] Shutting down...');
 
     // Unsubscribe from Redis
     await this.redisSubscriber.unsubscribe();
@@ -633,7 +628,6 @@ export class EventBus extends EventEmitter {
     // Clear history
     this.eventHistory = [];
 
-    console.log('[EVENT_BUS] Shutdown completed');
   }
 }
 

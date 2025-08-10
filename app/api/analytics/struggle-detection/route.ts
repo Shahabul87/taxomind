@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
       timestamp: new Date()
     });
   } catch (error) {
-    console.error('Struggle detection error:', error);
+    logger.error('Struggle detection error:', error);
     return NextResponse.json(
       { error: 'Failed to detect struggles' },
       { status: 500 }
@@ -68,17 +69,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Log struggle indicator (simplified)
-    console.log('Struggle indicator recorded:', {
-      contentType,
-      contentId,
-      userId: studentId || user.id,
-      indicator,
-      timestamp: new Date()
+
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Struggle recording error:', error);
+    logger.error('Struggle recording error:', error);
     return NextResponse.json(
       { error: 'Failed to record struggle' },
       { status: 500 }

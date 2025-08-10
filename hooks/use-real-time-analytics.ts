@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 
 interface RealTimeMetrics {
   timestamp: Date;
@@ -102,7 +103,7 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
       retryCount.current = 0;
       setIsConnected(true);
     } catch (err) {
-      console.error('Failed to fetch metrics:', err);
+      logger.error('Failed to fetch metrics:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       
       retryCount.current++;
@@ -128,7 +129,7 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
       const data = await response.json();
       setStudentActivities(data.activities || []);
     } catch (err) {
-      console.error('Failed to fetch student activities:', err);
+      logger.error('Failed to fetch student activities:', err);
     }
   }, [courseId, session]);
 
@@ -148,7 +149,7 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
       const data = await response.json();
       setAlerts(data.alerts || []);
     } catch (err) {
-      console.error('Failed to fetch alerts:', err);
+      logger.error('Failed to fetch alerts:', err);
     }
   }, [courseId, session]);
 
@@ -193,8 +194,7 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
 
     try {
       // In a real implementation, this would connect to a WebSocket server
-      console.log('WebSocket connection would be initialized here');
-      
+
       // Example WebSocket setup:
       // const ws = new WebSocket(`ws://localhost:3001/analytics?courseId=${courseId}`);
       // wsRef.current = ws;
@@ -215,11 +215,11 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
       // };
       
       // ws.onerror = (error) => {
-      //   console.error('WebSocket error:', error);
+      //   logger.error('WebSocket error:', error);
       //   setError('WebSocket connection failed');
       // };
     } catch (err) {
-      console.error('Failed to initialize WebSocket:', err);
+      logger.error('Failed to initialize WebSocket:', err);
     }
   }, [enableWebSocket, session, courseId]);
 
@@ -244,7 +244,7 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
 
       return true;
     } catch (err) {
-      console.error('Failed to resolve alert:', err);
+      logger.error('Failed to resolve alert:', err);
       return false;
     }
   }, []);
@@ -368,7 +368,7 @@ export function useStudentMetrics(courseId?: string) {
           setMetrics(data);
         }
       } catch (error) {
-        console.error('Failed to fetch student metrics:', error);
+        logger.error('Failed to fetch student metrics:', error);
       } finally {
         setLoading(false);
       }
@@ -397,7 +397,7 @@ export function useCourseAnalytics(courseId: string) {
           setAnalytics(data);
         }
       } catch (error) {
-        console.error('Failed to fetch course analytics:', error);
+        logger.error('Failed to fetch course analytics:', error);
       } finally {
         setLoading(false);
       }

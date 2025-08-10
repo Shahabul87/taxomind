@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export type NotificationType = 
   | 'COURSE_ENROLLMENT' 
@@ -56,7 +57,7 @@ export class NotificationService {
 
       return { success: true, notification };
     } catch (error) {
-      console.error('Error creating notification:', error);
+      logger.error('Error creating notification:', error);
       return { success: false, error: 'Failed to create notification' };
     }
   }
@@ -81,7 +82,7 @@ export class NotificationService {
 
       return { success: true, count: result.count };
     } catch (error) {
-      console.error('Error creating bulk notifications:', error);
+      logger.error('Error creating bulk notifications:', error);
       return { success: false, error: 'Failed to create bulk notifications' };
     }
   }
@@ -103,7 +104,7 @@ export class NotificationService {
 
       return { success: true, notification };
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      logger.error('Error marking notification as read:', error);
       return { success: false, error: 'Failed to mark notification as read' };
     }
   }
@@ -125,7 +126,7 @@ export class NotificationService {
 
       return { success: true, count: result.count };
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      logger.error('Error marking all notifications as read:', error);
       return { success: false, error: 'Failed to mark all notifications as read' };
     }
   }
@@ -144,7 +145,7 @@ export class NotificationService {
 
       return { success: true };
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      logger.error('Error deleting notification:', error);
       return { success: false, error: 'Failed to delete notification' };
     }
   }
@@ -162,7 +163,7 @@ export class NotificationService {
 
       return { success: true, count: result.count };
     } catch (error) {
-      console.error('Error deleting all notifications:', error);
+      logger.error('Error deleting all notifications:', error);
       return { success: false, error: 'Failed to delete all notifications' };
     }
   }
@@ -177,7 +178,8 @@ export class NotificationService {
       limit?: number;
       unreadOnly?: boolean;
       type?: NotificationType;
-    } = {}
+    } = {
+}
   ) {
     try {
       const { page = 1, limit = 20, unreadOnly = false, type } = options;
@@ -213,7 +215,7 @@ export class NotificationService {
         unreadCount,
       };
     } catch (error) {
-      console.error('Error fetching user notifications:', error);
+      logger.error('Error fetching user notifications:', error);
       return { success: false, error: 'Failed to fetch notifications' };
     }
   }
@@ -232,7 +234,7 @@ export class NotificationService {
 
       return { success: true, count };
     } catch (error) {
-      console.error('Error getting unread count:', error);
+      logger.error('Error getting unread count:', error);
       return { success: false, error: 'Failed to get unread count' };
     }
   }

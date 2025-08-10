@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -54,15 +55,13 @@ export const TitleForm = ({
   // Listen for SAM form population events
   useEffect(() => {
     const handleSamFormPopulation = (event: CustomEvent) => {
-      console.log('📥 Title form received SAM populate event:', event.detail);
-      
+
       if (event.detail?.formId === 'course-title-form' || 
           event.detail?.formId === 'course-title' ||
           event.detail?.formId === 'update-course-title' ||
           event.detail?.formId === 'update-title' ||
           event.detail?.formId === 'title-form') {
-        
-        console.log('✅ Matched form ID, opening edit mode');
+
         // Auto-open edit mode when SAM tries to populate
         setIsEditing(true);
         
@@ -85,7 +84,7 @@ export const TitleForm = ({
     if (pendingSamData && isEditing && form) {
       const titleValue = pendingSamData.title || pendingSamData.name || pendingSamData.courseTitle;
       if (titleValue) {
-        console.log('📝 Setting title value:', titleValue);
+
         form.setValue("title", titleValue);
         form.trigger("title");
         
@@ -160,7 +159,7 @@ export const TitleForm = ({
         throw new Error('No title generated');
       }
     } catch (error: any) {
-      console.error('Title generation error:', error);
+      logger.error('Title generation error:', error);
       toast.error("Failed to generate title. Please try again.");
     } finally {
       setIsGenerating(false);

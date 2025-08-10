@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 // Mobile Performance Optimization Utilities
 // ========================================
 
@@ -177,7 +179,7 @@ class MobilePerformanceOptimizer {
     try {
       this.performanceObserver.observe({ entryTypes: ['paint', 'largest-contentful-paint', 'first-input', 'layout-shift'] });
     } catch (e) {
-      console.warn('Performance observer not supported for some entry types');
+      logger.warn('Performance observer not supported for some entry types');
     }
 
     // Monitor memory usage
@@ -395,11 +397,11 @@ class MobilePerformanceOptimizer {
 
     return navigator.serviceWorker.register(swUrl)
       .then(registration => {
-        console.log('Service Worker registered:', registration);
+
         return registration;
       })
       .catch(error => {
-        console.error('Service Worker registration failed:', error);
+        logger.error('Service Worker registration failed:', error);
         return undefined;
       });
   }
@@ -476,11 +478,11 @@ export function measurePerformance<T>(
   if (result instanceof Promise) {
     return result.finally(() => {
       const end = performance.now();
-      console.log(`${name} took ${end - start} milliseconds`);
+
     });
   } else {
     const end = performance.now();
-    console.log(`${name} took ${end - start} milliseconds`);
+
     return result;
   }
 }

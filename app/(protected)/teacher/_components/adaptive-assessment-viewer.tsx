@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { logger } from '@/lib/logger';
 import { 
   Brain, 
   Target, 
@@ -130,7 +131,7 @@ export function AdaptiveAssessmentViewer({
       // Start with the first adaptive question
       await generateNextQuestion();
     } catch (error) {
-      console.error('Error initializing assessment:', error);
+      logger.error('Error initializing assessment:', error);
       toast.error('Failed to initialize assessment');
     } finally {
       setIsLoading(false);
@@ -174,7 +175,7 @@ export function AdaptiveAssessmentViewer({
         throw new Error('Failed to generate question');
       }
     } catch (error) {
-      console.error('Error generating question:', error);
+      logger.error('Error generating question:', error);
       toast.error('Failed to generate next question');
     } finally {
       setIsLoading(false);
@@ -249,7 +250,7 @@ export function AdaptiveAssessmentViewer({
         }
       }
     } catch (error) {
-      console.error('Error submitting answer:', error);
+      logger.error('Error submitting answer:', error);
       toast.error('Failed to submit answer');
     } finally {
       setIsSubmitting(false);
@@ -277,7 +278,7 @@ export function AdaptiveAssessmentViewer({
         return data.result.isCorrect;
       }
     } catch (error) {
-      console.error('Error checking answer:', error);
+      logger.error('Error checking answer:', error);
     }
     
     return false;

@@ -4,6 +4,7 @@
  */
 
 import { Job } from 'bullmq';
+import { logger } from '@/lib/logger';
 import { 
   GenerateCourseContentData,
   GenerateQuizQuestionsData,
@@ -522,7 +523,7 @@ export class AIGenerationWorker {
       return jobResult;
 
     } catch (error) {
-      console.error(`[AI_WORKER] Content generation failed for course ${courseId}:`, error);
+      logger.error(`[AI_WORKER] Content generation failed for course ${courseId}:`, error);
       
       const jobResult: AIGenerationJobResult = {
         success: false,
@@ -610,7 +611,7 @@ export class AIGenerationWorker {
       return jobResult;
 
     } catch (error) {
-      console.error(`[AI_WORKER] Quiz generation failed for course ${courseId}:`, error);
+      logger.error(`[AI_WORKER] Quiz generation failed for course ${courseId}:`, error);
       
       const jobResult: AIGenerationJobResult = {
         success: false,
@@ -704,7 +705,7 @@ export class AIGenerationWorker {
       return jobResult;
 
     } catch (error) {
-      console.error(`[AI_WORKER] Learning path creation failed for user ${userId}:`, error);
+      logger.error(`[AI_WORKER] Learning path creation failed for user ${userId}:`, error);
       
       const jobResult: AIGenerationJobResult = {
         success: false,
@@ -758,7 +759,7 @@ export class AIGenerationWorker {
       };
 
     } catch (error) {
-      console.error(`[AI_WORKER] Course analysis failed:`, error);
+      logger.error(`[AI_WORKER] Course analysis failed:`, error);
       throw error;
     }
   };
@@ -799,7 +800,7 @@ export class AIGenerationWorker {
       };
 
     } catch (error) {
-      console.error(`[AI_WORKER] Personalized content generation failed:`, error);
+      logger.error(`[AI_WORKER] Personalized content generation failed:`, error);
       throw error;
     }
   };

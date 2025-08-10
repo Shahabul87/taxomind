@@ -2,6 +2,7 @@
 
 import { redis } from '@/lib/redis';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export interface MLModel {
   id: string;
@@ -34,8 +35,6 @@ export class MLTrainingPipeline {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log('Initializing ML Training Pipeline...');
-    
     try {
       // Load existing models
       await this.loadExistingModels();
@@ -47,9 +46,9 @@ export class MLTrainingPipeline {
       await this.initializeDefaultModels();
       
       this.initialized = true;
-      console.log('ML Training Pipeline initialized successfully');
+
     } catch (error) {
-      console.error('Failed to initialize ML Training Pipeline:', error);
+      logger.error('Failed to initialize ML Training Pipeline:', error);
       throw error;
     }
   }
@@ -58,7 +57,8 @@ export class MLTrainingPipeline {
   async trainModel(
     modelType: string,
     trainingData: any[],
-    parameters: any = {}
+    parameters: any = {
+}
   ): Promise<string> {
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
@@ -88,9 +88,7 @@ export class MLTrainingPipeline {
     try {
       job.status = 'running';
       job.progress = 10;
-      
-      console.log(`Starting training for ${modelType} model...`);
-      
+
       // Simulate training process
       const model = await this.simulateTraining(job, modelType, trainingData, parameters);
       
@@ -107,9 +105,7 @@ export class MLTrainingPipeline {
         trainingTime: job.endTime.getTime() - job.startTime.getTime(),
         dataPoints: trainingData.length
       };
-      
-      console.log(`Training completed for model ${model.id}`);
-      
+
       // Notify completion
       await this.notifyTrainingCompletion(job, model);
       
@@ -118,7 +114,7 @@ export class MLTrainingPipeline {
       job.error = error.message;
       job.endTime = new Date();
       
-      console.error(`Training failed for job ${job.id}:`, error);
+      logger.error(`Training failed for job ${job.id}:`, error);
     }
   }
 
@@ -135,8 +131,7 @@ export class MLTrainingPipeline {
     for (const step of steps) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       job.progress = step;
-      
-      console.log(`Training progress: ${step}%`);
+
     }
     
     // Generate model based on type
@@ -231,7 +226,7 @@ export class MLTrainingPipeline {
         session: interaction.sessionId
       }));
     } catch (error) {
-      console.error('Failed to collect learning data:', error);
+      logger.error('Failed to collect learning data:', error);
       return this.generateMockLearningData(userId);
     }
   }
@@ -255,7 +250,7 @@ export class MLTrainingPipeline {
         timestamp: interaction.timestamp
       }));
     } catch (error) {
-      console.error('Failed to collect content interaction data:', error);
+      logger.error('Failed to collect content interaction data:', error);
       return this.generateMockContentData();
     }
   }
@@ -302,22 +297,21 @@ export class MLTrainingPipeline {
           this.models.set(model.id, model);
         }
       }
-      console.log(`Loaded ${this.models.size} existing models`);
+
     } catch (error) {
-      console.error('Failed to load existing models:', error);
+      logger.error('Failed to load existing models:', error);
     }
   }
 
   private async setupTrainingInfrastructure(): Promise<void> {
     // Setup training infrastructure
-    console.log('Setting up ML training infrastructure...');
+
   }
 
   private async initializeDefaultModels(): Promise<void> {
     // Initialize default models if none exist
     if (this.models.size === 0) {
-      console.log('Initializing default ML models...');
-      
+
       // Create basic recommendation model
       await this.trainContentRecommendationModel();
     }
@@ -326,9 +320,9 @@ export class MLTrainingPipeline {
   private async saveModel(model: MLModel): Promise<void> {
     try {
       await redis.set(`ml:models:${model.id}`, JSON.stringify(model));
-      console.log(`Model ${model.id} saved successfully`);
+
     } catch (error) {
-      console.error(`Failed to save model ${model.id}:`, error);
+      logger.error(`Failed to save model ${model.id}:`, error);
     }
   }
 
@@ -344,7 +338,7 @@ export class MLTrainingPipeline {
       
       await redis.publish('ml:training:completed', JSON.stringify(notification));
     } catch (error) {
-      console.error('Failed to notify training completion:', error);
+      logger.error('Failed to notify training completion:', error);
     }
   }
 

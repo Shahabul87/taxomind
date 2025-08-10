@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { openai } from "@/lib/openai";
 import { anthropic } from "@/lib/anthropic";
+import { logger } from '@/lib/logger';
 
 // Types for Advanced Personalization Engine
 export interface LearningBehavior {
@@ -254,7 +255,7 @@ export class SAMPersonalizationEngine {
       
       return profile;
     } catch (error) {
-      console.error('Error detecting learning style:', error);
+      logger.error('Error detecting learning style:', error);
       throw new Error('Failed to detect learning style');
     }
   }
@@ -308,7 +309,7 @@ export class SAMPersonalizationEngine {
       
       return optimizedContent;
     } catch (error) {
-      console.error('Error optimizing cognitive load:', error);
+      logger.error('Error optimizing cognitive load:', error);
       throw new Error('Failed to optimize cognitive load');
     }
   }
@@ -370,7 +371,7 @@ export class SAMPersonalizationEngine {
       
       return emotionalState;
     } catch (error) {
-      console.error('Error recognizing emotional state:', error);
+      logger.error('Error recognizing emotional state:', error);
       throw new Error('Failed to recognize emotional state');
     }
   }
@@ -414,7 +415,7 @@ export class SAMPersonalizationEngine {
       
       return profile;
     } catch (error) {
-      console.error('Error analyzing motivation patterns:', error);
+      logger.error('Error analyzing motivation patterns:', error);
       throw new Error('Failed to analyze motivation patterns');
     }
   }
@@ -463,7 +464,7 @@ export class SAMPersonalizationEngine {
       
       return path;
     } catch (error) {
-      console.error('Error generating personalized path:', error);
+      logger.error('Error generating personalized path:', error);
       throw new Error('Failed to generate personalized path');
     }
   }
@@ -505,7 +506,7 @@ export class SAMPersonalizationEngine {
       
       return result;
     } catch (error) {
-      console.error('Error applying personalization:', error);
+      logger.error('Error applying personalization:', error);
       throw new Error('Failed to apply personalization');
     }
   }

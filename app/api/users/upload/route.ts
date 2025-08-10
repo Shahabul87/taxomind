@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { v2 as cloudinary } from 'cloudinary';
+import { logger } from '@/lib/logger';
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -43,14 +44,14 @@ export async function POST(
       const result = await uploadToCloudinary(file);
       return NextResponse.json(result);
     } catch (uploadError) {
-      console.error("Failed to upload file:", uploadError);
+      logger.error("Failed to upload file:", uploadError);
       return NextResponse.json(
         { error: "Failed to upload file. Please try again." },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error("[COURSE_IMAGE_UPLOAD]", error);
+    logger.error("[COURSE_IMAGE_UPLOAD]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -89,7 +90,7 @@ async function uploadToCloudinary(file: File) {
         },
         (error, result) => {
           if (error) {
-            console.error("Cloudinary upload error:", error);
+            logger.error("Cloudinary upload error:", error);
             reject(error);
           } else {
             resolve(result);

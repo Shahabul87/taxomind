@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { openai } from "@/lib/openai";
 import { anthropic } from "@/lib/anthropic";
+import { logger } from '@/lib/logger';
 
 // Types for Content Generation Assistant
 export interface LearningObjective {
@@ -198,7 +199,7 @@ export class SAMGenerationEngine {
       
       return courseContent;
     } catch (error) {
-      console.error('Error generating course content:', error);
+      logger.error('Error generating course content:', error);
       throw new Error('Failed to generate course content');
     }
   }
@@ -234,7 +235,7 @@ export class SAMGenerationEngine {
       
       return assessments;
     } catch (error) {
-      console.error('Error creating assessments:', error);
+      logger.error('Error creating assessments:', error);
       throw new Error('Failed to create assessments');
     }
   }
@@ -276,7 +277,7 @@ export class SAMGenerationEngine {
       
       return studyGuide;
     } catch (error) {
-      console.error('Error generating study guide:', error);
+      logger.error('Error generating study guide:', error);
       throw new Error('Failed to generate study guide');
     }
   }
@@ -302,7 +303,7 @@ export class SAMGenerationEngine {
       
       return validatedExercises;
     } catch (error) {
-      console.error('Error creating exercises:', error);
+      logger.error('Error creating exercises:', error);
       throw new Error('Failed to create exercises');
     }
   }
@@ -338,7 +339,7 @@ export class SAMGenerationEngine {
       
       return localizedContent;
     } catch (error) {
-      console.error('Error adapting content language:', error);
+      logger.error('Error adapting content language:', error);
       throw new Error('Failed to adapt content language');
     }
   }

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { EducationalPreset, EducationalPresetManager } from '@/lib/educational-presets';
+import { logger } from '@/lib/logger';
 
 interface PresetApplicationState {
   isApplying: boolean;
@@ -218,7 +219,7 @@ export const usePresetApplication = () => {
           });
 
           if (!sectionResponse.ok) {
-            console.warn(`Failed to create section: ${section.title}`);
+            logger.warn(`Failed to create section: ${section.title}`);
           }
         }
 
@@ -240,7 +241,7 @@ export const usePresetApplication = () => {
         });
 
         if (!assessmentResponse.ok) {
-          console.warn('Failed to apply assessment configuration');
+          logger.warn('Failed to apply assessment configuration');
         }
       }
 
@@ -261,7 +262,7 @@ export const usePresetApplication = () => {
         });
 
         if (!featuresResponse.ok) {
-          console.warn('Failed to enable recommended features');
+          logger.warn('Failed to enable recommended features');
         }
       }
 
@@ -279,7 +280,7 @@ export const usePresetApplication = () => {
       return { courseId, success: true };
 
     } catch (error) {
-      console.error('Error applying preset:', error);
+      logger.error('Error applying preset:', error);
       setError(error instanceof Error ? error.message : 'An unknown error occurred');
       return { courseId: '', success: false };
     }
@@ -389,7 +390,7 @@ export const usePresetApplication = () => {
       return null;
 
     } catch (error) {
-      console.error('Error generating custom preset:', error);
+      logger.error('Error generating custom preset:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate custom preset');
       return null;
     }

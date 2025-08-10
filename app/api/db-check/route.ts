@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Publicly accessible route to check database connectivity and counts
 export const dynamic = 'force-dynamic';
@@ -7,8 +8,7 @@ export const revalidate = 0;
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
-  console.log("🔍 DB Check API called");
-  
+
   try {
     // Get counts of various tables
     const counts = {
@@ -36,12 +36,10 @@ export async function GET(request: NextRequest) {
         blog: sampleBlog
       }
     };
-    
-    console.log("✅ Database check complete:", dbInfo);
-    
+
     return NextResponse.json(dbInfo);
   } catch (error) {
-    console.error("❌ Database check error:", error);
+    logger.error("❌ Database check error:", error);
     
     return NextResponse.json(
       { 

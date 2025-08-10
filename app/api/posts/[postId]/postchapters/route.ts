@@ -52,7 +52,7 @@ export async function POST(req: Request, props: { params: Promise<{ postId: stri
 
     return NextResponse.json(newChapter);
   } catch (error) {
-    console.log("[POSTCHAPTERSECTION]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

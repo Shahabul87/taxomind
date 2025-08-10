@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { logger } from '@/lib/logger';
 import { 
   Loader2, 
   Maximize, 
@@ -83,7 +84,7 @@ export const VideoPlayer = ({
   };
 
   const handleError = (error: any) => {
-    console.error("YouTube Player Error:", error);
+    logger.error("YouTube Player Error:", error);
     setIsLoading(false);
   };
 

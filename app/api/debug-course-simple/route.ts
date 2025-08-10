@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("[DEBUG_COURSE_SIMPLE] Starting debug");
-    
+
     // Get courseId from query params
     const { searchParams } = new URL(request.url);
     const courseId = searchParams.get('courseId');
@@ -22,8 +22,7 @@ export async function GET(request: NextRequest) {
     }
     
     const user = await currentUser();
-    console.log("[DEBUG_COURSE_SIMPLE] User:", user ? { id: user.id, email: user.email } : "No user");
-    
+
     // Get course details
     const course = await db.course.findUnique({
       where: {
@@ -38,8 +37,6 @@ export async function GET(request: NextRequest) {
         updatedAt: true,
       }
     });
-
-    console.log("[DEBUG_COURSE_SIMPLE] Course:", course ? { id: course.id, title: course.title, userId: course.userId } : "No course");
 
     // Get user's courses
     const userCourses = user?.id ? await db.course.findMany({
@@ -90,11 +87,9 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    console.log("[DEBUG_COURSE_SIMPLE] Debug info:", debugInfo);
-    
     return NextResponse.json(debugInfo);
   } catch (error) {
-    console.error("[DEBUG_COURSE_SIMPLE] Error:", error);
+    logger.error("[DEBUG_COURSE_SIMPLE] Error:", error);
     return NextResponse.json({ 
       error: "Debug failed", 
       details: error instanceof Error ? error.message : "Unknown error",

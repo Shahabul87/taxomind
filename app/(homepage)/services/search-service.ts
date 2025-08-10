@@ -1,4 +1,5 @@
 import { SearchResult } from '../types/header-types';
+import { logger } from '@/lib/logger';
 
 interface SearchResponse {
   results: SearchResult[];
@@ -35,16 +36,11 @@ export class SearchService {
   static retryDelay = 1000; // ms
   
   static async searchContent(query: string): Promise<SearchResult[]> {
-    console.log("🔍 Search service called with query:", query);
-    
+
     // Add this log to track API usage path
-    console.log("📌 Search service configuration:", {
-      useMockApi: this.useMockApi,
-      useEmergencyFallback: this.useEmergencyFallback
-    });
-    
+
     if (this.useEmergencyFallback) {
-      console.log("⚠️ Using emergency fallback results");
+
       return fallbackResults.filter(item => 
         item.title.toLowerCase().includes(query.toLowerCase()) || 
         item.snippet.toLowerCase().includes(query.toLowerCase())
@@ -53,7 +49,7 @@ export class SearchService {
     
     // Special handling for common search terms during development
     if (query.toLowerCase().includes("transform")) {
-      console.log("🤖 Special handling for transformer search");
+
       return [
         {
           id: 'special-1',
@@ -73,7 +69,7 @@ export class SearchService {
     }
     
     if (!query || query.trim().length < 2) {
-      console.log("⚠️ Search query too short");
+
       return [];
     }
     
@@ -82,7 +78,7 @@ export class SearchService {
     
     while (retryCount <= this.maxRetries) {
       if (retryCount > 0) {
-        console.log(`🔄 Retry attempt ${retryCount} of ${this.maxRetries}`);
+
         // Wait before retrying
         await new Promise(resolve => setTimeout(resolve, this.retryDelay));
       }
@@ -94,9 +90,7 @@ export class SearchService {
         const apiUrl = this.useMockApi
           ? `/api/search/mock?q=${encodedQuery}`
           : `/api/search?q=${encodedQuery}`;
-        
-        console.log(`🌐 Making search request to: ${apiUrl}`);
-        
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
         
@@ -112,11 +106,9 @@ export class SearchService {
           });
           
           clearTimeout(timeoutId);
-          
-          console.log("📊 Search response status:", response.status, response.statusText);
-          
+
           if (!response.ok) {
-            console.error(`⛔ Search API returned error status: ${response.status}`);
+            logger.error(`⛔ Search API returned error status: ${response.status}`);
             
             // Only retry on server errors (500+), not on client errors (400-499)
             if (response.status >= 500 && retryCount < this.maxRetries) {
@@ -134,24 +126,23 @@ export class SearchService {
           let data;
           try {
             data = JSON.parse(responseText);
-            console.log("✅ Successfully parsed response as JSON");
+
           } catch (jsonError) {
-            console.error("❌ Failed to parse response as JSON:", jsonError);
+            logger.error("❌ Failed to parse response as JSON:", jsonError);
             
             // Retry on parse errors
             if (retryCount < this.maxRetries) {
               retryCount++;
               continue;
             }
-            
-            console.log("⚠️ Falling back to hardcoded results after JSON parse error");
+
             this.useEmergencyFallback = true;
             return fallbackResults;
           }
           
           // Validate the data structure
           if (!data || typeof data !== 'object') {
-            console.error("❌ Invalid response data structure");
+            logger.error("❌ Invalid response data structure");
             
             // Retry on invalid data
             if (retryCount < this.maxRetries) {
@@ -164,11 +155,11 @@ export class SearchService {
           
           // Handle missing or invalid results array
           if (!data.results || !Array.isArray(data.results)) {
-            console.error("❌ Invalid search results format");
+            logger.error("❌ Invalid search results format");
             
             // Check if there's anything we can use in the response
             if (Array.isArray(data)) {
-              console.log("⚠️ Data itself is an array, using it as results");
+
               return data;
             }
             
@@ -182,16 +173,15 @@ export class SearchService {
           }
           
           // Log search result summary
-          console.log(`📊 Search found ${data.results.length} results`);
-          
+
           return data.results;
         } catch (fetchError) {
           clearTimeout(timeoutId);
           
           if (fetchError && typeof fetchError === 'object' && 'name' in fetchError && fetchError.name === 'AbortError') {
-            console.error("⌛ Search request timed out after 5 seconds");
+            logger.error("⌛ Search request timed out after 5 seconds");
           } else {
-            console.error("❌ Fetch error:", fetchError);
+            logger.error("❌ Fetch error:", fetchError);
           }
           
           // Retry on network/fetch errors
@@ -203,7 +193,7 @@ export class SearchService {
           throw fetchError;
         }
       } catch (error) {
-        console.error("💥 Search service error:", error);
+        logger.error("💥 Search service error:", error);
         
         // Last retry failed, return empty results
         if (retryCount >= this.maxRetries) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -405,13 +406,12 @@ function generateAssessmentQuestions(
 
 export async function POST(req: Request) {
   try {
-    console.log("[CHAPTER_CONTENT] Starting chapter content generation");
-    
+
     // Get current user
     const user = await currentUser();
     
     if (!user?.id) {
-      console.log("[CHAPTER_CONTENT] No user found - unauthorized");
+
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
@@ -424,16 +424,14 @@ export async function POST(req: Request) {
     const userRole = dbUser?.role;
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      console.log(`[CHAPTER_CONTENT] User role ${userRole} not authorized for content generation`);
+
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
     
     // Parse request body
     const body = await req.json();
     const contentRequest: ChapterContentRequest = body;
-    
-    console.log("[CHAPTER_CONTENT] Content generation request:", contentRequest);
-    
+
     // Validate required fields
     if (!contentRequest.chapterId || !contentRequest.courseId || !contentRequest.chapterTitle) {
       return new NextResponse("Missing required fields", { status: 400 });
@@ -457,21 +455,18 @@ export async function POST(req: Request) {
     if (!chapter || chapter.course.userId !== user.id) {
       return new NextResponse("Chapter not found or access denied", { status: 404 });
     }
-    
-    console.log(`[CHAPTER_CONTENT] Generating content for chapter: ${contentRequest.chapterTitle}`);
-    
+
     // Generate chapter content using AI
     const generatedContent = await generateChapterContent(contentRequest, user.id);
-    
-    console.log(`[CHAPTER_CONTENT] Content generated successfully for chapter: ${chapter.id}`);
+
     return NextResponse.json(generatedContent);
     
   } catch (error) {
-    console.error("[CHAPTER_CONTENT] Error generating chapter content:", error);
+    logger.error("[CHAPTER_CONTENT] Error generating chapter content:", error);
     
     if (error instanceof Error) {
-      console.error("[CHAPTER_CONTENT] Error message:", error.message);
-      console.error("[CHAPTER_CONTENT] Error stack:", error.stack);
+      logger.error("[CHAPTER_CONTENT] Error message:", error.message);
+      logger.error("[CHAPTER_CONTENT] Error stack:", error.stack);
     }
     
     return new NextResponse("Internal Server Error", { status: 500 });

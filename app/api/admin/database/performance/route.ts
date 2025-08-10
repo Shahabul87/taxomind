@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { QueryPerformanceMonitor } from "@/lib/database/query-optimizer";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error("Database performance API error:", error);
+    logger.error("Database performance API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -98,7 +99,7 @@ async function getDatabaseMetrics() {
       tableStats: stats
     };
   } catch (error) {
-    console.error("Error getting database metrics:", error);
+    logger.error("Error getting database metrics:", error);
     return { error: "Failed to get database metrics" };
   }
 }
@@ -119,7 +120,7 @@ async function getTableSizes() {
 
     return sizes;
   } catch (error) {
-    console.error("Error getting table sizes:", error);
+    logger.error("Error getting table sizes:", error);
     return { error: "Failed to get table sizes" };
   }
 }

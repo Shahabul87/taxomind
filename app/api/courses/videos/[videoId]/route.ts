@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request, props: { params: Promise<{ videoId: string }> }) {
   const params = await props.params;
@@ -23,7 +24,7 @@ export async function GET(req: Request, props: { params: Promise<{ videoId: stri
 
     return NextResponse.json(video);
   } catch (error) {
-    console.error("[VIDEO_GET]", error);
+    logger.error("[VIDEO_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

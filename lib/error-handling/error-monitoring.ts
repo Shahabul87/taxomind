@@ -1,6 +1,7 @@
 import { ErrorInfo, ErrorAlert, ErrorMetrics, ErrorSeverity, ErrorType } from './types';
 import { db } from '@/lib/db';
 import { errorLogger } from './error-logger';
+import { logger } from '@/lib/logger';
 
 export class ErrorMonitoring {
   private static instance: ErrorMonitoring;
@@ -11,8 +12,8 @@ export class ErrorMonitoring {
     componentFailure: 3 // errors from same component per 5 minutes
   };
 
-  private constructor() {}
-
+  private constructor() {
+}
   static getInstance(): ErrorMonitoring {
     if (!ErrorMonitoring.instance) {
       ErrorMonitoring.instance = new ErrorMonitoring();
@@ -29,7 +30,7 @@ export class ErrorMonitoring {
         this.checkComponentFailures()
       ]);
     } catch (error) {
-      console.error('[ERROR_MONITORING] Alert check failed:', error);
+      logger.error('[ERROR_MONITORING] Alert check failed:', error);
     }
   }
 
@@ -214,7 +215,7 @@ export class ErrorMonitoring {
       // Send notifications
       await this.sendAlertNotification(alertData);
     } catch (error) {
-      console.error('[ERROR_MONITORING] Failed to create alert:', error);
+      logger.error('[ERROR_MONITORING] Failed to create alert:', error);
     }
   }
 
@@ -227,7 +228,7 @@ export class ErrorMonitoring {
     // Integration with notification services
     // This can be extended to integrate with Slack, Discord, email, etc.
     
-    console.warn(`[ERROR_ALERT] ${alertData.type}: ${alertData.message}`);
+    logger.warn(`[ERROR_ALERT] ${alertData.type}: ${alertData.message}`);
     
     // Slack webhook integration
     if (process.env.SLACK_WEBHOOK_URL) {
@@ -262,14 +263,14 @@ export class ErrorMonitoring {
           })
         });
       } catch (error) {
-        console.error('[ERROR_MONITORING] Slack notification failed:', error);
+        logger.error('[ERROR_MONITORING] Slack notification failed:', error);
       }
     }
 
     // Email notification for critical errors
     if (alertData.severity === ErrorSeverity.CRITICAL && process.env.ALERT_EMAIL) {
       // Email integration would go here
-      console.warn('[ERROR_MONITORING] Critical error notification should be sent via email');
+      logger.warn('[ERROR_MONITORING] Critical error notification should be sent via email');
     }
   }
 
@@ -348,7 +349,7 @@ export class ErrorMonitoring {
         trends
       };
     } catch (error) {
-      console.error('[ERROR_MONITORING] Failed to get metrics:', error);
+      logger.error('[ERROR_MONITORING] Failed to get metrics:', error);
       return null;
     }
   }
@@ -398,7 +399,7 @@ export class ErrorMonitoring {
         }
       });
     } catch (error) {
-      console.error('[ERROR_MONITORING] Failed to acknowledge alert:', error);
+      logger.error('[ERROR_MONITORING] Failed to acknowledge alert:', error);
     }
   }
 
@@ -411,7 +412,7 @@ export class ErrorMonitoring {
         }
       });
     } catch (error) {
-      console.error('[ERROR_MONITORING] Failed to resolve alert:', error);
+      logger.error('[ERROR_MONITORING] Failed to resolve alert:', error);
     }
   }
 
@@ -440,7 +441,7 @@ export class ErrorMonitoring {
         metadata: alert.metadata ? JSON.parse(alert.metadata) : undefined
       }));
     } catch (error) {
-      console.error('[ERROR_MONITORING] Failed to get active alerts:', error);
+      logger.error('[ERROR_MONITORING] Failed to get active alerts:', error);
       return [];
     }
   }
@@ -457,7 +458,6 @@ export class ErrorMonitoring {
       this.updateDailyMetrics();
     }, 60 * 60 * 1000);
 
-    console.log('[ERROR_MONITORING] Monitoring started');
   }
 
   private async updateDailyMetrics(): Promise<void> {
@@ -523,7 +523,7 @@ export class ErrorMonitoring {
         }
       });
     } catch (error) {
-      console.error('[ERROR_MONITORING] Failed to update daily metrics:', error);
+      logger.error('[ERROR_MONITORING] Failed to update daily metrics:', error);
     }
   }
 }

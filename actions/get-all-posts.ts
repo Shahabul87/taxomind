@@ -1,4 +1,5 @@
 import { enterpriseDataAPI } from "@/lib/data-fetching/enterprise-data-api";
+import { logger } from '@/lib/logger';
 
 type PostForHomepage = {
   id: string;
@@ -18,8 +19,7 @@ type PostForHomepage = {
 };
 
 export const getPostsForHomepage = async (): Promise<PostForHomepage[]> => {
-  console.log("🚀 [GET_POSTS] Starting to fetch posts for homepage using Enterprise API...");
-  
+
   try {
     // Use the enterprise API for safe data fetching
     const result = await enterpriseDataAPI.fetchPosts(
@@ -28,13 +28,12 @@ export const getPostsForHomepage = async (): Promise<PostForHomepage[]> => {
     );
 
     if (!result.success) {
-      console.error("💥 [GET_POSTS] Enterprise API returned error:", result.error);
+      logger.error("💥 [GET_POSTS] Enterprise API returned error:", result.error);
       return [];
     }
 
     const posts = result.data || [];
-    console.log(`✅ [GET_POSTS] Successfully fetched ${posts.length} posts via Enterprise API`);
-    
+
     // Format posts for homepage
     const formattedPosts: PostForHomepage[] = posts.map(post => ({
       id: post.id,
@@ -51,14 +50,13 @@ export const getPostsForHomepage = async (): Promise<PostForHomepage[]> => {
       views: post.views || 0,
     }));
 
-    console.log(`✅ [GET_POSTS] Returning ${formattedPosts.length} formatted posts`);
     return formattedPosts;
     
   } catch (error) {
-    console.error("💥 [GET_POSTS] CRITICAL ERROR fetching posts:");
-    console.error("Error details:", error);
-    console.error("Error message:", error instanceof Error ? error.message : "Unknown error");
-    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    logger.error("💥 [GET_POSTS] CRITICAL ERROR fetching posts:");
+    logger.error("Error details:", error);
+    logger.error("Error message:", error instanceof Error ? error.message : "Unknown error");
+    logger.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
     
     // Return empty array instead of throwing to prevent crashes
     return [];
@@ -67,8 +65,7 @@ export const getPostsForHomepage = async (): Promise<PostForHomepage[]> => {
 
 export const getPostsByCategory = async (category: string): Promise<PostForHomepage[]> => {
   try {
-    console.log(`[GET_POSTS_BY_CATEGORY] Fetching posts for category: ${category} using Enterprise API`);
-    
+
     // Use the enterprise API for safe data fetching
     const result = await enterpriseDataAPI.fetchPosts(
       { published: true, isArchived: false, category },
@@ -76,12 +73,11 @@ export const getPostsByCategory = async (category: string): Promise<PostForHomep
     );
 
     if (!result.success) {
-      console.error("[GET_POSTS_BY_CATEGORY] Enterprise API returned error:", result.error);
+      logger.error("[GET_POSTS_BY_CATEGORY] Enterprise API returned error:", result.error);
       return [];
     }
 
     const posts = result.data || [];
-    console.log(`[GET_POSTS_BY_CATEGORY] Found ${posts.length} posts`);
 
     // Format posts for homepage
     const formattedPosts: PostForHomepage[] = posts.map(post => ({
@@ -101,7 +97,7 @@ export const getPostsByCategory = async (category: string): Promise<PostForHomep
 
     return formattedPosts;
   } catch (error) {
-    console.error("[GET_POSTS_BY_CATEGORY] Error:", error);
+    logger.error("[GET_POSTS_BY_CATEGORY] Error:", error);
     return [];
   }
 };

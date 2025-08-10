@@ -12,6 +12,7 @@ import { UseFormReturn } from "react-hook-form";
 import { Editor } from '@monaco-editor/react';
 import { useState, useEffect, useRef, useMemo } from "react";
 import NextImage from "next/image";
+import { logger } from '@/lib/logger';
 import {
   Select,
   SelectContent,
@@ -91,12 +92,12 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
       } catch {
         // If JSON parsing fails, remove the invalid item and return initial value
         window.localStorage.removeItem(key);
-        console.warn(`Invalid JSON in localStorage for key: ${key}, using default value`);
+        logger.warn(`Invalid JSON in localStorage for key: ${key}, using default value`);
         return initialValue;
       }
     } catch (error) {
       // If error or can't access localStorage, return initialValue
-      console.error("Error reading from localStorage:", error);
+      logger.error("Error reading from localStorage:", error);
       return initialValue;
     }
   });
@@ -111,7 +112,7 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
         window.localStorage.setItem(key, JSON.stringify(value));
       }
     } catch (error) {
-      console.error("Error writing to localStorage:", error);
+      logger.error("Error writing to localStorage:", error);
     }
   };
 
@@ -716,7 +717,7 @@ const ExplanationEditor = ({
                 }
               })
               .catch(error => {
-                console.error(error);
+                logger.error(error);
                 toast.error("Image upload failed");
               });
             }
@@ -902,7 +903,7 @@ const TipTapMenuBar = ({ editor, blockId }: { editor: any, blockId: string }) =>
             })
             .catch(error => {
               toast.error('Failed to upload image');
-              console.error(error);
+              logger.error(error);
             })
             .finally(() => {
               setIsLoading(false);

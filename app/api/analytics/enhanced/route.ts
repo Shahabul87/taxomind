@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 // Enhanced analytics endpoint with comprehensive data
 export async function GET(request: NextRequest) {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(analyticsData);
   } catch (error) {
-    console.error('Analytics error:', error);
+    logger.error('Analytics error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

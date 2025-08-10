@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { openai } from "@/lib/openai";
 import { anthropic } from "@/lib/anthropic";
+import { logger } from '@/lib/logger';
 
 // Types for Multi-Modal Content Analysis
 export interface VideoContent {
@@ -138,7 +139,7 @@ export class SAMMultiMediaEngine {
 
       return analysis;
     } catch (error) {
-      console.error('Error analyzing video:', error);
+      logger.error('Error analyzing video:', error);
       throw new Error('Failed to analyze video content');
     }
   }
@@ -163,7 +164,7 @@ export class SAMMultiMediaEngine {
 
       return analysis;
     } catch (error) {
-      console.error('Error analyzing audio:', error);
+      logger.error('Error analyzing audio:', error);
       throw new Error('Failed to analyze audio content');
     }
   }
@@ -186,7 +187,7 @@ export class SAMMultiMediaEngine {
 
       return analysis;
     } catch (error) {
-      console.error('Error analyzing interactive content:', error);
+      logger.error('Error analyzing interactive content:', error);
       throw new Error('Failed to analyze interactive content');
     }
   }
@@ -221,7 +222,7 @@ export class SAMMultiMediaEngine {
 
       return insights;
     } catch (error) {
-      console.error('Error generating multi-modal insights:', error);
+      logger.error('Error generating multi-modal insights:', error);
       throw new Error('Failed to generate multi-modal insights');
     }
   }

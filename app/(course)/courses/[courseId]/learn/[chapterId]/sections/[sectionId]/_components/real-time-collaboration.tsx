@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   Users, 
   Video, 
@@ -191,7 +192,7 @@ export function RealTimeCollaboration({
       connectWebSocket();
       
     } catch (error) {
-      console.error('Error initializing collaboration:', error);
+      logger.error('Error initializing collaboration:', error);
       toast.error('Failed to initialize collaboration session');
     } finally {
       setIsLoading(false);
@@ -298,7 +299,7 @@ export function RealTimeCollaboration({
         message
       });
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
     }
   }, [newMessage, userId, userName, userAvatar, currentSession?.id]);
 
@@ -326,7 +327,7 @@ export function RealTimeCollaboration({
       
       addSystemMessage(`${userName} ${!isVideoEnabled ? 'enabled' : 'disabled'} video`);
     } catch (error) {
-      console.error('Error toggling video:', error);
+      logger.error('Error toggling video:', error);
       toast.error('Failed to access camera');
     }
   }, [isVideoEnabled, userId, userName, addSystemMessage]);
@@ -343,7 +344,7 @@ export function RealTimeCollaboration({
       
       addSystemMessage(`${userName} ${!isAudioEnabled ? 'unmuted' : 'muted'} microphone`);
     } catch (error) {
-      console.error('Error toggling audio:', error);
+      logger.error('Error toggling audio:', error);
       toast.error('Failed to access microphone');
     }
   }, [isAudioEnabled, userId, userName, addSystemMessage]);
@@ -364,7 +365,7 @@ export function RealTimeCollaboration({
         p.id === userId ? { ...p, isScreenSharing: !isScreenSharing } : p
       ));
     } catch (error) {
-      console.error('Error toggling screen share:', error);
+      logger.error('Error toggling screen share:', error);
       toast.error('Failed to start screen sharing');
     }
   }, [isScreenSharing, userId, userName, addSystemMessage]);
@@ -390,7 +391,7 @@ export function RealTimeCollaboration({
         room: newRoom
       });
     } catch (error) {
-      console.error('Error creating breakout room:', error);
+      logger.error('Error creating breakout room:', error);
     }
   }, [breakoutRooms.length, currentSession?.id, addSystemMessage]);
 

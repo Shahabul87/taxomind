@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { logger } from '@/lib/logger';
 import { 
   Sparkles, 
   TrendingUp, 
@@ -126,7 +127,7 @@ export const ContentOptimizer = ({
       setOptimizationResult(result);
       toast.success("Content optimization complete!");
     } catch (error) {
-      console.error('Optimization error:', error);
+      logger.error('Optimization error:', error);
       toast.error("Failed to optimize content. Please try again.");
     } finally {
       setIsOptimizing(false);

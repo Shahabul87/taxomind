@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from './alert';
 import { Button } from './button';
 import { Bot, AlertTriangle, RefreshCw, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 interface SamErrorBoundaryProps {
   children: ReactNode;
@@ -35,7 +36,7 @@ export class SamErrorBoundary extends Component<SamErrorBoundaryProps, SamErrorS
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Sam Error Boundary caught an error:', error, errorInfo);
+    logger.error('Sam Error Boundary caught an error:', error, errorInfo);
     
     // Track Sam-specific errors
     if (typeof window !== 'undefined') {

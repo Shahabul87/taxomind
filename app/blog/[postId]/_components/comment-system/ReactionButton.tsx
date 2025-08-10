@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { logger } from '@/lib/logger';
 
 // Define reaction options
 const reactions = [
@@ -60,13 +61,7 @@ export const ReactionButton = ({
   const initialReactionsLength = useMemo(() => initialReactions?.length || 0, [initialReactions]);
   
   useEffect(() => {
-    console.log("ReactionButton mounted with:", { 
-      postId, 
-      commentId, 
-      isReply, 
-      parentCommentId,
-      reactionsCount: initialReactionsLength 
-    });
+
   }, [commentId, postId, parentCommentId, isReply, initialReactionsLength]);
 
   // Update local reactions when initialReactions changes
@@ -107,7 +102,6 @@ export const ReactionButton = ({
 
     try {
       setIsLoading(true);
-      console.log("Adding reaction for:", { postId, commentId, type, isReply, parentCommentId });
 
       // Optimistically update UI
       let updatedReactions = [...localReactions];
@@ -151,18 +145,12 @@ export const ReactionButton = ({
         replyId: isReply ? commentId : undefined,
         commentId: isReply ? parentCommentId : commentId
       };
-      
-      console.log("Using universal reaction endpoint:", endpoint);
-      console.log("Sending reaction payload:", payload);
-      
+
       // Use axios instead of fetch for better error handling
       try {
         // Make the API request with axios
         const response = await axios.post(endpoint, payload);
-        
-        console.log("API response status:", response.status);
-        console.log("API response data:", response.data);
-        
+
         // Update with real data from server
         if (response.data?.reactions) {
           setLocalReactions(response.data.reactions);
@@ -170,15 +158,15 @@ export const ReactionButton = ({
             ...response.data,
             id: commentId
           });
-          console.log("Updated local reactions with server data:", response.data.reactions.length);
+
         } else {
-          console.warn("API response did not contain reactions array:", response.data);
+          logger.warn("API response did not contain reactions array:", response.data);
         }
       } catch (axiosError) {
-        console.error("Axios error:", axiosError);
+        logger.error("Axios error:", axiosError);
         
         if (axiosError.response) {
-          console.error("Error response:", {
+          logger.error("Error response:", {
             status: axiosError.response.status,
             data: axiosError.response.data
           });
@@ -189,7 +177,7 @@ export const ReactionButton = ({
       
       setShowReactions(false);
     } catch (error) {
-      console.error("Reaction error:", error);
+      logger.error("Reaction error:", error);
       // Revert to initial state on error
       setLocalReactions(initialReactions);
       onReactionUpdate({ id: commentId, reactions: initialReactions });
@@ -198,7 +186,7 @@ export const ReactionButton = ({
       
       if (axios.isAxiosError(error)) {
         errorMessage = error.response?.data?.error || errorMessage;
-        console.error("Axios error details:", {
+        logger.error("Axios error details:", {
           status: error.response?.status,
           statusText: error.response?.statusText,
           data: error.response?.data

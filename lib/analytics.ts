@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Types for analytics events
 export interface EnrollmentEvent {
@@ -28,15 +29,6 @@ export async function trackEnrollment(event: EnrollmentEvent) {
     // - Custom analytics service
 
     // For now, we'll just log to console and store in database
-    console.log('📊 Enrollment Event:', {
-      type: 'course_enrollment',
-      userId: event.userId,
-      courseId: event.courseId,
-      courseName: event.courseName,
-      price: event.price,
-      enrollmentType: event.enrollmentType,
-      timestamp: event.timestamp
-    });
 
     // Store in database for internal analytics
     await db.analyticsEvent.create({
@@ -54,7 +46,7 @@ export async function trackEnrollment(event: EnrollmentEvent) {
       }
     }).catch(error => {
       // Fail silently if analytics table doesn't exist
-      console.warn('Analytics tracking failed:', error.message);
+      logger.warn('Analytics tracking failed:', error.message);
     });
 
     // Track with external services (add your preferred analytics service)
@@ -64,7 +56,7 @@ export async function trackEnrollment(event: EnrollmentEvent) {
     }
 
   } catch (error) {
-    console.error('Analytics tracking error:', error);
+    logger.error('Analytics tracking error:', error);
     // Don't throw - analytics should never break the main flow
   }
 }
@@ -72,13 +64,6 @@ export async function trackEnrollment(event: EnrollmentEvent) {
 // Track user actions
 export async function trackUserAction(event: UserActionEvent) {
   try {
-    console.log('📊 User Action:', {
-      type: 'user_action',
-      userId: event.userId,
-      action: event.action,
-      details: event.details,
-      timestamp: event.timestamp
-    });
 
     // Store in database
     await db.analyticsEvent.create({
@@ -92,11 +77,11 @@ export async function trackUserAction(event: UserActionEvent) {
         createdAt: event.timestamp
       }
     }).catch(error => {
-      console.warn('User action tracking failed:', error.message);
+      logger.warn('User action tracking failed:', error.message);
     });
 
   } catch (error) {
-    console.error('User action tracking error:', error);
+    logger.error('User action tracking error:', error);
   }
 }
 
@@ -138,7 +123,7 @@ function trackClientSideEnrollment(event: EnrollmentEvent) {
     // });
 
   } catch (error) {
-    console.error('Client-side tracking error:', error);
+    logger.error('Client-side tracking error:', error);
   }
 }
 
@@ -165,7 +150,7 @@ export async function trackCourseCompletion(userId: string, courseId: string, co
     }
 
   } catch (error) {
-    console.error('Course completion tracking error:', error);
+    logger.error('Course completion tracking error:', error);
   }
 }
 
@@ -190,7 +175,7 @@ export async function trackChapterProgress(
     });
 
   } catch (error) {
-    console.error('Chapter progress tracking error:', error);
+    logger.error('Chapter progress tracking error:', error);
   }
 }
 
@@ -240,7 +225,7 @@ export async function getEnrollmentAnalytics(days: number = 30) {
     return analytics;
 
   } catch (error) {
-    console.error('Analytics fetch error:', error);
+    logger.error('Analytics fetch error:', error);
     return null;
   }
 }

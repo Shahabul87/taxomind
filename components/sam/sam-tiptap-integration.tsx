@@ -5,6 +5,7 @@ import { Editor } from '@tiptap/react';
 import { useSamAITutor } from '@/app/(protected)/teacher/_components/sam-ai-tutor-provider';
 import { Bot, Wand2, Sparkles, MessageCircle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 interface SAMTipTapIntegrationProps {
   editor: Editor | null;
@@ -136,7 +137,7 @@ export function SAMTipTapIntegration({
         formType: context?.formType,
       });
     } catch (error) {
-      console.error('Error analyzing content:', error);
+      logger.error('Error analyzing content:', error);
     }
   }, [editor, isActive, context, trackInteraction]);
 
@@ -177,7 +178,7 @@ export function SAMTipTapIntegration({
         });
       }
     } catch (error) {
-      console.error('Error generating content suggestion:', error);
+      logger.error('Error generating content suggestion:', error);
     } finally {
       setIsGenerating(false);
     }

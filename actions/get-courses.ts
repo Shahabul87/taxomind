@@ -22,8 +22,7 @@ export const getCourses = async ({
   title,
   categoryId
 }: GetCourses): Promise<CourseWithProgressWithCategory[]> => {
-  console.log(title)
-  
+
   // Use cache for course listing
   const cacheResult = await ServerActionCache.getCourseList(
     userId,
@@ -103,7 +102,7 @@ async function fetchCoursesFromDatabase(
 
     return coursesWithProgress;
   } catch (error) {
-    console.log("[GET_COURSES]", error);
+
     return [];
   }
 }

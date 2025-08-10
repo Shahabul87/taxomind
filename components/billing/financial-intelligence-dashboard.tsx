@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import {
   DollarSign,
   TrendingUp,
@@ -223,7 +224,7 @@ export const FinancialIntelligenceDashboard = ({ organizationId, className }: Fi
         toast.info("Using demo financial data");
       }
     } catch (error) {
-      console.error("Failed to load financial data:", error);
+      logger.error("Failed to load financial data:", error);
       // Use demo data as fallback
       setFinancialData(getDemoFinancialData());
       toast.error("Failed to load financial data, showing demo data");

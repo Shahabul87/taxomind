@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 export async function GET(
   request: NextRequest,
@@ -40,7 +41,7 @@ export async function GET(
     return NextResponse.json(template);
 
   } catch (error) {
-    console.error("Template GET error:", error);
+    logger.error("Template GET error:", error);
     return NextResponse.json(
       { error: "Failed to fetch template" },
       { status: 500 }
@@ -108,7 +109,7 @@ export async function PUT(
     return NextResponse.json(updatedTemplate);
 
   } catch (error) {
-    console.error("Template PUT error:", error);
+    logger.error("Template PUT error:", error);
     return NextResponse.json(
       { error: "Failed to update template" },
       { status: 500 }
@@ -147,7 +148,7 @@ export async function DELETE(
     return NextResponse.json({ message: "Template deleted successfully" });
 
   } catch (error) {
-    console.error("Template DELETE error:", error);
+    logger.error("Template DELETE error:", error);
     return NextResponse.json(
       { error: "Failed to delete template" },
       { status: 500 }

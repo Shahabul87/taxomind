@@ -2,6 +2,7 @@
 
 import { redis, REDIS_KEYS, REDIS_TTL } from './config';
 import { TrackingEvent, EngagementMetrics } from '@/lib/analytics/types';
+import { logger } from '@/lib/logger';
 
 export class RealTimeMetrics {
   // Update student engagement metrics in real-time
@@ -33,7 +34,7 @@ export class RealTimeMetrics {
       // Update real-time leaderboard
       await this.updateLeaderboard(userId, courseId, engagementScore);
     } catch (error) {
-      console.error('Failed to update real-time metrics:', error);
+      logger.error('Failed to update real-time metrics:', error);
     }
   }
 

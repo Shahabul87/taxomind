@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { samMasterIntegration } from '@/lib/sam-master-integration';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 /**
  * Enhanced SAM Chat API with Engine Integration
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('SAM chat error:', error);
+    logger.error('SAM chat error:', error);
     return NextResponse.json(
       { error: 'Failed to process message' },
       { status: 500 }
@@ -236,7 +237,7 @@ async function storeInteraction(
       },
     });
   } catch (error) {
-    console.error('Error storing SAM interaction:', error);
+    logger.error('Error storing SAM interaction:', error);
   }
 }
 
@@ -299,7 +300,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get SAM conversation error:', error);
+    logger.error('Get SAM conversation error:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve conversation' },
       { status: 500 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { logger } from '@/lib/logger';
 import { 
   RefreshCw, 
   Users, 
@@ -78,7 +79,7 @@ export function ProfileMetadataExtractor({
       }
       
     } catch (error) {
-      console.error('Metadata extraction error:', error);
+      logger.error('Metadata extraction error:', error);
       toast.error("Failed to extract profile metadata");
     } finally {
       setIsExtracting(false);

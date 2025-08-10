@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { v2 as cloudinary } from 'cloudinary';
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -54,7 +55,7 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[COURSE_IMAGE_UPLOAD]", error);
+    logger.error("[COURSE_IMAGE_UPLOAD]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

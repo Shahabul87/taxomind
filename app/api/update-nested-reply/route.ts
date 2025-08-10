@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function PATCH(req: NextRequest) {
-  console.log("[UPDATE_NESTED_REPLY] Request received");
-  
+
   try {
     // Get current user
     const user = await currentUser();
     if (!user) {
-      console.log("[UPDATE_NESTED_REPLY] Unauthorized - no user session");
+
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest) {
     try {
       body = await req.json();
     } catch (err) {
-      console.error("[UPDATE_NESTED_REPLY] Error parsing request:", err);
+      logger.error("[UPDATE_NESTED_REPLY] Error parsing request:", err);
       return NextResponse.json({ error: "Invalid request format" }, { status: 400 });
     }
 
@@ -28,14 +28,6 @@ export async function PATCH(req: NextRequest) {
     const commentId = url.searchParams.get('commentId');
     const replyId = url.searchParams.get('replyId');
     const { content } = body;
-    
-    console.log("[UPDATE_NESTED_REPLY] Request params:", { 
-      postId, 
-      commentId, 
-      replyId, 
-      contentLength: content?.length || 0,
-      userId: user.id 
-    });
 
     // Validate required fields
     if (!content) {
@@ -57,7 +49,7 @@ export async function PATCH(req: NextRequest) {
     });
 
     if (!post) {
-      console.log("[UPDATE_NESTED_REPLY] Post not found");
+
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
@@ -70,8 +62,7 @@ export async function PATCH(req: NextRequest) {
     });
 
     if (!reply) {
-      console.log("[UPDATE_NESTED_REPLY] Reply not found with basic query, trying without user constraint for debugging");
-      
+
       // For debugging - check if reply exists at all
       const anyReply = await db.reply.findUnique({
         where: { id: replyId },
@@ -85,20 +76,15 @@ export async function PATCH(req: NextRequest) {
       });
       
       if (!anyReply) {
-        console.log("[UPDATE_NESTED_REPLY] Reply does not exist at all");
+
         return NextResponse.json({ error: "Reply not found" }, { status: 404 });
       }
       
       if (anyReply.userId !== user.id) {
-        console.log("[UPDATE_NESTED_REPLY] Reply exists but belongs to different user", {
-          replyOwner: anyReply.userId,
-          currentUser: user.id
-        });
+
         return NextResponse.json({ error: "You don't have permission to update this reply" }, { status: 403 });
       }
-      
-      console.log("[UPDATE_NESTED_REPLY] Reply exists but with different parameters:", anyReply);
-      
+
       // If we get here, the reply exists but didn't match our query
       // Since we've verified user ownership, we can proceed with the update
       reply = anyReply;
@@ -124,10 +110,9 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
-    console.log("[UPDATE_NESTED_REPLY] Reply updated successfully:", replyId);
     return NextResponse.json(updatedReply);
   } catch (error) {
-    console.error("[UPDATE_NESTED_REPLY] Error:", error);
+    logger.error("[UPDATE_NESTED_REPLY] Error:", error);
     return NextResponse.json(
       { error: "Error updating reply" },
       { status: 500 }

@@ -6,6 +6,7 @@ import { SAMTrendsEngine } from './sam-trends-engine';
 import { SAMNewsEngine } from './sam-news-engine';
 import { SAMResearchEngine } from './sam-research-engine';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export interface SAMEngineContext {
   userId: string;
@@ -772,7 +773,7 @@ export class SAMEngineIntegration {
         },
       });
     } catch (error) {
-      console.error('Error storing integrated analysis:', error);
+      logger.error('Error storing integrated analysis:', error);
     }
   }
 
@@ -842,7 +843,7 @@ export class SAMEngineIntegration {
         trendingNow: await this.trendsEngine.getTrendingNow()
       };
     } catch (error) {
-      console.error('Error getting trends for course:', error);
+      logger.error('Error getting trends for course:', error);
       return null;
     }
   }
@@ -879,7 +880,7 @@ export class SAMEngineIntegration {
         trendingTopics: await this.newsEngine.getTrendingTopics()
       };
     } catch (error) {
-      console.error('Error getting news for course:', error);
+      logger.error('Error getting news for course:', error);
       return null;
     }
   }
@@ -922,7 +923,7 @@ export class SAMEngineIntegration {
         researchTrends: trends.slice(0, 3)
       };
     } catch (error) {
-      console.error('Error getting research for course:', error);
+      logger.error('Error getting research for course:', error);
       return null;
     }
   }

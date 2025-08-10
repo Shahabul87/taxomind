@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from '@/lib/logger';
 import { 
   Bug, 
   RefreshCw, 
@@ -60,7 +61,7 @@ export function UserDebugPanel({ className = "", defaultOpen = false }: UserDebu
       setLastFetch(new Date());
       toast.success('Debug data refreshed');
     } catch (error) {
-      console.error('Failed to fetch debug data:', error);
+      logger.error('Failed to fetch debug data:', error);
       toast.error('Failed to fetch debug data');
     } finally {
       setIsLoading(false);
@@ -77,7 +78,7 @@ export function UserDebugPanel({ className = "", defaultOpen = false }: UserDebu
       
       return response.data;
     } catch (error) {
-      console.error(`Action "${action}" failed:`, error);
+      logger.error(`Action "${action}" failed:`, error);
       toast.error(`Action "${action}" failed`);
     }
   };

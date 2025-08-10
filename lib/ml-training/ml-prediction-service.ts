@@ -2,6 +2,7 @@
 
 import { redis } from '@/lib/redis';
 import { MLTrainingPipeline, MLModel } from './ml-training-pipeline';
+import { logger } from '@/lib/logger';
 
 export interface Prediction {
   id: string;
@@ -39,8 +40,6 @@ export class MLPredictionService {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log('Initializing ML Prediction Service...');
-    
     try {
       // Initialize ML pipeline connection
       this.mlPipeline = new MLTrainingPipeline();
@@ -52,9 +51,9 @@ export class MLPredictionService {
       await this.loadPredictionModels();
       
       this.initialized = true;
-      console.log('ML Prediction Service initialized successfully');
+
     } catch (error) {
-      console.error('Failed to initialize ML Prediction Service:', error);
+      logger.error('Failed to initialize ML Prediction Service:', error);
       throw error;
     }
   }
@@ -94,7 +93,7 @@ export class MLPredictionService {
 
       return recommendations;
     } catch (error) {
-      console.error('Failed to get content recommendations:', error);
+      logger.error('Failed to get content recommendations:', error);
       return this.getFallbackRecommendations(userId, limit);
     }
   }
@@ -139,7 +138,7 @@ export class MLPredictionService {
 
       return prediction;
     } catch (error) {
-      console.error('Failed to predict content difficulty:', error);
+      logger.error('Failed to predict content difficulty:', error);
       return this.getFallbackDifficultyPrediction(contentId);
     }
   }
@@ -177,7 +176,7 @@ export class MLPredictionService {
 
       return learningPath;
     } catch (error) {
-      console.error('Failed to predict learning path:', error);
+      logger.error('Failed to predict learning path:', error);
       return this.getFallbackLearningPath(targetSkills);
     }
   }
@@ -214,7 +213,7 @@ export class MLPredictionService {
 
       return engagementScore;
     } catch (error) {
-      console.error('Failed to predict engagement:', error);
+      logger.error('Failed to predict engagement:', error);
       return 0.75; // Default engagement score
     }
   }
@@ -242,7 +241,7 @@ export class MLPredictionService {
         timestamp: new Date()
       };
     } catch (error) {
-      console.error('Failed to get real-time insights:', error);
+      logger.error('Failed to get real-time insights:', error);
       return this.getFallbackInsights(userId);
     }
   }
@@ -272,13 +271,9 @@ export class MLPredictionService {
 
   // Private helper methods
   private async setupPredictionCache(): Promise<void> {
-    console.log('Setting up prediction cache...');
-  }
-
+}
   private async loadPredictionModels(): Promise<void> {
-    console.log('Loading prediction models...');
-  }
-
+}
   private async getUserLearningProfile(userId: string): Promise<any> {
     // Get user learning profile from database or cache
     const cached = await redis.get(`user:profile:${userId}`);
@@ -442,7 +437,7 @@ export class MLPredictionService {
       await redis.lpush('ml:predictions:recent', JSON.stringify(prediction));
       await redis.ltrim('ml:predictions:recent', 0, 999); // Keep last 1000
     } catch (error) {
-      console.error('Failed to log prediction:', error);
+      logger.error('Failed to log prediction:', error);
     }
   }
 

@@ -1,6 +1,7 @@
 // Core Event Tracking Implementation
 
 import { TrackingEvent } from './types';
+import { logger } from '@/lib/logger';
 
 interface TrackerConfig {
   endpoint: string;
@@ -89,9 +90,7 @@ export class EventTracker {
     this.queue.push(fullEvent);
 
     if (this.config.debug) {
-      console.log('[Analytics] Event tracked:', fullEvent);
-    }
-
+}
     if (this.queue.length >= this.config.batchSize) {
       this.flush();
     }
@@ -137,10 +136,9 @@ export class EventTracker {
       }
 
       if (this.config.debug) {
-        console.log(`[Analytics] Flushed ${events.length} events`);
-      }
+}
     } catch (error) {
-      console.error('[Analytics] Failed to send events:', error);
+      logger.error('[Analytics] Failed to send events:', error);
       this.retryQueue.push(...events);
       this.scheduleRetry();
     }

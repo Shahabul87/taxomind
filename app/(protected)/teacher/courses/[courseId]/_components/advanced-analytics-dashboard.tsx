@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { logger } from '@/lib/logger';
 import { 
   BarChart3,
   TrendingUp,
@@ -156,7 +157,7 @@ export const AdvancedAnalyticsDashboard = ({
       
       toast.success("Analytics data updated");
     } catch (error) {
-      console.error('Error loading analytics:', error);
+      logger.error('Error loading analytics:', error);
       toast.error('Failed to load analytics data');
       
       // Mock data for demonstration
@@ -239,7 +240,7 @@ export const AdvancedAnalyticsDashboard = ({
       
       toast.success("Analytics report downloaded");
     } catch (error) {
-      console.error('Error generating report:', error);
+      logger.error('Error generating report:', error);
       toast.error('Failed to generate report');
     }
   };

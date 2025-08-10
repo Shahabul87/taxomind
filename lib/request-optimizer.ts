@@ -1,4 +1,5 @@
 import { aiCacheManager } from './ai-cache-manager';
+import { logger } from '@/lib/logger';
 
 interface RequestConfig {
   priority: 'low' | 'medium' | 'high' | 'critical';
@@ -93,7 +94,8 @@ export class RequestOptimizer {
     operation: string,
     params: any,
     executor: () => Promise<T>,
-    config: Partial<RequestConfig> = {}
+    config: Partial<RequestConfig> = {
+}
   ): Promise<T> {
     const finalConfig: RequestConfig = {
       priority: 'medium',
@@ -115,7 +117,7 @@ export class RequestOptimizer {
           return cached;
         }
       } catch (cacheError) {
-        console.warn('Cache error, proceeding with request:', cacheError);
+        logger.warn('Cache error, proceeding with request:', cacheError);
       }
     }
 
@@ -316,9 +318,8 @@ export class RequestOptimizer {
         })
       );
 
-      console.log(`Batch executed for ${operation}: ${results.length} requests`);
     } catch (error) {
-      console.error(`Batch execution failed for ${operation}:`, error);
+      logger.error(`Batch execution failed for ${operation}:`, error);
     }
   }
 
@@ -409,7 +410,7 @@ export class RequestOptimizer {
           break;
       }
     } catch (cacheError) {
-      console.warn('Failed to cache result:', cacheError);
+      logger.warn('Failed to cache result:', cacheError);
     }
   }
 

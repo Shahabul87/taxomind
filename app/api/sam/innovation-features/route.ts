@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { samInnovationEngine } from "@/lib/sam-innovation-engine";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Innovation features error:", error);
+    logger.error("Innovation features error:", error);
     return NextResponse.json(
       { error: "Failed to process innovation features request" },
       { status: 500 }
@@ -1289,7 +1290,7 @@ export async function GET(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Error fetching innovation features:", error);
+    logger.error("Error fetching innovation features:", error);
     return NextResponse.json(
       { error: "Failed to fetch innovation features" },
       { status: 500 }

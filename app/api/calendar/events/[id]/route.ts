@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // UPDATE a calendar event
 export async function PUT(
@@ -58,7 +59,7 @@ export async function PUT(
       event: updatedEvent 
     });
   } catch (error) {
-    console.error("[CALENDAR_EVENT_UPDATE]", error);
+    logger.error("[CALENDAR_EVENT_UPDATE]", error);
     return NextResponse.json(
       { success: false, error: "Failed to update event" },
       { status: 500 }
@@ -108,7 +109,7 @@ export async function DELETE(
       success: true
     });
   } catch (error) {
-    console.error("[CALENDAR_EVENT_DELETE]", error);
+    logger.error("[CALENDAR_EVENT_DELETE]", error);
     return NextResponse.json(
       { success: false, error: "Failed to delete event" },
       { status: 500 }

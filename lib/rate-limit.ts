@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis';
 import { Ratelimit } from '@upstash/ratelimit';
+import { logger } from '@/lib/logger';
 
 // Initialize Redis client if environment variables are available
 let redis: Redis | null = null;
@@ -37,7 +38,7 @@ export async function rateLimit(
 ): Promise<RateLimitResult> {
   // If Redis is not configured, allow all requests
   if (!redis || !ratelimiter) {
-    console.warn('Redis not configured for rate limiting. All requests allowed.');
+    logger.warn('Redis not configured for rate limiting. All requests allowed.');
     return {
       success: true,
       limit,
@@ -59,7 +60,7 @@ export async function rateLimit(
       reset: result.reset,
     };
   } catch (error) {
-    console.error('Rate limiting error:', error);
+    logger.error('Rate limiting error:', error);
     // If rate limiting fails, allow the request to proceed
     return {
       success: true,

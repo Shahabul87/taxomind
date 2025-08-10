@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { CourseGenerationRequest } from './anthropic-client';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -124,7 +125,7 @@ export async function generateIntelligentCourseContent(
     return blueprint;
     
   } catch (error) {
-    console.error('Error generating intelligent course content:', error);
+    logger.error('Error generating intelligent course content:', error);
     throw new Error(`Failed to generate intelligent course content: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

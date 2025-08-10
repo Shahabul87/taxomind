@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('SAM AI Tutor chat error:', error);
+    logger.error('SAM AI Tutor chat error:', error);
     return NextResponse.json(
       { error: 'Failed to process request' },
       { status: 500 }

@@ -3,6 +3,7 @@
 import { EventEmitter } from 'events';
 import { redis } from '@/lib/redis';
 import { AnalyticsEngine } from './analytics-engine';
+import { logger } from '@/lib/logger';
 
 export interface DashboardUpdate {
   type: 'metrics' | 'events' | 'users' | 'alerts';
@@ -40,14 +41,12 @@ export class RealTimeDashboard extends EventEmitter {
   // Initialize and connect to analytics engine
   async connect(analyticsEngine: AnalyticsEngine): Promise<void> {
     this.analyticsEngine = analyticsEngine;
-    
-    console.log('Real-time Dashboard connecting to Analytics Engine...');
-    
+
     // Start real-time updates
     await this.startRealTimeUpdates();
     
     this.isRunning = true;
-    console.log('Real-time Dashboard connected and running');
+
   }
 
   // Start real-time data updates
@@ -60,7 +59,7 @@ export class RealTimeDashboard extends EventEmitter {
       try {
         await this.broadcastUpdates();
       } catch (error) {
-        console.error('Error broadcasting dashboard updates:', error);
+        logger.error('Error broadcasting dashboard updates:', error);
       }
     }, this.config.updateInterval);
 
@@ -114,7 +113,7 @@ export class RealTimeDashboard extends EventEmitter {
       this.lastMetrics = realTimeMetrics;
 
     } catch (error) {
-      console.error('Failed to broadcast dashboard updates:', error);
+      logger.error('Failed to broadcast dashboard updates:', error);
     }
   }
 
@@ -130,7 +129,7 @@ export class RealTimeDashboard extends EventEmitter {
         }
       }).filter(Boolean);
     } catch (error) {
-      console.error('Failed to get recent events:', error);
+      logger.error('Failed to get recent events:', error);
       return [];
     }
   }
@@ -141,7 +140,7 @@ export class RealTimeDashboard extends EventEmitter {
       const healthData = await redis.get('system:health:latest');
       return healthData ? JSON.parse(healthData) : null;
     } catch (error) {
-      console.error('Failed to get system health:', error);
+      logger.error('Failed to get system health:', error);
       return null;
     }
   }
@@ -226,7 +225,7 @@ export class RealTimeDashboard extends EventEmitter {
       this.emit('connection:initial', { connection, data: initialData });
 
     } catch (error) {
-      console.error('Failed to send initial data:', error);
+      logger.error('Failed to send initial data:', error);
     }
   }
 
@@ -260,9 +259,8 @@ export class RealTimeDashboard extends EventEmitter {
         this.handleRedisMessage(channel, message);
       });
 
-      console.log('Redis subscriptions setup for real-time dashboard');
     } catch (error) {
-      console.error('Failed to setup Redis subscriptions:', error);
+      logger.error('Failed to setup Redis subscriptions:', error);
     }
   }
 
@@ -289,7 +287,7 @@ export class RealTimeDashboard extends EventEmitter {
           break;
       }
     } catch (error) {
-      console.error('Error handling Redis message:', error);
+      logger.error('Error handling Redis message:', error);
     }
   }
 
@@ -320,8 +318,7 @@ export class RealTimeDashboard extends EventEmitter {
 
   // Shutdown dashboard
   async shutdown(): Promise<void> {
-    console.log('Shutting down Real-time Dashboard...');
-    
+
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
     }
@@ -333,7 +330,7 @@ export class RealTimeDashboard extends EventEmitter {
     this.removeAllListeners();
     
     this.isRunning = false;
-    console.log('Real-time Dashboard shutdown complete');
+
   }
 
   // Get current metrics (sync)

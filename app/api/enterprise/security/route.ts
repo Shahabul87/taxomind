@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schemas
 const securityQuerySchema = z.object({
@@ -188,7 +189,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching security events:', error);
+    logger.error('Error fetching security events:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -270,7 +271,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating security event:', error);
+    logger.error('Error creating security event:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -357,7 +358,7 @@ export async function PATCH(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error updating security event:', error);
+    logger.error('Error updating security event:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

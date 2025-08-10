@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import ReactFlow, {
   Node,
   Edge,
@@ -136,7 +137,7 @@ export const MindMapEditor = ({ mind, onClose, onSave }: MindMapEditorProps) => 
       await onSave({ nodes, edges });
       onClose();
     } catch (error) {
-      console.error('Failed to save mind map:', error);
+      logger.error('Failed to save mind map:', error);
     } finally {
       setIsSubmitting(false);
     }

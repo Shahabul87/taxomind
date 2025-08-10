@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form";
 import { useSession } from "next-auth/react";
 import { Post, Comment, ReactionType } from "@prisma/client";
 import Image from "next/image";
+import { logger } from '@/lib/logger';
 import {
   Form,
   FormControl,
@@ -220,19 +221,18 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
 
     setIsSubmitting(true);
     try {
-      console.log("Creating comment for post:", postId);
+
       const response = await axios.post(`/api/posts/${postId}/comments`, {
         content: newComment,
       });
 
       const newCommentData = response.data;
-      console.log("New comment created:", newCommentData);
-      
+
       setComments((prev) => [newCommentData, ...prev]);
       setNewComment("");
       toast.success("Comment added successfully!");
     } catch (error) {
-      console.error("Error creating comment:", error);
+      logger.error("Error creating comment:", error);
       toast.error("Failed to add comment");
     } finally {
       setIsSubmitting(false);
@@ -246,15 +246,14 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
     }
 
     try {
-      console.log("Creating reply for comment:", { commentId, postId });
+
       const response = await axios.post(`/api/posts/${postId}/comments/${commentId}/replies`, {
         content,
         parentId
       });
 
       const newReply = response.data;
-      console.log("New reply created:", newReply);
-      
+
       setComments(prev => prev.map(comment => {
         if (comment.id === commentId) {
           return {
@@ -267,7 +266,7 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
 
       toast.success("Reply added successfully!");
     } catch (error) {
-      console.error("Error creating reply:", error);
+      logger.error("Error creating reply:", error);
       toast.error("Failed to add reply");
     }
   };
@@ -279,14 +278,13 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
     }
 
     try {
-      console.log("Adding reaction:", { commentId, postId, reactionType });
+
       const response = await axios.post(`/api/posts/${postId}/comments/${commentId}/reactions`, {
         type: reactionType
       });
 
       const updatedComment = response.data;
-      console.log("Updated comment with reaction:", updatedComment);
-      
+
       setComments(prev => prev.map(comment => {
         if (comment.id === commentId) {
           return updatedComment;
@@ -294,7 +292,7 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
         return comment;
       }));
     } catch (error) {
-      console.error("Error adding reaction:", error);
+      logger.error("Error adding reaction:", error);
       toast.error("Failed to add reaction");
     }
   };

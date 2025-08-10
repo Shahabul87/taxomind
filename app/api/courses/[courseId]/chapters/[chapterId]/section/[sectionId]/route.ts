@@ -70,11 +70,10 @@ export async function DELETE(
 
     return NextResponse.json(deletedChapter);
   } catch (error) {
-    console.log("[DELETE_CHAPTER_ERROR]", error);
+
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
 
 export async function PATCH(
   req: Request,
@@ -125,9 +124,8 @@ export async function PATCH(
     // Return the updated chapter information
     return new NextResponse(JSON.stringify(updatedSection), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (error) {
-    console.log("[PATCH ERROR] Courses/Chapter ID:", error);
+
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
 

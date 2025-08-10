@@ -5,6 +5,7 @@ import { redis } from '@/lib/redis';
 import { FeatureEngineer } from './feature-engineering';
 import { NeuralNetworkModel } from './models/neural-network';
 import { ModelType, ModelParameters, TrainingData, MLModel } from './types';
+import { logger } from '@/lib/logger';
 
 export class MLTrainingPipeline {
   private featureEngineer: FeatureEngineer;
@@ -18,16 +19,13 @@ export class MLTrainingPipeline {
     modelType: ModelType,
     parameters: ModelParameters
   ): Promise<MLModel> {
-    console.log(`Starting training for ${modelType}...`);
-    
+
     try {
       // 1. Collect training data
       const trainingData = await this.collectTrainingData(modelType);
-      console.log(`Collected ${trainingData.length} training samples`);
 
       // 2. Split data
       const { trainSet, testSet } = this.splitData(trainingData);
-      console.log(`Train: ${trainSet.length}, Test: ${testSet.length}`);
 
       // 3. Create and train model
       const model = new NeuralNetworkModel(modelType, '1.0', parameters);
@@ -41,8 +39,7 @@ export class MLTrainingPipeline {
       if (metrics.accuracy > 0.7) {
         await model.saveModel();
         await this.saveModelMetadata(model, metrics);
-        
-        console.log(`Model ${modelType} trained successfully!`);
+
         return {
           id: model.getModelInfo().id,
           name: modelType,
@@ -58,7 +55,7 @@ export class MLTrainingPipeline {
       }
 
     } catch (error) {
-      console.error('Training failed:', error);
+      logger.error('Training failed:', error);
       throw error;
     }
   }
@@ -86,8 +83,6 @@ export class MLTrainingPipeline {
       take: 1000 // Limit for initial training
     });
 
-    console.log(`Processing ${students.length} student enrollments...`);
-
     for (const enrollment of students) {
       try {
         // Extract features
@@ -110,7 +105,7 @@ export class MLTrainingPipeline {
         });
 
       } catch (error) {
-        console.error(`Failed to process student ${enrollment.userId}:`, error);
+        logger.error(`Failed to process student ${enrollment.userId}:`, error);
       }
     }
 
@@ -242,10 +237,10 @@ export class MLTrainingPipeline {
 
     for (const modelType of modelTypes) {
       try {
-        console.log(`\nTraining ${modelType} model...`);
+
         await this.trainModel(modelType, defaultParameters);
       } catch (error) {
-        console.error(`Failed to train ${modelType}:`, error);
+        logger.error(`Failed to train ${modelType}:`, error);
       }
     }
   }
@@ -255,17 +250,15 @@ export class MLTrainingPipeline {
     const retrainingInterval = 7 * 24 * 60 * 60 * 1000; // 7 days
     
     setInterval(async () => {
-      console.log('Starting scheduled model retraining...');
-      
+
       try {
         await this.retrainAllModels();
-        console.log('Scheduled retraining completed successfully');
+
       } catch (error) {
-        console.error('Scheduled retraining failed:', error);
+        logger.error('Scheduled retraining failed:', error);
       }
     }, retrainingInterval);
 
-    console.log('Automatic retraining scheduled every 7 days');
   }
 
   // Get training queue from Redis
@@ -273,8 +266,7 @@ export class MLTrainingPipeline {
     const queueLength = await redis.llen('ml_training_queue');
     
     if (queueLength >= 1000) {
-      console.log(`Processing training queue with ${queueLength} samples...`);
-      
+
       // Get samples from queue
       const samples = [];
       for (let i = 0; i < 1000; i++) {
@@ -291,7 +283,6 @@ export class MLTrainingPipeline {
 
   // Incremental training with new data
   private async incrementalTraining(newSamples: any[]): Promise<void> {
-    console.log(`Starting incremental training with ${newSamples.length} new samples...`);
 
     // For each model type, update with new data
     const modelTypes: ModelType[] = ['completion_prediction', 'performance_prediction', 'dropout_detection'];
@@ -322,7 +313,7 @@ export class MLTrainingPipeline {
           }
         }
       } catch (error) {
-        console.error(`Incremental training failed for ${modelType}:`, error);
+        logger.error(`Incremental training failed for ${modelType}:`, error);
       }
     }
   }
@@ -342,7 +333,7 @@ export class MLTrainingPipeline {
         return model;
       }
     } catch (error) {
-      console.error(`Failed to load model ${modelType}:`, error);
+      logger.error(`Failed to load model ${modelType}:`, error);
     }
 
     return null;

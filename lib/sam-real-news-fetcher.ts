@@ -2,6 +2,7 @@ import axios from 'axios';
 import Parser from 'rss-parser';
 import * as cheerio from 'cheerio';
 import { NewsArticle } from './sam-news-engine';
+import { logger } from '@/lib/logger';
 
 interface NewsSource {
   name: string;
@@ -148,7 +149,7 @@ export class SAMRealNewsFetcher {
     const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
     
     if (!apiKey || !searchEngineId) {
-      console.log('Google Custom Search not configured - skipping');
+
       return [];
     }
     
@@ -190,7 +191,7 @@ export class SAMRealNewsFetcher {
         technicalDepth: 'intermediate' as const
       })) || [];
     } catch (error) {
-      console.error('Google Custom Search error:', error);
+      logger.error('Google Custom Search error:', error);
       return [];
     }
   }
@@ -256,7 +257,7 @@ export class SAMRealNewsFetcher {
           technicalDepth: 'intermediate' as const
         }));
     } catch (error) {
-      console.error('Hacker News search error:', error);
+      logger.error('Hacker News search error:', error);
       return [];
     }
   }
@@ -298,7 +299,7 @@ export class SAMRealNewsFetcher {
         technicalDepth: 'intermediate' as const
       }));
     } catch (error) {
-      console.error('Google News scraping error:', error);
+      logger.error('Google News scraping error:', error);
       return [];
     }
   }
@@ -345,7 +346,7 @@ export class SAMRealNewsFetcher {
       
       return articles;
     } catch (error) {
-      console.error(`Error fetching RSS feed from ${sourceUrl}:`, error);
+      logger.error(`Error fetching RSS feed from ${sourceUrl}:`, error);
       return [];
     }
   }
@@ -354,7 +355,7 @@ export class SAMRealNewsFetcher {
    * Fetch all news from all sources
    */
   async fetchAllNews(): Promise<NewsArticle[]> {
-    console.log('Starting comprehensive AI news fetch...');
+
     const startTime = Date.now();
     const allArticles: NewsArticle[] = [];
     
@@ -362,7 +363,7 @@ export class SAMRealNewsFetcher {
     const rssSources = this.sources.filter(s => s.type === 'rss');
     const rssPromises = rssSources.map(source => 
       this.fetchFromRSS(source.url).catch(err => {
-        console.error(`RSS fetch failed for ${source.name}:`, err.message);
+        logger.error(`RSS fetch failed for ${source.name}:`, err.message);
         return [];
       })
     );
@@ -372,7 +373,7 @@ export class SAMRealNewsFetcher {
       Promise.all(rssPromises),
       new Promise<NewsArticle[][]>(resolve => 
         setTimeout(() => {
-          console.log('RSS fetch timeout, continuing with partial results');
+
           resolve([]);
         }, 10000)
       )
@@ -390,19 +391,19 @@ export class SAMRealNewsFetcher {
     // Try to fetch from APIs in parallel (with individual error handling)
     const apiPromises = [
       this.fetchFromNewsAPI().catch(err => {
-        console.log('NewsAPI not available:', err.message);
+
         return [];
       }),
       this.fetchFromBingNews().catch(err => {
-        console.log('Bing News not available:', err.message);
+
         return [];
       }),
       this.searchHackerNews('artificial intelligence').catch(err => {
-        console.log('HackerNews search failed:', err.message);
+
         return [];
       }),
       this.scrapeGoogleNews('artificial intelligence latest news').catch(err => {
-        console.log('Google News failed:', err.message);
+
         return [];
       })
     ];
@@ -416,7 +417,7 @@ export class SAMRealNewsFetcher {
     
     // If we have no articles at all, use the search method as fallback
     if (allArticles.length === 0) {
-      console.log('No articles from direct sources, using search fallback...');
+
       const searchResults = await this.searchAINews('artificial intelligence machine learning GPT latest breakthrough');
       allArticles.push(...searchResults);
     }
@@ -430,8 +431,7 @@ export class SAMRealNewsFetcher {
     );
     
     const endTime = Date.now();
-    console.log(`Fetched ${uniqueArticles.length} unique AI news articles in ${endTime - startTime}ms`);
-    
+
     // Return top 100 articles to avoid overwhelming the UI
     return uniqueArticles.slice(0, 100);
   }

@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime to avoid Edge Runtime issues with bcrypt and database connections
 export const runtime = 'nodejs';
@@ -78,7 +79,7 @@ export async function DELETE(
 
     return NextResponse.json(deletedChapter);
   } catch (error) {
-    console.error("[CHAPTER_ID_DELETE]", error);
+    logger.error("[CHAPTER_ID_DELETE]", error);
     
     // Enhanced error handling for production
     if (error instanceof Error) {
@@ -148,7 +149,7 @@ export async function PATCH(
 
     return NextResponse.json(chapter);
   } catch (error) {
-    console.error("[CHAPTER_ID_PATCH]", error);
+    logger.error("[CHAPTER_ID_PATCH]", error);
     
     // Enhanced error handling for production
     if (error instanceof Error) {
@@ -163,5 +164,4 @@ export async function PATCH(
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
-
 

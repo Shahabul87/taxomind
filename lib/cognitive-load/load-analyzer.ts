@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 import {
   CognitiveLoadAssessment,
   LoadAssessment,
@@ -41,8 +42,6 @@ export class CognitiveLoadAnalyzer {
     courseId: string,
     contextData?: any
   ): Promise<CognitiveLoadAssessment> {
-    
-    console.log(`Assessing cognitive load: ${studentId} -> ${contentId}`);
 
     // Get student's cognitive load profile
     const profile = await this.getStudentLoadProfile(studentId, courseId);
@@ -1068,10 +1067,9 @@ export class CognitiveLoadAnalyzer {
         JSON.stringify(assessment)
       );
     } catch (error) {
-      console.error('Failed to cache assessment:', error);
+      logger.error('Failed to cache assessment:', error);
     }
-    
-    console.log('Stored cognitive load assessment:', assessment.id);
+
   }
 
   private async updateStudentProfile(
@@ -1080,6 +1078,6 @@ export class CognitiveLoadAnalyzer {
     assessment: CognitiveLoadAssessment
   ): Promise<void> {
     // Update student's load profile based on new assessment
-    console.log(`Updating cognitive load profile for student: ${studentId}`);
+
   }
 }

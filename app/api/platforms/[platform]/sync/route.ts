@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 const prisma = new PrismaClient();
 
@@ -115,7 +116,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Sync error:', error);
+    logger.error('Sync error:', error);
     return NextResponse.json(
       { error: 'Sync failed' },
       { status: 500 }

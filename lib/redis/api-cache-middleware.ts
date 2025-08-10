@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cacheManager, CacheLayer, CACHE_CONFIGS } from './cache-manager';
 import { RateLimiter } from './rate-limiter';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 // Cache control directives
 interface CacheControlOptions {
@@ -243,7 +244,7 @@ export class APICacheMiddleware {
         compress: true
       });
     } catch (error) {
-      console.error('Error caching response:', error);
+      logger.error('Error caching response:', error);
     }
   }
 
@@ -280,7 +281,7 @@ export class APICacheMiddleware {
         await this.cacheResponse(cacheKey, response, config);
       }
     } catch (error) {
-      console.error('Background revalidation error:', error);
+      logger.error('Background revalidation error:', error);
     }
   }
 

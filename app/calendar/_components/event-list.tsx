@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { Clock, MapPin, Bell, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EventActions } from "./event-actions";
+import { logger } from '@/lib/logger';
 
 interface EventListProps {
   userId: string;
@@ -39,7 +40,7 @@ export const EventList = ({ userId, selectedDate }: EventListProps) => {
           setEvents(data);
         }
       } catch (error) {
-        console.error("Failed to fetch events:", error);
+        logger.error("Failed to fetch events:", error);
       } finally {
         setIsLoading(false);
       }
@@ -78,7 +79,7 @@ export const EventList = ({ userId, selectedDate }: EventListProps) => {
 
   const handleEdit = (event: Event) => {
     // We'll implement this when we add edit functionality
-    console.log("Edit event:", event);
+
   };
 
   return (

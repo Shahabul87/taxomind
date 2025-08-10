@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface CompletionPrediction {
   completionProbability: number;
@@ -56,7 +57,7 @@ export function usePredictiveAnalytics() {
       return data.prediction;
     } catch (err) {
       // Fallback to mock data for demo
-      console.warn('Using fallback prediction data:', err);
+      logger.warn('Using fallback prediction data:', err);
       return {
         completionProbability: 85,
         confidenceScore: 78,
@@ -96,7 +97,7 @@ export function usePredictiveAnalytics() {
       return data.schedule;
     } catch (err) {
       // Fallback to mock data for demo
-      console.warn('Using fallback schedule data:', err);
+      logger.warn('Using fallback schedule data:', err);
       return {
         recommendedDailyMinutes: 45,
         estimatedCompletionWeeks: 8,
@@ -157,7 +158,7 @@ export function usePredictiveAnalytics() {
       return data.recommendations;
     } catch (err) {
       // Fallback to mock data for demo
-      console.warn('Using fallback recommendations data:', err);
+      logger.warn('Using fallback recommendations data:', err);
       return {
         contentRecommendations: [
           'Focus on JavaScript ES6+ features for modern development',

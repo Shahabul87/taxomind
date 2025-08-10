@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { logger } from '@/lib/logger';
 import {
   Form,
   FormControl,
@@ -106,7 +107,7 @@ export function GeneralSettings({ group, currentUser, isCreator }: GeneralSettin
       toast.success("Group settings updated successfully");
     } catch (error) {
       toast.error("Something went wrong");
-      console.error(error);
+      logger.error(error);
     } finally {
       setIsLoading(false);
     }

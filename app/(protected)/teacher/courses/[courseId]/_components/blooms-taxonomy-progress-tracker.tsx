@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { logger } from '@/lib/logger';
 import { 
   Brain,
   Target,
@@ -295,7 +296,7 @@ export const BloomsTaxonomyProgressTracker = ({
       setOverallHealth(healthScore);
       
     } catch (error) {
-      console.error('Error analyzing Bloom\'s distribution:', error);
+      logger.error('Error analyzing Bloom\'s distribution:', error);
     } finally {
       setIsLoading(false);
     }

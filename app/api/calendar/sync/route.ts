@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { CalendarSync } from "@/app/calendar/_lib/calendar-sync";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
@@ -155,7 +156,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Invalid action" }, { status: 400 });
     }
   } catch (error) {
-    console.error("[CALENDAR_SYNC]", error);
+    logger.error("[CALENDAR_SYNC]", error);
     return new NextResponse(
       "Internal Error", 
       { status: 500 }

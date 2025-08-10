@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[ANALYTICS] Error storing event:', error);
+    logger.error('[ANALYTICS] Error storing event:', error);
     // Don't return error - analytics should never break the app
     return NextResponse.json({ success: false }, { status: 200 });
   }
@@ -47,16 +48,7 @@ export async function POST(req: Request) {
 async function storeAnalyticsEvent(event: AnalyticsEvent): Promise<void> {
   // Log for development
   if (process.env.NODE_ENV === 'development') {
-    console.log('[ANALYTICS_EVENT]', {
-      type: event.eventType,
-      category: event.eventCategory,
-      userId: event.userId,
-      sessionId: event.sessionId,
-      properties: event.properties,
-      timestamp: event.timestamp
-    });
-  }
-  
+}
   // In production, implement your preferred analytics storage
   // Examples: database storage, external service, etc.
 }

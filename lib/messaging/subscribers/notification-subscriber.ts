@@ -4,6 +4,7 @@
  */
 
 import { EventBus, EventMessage } from '../event-bus';
+import { logger } from '@/lib/logger';
 
 export interface NotificationPayload {
   userId: string;
@@ -69,8 +70,7 @@ class MockNotificationService implements NotificationService {
     }
 
     const messageId = `email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`[NOTIFICATION_SERVICE] Email sent to ${data.to}: ${data.subject}`);
-    
+
     return { success: true, messageId };
   }
 
@@ -79,8 +79,7 @@ class MockNotificationService implements NotificationService {
     await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
     
     const notificationId = `push_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`[NOTIFICATION_SERVICE] Push notification sent to user ${data.userId}: ${data.title}`);
-    
+
     return { success: true, notificationId };
   }
 
@@ -89,8 +88,7 @@ class MockNotificationService implements NotificationService {
     await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 100));
     
     const notificationId = `in_app_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`[NOTIFICATION_SERVICE] In-app notification created for user ${data.userId}: ${data.title}`);
-    
+
     return { success: true, notificationId };
   }
 
@@ -210,7 +208,6 @@ export class NotificationSubscriber {
       })
     );
 
-    console.log(`[NOTIFICATION_SUBSCRIBER] Setup ${this.subscriptionIds.length} subscriptions`);
   }
 
   /**
@@ -389,8 +386,7 @@ export class NotificationSubscriber {
 
     // This would typically notify relevant users (discussion participants)
     // For now, we'll just log it
-    console.log(`[NOTIFICATION_SUBSCRIBER] Comment ${isReply ? 'reply' : 'added'} in course ${courseId}`);
-    
+
     // In a real implementation, you'd:
     // 1. Find discussion participants
     // 2. Send notifications to interested users
@@ -401,8 +397,7 @@ export class NotificationSubscriber {
     const { courseId, userId, reviewId, rating } = event.payload;
 
     // This would typically notify the course instructor
-    console.log(`[NOTIFICATION_SUBSCRIBER] Review submitted for course ${courseId}: ${rating} stars`);
-    
+
     // In a real implementation:
     // 1. Find course instructor
     // 2. Send notification about new review
@@ -414,8 +409,7 @@ export class NotificationSubscriber {
 
     // Notify all users about scheduled maintenance
     // This would typically be sent to all active users
-    console.log(`[NOTIFICATION_SUBSCRIBER] Maintenance scheduled for ${scheduledAt}`);
-    
+
     // In a real implementation:
     // 1. Get all active users
     // 2. Send maintenance notification
@@ -441,7 +435,7 @@ export class NotificationSubscriber {
         priority: 'medium',
       });
     } catch (error) {
-      console.error('[NOTIFICATION_SUBSCRIBER] Failed to send welcome email:', error);
+      logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send welcome email:', error);
     }
   }
 
@@ -460,7 +454,7 @@ export class NotificationSubscriber {
         priority: 'high',
       });
     } catch (error) {
-      console.error('[NOTIFICATION_SUBSCRIBER] Failed to send course published email:', error);
+      logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send course published email:', error);
     }
   }
 
@@ -485,7 +479,7 @@ export class NotificationSubscriber {
         priority: 'high',
       });
     } catch (error) {
-      console.error('[NOTIFICATION_SUBSCRIBER] Failed to send completion email:', error);
+      logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send completion email:', error);
     }
   }
 
@@ -505,7 +499,7 @@ export class NotificationSubscriber {
         priority: 'high',
       });
     } catch (error) {
-      console.error('[NOTIFICATION_SUBSCRIBER] Failed to send certificate email:', error);
+      logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send certificate email:', error);
     }
   }
 
@@ -540,7 +534,7 @@ export class NotificationSubscriber {
         priority: 'medium',
       });
     } catch (error) {
-      console.error('[NOTIFICATION_SUBSCRIBER] Failed to send assessment results email:', error);
+      logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send assessment results email:', error);
     }
   }
 
@@ -568,7 +562,7 @@ export class NotificationSubscriber {
         priority: 'medium',
       });
     } catch (error) {
-      console.error('[NOTIFICATION_SUBSCRIBER] Failed to send encouragement email:', error);
+      logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send encouragement email:', error);
     }
   }
 
@@ -576,7 +570,7 @@ export class NotificationSubscriber {
     try {
       await this.notificationService.sendPushNotification(data);
     } catch (error) {
-      console.error('[NOTIFICATION_SUBSCRIBER] Failed to send push notification:', error);
+      logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send push notification:', error);
     }
   }
 
@@ -584,7 +578,7 @@ export class NotificationSubscriber {
     try {
       await this.notificationService.createInAppNotification(data);
     } catch (error) {
-      console.error('[NOTIFICATION_SUBSCRIBER] Failed to create in-app notification:', error);
+      logger.error('[NOTIFICATION_SUBSCRIBER] Failed to create in-app notification:', error);
     }
   }
 
@@ -646,8 +640,6 @@ export class NotificationSubscriber {
     // 3. Respect frequency limits
     // 4. Send digest emails
 
-    console.log(`[NOTIFICATION_SUBSCRIBER] Sending ${notifications.length} notifications to user ${userId}`);
-    
     for (const notification of notifications) {
       switch (notification.type) {
         case 'email':
@@ -695,15 +687,14 @@ export class NotificationSubscriber {
    * Shutdown subscriber
    */
   shutdown(): void {
-    console.log('[NOTIFICATION_SUBSCRIBER] Shutting down...');
-    
+
     // Unsubscribe from all events
     this.subscriptionIds.forEach(id => {
       this.eventBus.unsubscribe(id);
     });
     
     this.subscriptionIds = [];
-    console.log('[NOTIFICATION_SUBSCRIBER] Shutdown completed');
+
   }
 }
 

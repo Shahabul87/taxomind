@@ -4,6 +4,7 @@ import { withRole } from "@/lib/api-protection";
 import { db, getEnterpriseDB } from "@/lib/db-migration";
 import { assignRole } from "@/lib/role-management";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 interface RouteParams {
   params: Promise<{
@@ -102,7 +103,7 @@ export const PATCH = withRole(UserRole.ADMIN, async (
       user: updatedUser
     });
   } catch (error) {
-    console.error("Role update error:", error);
+    logger.error("Role update error:", error);
     return Response.json(
       { error: "Failed to update user role" },
       { status: 500 }
@@ -153,7 +154,7 @@ export const DELETE = withRole(UserRole.ADMIN, async (
       deletedUserId: userId
     });
   } catch (error) {
-    console.error("User deletion error:", error);
+    logger.error("User deletion error:", error);
     return Response.json(
       { error: "Failed to delete user" },
       { status: 500 }

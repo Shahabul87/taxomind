@@ -12,6 +12,7 @@ import { FavoriteArticle } from "@prisma/client";
 import Image from "next/image";
 import { FavoriteArticleList } from "./fav-article-link-list";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -152,9 +153,7 @@ export const FavoriteArticleLinkForm = ({
   const isFormComplete = !!watchedValues.title && !!watchedValues.platform && !!watchedValues.url;
 
   useEffect(() => {
-    console.log("Form Validity:", isValid);
-    console.log("Form Completion:", isFormComplete);
-    console.log("Watched Values:", watchedValues);
+
   }, [isFormComplete, isValid, watchedValues]);
 
   const fetchArticleMetadata = useCallback(async (url: string) => {
@@ -163,8 +162,7 @@ export const FavoriteArticleLinkForm = ({
       
       // Use our API endpoint to fetch metadata
       const response = await axios.get(`/api/fetch-article-metadata?url=${encodeURIComponent(url)}`);
-      console.log("Article metadata response:", response.data);
-      
+
       if (response.data?.title) {
         form.setValue('title', response.data.title);
       }
@@ -201,7 +199,7 @@ export const FavoriteArticleLinkForm = ({
       
       toast.success("Article details fetched");
     } catch (error) {
-      console.error("Error fetching article metadata:", error);
+      logger.error("Error fetching article metadata:", error);
       toast.error("Couldn't fetch article details. Please enter them manually.");
     } finally {
       setIsLoading(false);
@@ -292,8 +290,7 @@ export const FavoriteArticleLinkForm = ({
           
           try {
             const response = await axios.get(`/api/fetch-article-metadata?url=${encodeURIComponent(text)}`);
-            console.log("Article metadata from paste:", response.data);
-            
+
             if (response.data) {
               // Set the form values
               if (response.data.title) {
@@ -335,7 +332,7 @@ export const FavoriteArticleLinkForm = ({
               toast.error("Couldn't find article details. Please enter them manually.", { id: "fetching-metadata" });
             }
           } catch (error) {
-            console.error("Error fetching metadata:", error);
+            logger.error("Error fetching metadata:", error);
             toast.error("Couldn't fetch article details. Please enter them manually.", { id: "fetching-metadata" });
           }
         }

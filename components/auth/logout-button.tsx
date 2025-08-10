@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import { useState } from "react";
+import { logger } from '@/lib/logger';
 
 interface LogoutButtonProps {
   children?: React.ReactNode;
@@ -26,7 +27,7 @@ export const LogoutButton = ({
       });
       
     } catch (error) {
-      console.error("Logout failed:", error);
+      logger.error("Logout failed:", error);
       // Fallback: force redirect to clear any cached state
       window.location.href = "/";
     } finally {

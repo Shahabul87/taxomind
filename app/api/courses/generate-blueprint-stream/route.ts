@@ -2,6 +2,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateIntelligentCourseContent, type EnhancedContentRequest } from "@/lib/ai-content-generator";
 import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/anthropic-client";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
         try {
           await generateBlueprintWithStreaming(courseRequirements, user.id!, controller);
         } catch (error) {
-          console.error('[STREAMING] Error in blueprint generation:', error);
+          logger.error('[STREAMING] Error in blueprint generation:', error);
           const errorMessage: StreamMessage = {
             type: 'error',
             data: { error: error instanceof Error ? error.message : 'Unknown error' },
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error) {
-    console.error('[STREAMING] Request setup error:', error);
+    logger.error('[STREAMING] Request setup error:', error);
     return new Response("Internal Server Error", { status: 500 });
   }
 }
@@ -162,7 +163,7 @@ async function generateBlueprintWithStreaming(
       updateProgress('Content Optimization', 85, 'Optimizing generated content for educational effectiveness...');
       
     } catch (enhancedError) {
-      console.warn('[STREAMING] Enhanced generation failed, falling back to standard generation:', enhancedError);
+      logger.warn('[STREAMING] Enhanced generation failed, falling back to standard generation:', enhancedError);
       updateProgress('Fallback Generation', 50, 'Using standard AI generation method...');
       
       // Fallback to standard generation
@@ -223,7 +224,7 @@ async function generateBlueprintWithStreaming(
     });
 
   } catch (error) {
-    console.error('[STREAMING] Generation error:', error);
+    logger.error('[STREAMING] Generation error:', error);
     sendUpdate({
       type: 'error',
       data: { error: error instanceof Error ? error.message : 'Unknown error' },

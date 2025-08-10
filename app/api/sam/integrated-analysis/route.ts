@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { SAMEngineIntegration } from '@/lib/sam-engine-integration';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Integrated analysis error:', error);
+    logger.error('Integrated analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to perform integrated analysis' },
       { status: 500 }
@@ -146,7 +147,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get integrated analysis error:', error);
+    logger.error('Get integrated analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve analysis' },
       { status: 500 }
@@ -196,6 +197,6 @@ async function storeAnalysisResults(userId: string, courseId: string, analysis: 
       },
     });
   } catch (error) {
-    console.error('Error storing analysis results:', error);
+    logger.error('Error storing analysis results:', error);
   }
 }

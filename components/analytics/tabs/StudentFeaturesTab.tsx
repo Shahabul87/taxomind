@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { logger } from '@/lib/logger';
 import { 
   Brain, BookOpen, Clock, Heart, Target, Briefcase, 
   TrendingUp, Zap, Activity, Star
@@ -48,7 +49,7 @@ export function StudentFeaturesTab({ analytics, performance }: StudentFeaturesPr
       setFeaturesData(data);
       setIsLoading(false);
     } catch (error) {
-      console.error('Failed to fetch student features:', error);
+      logger.error('Failed to fetch student features:', error);
       setIsLoading(false);
     }
   };
@@ -238,7 +239,7 @@ export function StudentFeaturesTab({ analytics, performance }: StudentFeaturesPr
                 size="sm" 
                 className="w-full bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-white/80 dark:hover:bg-slate-700/80 transition-all duration-300"
                 onClick={() => {
-                  console.log(`Opening ${feature.name} details...`);
+
                 }}
               >
                 View Details

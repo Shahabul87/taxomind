@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import MyPostCard from "@/app/blog/blog-card";
 import { ChevronRight, X } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 // Dummy data for similar posts
 const dummySimilarPosts = [
@@ -94,7 +95,7 @@ export const SimilarPosts = ({
             setSimilarPosts(dummySimilarPosts);
           }
         } catch (error) {
-          console.error("Error fetching similar posts:", error);
+          logger.error("Error fetching similar posts:", error);
           setSimilarPosts(dummySimilarPosts);
         } finally {
           setIsLoading(false);

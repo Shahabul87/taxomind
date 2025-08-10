@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 import { Anthropic } from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -528,7 +529,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
 
       return question.text ? question : null;
     } catch (error) {
-      console.error('Error parsing question block:', error);
+      logger.error('Error parsing question block:', error);
       return null;
     }
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ recommendations });
   } catch (error) {
-    console.error('Error generating Bloom\'s recommendations:', error);
+    logger.error('Error generating Bloom\'s recommendations:', error);
     return NextResponse.json({ error: 'Failed to generate Bloom\'s recommendations' }, { status: 500 });
   }
 }

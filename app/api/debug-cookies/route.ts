@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("[DEBUG_COOKIES] Starting cookie debug");
-    
+
     // Get all cookies
     const cookieStore = await cookies();
     const allCookies: Record<string, string> = {};
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error("[DEBUG_COOKIES] Error:", error);
+    logger.error("[DEBUG_COOKIES] Error:", error);
     return NextResponse.json({
       error: error instanceof Error ? error.message : "Unknown error",
       timestamp: new Date().toISOString()

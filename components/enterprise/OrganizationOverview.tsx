@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { logger } from '@/lib/logger';
 import { 
   Building2, Users, BookOpen, TrendingUp, Settings, 
   Shield, AlertTriangle, CheckCircle, Plus, Filter,
@@ -74,7 +75,7 @@ export function OrganizationOverview({ className }: OrganizationOverviewProps) {
         }));
       }
     } catch (error) {
-      console.error('Error fetching organizations:', error);
+      logger.error('Error fetching organizations:', error);
     } finally {
       setIsLoading(false);
     }

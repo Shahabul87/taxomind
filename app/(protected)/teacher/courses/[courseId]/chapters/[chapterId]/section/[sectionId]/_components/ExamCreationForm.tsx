@@ -16,6 +16,7 @@ import { QuestionItem } from "./exam-creator/QuestionItem";
 import { ExamForm } from "./exam-creator/ExamForm";
 import { BloomsTaxonomyTabs } from "./exam-creator/BloomsTaxonomyTabs";
 import { examReducer, initialExamState, ExamState } from "./exam-creator/exam-reducer";
+import { logger } from '@/lib/logger';
 import {
   ExamCreationFormProps,
   ExamFormData,
@@ -81,7 +82,7 @@ export const ExamCreationForm = ({
           );
           chapterTitle = chapterResponse.data.title || "";
         } catch (error) {
-          console.warn("Failed to fetch chapter title:", error);
+          logger.warn("Failed to fetch chapter title:", error);
         }
 
         // Fetch course data
@@ -90,7 +91,7 @@ export const ExamCreationForm = ({
           const courseResponse = await axios.get(`/api/courses/${courseId}`);
           courseTitle = courseResponse.data.title || "";
         } catch (error) {
-          console.warn("Failed to fetch course title:", error);
+          logger.warn("Failed to fetch course title:", error);
         }
 
         // Update course context
@@ -111,7 +112,7 @@ export const ExamCreationForm = ({
           dispatch({ type: "SET_EXISTING_EXAMS", payload: examsResponse.data.exams });
         }
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        logger.error("Failed to fetch data:", error);
       } finally {
         dispatch({ type: "SET_LOADING_EXAMS", payload: false });
       }
@@ -158,7 +159,7 @@ export const ExamCreationForm = ({
         throw new Error(response.data.message || "Failed to create exam");
       }
     } catch (error: any) {
-      console.error("Exam creation error:", error);
+      logger.error("Exam creation error:", error);
       if (error.response?.data?.error) {
         toast.error(error.response.data.error);
       } else {
@@ -203,7 +204,7 @@ export const ExamCreationForm = ({
         router.refresh();
       }
     } catch (error: any) {
-      console.error("Publish toggle error:", error);
+      logger.error("Publish toggle error:", error);
       if (error.response?.data) {
         toast.error(error.response.data);
       } else {
@@ -279,7 +280,7 @@ export const ExamCreationForm = ({
         router.refresh();
       }
     } catch (error: any) {
-      console.error("Delete exam error:", error);
+      logger.error("Delete exam error:", error);
       if (error.response?.data) {
         toast.error(error.response.data);
       } else {

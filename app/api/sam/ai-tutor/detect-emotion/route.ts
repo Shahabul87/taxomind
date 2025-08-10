@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Emotion detection error:', error);
+    logger.error('Emotion detection error:', error);
     return NextResponse.json(
       { error: 'Failed to detect emotion' },
       { status: 500 }

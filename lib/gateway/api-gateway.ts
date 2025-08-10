@@ -17,6 +17,7 @@ import { GatewayMiddleware } from './gateway-middleware';
 import { ServiceRegistry } from './service-registry';
 import { CircuitBreaker } from '@/lib/resilience/circuit-breaker';
 import { HealthMonitor } from '@/lib/resilience/health-monitor';
+import { logger } from '@/lib/logger';
 
 export interface GatewayMetrics {
   requestCount: number;
@@ -229,7 +230,7 @@ export class ApiGateway {
       });
 
     } catch (error) {
-      console.error(`Gateway error for request ${requestId}:`, error);
+      logger.error(`Gateway error for request ${requestId}:`, error);
       await this.updateMetrics('unknown', startTime, true);
       
       return this.createErrorResponse(
@@ -363,7 +364,7 @@ export class ApiGateway {
       };
 
     } catch (error) {
-      console.error('Rate limiting error:', error);
+      logger.error('Rate limiting error:', error);
       // Fail open - allow request if rate limiting fails
       return { allowed: true, limit: 0, remaining: 0, resetTime: 0 };
     }
@@ -425,7 +426,7 @@ export class ApiGateway {
       };
 
     } catch (error) {
-      console.error('Authentication error:', error);
+      logger.error('Authentication error:', error);
       return {
         success: false,
         statusCode: 500,
@@ -487,7 +488,7 @@ export class ApiGateway {
       }
 
     } catch (error) {
-      console.error('Service routing error:', error);
+      logger.error('Service routing error:', error);
       throw error;
     }
   }
@@ -585,7 +586,7 @@ export class ApiGateway {
       
       return null;
     } catch (error) {
-      console.error('Token validation error:', error);
+      logger.error('Token validation error:', error);
       return null;
     }
   }
@@ -614,7 +615,8 @@ export class ApiGateway {
     message: string,
     status: number,
     requestId: string,
-    additionalHeaders: Record<string, string> = {}
+    additionalHeaders: Record<string, string> = {
+}
   ): NextResponse {
     const headers = {
       'Content-Type': 'application/json',
@@ -712,7 +714,7 @@ export class ApiGateway {
       await this.redis.setex(key, 3600, JSON.stringify(updated));
 
     } catch (error) {
-      console.error('Metrics update error:', error);
+      logger.error('Metrics update error:', error);
     }
   }
 

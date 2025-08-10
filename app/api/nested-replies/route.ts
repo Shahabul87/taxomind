@@ -2,26 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
+import { logger } from '@/lib/logger';
 
 /**
  * Universal endpoint for nested replies at any depth.
  * This is a fallback API that provides the same functionality as create-nested-reply.
  */
 export async function POST(req: NextRequest) {
-  console.log("[NESTED_REPLIES] Request received");
-  
+
   try {
     // Authenticate the user
     const user = await currentUser();
     if (!user) {
-      console.log("[NESTED_REPLIES] Unauthorized - no user session");
+
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check rate limiting
     const rateLimitResult = await isRateLimited(user.id, 'reply');
     if (rateLimitResult.limited) {
-      console.log(`[NESTED_REPLIES] Rate limited: ${user.id}`, rateLimitResult);
+
       return NextResponse.json({ 
         error: getRateLimitMessage('reply', rateLimitResult.reset),
         rateLimitInfo: rateLimitResult
@@ -32,20 +32,13 @@ export async function POST(req: NextRequest) {
     let body;
     try {
       body = await req.json();
-      console.log("[NESTED_REPLIES] Request body:", body);
+
     } catch (err) {
-      console.error("[NESTED_REPLIES] Error parsing request:", err);
+      logger.error("[NESTED_REPLIES] Error parsing request:", err);
       return NextResponse.json({ error: "Invalid request format" }, { status: 400 });
     }
 
     const { postId, commentId, parentReplyId, content } = body;
-    
-    console.log("[NESTED_REPLIES] Processing request:", {
-      postId,
-      commentId,
-      parentReplyId,
-      contentLength: content?.length
-    });
 
     // Validate required fields
     if (!content) {
@@ -67,7 +60,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!post) {
-      console.log("[NESTED_REPLIES] Post not found:", { postId });
+
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
@@ -81,7 +74,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!comment) {
-      console.log("[NESTED_REPLIES] Comment not found:", { commentId, postId });
+
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
@@ -106,7 +99,7 @@ export async function POST(req: NextRequest) {
       });
       
       if (!parentReply) {
-        console.log("[NESTED_REPLIES] Parent reply not found:", { parentReplyId, commentId, postId });
+
         return NextResponse.json({ error: "Parent reply not found" }, { status: 404 });
       }
       
@@ -147,15 +140,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log("[NESTED_REPLIES] Reply created successfully:", { 
-      replyId: reply.id,
-      depth,
-      path
-    });
-    
     return NextResponse.json(reply);
   } catch (error) {
-    console.error("[NESTED_REPLIES] Error:", error);
+    logger.error("[NESTED_REPLIES] Error:", error);
     return NextResponse.json(
       { error: "Error creating reply" },
       { status: 500 }

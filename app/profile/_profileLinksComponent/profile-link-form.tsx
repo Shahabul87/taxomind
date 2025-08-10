@@ -9,6 +9,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -59,7 +60,7 @@ export const ProfileLinkForm = ({ userId }: ProfileLinkFormProps) => {
       router.refresh();
     } catch (error) {
       toast.error("Something went wrong");
-      console.error(error);
+      logger.error(error);
     } finally {
       setIsSubmitting(false);
     }

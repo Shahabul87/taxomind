@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { logger } from '@/lib/logger';
 import {
   LineChart,
   Line,
@@ -145,7 +146,7 @@ export function RealTimeDashboard({
   const initializeRealTimeConnection = () => {
     // In a real implementation, this would connect to a WebSocket server
     // For now, we'll simulate real-time updates with polling
-    console.log('Initializing real-time connection...');
+
   };
 
   const fetchCurrentMetrics = useCallback(async () => {
@@ -180,7 +181,7 @@ export function RealTimeDashboard({
       setMetrics([...metricsHistory.current]);
       setIsConnected(true);
     } catch (error) {
-      console.error('Failed to fetch current metrics:', error);
+      logger.error('Failed to fetch current metrics:', error);
       setIsConnected(false);
     }
   }, [courseId, selectedTimeRange]);
@@ -196,7 +197,7 @@ export function RealTimeDashboard({
       const data = await response.json();
       setStudentActivities(data.activities || []);
     } catch (error) {
-      console.error('Failed to fetch student activities:', error);
+      logger.error('Failed to fetch student activities:', error);
     }
   }, [courseId, selectedTimeRange]);
 
@@ -211,7 +212,7 @@ export function RealTimeDashboard({
       const data = await response.json();
       setAlerts(data.alerts || []);
     } catch (error) {
-      console.error('Failed to fetch content alerts:', error);
+      logger.error('Failed to fetch content alerts:', error);
     }
   }, [courseId]);
 
@@ -224,7 +225,7 @@ export function RealTimeDashboard({
         fetchContentAlerts()
       ]);
     } catch (error) {
-      console.error('Failed to fetch initial data:', error);
+      logger.error('Failed to fetch initial data:', error);
       setIsConnected(false);
     } finally {
       setLoading(false);
@@ -257,7 +258,7 @@ export function RealTimeDashboard({
         alert.id === alertId ? { ...alert, resolved: true } : alert
       ));
     } catch (error) {
-      console.error('Failed to resolve alert:', error);
+      logger.error('Failed to resolve alert:', error);
     }
   };
 

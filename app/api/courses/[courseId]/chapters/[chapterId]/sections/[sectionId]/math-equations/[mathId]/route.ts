@@ -61,7 +61,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedMathExplanation);
   } catch (error) {
-    console.log("[MATH_EXPLANATION_ID]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -98,7 +98,7 @@ export async function DELETE(
 
     return NextResponse.json(deletedMathExplanation);
   } catch (error) {
-    console.log("[MATH_EXPLANATION_DELETE]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -135,7 +135,7 @@ export async function GET(
 
     return NextResponse.json(mathExplanation);
   } catch (error) {
-    console.log("[MATH_EXPLANATION_GET]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

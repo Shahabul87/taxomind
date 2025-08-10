@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { samCollaborationEngine } from "@/lib/sam-collaboration-engine";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Collaboration analytics error:", error);
+    logger.error("Collaboration analytics error:", error);
     return NextResponse.json(
       { error: "Failed to process collaboration analytics request" },
       { status: 500 }
@@ -1166,7 +1167,7 @@ export async function GET(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Error fetching collaboration data:", error);
+    logger.error("Error fetching collaboration data:", error);
     return NextResponse.json(
       { error: "Failed to fetch collaboration data" },
       { status: 500 }

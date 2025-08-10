@@ -6,6 +6,7 @@
 
 import { Redis } from '@upstash/redis';
 import { CircuitBreakerManager } from './circuit-breaker';
+import { logger } from '@/lib/logger';
 
 export interface ServiceHealthCheck {
   name: string;
@@ -198,7 +199,7 @@ export class HealthMonitor {
   addCheck(check: HealthCheck): void {
     this.systemChecks.set(check.name, check);
     this.startSystemHealthCheck(check);
-    console.log(`[HEALTH_MONITOR] Added system health check: ${check.name}`);
+
   }
 
   /**
@@ -230,8 +231,7 @@ export class HealthMonitor {
     if (this.isMonitoring) {
       this.startServiceMonitoring(config.name);
     }
-    
-    console.log(`[HEALTH_MONITOR] Added service health check: ${config.name}`);
+
   }
 
   /**
@@ -241,7 +241,7 @@ export class HealthMonitor {
     this.stopHealthCheck(name);
     this.systemChecks.delete(name);
     this.lastResults.delete(name);
-    console.log(`[HEALTH_MONITOR] Removed system health check: ${name}`);
+
   }
 
   /**
@@ -252,7 +252,7 @@ export class HealthMonitor {
     this.serviceChecks.delete(serviceName);
     this.healthStatus.delete(serviceName);
     this.healthMetrics.delete(serviceName);
-    console.log(`[HEALTH_MONITOR] Removed service health check: ${serviceName}`);
+
   }
 
   /**
@@ -275,7 +275,6 @@ export class HealthMonitor {
       this.startServiceMonitoring(serviceName);
     }
 
-    console.log('[HEALTH_MONITOR] Started monitoring all services and system checks');
   }
 
   /**
@@ -292,7 +291,6 @@ export class HealthMonitor {
       this.stopHealthCheck(checkName);
     }
 
-    console.log('[HEALTH_MONITOR] Stopped monitoring all services');
   }
 
   /**
@@ -382,7 +380,7 @@ export class HealthMonitor {
 
       // Retry if configured
       if (check.retries && check.retries > 0) {
-        console.warn(`[HEALTH_MONITOR] Health check ${check.name} failed, retrying...`);
+        logger.warn(`[HEALTH_MONITOR] Health check ${check.name} failed, retrying...`);
         for (let retry = 1; retry <= check.retries; retry++) {
           try {
             await new Promise(resolve => setTimeout(resolve, 1000 * retry));
@@ -423,9 +421,9 @@ export class HealthMonitor {
 
     // Log result
     if (result.status === 'unhealthy') {
-      console.error(`[HEALTH_MONITOR] Health check ${check.name} failed: ${result.message}`);
+      logger.error(`[HEALTH_MONITOR] Health check ${check.name} failed: ${result.message}`);
     } else if (result.status === 'warning') {
-      console.warn(`[HEALTH_MONITOR] Health check ${check.name} warning: ${result.message}`);
+      logger.warn(`[HEALTH_MONITOR] Health check ${check.name} warning: ${result.message}`);
     }
   }
 
@@ -515,13 +513,13 @@ export class HealthMonitor {
 
     // Notify if status changed
     if (wasHealthy !== isHealthy) {
-      console.log(`[HEALTH_MONITOR] Service ${serviceName} status changed: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`);
+
       this.notifyStatusChange(serviceName, currentStatus);
     }
 
     // Log degraded status
     if (currentStatus.status === 'degraded') {
-      console.warn(`[HEALTH_MONITOR] Service ${serviceName} is degraded (${currentStatus.consecutiveFailures} consecutive failures)`);
+      logger.warn(`[HEALTH_MONITOR] Service ${serviceName} is degraded (${currentStatus.consecutiveFailures} consecutive failures)`);
     }
   }
 
@@ -740,7 +738,7 @@ export class HealthMonitor {
         result.timestamp = new Date(parseInt(results[i + 1] as string));
         history.push(result);
       } catch (error) {
-        console.warn(`[HEALTH_MONITOR] Failed to parse history entry:`, error);
+        logger.warn(`[HEALTH_MONITOR] Failed to parse history entry:`, error);
       }
     }
 
@@ -752,7 +750,7 @@ export class HealthMonitor {
    */
   addAlert(alert: AlertConfig): void {
     this.alerts.push(alert);
-    console.log(`[HEALTH_MONITOR] Added alert: ${alert.type} -> ${alert.destination}`);
+
   }
 
   /**
@@ -1003,7 +1001,7 @@ export class HealthMonitor {
       // Set expiration
       await this.redis.expire(key, 7 * 24 * 60 * 60); // 7 days
     } catch (error) {
-      console.error(`[HEALTH_MONITOR] Failed to store health check result:`, error);
+      logger.error(`[HEALTH_MONITOR] Failed to store health check result:`, error);
     }
   }
 
@@ -1064,7 +1062,7 @@ export class HealthMonitor {
       await this.redis.ltrim(`health_history:${serviceName}`, 0, 99);
 
     } catch (error) {
-      console.error(`[HEALTH_MONITOR] Failed to persist health data for ${serviceName}:`, error);
+      logger.error(`[HEALTH_MONITOR] Failed to persist health data for ${serviceName}:`, error);
     }
   }
 
@@ -1076,7 +1074,7 @@ export class HealthMonitor {
       try {
         callback(serviceName, status);
       } catch (error) {
-        console.error(`[HEALTH_MONITOR] Notification callback failed for ${serviceName}:`, error);
+        logger.error(`[HEALTH_MONITOR] Notification callback failed for ${serviceName}:`, error);
       }
     }
   }
@@ -1130,7 +1128,7 @@ export class HealthMonitor {
     result: HealthCheckResult
   ): Promise<void> {
     try {
-      console.warn(`[HEALTH_MONITOR] Sending ${alert.type} alert for ${check.name}`);
+      logger.warn(`[HEALTH_MONITOR] Sending ${alert.type} alert for ${check.name}`);
       
       // Update cooldown
       const cooldownKey = `${alert.destination}:${check.name}`;
@@ -1151,7 +1149,7 @@ export class HealthMonitor {
       console.log('[SYSTEM_ALERT]', JSON.stringify(alertData, null, 2));
       
     } catch (error) {
-      console.error(`[HEALTH_MONITOR] Failed to send system alert:`, error);
+      logger.error(`[HEALTH_MONITOR] Failed to send system alert:`, error);
     }
   }
 
@@ -1266,7 +1264,7 @@ export class HealthMonitor {
       const history = await this.redis.lrange(`health_history:${serviceName}`, 0, limit - 1);
       return history.map(entry => JSON.parse(entry as string));
     } catch (error) {
-      console.error(`[HEALTH_MONITOR] Failed to get history for ${serviceName}:`, error);
+      logger.error(`[HEALTH_MONITOR] Failed to get history for ${serviceName}:`, error);
       return [];
     }
   }
@@ -1338,8 +1336,7 @@ export class HealthMonitor {
     this.healthStatus.clear();
     this.healthMetrics.clear();
     this.alertCooldowns.clear();
-    
-    console.log('[HEALTH_MONITOR] Shutdown completed');
+
   }
 }
 

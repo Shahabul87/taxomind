@@ -94,7 +94,7 @@ export function TeacherPageContextInjector() {
             capabilities: pageContext.capabilities || []
           }
         });
-        console.log('🎯 Teacher page context injected:', pageContext);
+
       }
 
       // Also dispatch custom event

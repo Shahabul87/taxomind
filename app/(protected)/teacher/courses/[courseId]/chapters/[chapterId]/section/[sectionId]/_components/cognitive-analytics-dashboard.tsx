@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { logger } from '@/lib/logger';
 import { 
   Brain, 
   TrendingUp, 
@@ -129,7 +130,7 @@ export const CognitiveAnalyticsDashboard = ({
       const mockAnalytics = await generateMockAnalyticsData();
       setAnalyticsData(mockAnalytics);
     } catch (error) {
-      console.error('Failed to load analytics data:', error);
+      logger.error('Failed to load analytics data:', error);
     } finally {
       setIsLoading(false);
     }

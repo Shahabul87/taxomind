@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Optimized endpoint for deleting nested replies at any depth
 export async function DELETE(req: NextRequest) {
-  console.log("[DELETE_NESTED_REPLY] Request received");
-  
+
   try {
     // Authenticate the user
     const user = await currentUser();
     if (!user) {
-      console.log("[DELETE_NESTED_REPLY] Unauthorized - no user session");
+
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -19,13 +19,6 @@ export async function DELETE(req: NextRequest) {
     const postId = url.searchParams.get('postId');
     const replyId = url.searchParams.get('replyId');
     const commentId = url.searchParams.get('commentId'); // Optional, for lookup
-    
-    console.log("[DELETE_NESTED_REPLY] Request params:", { 
-      postId, 
-      replyId, 
-      commentId,
-      userId: user.id 
-    });
 
     // Validate required fields
     if (!postId) {
@@ -43,7 +36,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     if (!post) {
-      console.log("[DELETE_NESTED_REPLY] Post not found");
+
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
@@ -63,8 +56,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     if (!reply) {
-      console.log("[DELETE_NESTED_REPLY] Reply not found or not owned by user");
-      
+
       // Additional debug info
       const anyReply = await db.reply.findUnique({
         where: { id: replyId },
@@ -76,12 +68,12 @@ export async function DELETE(req: NextRequest) {
       });
       
       if (!anyReply) {
-        console.log("[DELETE_NESTED_REPLY] Reply does not exist at all");
+
         return NextResponse.json({ error: "Reply not found" }, { status: 404 });
       }
       
       if (anyReply.userId !== user.id) {
-        console.log("[DELETE_NESTED_REPLY] Reply exists but belongs to user", anyReply.userId);
+
         return NextResponse.json({ 
           error: "You don't have permission to delete this reply",
           status: "permission_denied" 
@@ -91,7 +83,6 @@ export async function DELETE(req: NextRequest) {
 
     // Find all child reply IDs recursively
     const allChildReplyIds = await getAllChildReplyIds(replyId);
-    console.log(`[DELETE_NESTED_REPLY] Found ${allChildReplyIds.length} child replies to delete`);
 
     try {
       // Transaction to delete the reply and all its child replies
@@ -121,15 +112,13 @@ export async function DELETE(req: NextRequest) {
           where: { id: replyId }
         });
       });
-      
-      console.log("[DELETE_NESTED_REPLY] Reply and all child replies deleted:", replyId);
 
       return NextResponse.json({ 
         success: true,
         message: "Reply deleted successfully" 
       });
     } catch (dbError) {
-      console.error("[DELETE_NESTED_REPLY] Database error during transaction:", dbError);
+      logger.error("[DELETE_NESTED_REPLY] Database error during transaction:", dbError);
       return NextResponse.json(
         { 
           error: "Database error deleting reply",
@@ -139,7 +128,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
   } catch (error) {
-    console.error("[DELETE_NESTED_REPLY] Error:", error);
+    logger.error("[DELETE_NESTED_REPLY] Error:", error);
     return NextResponse.json(
       { 
         error: "Error deleting reply",

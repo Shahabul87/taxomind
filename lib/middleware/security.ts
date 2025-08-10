@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SecurityHeaders, SecurityHeadersPresets } from '@/lib/security/security-headers';
 import { CryptoUtils } from '@/lib/security/crypto-utils';
+import { logger } from '@/lib/logger';
 
 /**
  * Comprehensive Security Middleware for Taxomind LMS
@@ -323,7 +324,7 @@ export class SecurityMiddleware {
       };
 
     } catch (error) {
-      console.error('Security middleware error:', error);
+      logger.error('Security middleware error:', error);
       
       // Log security middleware error
       await this.logSecurityEvent({
@@ -737,7 +738,7 @@ export class SecurityMiddleware {
 
     // Log to console in development
     if (this.config.environment === 'development') {
-      console.warn(`[SECURITY] ${event.type.toUpperCase()}: ${event.clientIP} - ${event.path}`, event);
+      logger.warn(`[SECURITY] ${event.type.toUpperCase()}: ${event.clientIP} - ${event.path}`, event);
     }
 
     // Send webhook notification for critical events
@@ -749,7 +750,7 @@ export class SecurityMiddleware {
           body: JSON.stringify(event),
         });
       } catch (error) {
-        console.error('Failed to send security webhook:', error);
+        logger.error('Failed to send security webhook:', error);
       }
     }
   }

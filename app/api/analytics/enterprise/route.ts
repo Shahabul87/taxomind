@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { analyticsEngine } from "@/lib/enterprise-analytics";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(analytics);
   } catch (error) {
-    console.error("[ANALYTICS_GET]", error);
+    logger.error("[ANALYTICS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
         return new NextResponse("Invalid action", { status: 400 });
     }
   } catch (error) {
-    console.error("[ANALYTICS_POST]", error);
+    logger.error("[ANALYTICS_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

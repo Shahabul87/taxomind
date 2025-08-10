@@ -33,7 +33,7 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
   };
 
   const handleAIContentGenerated = (content: any) => {
-    console.log('AI content generated:', content);
+
     // The component will refresh the page, so we don't need to do anything here
   };
 

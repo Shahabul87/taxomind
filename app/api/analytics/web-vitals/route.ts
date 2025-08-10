@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { performanceMonitoring } from '@/lib/performance-monitoring'
@@ -75,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error storing web vitals:', error)
+    logger.error('Error storing web vitals:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -162,7 +164,7 @@ export async function GET(req: NextRequest) {
       total: webVitals.length,
     })
   } catch (error) {
-    console.error('Error fetching web vitals:', error)
+    logger.error('Error fetching web vitals:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

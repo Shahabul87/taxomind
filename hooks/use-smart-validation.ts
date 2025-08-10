@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 
 interface ValidationResult {
   isValid: boolean;
@@ -90,7 +91,7 @@ export const useSmartValidation = () => {
 
           resolve(result);
         } catch (error) {
-          console.error('Validation error:', error);
+          logger.error('Validation error:', error);
           
           // Set a basic "valid" state on error
           const fallbackResult: ValidationResult = {

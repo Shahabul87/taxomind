@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
+import { logger } from '@/lib/logger';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -37,7 +38,7 @@ async function uploadFile(
       },
       (error, result) => {
         if (error) {
-          console.error('Cloudinary upload error:', error);
+          logger.error('Cloudinary upload error:', error);
           reject(new Error('Failed to upload file'));
         } else {
           resolve(result!.secure_url);
@@ -73,7 +74,7 @@ async function uploadImage(
       },
       (error, result) => {
         if (error) {
-          console.error('Cloudinary upload error:', error);
+          logger.error('Cloudinary upload error:', error);
           reject(new Error('Failed to upload image'));
         } else {
           resolve(result as UploadResult);
@@ -90,7 +91,7 @@ async function deleteFile(publicId: string): Promise<boolean> {
     const result = await cloudinary.uploader.destroy(publicId);
     return result.result === 'ok';
   } catch (error) {
-    console.error('Cloudinary delete error:', error);
+    logger.error('Cloudinary delete error:', error);
     return false;
   }
 }
@@ -136,7 +137,7 @@ async function uploadFileLocal(
     fs.writeFileSync(filePath, buffer);
     return `/uploads/certificates/${fileName}`;
   } catch (error) {
-    console.error('Local upload error:', error);
+    logger.error('Local upload error:', error);
     throw new Error('Failed to upload file locally');
   }
 }

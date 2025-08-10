@@ -12,6 +12,7 @@ import { NotificationsSettings } from '../_components/NotificationsSettings';
 import { PrivacyAndSecurity } from '../_components/PrivacyAndSecurity';
 import { PublicDetails } from '../_components/PublicDetails';
 import { User as PrismaUser, ProfileLink } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 interface SettingsContentProps {
   userId: string;
@@ -43,7 +44,7 @@ export const SettingsContent = ({ userId }: SettingsContentProps) => {
         const data = await response.json();
         setUserDetails(data);
       } catch (error) {
-        console.error('Error fetching user details:', error);
+        logger.error('Error fetching user details:', error);
       } finally {
         setIsLoading(false);
       }

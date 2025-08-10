@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function PATCH(
   req: NextRequest,
@@ -51,7 +52,7 @@ export async function PATCH(
       enrollment: updatedEnrollment,
     });
   } catch (error) {
-    console.error("Update enrollment status error:", error);
+    logger.error("Update enrollment status error:", error);
     return NextResponse.json(
       { error: "Failed to update enrollment status" },
       { status: 500 }

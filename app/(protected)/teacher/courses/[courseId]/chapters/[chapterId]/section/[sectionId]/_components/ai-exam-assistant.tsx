@@ -19,6 +19,7 @@ import { InterfaceModeToggle } from "@/components/ui/interface-mode-toggle";
 import { FeatureHint } from "@/components/ui/feature-hint";
 import { useProgressiveDisclosure } from "@/hooks/use-progressive-disclosure";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface AIExamAssistantProps {
   sectionTitle: string;
@@ -178,7 +179,7 @@ export const AIExamAssistant = ({
         throw new Error('Invalid response format');
       }
     } catch (error: any) {
-      console.error('AI exam generation error:', error);
+      logger.error('AI exam generation error:', error);
       toast.error(`Failed to generate exam questions. Please try again.`);
     } finally {
       setIsGenerating(false);

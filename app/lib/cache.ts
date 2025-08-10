@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { logger } from '@/lib/logger';
 
 // Initialize Redis client if credentials are available
 const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
@@ -25,7 +26,7 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
     const data = await redis.get(key);
     return data as T;
   } catch (error) {
-    console.error(`Cache retrieval error for key ${key}:`, error);
+    logger.error(`Cache retrieval error for key ${key}:`, error);
     return null;
   }
 }
@@ -41,7 +42,7 @@ export async function setInCache(key: string, data: any, ttlOverride?: number): 
     await redis.set(key, data, { ex: ttl });
     return true;
   } catch (error) {
-    console.error(`Cache set error for key ${key}:`, error);
+    logger.error(`Cache set error for key ${key}:`, error);
     return false;
   }
 }
@@ -64,7 +65,7 @@ export async function invalidateCache(pattern: string): Promise<boolean> {
     
     return true;
   } catch (error) {
-    console.error(`Cache invalidation error for pattern ${pattern}:`, error);
+    logger.error(`Cache invalidation error for pattern ${pattern}:`, error);
     return false;
   }
 }

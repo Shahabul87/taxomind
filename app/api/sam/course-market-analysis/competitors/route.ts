@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { MarketAnalysisEngine } from '@/lib/sam-market-engine';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get competitors error:', error);
+    logger.error('Get competitors error:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve competitors' },
       { status: 500 }
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Add competitor error:', error);
+    logger.error('Add competitor error:', error);
     return NextResponse.json(
       { error: 'Failed to add competitor' },
       { status: 500 }
@@ -154,7 +155,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Delete competitor error:', error);
+    logger.error('Delete competitor error:', error);
     return NextResponse.json(
       { error: 'Failed to delete competitor' },
       { status: 500 }

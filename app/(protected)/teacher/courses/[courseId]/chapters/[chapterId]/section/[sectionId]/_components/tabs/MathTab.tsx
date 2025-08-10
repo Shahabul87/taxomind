@@ -6,6 +6,7 @@ import axios from "axios";
 import { Calculator, Sigma, BookOpen, Sparkles, Zap, Target } from "lucide-react";
 import { MathEquationForm } from "../_explanations/_MathTabComponents/math-equation-form";
 import { ExplanationsList } from "../explanations-list-new";
+import { logger } from '@/lib/logger';
 
 interface MathTabProps {
   courseId: string;
@@ -35,7 +36,7 @@ export const MathTab = ({
     try {
       router.refresh();
     } catch (error) {
-      console.error("Error during router refresh:", error);
+      logger.error("Error during router refresh:", error);
     } finally {
       // Reset flag after a delay
       setTimeout(() => setIsRefreshing(false), 1000);
@@ -44,7 +45,7 @@ export const MathTab = ({
 
   // Handle math equation added
   const handleMathEquationAdded = useCallback(() => {
-    console.log("🔄 Math equation added, refreshing data...");
+
     setMathEquationsRefreshCounter(prev => prev + 1);
     
     // Ensure we stay on the math tab after adding equation
@@ -58,7 +59,7 @@ export const MathTab = ({
 
   // Edit math explanation (navigate to edit page)
   const handleEdit = useCallback((id: string) => {
-    console.log("🔧 Edit math explanation:", id);
+
     router.push(`/teacher/courses/${courseId}/chapters/${chapterId}/section/${sectionId}/math-equations/${id}`);
   }, [router, courseId, chapterId, sectionId]);
 
@@ -67,11 +68,11 @@ export const MathTab = ({
     if (isRefreshing) return; // Prevent action during refresh
     
     try {
-      console.log("🗑️ Delete math explanation:", id);
+
       await axios.delete(`/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations/${id}`);
       debouncedRefresh();
     } catch (error) {
-      console.error("Error deleting math explanation:", error);
+      logger.error("Error deleting math explanation:", error);
       throw error;
     }
   }, [courseId, chapterId, sectionId, debouncedRefresh, isRefreshing]);
@@ -102,7 +103,6 @@ export const MathTab = ({
 
   return (
     <div className="animate-fadeIn">
-
 
       <div className="space-y-8">
         {/* Math Equation Form - now full width */}

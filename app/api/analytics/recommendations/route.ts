@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { PredictiveAnalytics } from "@/lib/predictive-analytics";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Generate recommendations error:", error);
+    logger.error("Generate recommendations error:", error);
     return NextResponse.json(
       { error: "Failed to generate personalized recommendations" },
       { status: 500 }

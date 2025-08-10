@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -191,7 +192,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Teacher analytics error:', error);
+    logger.error('Teacher analytics error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',
@@ -252,7 +253,8 @@ async function generateCourseAnalytics(course: any, timeFilter: Date, includeDet
         lastActivity: attempt.startedAt,
         missedExams: 0,
         bloomsPerformance: {},
-        difficultyPerformance: {}
+        difficultyPerformance: {
+}
       });
     }
 

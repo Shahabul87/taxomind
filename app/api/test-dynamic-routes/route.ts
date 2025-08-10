@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error("Dynamic route test error:", error);
+    logger.error("Dynamic route test error:", error);
     return NextResponse.json({
       error: error instanceof Error ? error.message : "Unknown error",
       timestamp: new Date().toISOString()

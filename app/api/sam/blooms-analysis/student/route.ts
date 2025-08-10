@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { BloomsLevel } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get student Blooms progress error:', error);
+    logger.error('Get student Blooms progress error:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve student progress' },
       { status: 500 }
@@ -201,7 +202,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Update student Blooms progress error:', error);
+    logger.error('Update student Blooms progress error:', error);
     return NextResponse.json(
       { error: 'Failed to update student progress' },
       { status: 500 }

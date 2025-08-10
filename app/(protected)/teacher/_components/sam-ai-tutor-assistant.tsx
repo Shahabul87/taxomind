@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { logger } from '@/lib/logger';
 import { 
   Select,
   SelectContent,
@@ -197,7 +198,7 @@ export function SamAITutorAssistant() {
     try {
       const form = document.getElementById(formId) as HTMLFormElement;
       if (!form) {
-        console.warn(`Form with ID ${formId} not found`);
+        logger.warn(`Form with ID ${formId} not found`);
         return false;
       }
       
@@ -218,7 +219,7 @@ export function SamAITutorAssistant() {
       
       return true;
     } catch (error) {
-      console.error('Error populating form:', error);
+      logger.error('Error populating form:', error);
       return false;
     }
   }, []);
@@ -227,7 +228,7 @@ export function SamAITutorAssistant() {
     try {
       const form = document.getElementById(formId) as HTMLFormElement;
       if (!form) {
-        console.warn(`Form with ID ${formId} not found`);
+        logger.warn(`Form with ID ${formId} not found`);
         return false;
       }
       
@@ -242,7 +243,7 @@ export function SamAITutorAssistant() {
       form.submit();
       return true;
     } catch (error) {
-      console.error('Error submitting form:', error);
+      logger.error('Error submitting form:', error);
       return false;
     }
   }, []);
@@ -281,7 +282,7 @@ export function SamAITutorAssistant() {
       
       return true;
     } catch (error) {
-      console.error('Error validating form:', error);
+      logger.error('Error validating form:', error);
       return false;
     }
   }, []);
@@ -301,7 +302,7 @@ export function SamAITutorAssistant() {
       
       setIsReady(true);
     } catch (error) {
-      console.error('Error refreshing page data:', error);
+      logger.error('Error refreshing page data:', error);
     }
   }, [detectForms]);
   
@@ -321,13 +322,13 @@ export function SamAITutorAssistant() {
           component.scrollIntoView({ behavior: 'smooth' });
           break;
         default:
-          console.warn(`Unknown action: ${action}`);
+          logger.warn(`Unknown action: ${action}`);
           return false;
       }
       
       return true;
     } catch (error) {
-      console.error('Error interacting with component:', error);
+      logger.error('Error interacting with component:', error);
       return false;
     }
   }, []);
@@ -349,7 +350,7 @@ export function SamAITutorAssistant() {
       
       return false;
     } catch (error) {
-      console.error('Error navigating workflow:', error);
+      logger.error('Error navigating workflow:', error);
       return false;
     }
   }, [router]);
@@ -374,45 +375,44 @@ export function SamAITutorAssistant() {
         return data.content || `Generated ${type} content for ${topic}`;
       }
     } catch (error) {
-      console.error('Error generating content:', error);
+      logger.error('Error generating content:', error);
     }
     
     return `AI-generated ${type} content for ${topic}`;
   }, [learningContext, tutorPersonalityData]);
-  
-  
+
   const respondToEmotion = useCallback(async (emotion: string) => {
-    console.log('respondToEmotion called:', emotion);
+
     return 'supportive response';
   }, []);
   
   const generateStudentInsights = useCallback(async () => {
-    console.log('generateStudentInsights called');
+
     return 'Student insights';
   }, []);
   
   const suggestInterventions = useCallback(async (context: any) => {
-    console.log('suggestInterventions called:', context);
+
     return 'Suggested interventions';
   }, []);
   
   const createRubric = useCallback(async (criteria: any) => {
-    console.log('createRubric called:', criteria);
+
     return 'Generated rubric';
   }, []);
   
   const useSocraticMethod = useCallback(async (question: string) => {
-    console.log('useSocraticMethod called:', question);
+
     return 'Socratic response';
   }, []);
   
   const generateGuidingQuestion = useCallback(async (topic: string) => {
-    console.log('generateGuidingQuestion called:', topic);
+
     return 'What do you think about this concept?';
   }, []);
   
   const provideScaffoldedHelp = useCallback(async (difficulty: string) => {
-    console.log('provideScaffoldedHelp called:', difficulty);
+
     return 'Scaffolded help content';
   }, []);
   
@@ -527,7 +527,6 @@ I&apos;m here to help you manage the learning platform efficiently:
   }, [isReady, messages.length, generateWelcomeMessage]);
 
   // tutorMode is now automatically detected by the Global SAM provider
-
 
   // Helper function to execute quick actions
   const executeQuickAction = useCallback((actionId: string) => {
@@ -706,7 +705,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           category: 'teaching',
           action: () => {
             // Inline action to avoid circular dependency
-            console.log('Explain concept action');
+
           },
           available: true,
           tooltip: 'Personalized concept explanations'
@@ -719,7 +718,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           category: 'teaching',
           action: () => {
             // Inline action to avoid circular dependency
-            console.log('Practice problems action');
+
           },
           available: true,
           tooltip: 'Adaptive practice problems'
@@ -732,7 +731,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           category: 'teaching',
           action: () => {
             // Inline action to avoid circular dependency
-            console.log('Study plan action');
+
           },
           available: true,
           tooltip: 'AI-generated study plans'
@@ -745,7 +744,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           category: 'motivation',
           action: () => {
             // Inline action to avoid circular dependency
-            console.log('Motivation boost action');
+
           },
           available: true,
           tooltip: 'Personalized motivation and encouragement'
@@ -758,7 +757,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           category: 'teaching',
           action: () => {
             // Inline action to avoid circular dependency
-            console.log('Content companion action');
+
           },
           available: true,
           tooltip: 'Get help with videos, code, and text content'
@@ -771,7 +770,7 @@ I&apos;m here to help you manage the learning platform efficiently:
           category: 'teaching',
           action: () => {
             // Inline action to avoid circular dependency
-            console.log('Visual processing action');
+
           },
           available: true,
           tooltip: 'Generate diagrams and visual aids for learning'
@@ -1019,7 +1018,7 @@ ${data.response.practiceExercises?.map((e: string) => `• ${e}`).join('\n') || 
         });
       }
     } catch (error) {
-      console.error('Content companion failed:', error);
+      logger.error('Content companion failed:', error);
       addMessage({
         type: 'sam',
         content: 'I&apos;m having trouble with the content companion feature. Please try again.',
@@ -1075,7 +1074,7 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
         });
       }
     } catch (error) {
-      console.error('Visual processing failed:', error);
+      logger.error('Visual processing failed:', error);
       addMessage({
         type: 'sam',
         content: 'I encountered an issue generating visual content. Please try again.',
@@ -1193,7 +1192,7 @@ What subject will you teach and what level of depth do you want? I&apos;ll creat
   // Handle personality adjustment
   const adjustPersonality = useCallback((updates: Partial<any>) => {
     // This would typically update the tutor personality in the provider
-    console.log('Adjusting personality:', updates);
+
   }, []);
 
   // NEW AI TOOLS HANDLERS
@@ -1239,7 +1238,7 @@ Would you like me to:
         });
       }
     } catch (error) {
-      console.error('Failed to fetch AI trends:', error);
+      logger.error('Failed to fetch AI trends:', error);
       addMessage({
         type: 'sam',
         content: 'I encountered an issue fetching AI trends. Please try again.',
@@ -1290,7 +1289,7 @@ Would you like me to:
         });
       }
     } catch (error) {
-      console.error('Failed to fetch AI news:', error);
+      logger.error('Failed to fetch AI news:', error);
       addMessage({
         type: 'sam',
         content: 'I encountered an issue fetching AI news. Please try again.',
@@ -1342,7 +1341,7 @@ Would you like me to:
         });
       }
     } catch (error) {
-      console.error('Failed to fetch AI research:', error);
+      logger.error('Failed to fetch AI research:', error);
       addMessage({
         type: 'sam',
         content: 'I encountered an issue fetching AI research. Please try again.',
@@ -1449,7 +1448,7 @@ Exploring the latest in AI...`,
           break;
       }
     } catch (error) {
-      console.error('Quick action failed:', error);
+      logger.error('Quick action failed:', error);
       toast.error('Action failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -1631,7 +1630,7 @@ Each objective will be measured through:
           });
       }
     } catch (error) {
-      console.error('Course creation action failed:', error);
+      logger.error('Course creation action failed:', error);
       addMessage({
         type: 'sam',
         content: 'I encountered an issue with that course creation action. Please try again.',
@@ -1740,7 +1739,7 @@ Each objective will be measured through:
       }
       
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       
       const errorMessage: ChatMessage = {
         id: Date.now().toString(),

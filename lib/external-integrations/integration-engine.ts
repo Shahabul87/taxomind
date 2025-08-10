@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 import {
   ExternalIntegration,
   IntegrationConfiguration,
@@ -58,8 +59,6 @@ export class IntegrationEngine {
     dataMapping: DataMappingConfig,
     syncSettings: SyncSettings
   ): Promise<ExternalIntegration> {
-    
-    console.log(`Creating integration for provider: ${providerId}`);
 
     // Validate configuration
     const validation = await this.validateIntegrationConfig(
@@ -153,8 +152,6 @@ export class IntegrationEngine {
       throw new Error(`Integration not found: ${integrationId}`);
     }
 
-    console.log(`Executing sync: ${operation} for integration: ${integrationId}`);
-
     // Create sync operation
     const syncOperation: SyncOperation = {
       id: `sync_${integrationId}_${Date.now()}`,
@@ -200,7 +197,7 @@ export class IntegrationEngine {
       await this.updateIntegrationMetadata(integration, result);
 
     } catch (error) {
-      console.error('Sync operation failed:', error);
+      logger.error('Sync operation failed:', error);
       
       syncOperation.status = 'failed';
       syncOperation.endTime = new Date();
@@ -240,8 +237,6 @@ export class IntegrationEngine {
       throw new Error(`Integration not found: ${integrationId}`);
     }
 
-    console.log(`Processing webhook event: ${eventType} for integration: ${integrationId}`);
-
     // Create webhook event
     const webhookEvent: WebhookEvent = {
       id: `webhook_${integrationId}_${Date.now()}`,
@@ -277,7 +272,7 @@ export class IntegrationEngine {
       webhookEvent.processed = processingResult.success;
       webhookEvent.processingResult = processingResult;
     } else {
-      console.warn('Webhook signature verification failed');
+      logger.warn('Webhook signature verification failed');
     }
 
     // Update webhook event
@@ -297,8 +292,6 @@ export class IntegrationEngine {
     if (!integration) {
       throw new Error(`Integration not found: ${integrationId}`);
     }
-
-    console.log(`Transforming data for integration: ${integrationId}`);
 
     const startTime = Date.now();
 
@@ -394,8 +387,6 @@ export class IntegrationEngine {
       throw new Error(`Integration not found: ${integrationId}`);
     }
 
-    console.log(`Authenticating provider: ${integration.providerId}`);
-
     const authConfig = integration.authentication;
     let token = this.authTokens.get(integrationId);
 
@@ -470,7 +461,7 @@ export class IntegrationEngine {
       };
 
     } catch (error) {
-      console.error('OAuth2 token refresh failed:', error);
+      logger.error('OAuth2 token refresh failed:', error);
       throw error;
     }
   }
@@ -506,7 +497,7 @@ export class IntegrationEngine {
       }
 
     } catch (error) {
-      console.error('API key validation failed:', error);
+      logger.error('API key validation failed:', error);
       throw error;
     }
   }
@@ -594,8 +585,6 @@ export class IntegrationEngine {
     direction: SyncDirection,
     options?: SyncOptions
   ): Promise<DataTransferResult> {
-    
-    console.log(`Performing data sync: ${direction} for ${integration.providerId}`);
 
     // Get data based on direction
     let sourceData: any;
@@ -651,7 +640,7 @@ export class IntegrationEngine {
       return await response.json();
 
     } catch (error) {
-      console.error('Provider data fetch failed:', error);
+      logger.error('Provider data fetch failed:', error);
       throw error;
     }
   }
@@ -660,8 +649,6 @@ export class IntegrationEngine {
     integration: ExternalIntegration,
     data: any
   ): Promise<any> {
-    
-    console.log(`Syncing inbound data for ${integration.providerId}`);
 
     // Transform data using mapping configuration
     const transformResult = await this.transformData(
@@ -684,8 +671,6 @@ export class IntegrationEngine {
     integration: ExternalIntegration,
     data: any
   ): Promise<any> {
-    
-    console.log(`Syncing outbound data for ${integration.providerId}`);
 
     // Authenticate first
     await this.authenticateProvider(integration.id);
@@ -712,7 +697,7 @@ export class IntegrationEngine {
       return await response.json();
 
     } catch (error) {
-      console.error('Outbound sync failed:', error);
+      logger.error('Outbound sync failed:', error);
       throw error;
     }
   }
@@ -820,7 +805,7 @@ export class IntegrationEngine {
       } catch (error) {
         errorCount++;
         skippedCount++;
-        console.error('Transformation failed:', error);
+        logger.error('Transformation failed:', error);
       }
     }
 
@@ -891,9 +876,7 @@ export class IntegrationEngine {
 
   // Placeholder implementations for complex methods
   private async initializeEngine(): Promise<void> {
-    console.log('Initializing Integration Engine...');
-  }
-
+}
   private async validateIntegrationConfig(config: IntegrationConfiguration, auth: AuthenticationConfig, mapping: DataMappingConfig): Promise<{ isValid: boolean; errors: string[] }> {
     return { isValid: true, errors: [] };
   }
@@ -936,45 +919,27 @@ export class IntegrationEngine {
   }
 
   private async storeIntegration(integration: ExternalIntegration): Promise<void> {
-    console.log('Storing integration:', integration.id);
-  }
-
+}
   private async initializeAuthentication(integration: ExternalIntegration): Promise<void> {
-    console.log('Initializing authentication for:', integration.id);
-  }
-
+}
   private async setupIntegrationMonitoring(integration: ExternalIntegration): Promise<void> {
-    console.log('Setting up monitoring for:', integration.id);
-  }
-
+}
   private async updateIntegration(integration: ExternalIntegration): Promise<void> {
-    console.log('Updating integration:', integration.id);
-  }
-
+}
   private async getIntegration(integrationId: string): Promise<ExternalIntegration | null> {
     return this.integrationCache.get(integrationId) || null;
   }
 
   private async storeSyncOperation(operation: SyncOperation): Promise<void> {
-    console.log('Storing sync operation:', operation.id);
-  }
-
+}
   private async updateSyncOperation(operation: SyncOperation): Promise<void> {
-    console.log('Updating sync operation:', operation.id);
-  }
-
+}
   private async updateIntegrationMetadata(integration: ExternalIntegration, result: DataTransferResult): Promise<void> {
-    console.log('Updating integration metadata for:', integration.id);
-  }
-
+}
   private async storeWebhookEvent(event: WebhookEvent): Promise<void> {
-    console.log('Storing webhook event:', event.id);
-  }
-
+}
   private async updateWebhookEvent(event: WebhookEvent): Promise<void> {
-    console.log('Updating webhook event:', event.id);
-  }
-
+}
   private async verifyWebhookSignature(integration: ExternalIntegration, payload: any, signature: string): Promise<boolean> {
     return true; // Placeholder
   }

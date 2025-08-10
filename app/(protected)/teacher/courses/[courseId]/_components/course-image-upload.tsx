@@ -8,6 +8,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface CourseImageUploadProps {
   courseId: string;
@@ -54,7 +55,7 @@ export const CourseImageUpload = ({
       toast.success("Image uploaded!");
       router.refresh();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       toast.error("Something went wrong");
     } finally {
       setUploading(false);

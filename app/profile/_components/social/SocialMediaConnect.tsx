@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import axios from "axios";
+import { logger } from '@/lib/logger';
 
 const SUPPORTED_PLATFORMS = [
   { id: "twitter", name: "Twitter/X", placeholder: "https://twitter.com/username" },
@@ -96,7 +97,7 @@ export function SocialMediaConnect({
       }
     } catch (error) {
       toast.error("Failed to update social profiles");
-      console.error(error);
+      logger.error(error);
     } finally {
       setIsSubmitting(false);
     }

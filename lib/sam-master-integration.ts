@@ -1,5 +1,6 @@
 import { SAMEngineIntegration } from './sam-engine-integration';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 /**
  * SAM Master Integration
@@ -185,7 +186,7 @@ export class SAMMasterIntegration {
         lastUpdated: analysis.analyzedAt,
       };
     } catch (error) {
-      console.error('Error fetching market insights:', error);
+      logger.error('Error fetching market insights:', error);
       return null;
     }
   }
@@ -221,7 +222,7 @@ export class SAMMasterIntegration {
         } : null,
       };
     } catch (error) {
-      console.error('Error fetching Blooms insights:', error);
+      logger.error('Error fetching Blooms insights:', error);
       return null;
     }
   }
@@ -252,7 +253,7 @@ export class SAMMasterIntegration {
         criticalActions: result.criticalActions,
       };
     } catch (error) {
-      console.error('Error fetching course guide insights:', error);
+      logger.error('Error fetching course guide insights:', error);
       return null;
     }
   }
@@ -286,7 +287,7 @@ export class SAMMasterIntegration {
         })),
       };
     } catch (error) {
-      console.error('Error fetching learning profile:', error);
+      logger.error('Error fetching learning profile:', error);
       return null;
     }
   }

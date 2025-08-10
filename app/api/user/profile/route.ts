@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -39,7 +40,7 @@ export async function GET() {
     
     return NextResponse.json(userData);
   } catch (error) {
-    console.error("[USER_PROFILE_GET]", error);
+    logger.error("[USER_PROFILE_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

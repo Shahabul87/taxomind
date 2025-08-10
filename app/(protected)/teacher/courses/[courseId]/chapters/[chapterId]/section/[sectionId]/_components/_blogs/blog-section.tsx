@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { logger } from '@/lib/logger';
 import {
   Select,
   SelectContent,
@@ -176,7 +177,7 @@ export const BlogSectionForm = ({
         throw new Error("No metadata returned");
       }
     } catch (error) {
-      console.error("Error fetching blog metadata:", error);
+      logger.error("Error fetching blog metadata:", error);
       
       // Handle different types of errors
       let errorMessage = "Could not fetch blog metadata. Please enter details manually.";
@@ -261,7 +262,7 @@ export const BlogSectionForm = ({
         toast.error("Clipboard content is not a valid URL");
       }
     } catch (err) {
-      console.error("Error accessing clipboard:", err);
+      logger.error("Error accessing clipboard:", err);
       toast.error("Unable to access clipboard");
     }
   };
@@ -293,7 +294,7 @@ export const BlogSectionForm = ({
       resetForm();
       router.refresh();
     } catch (error: any) {
-      console.error("Error adding blog resource:", error);
+      logger.error("Error adding blog resource:", error);
       toast.error(error.response?.data || "Failed to add blog resource");
     }
   };

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { BillCategory, BillStatus } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
@@ -11,7 +12,6 @@ export async function POST(req: Request) {
     }
 
     const values = await req.json();
-    console.log("Creating bill with values:", values);
 
     const bill = await db.bill.create({
       data: {
@@ -20,10 +20,9 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log("Created bill:", bill);
     return NextResponse.json(bill);
   } catch (error) {
-    console.error("[BILLS_POST]", error);
+    logger.error("[BILLS_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -59,7 +58,7 @@ export async function GET(req: Request) {
     //console.log("All bills found:", bills);
     return NextResponse.json(bills);
   } catch (error) {
-    console.error("[BILLS_GET]", error);
+    logger.error("[BILLS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

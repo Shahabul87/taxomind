@@ -3,6 +3,7 @@
 import { cacheManager, CacheLayer, CACHE_CONFIGS } from './cache-manager';
 import { redis, REDIS_KEYS, REDIS_TTL } from './config';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 // Session data interface
 interface SessionData {
@@ -86,7 +87,7 @@ export class SessionCacheManager {
 
       return true;
     } catch (error) {
-      console.error('Error creating session:', error);
+      logger.error('Error creating session:', error);
       return false;
     }
   }
@@ -115,7 +116,7 @@ export class SessionCacheManager {
 
       return session;
     } catch (error) {
-      console.error('Error getting session:', error);
+      logger.error('Error getting session:', error);
       return null;
     }
   }
@@ -152,7 +153,7 @@ export class SessionCacheManager {
 
       return true;
     } catch (error) {
-      console.error('Error updating session activity:', error);
+      logger.error('Error updating session activity:', error);
       return false;
     }
   }
@@ -176,7 +177,7 @@ export class SessionCacheManager {
 
       return true;
     } catch (error) {
-      console.error('Error destroying session:', error);
+      logger.error('Error destroying session:', error);
       return false;
     }
   }
@@ -187,7 +188,7 @@ export class SessionCacheManager {
       const userSessionsKey = `user:sessions:${userId}`;
       return await redis.smembers(userSessionsKey) || [];
     } catch (error) {
-      console.error('Error getting user sessions:', error);
+      logger.error('Error getting user sessions:', error);
       return [];
     }
   }
@@ -203,7 +204,7 @@ export class SessionCacheManager {
 
       return true;
     } catch (error) {
-      console.error('Error destroying all user sessions:', error);
+      logger.error('Error destroying all user sessions:', error);
       return false;
     }
   }
@@ -226,7 +227,7 @@ export class SessionCacheManager {
 
       return true;
     } catch (error) {
-      console.error('Error caching auth token:', error);
+      logger.error('Error caching auth token:', error);
       return false;
     }
   }
@@ -242,7 +243,7 @@ export class SessionCacheManager {
         prefix: 'auth'
       });
     } catch (error) {
-      console.error('Error getting cached auth token:', error);
+      logger.error('Error getting cached auth token:', error);
       return null;
     }
   }
@@ -272,7 +273,7 @@ export class SessionCacheManager {
 
       return true;
     } catch (error) {
-      console.error('Error caching user permissions:', error);
+      logger.error('Error caching user permissions:', error);
       return false;
     }
   }
@@ -296,7 +297,7 @@ export class SessionCacheManager {
         prefix: 'permissions'
       });
     } catch (error) {
-      console.error('Error getting cached user permissions:', error);
+      logger.error('Error getting cached user permissions:', error);
       return null;
     }
   }
@@ -324,7 +325,7 @@ export class SessionCacheManager {
 
       return true;
     } catch (error) {
-      console.error('Error caching user profile:', error);
+      logger.error('Error caching user profile:', error);
       return false;
     }
   }
@@ -340,7 +341,7 @@ export class SessionCacheManager {
         prefix: 'profile'
       });
     } catch (error) {
-      console.error('Error getting cached user profile:', error);
+      logger.error('Error getting cached user profile:', error);
       return null;
     }
   }
@@ -354,7 +355,7 @@ export class SessionCacheManager {
         cacheManager.invalidateByTags([`user:${userId}`], CacheLayer.USER_DATA)
       ]);
     } catch (error) {
-      console.error('Error invalidating user cache:', error);
+      logger.error('Error invalidating user cache:', error);
     }
   }
 
@@ -363,7 +364,7 @@ export class SessionCacheManager {
     try {
       return await redis.scard(REDIS_KEYS.ACTIVE_SESSIONS) || 0;
     } catch (error) {
-      console.error('Error getting active sessions count:', error);
+      logger.error('Error getting active sessions count:', error);
       return 0;
     }
   }
@@ -393,7 +394,7 @@ export class SessionCacheManager {
         avgSessionDuration: activeSessions.length > 0 ? totalDuration / activeSessions.length : 0
       };
     } catch (error) {
-      console.error('Error getting session stats:', error);
+      logger.error('Error getting session stats:', error);
       return {
         totalActiveSessions: 0,
         userSessionCounts: {},
@@ -448,7 +449,7 @@ export class SessionCacheManager {
         }
       }
     } catch (error) {
-      console.error('Error during session cleanup:', error);
+      logger.error('Error during session cleanup:', error);
     }
   }
 
@@ -497,7 +498,8 @@ export class SessionUtils {
       lastActivity: Date.now(),
       deviceInfo,
       preferences: user.preferences || {},
-      metadata: {}
+      metadata: {
+}
     };
   }
 

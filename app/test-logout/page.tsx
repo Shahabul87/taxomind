@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { logout } from "@/actions/logout";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { logger } from '@/lib/logger';
 
 export default function TestLogout() {
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +34,7 @@ export default function TestLogout() {
       }
     } catch (error) {
       addLog(`Server action error: ${error}`);
-      console.error("Server action logout error:", error);
+      logger.error("Server action logout error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +53,7 @@ export default function TestLogout() {
       addLog("Client-side logout completed");
     } catch (error) {
       addLog(`Client-side error: ${error}`);
-      console.error("Client-side logout error:", error);
+      logger.error("Client-side logout error:", error);
     } finally {
       setIsLoading(false);
     }

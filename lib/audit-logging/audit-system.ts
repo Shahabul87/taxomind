@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Audit Log Schema Definitions
 export const AuditEventSchema = z.object({
@@ -587,7 +588,7 @@ export class AuditSystem {
     event: AuditEvent, 
     rule: any
   ): Promise<void> {
-    console.warn(`Compliance violation detected: ${ruleId}`, {
+    logger.warn(`Compliance violation detected: ${ruleId}`, {
       eventId: event.id,
       rule: rule.description,
       severity: rule.severity
@@ -596,7 +597,7 @@ export class AuditSystem {
 
   private async sendCriticalAlert(event: AuditEvent): Promise<void> {
     // In a real implementation, this would send alerts via email, SMS, etc.
-    console.error('CRITICAL AUDIT EVENT:', event);
+    logger.error('CRITICAL AUDIT EVENT:', event);
   }
 
   private notifyListeners(event: AuditEvent): void {
@@ -604,7 +605,7 @@ export class AuditSystem {
       try {
         listener(event);
       } catch (error) {
-        console.error('Error in audit listener:', error);
+        logger.error('Error in audit listener:', error);
       }
     });
   }

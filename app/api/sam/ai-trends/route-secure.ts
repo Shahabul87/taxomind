@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { samTrendsEngine } from '@/lib/sam-trends-engine';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 import {
   analyzeTrendsSchema,
   compareTrendsSchema,
@@ -194,7 +195,7 @@ export async function GET(req: NextRequest) {
       }
     }
   } catch (error) {
-    console.error('AI Trends API error:', error);
+    logger.error('AI Trends API error:', error);
     // Don't expose internal errors
     return errorResponse('An error occurred processing your request', 500);
   }
@@ -270,7 +271,7 @@ export async function POST(req: NextRequest) {
         return errorResponse('Invalid action');
     }
   } catch (error) {
-    console.error('AI Trends API POST error:', error);
+    logger.error('AI Trends API POST error:', error);
     return errorResponse('An error occurred processing your request', 500);
   }
 }

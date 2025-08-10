@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { samNewsEngine } from '@/lib/sam-news-engine';
 import { isProductionEnvironment } from '@/lib/config/news-config';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -171,7 +172,7 @@ export async function GET(req: NextRequest) {
       }
     }
   } catch (error) {
-    console.error('AI News API error:', error);
+    logger.error('AI News API error:', error);
     return NextResponse.json(
       { error: 'Failed to process news request' },
       { status: 500 }
@@ -264,7 +265,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (error) {
-    console.error('AI News API POST error:', error);
+    logger.error('AI News API POST error:', error);
     return NextResponse.json(
       { error: 'Failed to process news request' },
       { status: 500 }
@@ -293,7 +294,7 @@ export async function PATCH(req: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('AI News API PATCH error:', error);
+    logger.error('AI News API PATCH error:', error);
     return NextResponse.json(
       { error: 'Failed to get breaking news' },
       { status: 500 }

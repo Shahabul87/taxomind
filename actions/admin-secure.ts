@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 import { 
   adminDashboardFilterSchema, 
   statsTimeRangeSchema,
@@ -169,7 +170,7 @@ export async function getAdminDashboardDataSecure(
       // User growth data
       getUserGrowthData(userFilter)
     ]).catch(error => {
-      console.error("[ADMIN_DASHBOARD_SECURE_ERROR]", error);
+      logger.error("[ADMIN_DASHBOARD_SECURE_ERROR]", error);
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR);
     });
 
@@ -214,7 +215,7 @@ export async function getAdminDashboardDataSecure(
     };
   } catch (error) {
     // Log error securely without exposing details
-    console.error("[ADMIN_DASHBOARD_SECURE_ERROR]", {
+    logger.error("[ADMIN_DASHBOARD_SECURE_ERROR]", {
       timestamp: new Date().toISOString(),
       error: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -313,11 +314,12 @@ async function logAdminAccess(userId: string, action: string) {
     //     userId,
     //     action,
     //     timestamp: new Date(),
-    //     metadata: {}
+    //     metadata: {
+}
     //   }
     // });
   } catch (error) {
-    console.error("[AUDIT_LOG_ERROR]", error);
+    logger.error("[AUDIT_LOG_ERROR]", error);
   }
 }
 

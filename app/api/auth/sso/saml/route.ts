@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { samlProviderManager, type SAMLConfiguration } from '@/lib/auth/saml-provider';
 import { db } from '@/lib/db';
 import { signIn } from '@/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * SAML SSO Authentication Endpoints
@@ -46,8 +47,7 @@ export async function POST(request: NextRequest) {
     const authUrl = await provider.generateAuthUrl(relayState);
     
     // Log authentication attempt
-    console.log(`[SAML] Authentication initiated for tenant: ${tenantId}`);
-    
+
     return NextResponse.json({
       success: true,
       authUrl,
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('[SAML] Authentication initiation failed:', error);
+    logger.error('[SAML] Authentication initiation failed:', error);
     
     return NextResponse.json(
       { error: 'Failed to initiate SAML authentication', details: error.message },
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('[SAML] Metadata retrieval failed:', error);
+    logger.error('[SAML] Metadata retrieval failed:', error);
     
     return NextResponse.json(
       { error: 'Failed to retrieve SAML metadata', details: error.message },
@@ -133,7 +133,7 @@ async function loadTenantSAMLConfig(tenantId: string): Promise<SAMLConfiguration
     
     return null;
   } catch (error) {
-    console.error(`[SAML] Failed to load config for tenant ${tenantId}:`, error);
+    logger.error(`[SAML] Failed to load config for tenant ${tenantId}:`, error);
     return null;
   }
 }
@@ -167,7 +167,7 @@ async function loadSAMLConfigFromDatabase(tenantId: string): Promise<SAMLConfigu
     
     return null;
   } catch (error) {
-    console.error('[SAML] Database config load failed:', error);
+    logger.error('[SAML] Database config load failed:', error);
     return null;
   }
 }
@@ -217,7 +217,7 @@ function parseRoleMapping(mappingString?: string): Record<string, 'USER' | 'ADMI
   try {
     return JSON.parse(mappingString);
   } catch (error) {
-    console.warn('[SAML] Failed to parse role mapping:', error);
+    logger.warn('[SAML] Failed to parse role mapping:', error);
     return undefined;
   }
 }

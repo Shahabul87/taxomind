@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { UserRole } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 export async function getAdminDashboardData() {
   try {
@@ -133,7 +134,7 @@ export async function getAdminDashboardData() {
       additionalStats
     };
   } catch (error) {
-    console.error("[ADMIN_DASHBOARD_ACTION_ERROR]", error);
+    logger.error("[ADMIN_DASHBOARD_ACTION_ERROR]", error);
     throw error;
   }
 }

@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { logger } from '@/lib/logger';
 
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -112,7 +113,7 @@ export const NewEventDialog = ({
       onClose();
       onSuccess();
     } catch (error) {
-      console.error("Event creation error:", error);
+      logger.error("Event creation error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to schedule event");
     } finally {
       setIsSubmitting(false);

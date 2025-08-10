@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {
   // Use useState with a lazy initializer function
@@ -19,11 +20,11 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
         } catch {
           // If JSON parsing fails, remove the invalid item
           window.localStorage.removeItem(key);
-          console.warn(`Invalid JSON in localStorage for key: ${key}, using default value`);
+          logger.warn(`Invalid JSON in localStorage for key: ${key}, using default value`);
         }
       }
     } catch (error) {
-      console.error("Error reading from localStorage:", error);
+      logger.error("Error reading from localStorage:", error);
     }
   }, [key]); // Run only once when component mounts
 
@@ -38,7 +39,7 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
         window.localStorage.setItem(key, JSON.stringify(value));
       }
     } catch (error) {
-      console.error("Error writing to localStorage:", error);
+      logger.error("Error writing to localStorage:", error);
     }
   };
 

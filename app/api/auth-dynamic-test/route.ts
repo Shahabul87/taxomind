@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateDynamicRoute } from "@/lib/auth-dynamic";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("[AUTH_TEST] Testing dynamic route authentication");
-    
+
     const user = await authenticateDynamicRoute(request);
     
     if (!user) {
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error("[AUTH_TEST] Error:", error);
+    logger.error("[AUTH_TEST] Error:", error);
     return NextResponse.json({
       error: error instanceof Error ? error.message : "Unknown error",
       timestamp: new Date().toISOString()
@@ -40,8 +40,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[AUTH_TEST] Testing dynamic route authentication with POST");
-    
+
     const user = await authenticateDynamicRoute(request);
     
     if (!user) {
@@ -68,7 +67,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error("[AUTH_TEST] Error:", error);
+    logger.error("[AUTH_TEST] Error:", error);
     return NextResponse.json({
       authenticated: false,
       error: error instanceof Error ? error.message : "Unknown error",

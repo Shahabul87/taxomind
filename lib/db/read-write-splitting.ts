@@ -8,6 +8,7 @@ import { PrismaClient } from '@prisma/client';
 import { Pool, PoolClient } from 'pg';
 import { Redis } from '@upstash/redis';
 import { DatabaseReplicaManager } from './db-replicas';
+import { logger } from '@/lib/logger';
 
 export type QueryType = 'read' | 'write' | 'transaction';
 
@@ -94,8 +95,7 @@ export class DatabaseRouter {
     
     this.initializeDefaultRules();
     this.startMetricsCollection();
-    
-    console.log('[DB_ROUTER] Enterprise router initialized with advanced features');
+
   }
 
   /**
@@ -208,7 +208,6 @@ export class DatabaseRouter {
       },
     ];
 
-    console.log(`[DB_ROUTER] Initialized with ${this.routingRules.length} routing rules`);
   }
 
   /**
@@ -221,7 +220,7 @@ export class DatabaseRouter {
       const cached = this.queryCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < cached.ttl) {
         this.queryStats.cacheHitRate = (this.queryStats.cacheHitRate + 1) / 2;
-        console.log(`[DB_ROUTER] Cache hit for query: ${cacheKey}`);
+
         return cached.result;
       }
     }
@@ -232,7 +231,7 @@ export class DatabaseRouter {
       .sort((a, b) => a.priority - b.priority);
 
     if (applicableRules.length === 0) {
-      console.warn('[DB_ROUTER] No routing rules matched, defaulting to master');
+      logger.warn('[DB_ROUTER] No routing rules matched, defaulting to master');
       this.updateQueryStats(context, 'master');
       return this.replicaManager.getMaster();
     }
@@ -299,7 +298,7 @@ export class DatabaseRouter {
       
       // Log slow queries
       if (responseTime > this.slowQueryThreshold) {
-        console.warn(`[DB_ROUTER] Slow query detected: ${responseTime}ms for ${context.type} on ${context.model}`);
+        logger.warn(`[DB_ROUTER] Slow query detected: ${responseTime}ms for ${context.type} on ${context.model}`);
         await this.logSlowQuery(context, responseTime);
       }
       
@@ -326,7 +325,7 @@ export class DatabaseRouter {
       // Record failure for circuit breaker
       this.recordQueryFailure(context.preferredReplica || 'default', error as Error);
       
-      console.error(`[DB_ROUTER] Query failed for ${context.type} operation after ${responseTime}ms:`, error);
+      logger.error(`[DB_ROUTER] Query failed for ${context.type} operation after ${responseTime}ms:`, error);
       
       // Log error to Redis for monitoring
       await this.logQueryError(context, error as Error, responseTime);
@@ -345,7 +344,8 @@ export class DatabaseRouter {
       userId?: string;
       requiresConsistency?: boolean;
       preferredReplica?: string;
-    } = {}
+    } = {
+}
   ): Promise<T> {
     return this.executeQuery(
       {
@@ -364,7 +364,8 @@ export class DatabaseRouter {
     options: {
       model?: string;
       userId?: string;
-    } = {}
+    } = {
+}
   ): Promise<T> {
     return this.executeQuery(
       {
@@ -382,7 +383,8 @@ export class DatabaseRouter {
     queryFn: (client: PrismaClient) => Promise<T>,
     options: {
       userId?: string;
-    } = {}
+    } = {
+}
   ): Promise<T> {
     return this.executeQuery(
       {
@@ -402,7 +404,7 @@ export class DatabaseRouter {
     
     // Also track in Redis for distributed consistency
     this.redis.setex(`write_timestamp:${key}`, 30, timestamp.toString()).catch(err => {
-      console.warn('[DB_ROUTER] Failed to track write in Redis:', err);
+      logger.warn('[DB_ROUTER] Failed to track write in Redis:', err);
     });
     
     // Clean up old entries periodically
@@ -449,7 +451,7 @@ export class DatabaseRouter {
         }
       }
     } catch (error) {
-      console.warn('[DB_ROUTER] Failed to check distributed consistency:', error);
+      logger.warn('[DB_ROUTER] Failed to check distributed consistency:', error);
     }
     
     return false;
@@ -529,7 +531,7 @@ export class DatabaseRouter {
     if (breaker.isOpen && now - breaker.lastFailure > resetTime) {
       breaker.isOpen = false;
       breaker.failures = 0;
-      console.log(`[DB_ROUTER] Circuit breaker reset for ${replicaId}`);
+
     }
     
     return breaker.isOpen;
@@ -561,7 +563,7 @@ export class DatabaseRouter {
     // Open circuit breaker if too many failures
     if (breaker.failures >= 5) {
       breaker.isOpen = true;
-      console.warn(`[DB_ROUTER] Circuit breaker opened for ${replicaId} due to ${breaker.failures} failures`);
+      logger.warn(`[DB_ROUTER] Circuit breaker opened for ${replicaId} due to ${breaker.failures} failures`);
     }
   }
 
@@ -605,7 +607,7 @@ export class DatabaseRouter {
       await this.redis.lpush('slow_queries', JSON.stringify(slowQueryData));
       await this.redis.ltrim('slow_queries', 0, 999); // Keep last 1000 entries
     } catch (error) {
-      console.warn('[DB_ROUTER] Failed to log slow query:', error);
+      logger.warn('[DB_ROUTER] Failed to log slow query:', error);
     }
   }
 
@@ -628,7 +630,7 @@ export class DatabaseRouter {
       await this.redis.lpush('query_errors', JSON.stringify(errorData));
       await this.redis.ltrim('query_errors', 0, 999); // Keep last 1000 entries
     } catch (redisError) {
-      console.warn('[DB_ROUTER] Failed to log query error:', redisError);
+      logger.warn('[DB_ROUTER] Failed to log query error:', redisError);
     }
   }
 
@@ -640,7 +642,7 @@ export class DatabaseRouter {
       try {
         await this.collectAndPersistMetrics();
       } catch (error) {
-        console.error('[DB_ROUTER] Metrics collection failed:', error);
+        logger.error('[DB_ROUTER] Metrics collection failed:', error);
       }
     }, 60000); // Every minute
   }
@@ -668,9 +670,9 @@ export class DatabaseRouter {
       };
       
       await this.redis.setex('db_router_metrics', 300, JSON.stringify(metrics));
-      console.log('[DB_ROUTER] Metrics persisted successfully');
+
     } catch (error) {
-      console.error('[DB_ROUTER] Failed to persist metrics:', error);
+      logger.error('[DB_ROUTER] Failed to persist metrics:', error);
     }
   }
 
@@ -694,7 +696,7 @@ export class DatabaseRouter {
     const index = this.routingRules.findIndex(rule => rule.name === ruleName);
     if (index !== -1) {
       this.routingRules.splice(index, 1);
-      console.log(`[DB_ROUTER] Removed routing rule: ${ruleName}`);
+
     }
   }
 
@@ -756,7 +758,7 @@ export class DatabaseRouter {
    */
   setSlowQueryThreshold(thresholdMs: number): void {
     this.slowQueryThreshold = thresholdMs;
-    console.log(`[DB_ROUTER] Slow query threshold updated to ${thresholdMs}ms`);
+
   }
 
   /**
@@ -775,7 +777,7 @@ export class DatabaseRouter {
       cacheHitRate: 0,
       lastReset: new Date(),
     };
-    console.log('[DB_ROUTER] Query statistics reset');
+
   }
 
   /**
@@ -785,9 +787,9 @@ export class DatabaseRouter {
     const rule = this.routingRules.find(r => r.name === ruleName);
     if (rule) {
       rule.enabled = enabled;
-      console.log(`[DB_ROUTER] Rule ${ruleName} ${enabled ? 'enabled' : 'disabled'}`);
+
     } else {
-      console.warn(`[DB_ROUTER] Rule ${ruleName} not found`);
+      logger.warn(`[DB_ROUTER] Rule ${ruleName} not found`);
     }
   }
 
@@ -796,7 +798,7 @@ export class DatabaseRouter {
    */
   clearQueryCache(): void {
     this.queryCache.clear();
-    console.log('[DB_ROUTER] Query cache cleared');
+
   }
 
   /**
@@ -808,7 +810,7 @@ export class DatabaseRouter {
       breaker.isOpen = false;
       breaker.lastFailure = 0;
     }
-    console.log('[DB_ROUTER] All circuit breakers reset');
+
   }
 
   /**
@@ -828,7 +830,8 @@ export class DatabaseRouter {
   async executeRawQuery<T = any>(
     query: string,
     params: any[] = [],
-    context: Partial<QueryContext> = {}
+    context: Partial<QueryContext> = {
+}
   ): Promise<T[]> {
     const fullContext: QueryContext = {
       type: context.type || (query.trim().toLowerCase().startsWith('select') ? 'read' : 'write'),
@@ -847,8 +850,7 @@ export class DatabaseRouter {
    * Graceful shutdown
    */
   async shutdown(): Promise<void> {
-    console.log('[DB_ROUTER] Starting shutdown...');
-    
+
     // Stop metrics collection
     if (this.metricsCollectionInterval) {
       clearInterval(this.metricsCollectionInterval);
@@ -858,15 +860,14 @@ export class DatabaseRouter {
     try {
       await this.collectAndPersistMetrics();
     } catch (error) {
-      console.warn('[DB_ROUTER] Failed to persist final metrics:', error);
+      logger.warn('[DB_ROUTER] Failed to persist final metrics:', error);
     }
     
     // Clear caches and maps
     this.queryCache.clear();
     this.consistencyMap.clear();
     this.circuitBreakers.clear();
-    
-    console.log('[DB_ROUTER] Shutdown completed');
+
   }
 }
 
@@ -889,7 +890,8 @@ export class RoutedDatabaseOperations {
     options: {
       userId?: string;
       requiresConsistency?: boolean;
-    } = {}
+    } = {
+}
   ): Promise<T[]> {
     return this.router.read(
       (client) => (client as any)[model].findMany(args),
@@ -909,7 +911,8 @@ export class RoutedDatabaseOperations {
     options: {
       userId?: string;
       requiresConsistency?: boolean;
-    } = {}
+    } = {
+}
   ): Promise<T | null> {
     return this.router.read(
       (client) => (client as any)[model].findUnique(args),
@@ -928,7 +931,8 @@ export class RoutedDatabaseOperations {
     args: any,
     options: {
       userId?: string;
-    } = {}
+    } = {
+}
   ): Promise<T> {
     return this.router.write(
       (client) => (client as any)[model].create(args),
@@ -947,7 +951,8 @@ export class RoutedDatabaseOperations {
     args: any,
     options: {
       userId?: string;
-    } = {}
+    } = {
+}
   ): Promise<T> {
     return this.router.write(
       (client) => (client as any)[model].update(args),
@@ -966,7 +971,8 @@ export class RoutedDatabaseOperations {
     args: any,
     options: {
       userId?: string;
-    } = {}
+    } = {
+}
   ): Promise<T> {
     return this.router.write(
       (client) => (client as any)[model].delete(args),
@@ -985,7 +991,8 @@ export class RoutedDatabaseOperations {
     args: any,
     options: {
       requiresConsistency?: boolean;
-    } = {}
+    } = {
+}
   ): Promise<T> {
     return this.router.read(
       (client) => (client as any)[model].aggregate(args),
@@ -1005,7 +1012,8 @@ export class RoutedDatabaseOperations {
     args: any,
     options: {
       requiresConsistency?: boolean;
-    } = {}
+    } = {
+}
   ): Promise<number> {
     return this.router.read(
       (client) => (client as any)[model].count(args),
@@ -1024,7 +1032,8 @@ export class RoutedDatabaseOperations {
     transactionFn: (client: PrismaClient) => Promise<T>,
     options: {
       userId?: string;
-    } = {}
+    } = {
+}
   ): Promise<T> {
     return this.router.transaction(transactionFn, options);
   }
@@ -1039,7 +1048,8 @@ export class RoutedDatabaseOperations {
       isWrite?: boolean;
       userId?: string;
       requiresConsistency?: boolean;
-    } = {}
+    } = {
+}
   ): Promise<T> {
     const queryType: QueryType = options.isWrite ? 'write' : 'read';
     

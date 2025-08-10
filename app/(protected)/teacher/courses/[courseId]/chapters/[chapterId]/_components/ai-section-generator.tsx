@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Sparkles, Loader2, Brain, MessageSquare, Wand2, LayoutGrid, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface AISectionGeneratorProps {
   chapterTitle: string;
@@ -70,7 +71,7 @@ export const AISectionGenerator = ({
         throw new Error('Invalid response format');
       }
     } catch (error: any) {
-      console.error('AI section generation error:', error);
+      logger.error('AI section generation error:', error);
       toast.error("Failed to generate sections. Please try again.");
     } finally {
       setIsGenerating(false);

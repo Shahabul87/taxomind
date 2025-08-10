@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import { 
   createSAMConversation, 
   addSAMMessage, 
@@ -114,7 +115,7 @@ export class SAMMemoryEngine {
 
       return conversationId;
     } catch (error) {
-      console.error('Error initializing conversation:', error);
+      logger.error('Error initializing conversation:', error);
       throw error;
     }
   }
@@ -144,7 +145,7 @@ export class SAMMemoryEngine {
 
       return message.id;
     } catch (error) {
-      console.error('Error adding message with memory:', error);
+      logger.error('Error adding message with memory:', error);
       throw error;
     }
   }
@@ -210,7 +211,7 @@ export class SAMMemoryEngine {
         relevantMemories,
       };
     } catch (error) {
-      console.error('Error getting conversation history:', error);
+      logger.error('Error getting conversation history:', error);
       return { messages: [] };
     }
   }
@@ -253,7 +254,7 @@ export class SAMMemoryEngine {
         currentGoals: patterns.goals,
       };
     } catch (error) {
-      console.error('Error getting personalized context:', error);
+      logger.error('Error getting personalized context:', error);
       return {
         userPreferences: {
           learningStyle: 'adaptive',
@@ -328,7 +329,7 @@ Based on this context, provide a helpful, personalized response that:
 
       return contextPrompt;
     } catch (error) {
-      console.error('Error generating contextual prompt:', error);
+      logger.error('Error generating contextual prompt:', error);
       return userMessage;
     }
   }
@@ -353,7 +354,7 @@ Based on this context, provide a helpful, personalized response that:
         assistanceProvided: this.extractAssistanceFromMessages(conv.messages || []),
       }));
     } catch (error) {
-      console.error('Error getting conversation summaries:', error);
+      logger.error('Error getting conversation summaries:', error);
       return [];
     }
   }
@@ -613,7 +614,7 @@ Based on this context, provide a helpful, personalized response that:
         };
       });
     } catch (error) {
-      console.error('Error getting ongoing projects:', error);
+      logger.error('Error getting ongoing projects:', error);
       return [];
     }
   }
@@ -657,7 +658,7 @@ Based on this context, provide a helpful, personalized response that:
         goals: [...new Set(goals)],
       };
     } catch (error) {
-      console.error('Error analyzing user patterns:', error);
+      logger.error('Error analyzing user patterns:', error);
       return { challenges: [], successes: [], goals: [] };
     }
   }
