@@ -1,0 +1,480 @@
+name: DevOps Pipeline - Infrastructure and Deployment
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'infrastructure/**'
+      - 'prisma/**'
+      - 'Dockerfile'
+      - '.github/workflows/devops-pipeline.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infrastructure/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      deployment_type:
+        description: 'Deployment type'
+        required: true
+        default: 'blue-green'
+        type: choice
+        options:
+          - blue-green
+          - rolling
+          - recreate
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: taxomind/lms
+  HELM_VERSION: v3.12.0
+  KUBECTL_VERSION: v1.28.0
+
+jobs:
+  # Infrastructure validation and planning
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    outputs:
+      tfplanExitCode: ${{ steps.tf-plan.outputs.exitcode }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ~1.5.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: ./infrastructure/terraform
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TERRAFORM_STATE_BUCKET }}" \
+            -backend-config="key=infrastructure/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Terraform Format Check
+        working-directory: ./infrastructure/terraform
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        working-directory: ./infrastructure/terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: tf-plan
+        working-directory: ./infrastructure/terraform
+        run: |
+          export exitcode=0
+          terraform plan -detailed-exitcode -no-color -out tfplan \
+            -var-file=environments/${{ github.event.inputs.environment || 'staging' }}.tfvars \
+            -var="openai_api_key=${{ secrets.OPENAI_API_KEY }}" \
+            -var="anthropic_api_key=${{ secrets.ANTHROPIC_API_KEY }}" \
+          || export exitcode=$?
+          
+          echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
+          
+          if [ $exitcode -eq 1 ]; then
+            echo Terraform Plan Failed!
+            exit 1
+          else
+            exit 0
+          fi
+
+      - name: Publish Terraform Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan
+          path: ./infrastructure/terraform/tfplan
+
+      - name: Create Plan Summary
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "${{ steps.tf-plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.tf-plan.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.tf-plan.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.tf-plan.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.tf-plan.outcome }}\`
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`terraform\n
+            ${process.env.PLAN}
+            \`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`./infrastructure/terraform\`, Workflow: \`${{ github.workflow }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  # Build and push Docker images
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [terraform-plan]
+    if: always() && (needs.terraform-plan.result == 'success' || needs.terraform-plan.result == 'skipped')
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value={{branch}}-{{date 'YYYYMMDD-HHmmss'}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VCS_REF=${{ github.sha }}
+
+      - name: Build migration image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./infrastructure/docker/Dockerfile.migrations
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/taxomind/migrations:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/taxomind/migrations:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Deploy infrastructure
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: [terraform-plan, build-and-push]
+    if: |
+      always() &&
+      (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') &&
+      needs.terraform-plan.outputs.tfplanExitCode == 2
+    environment: 
+      name: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ~1.5.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v3
+        with:
+          name: tfplan
+          path: ./infrastructure/terraform
+
+      - name: Terraform Init
+        working-directory: ./infrastructure/terraform
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TERRAFORM_STATE_BUCKET }}" \
+            -backend-config="key=infrastructure/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Terraform Apply
+        working-directory: ./infrastructure/terraform
+        run: terraform apply -auto-approve tfplan
+
+      - name: Save Terraform Outputs
+        working-directory: ./infrastructure/terraform
+        run: |
+          terraform output -json > terraform-outputs.json
+          echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> $GITHUB_ENV
+          echo "CLUSTER_ENDPOINT=$(terraform output -raw cluster_endpoint)" >> $GITHUB_ENV
+
+      - name: Upload Terraform Outputs
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-outputs
+          path: ./infrastructure/terraform/terraform-outputs.json
+
+  # Database Migration
+  database-migration:
+    name: Database Migration
+    runs-on: ubuntu-latest
+    needs: [terraform-apply, build-and-push]
+    if: always() && needs.terraform-apply.result == 'success'
+    environment: 
+      name: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Download Terraform Outputs
+        uses: actions/download-artifact@v3
+        with:
+          name: terraform-outputs
+          path: ./
+
+      - name: Configure kubectl
+        run: |
+          CLUSTER_NAME=$(jq -r '.cluster_name.value' terraform-outputs.json)
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
+
+      - name: Run Database Migration
+        run: |
+          # Make migration script executable
+          chmod +x ./infrastructure/scripts/db-migration-manager.sh
+          
+          # Set environment variables
+          export NAMESPACE=${{ github.event.inputs.environment || 'staging' }}
+          export MIGRATION_IMAGE="${{ steps.login-ecr.outputs.registry }}/taxomind/migrations:${{ github.sha }}"
+          
+          # Run migration
+          ./infrastructure/scripts/db-migration-manager.sh migrate "deploy-${{ github.sha }}"
+
+  # Blue-Green Deployment
+  deploy-application:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    needs: [database-migration, build-and-push]
+    if: always() && needs.database-migration.result == 'success'
+    environment: 
+      name: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl and Helm
+        run: |
+          # Install kubectl
+          curl -LO "https://dl.k8s.io/release/${{ env.KUBECTL_VERSION }}/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          
+          # Install Helm
+          curl https://get.helm.sh/helm-${{ env.HELM_VERSION }}-linux-amd64.tar.gz | tar -xzO linux-amd64/helm > helm
+          sudo install -o root -g root -m 0755 helm /usr/local/bin/helm
+
+      - name: Download Terraform Outputs
+        uses: actions/download-artifact@v3
+        with:
+          name: terraform-outputs
+          path: ./
+
+      - name: Configure kubectl
+        run: |
+          CLUSTER_NAME=$(jq -r '.cluster_name.value' terraform-outputs.json)
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
+
+      - name: Deploy with Blue-Green Strategy
+        if: github.event.inputs.deployment_type == 'blue-green' || github.event.inputs.deployment_type == ''
+        run: |
+          # Make deployment script executable
+          chmod +x ./infrastructure/scripts/blue-green-deploy.sh
+          
+          # Set environment variables
+          export NAMESPACE=${{ github.event.inputs.environment || 'staging' }}
+          export IMAGE_TAG=${{ github.sha }}
+          
+          # Run blue-green deployment
+          ./infrastructure/scripts/blue-green-deploy.sh \
+            --image-tag ${{ github.sha }} \
+            --namespace ${{ github.event.inputs.environment || 'staging' }}
+
+      - name: Deploy with Helm (Rolling Update)
+        if: github.event.inputs.deployment_type == 'rolling'
+        run: |
+          helm upgrade --install taxomind ./infrastructure/helm/taxomind \
+            --namespace ${{ github.event.inputs.environment || 'staging' }} \
+            --set app.image.tag=${{ github.sha }} \
+            --set global.environment=${{ github.event.inputs.environment || 'staging' }} \
+            --wait \
+            --timeout 10m
+
+  # Post-deployment validation
+  post-deployment-tests:
+    name: Post-Deployment Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-application]
+    if: always() && needs.deploy-application.result == 'success'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Download Terraform Outputs
+        uses: actions/download-artifact@v3
+        with:
+          name: terraform-outputs
+          path: ./
+
+      - name: Configure kubectl
+        run: |
+          CLUSTER_NAME=$(jq -r '.cluster_name.value' terraform-outputs.json)
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
+
+      - name: Run Health Checks
+        run: |
+          NAMESPACE=${{ github.event.inputs.environment || 'staging' }}
+          
+          # Wait for pods to be ready
+          kubectl wait --for=condition=ready pod \
+            -l app.kubernetes.io/name=taxomind \
+            -n $NAMESPACE \
+            --timeout=300s
+          
+          # Check service endpoints
+          kubectl get svc -n $NAMESPACE
+          
+          # Run connectivity tests
+          kubectl run test-connection \
+            --image=curlimages/curl:latest \
+            --rm -i --restart=Never \
+            -n $NAMESPACE \
+            -- curl -f http://taxomind:3000/api/health
+
+      - name: Run Integration Tests
+        run: |
+          # Run integration test suite
+          kubectl run integration-tests \
+            --image=${{ steps.login-ecr.outputs.registry }}/taxomind/lms:${{ github.sha }} \
+            --rm -i --restart=Never \
+            -n ${{ github.event.inputs.environment || 'staging' }} \
+            -- npm run test:integration
+
+  # Monitoring and alerting setup
+  setup-monitoring:
+    name: Setup Monitoring
+    runs-on: ubuntu-latest
+    needs: [post-deployment-tests]
+    if: always() && needs.post-deployment-tests.result == 'success'
+    steps:
+      - name: Start Rollback Monitor
+        run: |
+          # Make rollback script executable
+          chmod +x ./infrastructure/scripts/rollback-manager.sh
+          
+          # Start monitoring in background
+          nohup ./infrastructure/scripts/rollback-manager.sh monitor &
+          
+          echo "Rollback monitoring started for ${{ github.event.inputs.environment || 'staging' }}"
+
+      - name: Send Deployment Notification
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+          custom_payload: |
+            {
+              text: `Deployment ${process.env.AS_WORKFLOW} ${process.env.AS_JOB} - ${{ github.event.inputs.environment || 'staging' }}`,
+              attachments: [{
+                color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
+                fields: [{
+                  title: 'Environment',
+                  value: '${{ github.event.inputs.environment || 'staging' }}',
+                  short: true
+                }, {
+                  title: 'Image Tag',
+                  value: '${{ github.sha }}',
+                  short: true
+                }, {
+                  title: 'Deployment Type',
+                  value: '${{ github.event.inputs.deployment_type || 'blue-green' }}',
+                  short: true
+                }]
+              }]
+            }

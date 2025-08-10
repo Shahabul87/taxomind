@@ -2105,6 +2105,7 @@ model AuditLog {
   organizationId String?
   userId         String?
   action         AuditAction
+  eventType      String?       // SOC2 event type classification
   entityType     String
   entityId       String
   entityName     String?
@@ -2112,8 +2113,18 @@ model AuditLog {
   context        Json?
   ipAddress      String?
   userAgent      String?
+  sessionId      String?       // Session tracking for SOC2
+  requestId      String?       // Request correlation ID
+  userEmail      String?       // User email for audit trail
+  userRole       String?       // User role at time of event
+  resourceType   String?       // Resource type accessed
+  resourceId     String?       // Resource ID accessed
+  metadata       String?       // Encrypted sensitive metadata
+  riskScore      Int?          // Risk score (0-100)
   severity       AuditSeverity @default(INFO)
+  message        String?       // Human-readable audit message
   tags           String[]      @default([])
+  timestamp      DateTime      @default(now())
   createdAt      DateTime      @default(now())
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user           User?         @relation("AuditLogUser", fields: [userId], references: [id])
@@ -2121,6 +2132,10 @@ model AuditLog {
   @@index([organizationId, userId, createdAt])
   @@index([action, entityType, createdAt])
   @@index([severity, createdAt])
+  @@index([eventType, timestamp])
+  @@index([riskScore, timestamp])
+  @@index([sessionId])
+  @@index([requestId])
   @@map("audit_logs")
 }
 
@@ -3739,3 +3754,96 @@ model QuantumObservation {
   @@index([pathId])
   @@index([observationId])
 }
+
+// GDPR Compliance Models
+model UserConsent {
+  id           String    @id @default(cuid())
+  userId       String
+  consentType  String    // MARKETING, ANALYTICS, PERSONALIZATION, etc.
+  granted      Boolean
+  purpose      String?   // Purpose of data processing
+  grantedAt    DateTime? // When consent was granted
+  withdrawnAt  DateTime? // When consent was withdrawn
+  expiresAt    DateTime? // When consent expires
+  ipAddress    String?   // IP address when consent was given
+  version      String    // Version of consent terms
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consentType])
+  @@index([granted])
+  @@map("user_consents")
+}
+
+model GDPRRequest {
+  id             String    @id @default(cuid())
+  userId         String
+  requestType    String    // DATA_ACCESS, DATA_PORTABILITY, DATA_DELETION, etc.
+  status         String    // PENDING, IN_PROGRESS, COMPLETED, REJECTED
+  requestedAt    DateTime  @default(now())
+  completedAt    DateTime?
+  reason         String?   // Reason for request
+  responseData   Json?     // Response data for access requests
+  verificationToken String? // Token for email verification
+  processedBy    String?   // Admin who processed the request
+  notes          String?   // Admin notes
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([requestType, status])
+  @@map("gdpr_requests")
+}
+
+model DataProcessingActivity {
+  id                String   @id @default(cuid())
+  name              String   // Name of processing activity
+  purpose           String   // Purpose of processing
+  legalBasis        String   // Legal basis (consent, contract, legitimate interest, etc.)
+  dataCategories    String[] // Categories of data processed
+  dataSubjects      String[] // Categories of data subjects
+  recipients        String[] // Recipients or categories of recipients
+  retentionPeriod   String   // Data retention period
+  securityMeasures  String   // Technical and organizational measures
+  thirdCountryTransfers Boolean @default(false)
+  transferSafeguards String? // Safeguards for third country transfers
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("data_processing_activities")
+}
+
+model PrivacyPolicy {
+  id          String   @id @default(cuid())
+  version     String   @unique
+  content     String   @db.Text
+  effectiveDate DateTime
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, effectiveDate])
+  @@map("privacy_policies")
+}
+
+model DataBreach {
+  id               String    @id @default(cuid())
+  incidentDate     DateTime
+  discoveryDate    DateTime
+  reportedDate     DateTime?
+  severity         String    // LOW, MEDIUM, HIGH, CRITICAL
+  affectedUsers    Int
+  dataTypes        String[]  // Types of data affected
+  description      String    @db.Text
+  cause            String    // Human error, system failure, malicious attack, etc.
+  measures         String    @db.Text // Measures taken
+  notifications    Json?     // Notification details
+  status           String    // DETECTED, CONTAINED, RESOLVED
+  reportedToAuthority Boolean @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("data_breaches")
+}
+EOF < /dev/null

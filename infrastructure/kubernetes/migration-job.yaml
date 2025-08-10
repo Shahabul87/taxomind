@@ -1,0 +1,235 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-migration
+  namespace: taxomind
+  labels:
+    app: taxomind
+    component: migration
+    version: "1.0.0"
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 86400  # Clean up after 24 hours
+  template:
+    metadata:
+      labels:
+        app: taxomind
+        component: migration
+      annotations:
+        sidecar.istio.io/inject: "false"  # Disable service mesh for migration jobs
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: taxomind-migration-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+        # Wait for database to be ready
+        - name: wait-for-db
+          image: busybox:1.35
+          command: 
+            - sh
+            - -c
+            - |
+              echo "Waiting for database to be ready..."
+              until nc -z ${DB_HOST} ${DB_PORT}; do
+                echo "Database not ready, waiting..."
+                sleep 5
+              done
+              echo "Database is ready!"
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: taxomind-db-secret
+                  key: host
+            - name: DB_PORT
+              value: "5432"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+        
+        # Backup database before migration
+        - name: backup-database
+          image: postgres:15-alpine
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: taxomind-db-secret
+                  key: password
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: taxomind-db-secret
+                  key: host
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: taxomind-db-secret
+                  key: username
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: taxomind-db-secret
+                  key: database
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              BACKUP_NAME="backup-$(date +%Y%m%d-%H%M%S).sql"
+              echo "Creating backup: ${BACKUP_NAME}"
+              
+              pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} \
+                --no-owner --no-acl --clean --if-exists \
+                > /backups/${BACKUP_NAME}
+              
+              echo "Backup created successfully"
+              
+              # Keep only last 5 backups
+              ls -t /backups/*.sql | tail -n +6 | xargs -r rm
+          volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      
+      containers:
+        - name: migration
+          image: taxomind/migrations:latest
+          imagePullPolicy: Always
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: taxomind-db-secret
+                  key: database-url
+            - name: MIGRATION_RUN_ID
+              value: "$(date +%s)"
+            - name: LOG_LEVEL
+              value: "info"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              
+              echo "Starting database migration..."
+              echo "Migration ID: ${MIGRATION_RUN_ID}"
+              
+              # Check current migration status
+              echo "Checking migration status..."
+              npx prisma migrate status
+              
+              # Run migrations
+              echo "Applying migrations..."
+              npx prisma migrate deploy
+              
+              # Verify migrations
+              echo "Verifying migrations..."
+              npx prisma migrate status
+              
+              # Generate Prisma Client
+              echo "Generating Prisma Client..."
+              npx prisma generate
+              
+              # Run post-migration scripts if any
+              if [ -f "/app/scripts/post-migration.js" ]; then
+                echo "Running post-migration scripts..."
+                node /app/scripts/post-migration.js
+              fi
+              
+              echo "Migration completed successfully!"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+          volumeMounts:
+            - name: migration-scripts
+              mountPath: /app/prisma/migrations
+              readOnly: true
+      
+      volumes:
+        - name: backup-storage
+          persistentVolumeClaim:
+            claimName: migration-backup-pvc
+        - name: migration-scripts
+          configMap:
+            name: migration-scripts
+            optional: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: taxomind-migration-sa
+  namespace: taxomind
+  labels:
+    app: taxomind
+    component: migration
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: taxomind-migration-role
+  namespace: taxomind
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "create", "update"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: taxomind-migration-rolebinding
+  namespace: taxomind
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: taxomind-migration-role
+subjects:
+  - kind: ServiceAccount
+    name: taxomind-migration-sa
+    namespace: taxomind
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: migration-backup-pvc
+  namespace: taxomind
+  labels:
+    app: taxomind
+    component: migration-backup
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: gp3
