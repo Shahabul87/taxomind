@@ -4,6 +4,7 @@
  */
 
 import { Job } from 'bullmq';
+import { logger } from '@/lib/logger';
 import { 
   ProcessUserActivityData,
   CalculateCourseAnalyticsData,
@@ -53,7 +54,6 @@ class MockAnalyticsService implements AnalyticsService {
       },
     };
 
-    console.log(`[ANALYTICS_SERVICE] Processed activity for user ${data.userId}: ${data.activityType}`);
     return processed;
   }
 
@@ -85,7 +85,6 @@ class MockAnalyticsService implements AnalyticsService {
       }
     }
 
-    console.log(`[ANALYTICS_SERVICE] Calculated ${metrics.length} metrics for course ${courseId}`);
     return {
       courseId,
       timeRange,
@@ -219,7 +218,6 @@ export class AnalyticsWorker {
       await job.updateProgress(80);
 
       // Store results (in production, save to database)
-      console.log(`[ANALYTICS_WORKER] Stored activity results for user ${activityData.userId}`);
 
       await job.updateProgress(100);
 
@@ -240,7 +238,7 @@ export class AnalyticsWorker {
       return jobResult;
 
     } catch (error) {
-      console.error(`[ANALYTICS_WORKER] User activity processing failed:`, error);
+      logger.error(`[ANALYTICS_WORKER] User activity processing failed:`, error);
       
       const jobResult: AnalyticsJobResult = {
         success: false,
@@ -285,7 +283,6 @@ export class AnalyticsWorker {
       await job.updateProgress(90);
 
       // Store results
-      console.log(`[ANALYTICS_WORKER] Calculated analytics for course ${courseId}`);
 
       await job.updateProgress(100);
 
@@ -307,7 +304,7 @@ export class AnalyticsWorker {
       return jobResult;
 
     } catch (error) {
-      console.error(`[ANALYTICS_WORKER] Course analytics failed for ${courseId}:`, error);
+      logger.error(`[ANALYTICS_WORKER] Course analytics failed for ${courseId}:`, error);
       
       const jobResult: AnalyticsJobResult = {
         success: false,
@@ -377,7 +374,7 @@ export class AnalyticsWorker {
       return jobResult;
 
     } catch (error) {
-      console.error(`[ANALYTICS_WORKER] Learning insights failed for user ${userId}:`, error);
+      logger.error(`[ANALYTICS_WORKER] Learning insights failed for user ${userId}:`, error);
       
       const jobResult: AnalyticsJobResult = {
         success: false,
@@ -423,9 +420,7 @@ export class AnalyticsWorker {
 
       // Trigger achievement notifications if applicable
       if (progressCalculation.achievementUnlocked) {
-        console.log(`[ANALYTICS_WORKER] Achievement unlocked for user ${userId} at ${progressCalculation.overallProgress}% progress`);
-      }
-
+}
       await job.updateProgress(100);
 
       return {
@@ -443,7 +438,7 @@ export class AnalyticsWorker {
       };
 
     } catch (error) {
-      console.error(`[ANALYTICS_WORKER] Progress update failed for user ${userId}:`, error);
+      logger.error(`[ANALYTICS_WORKER] Progress update failed for user ${userId}:`, error);
       throw error;
     }
   };
@@ -501,7 +496,7 @@ export class AnalyticsWorker {
       };
 
     } catch (error) {
-      console.error(`[ANALYTICS_WORKER] Platform metrics aggregation failed:`, error);
+      logger.error(`[ANALYTICS_WORKER] Platform metrics aggregation failed:`, error);
       throw error;
     }
   };

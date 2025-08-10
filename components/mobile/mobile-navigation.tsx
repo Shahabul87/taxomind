@@ -173,7 +173,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
     // Implement search logic here
-    console.log('Searching for:', query);
+
   }, []);
 
   // Close menu when clicking outside
@@ -397,7 +397,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
                 <button
                   onClick={() => {
                     // Handle logout
-                    console.log('Logout clicked');
+
                   }}
                   className="w-full flex items-center space-x-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                 >

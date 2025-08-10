@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ activities });
   } catch (error) {
-    console.error('Student activities error:', error);
+    logger.error('Student activities error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch student activities' },
       { status: 500 }
@@ -287,7 +288,7 @@ export async function POST(req: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('Student activity update error:', error);
+    logger.error('Student activity update error:', error);
     return NextResponse.json(
       { error: 'Failed to update student activity' },
       { status: 500 }
@@ -314,16 +315,14 @@ async function flagStrugglingStudent(studentId: string, data: any) {
 
 async function sendHelpToStudent(studentId: string, data: any) {
   // In a real implementation, this would send a message or notification
-  console.log(`Sending help to student ${studentId}:`, data.message);
-  
+
   // Could create a help request or notification record
   // await createHelpRequest(studentId, data);
 }
 
 async function updateStudentNotes(studentId: string, data: any) {
   // In a real implementation, this would update teacher notes about the student
-  console.log(`Updating notes for student ${studentId}:`, data.notes);
-  
+
   // Could store in a separate teacher_notes table
   // await updateTeacherNotes(studentId, data.notes);
 }

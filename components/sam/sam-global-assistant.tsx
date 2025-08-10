@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { 
   MessageCircle, 
   X, 
@@ -95,7 +96,7 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
 
   // Generate context-aware quick actions - moved before useEffect
   const generateQuickActions = useCallback((context: any) => {
-    console.log('Generating quick actions for tutorMode:', tutorMode, 'context:', context);
+
     const actions = [];
     
     // Universal actions
@@ -169,23 +170,18 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
       );
     }
 
-    console.log('Generated actions:', actions);
     setQuickActions(actions);
   }, [tutorMode]);
 
   // Handle quick action clicks
   const handleQuickAction = useCallback(async (actionId: string) => {
-    console.log('handleQuickAction called with actionId:', actionId);
-    console.log('Available quickActions:', quickActions);
-    
+
     const action = quickActions.find(a => a.id === actionId);
     if (!action) {
-      console.log('Action not found for actionId:', actionId);
+
       return;
     }
 
-    console.log('Found action:', action);
-    
     const actionMessage = {
       id: Date.now().toString(),
       content: `🎯 ${action.label}: ${action.description}`,
@@ -255,7 +251,7 @@ Which form would you like me to help you with? I can generate content based on t
       
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
-      console.error('Error handling quick action:', error);
+      logger.error('Error handling quick action:', error);
       const errorResponse = {
         id: (Date.now() + 1).toString(),
         content: `I encountered an error while processing your request. Please try again or ask me directly what you need help with.`,
@@ -345,7 +341,7 @@ Which form would you like me to help you with? I can generate content based on t
         setPageContext(context);
         generateQuickActions(context);
       } catch (error) {
-        console.error('Error detecting page context:', error);
+        logger.error('Error detecting page context:', error);
       }
     };
 
@@ -371,7 +367,7 @@ Which form would you like me to help you with? I can generate content based on t
     
     // Ensure actions are generated even if context detection hasn't run yet
     if (isOpen && quickActions.length === 0) {
-      console.log('Generating fallback actions on open');
+
       generateQuickActions(pageContext);
     }
   }, [isOpen, messages.length, tutorMode, quickActions.length, generateQuickActions, pageContext]);
@@ -454,7 +450,7 @@ Which form would you like me to help you with? I can generate content based on t
       
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       
       // Fallback to enhanced local response
       let fallbackResponse = '';
@@ -702,7 +698,7 @@ Which form would you like me to help you with? I can generate content based on t
                                 variant="outline"
                                 className="justify-start h-auto p-4 text-left hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors"
                                 onClick={() => {
-                                  console.log('Quick action clicked:', action.id);
+
                                   handleQuickAction(action.id);
                                 }}
                                 disabled={!action.available}

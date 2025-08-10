@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 import { load } from 'cheerio';
+import { logger } from '@/lib/logger';
 
 // Direct function to extract YouTube video ID
 function extractYouTubeId(url: string): string | null {
@@ -58,7 +59,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(videoData);
   } catch (error) {
-    console.error('Error fetching video metadata:', error);
+    logger.error('Error fetching video metadata:', error);
     
     // Return a fallback response instead of failing completely
     const fallbackData = {
@@ -126,7 +127,7 @@ async function extractVideoMetadata(url: string) {
         metadata.author = metadata.author.slice(0, 100);
         
       } catch (error) {
-        console.error('Error fetching YouTube page content:', error);
+        logger.error('Error fetching YouTube page content:', error);
         metadata.title = `YouTube Video (${videoId})`;
       }
       
@@ -156,7 +157,7 @@ async function extractVideoMetadata(url: string) {
         metadata.author = (data.author_name || '').slice(0, 100);
         metadata.duration = data.duration ? `${Math.floor(data.duration / 60)}:${(data.duration % 60).toString().padStart(2, '0')}` : '';
       } catch (error) {
-        console.error('Error fetching Vimeo oEmbed data:', error);
+        logger.error('Error fetching Vimeo oEmbed data:', error);
         metadata.title = `Vimeo Video (${videoId})`;
         
         // Simplified fallback without heavy page scraping
@@ -189,7 +190,7 @@ async function extractVideoMetadata(url: string) {
       metadata.author = ($('meta[name="author"]').attr('content') || '').slice(0, 100);
       metadata.platform = new URL(url).hostname.replace('www.', '');
     } catch (error) {
-      console.error('Error fetching generic video page:', error);
+      logger.error('Error fetching generic video page:', error);
       const domain = new URL(url).hostname.replace('www.', '');
       metadata.title = `Video from ${domain}`;
       metadata.platform = domain;
@@ -198,7 +199,7 @@ async function extractVideoMetadata(url: string) {
     return metadata;
     
   } catch (error) {
-    console.error('Error in extractVideoMetadata:', error);
+    logger.error('Error in extractVideoMetadata:', error);
     
     // Return minimal fallback data
     try {

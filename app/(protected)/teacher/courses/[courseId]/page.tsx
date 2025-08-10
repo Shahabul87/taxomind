@@ -89,7 +89,7 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
   };
 
   // Log sections status to help debug
-  console.log("Sections status:", completionStatus);
+
   console.log("Completed sections:", Object.values(completionStatus).filter(Boolean).length);
 
   // Calculate completed sections

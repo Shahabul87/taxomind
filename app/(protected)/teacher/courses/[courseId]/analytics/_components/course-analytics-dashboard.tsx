@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import {
   Users,
   TrendingUp,
@@ -190,7 +191,7 @@ export const CourseAnalyticsDashboard = ({
         recordFeatureUsage('predictive-analytics', 1);
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      logger.error('Error fetching analytics:', error);
       toast.error('Failed to load analytics data');
     } finally {
       setIsLoading(false);

@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { initializeSamContext } from '@/lib/sam-context';
+import { logger } from '@/lib/logger';
 
 interface SamIntegrationProps {
   courseId: string;
@@ -112,7 +113,7 @@ export function SamIntegration({
       
       toast.success("Learning objectives updated!");
     } catch (error) {
-      console.error('Failed to update objectives:', error);
+      logger.error('Failed to update objectives:', error);
       toast.error('Failed to update learning objectives');
     }
   }, [courseId, router]);
@@ -120,8 +121,7 @@ export function SamIntegration({
   // Callback to populate chapter form
   const handleUpdateChapters = useCallback(async (chapters: any[]) => {
     try {
-      console.log('SAM received chapters:', chapters);
-      
+
       // Store all chapters in session storage for sequential processing
       sessionStorage.setItem('sam_pending_chapters', JSON.stringify(chapters));
       sessionStorage.setItem('sam_current_chapter_index', '0');
@@ -158,7 +158,7 @@ export function SamIntegration({
           setTimeout(createNextChapter, 1000);
           
         } catch (error) {
-          console.error('Failed to create chapter:', error);
+          logger.error('Failed to create chapter:', error);
           toast.error(`Failed to create chapter: ${chapter.title}`);
         }
       };
@@ -167,7 +167,7 @@ export function SamIntegration({
       createNextChapter();
       
     } catch (error) {
-      console.error('Failed to process chapters:', error);
+      logger.error('Failed to process chapters:', error);
       toast.error('Failed to process chapters');
     }
   }, [courseId, router]);
@@ -181,7 +181,7 @@ export function SamIntegration({
       toast.success(`${chapterIds.length} chapters deleted!`);
       router.refresh();
     } catch (error) {
-      console.error('Failed to delete chapters:', error);
+      logger.error('Failed to delete chapters:', error);
       toast.error('Failed to delete chapters');
     }
   }, [courseId, router]);

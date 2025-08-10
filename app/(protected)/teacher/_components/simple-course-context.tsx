@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 interface SimpleCourseContextProps {
   course?: {
@@ -36,10 +37,11 @@ interface SimpleCourseContextProps {
 
 export function SimpleCourseContext({
   course,
-  completionStatus = {}
+  completionStatus = {
+}
 }: SimpleCourseContextProps) {
   useEffect(() => {
-    console.log('🔄 SimpleCourseContext useEffect triggered with:', { course, completionStatus });
+
     // Inject basic context data into global scope for Enhanced SAM
     if (typeof window !== 'undefined' && course && course.id) {
       // Add context data to window for Enhanced SAM to access
@@ -150,13 +152,12 @@ export function SimpleCourseContext({
                 ]
               }
             });
-            console.log('✅ Enhanced SAM context successfully injected');
+
           } catch (error) {
-            console.warn('⚠️ Enhanced SAM context injection failed:', error);
+            logger.warn('⚠️ Enhanced SAM context injection failed:', error);
           }
         } else {
-          console.log('ℹ️ Enhanced SAM not ready yet, context stored in window.courseContext');
-        }
+}
       }, 1000);
       
       // Also trigger a custom event for Enhanced SAM to listen to
@@ -198,12 +199,12 @@ export function SimpleCourseContext({
           });
           
           if (testResponse.ok) {
-            console.log('✅ Enhanced SAM API test successful');
+
           } else {
-            console.warn('⚠️ Enhanced SAM API test failed:', testResponse.status);
+            logger.warn('⚠️ Enhanced SAM API test failed:', testResponse.status);
           }
         } catch (error) {
-          console.warn('⚠️ Enhanced SAM API test error:', error);
+          logger.warn('⚠️ Enhanced SAM API test error:', error);
         }
       }, 3000);
     }

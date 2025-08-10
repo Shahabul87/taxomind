@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    console.log("[API_TEST] GET request received");
-    
+
     const user = await currentUser();
     
     return NextResponse.json({
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       environment: process.env.NODE_ENV
     });
   } catch (error) {
-    console.error("[API_TEST] GET error:", error);
+    logger.error("[API_TEST] GET error:", error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -33,8 +33,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("[API_TEST] POST request received");
-    
+
     const body = await req.json().catch(() => ({}));
     const user = await currentUser();
     
@@ -59,7 +58,7 @@ export async function POST(req: NextRequest) {
       databaseTest: dbTest
     });
   } catch (error) {
-    console.error("[API_TEST] POST error:", error);
+    logger.error("[API_TEST] POST error:", error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -71,8 +70,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    console.log("[API_TEST] PUT request received");
-    
+
     const body = await req.json().catch(() => ({}));
     const user = await currentUser();
     
@@ -87,7 +85,7 @@ export async function PUT(req: NextRequest) {
       environment: process.env.NODE_ENV
     });
   } catch (error) {
-    console.error("[API_TEST] PUT error:", error);
+    logger.error("[API_TEST] PUT error:", error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -99,8 +97,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    console.log("[API_TEST] DELETE request received");
-    
+
     const user = await currentUser();
     
     return NextResponse.json({
@@ -113,7 +110,7 @@ export async function DELETE(req: NextRequest) {
       environment: process.env.NODE_ENV
     });
   } catch (error) {
-    console.error("[API_TEST] DELETE error:", error);
+    logger.error("[API_TEST] DELETE error:", error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

@@ -9,6 +9,7 @@ import { Pool } from 'pg';
 import { Redis } from '@upstash/redis';
 import { ConnectionPoolManager } from './connection-pool';
 import { DatabaseReplicaManager } from './db-replicas';
+import { logger } from '@/lib/logger';
 
 export interface QueryPerformanceData {
   query: string;
@@ -179,7 +180,7 @@ export class DatabasePerformanceMonitor {
     };
 
     this.initializeDefaultAlertRules();
-    console.log('[DB_MONITOR] Enterprise database performance monitor initialized');
+
   }
 
   /**
@@ -189,7 +190,7 @@ export class DatabasePerformanceMonitor {
     this.databases.set(name, { client, pool });
     this.responseTimes.set(name, []);
     this.initializeMetrics(name);
-    console.log(`[DB_MONITOR] Registered database for monitoring: ${name}`);
+
   }
 
   /**
@@ -197,7 +198,7 @@ export class DatabasePerformanceMonitor {
    */
   start(): void {
     if (this.isRunning) {
-      console.warn('[DB_MONITOR] Monitoring is already running');
+      logger.warn('[DB_MONITOR] Monitoring is already running');
       return;
     }
 
@@ -206,21 +207,21 @@ export class DatabasePerformanceMonitor {
     // Metrics collection
     const metricsInterval = setInterval(() => {
       this.collectAllMetrics().catch(error => 
-        console.error('[DB_MONITOR] Metrics collection error:', error)
+        logger.error('[DB_MONITOR] Metrics collection error:', error)
       );
     }, this.config.metricsCollectionInterval);
 
     // Health checks
     const healthInterval = setInterval(() => {
       this.performHealthChecks().catch(error => 
-        console.error('[DB_MONITOR] Health check error:', error)
+        logger.error('[DB_MONITOR] Health check error:', error)
       );
     }, this.config.healthCheckInterval);
 
     // Alert checking
     const alertInterval = setInterval(() => {
       this.checkAlerts().catch(error => 
-        console.error('[DB_MONITOR] Alert check error:', error)
+        logger.error('[DB_MONITOR] Alert check error:', error)
       );
     }, this.config.alertCheckInterval);
 
@@ -231,7 +232,6 @@ export class DatabasePerformanceMonitor {
       this.startLegacyMonitoring();
     }
 
-    console.log('[DB_MONITOR] Enterprise database monitoring started');
   }
 
   /**
@@ -244,7 +244,6 @@ export class DatabasePerformanceMonitor {
     this.intervalIds.forEach(id => clearInterval(id));
     this.intervalIds = [];
 
-    console.log('[DB_MONITOR] Database monitoring stopped');
   }
 
   /**
@@ -277,8 +276,7 @@ export class DatabasePerformanceMonitor {
     
     // Check for alerts (legacy)
     this.checkForAlerts(data);
-    
-    console.log(`[DB_MONITOR] Recorded query for ${databaseName}: ${data.duration}ms, success: ${data.success}`);
+
   }
 
   /**
@@ -462,7 +460,6 @@ export class DatabasePerformanceMonitor {
       this.alertRules.set(rule.id, rule);
     });
 
-    console.log(`[DB_MONITOR] Initialized ${defaultRules.length} enterprise alert rules`);
   }
 
   /**
@@ -519,7 +516,7 @@ export class DatabasePerformanceMonitor {
   private async collectAllMetrics(): Promise<void> {
     const promises = Array.from(this.databases.entries()).map(([name, db]) => 
       this.collectDatabaseMetrics(name, db).catch(error => 
-        console.error(`[DB_MONITOR] Error collecting metrics for ${name}:`, error)
+        logger.error(`[DB_MONITOR] Error collecting metrics for ${name}:`, error)
       )
     );
 
@@ -589,7 +586,7 @@ export class DatabasePerformanceMonitor {
   private async performHealthChecks(): Promise<void> {
     const promises = Array.from(this.databases.entries()).map(([name, db]) => 
       this.performDatabaseHealthCheck(name, db).catch(error => 
-        console.error(`[DB_MONITOR] Health check error for ${name}:`, error)
+        logger.error(`[DB_MONITOR] Health check error for ${name}:`, error)
       )
     );
 
@@ -626,7 +623,7 @@ export class DatabasePerformanceMonitor {
       // Update SLA metrics for failure
       this.updateSLAMetrics(metrics, false, Date.now() - startTime);
       
-      console.error(`[DB_MONITOR] Health check failed for ${name}:`, error);
+      logger.error(`[DB_MONITOR] Health check failed for ${name}:`, error);
     }
   }
 
@@ -678,7 +675,7 @@ export class DatabasePerformanceMonitor {
     };
 
     this.alerts.set(alert.id, alert);
-    console.warn(`[DB_MONITOR] ${alert.severity.toUpperCase()} ALERT: ${alert.message}`);
+    logger.warn(`[DB_MONITOR] ${alert.severity.toUpperCase()} ALERT: ${alert.message}`);
 
     // Send notifications
     await this.sendAlertNotification(alert, rule);
@@ -692,7 +689,7 @@ export class DatabasePerformanceMonitor {
     if (alert && !alert.isResolved) {
       alert.resolvedAt = new Date();
       alert.isResolved = true;
-      console.log(`[DB_MONITOR] Alert resolved: ${alertId}`);
+
       return true;
     }
     return false;
@@ -880,7 +877,7 @@ export class DatabasePerformanceMonitor {
       this.alerts = this.alerts.slice(-1000);
     }
 
-    console.warn(`[DB_MONITOR] ${alert.severity.toUpperCase()} ALERT: ${alert.message}`);
+    logger.warn(`[DB_MONITOR] ${alert.severity.toUpperCase()} ALERT: ${alert.message}`);
   }
 
   /**
@@ -891,7 +888,6 @@ export class DatabasePerformanceMonitor {
       this.performSystemCheck();
     }, 60000); // Check every minute
 
-    console.log('[DB_MONITOR] Started database performance monitoring');
   }
 
   /**
@@ -931,7 +927,7 @@ export class DatabasePerformanceMonitor {
       await this.checkSystemResources();
 
     } catch (error) {
-      console.error('[DB_MONITOR] System check failed:', error);
+      logger.error('[DB_MONITOR] System check failed:', error);
     }
   }
 
@@ -1091,7 +1087,7 @@ export class DatabasePerformanceMonitor {
    */
   updateThresholds(newThresholds: Partial<PerformanceThresholds>): void {
     this.thresholds = { ...this.thresholds, ...newThresholds };
-    console.log('[DB_MONITOR] Updated performance thresholds:', this.thresholds);
+
   }
 
   /**
@@ -1101,7 +1097,7 @@ export class DatabasePerformanceMonitor {
     this.queryHistory = [];
     this.metrics.clear();
     this.alerts = [];
-    console.log('[DB_MONITOR] Cleared performance history and metrics');
+
   }
 
   /**
@@ -1251,9 +1247,9 @@ export class DatabasePerformanceMonitor {
       }));
       
       alert.notificationsSent++;
-      console.log(`[DB_MONITOR] Alert notification sent for ${alert.id}`);
+
     } catch (error) {
-      console.error('[DB_MONITOR] Failed to send alert notification:', error);
+      logger.error('[DB_MONITOR] Failed to send alert notification:', error);
     }
   }
 
@@ -1280,7 +1276,7 @@ export class DatabasePerformanceMonitor {
         })
       );
     } catch (error) {
-      console.error('[DB_MONITOR] Failed to persist metrics:', error);
+      logger.error('[DB_MONITOR] Failed to persist metrics:', error);
     }
   }
 
@@ -1386,7 +1382,6 @@ export class DatabasePerformanceMonitor {
     this.databases.clear();
     this.responseTimes.clear();
 
-    console.log('[DB_MONITOR] Enterprise database performance monitoring shutdown completed');
   }
 }
 

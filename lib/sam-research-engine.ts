@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export interface ResearchPaper {
   paperId: string;
@@ -879,7 +880,7 @@ export class SAMResearchEngine {
         }
       });
     } catch (error) {
-      console.error('Error creating reading list:', error);
+      logger.error('Error creating reading list:', error);
     }
 
     return readingList;
@@ -1054,7 +1055,7 @@ export class SAMResearchEngine {
         }
       });
     } catch (error) {
-      console.error('Error recording research interaction:', error);
+      logger.error('Error recording research interaction:', error);
     }
   }
 }

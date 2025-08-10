@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { BloomsAnalysisEngine } from '@/lib/sam-blooms-engine';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Blooms analysis error:', error);
+    logger.error('Blooms analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to perform Blooms analysis' },
       { status: 500 }
@@ -158,7 +159,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get Blooms analysis error:', error);
+    logger.error('Get Blooms analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve Blooms analysis' },
       { status: 500 }
@@ -195,6 +196,6 @@ async function recordSAMInteraction(
       },
     });
   } catch (error) {
-    console.error('Error recording SAM interaction:', error);
+    logger.error('Error recording SAM interaction:', error);
   }
 }

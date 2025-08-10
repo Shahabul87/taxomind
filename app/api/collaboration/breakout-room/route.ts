@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
       createdAt: breakoutRoom.createdAt,
     });
   } catch (error) {
-    console.error("Error creating breakout room:", error);
+    logger.error("Error creating breakout room:", error);
     return NextResponse.json(
       { error: "Failed to create breakout room" },
       { status: 500 }
@@ -141,7 +142,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(formattedRooms);
   } catch (error) {
-    console.error("Error fetching breakout rooms:", error);
+    logger.error("Error fetching breakout rooms:", error);
     return NextResponse.json(
       { error: "Failed to fetch breakout rooms" },
       { status: 500 }
@@ -254,7 +255,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error updating breakout room:", error);
+    logger.error("Error updating breakout room:", error);
     return NextResponse.json(
       { error: "Failed to update breakout room" },
       { status: 500 }

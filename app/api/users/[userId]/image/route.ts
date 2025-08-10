@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { v2 as cloudinary } from 'cloudinary';
+import { logger } from '@/lib/logger';
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -59,7 +60,7 @@ export async function POST(req: Request, props: { params: Promise<{ userId: stri
 
     return NextResponse.json({ url: (result as any).secure_url });
   } catch (error) {
-    console.error("[PROFILE_IMAGE_UPLOAD]", error);
+    logger.error("[PROFILE_IMAGE_UPLOAD]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

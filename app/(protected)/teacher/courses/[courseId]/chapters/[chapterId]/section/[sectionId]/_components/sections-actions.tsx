@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2, Trash } from "lucide-react";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,25 +44,24 @@ export const SectionActions = ({
   const onClick = async () => {
     try {
       setIsLoading(true);
-      console.log("Attempting to", isPublished ? "unpublish" : "publish", "section:", sectionId);
 
       if (isPublished) {
         const response = await axios.patch(
           `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/unpublish`
         );
-        console.log("Unpublish response:", response.data);
+
         toast.success("Section unpublished");
       } else {
         const response = await axios.patch(
           `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/publish`
         );
-        console.log("Publish response:", response.data);
+
         toast.success("Section published");
       }
 
       router.refresh();
     } catch (error: any) {
-      console.error("Section publish/unpublish error:", error);
+      logger.error("Section publish/unpublish error:", error);
       toast.error(error.response?.data || "Failed to update section status");
     } finally {
       setIsLoading(false);

@@ -542,17 +542,14 @@ export class GatewayConfig {
     // Log all admin requests for audit purposes
     const userId = request.headers.get('X-User-ID');
     const action = `${request.method} ${request.url}`;
-    
-    console.log(`[AUDIT] Admin action by user ${userId}: ${action}`);
-    
+
     // In production, this would write to an audit log
     return request;
   }
   
   private async logAdminResponse(response: NextResponse): Promise<NextResponse> {
     // Log admin response status for audit trail
-    console.log(`[AUDIT] Admin action completed with status: ${response.status}`);
-    
+
     return response;
   }
   

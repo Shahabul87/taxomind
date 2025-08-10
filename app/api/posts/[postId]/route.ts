@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 
 export async function DELETE(req: Request, props: { params: Promise<{ postId: string }> }) {
   const params = await props.params;
@@ -21,12 +22,10 @@ export async function DELETE(req: Request, props: { params: Promise<{ postId: st
 
     return NextResponse.json(post);
   } catch (error) {
-    console.error("[POST_DELETE]", error);
+    logger.error("[POST_DELETE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
-
-
 
 export async function PATCH(req: Request, props: { params: Promise<{ postId: string }> }) {
   const params = await props.params;
@@ -34,8 +33,6 @@ export async function PATCH(req: Request, props: { params: Promise<{ postId: str
     const user = await currentUser();
     const { postId } = params;
     const values = await req.json();
-
-   
 
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -62,11 +59,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ postId: str
     },
   });
 
-  
-
   return NextResponse.json(updatedPost);
 } catch (error) {
-  console.log("[POST_ID]", error);
+
   return new NextResponse("Internal Error", { status: 500 });
 }
 }

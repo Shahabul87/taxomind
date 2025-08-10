@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error in SAM course assistant:', error);
+    logger.error('Error in SAM course assistant:', error);
     return NextResponse.json({ 
       error: 'Failed to process request',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -127,7 +128,7 @@ Return the response as a JSON object with:
       };
     }
   } catch (error) {
-    console.error('Error calling Anthropic API:', error);
+    logger.error('Error calling Anthropic API:', error);
     return {
       content: generateFallbackResponse(message, courseContext),
       suggestions: generateFallbackSuggestions(courseContext),

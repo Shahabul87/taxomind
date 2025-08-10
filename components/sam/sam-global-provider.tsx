@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 
 interface SAMGlobalContextType {
   isOpen: boolean;
@@ -151,7 +152,7 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
         //   setCourseData(course);
         // }
       } catch (error) {
-        console.error('Error loading course data:', error);
+        logger.error('Error loading course data:', error);
       }
     };
     
@@ -178,7 +179,7 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
           });
         }
       } catch (error) {
-        console.error('Error loading chapter data:', error);
+        logger.error('Error loading chapter data:', error);
       }
     };
     

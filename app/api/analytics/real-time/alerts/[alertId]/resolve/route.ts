@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   req: NextRequest,
@@ -36,7 +37,7 @@ export async function POST(
       resolvedBy: user.id
     });
   } catch (error) {
-    console.error('Alert resolution error:', error);
+    logger.error('Alert resolution error:', error);
     return NextResponse.json(
       { error: 'Failed to resolve alert' },
       { status: 500 }

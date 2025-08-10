@@ -3,6 +3,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
 import { getFromCache, setInCache, getCommentsKey, shouldCachePost, invalidateCache } from "@/app/lib/cache";
+import { logger } from '@/lib/logger';
 
 export async function POST(
   req: NextRequest,
@@ -17,7 +18,7 @@ export async function POST(
     // Check rate limiting
     const rateLimitResult = await isRateLimited(user.id, 'comment');
     if (rateLimitResult.limited) {
-      console.log(`[COMMENT_POST] Rate limited: ${user.id}`, rateLimitResult);
+
       return NextResponse.json({ 
         error: getRateLimitMessage('comment', rateLimitResult.reset),
         rateLimitInfo: rateLimitResult
@@ -72,11 +73,10 @@ export async function POST(
 
     // Invalidate cache for this post's comments
     await invalidateCache(`comments:${postId}:*`);
-    console.log(`[COMMENT_POST] Invalidated cache for comments:${postId}:*`);
 
     return NextResponse.json(comment);
   } catch (error) {
-    console.error("[COMMENT_POST]", error);
+    logger.error("[COMMENT_POST]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -99,7 +99,7 @@ export async function GET(
     const cachedComments = await getFromCache<any[]>(cacheKey);
     
     if (cachedComments) {
-      console.log(`[COMMENTS_GET] Cache hit for ${cacheKey}`);
+
       return NextResponse.json(cachedComments, {
         headers: {
           'X-Cache': 'HIT',
@@ -211,7 +211,7 @@ export async function GET(
     // Cache the result if it's a heavily commented post
     if (shouldCachePost(totalCount)) {
       await setInCache(cacheKey, result);
-      console.log(`[COMMENTS_GET] Cached comments for ${cacheKey}`);
+
     }
 
     return NextResponse.json(result, {
@@ -221,7 +221,7 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error("[COMMENTS_GET]", error);
+    logger.error("[COMMENTS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

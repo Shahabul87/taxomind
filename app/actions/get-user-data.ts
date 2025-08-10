@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export const getUserData = async (userId: string) => {
   try {
@@ -37,7 +38,7 @@ export const getUserData = async (userId: string) => {
 
     return userData;
   } catch (error) {
-    console.error("[GET_USER_DATA_ERROR]", error);
+    logger.error("[GET_USER_DATA_ERROR]", error);
     return null;
   }
 }; 

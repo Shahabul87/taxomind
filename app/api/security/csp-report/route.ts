@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CryptoUtils } from '@/lib/security/crypto-utils';
+import { logger } from '@/lib/logger';
 
 /**
  * CSP Violation Report Endpoint
@@ -102,7 +103,7 @@ function analyzeCSPViolation(report: CSPViolationReport['csp-report']): {
 async function logSecurityViolation(violation: SecurityViolationLog): Promise<void> {
   // Log to console in development
   if (process.env.NODE_ENV === 'development') {
-    console.warn(`[CSP VIOLATION] ${violation.severity.toUpperCase()}: ${violation.report['violated-directive']}`, {
+    logger.warn(`[CSP VIOLATION] ${violation.severity.toUpperCase()}: ${violation.report['violated-directive']}`, {
       blockedUri: violation.report['blocked-uri'],
       documentUri: violation.report['document-uri'],
       sourceFile: violation.report['source-file'],
@@ -138,7 +139,7 @@ async function logSecurityViolation(violation: SecurityViolationLog): Promise<vo
           });
         }
       } catch (error) {
-        console.error('Failed to send CSP violation alert:', error);
+        logger.error('Failed to send CSP violation alert:', error);
       }
     }
   }
@@ -240,7 +241,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
     
   } catch (error) {
-    console.error('Error processing CSP violation report:', error);
+    logger.error('Error processing CSP violation report:', error);
     
     return NextResponse.json(
       { error: 'Failed to process CSP report' },
@@ -279,7 +280,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
     
   } catch (error) {
-    console.error('Error retrieving CSP configuration:', error);
+    logger.error('Error retrieving CSP configuration:', error);
     
     return NextResponse.json(
       { error: 'Failed to retrieve CSP configuration' },

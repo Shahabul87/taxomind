@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { logger } from '@/lib/logger';
 import { 
   MessageCircle, 
   Send, 
@@ -225,7 +226,7 @@ export function ImprovedSamAssistant({
     try {
       localStorage.setItem(conversationKey, JSON.stringify(msgs));
     } catch (error) {
-      console.warn('Failed to save conversation:', error);
+      logger.warn('Failed to save conversation:', error);
     }
   }, [conversationKey]);
 
@@ -241,7 +242,7 @@ export function ImprovedSamAssistant({
         }));
       }
     } catch (error) {
-      console.warn('Failed to load conversation:', error);
+      logger.warn('Failed to load conversation:', error);
     }
     return [];
   }, [conversationKey]);
@@ -435,7 +436,7 @@ How can I help you improve your course today?`;
       setMessages(prev => [...prev, samMessage]);
       
     } catch (error) {
-      console.error('SAM Error:', error);
+      logger.error('SAM Error:', error);
       
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),

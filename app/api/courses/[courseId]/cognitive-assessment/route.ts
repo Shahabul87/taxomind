@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -55,13 +56,12 @@ export async function GET(
   { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
-    console.log("[COGNITIVE_ASSESSMENT] Starting cognitive assessment");
-    
+
     // Get current user
     const user = await currentUser();
     
     if (!user?.id) {
-      console.log("[COGNITIVE_ASSESSMENT] No user found - unauthorized");
+
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
@@ -74,7 +74,7 @@ export async function GET(
     const userRole = dbUser?.role;
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      console.log(`[COGNITIVE_ASSESSMENT] User role ${userRole} not authorized`);
+
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
     
@@ -107,21 +107,18 @@ export async function GET(
     if (!course) {
       return new NextResponse("Course not found or access denied", { status: 404 });
     }
-    
-    console.log(`[COGNITIVE_ASSESSMENT] Analyzing course: ${course.title}`);
-    
+
     // Perform cognitive assessment
     const assessment = await analyzeCognitiveStructure(course);
-    
-    console.log(`[COGNITIVE_ASSESSMENT] Assessment completed for course: ${course.id}`);
+
     return NextResponse.json(assessment);
     
   } catch (error) {
-    console.error("[COGNITIVE_ASSESSMENT] Error:", error);
+    logger.error("[COGNITIVE_ASSESSMENT] Error:", error);
     
     if (error instanceof Error) {
-      console.error("[COGNITIVE_ASSESSMENT] Error message:", error.message);
-      console.error("[COGNITIVE_ASSESSMENT] Error stack:", error.stack);
+      logger.error("[COGNITIVE_ASSESSMENT] Error message:", error.message);
+      logger.error("[COGNITIVE_ASSESSMENT] Error stack:", error.stack);
     }
     
     return new NextResponse("Internal Server Error", { status: 500 });
@@ -129,8 +126,7 @@ export async function GET(
 }
 
 async function analyzeCognitiveStructure(course: any): Promise<CognitiveAssessment> {
-  console.log("[COGNITIVE_ASSESSMENT] Starting cognitive structure analysis");
-  
+
   const allSections = course.chapters.flatMap((chapter: any) => chapter.sections);
   const totalSections = allSections.length;
   
@@ -187,8 +183,7 @@ async function analyzeCognitiveStructure(course: any): Promise<CognitiveAssessme
 }
 
 async function analyzeBloomsDistribution(sections: any[], totalSections: number) {
-  console.log("[COGNITIVE_ASSESSMENT] Analyzing Bloom's distribution");
-  
+
   // Since we don't have bloomsLevel field yet, we'll analyze based on content patterns
   const bloomsCount: Record<BloomsLevel, number> = {
     REMEMBER: 0,
@@ -265,8 +260,7 @@ function calculateOverallHealth(distribution: any[]): 'excellent' | 'good' | 'ne
 }
 
 function generateCognitiveRecommendations(distribution: any[], course: any) {
-  console.log("[COGNITIVE_ASSESSMENT] Generating cognitive recommendations");
-  
+
   const recommendations: any[] = [];
   
   // Check for missing levels
@@ -368,8 +362,7 @@ function checkCognitiveProgression(distribution: any[]) {
 }
 
 function optimizeLearningPath(distribution: any[], course: any) {
-  console.log("[COGNITIVE_ASSESSMENT] Optimizing learning path");
-  
+
   const currentPath = distribution
     .filter(item => item.sectionCount > 0)
     .map(item => item.level);
@@ -408,8 +401,7 @@ function optimizeLearningPath(distribution: any[], course: any) {
 }
 
 function identifyCognitiveGaps(distribution: any[]) {
-  console.log("[COGNITIVE_ASSESSMENT] Identifying cognitive gaps");
-  
+
   const gaps: any[] = [];
   
   distribution.forEach(item => {

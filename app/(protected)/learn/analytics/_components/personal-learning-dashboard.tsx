@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 import {
   BookOpen,
   TrendingUp,
@@ -122,7 +123,7 @@ export const PersonalLearningDashboard = ({
       const data = await response.json();
       setAnalytics(data.analytics);
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      logger.error('Error fetching analytics:', error);
       toast.error('Failed to load learning analytics');
     } finally {
       setIsLoading(false);

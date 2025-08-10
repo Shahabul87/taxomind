@@ -8,6 +8,7 @@ import { RealTimeMetrics } from '@/lib/redis/real-time-metrics';
 import { LearningPatternDetector } from '@/lib/redis/learning-patterns';
 import { RateLimiter } from '@/lib/redis/rate-limiter';
 import { AICache } from '@/lib/redis/ai-cache';
+import { logger } from '@/lib/logger';
 
 // Process events with Redis
 async function processEventBatch(events: TrackingEvent[], userId?: string) {
@@ -85,7 +86,7 @@ async function storeEventsInDatabase(events: TrackingEvent[], userId?: string) {
       skipDuplicates: true
     });
   } catch (error) {
-    console.error('Database storage error:', error);
+    logger.error('Database storage error:', error);
   }
 }
 
@@ -170,7 +171,7 @@ export async function POST(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Analytics API error:', error);
+    logger.error('Analytics API error:', error);
     return NextResponse.json(
       { error: 'Failed to process analytics events' },
       { status: 500 }
@@ -218,7 +219,7 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json(data || {});
   } catch (error) {
-    console.error('Analytics GET error:', error);
+    logger.error('Analytics GET error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch analytics' },
       { status: 500 }

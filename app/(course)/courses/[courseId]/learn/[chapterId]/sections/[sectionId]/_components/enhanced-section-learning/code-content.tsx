@@ -11,6 +11,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface CodeContentProps {
   codeExplanations: Array<{
@@ -84,7 +85,7 @@ export const CodeContent = ({ codeExplanations }: CodeContentProps) => {
       await navigator.clipboard.writeText(code);
       // You could add a toast notification here
     } catch (err) {
-      console.error('Failed to copy code:', err);
+      logger.error('Failed to copy code:', err);
     }
   };
 
@@ -182,7 +183,6 @@ export const CodeContent = ({ codeExplanations }: CodeContentProps) => {
                   </Button>
                 </div>
               </div>
-
 
               {/* Side-by-Side Content */}
               <div className="h-[600px]">

@@ -3,6 +3,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { QueryPerformanceMonitor } from "@/lib/database/query-optimizer";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -151,7 +152,7 @@ export async function POST(
     });
 
   } catch (error: any) {
-    console.error('Exam submission error:', error);
+    logger.error('Exam submission error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

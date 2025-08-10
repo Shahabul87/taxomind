@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Trash2 } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 interface DangerSettingsProps {
   group: any;
@@ -23,9 +24,9 @@ export function DangerSettings({ group, currentUser, isCreator }: DangerSettings
     setIsDeleting(true);
     try {
       // Implement your delete group logic here
-      console.log("Deleting group:", group.id);
+
     } catch (error) {
-      console.error("Failed to delete group:", error);
+      logger.error("Failed to delete group:", error);
     } finally {
       setIsDeleting(false);
     }

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Real-Time Collaboration Analytics Engine
 // Tracks and analyzes real-time collaborative learning activities
@@ -291,7 +292,7 @@ export class SAMCollaborationEngine {
 
       return session;
     } catch (error) {
-      console.error("Error starting collaboration session:", error);
+      logger.error("Error starting collaboration session:", error);
       throw new Error("Failed to start collaboration session");
     }
   }
@@ -357,7 +358,7 @@ export class SAMCollaborationEngine {
 
       return session;
     } catch (error) {
-      console.error("Error joining collaboration session:", error);
+      logger.error("Error joining collaboration session:", error);
       throw new Error("Failed to join collaboration session");
     }
   }
@@ -428,7 +429,7 @@ export class SAMCollaborationEngine {
         },
       });
     } catch (error) {
-      console.error("Error recording contribution:", error);
+      logger.error("Error recording contribution:", error);
       throw new Error("Failed to record contribution");
     }
   }
@@ -463,7 +464,7 @@ export class SAMCollaborationEngine {
         networkAnalytics,
       };
     } catch (error) {
-      console.error("Error analyzing collaboration:", error);
+      logger.error("Error analyzing collaboration:", error);
       throw new Error("Failed to analyze collaboration");
     }
   }
@@ -530,7 +531,7 @@ export class SAMCollaborationEngine {
 
       return metrics;
     } catch (error) {
-      console.error("Error getting real-time metrics:", error);
+      logger.error("Error getting real-time metrics:", error);
       throw new Error("Failed to get real-time metrics");
     }
   }
@@ -586,7 +587,7 @@ export class SAMCollaborationEngine {
 
       return session;
     } catch (error) {
-      console.error("Error ending collaboration session:", error);
+      logger.error("Error ending collaboration session:", error);
       throw new Error("Failed to end collaboration session");
     }
   }

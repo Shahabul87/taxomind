@@ -3,6 +3,7 @@
 import { cacheManager, CacheLayer } from './cache-manager';
 import { redis, REDIS_KEYS } from './config';
 import { EventEmitter } from 'events';
+import { logger } from '@/lib/logger';
 
 // Real-time data types
 interface RealTimeEvent {
@@ -108,7 +109,7 @@ export class RealTimeCacheManager extends EventEmitter {
       // Emit event for subscribers
       this.emit('event', event);
     } catch (error) {
-      console.error('Error caching real-time event:', error);
+      logger.error('Error caching real-time event:', error);
     }
   }
 
@@ -146,13 +147,13 @@ export class RealTimeCacheManager extends EventEmitter {
           
           parsedEvents.push(event);
         } catch (parseError) {
-          console.error('Error parsing event:', parseError);
+          logger.error('Error parsing event:', parseError);
         }
       }
       
       return parsedEvents.reverse(); // Most recent first
     } catch (error) {
-      console.error('Error getting recent events:', error);
+      logger.error('Error getting recent events:', error);
       return [];
     }
   }
@@ -175,7 +176,7 @@ export class RealTimeCacheManager extends EventEmitter {
       // Emit session update event
       this.emit('sessionUpdate', session);
     } catch (error) {
-      console.error('Error updating live session:', error);
+      logger.error('Error updating live session:', error);
     }
   }
 
@@ -186,7 +187,7 @@ export class RealTimeCacheManager extends EventEmitter {
       
       return await cacheManager.get<LiveSession>(sessionKey, REALTIME_CACHE_CONFIG.SESSIONS);
     } catch (error) {
-      console.error('Error getting live session:', error);
+      logger.error('Error getting live session:', error);
       return null;
     }
   }
@@ -208,7 +209,7 @@ export class RealTimeCacheManager extends EventEmitter {
       
       return sessions;
     } catch (error) {
-      console.error('Error getting user active sessions:', error);
+      logger.error('Error getting user active sessions:', error);
       return [];
     }
   }
@@ -240,7 +241,7 @@ export class RealTimeCacheManager extends EventEmitter {
         total: online.length + idle.length
       };
     } catch (error) {
-      console.error('Error getting course participants:', error);
+      logger.error('Error getting course participants:', error);
       return { online: [], idle: [], total: 0 };
     }
   }
@@ -258,7 +259,7 @@ export class RealTimeCacheManager extends EventEmitter {
       // Emit notification event
       this.emit('notification', notification);
     } catch (error) {
-      console.error('Error caching notification:', error);
+      logger.error('Error caching notification:', error);
     }
   }
 
@@ -289,7 +290,7 @@ export class RealTimeCacheManager extends EventEmitter {
       
       return notifications;
     } catch (error) {
-      console.error('Error getting user notifications:', error);
+      logger.error('Error getting user notifications:', error);
       return [];
     }
   }
@@ -311,7 +312,7 @@ export class RealTimeCacheManager extends EventEmitter {
         this.emit('notificationRead', notification);
       }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      logger.error('Error marking notification as read:', error);
     }
   }
 
@@ -328,7 +329,7 @@ export class RealTimeCacheManager extends EventEmitter {
       // Emit chat message event
       this.emit('chatMessage', message);
     } catch (error) {
-      console.error('Error caching chat message:', error);
+      logger.error('Error caching chat message:', error);
     }
   }
 
@@ -356,13 +357,13 @@ export class RealTimeCacheManager extends EventEmitter {
           const message = JSON.parse(item.member);
           parsedMessages.push(message);
         } catch (parseError) {
-          console.error('Error parsing chat message:', parseError);
+          logger.error('Error parsing chat message:', parseError);
         }
       }
       
       return parsedMessages;
     } catch (error) {
-      console.error('Error getting chat messages:', error);
+      logger.error('Error getting chat messages:', error);
       return [];
     }
   }
@@ -380,7 +381,8 @@ export class RealTimeCacheManager extends EventEmitter {
         userId,
         status,
         lastSeen: Date.now(),
-        metadata: metadata || {}
+        metadata: metadata || {
+}
       };
       
       await cacheManager.set(presenceKey, presenceData, REALTIME_CACHE_CONFIG.PRESENCE);
@@ -391,7 +393,7 @@ export class RealTimeCacheManager extends EventEmitter {
       // Emit presence update event
       this.emit('presenceUpdate', presenceData);
     } catch (error) {
-      console.error('Error updating user presence:', error);
+      logger.error('Error updating user presence:', error);
     }
   }
 
@@ -410,7 +412,7 @@ export class RealTimeCacheManager extends EventEmitter {
         metadata?: Record<string, any>;
       }>(presenceKey, REALTIME_CACHE_CONFIG.PRESENCE);
     } catch (error) {
-      console.error('Error getting user presence:', error);
+      logger.error('Error getting user presence:', error);
       return null;
     }
   }
@@ -421,7 +423,7 @@ export class RealTimeCacheManager extends EventEmitter {
       const onlineUsersKey = 'presence:online';
       return await redis.smembers(onlineUsersKey) || [];
     } catch (error) {
-      console.error('Error getting online users:', error);
+      logger.error('Error getting online users:', error);
       return [];
     }
   }
@@ -503,7 +505,7 @@ export class RealTimeCacheManager extends EventEmitter {
       try {
         await this.performHeartbeat();
       } catch (error) {
-        console.error('Heartbeat error:', error);
+        logger.error('Heartbeat error:', error);
       }
     }, 30000); // 30 seconds
   }
@@ -547,7 +549,7 @@ export class RealTimeCacheManager extends EventEmitter {
       try {
         await this.performCleanup();
       } catch (error) {
-        console.error('Cleanup error:', error);
+        logger.error('Cleanup error:', error);
       }
     }, 5 * 60 * 1000); // 5 minutes
   }

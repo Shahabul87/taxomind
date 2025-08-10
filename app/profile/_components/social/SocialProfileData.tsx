@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, BarChart3 } from "lucide-react";
 import { ProfileMetadataExtractor } from "./ProfileMetadataExtractor";
+import { logger } from '@/lib/logger';
 
 interface ProfileMetrics {
   platform: string;
@@ -42,7 +43,7 @@ export function SocialProfileData() {
           setMetrics(mockMetrics);
         }
       } catch (error) {
-        console.error("Failed to fetch profile links:", error);
+        logger.error("Failed to fetch profile links:", error);
         setError("Failed to load social profile data. Please try again later.");
       } finally {
         setIsLoading(false);

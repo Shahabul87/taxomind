@@ -52,9 +52,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
   // Debug user role
   useEffect(() => {
     if (user) {
-      console.log("HomeSidebar - Current user:", user);
-      console.log("HomeSidebar - User role:", user.role);
-    }
+}
   }, [user]);
 
   // Load persistent sidebar state from localStorage

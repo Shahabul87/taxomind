@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import {
   Users,
   MessageCircle,
@@ -195,7 +196,7 @@ export const SocialLearningAnalytics = ({
         setStudyGroups(getDemoStudyGroups());
       }
     } catch (error) {
-      console.error("Failed to load social learning data:", error);
+      logger.error("Failed to load social learning data:", error);
       // Use demo data as fallback
       setCollaborationData(getDemoAnalytics());
       setDiscussions(getDemoDiscussions());
@@ -237,7 +238,7 @@ export const SocialLearningAnalytics = ({
         toast.error("Failed to create discussion");
       }
     } catch (error) {
-      console.error("Failed to create discussion:", error);
+      logger.error("Failed to create discussion:", error);
       toast.error("Failed to create discussion");
     }
   };

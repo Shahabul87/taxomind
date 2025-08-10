@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { X } from "lucide-react";
+import { logger } from '@/lib/logger';
 import {
   Select,
   SelectContent,
@@ -97,7 +98,7 @@ export const NewBillDialog = ({ open, onOpenChange, onSuccess }: NewBillDialogPr
       onOpenChange(false);
       form.reset();
     } catch (error) {
-      console.error("Error creating bill:", error);
+      logger.error("Error creating bill:", error);
       toast.error("Failed to create bill");
     }
   };

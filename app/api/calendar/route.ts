@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Helper function to handle recurring events
 function expandRecurringEvent(
@@ -211,7 +212,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(allEvents);
   } catch (error) {
-    console.error("Error getting events:", error);
+    logger.error("Error getting events:", error);
     return NextResponse.json({ error: "Failed to get events" }, { status: 500 });
   }
 }
@@ -240,7 +241,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(event);
   } catch (error) {
-    console.error("Error creating event:", error);
+    logger.error("Error creating event:", error);
     return NextResponse.json({ error: "Failed to create event" }, { status: 500 });
   }
 }
@@ -286,7 +287,7 @@ export async function PUT(request: NextRequest) {
     
     return NextResponse.json(updatedEvent);
   } catch (error) {
-    console.error("Error updating event:", error);
+    logger.error("Error updating event:", error);
     return NextResponse.json({ error: "Failed to update event" }, { status: 500 });
   }
 }
@@ -326,7 +327,7 @@ export async function DELETE(request: NextRequest) {
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting event:", error);
+    logger.error("Error deleting event:", error);
     return NextResponse.json({ error: "Failed to delete event" }, { status: 500 });
   }
 } 

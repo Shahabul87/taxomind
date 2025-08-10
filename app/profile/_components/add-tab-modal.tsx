@@ -5,6 +5,7 @@ import { Dialog } from '@headlessui/react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface AddTabModalProps {
   isOpen: boolean;
@@ -40,7 +41,7 @@ export const AddTabModal = ({ isOpen, onClose, userId }: AddTabModalProps) => {
       onClose();
     } catch (error) {
       toast.error('Failed to create tab');
-      console.error(error);
+      logger.error(error);
     }
   };
 

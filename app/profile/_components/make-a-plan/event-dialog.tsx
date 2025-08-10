@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { format, addHours, isValid, parseISO, formatISO, isSameDay, isBefore } from "date-fns";
 import { CalendarEvent } from "@/app/actions/calendar-service";
 import { createCalendarEvent, deleteCalendarEvent } from "@/app/actions/calendar-actions";
+import { logger } from '@/lib/logger';
 import { 
   Dialog, 
   DialogContent, 
@@ -134,7 +135,7 @@ export function EventDialog({
           setShowRecurring(false);
         }
       } catch (error) {
-        console.error("Error setting up event form:", error);
+        logger.error("Error setting up event form:", error);
         toast.error("There was a problem loading the event form");
         onOpenChange(false);
       }
@@ -186,7 +187,7 @@ export function EventDialog({
       onSave();
       onOpenChange(false);
     } catch (error) {
-      console.error("Error deleting event:", error);
+      logger.error("Error deleting event:", error);
       toast.error("Failed to delete event. Please try again.");
     }
   };
@@ -293,7 +294,7 @@ export function EventDialog({
           
           toast.success("Event updated successfully");
         } catch (error) {
-          console.error("Error updating event:", error);
+          logger.error("Error updating event:", error);
           toast.error("Failed to update event. Please try again.");
           throw error;
         }
@@ -307,7 +308,7 @@ export function EventDialog({
       onOpenChange(false);
       onSave();
     } catch (error) {
-      console.error("Error saving event:", error);
+      logger.error("Error saving event:", error);
       toast.error("Failed to save event. Please try again.");
     } finally {
       setIsSubmitting(false);

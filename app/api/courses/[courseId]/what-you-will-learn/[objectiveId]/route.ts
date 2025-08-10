@@ -59,7 +59,7 @@ export async function PATCH(
     
     return NextResponse.json(updatedCourse);
   } catch (error) {
-    console.log("[OBJECTIVE_UPDATE]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -117,7 +117,7 @@ export async function DELETE(
     
     return NextResponse.json(updatedCourse);
   } catch (error) {
-    console.log("[OBJECTIVE_DELETE]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

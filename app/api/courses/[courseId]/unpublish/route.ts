@@ -10,7 +10,6 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
   const params = await props.params;
   try {
     const user = await currentUser();
-    
 
     if (!user?.id) {
         return new NextResponse("Unauthorized", { status: 401 });
@@ -41,7 +40,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
 
     return NextResponse.json(unpublishedCourse);
   } catch (error) {
-    console.log("[COURSE_ID_UNPUBLISH]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

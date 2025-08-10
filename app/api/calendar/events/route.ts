@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request) {
   try {
-    console.log("[CALENDAR_EVENTS_GET] Request received");
+
     const session = await auth();
     
     if (!session?.user?.id) {
-      console.log("[CALENDAR_EVENTS_GET] No authenticated user");
+
       return NextResponse.json(
         { success: false, error: "Please sign in to access the calendar" },
         { status: 401 }
@@ -17,11 +18,10 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
-    console.log(`[CALENDAR_EVENTS_GET] Params: userId=${userId}, sessionUserId=${session.user.id}`);
 
     // Validate userId
     if (!userId) {
-      console.log("[CALENDAR_EVENTS_GET] Missing userId parameter");
+
       return NextResponse.json(
         { success: false, error: "userId parameter is required" },
         { status: 400 }
@@ -29,15 +29,13 @@ export async function GET(req: Request) {
     }
     
     if (userId !== session.user.id) {
-      console.log("[CALENDAR_EVENTS_GET] userId doesn't match session user");
+
       return NextResponse.json(
         { success: false, error: "Unauthorized access" },
         { status: 403 }
       );
     }
 
-    console.log(`[CALENDAR_EVENTS_GET] Fetching events for user: ${userId}`);
-    
     // Fetch events using Prisma
     const events = await db.calendarEvent.findMany({
       where: {
@@ -67,8 +65,6 @@ export async function GET(req: Request) {
       }
     });
 
-    console.log(`[CALENDAR_EVENTS_GET] Found ${events.length} events`);
-
     return NextResponse.json({
       success: true,
       data: events.map(event => ({
@@ -80,7 +76,7 @@ export async function GET(req: Request) {
     });
 
   } catch (error) {
-    console.error("[CALENDAR_EVENTS_GET] Error:", error);
+    logger.error("[CALENDAR_EVENTS_GET] Error:", error);
     return NextResponse.json(
       { 
         success: false,
@@ -135,7 +131,7 @@ export async function POST(req: Request) {
       data: event 
     });
   } catch (error) {
-    console.error("[CALENDAR_EVENT_POST]", error);
+    logger.error("[CALENDAR_EVENT_POST]", error);
     return NextResponse.json(
       { error: "Internal Server Error" }, 
       { status: 500 }

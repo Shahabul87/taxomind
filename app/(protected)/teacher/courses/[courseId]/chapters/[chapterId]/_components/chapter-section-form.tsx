@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Chapter, Section } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -59,21 +60,18 @@ export const ChaptersSectionForm = ({
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      console.log("Submitting section:", values);
-      
+
       const response = await axios.post(
         `/api/courses/${courseId}/chapters/${chapterId}/sections`, 
         values
       );
-      
-      console.log("Section creation response:", response.data);
-      
+
       toast.success("Section created");
       setIsCreating(false);
       form.reset();
       router.refresh();
     } catch (error) {
-      console.error("Section creation error:", error);
+      logger.error("Section creation error:", error);
       toast.error("Something went wrong");
     }
   };
@@ -99,17 +97,15 @@ export const ChaptersSectionForm = ({
 
   const onDelete = async (sectionId: string) => {
     try {
-      console.log("Deleting section:", sectionId);
-      
+
       const response = await axios.delete(
         `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`
       );
-      
-      console.log("Delete response:", response.data);
+
       toast.success("Section deleted");
       router.refresh();
     } catch (error: any) {
-      console.error("Delete error:", error.response?.data || error.message);
+      logger.error("Delete error:", error.response?.data || error.message);
       toast.error(error.response?.data?.error || "Failed to delete section");
     }
   };
@@ -122,8 +118,7 @@ export const ChaptersSectionForm = ({
 
     setIsGeneratingAI(true);
     try {
-      console.log('[SECTIONS_FORM] Starting AI section generation:', { chapterId, sections: sections.length });
-      
+
       // Create sections in database
       const createdSections = [];
       for (let i = 0; i < sections.length; i++) {
@@ -137,9 +132,9 @@ export const ChaptersSectionForm = ({
           );
           
           createdSections.push(createResponse.data);
-          console.log(`[SECTIONS_FORM] Created section ${i + 1}:`, createResponse.data.title);
+
         } catch (error: any) {
-          console.error(`[SECTIONS_FORM] Failed to create section ${i + 1}:`, error);
+          logger.error(`[SECTIONS_FORM] Failed to create section ${i + 1}:`, error);
           // Continue with remaining sections instead of failing completely
         }
       }
@@ -152,7 +147,7 @@ export const ChaptersSectionForm = ({
       }
       
     } catch (error: any) {
-      console.error('[SECTIONS_FORM] AI section generation failed:', error);
+      logger.error('[SECTIONS_FORM] AI section generation failed:', error);
       toast.error("Failed to generate sections with AI. Please try again.");
     } finally {
       setIsGeneratingAI(false);

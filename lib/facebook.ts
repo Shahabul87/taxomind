@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '@/lib/logger';
 
 // Facebook API configuration
 const FACEBOOK_GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
@@ -16,7 +17,7 @@ export const facebookClient = {
       });
       return response.data;
     } catch (error) {
-      console.error('Error fetching Facebook user profile:', error);
+      logger.error('Error fetching Facebook user profile:', error);
       throw error;
     }
   },
@@ -31,7 +32,7 @@ export const facebookClient = {
       });
       return response.data.data;
     } catch (error) {
-      console.error('Error fetching Facebook pages:', error);
+      logger.error('Error fetching Facebook pages:', error);
       throw error;
     }
   },
@@ -49,7 +50,7 @@ export const facebookClient = {
       });
       return response.data.data;
     } catch (error) {
-      console.error('Error fetching Facebook page insights:', error);
+      logger.error('Error fetching Facebook page insights:', error);
       throw error;
     }
   },
@@ -65,7 +66,7 @@ export const facebookClient = {
       });
       return response.data;
     } catch (error) {
-      console.error('Error fetching Facebook page followers:', error);
+      logger.error('Error fetching Facebook page followers:', error);
       throw error;
     }
   },
@@ -82,7 +83,7 @@ export const facebookClient = {
       });
       return response.data.data;
     } catch (error) {
-      console.error('Error fetching Facebook page posts:', error);
+      logger.error('Error fetching Facebook page posts:', error);
       throw error;
     }
   }

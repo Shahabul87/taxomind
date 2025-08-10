@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from '@/lib/logger';
 import { 
   Brain, 
   Target, 
@@ -136,7 +137,7 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
         toast.success('Course analysis completed successfully!');
       }
     } catch (error) {
-      console.error('Analysis error:', error);
+      logger.error('Analysis error:', error);
       toast.error('Failed to analyze course depth');
     } finally {
       setIsAnalyzing(false);

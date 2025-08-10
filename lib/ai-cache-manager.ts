@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { logger } from '@/lib/logger';
 
 interface CacheEntry<T> {
   data: T;
@@ -286,7 +287,7 @@ export class AICacheManager {
         }
       }
     } catch (error) {
-      console.warn('Failed to load cache from storage:', error);
+      logger.warn('Failed to load cache from storage:', error);
     }
   }
 
@@ -303,7 +304,7 @@ export class AICacheManager {
         localStorage.setItem('ai-cache', JSON.stringify(dataToStore));
       }
     } catch (error) {
-      console.warn('Failed to save cache to storage:', error);
+      logger.warn('Failed to save cache to storage:', error);
     }
   }
 
@@ -374,13 +375,13 @@ export class AICacheManager {
 
     // This would preload common blueprint patterns in the background
     // Implementation depends on your specific blueprint generation logic
-    console.log('Preloading common blueprint patterns...');
+
   }
 
   // Cache warming for specific user patterns
   async warmCacheForUser(userId: string, userPatterns: any): Promise<void> {
     // This would preload cache based on user's typical usage patterns
-    console.log(`Warming cache for user ${userId} based on patterns:`, userPatterns);
+
   }
 }
 

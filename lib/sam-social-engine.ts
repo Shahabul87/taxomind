@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { openai } from "@/lib/openai";
 import { anthropic } from "@/lib/anthropic";
+import { logger } from '@/lib/logger';
 
 // Types for Social Learning Analytics Engine
 export interface LearningGroup {
@@ -233,7 +234,7 @@ export class SAMSocialEngine {
       
       return score;
     } catch (error) {
-      console.error('Error measuring collaboration effectiveness:', error);
+      logger.error('Error measuring collaboration effectiveness:', error);
       throw new Error('Failed to measure collaboration effectiveness');
     }
   }
@@ -273,7 +274,7 @@ export class SAMSocialEngine {
       
       return metrics;
     } catch (error) {
-      console.error('Error analyzing engagement:', error);
+      logger.error('Error analyzing engagement:', error);
       throw new Error('Failed to analyze engagement');
     }
   }
@@ -309,7 +310,7 @@ export class SAMSocialEngine {
       
       return impact;
     } catch (error) {
-      console.error('Error evaluating knowledge sharing:', error);
+      logger.error('Error evaluating knowledge sharing:', error);
       throw new Error('Failed to evaluate knowledge sharing');
     }
   }
@@ -362,7 +363,7 @@ export class SAMSocialEngine {
       
       return matchingResults;
     } catch (error) {
-      console.error('Error matching mentor-mentee:', error);
+      logger.error('Error matching mentor-mentee:', error);
       throw new Error('Failed to match mentor-mentee');
     }
   }
@@ -418,7 +419,7 @@ export class SAMSocialEngine {
       
       return analysis;
     } catch (error) {
-      console.error('Error assessing group dynamics:', error);
+      logger.error('Error assessing group dynamics:', error);
       throw new Error('Failed to assess group dynamics');
     }
   }

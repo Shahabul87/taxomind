@@ -4,6 +4,7 @@ import React, { Component, ErrorInfo as ReactErrorInfo } from 'react';
 import { ErrorBoundaryProps, ErrorInfo } from './types';
 import { errorLogger } from './error-logger';
 import { ErrorDisplay } from './error-display';
+import { logger } from '@/lib/logger';
 
 interface State {
   hasError: boolean;
@@ -51,7 +52,7 @@ export class GlobalErrorBoundary extends Component<ErrorBoundaryProps, State> {
         this.scheduleAutoRecovery();
       }
     } catch (loggingError) {
-      console.error('Error logging failed:', loggingError);
+      logger.error('Error logging failed:', loggingError);
     }
   }
 

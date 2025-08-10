@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { samPredictiveEngine } from "@/lib/sam-predictive-engine";
+import { logger } from '@/lib/logger';
 import {
   StudentProfile,
   LearningHistory,
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Predictive learning error:", error);
+    logger.error("Predictive learning error:", error);
     return NextResponse.json(
       { error: "Failed to process prediction" },
       { status: 500 }
@@ -220,7 +221,7 @@ async function buildStudentCohort(
       const profile = await buildStudentProfile(enrollment.userId, courseId);
       students.push(profile);
     } catch (error) {
-      console.error(`Failed to build profile for user ${enrollment.userId}`);
+      logger.error(`Failed to build profile for user ${enrollment.userId}`);
     }
   }
 
@@ -555,7 +556,7 @@ export async function GET(req: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error("Error fetching predictions:", error);
+    logger.error("Error fetching predictions:", error);
     return NextResponse.json(
       { error: "Failed to fetch predictions" },
       { status: 500 }

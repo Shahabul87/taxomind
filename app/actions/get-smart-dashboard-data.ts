@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { generateAIInsights } from "@/lib/ai-insights";
 import { getPersonalizedRecommendations } from "@/lib/recommendations";
+import { logger } from '@/lib/logger';
 
 export async function getSmartDashboardData() {
   const session = await auth();
@@ -15,7 +16,6 @@ export async function getSmartDashboardData() {
   const userId = session.user.id;
 
   try {
-    console.log("[GET_SMART_DASHBOARD_DATA] Fetching comprehensive data for user:", userId);
 
     // Fetch core user data with safe relationships (avoiding circular dependencies)
     const userData = await db.user.findUnique({
@@ -86,7 +86,7 @@ export async function getSmartDashboardData() {
     });
 
     if (!userData) {
-      console.log("[GET_SMART_DASHBOARD_DATA] User not found");
+
       return null;
     }
 
@@ -149,8 +149,6 @@ export async function getSmartDashboardData() {
 
     const benchmarks = await fetchUserBenchmarks(userId);
 
-    console.log("[GET_SMART_DASHBOARD_DATA] Successfully compiled smart dashboard data");
-
     // Ensure all data is properly structured with safe fallbacks
     const safeData = {
       userData: userData || {},
@@ -178,7 +176,7 @@ export async function getSmartDashboardData() {
     return safeData;
 
   } catch (error) {
-    console.error("[GET_SMART_DASHBOARD_DATA] Error fetching smart dashboard data:", error);
+    logger.error("[GET_SMART_DASHBOARD_DATA] Error fetching smart dashboard data:", error);
     return null;
   }
 }
@@ -192,7 +190,7 @@ async function fetchUserAnalytics(userId: string) {
       take: 100
     });
   } catch (error) {
-    console.warn("User analytics not available:", error);
+    logger.warn("User analytics not available:", error);
     return [];
   }
 }
@@ -239,7 +237,7 @@ async function fetchPerformanceMetrics(userId: string) {
       };
     });
   } catch (error) {
-    console.warn("Performance metrics not available:", error);
+    logger.warn("Performance metrics not available:", error);
     return [];
   }
 }

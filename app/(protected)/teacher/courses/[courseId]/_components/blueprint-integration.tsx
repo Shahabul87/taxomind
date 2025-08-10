@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { logger } from '@/lib/logger';
 import { 
   Bot, 
   Sparkles, 
@@ -77,9 +78,9 @@ export const BlueprintIntegration = ({ courseId, currentCourse }: BlueprintInteg
       try {
         const parsedBlueprint = JSON.parse(storedBlueprint);
         setBlueprint(parsedBlueprint);
-        console.log('Found blueprint for course:', courseId, parsedBlueprint);
+
       } catch (error) {
-        console.error('Error parsing blueprint:', error);
+        logger.error('Error parsing blueprint:', error);
         sessionStorage.removeItem(`course_blueprint_${courseId}`);
       }
     }
@@ -90,12 +91,10 @@ export const BlueprintIntegration = ({ courseId, currentCourse }: BlueprintInteg
 
     setIsGenerating(true);
     try {
-      console.log('Generating chapters from blueprint...');
-      
+
       // Create chapters sequentially to maintain order
       for (const chapter of blueprint.chapters) {
-        console.log('Creating chapter:', chapter.title);
-        
+
         const chapterResponse = await fetch(`/api/courses/${courseId}/chapters`, {
           method: 'POST',
           headers: {
@@ -114,12 +113,10 @@ export const BlueprintIntegration = ({ courseId, currentCourse }: BlueprintInteg
         }
 
         const createdChapter = await chapterResponse.json();
-        console.log('Chapter created:', createdChapter);
 
         // Create sections for this chapter
         for (const section of chapter.sections) {
-          console.log('Creating section:', section.title);
-          
+
           const sectionResponse = await fetch(`/api/courses/${courseId}/chapters/${createdChapter.id}/sections`, {
             method: 'POST',
             headers: {
@@ -136,11 +133,11 @@ export const BlueprintIntegration = ({ courseId, currentCourse }: BlueprintInteg
           });
 
           if (!sectionResponse.ok) {
-            console.warn(`Failed to create section: ${section.title}`);
+            logger.warn(`Failed to create section: ${section.title}`);
             // Continue with other sections even if one fails
           } else {
             const createdSection = await sectionResponse.json();
-            console.log('Section created:', createdSection);
+
           }
         }
       }
@@ -160,7 +157,7 @@ export const BlueprintIntegration = ({ courseId, currentCourse }: BlueprintInteg
       });
 
       if (!courseUpdateResponse.ok) {
-        console.warn('Failed to update course with blueprint data');
+        logger.warn('Failed to update course with blueprint data');
       }
 
       toast.success("Course structure generated successfully!");
@@ -172,7 +169,7 @@ export const BlueprintIntegration = ({ courseId, currentCourse }: BlueprintInteg
       window.location.reload();
       
     } catch (error) {
-      console.error('Error generating chapters from blueprint:', error);
+      logger.error('Error generating chapters from blueprint:', error);
       toast.error(`Failed to generate course structure: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);

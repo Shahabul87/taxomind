@@ -9,6 +9,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -45,18 +46,18 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      console.log('Submitting course creation with:', values);
+
       const response = await axios.post("/api/courses", values);
-      console.log('Course creation response:', response.data);
+
       router.push(`/teacher/courses/${response.data.id}`);
       toast.success("Course created successfully!");
     } catch (error: any) {
-      console.error('Course creation error:', error);
+      logger.error('Course creation error:', error);
       
       if (error.response) {
         // The request was made and the server responded with a status code
         const errorMessage = error.response.data || error.response.statusText || "Unknown error";
-        console.error('Server error response:', error.response.status, errorMessage);
+        logger.error('Server error response:', error.response.status, errorMessage);
         
         if (error.response.status === 401) {
           toast.error("You need to be logged in as a teacher to create courses");
@@ -69,11 +70,11 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
         }
       } else if (error.request) {
         // The request was made but no response was received
-        console.error('Network error:', error.request);
+        logger.error('Network error:', error.request);
         toast.error("Network error - please check your connection");
       } else {
         // Something happened in setting up the request
-        console.error('Request setup error:', error.message);
+        logger.error('Request setup error:', error.message);
         toast.error("Something went wrong with the request");
       }
     }

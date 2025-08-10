@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Form } from "@/components/ui/form";
 import { ExplanationFormFields } from "./explanation-form-fields";
 import { ExplanationSubmitButton } from "./explanation-submit-button";
+import { logger } from '@/lib/logger';
 
 const formSchema = z.object({
   heading: z.string().min(1, { message: "Heading is required" }),
@@ -61,7 +62,7 @@ export const ExplanationForm = ({
       toast.success("Explanation form reset successfully!");
       
     } catch (error) {
-      console.error("Form submission error:", error);
+      logger.error("Form submission error:", error);
       // Don't reset on error - let user see their data
     }
   };

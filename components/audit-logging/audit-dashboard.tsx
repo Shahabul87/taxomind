@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { logger } from '@/lib/logger';
 import { 
   Shield, AlertTriangle, Eye, Download, Search, Filter,
   Calendar as CalendarIcon, Clock, User, Activity, Database,
@@ -94,7 +95,7 @@ export function AuditDashboard({ className }: AuditDashboardProps) {
       setTotalPages(result.totalPages);
     } catch (error) {
       toast.error('Failed to load audit data');
-      console.error(error);
+      logger.error(error);
     } finally {
       setLoading(false);
     }
@@ -108,7 +109,7 @@ export function AuditDashboard({ className }: AuditDashboardProps) {
       );
       setMetrics(metricsData);
     } catch (error) {
-      console.error('Failed to load metrics:', error);
+      logger.error('Failed to load metrics:', error);
     }
   }, [dateRange]);
 
@@ -133,10 +134,10 @@ export function AuditDashboard({ className }: AuditDashboardProps) {
       
       // In a real implementation, this would download the report
       toast.success(`${type} compliance report generated`);
-      console.log('Generated report:', report);
+
     } catch (error) {
       toast.error('Failed to generate report');
-      console.error(error);
+      logger.error(error);
     }
   };
 

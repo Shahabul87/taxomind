@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -176,7 +177,7 @@ export async function GET(
       recommendations: generateRecommendations(summary, questionAnalysisArray, performanceTrends),
     });
   } catch (error) {
-    console.error("[EXAM_ANALYTICS_GET]", error);
+    logger.error("[EXAM_ANALYTICS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

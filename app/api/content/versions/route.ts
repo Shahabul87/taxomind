@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/api-protection";
 import { ContentVersioningService } from "@/lib/content-versioning";
 import { ContentType } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 export const POST = withAuth(async (request: NextRequest) => {
   try {
@@ -37,7 +38,7 @@ export const POST = withAuth(async (request: NextRequest) => {
 
     return Response.json({ version });
   } catch (error) {
-    console.error("[CONTENT_VERSIONS_POST]", error);
+    logger.error("[CONTENT_VERSIONS_POST]", error);
     return Response.json(
       { error: "Failed to create version" },
       { status: 500 }
@@ -65,7 +66,7 @@ export const GET = withAuth(async (request: NextRequest) => {
 
     return Response.json({ versions });
   } catch (error) {
-    console.error("[CONTENT_VERSIONS_GET]", error);
+    logger.error("[CONTENT_VERSIONS_GET]", error);
     return Response.json(
       { error: "Failed to fetch version history" },
       { status: 500 }

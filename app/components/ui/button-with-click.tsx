@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import axios from "axios";
 import { toast } from "sonner";
 import Image from "next/image";
+import { logger } from '@/lib/logger';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
@@ -20,15 +21,14 @@ const ButtonWithClick = forwardRef<HTMLButtonElement, ButtonProps>(
       if (!testUrl) return;
       
       try {
-        console.log("Testing fetch with URL:", testUrl);
+
         toast.info("Fetching metadata...", {
           id: "fetching-metadata",
           duration: 3000
         });
         
         const response = await axios.get(`/api/fetch-video-metadata?url=${encodeURIComponent(testUrl)}`);
-        console.log("Metadata response:", response.data);
-        
+
         if (response.data) {
           toast.dismiss("fetching-metadata");
           
@@ -74,7 +74,7 @@ const ButtonWithClick = forwardRef<HTMLButtonElement, ButtonProps>(
           toast.error("No metadata returned");
         }
       } catch (error) {
-        console.error("Test fetch error:", error);
+        logger.error("Test fetch error:", error);
         toast.error("Error fetching metadata");
       }
     };

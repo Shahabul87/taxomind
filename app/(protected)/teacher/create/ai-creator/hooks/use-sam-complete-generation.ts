@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface SAMCompleteGenerationState {
   isGenerating: boolean;
@@ -172,7 +173,7 @@ export function useSamCompleteGeneration() {
       return courseStructure;
 
     } catch (error) {
-      console.error('Error in complete generation:', error);
+      logger.error('Error in complete generation:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate course structure';
       
       setState(prev => ({

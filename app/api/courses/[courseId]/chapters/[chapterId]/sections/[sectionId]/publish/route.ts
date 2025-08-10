@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -42,7 +43,7 @@ export async function PATCH(
 
     return NextResponse.json(section);
   } catch (error) {
-    console.error("[SECTION_PUBLISH]", error);
+    logger.error("[SECTION_PUBLISH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,11 +30,12 @@ export async function GET(req: NextRequest) {
       spacedRepetition: null,
       microlearning: null,
       cognitiveLoad: null,
-      systemMetrics: {}
+      systemMetrics: {
+}
     });
 
   } catch (error) {
-    console.error('Real-time analytics error:', error);
+    logger.error('Real-time analytics error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch real-time analytics' },
       { status: 500 }
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Event tracking error:', error);
+    logger.error('Event tracking error:', error);
     return NextResponse.json(
       { error: 'Failed to track event' },
       { status: 500 }

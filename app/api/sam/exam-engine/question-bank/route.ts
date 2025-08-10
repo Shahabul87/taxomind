@@ -3,6 +3,7 @@ import { currentUser } from '@/lib/auth';
 import { AdvancedExamEngine } from '@/lib/sam-exam-engine';
 import { db } from '@/lib/db';
 import { QuestionType, BloomsLevel, QuestionDifficulty } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Add to question bank error:', error);
+    logger.error('Add to question bank error:', error);
     return NextResponse.json(
       { error: 'Failed to add questions to bank' },
       { status: 500 }
@@ -160,7 +161,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get question bank error:', error);
+    logger.error('Get question bank error:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve questions' },
       { status: 500 }
@@ -216,7 +217,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Update question error:', error);
+    logger.error('Update question error:', error);
     return NextResponse.json(
       { error: 'Failed to update question' },
       { status: 500 }
@@ -269,7 +270,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Delete question error:', error);
+    logger.error('Delete question error:', error);
     return NextResponse.json(
       { error: 'Failed to delete question' },
       { status: 500 }

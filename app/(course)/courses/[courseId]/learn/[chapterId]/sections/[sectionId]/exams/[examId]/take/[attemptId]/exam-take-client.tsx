@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   Clock, 
   CheckCircle, 
@@ -94,7 +95,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
         }
       }
     } catch (error) {
-      console.error("Error fetching attempt:", error);
+      logger.error("Error fetching attempt:", error);
     } finally {
       setLoading(false);
     }
@@ -168,7 +169,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
         );
       }
     } catch (error) {
-      console.error("Error submitting exam:", error);
+      logger.error("Error submitting exam:", error);
     } finally {
       setSubmitting(false);
     }

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { ActivityItem, ActivityStatus, ActivityType, ActivityPriority } from "../profile/_components/activity-dashboard/types";
+import { logger } from '@/lib/logger';
 
 /**
  * Get real user activities from the database
@@ -20,12 +21,12 @@ export const getActivityData = async () => {
       const activities = await fetchRealActivities(userId);
       return activities;
     } catch (error) {
-      console.warn("Activity table not available, returning empty array:", error);
+      logger.warn("Activity table not available, returning empty array:", error);
       return [];
     }
     
   } catch (error) {
-    console.error("Error fetching activity data:", error);
+    logger.error("Error fetching activity data:", error);
     return [];
   }
 };
@@ -103,7 +104,6 @@ const getActivitiesFromUserData = async (userId: string): Promise<ActivityItem[]
       });
     });
 
-
     // Convert courses to activities
     userData.courses.forEach(course => {
       activities.push({
@@ -121,14 +121,13 @@ const getActivitiesFromUserData = async (userId: string): Promise<ActivityItem[]
       });
     });
 
-
     // Sort by most recent first
     activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     return activities;
     
   } catch (error) {
-    console.error("Error getting activities from user data:", error);
+    logger.error("Error getting activities from user data:", error);
     return [];
   }
 }; 

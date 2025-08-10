@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -12,16 +13,13 @@ export async function DELETE(
 ) {
   try {
     const { courseId } = await params;
-    console.log("[COURSE_DELETE] Starting deletion for courseId:", courseId);
-    
+
     const user = await currentUser();
 
     if (!user?.id) {
-      console.log("[COURSE_DELETE] Authentication failed - no user");
+
       return NextResponse.json({ error: "Unauthorized", details: "No authenticated user" }, { status: 401 });
     }
-
-    console.log("[COURSE_DELETE] Authenticated user:", user.id);
 
     // First, check if the course exists at all
     const courseExists = await db.course.findUnique({
@@ -35,15 +33,8 @@ export async function DELETE(
       }
     });
 
-    console.log("[COURSE_DELETE] Course existence check:", courseExists ? {
-      id: courseExists.id,
-      userId: courseExists.userId,
-      title: courseExists.title,
-      userOwns: courseExists.userId === user.id
-    } : "Course not found");
-
     if (!courseExists) {
-      console.log("[COURSE_DELETE] Course does not exist in database");
+
       return NextResponse.json({ 
         error: "Course not found", 
         details: `Course with ID ${courseId} does not exist`,
@@ -53,9 +44,7 @@ export async function DELETE(
 
     // Check if user owns the course
     if (courseExists.userId !== user.id) {
-      console.log("[COURSE_DELETE] User does not own course");
-      console.log("[COURSE_DELETE] Course owner:", courseExists.userId);
-      console.log("[COURSE_DELETE] Current user:", user.id);
+
       return NextResponse.json({ 
         error: "Unauthorized", 
         details: "You do not own this course",
@@ -78,15 +67,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Course not found with ownership" }, { status: 404 });
     }
 
-    console.log("[COURSE_DELETE] About to delete course:", course.title);
-
     await db.course.delete({
       where: {
         id: courseId,
       }
     });
 
-    console.log("[COURSE_DELETE] Course deleted successfully");
     return NextResponse.json({ 
       success: true, 
       message: "Course deleted successfully",
@@ -96,13 +82,13 @@ export async function DELETE(
       }
     });
   } catch (error) {
-    console.error("[COURSE_DELETE] Error:", error);
+    logger.error("[COURSE_DELETE] Error:", error);
     
     // Enhanced error logging
     if (error instanceof Error) {
-      console.error("[COURSE_DELETE] Error name:", error.name);
-      console.error("[COURSE_DELETE] Error message:", error.message);
-      console.error("[COURSE_DELETE] Error stack:", error.stack);
+      logger.error("[COURSE_DELETE] Error name:", error.name);
+      logger.error("[COURSE_DELETE] Error message:", error.message);
+      logger.error("[COURSE_DELETE] Error stack:", error.stack);
     }
     
     return NextResponse.json({ 
@@ -119,19 +105,15 @@ export async function PATCH(
 ) {
   try {
     const { courseId } = await params;
-    console.log("[COURSE_PATCH] Starting update for courseId:", courseId);
-    
+
     const user = await currentUser();
     
     if (!user?.id) {
-      console.log("[COURSE_PATCH] Authentication failed");
+
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
-    console.log("[COURSE_PATCH] Authenticated user:", user.id);
-    
+
     const values = await request.json();
-    console.log("[COURSE_PATCH] Request body values:", values);
 
     const updateData: any = {};
     
@@ -156,9 +138,7 @@ export async function PATCH(
               .split('-')
               .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
               .join(' ');
-              
-            console.log("[COURSE_PATCH] Looking for or creating category:", categoryName);
-            
+
             category = await db.category.findFirst({
               where: {
                 name: {
@@ -175,24 +155,22 @@ export async function PATCH(
                   name: categoryName,
                 }
               });
-              console.log("[COURSE_PATCH] Created new category:", category);
+
             }
           }
           
           updateData.categoryId = category.id;
-          console.log("[COURSE_PATCH] Using category:", category);
+
         } catch (categoryError: any) {
-          console.error("[COURSE_PATCH] Error handling category:", categoryError);
+          logger.error("[COURSE_PATCH] Error handling category:", categoryError);
         }
       } else {
         updateData.categoryId = null;
       }
     }
 
-    console.log("[COURSE_PATCH] Prepared update data:", updateData);
-    
     if (Object.keys(updateData).length === 0) {
-      console.log("[COURSE_PATCH] No fields to update");
+
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
 
@@ -204,13 +182,9 @@ export async function PATCH(
     });
 
     if (!existingCourse) {
-      console.log("[COURSE_PATCH] Course not found or doesn't belong to user");
-      console.log("[COURSE_PATCH] User ID:", user.id);
-      console.log("[COURSE_PATCH] Course ID:", courseId);
+
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
-
-    console.log("[COURSE_PATCH] Found existing course:", existingCourse.id);
 
     try {
       const course = await db.course.update({
@@ -221,14 +195,13 @@ export async function PATCH(
         data: updateData,
       });
 
-      console.log("[COURSE_PATCH] Course updated successfully:", course);
       return NextResponse.json(course);
     } catch (dbError: any) {
-      console.error("[COURSE_PATCH] Database error during update:", dbError);
+      logger.error("[COURSE_PATCH] Database error during update:", dbError);
       return NextResponse.json({ error: `Database Error: ${dbError.message}` }, { status: 500 });
     }
   } catch (error: any) {
-    console.error("[COURSE_PATCH] Detailed error:", error);
+    logger.error("[COURSE_PATCH] Detailed error:", error);
     if (error.name === "SyntaxError") {
       return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
     }

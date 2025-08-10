@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { logger } from '@/lib/logger';
 import { 
   Bot, 
   Sparkles, 
@@ -118,8 +119,7 @@ export const AIChapterContentGenerator = ({
   const generateChapterContent = async () => {
     setIsGenerating(true);
     try {
-      console.log('Generating chapter content with AI...', { chapter, preferences });
-      
+
       const response = await fetch('/api/courses/generate-chapter-content', {
         method: 'POST',
         headers: {
@@ -141,15 +141,14 @@ export const AIChapterContentGenerator = ({
       }
 
       const content = await response.json();
-      console.log('Chapter content generated:', content);
-      
+
       setGeneratedContent(content);
       setSelectedContent(content.sections.map((_: any, index: number) => index.toString()));
       setStep(2);
       
       toast.success("Chapter content generated successfully!");
     } catch (error) {
-      console.error('Error generating chapter content:', error);
+      logger.error('Error generating chapter content:', error);
       toast.error(`Failed to generate content: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
@@ -161,8 +160,7 @@ export const AIChapterContentGenerator = ({
 
     setIsGenerating(true);
     try {
-      console.log('Applying selected content...');
-      
+
       // Update chapter details
       const chapterUpdateResponse = await fetch(`/api/courses/${chapter.courseId}/chapters/${chapter.id}`, {
         method: 'PATCH',
@@ -184,9 +182,7 @@ export const AIChapterContentGenerator = ({
       for (const indexStr of selectedContent) {
         const index = parseInt(indexStr);
         const section = generatedContent.sections[index];
-        
-        console.log('Creating section:', section.title);
-        
+
         const sectionResponse = await fetch(`/api/courses/${chapter.courseId}/chapters/${chapter.id}/sections`, {
           method: 'POST',
           headers: {
@@ -203,7 +199,7 @@ export const AIChapterContentGenerator = ({
         });
 
         if (!sectionResponse.ok) {
-          console.warn(`Failed to create section: ${section.title}`);
+          logger.warn(`Failed to create section: ${section.title}`);
         }
       }
 
@@ -215,7 +211,7 @@ export const AIChapterContentGenerator = ({
       window.location.reload();
       
     } catch (error) {
-      console.error('Error applying content:', error);
+      logger.error('Error applying content:', error);
       toast.error(`Failed to apply content: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);

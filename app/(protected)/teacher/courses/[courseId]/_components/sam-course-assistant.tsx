@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { logger } from '@/lib/logger';
 import { 
   Sparkles, 
   Send, 
@@ -282,7 +283,7 @@ export function SamCourseAssistant({
       setMessages(prev => [...prev, samMessage]);
       
     } catch (error) {
-      console.error('Error sending message to SAM:', error);
+      logger.error('Error sending message to SAM:', error);
       toast.error('Failed to get response from SAM');
       
       // Add error message

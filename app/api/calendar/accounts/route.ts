@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request) {
   try {
@@ -36,7 +37,7 @@ export async function GET(req: Request) {
       hasGoogleAccount,
     });
   } catch (error) {
-    console.error("[CALENDAR_ACCOUNTS_GET]", error);
+    logger.error("[CALENDAR_ACCOUNTS_GET]", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

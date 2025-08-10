@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { logger } from '@/lib/logger';
 import { 
   Select,
   SelectContent,
@@ -386,7 +387,7 @@ What would you like me to help you with today?`,
           
         case 'update_chapters':
           if (onUpdateChapters && action.data.chapters) {
-            console.log('SAM: Calling onUpdateChapters with:', action.data.chapters);
+
             onUpdateChapters(action.data.chapters);
             
             // Store chapter descriptions in memory
@@ -408,8 +409,7 @@ What would you like me to help you with today?`,
             };
             setMessages(prev => [...prev, systemMsg]);
           } else {
-            console.log('SAM: Chapter update failed - onUpdateChapters:', !!onUpdateChapters, 'chapters:', action.data?.chapters);
-          }
+}
           break;
           
         case 'update_title':
@@ -442,7 +442,7 @@ What would you like me to help you with today?`,
           break;
       }
     } catch (error) {
-      console.error('Form action error:', error);
+      logger.error('Form action error:', error);
       toast.error('Failed to update form');
     }
   }, [onUpdateLearningObjectives, onUpdateChapters, onUpdateTitle, onUpdateDescription, onDeleteChapters, setChapterMemory, chapterMemory]);
@@ -499,7 +499,7 @@ What would you like me to help you with today?`,
       setMessages(prev => [...prev, samMessage]);
       
     } catch (error) {
-      console.error('SAM Error:', error);
+      logger.error('SAM Error:', error);
       
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),

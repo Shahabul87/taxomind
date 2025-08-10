@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { enterpriseDataAPI } from '@/lib/data-fetching/enterprise-data-api';
 import { shouldUseRealNews, isProductionEnvironment } from '@/lib/config/news-config';
+import { logger } from '@/lib/logger';
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -90,7 +91,7 @@ export async function GET(req: NextRequest) {
       health.enterpriseAPI = healthResult.data;
     }
   } catch (dbError) {
-    console.error('[HEALTH_CHECK] Enterprise API error:', dbError);
+    logger.error('[HEALTH_CHECK] Enterprise API error:', dbError);
   }
 
   // Check Redis connection if configured

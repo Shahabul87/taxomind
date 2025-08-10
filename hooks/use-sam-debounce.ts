@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useDebounce } from './use-debounce';
+import { logger } from '@/lib/logger';
 
 interface SamDebouncedCall {
   key: string;
@@ -28,7 +29,7 @@ export function useSamDebounce() {
           await fn();
           activeCallsRef.current.delete(key);
         } catch (error) {
-          console.error(`Sam debounced call failed for key: ${key}`, error);
+          logger.error(`Sam debounced call failed for key: ${key}`, error);
           activeCallsRef.current.delete(key);
         }
       }, delay);

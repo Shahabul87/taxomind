@@ -3,6 +3,7 @@ import { currentUser } from '@/lib/auth';
 import { AdvancedExamEngine } from '@/lib/sam-exam-engine';
 import { db } from '@/lib/db';
 import { QuestionType } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Generate exam error:', error);
+    logger.error('Generate exam error:', error);
     return NextResponse.json(
       { error: 'Failed to generate exam' },
       { status: 500 }
@@ -193,7 +194,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get exam error:', error);
+    logger.error('Get exam error:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve exam' },
       { status: 500 }
@@ -256,6 +257,6 @@ async function recordSAMInteraction(
       },
     });
   } catch (error) {
-    console.error('Error recording SAM interaction:', error);
+    logger.error('Error recording SAM interaction:', error);
   }
 }

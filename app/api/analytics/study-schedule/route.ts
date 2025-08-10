@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { PredictiveAnalytics } from "@/lib/predictive-analytics";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Predict study schedule error:", error);
+    logger.error("Predict study schedule error:", error);
     return NextResponse.json(
       { error: "Failed to predict optimal study schedule" },
       { status: 500 }

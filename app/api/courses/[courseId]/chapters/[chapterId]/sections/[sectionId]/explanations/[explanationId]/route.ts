@@ -43,7 +43,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedExplanation);
   } catch (error) {
-    console.log("[EXPLANATION_ID]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -80,7 +80,7 @@ export async function DELETE(
 
     return NextResponse.json(deletedExplanation);
   } catch (error) {
-    console.log("[EXPLANATION_ID_DELETE]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -117,7 +117,7 @@ export async function GET(
 
     return NextResponse.json(explanation);
   } catch (error) {
-    console.log("[EXPLANATION_GET]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

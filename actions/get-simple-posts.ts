@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export type SimplePost = {
   id: string;
@@ -19,8 +20,7 @@ export type SimplePost = {
 
 export const getSimplePostsForBlog = async (): Promise<SimplePost[]> => {
   try {
-    console.log("🚀 [SIMPLE_POSTS] Fetching posts directly from database...");
-    
+
     const posts = await db.post.findMany({
       where: {
         published: true,
@@ -43,8 +43,6 @@ export const getSimplePostsForBlog = async (): Promise<SimplePost[]> => {
       },
     });
 
-    console.log(`✅ [SIMPLE_POSTS] Found ${posts.length} posts in database`);
-
     // Transform to match expected format
     const transformedPosts: SimplePost[] = posts.map(post => ({
       id: post.id,
@@ -63,11 +61,10 @@ export const getSimplePostsForBlog = async (): Promise<SimplePost[]> => {
       },
     }));
 
-    console.log(`✅ [SIMPLE_POSTS] Returning ${transformedPosts.length} transformed posts`);
     return transformedPosts;
     
   } catch (error) {
-    console.error("💥 [SIMPLE_POSTS] Error fetching posts:", error);
+    logger.error("💥 [SIMPLE_POSTS] Error fetching posts:", error);
     return [];
   }
 };

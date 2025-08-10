@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import * as z from 'zod';
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -192,7 +193,7 @@ export async function POST(request: NextRequest) {
 
     // Check if ANTHROPIC_API_KEY is configured
     if (!process.env.ANTHROPIC_API_KEY) {
-      console.warn('ANTHROPIC_API_KEY not configured, using mock response');
+      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
       const mockSections = generateMockSections(sectionRequest);
       return NextResponse.json({ success: true, sections: mockSections });
     }
@@ -231,13 +232,13 @@ export async function POST(request: NextRequest) {
         const jsonString = jsonMatch ? jsonMatch[0] : responseText;
         aiSections = JSON.parse(jsonString);
       } catch (parseError) {
-        console.error('Failed to parse AI response as JSON:', parseError);
+        logger.error('Failed to parse AI response as JSON:', parseError);
         throw new Error('Invalid JSON response from AI model');
       }
 
       // Validate the response is an array with correct length
       if (!Array.isArray(aiSections) || aiSections.length !== sectionRequest.sectionCount) {
-        console.warn('AI response validation failed, using mock response');
+        logger.warn('AI response validation failed, using mock response');
         const mockSections = generateMockSections(sectionRequest);
         return NextResponse.json({ 
           success: true, 
@@ -257,7 +258,7 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (apiError: any) {
-      console.error('Anthropic API error:', apiError);
+      logger.error('Anthropic API error:', apiError);
       
       // Fall back to mock response for API errors
       const mockSections = generateMockSections(sectionRequest);
@@ -269,7 +270,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('Section generator error:', error);
+    logger.error('Section generator error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

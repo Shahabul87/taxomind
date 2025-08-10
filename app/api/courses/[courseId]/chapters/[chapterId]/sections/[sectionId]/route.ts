@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -13,9 +14,6 @@ export async function PATCH(
   try {
     const session = await auth();
     const values = await req.json();
-
-    console.log("Received section update data:", values);
-    console.log("Params:", params);
 
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -44,10 +42,9 @@ export async function PATCH(
       },
     });
 
-    console.log("Updated section:", section);
     return NextResponse.json(section);
   } catch (error) {
-    console.error("[SECTION_UPDATE_ERROR]:", error);
+    logger.error("[SECTION_UPDATE_ERROR]:", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -102,7 +99,7 @@ export async function GET(
 
     return NextResponse.json(section);
   } catch (error) {
-    console.error("[SECTION_GET_ERROR]:", error);
+    logger.error("[SECTION_GET_ERROR]:", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -141,7 +138,7 @@ export async function DELETE(
 
     return NextResponse.json(deletedSection);
   } catch (error) {
-    console.log("[SECTION_DELETE]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { BlockMath, InlineMath } from "react-katex";
+import { logger } from '@/lib/logger';
 import "katex/dist/katex.min.css";
 
 // Custom CSS to ensure equations are always visible
@@ -73,7 +74,7 @@ export const MathRenderer = ({
       </>
     );
   } catch (error) {
-    console.error("KaTeX rendering error:", error);
+    logger.error("KaTeX rendering error:", error);
     // If KaTeX fails to render, show error state with raw equation
     return (
       <div className={`bg-red-50 border border-red-200 p-4 rounded-lg ${className}`}>
@@ -187,7 +188,7 @@ export const AdvancedMathRenderer = ({
       </>
     );
   } catch (error) {
-    console.error("Advanced KaTeX rendering error:", error);
+    logger.error("Advanced KaTeX rendering error:", error);
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <div className="flex items-center gap-2 mb-3">

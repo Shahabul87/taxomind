@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import parse from 'html-react-parser';
+import { logger } from '@/lib/logger';
 
 interface PostCardFlipBookProps {
   data: any[];
@@ -20,7 +21,7 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
   useEffect(() => {
     console.log("FlipBook Data:", data); // Debug log
     if (!Array.isArray(data) || data.length === 0) {
-      console.error("Invalid or empty data provided to FlipBook");
+      logger.error("Invalid or empty data provided to FlipBook");
       return;
     }
   }, [data]);

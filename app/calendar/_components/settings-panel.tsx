@@ -6,6 +6,7 @@ import { useSettingsStore } from '../_lib/settings-store';
 import { useSettingsSync } from '../_lib/settings-sync';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 export const SettingsPanel = () => {
   const { settings, resetSettings } = useSettingsStore();
@@ -16,7 +17,7 @@ export const SettingsPanel = () => {
       try {
         await syncSettings();
       } catch (error) {
-        console.error('Failed to sync settings:', error);
+        logger.error('Failed to sync settings:', error);
       }
     };
 

@@ -37,7 +37,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ postId: str
 
     return NextResponse.json(unpublishedPost);
   } catch (error) {
-    console.log("[POST_ID_UNPUBLISH]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

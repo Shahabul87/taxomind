@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schema
 const updateOrganizationSchema = z.object({
@@ -119,7 +120,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Error fetching organization:', error);
+    logger.error('Error fetching organization:', error);
     return NextResponse.json(
       { error: 'Failed to fetch organization' },
       { status: 500 }
@@ -188,7 +189,7 @@ export async function PATCH(
     });
 
   } catch (error) {
-    console.error('Error updating organization:', error);
+    logger.error('Error updating organization:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -274,7 +275,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('Error deleting organization:', error);
+    logger.error('Error deleting organization:', error);
     return NextResponse.json(
       { error: 'Failed to delete organization' },
       { status: 500 }

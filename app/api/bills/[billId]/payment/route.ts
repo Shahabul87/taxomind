@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request, props: { params: Promise<{ billId: string }> }) {
   const params = await props.params;
@@ -41,7 +42,7 @@ export async function POST(req: Request, props: { params: Promise<{ billId: stri
 
     return NextResponse.json(payment);
   } catch (error) {
-    console.error("[BILL_PAYMENT_POST]", error);
+    logger.error("[BILL_PAYMENT_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

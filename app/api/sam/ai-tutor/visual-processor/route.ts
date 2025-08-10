@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Visual processor error:', error);
+    logger.error('Visual processor error:', error);
     return NextResponse.json(
       { error: 'Failed to process visual content' },
       { status: 500 }

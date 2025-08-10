@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error("Database indexes API error:", error);
+    logger.error("Database indexes API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Get indexes API error:", error);
+    logger.error("Get indexes API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -93,7 +94,7 @@ async function createPerformanceIndexes() {
       await db.$executeRawUnsafe(indexSQL);
       console.log(`Created index: ${indexSQL.slice(0, 50)}...`);
     } catch (error) {
-      console.error(`Failed to create index: ${indexSQL}`, error);
+      logger.error(`Failed to create index: ${indexSQL}`, error);
     }
   }
 }
@@ -113,7 +114,7 @@ async function getCurrentIndexes() {
 
     return indexes;
   } catch (error) {
-    console.error("Error getting current indexes:", error);
+    logger.error("Error getting current indexes:", error);
     return [];
   }
 }
@@ -158,7 +159,7 @@ async function analyzeMissingIndexes() {
       ]
     };
   } catch (error) {
-    console.error("Error analyzing indexes:", error);
+    logger.error("Error analyzing indexes:", error);
     return { error: "Failed to analyze indexes" };
   }
 }

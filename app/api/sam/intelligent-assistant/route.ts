@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import anthropic from '@/lib/anthropic-client';
+import { logger } from '@/lib/logger';
 
 // Bloom's Taxonomy levels and verbs
 const BLOOMS_TAXONOMY = {
@@ -179,19 +180,15 @@ Generate the chapters now:`;
       
       // Extract chapters from response
       const chapters = extractChapters(aiResponse, requestedNumber);
-      console.log('API: Extracted chapters:', chapters);
-      console.log('API: Requested number:', requestedNumber);
-      console.log('API: Can update chapters:', context.canUpdateChapters);
-      
+
       if (chapters.length > 0 && context.canUpdateChapters) {
         action = {
           type: 'update_chapters',
           data: { chapters }
         };
-        console.log('API: Created update_chapters action');
+
       } else {
-        console.log('API: No chapters extracted or cannot update chapters');
-      }
+}
       suggestions = [
         "Review the chapter structure",
         "Add more chapters",
@@ -239,7 +236,7 @@ Generate the chapters now:`;
     });
 
   } catch (error) {
-    console.error('Intelligent SAM API Error:', error);
+    logger.error('Intelligent SAM API Error:', error);
     return NextResponse.json(
       { error: 'Failed to process request' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // POST endpoint for adding a reply to an existing reply
 export async function POST(
@@ -20,8 +21,6 @@ export async function POST(
     if (!content) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 });
     }
-
-    console.log("[REPLY_TO_REPLY_POST]", { postId, commentId, replyId, content });
 
     // Check if the parent comment exists
     const comment = await db.comment.findFirst({
@@ -80,7 +79,7 @@ export async function POST(
 
     return NextResponse.json(newReply);
   } catch (error) {
-    console.error("[REPLY_TO_REPLY_POST]", error);
+    logger.error("[REPLY_TO_REPLY_POST]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 } 

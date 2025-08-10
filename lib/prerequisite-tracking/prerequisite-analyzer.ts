@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 import {
   PrerequisiteRule,
   StudentPrerequisiteStatus,
@@ -413,8 +414,6 @@ export class PrerequisiteAnalyzer {
     if (this.graphCache.has(courseId)) {
       return this.graphCache.get(courseId)!;
     }
-
-    console.log(`Building prerequisite graph for course: ${courseId}`);
 
     // Get all content for the course
     const sections = await db.section.findMany({
@@ -977,7 +976,7 @@ export class PrerequisiteAnalyzer {
         JSON.stringify(data)
       );
     } catch (error) {
-      console.error('Failed to save graph to cache:', error);
+      logger.error('Failed to save graph to cache:', error);
     }
   }
 }

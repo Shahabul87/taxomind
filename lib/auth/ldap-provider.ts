@@ -1,5 +1,6 @@
 import ldap from 'ldapjs';
 import { CryptoUtils } from '@/lib/security/crypto-utils';
+import { logger } from '@/lib/logger';
 
 /**
  * Enterprise LDAP/Active Directory SSO Provider
@@ -204,23 +205,22 @@ export class LDAPProvider {
       
       // Set up event handlers
       this.client.on('error', (error) => {
-        console.error('[LDAP] Connection error:', error);
+        logger.error('[LDAP] Connection error:', error);
       });
       
       this.client.on('connect', () => {
-        console.log(`[LDAP] Connected to ${this.config.url}`);
+
       });
       
       this.client.on('connectTimeout', () => {
-        console.error('[LDAP] Connection timeout');
+        logger.error('[LDAP] Connection timeout');
       });
       
       // Test connection and bind
       if (this.config.bindDN && this.config.bindPassword) {
         await this.bind(this.config.bindDN, this.config.bindPassword);
       }
-      
-      console.log(`LDAP Provider initialized for tenant: ${this.config.tenantId}`);
+
     } catch (error) {
       throw new Error(`Failed to initialize LDAP provider: ${error.message}`);
     }
@@ -622,9 +622,7 @@ export class LDAPProvider {
       error,
       ldapUrl: this.config.url,
     };
-    
-    console.log('[AUDIT] LDAP Login:', auditLog);
-    
+
     // TODO: Integrate with enterprise audit system
     // await auditLogger.log(auditLog);
   }

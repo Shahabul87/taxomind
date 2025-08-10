@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -171,7 +172,7 @@ export async function GET(request: NextRequest) {
 
         } catch (dbError) {
           debugData.error = `Database error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`;
-          console.error('Debug API database error:', dbError);
+          logger.error('Debug API database error:', dbError);
         }
       }
     } else {
@@ -211,7 +212,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Debug API error:', error);
+    logger.error('Debug API error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',
@@ -297,7 +298,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: result.success ? 200 : 400 });
 
   } catch (error) {
-    console.error('Debug API POST error:', error);
+    logger.error('Debug API POST error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

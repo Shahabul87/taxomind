@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, ReactNode 
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 
 // Import Global SAM AI Tutor instead
 import { useSAMGlobal } from '@/components/sam/sam-global-provider';
@@ -216,7 +217,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
           achievements: [] // Will be populated from achievements system
         }));
       } catch (error) {
-        console.error('Error loading gamification data:', error);
+        logger.error('Error loading gamification data:', error);
       }
     };
     
@@ -333,7 +334,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
         return detectedStyle;
       }
     } catch (error) {
-      console.error('Error detecting learning style:', error);
+      logger.error('Error detecting learning style:', error);
     }
     
     return learningStyle;
@@ -400,7 +401,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
         }),
       });
     } catch (error) {
-      console.error('Error awarding points:', error);
+      logger.error('Error awarding points:', error);
     }
   }, [user?.id, learningContext, gamificationState.points]);
   
@@ -478,7 +479,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
           }),
         });
       } catch (error) {
-        console.error('Error unlocking badge:', error);
+        logger.error('Error unlocking badge:', error);
       }
     }
   }, [user?.id, learningContext]);
@@ -538,7 +539,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
         };
       });
     } catch (error) {
-      console.error('Error updating streak:', error);
+      logger.error('Error updating streak:', error);
     }
   }, [user?.id, learningContext]);
   
@@ -704,21 +705,20 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
       // Show notifications for achievements and level ups
       if (result.achievementsUnlocked.length > 0) {
         result.achievementsUnlocked.forEach(achievement => {
-          console.log(`🏆 Achievement unlocked: ${achievement.name}`);
+
         });
       }
       
       if (result.challengesCompleted.length > 0) {
         result.challengesCompleted.forEach(challenge => {
-          console.log(`🎯 Challenge completed: ${challenge.name}`);
+
         });
       }
       
       if (result.levelUp) {
-        console.log(`🚀 Level up! You are now level ${result.levelUp.newLevel}`);
-      }
+}
     } catch (error) {
-      console.error('Error tracking interaction with achievement engine:', error);
+      logger.error('Error tracking interaction with achievement engine:', error);
       
       // Fallback to basic interaction recording
       const interactionTypeMap: Record<string, SAMInteractionType> = {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
       enrollments: enrichedEnrollments
     });
   } catch (error) {
-    console.error("Fetch enrollments error:", error);
+    logger.error("Fetch enrollments error:", error);
     return NextResponse.json(
       { error: "Failed to fetch enrollments" },
       { status: 500 }

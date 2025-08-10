@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
     return NextResponse.json(suggestions);
     
   } catch (error) {
-    console.error("[TITLE-SUGGESTIONS] Error:", error);
+    logger.error("[TITLE-SUGGESTIONS] Error:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
@@ -113,7 +114,7 @@ Return ONLY valid JSON in this format:
   try {
     return JSON.parse(contentResponse.text);
   } catch (parseError) {
-    console.error('Failed to parse title suggestions response:', parseError);
+    logger.error('Failed to parse title suggestions response:', parseError);
     
     // Fallback response with dynamic count
     const fallbackTitles = [

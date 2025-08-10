@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { MyCoursesDashboard } from "./_components/my-courses-dashboard";
 import { MyCoursesLoading } from "./_components/my-courses-loading";
 import { MyCoursesError } from "./_components/my-courses-error";
+import { logger } from '@/lib/logger';
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ async function MyCoursesContent() {
       />
     );
   } catch (error) {
-    console.error("[MY_COURSES_PAGE_ERROR]", error);
+    logger.error("[MY_COURSES_PAGE_ERROR]", error);
     return (
       <MyCoursesError 
         error="Failed to load courses. Please try again later."

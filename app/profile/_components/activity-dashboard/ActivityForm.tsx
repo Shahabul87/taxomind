@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Calendar } from 'lucide-react';
 import { ActivityItem, ActivityStatus, ActivityType, ActivityPriority } from './types';
 import { createActivity, updateActivity } from './api-service';
+import { logger } from '@/lib/logger';
 
 interface ActivityFormProps {
   activity?: Partial<ActivityItem>;
@@ -116,7 +117,7 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
       
       onClose();
     } catch (error) {
-      console.error('Error saving activity:', error);
+      logger.error('Error saving activity:', error);
       setErrors({ submit: 'Failed to save activity. Please try again.' });
     } finally {
       setIsSubmitting(false);

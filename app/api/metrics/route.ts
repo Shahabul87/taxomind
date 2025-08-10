@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { metricsRegistry } from '@/lib/observability/metrics';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   // Check for metrics authorization token if in production
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error collecting metrics:', error);
+    logger.error('Error collecting metrics:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

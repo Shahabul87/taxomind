@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { ContentVersioningService } from "@/lib/content-versioning";
+import { logger } from '@/lib/logger';
 
 export async function POST(
   request: NextRequest,
@@ -54,7 +55,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error("Template apply error:", error);
+    logger.error("Template apply error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to apply template" },
       { status: 500 }

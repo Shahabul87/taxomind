@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 // lib/db-environment.ts
 export const getEnvironmentConfig = () => {
   const env = process.env.NODE_ENV;
@@ -47,9 +49,7 @@ export const safeDBOperation = async <T>(
   }
   
   if (operationType === 'destructive' && config.isDevelopment) {
-    console.log('🛠️ Running destructive operation in development environment');
-  }
-  
+}
   return await operation();
 };
 
@@ -57,8 +57,7 @@ export const safeDBOperation = async <T>(
 export const devLog = (message: string, data?: any) => {
   const config = getEnvironmentConfig();
   if (config.isDevelopment) {
-    console.log(`🔧 [DEV] ${message}`, data || '');
-  }
+}
 };
 
 // Environment validation
@@ -80,12 +79,10 @@ export const validateEnvironment = () => {
   // Warn if using production database in development
   if (config.isDevelopment && 
       process.env.DATABASE_URL?.includes('railway.app')) {
-    console.warn('⚠️  WARNING: Using production database in development!');
-    console.warn('   Consider using local PostgreSQL for safety.');
+    logger.warn('⚠️  WARNING: Using production database in development!');
+    logger.warn('   Consider using local PostgreSQL for safety.');
   }
 
-  console.log(`✅ Environment: ${process.env.NODE_ENV}`);
   console.log(`✅ Database: ${process.env.DATABASE_URL?.includes('localhost') ? 'Local' : 'Remote'}`);
-  console.log(`✅ Email: ${config.email.provider}`);
-  console.log(`✅ Redis: ${config.features.redis ? 'Enabled' : 'Disabled'}`);
+
 };

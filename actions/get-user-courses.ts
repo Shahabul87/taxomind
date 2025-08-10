@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { logger } from '@/lib/logger';
 
 /**
  * Fetches courses created by the current user
@@ -69,7 +70,7 @@ export async function getUserCreatedCourses() {
           totalEnrolled
         };
       } catch (error) {
-        console.warn("Error processing course stats:", error);
+        logger.warn("Error processing course stats:", error);
         return {
           ...course,
           totalRatings: 0,
@@ -86,7 +87,7 @@ export async function getUserCreatedCourses() {
       error: null
     };
   } catch (error) {
-    console.error("[GET_CREATED_COURSES_ERROR]", error);
+    logger.error("[GET_CREATED_COURSES_ERROR]", error);
     return { 
       courses: [], 
       error: "Failed to fetch created courses" 
@@ -175,7 +176,7 @@ export async function getUserEnrolledCourses() {
           instructor: course.user || { name: "Unknown", image: null }
         };
       } catch (error) {
-        console.warn("Error processing enrollment:", error);
+        logger.warn("Error processing enrollment:", error);
         // Return a safe fallback object
         return {
           id: enrollment.Course?.id || "unknown",
@@ -203,7 +204,7 @@ export async function getUserEnrolledCourses() {
       error: null 
     };
   } catch (error) {
-    console.error("[GET_ENROLLED_COURSES_ERROR]", error);
+    logger.error("[GET_ENROLLED_COURSES_ERROR]", error);
     return { 
       courses: [], 
       error: "Failed to fetch enrolled courses" 

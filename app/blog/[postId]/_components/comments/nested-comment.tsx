@@ -65,9 +65,7 @@ export const NestedComment = ({
   };
 
   const handleReactionUpdate = useCallback((updatedComment: CommentType) => {
-    console.log("Comment before update:", localComment);
-    console.log("Received updated comment:", updatedComment);
-    
+
     setLocalComment(prev => ({
       ...prev,
       reactions: updatedComment.reactions

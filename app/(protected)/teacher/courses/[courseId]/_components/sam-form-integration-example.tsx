@@ -12,6 +12,7 @@ import { IntelligentSamIntegration } from './intelligent-sam-integration';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 // Example of how to integrate SAM in your course page component
 export function SamFormIntegrationExample({ 
@@ -45,7 +46,7 @@ export function SamFormIntegrationExample({
       // learningObjectivesFormRef.current?.setValue('whatYouWillLearn', htmlContent);
       
     } catch (error) {
-      console.error('Failed to update learning objectives:', error);
+      logger.error('Failed to update learning objectives:', error);
       toast.error('Failed to update learning objectives');
       throw error;
     }
@@ -67,7 +68,7 @@ export function SamFormIntegrationExample({
       router.refresh();
       
     } catch (error) {
-      console.error('Failed to create chapters:', error);
+      logger.error('Failed to create chapters:', error);
       toast.error('Failed to create chapters');
       throw error;
     }
@@ -80,7 +81,7 @@ export function SamFormIntegrationExample({
       toast.success("Course title updated!");
       router.refresh();
     } catch (error) {
-      console.error('Failed to update title:', error);
+      logger.error('Failed to update title:', error);
       toast.error('Failed to update title');
       throw error;
     }
@@ -93,7 +94,7 @@ export function SamFormIntegrationExample({
       toast.success("Course description updated!");
       router.refresh();
     } catch (error) {
-      console.error('Failed to update description:', error);
+      logger.error('Failed to update description:', error);
       toast.error('Failed to update description');
       throw error;
     }
@@ -140,7 +141,7 @@ export function DirectFormIntegrationExample({ courseId, courseData, completionS
     // Trigger form submission
     learningObjectivesForm.handleSubmit(async (values) => {
       // The form's onSubmit will handle the API call
-      console.log('Submitting learning objectives:', values);
+
     })();
   }, [learningObjectivesForm]);
 
@@ -152,7 +153,7 @@ export function DirectFormIntegrationExample({ courseId, courseData, completionS
       
       // Submit form
       chaptersForm.handleSubmit(async (values) => {
-        console.log('Creating chapter:', values);
+
       })();
       
       // Reset for next chapter

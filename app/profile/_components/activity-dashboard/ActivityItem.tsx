@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Calendar, Clock, Edit, Trash2, Check, X, MoreVertical } from 'lucide-react';
+import { logger } from '@/lib/logger';
 import { 
   Lightbulb, 
   Brain, 
@@ -37,7 +38,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
       await deleteActivity(activity.id);
       onDelete(activity.id);
     } catch (error) {
-      console.error('Failed to delete activity:', error);
+      logger.error('Failed to delete activity:', error);
     } finally {
       setIsDeleting(false);
     }
@@ -51,7 +52,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
       const updated = await completeActivity(activity.id);
       onStatusChange(activity.id, 'completed');
     } catch (error) {
-      console.error('Failed to complete activity:', error);
+      logger.error('Failed to complete activity:', error);
     } finally {
       setIsCompleting(false);
     }

@@ -3,6 +3,7 @@ import { currentUser } from "@/lib/auth";
 import Anthropic from '@anthropic-ai/sdk';
 import { optimizeContentOptimization } from "@/lib/request-optimizer";
 import { aiCacheManager } from "@/lib/ai-cache-manager";
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -80,7 +81,7 @@ export async function POST(req: Request) {
     return NextResponse.json(optimization);
     
   } catch (error) {
-    console.error("[CONTENT-OPTIMIZER] Error:", error);
+    logger.error("[CONTENT-OPTIMIZER] Error:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

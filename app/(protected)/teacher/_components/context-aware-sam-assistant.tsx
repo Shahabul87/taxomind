@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { logger } from '@/lib/logger';
 import { 
   Select,
   SelectContent,
@@ -276,7 +277,7 @@ What would you like to work on today?`,
       setMessages(prev => [...prev, samMessage]);
       
     } catch (error) {
-      console.error('SAM Error:', error);
+      logger.error('SAM Error:', error);
       
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -339,17 +340,16 @@ What would you like to work on today?`,
                 await formActions.updateChapterAccess(action.details.isFree);
                 break;
               default:
-                console.log('Form action not handled:', action.details.action);
+
             }
           } else {
-            console.log('Chapter form interactions not available');
-          }
+}
           break;
         default:
-          console.log('Action not handled:', action);
+
       }
     } catch (error) {
-      console.error('Action error:', error);
+      logger.error('Action error:', error);
       toast.error('Failed to perform action');
     }
   }, [router]);

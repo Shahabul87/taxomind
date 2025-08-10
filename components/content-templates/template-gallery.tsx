@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
+import { logger } from '@/lib/logger';
 import { 
   Search, Filter, Star, Clock, Users, Eye, Download, 
   Edit, Copy, Trash2, Plus, MoreHorizontal, BookOpen,
@@ -92,7 +93,7 @@ export function TemplateGallery({
       setTemplates(allTemplates);
     } catch (error) {
       toast.error('Failed to load templates');
-      console.error(error);
+      logger.error(error);
     } finally {
       setLoading(false);
     }
@@ -119,7 +120,7 @@ export function TemplateGallery({
       toast.success('Template duplicated');
     } catch (error) {
       toast.error('Failed to duplicate template');
-      console.error(error);
+      logger.error(error);
     }
   };
 
@@ -130,7 +131,7 @@ export function TemplateGallery({
       toast.success('Template deleted');
     } catch (error) {
       toast.error('Failed to delete template');
-      console.error(error);
+      logger.error(error);
     }
   };
 
@@ -146,7 +147,7 @@ export function TemplateGallery({
       }
     } catch (error) {
       toast.error('Failed to use template');
-      console.error(error);
+      logger.error(error);
     }
   };
 

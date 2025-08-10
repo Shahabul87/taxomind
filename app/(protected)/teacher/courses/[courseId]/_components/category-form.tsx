@@ -9,6 +9,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -172,17 +173,14 @@ export const CategoryForm = ({
   
   // Log important props for debugging
   useEffect(() => {
-    console.log("CategoryForm rendered with courseId:", courseId);
-    console.log("CategoryForm initialData:", initialData);
-    
+
     // Check for common issues
     if (!courseId) {
-      console.warn("⚠️ WARNING: courseId is missing or empty - this will cause API requests to fail");
+      logger.warn("⚠️ WARNING: courseId is missing or empty - this will cause API requests to fail");
     }
     
     if (typeof window !== 'undefined') {
-      console.log("Current URL:", window.location.href);
-    }
+}
   }, [courseId, initialData]);
   
   // Memoize this to avoid recreating it on every render
@@ -230,14 +228,12 @@ export const CategoryForm = ({
   // Listen for SAM form population events
   useEffect(() => {
     const handleSamFormPopulation = (event: CustomEvent) => {
-      console.log('📥 Category form received SAM populate event:', event.detail);
-      
+
       if (event.detail?.formId === 'course-category-form' || 
           event.detail?.formId === 'category-form' ||
           event.detail?.formId === 'update-category' ||
           event.detail?.formId === 'course-category') {
-        
-        console.log('✅ Matched form ID, opening edit mode');
+
         // Auto-open edit mode when SAM tries to populate
         setIsEditing(true);
         
@@ -262,8 +258,7 @@ export const CategoryForm = ({
     if (pendingSamData && isEditing && form) {
       const categoryValue = pendingSamData.categoryId || pendingSamData.category || pendingSamData.courseCategory;
       if (categoryValue) {
-        console.log('📝 Setting category value:', categoryValue);
-        
+
         // Check if the category exists in options
         const existingCategory = combinedOptions.find(opt => 
           opt.value === categoryValue || opt.label.toLowerCase() === categoryValue.toLowerCase()
@@ -320,27 +315,26 @@ export const CategoryForm = ({
   }, [initialData.categoryId, combinedOptions]);
 
   const selectCategory = (option: { label: string; value: string }) => {
-    console.log("Category selected:", option);
+
     form.setValue("categoryId", option.value);
     form.setValue("categoryType", "existing");
     form.setValue("newCategory", ""); // Clear new category when selecting existing
     // Trigger validation
     form.trigger();
     console.log("Form state after category selection:", form.getValues());
-    console.log("Form valid after selection:", form.formState.isValid);
-  };
 
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      console.log("Form submission started with values:", values);
+
       setIsLoading(true);
       let categoryId = values.categoryId;
       
       // If it's a new category, create it first
       if (values.categoryType === "new" && values.newCategory) {
         try {
-          console.log("Creating new category:", values.newCategory);
+
           // Create a new category
           const response = await axios.post("/api/categories", {
             name: values.newCategory,
@@ -355,14 +349,14 @@ export const CategoryForm = ({
           
           // Use the newly created category ID
           categoryId = response.data.id;
-          console.log("New category created with ID:", categoryId);
+
           toast.success("New category created");
         } catch (error) {
-          console.error("Error creating new category:", error);
+          logger.error("Error creating new category:", error);
           if (error && typeof error === 'object' && 'response' in error) {
             const axiosError = error as any;
-            console.error("Error response data:", axiosError.response?.data);
-            console.error("Error response status:", axiosError.response?.status);
+            logger.error("Error response data:", axiosError.response?.data);
+            logger.error("Error response status:", axiosError.response?.status);
           }
           toast.error("Failed to create new category");
           setIsLoading(false);
@@ -371,17 +365,16 @@ export const CategoryForm = ({
       } else if (values.categoryType === "existing") {
         // Simple validation that a category was selected
         if (!categoryId || categoryId.trim() === '') {
-          console.error("No category ID selected");
+          logger.error("No category ID selected");
           toast.error("Please select a category");
           setIsLoading(false);
           return;
         }
-        
-        console.log("Using category ID:", categoryId);
+
       }
       
       // Now update the course with the category ID
-      console.log("Updating course with categoryId:", categoryId);
+
       try {
         const response = await axios.patch(`/api/courses/${courseId}`, { 
           categoryId 
@@ -393,22 +386,21 @@ export const CategoryForm = ({
             'Accept': 'application/json',
           }
         });
-        
-        console.log("Course update response:", response.data);
+
         toast.success("Category updated");
         setIsEditing(false);
         router.refresh();
       } catch (error) {
-        console.error("Course update error:", error);
+        logger.error("Course update error:", error);
         if (error && typeof error === 'object' && 'response' in error) {
           const axiosError = error as any;
-          console.error("Error response data:", axiosError.response?.data);
-          console.error("Error response status:", axiosError.response?.status);
+          logger.error("Error response data:", axiosError.response?.data);
+          logger.error("Error response status:", axiosError.response?.status);
         }
         toast.error("Error updating course category");
       }
     } catch (error) {
-      console.error("Category update error:", error);
+      logger.error("Category update error:", error);
       toast.error("Something went wrong");
     } finally {
       setIsLoading(false);
@@ -537,7 +529,7 @@ export const CategoryForm = ({
               <Form {...form}>
                 <form
                   onSubmit={(e) => {
-                    console.log("Form submit event triggered");
+
                     form.handleSubmit(onSubmit)(e);
                   }}
                   className="space-y-5"
@@ -554,7 +546,7 @@ export const CategoryForm = ({
                       }
                       // Trigger validation
                       form.trigger();
-                      console.log("Tab changed to:", value);
+
                       console.log("Form state after tab change:", form.getValues());
                     }}
                     className="w-full"
@@ -730,7 +722,7 @@ export const CategoryForm = ({
                                       form.setValue("categoryId", ""); // Clear existing category selection
                                       // Trigger validation
                                       form.trigger();
-                                      console.log("Created new category from search:", searchQuery);
+
                                     }}
                                     className="text-xs"
                                   >
@@ -867,18 +859,16 @@ export const CategoryForm = ({
                         size="sm"
                         onClick={async () => {
                           try {
-                            console.log("Testing API connection...");
-                            console.log("Course ID:", courseId);
-                            
+
                             // First check if we have a valid category to use for testing
                             let testCategoryId;
                             if (options && options.length > 0) {
                               // Use an existing category if available
                               testCategoryId = options[0].value;
-                              console.log("Using existing category for test:", testCategoryId);
+
                             } else {
                               // Create a test category first
-                              console.log("Creating test category...");
+
                               const categoryResponse = await axios.post("/api/categories", {
                                 name: "Test Category " + Date.now()
                               }, {
@@ -888,7 +878,7 @@ export const CategoryForm = ({
                                 }
                               });
                               testCategoryId = categoryResponse.data.id;
-                              console.log("Created test category:", testCategoryId);
+
                             }
                             
                             // Now try to update the course with a valid category ID
@@ -900,14 +890,14 @@ export const CategoryForm = ({
                                 'Content-Type': 'application/json',
                               }
                             });
-                            console.log("API test response:", response.data);
+
                             toast.success("API connection test successful");
                           } catch (error) {
-                            console.error("API test error:", error);
+                            logger.error("API test error:", error);
                             if (error && typeof error === 'object' && 'response' in error) {
                               const axiosError = error as any;
-                              console.error("Error response data:", axiosError.response?.data);
-                              console.error("Error response status:", axiosError.response?.status);
+                              logger.error("Error response data:", axiosError.response?.data);
+                              logger.error("Error response status:", axiosError.response?.status);
                             }
                             toast.error("API connection test failed");
                           }
@@ -926,15 +916,9 @@ export const CategoryForm = ({
                       }
                       type="submit"
                       onClick={() => {
-                        console.log("=== SAVE BUTTON DEBUG ===");
+
                         console.log("Form values:", form.getValues());
-                        console.log("Form isValid:", form.formState.isValid);
-                        console.log("Form errors:", form.formState.errors);
-                        console.log("Category type:", categoryType);
-                        console.log("isLoading:", isLoading);
-                        console.log("Button disabled conditions:");
-                        console.log("- isLoading:", isLoading);
-                        console.log("- !isValid:", !isValid);
+
                         console.log("- existing + no categoryId:", categoryType === "existing" && !form.getValues("categoryId"));
                         console.log("- new + no newCategory:", categoryType === "new" && !form.getValues("newCategory"));
                       }}

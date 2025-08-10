@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import {
   BarChart3,
   TrendingUp,
@@ -81,7 +82,7 @@ export const EnterpriseAnalyticsDashboard: React.FC<EnterpriseAnalyticsDashboard
         setPlatformAnalytics(platform);
         setRealtimeMetrics(realtime);
       } catch (error) {
-        console.error('Failed to load analytics:', error);
+        logger.error('Failed to load analytics:', error);
       } finally {
         setIsLoading(false);
       }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request) {
   try {
@@ -23,7 +24,7 @@ export async function GET(req: Request) {
     
     return NextResponse.json(profileLinks, { status: 200 });
   } catch (error) {
-    console.error("[PROFILE_LINKS_GET]", error);
+    logger.error("[PROFILE_LINKS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -33,9 +34,7 @@ export async function POST(req: Request) {
     const session = await auth();
     const body = await req.json();
     const { userId, links, metadata, metadataSelection } = body;
-    
-    console.log("[PROFILE_LINKS_POST] Request body:", body);
-    
+
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
@@ -93,7 +92,8 @@ export async function POST(req: Request) {
           joinDate: linkMetadata.joinDate,
           lastUpdated: new Date().toISOString(),
           // User selections for what to display
-          selections: linkSelection || {}
+          selections: linkSelection || {
+}
         } : null;
         
         // For temporary IDs, create new records
@@ -122,11 +122,10 @@ export async function POST(req: Request) {
         }
       })
     );
-    
-    console.log("[PROFILE_LINKS_POST] Updated links:", updatedLinks);
+
     return NextResponse.json(updatedLinks, { status: 200 });
   } catch (error) {
-    console.error("[PROFILE_LINKS_POST]", error);
+    logger.error("[PROFILE_LINKS_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -170,7 +169,7 @@ export async function DELETE(req: Request) {
     
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("[PROFILE_LINKS_DELETE]", error);
+    logger.error("[PROFILE_LINKS_DELETE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

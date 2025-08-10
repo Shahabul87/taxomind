@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { enterpriseDataAPI } from '@/lib/data-fetching/enterprise-data-api';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -64,7 +65,7 @@ export async function GET() {
     return NextResponse.json(report, { status: statusCode });
     
   } catch (error) {
-    console.error('[MONITOR] Error:', error);
+    logger.error('[MONITOR] Error:', error);
     
     return NextResponse.json({
       system: {

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { logger } from '@/lib/logger';
 import { 
   Bot, 
   Sparkles, 
@@ -120,8 +121,7 @@ export const AISectionAssistant = ({
   const analyzeSection = async () => {
     setIsGenerating(true);
     try {
-      console.log('Analyzing section with AI...', section);
-      
+
       const response = await fetch('/api/sections/analyze-content', {
         method: 'POST',
         headers: {
@@ -155,7 +155,7 @@ export const AISectionAssistant = ({
       
       toast.success("Section analysis completed!");
     } catch (error) {
-      console.error('Error analyzing section:', error);
+      logger.error('Error analyzing section:', error);
       toast.error('Failed to analyze section. Please try again.');
     } finally {
       setIsGenerating(false);
@@ -165,8 +165,7 @@ export const AISectionAssistant = ({
   const generateContent = async (type: string, enhancement?: string) => {
     setIsGenerating(true);
     try {
-      console.log('Generating content...', { type, enhancement, customPrompt });
-      
+
       const response = await fetch('/api/sections/generate-content', {
         method: 'POST',
         headers: {
@@ -203,7 +202,7 @@ export const AISectionAssistant = ({
       
       toast.success("Content generated successfully!");
     } catch (error) {
-      console.error('Error generating content:', error);
+      logger.error('Error generating content:', error);
       toast.error('Failed to generate content. Please try again.');
     } finally {
       setIsGenerating(false);
@@ -221,7 +220,7 @@ export const AISectionAssistant = ({
       // Refresh the page to show new content
       window.location.reload();
     } catch (error) {
-      console.error('Error applying content:', error);
+      logger.error('Error applying content:', error);
       toast.error('Failed to apply content. Please try again.');
     }
   };

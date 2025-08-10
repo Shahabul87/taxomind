@@ -50,7 +50,7 @@ export async function PATCH(
 
     return NextResponse.json(unpublishedExam);
   } catch (error) {
-    console.log("[EXAM_UNPUBLISH]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

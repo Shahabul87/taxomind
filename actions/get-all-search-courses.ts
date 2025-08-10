@@ -30,7 +30,7 @@ export const getAllSearchCourses = async ({
   title,
   categoryId
 }: GetCourses): Promise<CourseForHomepage[]> => {
-  console.log(title)
+
   try {
     const courses = await db.course.findMany({
       where: {
@@ -58,11 +58,9 @@ export const getAllSearchCourses = async ({
       },
     });
 
-    
-
     return courses as CourseForHomepage[];
   } catch (error) {
-    console.log("[GET_COURSES]", error);
+
     return [];
   }
 }

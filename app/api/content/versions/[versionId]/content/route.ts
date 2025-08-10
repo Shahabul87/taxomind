@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/api-protection";
 import { ContentVersioningService } from "@/lib/content-versioning";
+import { logger } from '@/lib/logger';
 
 export const GET = withAuth(async (
   request: NextRequest,
@@ -19,7 +20,7 @@ export const GET = withAuth(async (
 
     return Response.json({ content });
   } catch (error) {
-    console.error("[CONTENT_VERSION_CONTENT_GET]", error);
+    logger.error("[CONTENT_VERSION_CONTENT_GET]", error);
     return Response.json(
       { error: "Failed to fetch content" },
       { status: 500 }

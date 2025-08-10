@@ -8,6 +8,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 import axios from "axios";
 import TipTapEditor from "@/components/tiptap/editor";
+import { logger } from '@/lib/logger';
 import {
   Form,
   FormControl,
@@ -181,7 +182,7 @@ export const MathEquationForm = ({
       setEditorMode("equation");
       setActiveTab("edit");
     } catch (error: any) {
-      console.error("Math equation submission error:", error);
+      logger.error("Math equation submission error:", error);
       
       let errorMessage = "Something went wrong";
       if (error.response?.data) {

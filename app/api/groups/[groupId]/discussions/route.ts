@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request, props: { params: Promise<{ groupId: string }> }) {
   const params = await props.params;
@@ -23,7 +24,7 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
 
     return NextResponse.json(discussion);
   } catch (error) {
-    console.log("[DISCUSSIONS_POST]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -79,7 +80,7 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
       },
     });
   } catch (error) {
-    console.error("[DISCUSSIONS_GET]", error);
+    logger.error("[DISCUSSIONS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

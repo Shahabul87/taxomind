@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in SAM form synchronization:', error);
+    logger.error('Error in SAM form synchronization:', error);
     return NextResponse.json({ 
       error: 'Failed to synchronize form data',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -116,7 +117,7 @@ async function handleChapterSync(courseId: string, chaptersData: any[], userId: 
       }
       
     } catch (error) {
-      console.error(`Error creating chapter "${chapterData.title}":`, error);
+      logger.error(`Error creating chapter "${chapterData.title}":`, error);
       results.push({
         error: `Failed to create chapter: ${chapterData.title}`,
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -148,7 +149,7 @@ async function handleLearningObjectivesSync(courseId: string, objectives: string
       }
     };
   } catch (error) {
-    console.error('Error updating learning objectives:', error);
+    logger.error('Error updating learning objectives:', error);
     throw error;
   }
 }
@@ -173,7 +174,7 @@ async function handleCourseDescriptionSync(courseId: string, description: string
       }
     };
   } catch (error) {
-    console.error('Error updating course description:', error);
+    logger.error('Error updating course description:', error);
     throw error;
   }
 }

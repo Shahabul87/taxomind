@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { 
   AnalyticsData, 
   PerformanceData, 
@@ -21,7 +22,7 @@ export function useStableAnalytics(period: 'DAILY' | 'WEEKLY' | 'MONTHLY', cours
       setData(result);
     } catch (err) {
       setError('Failed to load analytics data');
-      console.error('Analytics error:', err);
+      logger.error('Analytics error:', err);
     } finally {
       setLoading(false);
     }
@@ -52,7 +53,7 @@ export function useStablePerformanceMetrics(period: 'DAILY' | 'WEEKLY' | 'MONTHL
       setData(result);
     } catch (err) {
       setError('Failed to load performance data');
-      console.error('Performance error:', err);
+      logger.error('Performance error:', err);
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,7 @@ export function useStableRealtimePulse() {
       setPulse(result);
     } catch (err) {
       setError('Failed to load pulse data');
-      console.error('Pulse error:', err);
+      logger.error('Pulse error:', err);
     } finally {
       if (!isRefresh) {
         setLoading(false);

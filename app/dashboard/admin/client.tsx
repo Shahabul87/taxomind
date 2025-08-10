@@ -28,6 +28,7 @@ import { UserRole } from "@/lib/prisma-types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { logger } from '@/lib/logger';
 
 // Client components for charts
 import { 
@@ -50,7 +51,7 @@ export function ClientAdminDashboard() {
         const result = await getAdminDashboardData();
         setData(result);
       } catch (error) {
-        console.error("Error fetching admin data:", error);
+        logger.error("Error fetching admin data:", error);
       } finally {
         setLoading(false);
       }

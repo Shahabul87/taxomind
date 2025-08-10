@@ -1,5 +1,6 @@
 import { enterpriseDataAPI } from "@/lib/data-fetching/enterprise-data-api";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 type CourseWithProgressWithCategory = {
   id: string;
@@ -38,8 +39,7 @@ export const getCoursesForHomepage = async (): Promise<CourseWithProgressWithCat
   const user = await currentUser();
 
   try {
-    console.log("🚀 [GET_COURSES] Starting to fetch courses for homepage using Enterprise API...");
-    
+
     // Use the enterprise API for safe data fetching
     const result = await enterpriseDataAPI.fetchCourses(
       { isPublished: true },
@@ -48,12 +48,11 @@ export const getCoursesForHomepage = async (): Promise<CourseWithProgressWithCat
     );
 
     if (!result.success) {
-      console.error("💥 [GET_COURSES] Enterprise API returned error:", result.error);
+      logger.error("💥 [GET_COURSES] Enterprise API returned error:", result.error);
       return [];
     }
 
     const courses = result.data || [];
-    console.log(`✅ [GET_COURSES] Successfully fetched ${courses.length} courses via Enterprise API`);
 
     // Process courses to ensure cleanDescription is populated
     const processedCourses: CourseWithProgressWithCategory[] = courses.map(course => {
@@ -76,15 +75,11 @@ export const getCoursesForHomepage = async (): Promise<CourseWithProgressWithCat
       };
     });
 
-    console.log("Courses processed:", processedCourses.map(course => ({ 
-      id: course.id, 
-      title: course.title, 
-      cleanDescription: course.cleanDescription?.substring(0, 50)
     })));
 
     return processedCourses;
   } catch (error) {
-    console.error("[GET_COURSES]", error);
+    logger.error("[GET_COURSES]", error);
     return [];
   }
 };

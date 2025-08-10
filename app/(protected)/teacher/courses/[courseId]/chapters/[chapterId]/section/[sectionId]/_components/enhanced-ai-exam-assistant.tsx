@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { BloomsLevel } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 // Import our enhanced framework
 import { ENHANCED_BLOOMS_FRAMEWORK } from "@/lib/ai-question-generator";
@@ -191,7 +192,7 @@ export const EnhancedAIExamAssistant = ({
         throw new Error('Invalid response format');
       }
     } catch (error: any) {
-      console.error('Enhanced AI exam generation error:', error);
+      logger.error('Enhanced AI exam generation error:', error);
       toast.error(`Failed to generate exam questions. Please try again.`);
     } finally {
       setIsGenerating(false);

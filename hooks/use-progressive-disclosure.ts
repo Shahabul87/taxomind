@@ -1,6 +1,7 @@
 "use client";
 
 import { useProgressiveDisclosureSystem } from '@/lib/progressive-disclosure-system';
+import { logger } from '@/lib/logger';
 
 // Legacy types for backward compatibility
 interface FeatureState {
@@ -56,7 +57,7 @@ export const useProgressiveDisclosure = (userId?: string): UseProgressiveDisclos
 
   const hideFeature = (featureId: string) => {
     // Not supported in new system - features don't get hidden once unlocked
-    console.warn('hideFeature is deprecated and not supported in the new progressive disclosure system');
+    logger.warn('hideFeature is deprecated and not supported in the new progressive disclosure system');
   };
 
   const markFeatureUsed = (featureId: string) => {

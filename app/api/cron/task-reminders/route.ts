@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 import { sendEmail } from "@/lib/email"; // You would need to implement this function
 
 export async function GET(req: Request) {
@@ -73,7 +74,7 @@ export async function GET(req: Request) {
           status: "sent"
         });
       } catch (error) {
-        console.error(`Error processing reminder for task ${task.id}:`, error);
+        logger.error(`Error processing reminder for task ${task.id}:`, error);
         results.push({
           taskId: task.id,
           userId: task.userId,
@@ -89,7 +90,7 @@ export async function GET(req: Request) {
       results
     });
   } catch (error) {
-    console.error("[TASK_REMINDERS_CRON]", error);
+    logger.error("[TASK_REMINDERS_CRON]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

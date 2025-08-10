@@ -1,5 +1,6 @@
 import { Issuer, Strategy as OpenIDStrategy, type Client, type TokenSet, type UserinfoResponse } from 'openid-client';
 import { CryptoUtils } from '@/lib/security/crypto-utils';
+import { logger } from '@/lib/logger';
 
 /**
  * Enterprise OpenID Connect (OIDC) SSO Provider
@@ -204,8 +205,7 @@ export class OIDCProvider {
       
       // Configure token validation
       this.client[Symbol.for('issuer')] = this.issuer;
-      
-      console.log(`OIDC Provider initialized for tenant: ${this.config.tenantId}`);
+
     } catch (error) {
       throw new Error(`Failed to initialize OIDC provider: ${error.message}`);
     }
@@ -462,7 +462,7 @@ export class OIDCProvider {
           session.tokenSet = newTokenSet;
           session.refreshToken = newTokenSet.refresh_token;
         } catch (error) {
-          console.error('Token refresh failed:', error);
+          logger.error('Token refresh failed:', error);
           this.sessions.delete(sessionId);
           return null;
         }
@@ -506,7 +506,7 @@ export class OIDCProvider {
           await this.client.revoke(session.refreshToken);
         }
       } catch (error) {
-        console.warn('Token revocation failed:', error.message);
+        logger.warn('Token revocation failed:', error.message);
       }
     }
     
@@ -596,9 +596,7 @@ export class OIDCProvider {
       error,
       provider: this.config.issuer,
     };
-    
-    console.log('[AUDIT] OIDC Login:', auditLog);
-    
+
     // TODO: Integrate with enterprise audit system
     // await auditLogger.log(auditLog);
   }

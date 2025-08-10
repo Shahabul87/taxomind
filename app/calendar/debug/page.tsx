@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { logger } from '@/lib/logger';
 
 export default function CalendarDebugPage() {
   const { data: session, status } = useSession();
@@ -20,7 +21,7 @@ export default function CalendarDebugPage() {
         setDebugInfo(data);
       } catch (err) {
         setError("Failed to load debug information");
-        console.error(err);
+        logger.error(err);
       } finally {
         setLoading(false);
       }

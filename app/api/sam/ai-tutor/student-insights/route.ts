@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(insights);
 
   } catch (error) {
-    console.error('Student insights generation error:', error);
+    logger.error('Student insights generation error:', error);
     return NextResponse.json(
       { error: 'Failed to generate student insights' },
       { status: 500 }
@@ -127,7 +128,7 @@ async function generateStudentInsights(studentId: string): Promise<any> {
     return insights;
 
   } catch (error) {
-    console.error('Error generating student insights:', error);
+    logger.error('Error generating student insights:', error);
     throw error;
   }
 }

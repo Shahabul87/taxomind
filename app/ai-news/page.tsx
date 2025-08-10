@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '@/lib/logger';
 import { 
   Newspaper, 
   Clock, 
@@ -113,7 +114,7 @@ export default function AINewsPage() {
         setUseRealData(true);
       }
     } catch (error) {
-      console.error('Error fetching news:', error);
+      logger.error('Error fetching news:', error);
       setError('Failed to load news. Please try again later.');
     } finally {
       setIsLoading(false);

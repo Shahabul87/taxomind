@@ -12,6 +12,7 @@ import { FaGithub, FaFacebook, FaTwitter, FaEye, FaEyeSlash, FaEnvelope } from "
 import { toast } from "react-hot-toast";
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import { LoginSchema } from "@/schemas";
 import { Input } from "@/components/ui/input";
@@ -57,13 +58,11 @@ export const LoginForm = () => {
     try {
       setError("");
       setSuccess("");
-      
-      console.log("Submitting login form with values:", values);
-      
+
       startTransition(() => {
         login(values, callbackUrl)
           .then((data) => {
-            console.log("Login response:", data);
+
             if (data?.error) {
               form.reset();
               setError(data.error);
@@ -82,12 +81,12 @@ export const LoginForm = () => {
             if (error?.message?.includes("NEXT_REDIRECT")) {
               return;
             }
-            console.error("Login error:", error);
+            logger.error("Login error:", error);
             setError("Something went wrong");
           });
       });
     } catch (error) {
-      console.error("Form submission error:", error);
+      logger.error("Form submission error:", error);
       setError("An unexpected error occurred");
     }
   };

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schemas
 const analyticsQuerySchema = z.object({
@@ -128,7 +129,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching enterprise analytics:', error);
+    logger.error('Error fetching enterprise analytics:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -175,7 +176,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error recording analytics:', error);
+    logger.error('Error recording analytics:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

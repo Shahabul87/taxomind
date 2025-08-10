@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 export default function TestNestedReplies({ postId }: { postId: string }) {
   const [commentId, setCommentId] = useState('');
@@ -33,7 +34,7 @@ export default function TestNestedReplies({ postId }: { postId: string }) {
       setResponse(result.data);
       toast.success('Nested reply created successfully');
     } catch (error) {
-      console.error('Error creating nested reply:', error);
+      logger.error('Error creating nested reply:', error);
       toast.error('Failed to create nested reply');
       setResponse(error);
     } finally {

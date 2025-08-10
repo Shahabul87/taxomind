@@ -10,6 +10,7 @@ import { SamErrorBoundary } from "@/components/ui/sam-error-boundary";
 import { ArrowRight, ArrowLeft, Sparkles, Home, AlertTriangle, BookOpen, RefreshCw, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 // Import modular components
 import { useSamWizard } from "./hooks/use-sam-wizard";
@@ -81,8 +82,6 @@ export default function AICreatorPage() {
 
   const { gatherSamContext } = useSamContextGathering();
 
-
-
   // Get suggestion refresh handler
   const handleRefreshSuggestion = () => {
     getSamSuggestion('general_encouragement');
@@ -102,8 +101,7 @@ export default function AICreatorPage() {
         samContext,
         onFormDataUpdate: setFormData,
         onGenerationComplete: (result) => {
-          console.log('Complete generation finished:', result);
-          
+
           // Save generated structure to SAM memory (client-side only)
           if (typeof window !== 'undefined') {
             import('@/lib/sam-memory-system').then(({ samMemory }) => {
@@ -130,7 +128,7 @@ export default function AICreatorPage() {
       }, 2000);
       
     } catch (error) {
-      console.error('Complete generation failed:', error);
+      logger.error('Complete generation failed:', error);
       // Modal stays open to show error
     }
   };
@@ -148,13 +146,6 @@ export default function AICreatorPage() {
     
     try {
       // Debug: Log the form data to see what we're sending
-      console.log('Form data for course creation:', {
-        title: formData.courseTitle,
-        description: formData.courseShortOverview,
-        whatYouWillLearn: formData.courseGoals,
-        category: formData.courseCategory,
-        subcategory: formData.courseSubcategory,
-      });
 
       // Step 1: Create the course with final review data
       const courseData = {
@@ -166,8 +157,6 @@ export default function AICreatorPage() {
       // Note: Category handling will be done on the course edit page
       // The /api/courses POST endpoint doesn't support categoryId during creation
 
-      console.log('Sending course data:', courseData);
-
       const courseResponse = await fetch('/api/courses', {
         method: 'POST',
         headers: {
@@ -178,12 +167,11 @@ export default function AICreatorPage() {
 
       if (!courseResponse.ok) {
         const errorText = await courseResponse.text();
-        console.error('Course creation failed:', courseResponse.status, errorText);
+        logger.error('Course creation failed:', courseResponse.status, errorText);
         throw new Error(`Failed to create course: ${courseResponse.status} - ${errorText}`);
       }
 
       const course = await courseResponse.json();
-      console.log('Course created:', course);
 
       // Step 2: Generate chapters using SAM AI
       let successfulChapters = []; // Declare variable at proper scope
@@ -235,20 +223,16 @@ etc.`,
 
       if (chaptersResponse.ok) {
         const chaptersResult = await chaptersResponse.json();
-        console.log('SAM chapters response:', chaptersResult.response);
-        
+
         // Parse chapter titles from SAM's response
         const chapterMatches = chaptersResult.response.match(/\d+\.\s*(.+)/g);
-        console.log('Chapter matches found:', chapterMatches);
-        
+
         if (chapterMatches && chapterMatches.length > 0) {
-          console.log(`Creating ${chapterMatches.length} chapters for course ${course.id}`);
-          
+
           // Create chapters for the course
           const chapterPromises = chapterMatches.slice(0, formData.chapterCount || 5).map(async (match, index) => {
             const title = match.replace(/^\d+\.\s*/, '').trim();
-            console.log(`Creating chapter ${index + 1}: "${title}"`);
-            
+
             try {
               const chapterResponse = await fetch(`/api/courses/${course.id}/chapters`, {
                 method: 'POST',
@@ -263,26 +247,26 @@ etc.`,
               
               if (chapterResponse.ok) {
                 const chapter = await chapterResponse.json();
-                console.log(`Chapter created successfully:`, chapter);
+
                 return chapter;
               } else {
                 const errorText = await chapterResponse.text();
-                console.error(`Failed to create chapter "${title}":`, chapterResponse.status, errorText);
+                logger.error(`Failed to create chapter "${title}":`, chapterResponse.status, errorText);
               }
             } catch (error) {
-              console.error(`Error creating chapter: ${title}`, error);
+              logger.error(`Error creating chapter: ${title}`, error);
             }
             return null;
           });
 
           const createdChapters = await Promise.all(chapterPromises);
           successfulChapters = createdChapters.filter(chapter => chapter !== null);
-          console.log(`Successfully created ${successfulChapters.length} chapters`);
+
         } else {
-          console.warn('No chapter titles found in SAM response');
+          logger.warn('No chapter titles found in SAM response');
         }
       } else {
-        console.error('Failed to generate chapters:', chaptersResponse.status);
+        logger.error('Failed to generate chapters:', chaptersResponse.status);
       }
 
       // Step 3: Save progress to SAM memory and redirect
@@ -305,7 +289,7 @@ etc.`,
       router.push(`/teacher/courses/${course.id}`);
       
     } catch (error) {
-      console.error('Error creating course:', error);
+      logger.error('Error creating course:', error);
       toast.error('Failed to create course. Please try again.');
     } finally {
       setIsCreatingCourse(false);

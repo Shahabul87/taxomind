@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function PATCH(req: Request, props: { params: Promise<{ mindId: string }> }) {
   const params = await props.params;
@@ -34,7 +35,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ mindId: str
 
     return NextResponse.json(mind);
   } catch (error) {
-    console.error("[MIND_PATCH]", error);
+    logger.error("[MIND_PATCH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -56,7 +57,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ mindId: st
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[MIND_DELETE]", error);
+    logger.error("[MIND_DELETE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

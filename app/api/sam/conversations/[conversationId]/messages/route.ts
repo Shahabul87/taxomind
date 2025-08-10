@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schema for path parameters
 const paramsSchema = z.object({
@@ -152,7 +153,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Error fetching conversation messages:', error);
+    logger.error('Error fetching conversation messages:', error);
     
     // Handle specific error types
     if (error instanceof z.ZodError) {

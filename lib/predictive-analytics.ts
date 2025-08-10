@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 import { 
   SessionStatus, 
   AlertType, 
@@ -105,7 +106,7 @@ export class PredictiveAnalytics {
       };
 
     } catch (error) {
-      console.error("Error predicting course completion:", error);
+      logger.error("Error predicting course completion:", error);
       throw error;
     }
   }
@@ -167,7 +168,7 @@ export class PredictiveAnalytics {
       };
 
     } catch (error) {
-      console.error("Error predicting study schedule:", error);
+      logger.error("Error predicting study schedule:", error);
       throw error;
     }
   }
@@ -248,7 +249,7 @@ export class PredictiveAnalytics {
       return atRiskStudents.sort((a, b) => b.riskScore - a.riskScore);
 
     } catch (error) {
-      console.error("Error identifying at-risk students:", error);
+      logger.error("Error identifying at-risk students:", error);
       throw error;
     }
   }
@@ -280,7 +281,7 @@ export class PredictiveAnalytics {
       return recommendations;
 
     } catch (error) {
-      console.error("Error generating recommendations:", error);
+      logger.error("Error generating recommendations:", error);
       throw error;
     }
   }

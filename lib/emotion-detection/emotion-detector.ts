@@ -47,8 +47,6 @@ export class EmotionDetector {
     inputData: DetectionInputData,
     contentId?: string
   ): Promise<EmotionDetectionResult> {
-    
-    console.log(`Detecting emotions for student: ${studentId}`);
 
     // Get or build context
     const context = await this.buildEmotionContext(
@@ -131,8 +129,6 @@ export class EmotionDetector {
     courseId: string,
     config: MonitoringConfig
   ): Promise<MonitoringSession> {
-    
-    console.log(`Starting emotion monitoring for student: ${studentId}`);
 
     const monitoringSession: MonitoringSession = {
       id: `monitoring_${studentId}_${Date.now()}`,
@@ -208,8 +204,6 @@ export class EmotionDetector {
     text: string,
     context: TextAnalysisContext
   ): Promise<SentimentAnalysis> {
-    
-    console.log('Analyzing sentiment for text input');
 
     // Preprocess text
     const processedText = await this.preprocessText(text);
@@ -261,8 +255,6 @@ export class EmotionDetector {
     timeRange: { start: Date; end: Date },
     analysisDepth: AnalysisDepth = 'standard'
   ): Promise<EmotionPatternResult> {
-    
-    console.log(`Detecting emotion patterns for student: ${studentId}`);
 
     // Get historical emotion data
     const emotionHistory = await this.getEmotionHistory(studentId, timeRange);
@@ -337,7 +329,7 @@ export class EmotionDetector {
   private async initializeModels(): Promise<void> {
     // Initialize emotion detection models
     // This would load pre-trained models for different detection sources
-    console.log('Initializing emotion detection models...');
+
   }
 
   private async buildEmotionContext(
@@ -1424,9 +1416,7 @@ export class EmotionDetector {
 
   // Additional placeholder methods for completeness
   private async storeDetectionResult(result: EmotionDetectionResult): Promise<void> {
-    console.log('Storing emotion detection result:', result.id);
-  }
-
+}
   private async updateEmotionHistory(studentId: string, result: EmotionDetectionResult): Promise<void> {
     const history = this.detectionHistory.get(studentId) || [];
     history.push(result);
@@ -1444,17 +1434,14 @@ export class EmotionDetector {
     if (result.emotionalState.stress > 0.8 || 
         result.emotionalState.valence < -0.7 ||
         result.primaryEmotion === 'anxiety' && result.confidence > 0.7) {
-      
-      console.log('Intervention trigger detected for student:', result.studentId);
+
       // Would trigger intervention system
     }
   }
 
   // Placeholder implementations for remaining methods
   private async setupRealTimeMonitoring(session: MonitoringSession): Promise<void> {
-    console.log('Setting up real-time monitoring:', session.id);
-  }
-
+}
   private async getMonitoringSession(monitoringId: string): Promise<MonitoringSession> {
     return {
       id: monitoringId,
@@ -1485,9 +1472,7 @@ export class EmotionDetector {
   }
 
   private async cleanupMonitoring(session: MonitoringSession): Promise<void> {
-    console.log('Cleaning up monitoring session:', session.id);
-  }
-
+}
   private async generateMonitoringRecommendations(summary: any): Promise<any[]> {
     return [];
   }

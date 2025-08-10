@@ -4,6 +4,7 @@ import { SAMMemoryEngine } from '@/lib/sam-memory-engine';
 import { applyRateLimit, samSummariesLimiter } from '@/lib/sam-rate-limiter';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schema for query parameters
 const querySchema = z.object({
@@ -121,7 +122,7 @@ export async function GET(req: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('Error fetching conversation summaries:', error);
+    logger.error('Error fetching conversation summaries:', error);
     
     // Handle specific error types
     if (error instanceof z.ZodError) {

@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { logger } from '@/lib/logger';
 import { 
   Brain,
   TrendingUp,
@@ -272,7 +273,7 @@ export const StudentProgressPredictor = ({
       
       toast.success("Predictions updated");
     } catch (error) {
-      console.error('Error loading predictions:', error);
+      logger.error('Error loading predictions:', error);
       toast.error('Failed to load predictions');
       
       // Mock data for demonstration

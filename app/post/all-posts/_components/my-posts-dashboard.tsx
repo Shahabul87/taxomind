@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { logger } from '@/lib/logger';
 import { 
   Layout, 
   List, 
@@ -114,7 +115,7 @@ export const MyPostsDashboard = ({ posts, categories, stats, user }: MyPostsDash
       router.refresh();
     } catch (error) {
       toast.error("Error deleting post");
-      console.error(error);
+      logger.error(error);
     } finally {
       setIsLoading(false);
     }

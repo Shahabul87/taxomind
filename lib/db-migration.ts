@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { EnterpriseDB } from './enterprise-db';
 import { getEnvironment } from './db-environment';
+import { logger } from '@/lib/logger';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const isStaging = process.env.NODE_ENV === 'staging';
@@ -11,7 +12,7 @@ let dbInstance: PrismaClient | EnterpriseDB | null = null;
 export const db = (() => {
   if (!dbInstance) {
     if ((isProduction || isStaging) && strictMode) {
-      console.log('[DB Migration] Using EnterpriseDB for enhanced safety');
+
       // Return the enterprise db proxy from enterprise-db.ts
       const { db: enterpriseDb } = require('./enterprise-db');
       dbInstance = enterpriseDb as any;
@@ -27,7 +28,7 @@ export const db = (() => {
       dbInstance = globalForPrisma.prisma;
       
       if (isProduction || isStaging) {
-        console.warn('[DB Migration] Using standard PrismaClient in production/staging. Consider enabling STRICT_ENV_MODE for enhanced safety.');
+        logger.warn('[DB Migration] Using standard PrismaClient in production/staging. Consider enabling STRICT_ENV_MODE for enhanced safety.');
       }
     }
   }

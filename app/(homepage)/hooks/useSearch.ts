@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { SearchResult } from '../types/header-types';
 import axios from 'axios';
+import { logger } from '@/lib/logger';
 
 interface UseSearchReturn {
   searchQuery: string;
@@ -44,10 +45,9 @@ export function useSearch(): UseSearchReturn {
     
     setIsSearching(true);
     setSearchError(null);
-    console.log("🔍 Performing search for:", searchQuery);
-    
+
     try {
-      console.log("👉 Calling search API");
+
       const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}`, {
         method: 'GET',
         headers: {
@@ -62,18 +62,17 @@ export function useSearch(): UseSearchReturn {
       }
       
       const data = await response.json();
-      console.log("📊 Search results:", data);
-      
+
       if (data && Array.isArray(data.results)) {
-        console.log(`✅ Found ${data.results.length} results`);
+
         setSearchResults(data.results);
       } else {
-        console.error("❌ Results format is invalid:", data);
+        logger.error("❌ Results format is invalid:", data);
         setSearchError("Invalid response format");
         setSearchResults(fallbackResults);
       }
     } catch (error) {
-      console.error('❌ Search error:', error);
+      logger.error('❌ Search error:', error);
       setSearchError(error instanceof Error ? error.message : 'Search failed');
       setSearchResults(fallbackResults);
     } finally {
@@ -85,9 +84,9 @@ export function useSearch(): UseSearchReturn {
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       if (searchQuery.trim().length >= 2) {
-        console.log("⏱️ Debounced search triggered for:", searchQuery);
+
         performSearch().catch(error => {
-          console.error("❌ Unhandled search error:", error);
+          logger.error("❌ Unhandled search error:", error);
           setSearchError("An unexpected error occurred");
           setIsSearching(false);
         });
@@ -99,10 +98,10 @@ export function useSearch(): UseSearchReturn {
 
     // Special handling for "transformer" query - search immediately
     if (searchQuery.toLowerCase().includes("transform")) {
-      console.log("⚡ Immediate search triggered for transformer query");
+
       clearTimeout(debounceTimer);
       performSearch().catch(error => {
-        console.error("❌ Unhandled search error:", error);
+        logger.error("❌ Unhandled search error:", error);
         setSearchError("An unexpected error occurred");
         setIsSearching(false);
       });

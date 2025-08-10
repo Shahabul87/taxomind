@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 import { 
   MessageCircle, 
   Clock, 
@@ -79,7 +80,7 @@ export function SAMConversationHistory({
           setConversations(data.data);
         }
       } catch (error) {
-        console.error('Error loading conversations:', error);
+        logger.error('Error loading conversations:', error);
       } finally {
         setIsLoading(false);
       }
@@ -104,7 +105,7 @@ export function SAMConversationHistory({
           setMessages(data.data);
         }
       } catch (error) {
-        console.error('Error loading messages:', error);
+        logger.error('Error loading messages:', error);
       }
     };
 

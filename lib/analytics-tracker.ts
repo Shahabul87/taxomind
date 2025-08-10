@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 interface AnalyticsEvent {
   eventType: string;
   eventCategory: 'ai_generation' | 'user_interaction' | 'performance' | 'error' | 'success';
@@ -298,9 +300,7 @@ class AnalyticsTracker {
     if (process.env.NODE_ENV === 'production') {
       this.sendToAnalyticsService(event);
     } else {
-      console.log('[ANALYTICS]', eventType, properties);
-    }
-
+}
     // Batch send events when queue gets large
     if (this.events.length >= 10) {
       this.flushEvents();
@@ -350,7 +350,7 @@ class AnalyticsTracker {
         body: JSON.stringify(event)
       });
     } catch (error) {
-      console.warn('Failed to send analytics event:', error);
+      logger.warn('Failed to send analytics event:', error);
       // Don't throw - analytics should never break the app
     }
   }
@@ -368,7 +368,7 @@ class AnalyticsTracker {
         body: JSON.stringify({ events: eventsToSend })
       });
     } catch (error) {
-      console.warn('Failed to flush analytics events:', error);
+      logger.warn('Failed to flush analytics events:', error);
       // Put events back in queue for retry
       this.events.unshift(...eventsToSend);
     }

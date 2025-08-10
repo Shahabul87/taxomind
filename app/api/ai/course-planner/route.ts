@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { 
   CourseGenerationRequestSchema, 
   CourseGenerationResponseSchema,
@@ -22,7 +23,7 @@ try {
     });
   }
 } catch (error) {
-  console.warn('Anthropic API not configured:', error);
+  logger.warn('Anthropic API not configured:', error);
 }
 
 const COURSE_PLANNER_SYSTEM_PROMPT = `You are an expert educational designer and curriculum developer with 20+ years of experience creating engaging, effective online courses. Your specialty is transforming learning goals into comprehensive, well-structured course plans that maximize student engagement and learning outcomes.
@@ -284,7 +285,7 @@ export async function POST(request: NextRequest) {
 
     // Check if Anthropic API is configured
     if (!anthropic) {
-      console.warn('ANTHROPIC_API_KEY not configured, using mock response');
+      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
       const mockResponse = generateMockResponse(courseRequest);
       return NextResponse.json({ success: true, data: mockResponse });
     }
@@ -323,7 +324,7 @@ export async function POST(request: NextRequest) {
         const jsonString = jsonMatch ? jsonMatch[0] : responseText;
         aiResponse = JSON.parse(jsonString);
       } catch (parseError) {
-        console.error('Failed to parse AI response as JSON:', parseError);
+        logger.error('Failed to parse AI response as JSON:', parseError);
         throw new Error('Invalid JSON response from AI model');
       }
 
@@ -331,7 +332,7 @@ export async function POST(request: NextRequest) {
       const validationResult = CourseGenerationResponseSchema.safeParse(aiResponse);
       
       if (!validationResult.success) {
-        console.error('AI response validation failed:', validationResult.error);
+        logger.error('AI response validation failed:', validationResult.error);
         // Fall back to mock response if validation fails
         const mockResponse = generateMockResponse(courseRequest);
         return NextResponse.json({ 
@@ -352,7 +353,7 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (apiError: any) {
-      console.error('Anthropic API error:', apiError);
+      logger.error('Anthropic API error:', apiError);
       
       // Fall back to mock response for API errors
       const mockResponse = generateMockResponse(courseRequest);
@@ -364,7 +365,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('Course planner error:', error);
+    logger.error('Course planner error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

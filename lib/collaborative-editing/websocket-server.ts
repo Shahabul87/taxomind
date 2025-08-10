@@ -12,6 +12,7 @@ import { PermissionManager } from './permission-manager';
 import { CursorManager } from './cursor-manager';
 import { CommentManager } from './comment-manager';
 import { nanoid } from 'nanoid';
+import { logger } from '@/lib/logger';
 
 export interface CollaborativeUser {
   id: string;
@@ -75,8 +76,7 @@ export class CollaborativeEditingServer {
 
   private setupEventHandlers() {
     this.io.on('connection', async (socket) => {
-      console.log('User connected:', socket.id);
-      
+
       // Authenticate user
       const user = await this.authenticateUser(socket);
       if (!user) {
@@ -92,7 +92,7 @@ export class CollaborativeEditingServer {
         try {
           await this.handleJoinSession(socket, data);
         } catch (error) {
-          console.error('Error joining session:', error);
+          logger.error('Error joining session:', error);
           socket.emit('error', { message: 'Failed to join session' });
         }
       });
@@ -102,7 +102,7 @@ export class CollaborativeEditingServer {
         try {
           await this.handleLeaveSession(socket, data);
         } catch (error) {
-          console.error('Error leaving session:', error);
+          logger.error('Error leaving session:', error);
         }
       });
 
@@ -111,7 +111,7 @@ export class CollaborativeEditingServer {
         try {
           await this.handleDocumentOperation(socket, data);
         } catch (error) {
-          console.error('Error handling document operation:', error);
+          logger.error('Error handling document operation:', error);
           socket.emit('error', { message: 'Failed to process document operation' });
         }
       });
@@ -121,7 +121,7 @@ export class CollaborativeEditingServer {
         try {
           await this.cursorManager.handleCursorUpdate(socket, data);
         } catch (error) {
-          console.error('Error handling cursor update:', error);
+          logger.error('Error handling cursor update:', error);
         }
       });
 
@@ -130,7 +130,7 @@ export class CollaborativeEditingServer {
         try {
           await this.commentManager.handleAddComment(socket, data);
         } catch (error) {
-          console.error('Error adding comment:', error);
+          logger.error('Error adding comment:', error);
           socket.emit('error', { message: 'Failed to add comment' });
         }
       });
@@ -139,7 +139,7 @@ export class CollaborativeEditingServer {
         try {
           await this.commentManager.handleResolveComment(socket, data);
         } catch (error) {
-          console.error('Error resolving comment:', error);
+          logger.error('Error resolving comment:', error);
           socket.emit('error', { message: 'Failed to resolve comment' });
         }
       });
@@ -149,7 +149,7 @@ export class CollaborativeEditingServer {
         try {
           await this.handleRequestLock(socket, data);
         } catch (error) {
-          console.error('Error requesting lock:', error);
+          logger.error('Error requesting lock:', error);
           socket.emit('error', { message: 'Failed to request lock' });
         }
       });
@@ -158,7 +158,7 @@ export class CollaborativeEditingServer {
         try {
           await this.handleReleaseLock(socket, data);
         } catch (error) {
-          console.error('Error releasing lock:', error);
+          logger.error('Error releasing lock:', error);
           socket.emit('error', { message: 'Failed to release lock' });
         }
       });
@@ -168,7 +168,7 @@ export class CollaborativeEditingServer {
         try {
           await this.conflictResolver.handleConflictResolution(socket, data);
         } catch (error) {
-          console.error('Error resolving conflict:', error);
+          logger.error('Error resolving conflict:', error);
           socket.emit('error', { message: 'Failed to resolve conflict' });
         }
       });
@@ -178,13 +178,13 @@ export class CollaborativeEditingServer {
         try {
           await this.handlePresenceUpdate(socket, data);
         } catch (error) {
-          console.error('Error updating presence:', error);
+          logger.error('Error updating presence:', error);
         }
       });
 
       // Handle disconnection
       socket.on('disconnect', async () => {
-        console.log('User disconnected:', socket.id);
+
         await this.handleDisconnect(socket);
       });
     });
@@ -227,7 +227,7 @@ export class CollaborativeEditingServer {
         cursorColor: this.generateCursorColor(user.id),
       };
     } catch (error) {
-      console.error('Authentication error:', error);
+      logger.error('Authentication error:', error);
       return null;
     }
   }

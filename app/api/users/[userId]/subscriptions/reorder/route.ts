@@ -3,6 +3,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function PUT(req: Request, props: { params: Promise<{ userId: string }> }) {
   const params = await props.params;
@@ -21,7 +22,7 @@ export async function PUT(req: Request, props: { params: Promise<{ userId: strin
 
     for (const item of list) {
       if (typeof item.id !== "string" || typeof item.position !== "number") {
-        console.error("Invalid item in list:", item); // Log any invalid item
+        logger.error("Invalid item in list:", item); // Log any invalid item
         return new NextResponse("Each item must have a valid 'id' (string) and 'position' (number)", { status: 400 });
       }
     }
@@ -38,7 +39,7 @@ export async function PUT(req: Request, props: { params: Promise<{ userId: strin
 
     return new NextResponse("Subscriptions reordered successfully", { status: 200 });
   } catch (error) {
-    console.error("[REORDER ERROR]", error);
+    logger.error("[REORDER ERROR]", error);
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return new NextResponse(
       JSON.stringify({ error: errorMessage }),

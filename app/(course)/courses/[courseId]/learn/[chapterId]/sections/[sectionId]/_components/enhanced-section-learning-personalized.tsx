@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { logger } from '@/lib/logger';
 import { 
   BookOpen, 
   Video, 
@@ -230,7 +231,7 @@ export const EnhancedSectionLearningPersonalized = ({
         }
       }
     } catch (error) {
-      console.error("Failed to load personalization data:", error);
+      logger.error("Failed to load personalization data:", error);
       // Use demo data as fallback
       setPersonalizationInsights(getDemoInsights());
       setStudyBuddy(getDemoStudyBuddy());
@@ -254,7 +255,7 @@ export const EnhancedSectionLearningPersonalized = ({
       });
       toast.success("Learning preferences updated!");
     } catch (error) {
-      console.error("Failed to update preferences:", error);
+      logger.error("Failed to update preferences:", error);
       toast.error("Failed to update preferences");
     }
   }, [learningPreferences, user.id]);
@@ -281,7 +282,7 @@ export const EnhancedSectionLearningPersonalized = ({
       setTimeout(() => loadPersonalizationData(), 1000);
       toast.success("Thanks for your feedback! Content will adapt accordingly.");
     } catch (error) {
-      console.error("Failed to submit feedback:", error);
+      logger.error("Failed to submit feedback:", error);
       toast.error("Failed to submit feedback");
     }
   }, [user.id, courseId, sectionId, loadPersonalizationData]);

@@ -61,7 +61,7 @@ export const CourseDescription = ({ course }: CourseDescriptionProps) => {
         {course.description && course.description.length > 200 && (
           <motion.button
             onClick={() => {
-              console.log('Description toggle clicked, current state:', showFullDescription);
+
               setShowFullDescription(!showFullDescription);
             }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-slate-700 hover:bg-blue-200 dark:hover:bg-slate-600 text-blue-700 dark:text-blue-400 rounded-lg font-medium transition-colors duration-200"

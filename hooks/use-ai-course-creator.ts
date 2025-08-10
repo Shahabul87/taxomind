@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import {
   type CourseGenerationRequest,
   type CourseGenerationResponse,
@@ -220,7 +221,7 @@ export function useAICourseCreator(options: UseAICourseCreatorOptions = {}) {
       }));
 
     } catch (error) {
-      console.error('Failed to generate suggestions:', error);
+      logger.error('Failed to generate suggestions:', error);
     }
   }, []);
 

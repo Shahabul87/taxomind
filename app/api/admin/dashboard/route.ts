@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { UserRole } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 // Mark this route as dynamic to prevent static generation attempts
 export const dynamic = 'force-dynamic';
@@ -86,7 +87,7 @@ export async function GET() {
       recentUsers
     });
   } catch (error) {
-    console.error("[ADMIN_DASHBOARD_API_ERROR]", error);
+    logger.error("[ADMIN_DASHBOARD_API_ERROR]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 } 

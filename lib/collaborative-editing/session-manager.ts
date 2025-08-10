@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { CollaborativeUser, CollaborativeSession } from './websocket-server';
 import { YjsDocumentManager } from './yjs-document-manager';
 import { nanoid } from 'nanoid';
+import { logger } from '@/lib/logger';
 
 export interface SessionCreationData {
   id: string;
@@ -87,9 +88,8 @@ export class CollaborativeSessionManager {
         this.sessions.set(session.id, collaborativeSession);
       }
 
-      console.log(`Loaded ${activeSessions.length} active collaborative sessions`);
     } catch (error) {
-      console.error('Error loading active sessions:', error);
+      logger.error('Error loading active sessions:', error);
     }
   }
 
@@ -132,7 +132,7 @@ export class CollaborativeSessionManager {
       this.sessions.set(data.id, session);
       return session;
     } catch (error) {
-      console.error('Error creating session:', error);
+      logger.error('Error creating session:', error);
       throw new Error('Failed to create collaborative session');
     }
   }
@@ -180,7 +180,7 @@ export class CollaborativeSessionManager {
       // Track activity
       await this.trackActivity(sessionId, user.id, 'USER_JOINED', 'User joined the session');
     } catch (error) {
-      console.error('Error adding participant:', error);
+      logger.error('Error adding participant:', error);
       throw new Error('Failed to add participant to session');
     }
   }
@@ -210,7 +210,7 @@ export class CollaborativeSessionManager {
       // Track activity
       await this.trackActivity(sessionId, userId, 'USER_LEFT', 'User left the session');
     } catch (error) {
-      console.error('Error removing participant:', error);
+      logger.error('Error removing participant:', error);
     }
   }
 
@@ -255,7 +255,7 @@ export class CollaborativeSessionManager {
 
       return { success: true };
     } catch (error) {
-      console.error('Error requesting lock:', error);
+      logger.error('Error requesting lock:', error);
       return { success: false, reason: 'Failed to acquire lock' };
     }
   }
@@ -290,7 +290,7 @@ export class CollaborativeSessionManager {
         `Released lock${section ? ` on section ${section}` : ''}`
       );
     } catch (error) {
-      console.error('Error releasing lock:', error);
+      logger.error('Error releasing lock:', error);
     }
   }
 
@@ -306,7 +306,7 @@ export class CollaborativeSessionManager {
         data: { lastActivity: new Date() },
       });
     } catch (error) {
-      console.error('Error updating activity:', error);
+      logger.error('Error updating activity:', error);
     }
   }
 
@@ -328,7 +328,7 @@ export class CollaborativeSessionManager {
         },
       });
     } catch (error) {
-      console.error('Error setting user offline:', error);
+      logger.error('Error setting user offline:', error);
     }
   }
 
@@ -346,7 +346,7 @@ export class CollaborativeSessionManager {
         },
       });
     } catch (error) {
-      console.error('Error updating presence:', error);
+      logger.error('Error updating presence:', error);
     }
   }
 
@@ -387,7 +387,7 @@ export class CollaborativeSessionManager {
         timestamp: new Date(),
       });
     } catch (error) {
-      console.error('Error ending session:', error);
+      logger.error('Error ending session:', error);
     }
   }
 
@@ -411,7 +411,7 @@ export class CollaborativeSessionManager {
         },
       });
     } catch (error) {
-      console.error('Error creating snapshot:', error);
+      logger.error('Error creating snapshot:', error);
     }
   }
 
@@ -470,7 +470,7 @@ export class CollaborativeSessionManager {
 
       return session;
     } catch (error) {
-      console.error('Error getting session analytics:', error);
+      logger.error('Error getting session analytics:', error);
       return null;
     }
   }
@@ -493,7 +493,7 @@ export class CollaborativeSessionManager {
         },
       });
     } catch (error) {
-      console.error('Error tracking activity:', error);
+      logger.error('Error tracking activity:', error);
     }
   }
 
@@ -515,9 +515,8 @@ export class CollaborativeSessionManager {
         await this.endSession(session.id);
       }
 
-      console.log(`Cleaned up ${inactiveSessions.length} inactive sessions`);
     } catch (error) {
-      console.error('Error cleaning up inactive sessions:', error);
+      logger.error('Error cleaning up inactive sessions:', error);
     }
   }
 }

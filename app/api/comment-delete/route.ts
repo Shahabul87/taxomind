@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Universal endpoint for deleting comments and replies
 export async function DELETE(req: NextRequest) {
-  console.log("[COMMENT_DELETE] Received delete request");
-  
+
   try {
     // Authenticate the user
     const user = await currentUser();
     if (!user) {
-      console.log("[COMMENT_DELETE] Unauthorized");
+
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -19,13 +19,6 @@ export async function DELETE(req: NextRequest) {
     const postId = url.searchParams.get('postId');
     const commentId = url.searchParams.get('commentId');
     const replyId = url.searchParams.get('replyId');
-    
-    console.log("[COMMENT_DELETE] Request params:", { 
-      postId, 
-      commentId, 
-      replyId, 
-      userId: user.id 
-    });
 
     // Validate required fields
     if (!postId) {
@@ -48,7 +41,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     if (!post) {
-      console.log("[COMMENT_DELETE] Post not found");
+
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
@@ -66,7 +59,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
   } catch (error) {
-    console.error("[COMMENT_DELETE] Error:", error);
+    logger.error("[COMMENT_DELETE] Error:", error);
     return NextResponse.json(
       { error: "Error processing deletion request" },
       { status: 500 }
@@ -87,7 +80,7 @@ async function handleCommentDelete(userId: string, commentId: string, postId: st
     });
 
     if (!comment) {
-      console.log("[COMMENT_DELETE] Comment not found or not owned by user");
+
       return NextResponse.json({ 
         error: "Comment not found or you don't have permission to delete it" 
       }, { status: 404 });
@@ -100,13 +93,12 @@ async function handleCommentDelete(userId: string, commentId: string, postId: st
       },
     });
 
-    console.log("[COMMENT_DELETE] Comment deleted successfully:", commentId);
     return NextResponse.json({ 
       success: true,
       message: "Comment deleted successfully" 
     });
   } catch (error) {
-    console.error("[COMMENT_DELETE] Error deleting comment:", error);
+    logger.error("[COMMENT_DELETE] Error deleting comment:", error);
     throw error;
   }
 }
@@ -132,8 +124,7 @@ async function handleReplyDelete(userId: string, replyId: string, postId: string
     });
 
     if (!reply) {
-      console.log("[COMMENT_DELETE] Reply not found or not owned by user:", { replyId, commentId, postId });
-      
+
       // Special case: Try to find it without checking userId - it might be a nested reply
       // This is just for debugging why it's not found
       const anyReply = await db.reply.findFirst({
@@ -150,7 +141,7 @@ async function handleReplyDelete(userId: string, replyId: string, postId: string
       });
       
       if (anyReply) {
-        console.log("[COMMENT_DELETE] Reply exists but access denied:", anyReply);
+
         if (anyReply.userId !== userId) {
           return NextResponse.json({ 
             error: "You don't have permission to delete this reply" 
@@ -170,13 +161,12 @@ async function handleReplyDelete(userId: string, replyId: string, postId: string
       },
     });
 
-    console.log("[COMMENT_DELETE] Reply deleted successfully:", replyId);
     return NextResponse.json({ 
       success: true,
       message: "Reply deleted successfully" 
     });
   } catch (error) {
-    console.error("[COMMENT_DELETE] Error deleting reply:", error);
+    logger.error("[COMMENT_DELETE] Error deleting reply:", error);
     throw error;
   }
 } 

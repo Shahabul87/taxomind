@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import { logger } from '@/lib/logger';
 
 interface LearningSessionHook {
   sessionId: string | null;
@@ -86,7 +87,7 @@ export function useLearningSession(): LearningSessionHook {
 
     // Skip API calls if disabled
     if (!ENABLE_SESSION_API_CALLS) {
-      console.log('[Learning Session] API calls disabled - skipping progress update');
+
       return;
     }
 
@@ -101,10 +102,10 @@ export function useLearningSession(): LearningSessionHook {
       });
 
       if (!response.data.success) {
-        console.error('Failed to update session progress');
+        logger.error('Failed to update session progress');
       }
     } catch (error) {
-      console.error('Failed to update session progress:', error);
+      logger.error('Failed to update session progress:', error);
     }
   }, [sessionId, engagementScore, interactionCount, pauseCount, seekCount, strugglingIndicators]);
 
@@ -122,7 +123,7 @@ export function useLearningSession(): LearningSessionHook {
           strugglingIndicators
         });
       } catch (error) {
-        console.error('Failed to send periodic update:', error);
+        logger.error('Failed to send periodic update:', error);
       }
     }, 60000); // Update every minute
 
@@ -136,7 +137,7 @@ export function useLearningSession(): LearningSessionHook {
   const startSession = useCallback(async (courseId: string, chapterId?: string) => {
     // Skip API calls if disabled
     if (!ENABLE_SESSION_API_CALLS) {
-      console.log('[Learning Session] API calls disabled - using mock session');
+
       // Use mock session ID
       setSessionId('mock-session-' + Date.now());
       setIsTracking(true);
@@ -166,11 +167,10 @@ export function useLearningSession(): LearningSessionHook {
         setPauseCount(0);
         setSeekCount(0);
         setStrugglingIndicators([]);
-        
-        console.log('Learning session started:', response.data.session.id);
+
       }
     } catch (error) {
-      console.error('Failed to start learning session:', error);
+      logger.error('Failed to start learning session:', error);
     }
   }, []);
 
@@ -187,7 +187,7 @@ export function useLearningSession(): LearningSessionHook {
 
     // Skip API calls if disabled
     if (!ENABLE_SESSION_API_CALLS) {
-      console.log('[Learning Session] API calls disabled - ending mock session');
+
       setSessionId(null);
       setIsTracking(false);
       return;
@@ -210,10 +210,10 @@ export function useLearningSession(): LearningSessionHook {
       if (response.data.success) {
         setSessionId(null);
         setIsTracking(false);
-        console.log('Learning session ended');
+
       }
     } catch (error) {
-      console.error('Failed to end learning session:', error);
+      logger.error('Failed to end learning session:', error);
     }
   }, [sessionId, engagementScore, interactionCount, pauseCount, seekCount, strugglingIndicators]);
 

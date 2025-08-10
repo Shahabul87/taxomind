@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { PrerequisiteAnalyzer } from './prerequisite-analyzer';
+import { logger } from '@/lib/logger';
 import {
   PrerequisiteRule,
   StudentPrerequisiteStatus,
@@ -77,7 +78,8 @@ export class PrerequisiteTrackingService {
       maxPathLength?: number;
       timeConstraint?: number;
       difficultyPreference?: string;
-    } = {}
+    } = {
+}
   ): Promise<LearningPath> {
     const cacheKey = `path_${studentId}_${targetContentId}_${JSON.stringify(options)}`;
     
@@ -172,8 +174,7 @@ export class PrerequisiteTrackingService {
     const validation = await this.analyzer.validatePrerequisiteStructure(courseId);
     
     if (autoFix && validation.errors.length > 0) {
-      console.log(`Auto-fixing ${validation.errors.length} prerequisite errors`);
-      
+
       for (const error of validation.errors) {
         await this.applyAutomaticFix(error, courseId);
       }
@@ -239,8 +240,7 @@ export class PrerequisiteTrackingService {
 
   // Update prerequisite rules
   async updatePrerequisite(update: PrerequisiteUpdate): Promise<void> {
-    console.log(`Updating prerequisite: ${update.type} for ${update.targetId}`);
-    
+
     switch (update.type) {
       case 'add_prerequisite':
         await this.addPrerequisiteRule(update.data as PrerequisiteRule);
@@ -282,7 +282,8 @@ export class PrerequisiteTrackingService {
       includeStudentDetails?: boolean;
       includePredictions?: boolean;
       includeOptimizations?: boolean;
-    } = {}
+    } = {
+}
   ): Promise<PrerequisiteAnalytics> {
     
     const [summary, effectiveness, pathMetrics, outcomes] = await Promise.all([
@@ -479,7 +480,7 @@ export class PrerequisiteTrackingService {
 
   private async applyAutomaticFix(error: any, courseId: string): Promise<void> {
     // Implement automatic fixes for common prerequisite errors
-    console.log(`Auto-fixing error: ${error.type} for ${error.contentId}`);
+
   }
 
   private async generateAnalyticsSummary(
@@ -614,7 +615,7 @@ export class PrerequisiteTrackingService {
     try {
       await redis.setex(cacheKey, 300, JSON.stringify(status)); // 5 minutes TTL
     } catch (error) {
-      console.error('Cache save error:', error);
+      logger.error('Cache save error:', error);
     }
   }
 
@@ -622,13 +623,13 @@ export class PrerequisiteTrackingService {
     try {
       await redis.setex(cacheKey, 1800, JSON.stringify(path)); // 30 minutes TTL
     } catch (error) {
-      console.error('Cache save error:', error);
+      logger.error('Cache save error:', error);
     }
   }
 
   private async saveLearningPath(path: LearningPath): Promise<void> {
     // Save to database for analytics
-    console.log('Saving learning path:', path.id);
+
   }
 
   private async logPrerequisiteCheck(
@@ -642,39 +643,27 @@ export class PrerequisiteTrackingService {
 
   private async clearRelatedCaches(targetId: string): Promise<void> {
     // Clear caches related to the updated prerequisite
-    console.log('Clearing caches for:', targetId);
+
   }
 
   private async logPrerequisiteUpdate(update: PrerequisiteUpdate): Promise<void> {
     // Log update for analytics
-    console.log('Prerequisite update logged:', update.type);
+
   }
 
   // Placeholder implementations for specific operations
   private async addPrerequisiteRule(rule: PrerequisiteRule): Promise<void> {
-    console.log('Adding prerequisite rule:', rule.id);
-  }
-
+}
   private async removePrerequisiteRule(ruleId: string): Promise<void> {
-    console.log('Removing prerequisite rule:', ruleId);
-  }
-
+}
   private async modifyPrerequisiteStrength(ruleId: string, strength: PrerequisiteStrength): Promise<void> {
-    console.log(`Modifying prerequisite strength: ${ruleId} -> ${strength}`);
-  }
-
+}
   private async updatePrerequisiteConditions(ruleId: string, conditions: any[]): Promise<void> {
-    console.log('Updating prerequisite conditions:', ruleId);
-  }
-
+}
   private async addAlternativePrerequisite(ruleId: string, alternative: any): Promise<void> {
-    console.log('Adding alternative prerequisite:', ruleId);
-  }
-
+}
   private async updatePrerequisiteMetadata(ruleId: string, metadata: any): Promise<void> {
-    console.log('Updating prerequisite metadata:', ruleId);
-  }
-
+}
   private async identifyLearningGaps(studentId: string, contentId?: string): Promise<any> {
     return { gaps: [] };
   }
@@ -692,13 +681,9 @@ export class PrerequisiteTrackingService {
   }
 
   private async saveBypassRecord(record: any): Promise<void> {
-    console.log('Saving bypass record:', record);
-  }
-
+}
   private async updateStudentStatusWithBypass(studentId: string, contentId: string, record: any): Promise<void> {
-    console.log('Updating student status with bypass:', studentId, contentId);
-  }
-
+}
   private async getStudentCount(courseId: string, timeRange: DateRange): Promise<number> {
     return 100; // Placeholder
   }

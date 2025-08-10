@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { logger } from '@/lib/logger';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -215,7 +216,7 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
           if (isNaN(dateObj.getTime())) return 'Invalid Date';
           return format(dateObj, 'MMM dd, yyyy');
         } catch (error) {
-          console.error('Date formatting error:', error);
+          logger.error('Date formatting error:', error);
           return 'Invalid Date';
         }
       };

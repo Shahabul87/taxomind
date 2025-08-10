@@ -11,7 +11,7 @@ import Image from "next/image";
 import { FileUpload } from "@/fileupload/file-upload";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
+import { logger } from '@/lib/logger';
 
 // Define the type for each uploaded file
 interface UploadedFile {
@@ -58,7 +58,7 @@ export const PostChapterImageUpload = ({ initialData, postId, chapterId }: Image
   // Handle file selection
   const handleFileUpload = (uploadedFiles: File[]) => {
     setFiles(uploadedFiles);
-    console.log(uploadedFiles);
+
   };
 
   const handleCombinedSubmit = async () => {
@@ -113,7 +113,7 @@ export const PostChapterImageUpload = ({ initialData, postId, chapterId }: Image
         toast.error("Failed to upload files.");
       }
     } catch (error) {
-      console.error("Error during submission:", error);
+      logger.error("Error during submission:", error);
       toast.error("Something went wrong during the submission process.");
     } finally {
       setIsSubmitting(false);

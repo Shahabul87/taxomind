@@ -42,7 +42,7 @@ export async function POST(
 
     return NextResponse.json(codeExplanation);
   } catch (error) {
-    console.log("[CODE_EXPLANATION]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 // Platform OAuth configurations
 const PLATFORM_CONFIGS = {
@@ -125,7 +126,7 @@ export async function GET(
     return NextResponse.redirect(authUrl);
     
   } catch (error) {
-    console.error('OAuth initiation error:', error);
+    logger.error('OAuth initiation error:', error);
     return NextResponse.json(
       { error: 'Authentication failed' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -83,7 +84,7 @@ export async function GET(
     return NextResponse.json(transformedExams);
 
   } catch (error: any) {
-    console.error('Student exam fetch error:', error);
+    logger.error('Student exam fetch error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

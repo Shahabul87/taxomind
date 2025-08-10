@@ -4,6 +4,7 @@
  */
 
 import { RetryOptions } from './circuit-breaker-config';
+import { logger } from '@/lib/logger';
 
 /**
  * Retry mechanism with various backoff strategies
@@ -34,13 +35,12 @@ export class RetryPattern {
       try {
         const result = await fn();
         if (attempt > 1) {
-          console.log(`[RETRY] Succeeded on attempt ${attempt}`);
-        }
+}
         return result;
       } catch (error) {
         lastError = error;
         
-        console.warn(`[RETRY] Attempt ${attempt} failed:`, error.message);
+        logger.warn(`[RETRY] Attempt ${attempt} failed:`, error.message);
         
         // Check if error is retryable
         if (isRetryableError && !isRetryableError(error)) {
@@ -54,7 +54,7 @@ export class RetryPattern {
         
         // Calculate and apply delay
         const delay = this.calculateDelay(attempt);
-        console.log(`[RETRY] Waiting ${delay}ms before attempt ${attempt + 1}`);
+
         await this.delay(delay);
       }
     }
@@ -212,15 +212,15 @@ export class FallbackPattern<T> {
     try {
       return await primary();
     } catch (primaryError) {
-      console.warn('[FALLBACK] Primary function failed, trying fallbacks:', primaryError.message);
+      logger.warn('[FALLBACK] Primary function failed, trying fallbacks:', primaryError.message);
       
       for (let i = 0; i < this.fallbacks.length; i++) {
         try {
           const result = await Promise.resolve(this.fallbacks[i]());
-          console.log(`[FALLBACK] Fallback ${i + 1} succeeded`);
+
           return result;
         } catch (fallbackError) {
-          console.warn(`[FALLBACK] Fallback ${i + 1} failed:`, fallbackError.message);
+          logger.warn(`[FALLBACK] Fallback ${i + 1} failed:`, fallbackError.message);
           
           // If this is the last fallback, throw the original primary error
           if (i === this.fallbacks.length - 1) {

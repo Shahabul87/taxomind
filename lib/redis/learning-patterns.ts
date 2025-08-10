@@ -2,6 +2,7 @@
 
 import { redis, REDIS_KEYS, REDIS_TTL } from './config';
 import { TrackingEvent } from '@/lib/analytics/types';
+import { logger } from '@/lib/logger';
 
 interface StudySession {
   startTime: number;
@@ -67,7 +68,7 @@ export class LearningPatternDetector {
           JSON.stringify(currentSession)
         );
       } catch (error) {
-        console.warn('Failed to parse learning session data for user:', userId, error);
+        logger.warn('Failed to parse learning session data for user:', userId, error);
         // Clear corrupted session and create new one
         await redis.del(sessionKey);
         const newSession: StudySession = {
@@ -231,7 +232,8 @@ export class LearningPatternDetector {
       this.detectOptimalStudyTimes(userId),
       this.detectContentPreferences(userId),
       this.detectLearningStyle(userId),
-      redis?.hgetall(REDIS_KEYS.LEARNING_VELOCITY(userId)) || {}
+      redis?.hgetall(REDIS_KEYS.LEARNING_VELOCITY(userId)) || {
+}
     ]);
     
     return {

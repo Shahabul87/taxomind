@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 // Performance budget monitoring and alerting system
 "use client";
 
@@ -308,7 +310,7 @@ class PerformanceBudgetMonitor {
     
     // Log in development
     if (process.env.NODE_ENV === 'development') {
-      console.warn(
+      logger.warn(
         `Performance Budget Violation: ${violation.metric} = ${violation.actual} (limit: ${violation.limit})`
       );
     }

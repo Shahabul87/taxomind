@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { logger } from '@/lib/logger';
 import { 
   MessageCircle, 
   Send, 
@@ -305,12 +306,12 @@ export function SamFloatingChatbot({
       
       // Handle form synchronization if data is provided
       if (result.data && Object.keys(result.data).length > 0) {
-        console.log('Form synchronization data available:', result.data);
+
         toast.success('Content generated with synchronization data!');
       }
       
     } catch (error) {
-      console.error('Error sending message to SAM:', error);
+      logger.error('Error sending message to SAM:', error);
       
       // Fallback error message
       const errorMessage: ChatMessage = {

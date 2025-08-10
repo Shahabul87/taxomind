@@ -1,5 +1,6 @@
 // Kafka Configuration and Client
 import { Kafka, Producer, Consumer, EachMessagePayload } from 'kafkajs';
+import { logger } from '@/lib/logger';
 
 // Kafka client configuration
 const kafka = new Kafka({
@@ -22,7 +23,7 @@ export async function initializeProducer(): Promise<Producer> {
   if (!producer) {
     producer = kafka.producer();
     await producer.connect();
-    console.log('Kafka producer connected');
+
   }
   return producer;
 }
@@ -41,7 +42,7 @@ export async function initializeConsumer(
     }
     
     consumers.set(groupId, consumer);
-    console.log(`Kafka consumer ${groupId} connected to topics:`, topics);
+
   }
   
   return consumers.get(groupId)!;
@@ -75,14 +76,14 @@ export async function disconnectKafka(): Promise<void> {
   
   for (const [groupId, consumer] of consumers) {
     await consumer.disconnect();
-    console.log(`Kafka consumer ${groupId} disconnected`);
+
   }
   consumers.clear();
 }
 
 // Error handler
 export function handleKafkaError(error: Error): void {
-  console.error('Kafka error:', error);
+  logger.error('Kafka error:', error);
   // In production, send to monitoring service
 }
 

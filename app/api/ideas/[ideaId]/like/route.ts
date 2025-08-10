@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request, props: { params: Promise<{ ideaId: string }> }) {
   const params = await props.params;
@@ -52,7 +53,7 @@ export async function POST(req: Request, props: { params: Promise<{ ideaId: stri
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[IDEA_LIKE]", error);
+    logger.error("[IDEA_LIKE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

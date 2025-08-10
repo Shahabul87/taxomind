@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 import {
   MicrolearningSegmentation,
   ContentBlock,
@@ -54,8 +55,6 @@ export class MicrolearningContentSegmenter {
     strategy?: SegmentationStrategyType,
     customParameters?: Partial<SegmentationParameters>
   ): Promise<MicrolearningSegmentation> {
-    
-    console.log(`Segmenting content: ${contentId} with strategy: ${strategy || 'adaptive'}`);
 
     // Get content block to segment
     const contentBlock = await this.getContentBlock(contentId);
@@ -142,8 +141,6 @@ export class MicrolearningContentSegmenter {
     learnerId: string,
     contextData?: any
   ): Promise<MicrolearningSegmentation> {
-    
-    console.log(`Creating personalized segmentation for learner: ${learnerId}`);
 
     // Get learner profile
     const learnerProfile = await this.getLearnerProfile(learnerId, courseId);
@@ -191,8 +188,6 @@ export class MicrolearningContentSegmenter {
     performanceData: any,
     feedbackData?: any
   ): Promise<MicrolearningSegmentation> {
-    
-    console.log(`Optimizing segmentation: ${segmentationId}`);
 
     // Get current segmentation
     const currentSegmentation = await this.getSegmentation(segmentationId);
@@ -240,8 +235,6 @@ export class MicrolearningContentSegmenter {
     learnerId: string,
     realTimeData: any
   ): Promise<MicrolearningSegment> {
-    
-    console.log(`Real-time adaptation: ${segmentId} for learner: ${learnerId}`);
 
     // Get current segment
     const segment = await this.getSegment(segmentationId, segmentId);
@@ -724,8 +717,6 @@ export class MicrolearningContentSegmenter {
     objectives: LearningObjective[],
     loadProfile: SegmentLoadProfile
   ): Promise<MicrolearningSegment[]> {
-    
-    console.log(`Performing ${strategy.type} segmentation`);
 
     switch (strategy.type) {
       case 'time_based':
@@ -1798,7 +1789,7 @@ export class MicrolearningContentSegmenter {
     try {
       await redis.setex(cacheKey, 3600, JSON.stringify(segmentation)); // 1 hour TTL
     } catch (error) {
-      console.error('Failed to cache segmentation:', error);
+      logger.error('Failed to cache segmentation:', error);
     }
   }
 
@@ -2231,9 +2222,7 @@ export class MicrolearningContentSegmenter {
   }
 
   private async logOptimization(segmentationId: string, opportunities: any[], validation: any): Promise<void> {
-    console.log('Optimization logged:', { segmentationId, opportunities, validation });
-  }
-
+}
   private async analyzeRealTimeAdaptationNeeds(realTimeData: any, segment: MicrolearningSegment, learnerProfile: LearnerProfile): Promise<any[]> {
     return [];
   }
@@ -2247,9 +2236,7 @@ export class MicrolearningContentSegmenter {
   }
 
   private async monitorAdaptationEffectiveness(segment: MicrolearningSegment, adaptations: SegmentAdaptation[]): Promise<void> {
-    console.log('Monitoring adaptation effectiveness for segment:', segment.id);
-  }
-
+}
   private async analyzeSegmentationPerformance(segmentation: MicrolearningSegmentation, timeRange: any): Promise<any> {
     return {};
   }

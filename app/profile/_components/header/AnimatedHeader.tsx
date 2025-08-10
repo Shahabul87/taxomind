@@ -10,6 +10,7 @@ import { LineChart, BarChart, PieChart, AlertTriangle } from "lucide-react";
 import { SocialDataCard } from "../social/SocialDataCard";
 import axios from "axios";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface AnimatedHeaderProps {
   userId: string;
@@ -162,7 +163,7 @@ export function AnimatedHeader({ userId, username, avatarUrl, joinDate, profileL
             }));
           }
         } catch (error) {
-          console.error(`Error setting up data for ${platform}:`, error);
+          logger.error(`Error setting up data for ${platform}:`, error);
           // Always use fallback data on any error
           setPlatformData(prev => ({
             ...prev,

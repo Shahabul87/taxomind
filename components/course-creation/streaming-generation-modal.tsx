@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { logger } from '@/lib/logger';
 import { 
   Bot, 
   Sparkles, 
@@ -234,14 +235,14 @@ export const StreamingGenerationModal = ({
               const message: StreamMessage = JSON.parse(line.slice(6));
               handleStreamMessage(message);
             } catch (parseError) {
-              console.error('Failed to parse stream message:', parseError);
+              logger.error('Failed to parse stream message:', parseError);
             }
           }
         }
       }
 
     } catch (error) {
-      console.error('Streaming generation error:', error);
+      logger.error('Streaming generation error:', error);
       setError(error instanceof Error ? error.message : 'Unknown error occurred');
       setIsGenerating(false);
     }

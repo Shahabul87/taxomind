@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { logger } from '@/lib/logger';
 
 /**
  * Fetches published posts created by the current user
@@ -67,7 +68,7 @@ export async function getUserPublishedPosts() {
       error: null
     };
   } catch (error) {
-    console.error("[GET_PUBLISHED_POSTS_ERROR]", error);
+    logger.error("[GET_PUBLISHED_POSTS_ERROR]", error);
     return { 
       posts: [], 
       error: "Failed to fetch published posts" 
@@ -119,7 +120,7 @@ export async function getUserDraftPosts() {
       error: null
     };
   } catch (error) {
-    console.error("[GET_DRAFT_POSTS_ERROR]", error);
+    logger.error("[GET_DRAFT_POSTS_ERROR]", error);
     return { 
       posts: [], 
       error: "Failed to fetch draft posts" 
@@ -241,7 +242,7 @@ export async function getUserPostsAnalytics() {
       error: null 
     };
   } catch (error) {
-    console.error("[GET_POSTS_ANALYTICS_ERROR]", error);
+    logger.error("[GET_POSTS_ANALYTICS_ERROR]", error);
     return { 
       analytics: null, 
       error: "Failed to fetch posts analytics" 

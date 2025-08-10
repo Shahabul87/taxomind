@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { FileUpload } from "@/fileupload/file-upload";
+import { logger } from '@/lib/logger';
 
 // Define the type for each uploaded file
 interface UploadedFile {
@@ -18,7 +19,7 @@ export function FileUploadDemo() {
   // Handle file selection
   const handleFileUpload = (uploadedFiles: File[]) => {
     setFiles(uploadedFiles);
-    console.log(uploadedFiles);
+
   };
 
   // Handle file submission using Axios
@@ -50,12 +51,12 @@ export function FileUploadDemo() {
         const result = response.data;
         setUploadResponse(result.uploadedFiles); // Store the uploaded files information
         alert("Files uploaded successfully!");
-        console.log("Uploaded files: ", result.uploadedFiles);
+
       } else {
         alert("Failed to upload files.");
       }
     } catch (error) {
-      console.error("Error uploading files:", error);
+      logger.error("Error uploading files:", error);
       alert("An error occurred during file upload.");
     } finally {
       setIsSubmitting(false);

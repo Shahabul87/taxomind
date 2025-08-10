@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { logger } from '@/lib/logger';
 import { 
   Briefcase, Target, TrendingUp, DollarSign, MapPin, Star, GraduationCap,
   Clock, Users, BookOpen, Zap, Brain, Award, BarChart3, TrendingDown,
@@ -169,7 +170,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
         });
       }
     } catch (error) {
-      console.error('Failed to initialize career coach:', error);
+      logger.error('Failed to initialize career coach:', error);
       // Fallback to mock initialization
       const welcomeMessage = {
         id: Date.now(),
@@ -294,7 +295,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
         }));
 
       } catch (error) {
-        console.error('Failed to get AI response:', error);
+        logger.error('Failed to get AI response:', error);
         
         // Remove loading message and add fallback response
         setCoachingSession(prev => ({
@@ -328,7 +329,6 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
     return `🤖 I understand you're asking about "${userMessage}". I'm here to help with your career development. Based on your progress, you're doing well! What specific aspect of your career would you like to focus on - skills, salary, or career progression?`;
   };
 
-
   const setCareerGoal = (goal: string) => {
     setCoachingSession(prev => ({
       ...prev,
@@ -346,7 +346,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
       // Check if response is HTML (error page) or JSON
       const contentType = coursesResponse.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        console.log('API endpoint not available, using mock data');
+
         // Use mock data instead
         const mockData = generateMockCourseData();
         setCourseMarketData(mockData);
@@ -366,7 +366,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
       }
       setIsLoading(false);
     } catch (error) {
-      console.error('Failed to fetch course market analysis:', error);
+      logger.error('Failed to fetch course market analysis:', error);
       // Use mock data as fallback
       const mockData = generateMockCourseData();
       setCourseMarketData(mockData);
@@ -390,7 +390,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
       // Check if response is HTML (error page) or JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        console.log('Deep market research API not available');
+
         setIsAnalyzing(false);
         return;
       }
@@ -400,7 +400,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
         await fetchCourseMarketAnalysis();
       }
     } catch (error) {
-      console.error('Failed to perform deep market research:', error);
+      logger.error('Failed to perform deep market research:', error);
     }
     setIsAnalyzing(false);
   };

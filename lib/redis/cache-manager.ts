@@ -4,6 +4,7 @@ import { redis, REDIS_KEYS, REDIS_TTL } from './config';
 import { AICache } from './ai-cache';
 import { RateLimiter } from './rate-limiter';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 // Cache layer types
 export enum CacheLayer {
@@ -97,7 +98,7 @@ export class CacheManager {
       this.metricsCollector.recordMiss(config.layer, Date.now() - startTime);
       return null;
     } catch (error) {
-      console.error(`Cache get error for key ${cacheKey}:`, error);
+      logger.error(`Cache get error for key ${cacheKey}:`, error);
       this.metricsCollector.recordError(config.layer);
       
       // Try fallback on error
@@ -137,7 +138,7 @@ export class CacheManager {
       
       return true;
     } catch (error) {
-      console.error(`Cache set error for key ${cacheKey}:`, error);
+      logger.error(`Cache set error for key ${cacheKey}:`, error);
       this.metricsCollector.recordError(config.layer);
       return false;
     }
@@ -156,7 +157,7 @@ export class CacheManager {
     try {
       return await this.deserializeValue<T>(cached as string, config);
     } catch (error) {
-      console.error('Cache deserialization error:', error);
+      logger.error('Cache deserialization error:', error);
       // Remove corrupted cache entry
       await redis.del(cacheKey);
       return null;
@@ -208,7 +209,7 @@ export class CacheManager {
       await redis.del(...keys);
       return keys.length;
     } catch (error) {
-      console.error('Cache invalidation error:', error);
+      logger.error('Cache invalidation error:', error);
       return 0;
     }
   }
@@ -234,7 +235,7 @@ export class CacheManager {
       
       return totalInvalidated;
     } catch (error) {
-      console.error('Cache tag invalidation error:', error);
+      logger.error('Cache tag invalidation error:', error);
       return 0;
     }
   }
@@ -246,8 +247,7 @@ export class CacheManager {
 
   // Warm cache with preloaded data
   async warmCache(warmingStrategy: CacheWarmingStrategy): Promise<void> {
-    console.log('Starting cache warming...');
-    
+
     try {
       // Warm different layers based on strategy
       await Promise.all([
@@ -256,10 +256,9 @@ export class CacheManager {
         this.warmAnalyticsData(warmingStrategy),
         this.warmStaticContent(warmingStrategy)
       ]);
-      
-      console.log('Cache warming completed');
+
     } catch (error) {
-      console.error('Cache warming error:', error);
+      logger.error('Cache warming error:', error);
     }
   }
 

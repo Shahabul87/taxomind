@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { oidcProviderManager, type OIDCConfiguration } from '@/lib/auth/oidc-provider';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 /**
  * OIDC SSO Authentication Endpoints
@@ -48,8 +49,7 @@ export async function POST(request: NextRequest) {
     );
     
     // Log authentication attempt
-    console.log(`[OIDC] Authentication initiated for tenant: ${tenantId}`);
-    
+
     return NextResponse.json({
       success: true,
       authUrl,
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('[OIDC] Authentication initiation failed:', error);
+    logger.error('[OIDC] Authentication initiation failed:', error);
     
     return NextResponse.json(
       { error: 'Failed to initiate OIDC authentication', details: error.message },
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('[OIDC] Configuration retrieval failed:', error);
+    logger.error('[OIDC] Configuration retrieval failed:', error);
     
     return NextResponse.json(
       { error: 'Failed to retrieve OIDC configuration', details: error.message },
@@ -166,9 +166,7 @@ export async function PUT(request: NextRequest) {
     
     // Optionally save to database
     await saveTenantOIDCConfig(config);
-    
-    console.log(`[OIDC] Configuration updated for tenant: ${config.tenantId}`);
-    
+
     return NextResponse.json({
       success: true,
       tenantId: config.tenantId,
@@ -176,7 +174,7 @@ export async function PUT(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('[OIDC] Configuration update failed:', error);
+    logger.error('[OIDC] Configuration update failed:', error);
     
     return NextResponse.json(
       { error: 'Failed to update OIDC configuration', details: error.message },
@@ -212,9 +210,7 @@ export async function DELETE(request: NextRequest) {
     
     // Optionally remove from database
     await removeTenantOIDCConfig(tenantId);
-    
-    console.log(`[OIDC] Configuration removed for tenant: ${tenantId}`);
-    
+
     return NextResponse.json({
       success: true,
       tenantId,
@@ -222,7 +218,7 @@ export async function DELETE(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('[OIDC] Configuration removal failed:', error);
+    logger.error('[OIDC] Configuration removal failed:', error);
     
     return NextResponse.json(
       { error: 'Failed to remove OIDC configuration', details: error.message },
@@ -250,7 +246,7 @@ async function loadTenantOIDCConfig(tenantId: string): Promise<OIDCConfiguration
     
     return null;
   } catch (error) {
-    console.error(`[OIDC] Failed to load config for tenant ${tenantId}:`, error);
+    logger.error(`[OIDC] Failed to load config for tenant ${tenantId}:`, error);
     return null;
   }
 }
@@ -285,7 +281,7 @@ async function loadOIDCConfigFromDatabase(tenantId: string): Promise<OIDCConfigu
     
     return null;
   } catch (error) {
-    console.error('[OIDC] Database config load failed:', error);
+    logger.error('[OIDC] Database config load failed:', error);
     return null;
   }
 }
@@ -338,9 +334,7 @@ async function saveTenantOIDCConfig(config: OIDCConfiguration): Promise<void> {
   try {
     // This would save to your tenant configuration table
     // For now, we'll just log it
-    
-    console.log(`[OIDC] Would save config to database for tenant: ${config.tenantId}`);
-    
+
     // Example implementation:
     // await db.tenant.upsert({
     //   where: { id: config.tenantId },
@@ -379,7 +373,7 @@ async function saveTenantOIDCConfig(config: OIDCConfiguration): Promise<void> {
     //   },
     // });
   } catch (error) {
-    console.error('[OIDC] Database config save failed:', error);
+    logger.error('[OIDC] Database config save failed:', error);
   }
 }
 
@@ -390,9 +384,7 @@ async function removeTenantOIDCConfig(tenantId: string): Promise<void> {
   try {
     // This would remove from your tenant configuration table
     // For now, we'll just log it
-    
-    console.log(`[OIDC] Would remove config from database for tenant: ${tenantId}`);
-    
+
     // Example implementation:
     // await db.oidcConfig.deleteMany({
     //   where: {
@@ -400,7 +392,7 @@ async function removeTenantOIDCConfig(tenantId: string): Promise<void> {
     //   },
     // });
   } catch (error) {
-    console.error('[OIDC] Database config removal failed:', error);
+    logger.error('[OIDC] Database config removal failed:', error);
   }
 }
 
@@ -413,7 +405,7 @@ function parseRoleMapping(mappingString?: string): Record<string, 'USER' | 'ADMI
   try {
     return JSON.parse(mappingString);
   } catch (error) {
-    console.warn('[OIDC] Failed to parse role mapping:', error);
+    logger.warn('[OIDC] Failed to parse role mapping:', error);
     return undefined;
   }
 }
@@ -427,7 +419,7 @@ function parseCustomParams(paramsString?: string): Record<string, string> | unde
   try {
     return JSON.parse(paramsString);
   } catch (error) {
-    console.warn('[OIDC] Failed to parse custom parameters:', error);
+    logger.warn('[OIDC] Failed to parse custom parameters:', error);
     return undefined;
   }
 }

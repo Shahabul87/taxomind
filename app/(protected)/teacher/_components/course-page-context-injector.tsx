@@ -93,7 +93,8 @@ export function CoursePageContextInjector({
   chapter,
   section,
   categories = [],
-  completionStatus = {}
+  completionStatus = {
+}
 }: CoursePageContextInjectorProps) {
   const { updateContext } = useSAMGlobal();
 
@@ -201,15 +202,6 @@ export function CoursePageContextInjector({
         userRole: 'teacher', // Could be dynamic based on user context
         relatedPages: buildRelatedPages(entityType, entityId, course, chapter)
       }
-    });
-
-    console.log('🔄 Course page context injected:', {
-      entityType,
-      entityId,
-      capabilities,
-      workflow,
-      permissions,
-      stats: relatedData.stats
     });
 
   }, [course, chapter, section, categories, completionStatus, updateContext]);

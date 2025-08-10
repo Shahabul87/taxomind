@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request, props: { params: Promise<{ userId: string }> }) {
   const params = await props.params;
@@ -39,9 +40,8 @@ export async function POST(req: Request, props: { params: Promise<{ userId: stri
       headers: { 'Content-Type': 'application/json' } 
     });
   } catch (error) {
-    console.error("[POST ERROR] Profile Link Creation:", error);
+    logger.error("[POST ERROR] Profile Link Creation:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
 

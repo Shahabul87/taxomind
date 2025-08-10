@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { logger } from '@/lib/logger';
 import { 
   TrendingUp,
   TrendingDown,
@@ -275,7 +276,7 @@ export const CognitiveProgressionVisualizer = ({
       setTrends(mockData.trends);
       setPredictions(mockData.predictions);
     } catch (error) {
-      console.error('Failed to load progression data:', error);
+      logger.error('Failed to load progression data:', error);
     } finally {
       setIsLoading(false);
     }

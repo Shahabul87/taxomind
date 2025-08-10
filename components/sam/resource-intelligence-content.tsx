@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import {
   ExternalLink,
   Filter,
@@ -164,7 +165,7 @@ export function ResourceIntelligenceContent({
         toast.success("Resources discovered successfully!");
       }
     } catch (error) {
-      console.error("Failed to fetch resources:", error);
+      logger.error("Failed to fetch resources:", error);
       toast.error("Failed to discover resources");
       // Use demo data as fallback
       setResources(getDemoResources());

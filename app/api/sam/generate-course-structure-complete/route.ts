@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error generating complete course structure:', error);
+    logger.error('Error generating complete course structure:', error);
     return NextResponse.json({ 
       error: 'Failed to generate course structure',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -311,7 +312,7 @@ Return as JSON in this exact format:
     const result = JSON.parse(cleanedContent);
     return result.chapters || [];
   } catch (error) {
-    console.error('Error parsing chapters JSON:', error);
+    logger.error('Error parsing chapters JSON:', error);
     // Fallback: Generate basic structure
     return generateFallbackChapters(context);
   }

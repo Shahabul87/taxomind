@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export interface TrendAnalysis {
   trendId: string;
@@ -642,7 +643,7 @@ export class SAMTrendsEngine {
         }
       });
     } catch (error) {
-      console.error('Error recording trend interaction:', error);
+      logger.error('Error recording trend interaction:', error);
     }
   }
 }

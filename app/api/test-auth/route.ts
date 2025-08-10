@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser, currentRole } from "@/lib/auth";
 import { UserRole, Permission } from "@/types/auth";
 import { hasPermission } from "@/lib/auth/permissions";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -43,7 +44,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error("Auth test error:", error);
+    logger.error("Auth test error:", error);
     return NextResponse.json(
       { error: "Internal Server Error", message: "Failed to check authentication" },
       { status: 500 }
@@ -84,7 +85,7 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error("Admin operation error:", error);
+    logger.error("Admin operation error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

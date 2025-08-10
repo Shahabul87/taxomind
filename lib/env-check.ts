@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 // Singleton pattern to ensure environment check only runs once
 let hasChecked = false;
 let checkResult: { missing: string[], present: string[], isComplete: boolean } | null = null;
@@ -46,31 +48,27 @@ export function checkEnvironmentVariables() {
 
   // Only log if this is the first time checking AND not during build/static generation
   if (!hasChecked && !isBuildTime && !isStaticGeneration) {
-    console.log('=== Environment Variables Check ===');
-    console.log('Present:', present);
-    console.log('Missing:', missing);
-    
+
     if (missing.length > 0) {
-      console.warn('⚠️  Missing environment variables:', missing.join(', '));
+      logger.warn('⚠️  Missing environment variables:', missing.join(', '));
       
       if (missing.includes('GOOGLE_CLIENT_ID') || missing.includes('GOOGLE_CLIENT_SECRET')) {
-        console.warn('Google OAuth will not work without GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
+        logger.warn('Google OAuth will not work without GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
       }
       
       if (missing.includes('GITHUB_CLIENT_ID') || missing.includes('GITHUB_CLIENT_SECRET')) {
-        console.warn('GitHub OAuth will not work without GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET');
+        logger.warn('GitHub OAuth will not work without GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET');
       }
       
       if (missing.includes('RESEND_API_KEY')) {
-        console.warn('Email functionality will not work without RESEND_API_KEY');
+        logger.warn('Email functionality will not work without RESEND_API_KEY');
       }
       
       if (missing.includes('AUTH_SECRET')) {
-        console.error('AUTH_SECRET is required for NextAuth to work properly');
+        logger.error('AUTH_SECRET is required for NextAuth to work properly');
       }
     } else {
-      console.log('✅ All environment variables are present');
-    }
+}
   }
 
   // Cache the result

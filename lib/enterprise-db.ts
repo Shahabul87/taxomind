@@ -3,6 +3,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { getEnvironmentConfig } from "./db-environment";
+import { logger } from '@/lib/logger';
 
 // Enterprise Database Configuration
 interface EnterpriseDBConfig {
@@ -42,7 +43,6 @@ class DatabaseConnectionManager {
       safetyChecks: !isBuildTime
     };
 
-    console.log(`🏢 [ENTERPRISE DB] Initialized for ${this.config.environment}`);
   }
 
   static getConnection(context: string = 'default'): PrismaClient {
@@ -59,7 +59,7 @@ class DatabaseConnectionManager {
       });
 
       this.instances.set(context, client);
-      console.log(`🔌 [ENTERPRISE DB] Created connection: ${context}`);
+
     }
 
     return this.instances.get(context)!;
@@ -101,7 +101,7 @@ class DatabaseConnectionManager {
       }
       
       if (!isValidConnection) {
-        console.warn(`⚠️ [ENTERPRISE DB] Database validation: ${currentDB} in ${this.config.environment} environment`);
+        logger.warn(`⚠️ [ENTERPRISE DB] Database validation: ${currentDB} in ${this.config.environment} environment`);
         
         // Skip validation during build time
         const isBuildTime = process.env.NODE_ENV === 'production' && 
@@ -119,11 +119,11 @@ class DatabaseConnectionManager {
       console.log(`✅ [ENTERPRISE DB] Connected to: ${currentDB} (${this.config.environment})`);
       return true;
     } catch (error) {
-      console.error('❌ [ENTERPRISE DB] Connection validation failed:', error);
+      logger.error('❌ [ENTERPRISE DB] Connection validation failed:', error);
       
       // In development, don't fail the build - just warn
       if (this.config.environment === 'development') {
-        console.warn('⚠️ [ENTERPRISE DB] Continuing in development mode despite validation failure');
+        logger.warn('⚠️ [ENTERPRISE DB] Continuing in development mode despite validation failure');
         return true;
       }
       
@@ -195,7 +195,7 @@ class EnterpriseTransactionManager {
         });
       }
     } catch (error) {
-      console.error(`❌ [ENTERPRISE DB] Operation failed: ${context.description}`, error);
+      logger.error(`❌ [ENTERPRISE DB] Operation failed: ${context.description}`, error);
       
       // Log failure
       if (config.auditEnabled) {
@@ -243,7 +243,7 @@ class EnterpriseTransactionManager {
     // Check 5: Prevent cross-environment contamination
     if (config.environment === 'development' && 
         process.env.DATABASE_URL?.includes('railway')) {
-      console.warn('⚠️ [ENTERPRISE DB] WARNING: Using production database in development mode');
+      logger.warn('⚠️ [ENTERPRISE DB] WARNING: Using production database in development mode');
       
       // In strict mode, this would throw an error
       if (process.env.STRICT_ENV_MODE === 'true') {
@@ -276,14 +276,14 @@ export class EnterpriseDB {
         
         // In development, warn but don't fail
         if (config.environment === 'development') {
-          console.warn('⚠️ [ENTERPRISE DB] Connection validation failed in development mode, continuing...');
+          logger.warn('⚠️ [ENTERPRISE DB] Connection validation failed in development mode, continuing...');
         } else {
           throw new Error('🚨 [ENTERPRISE DB] Failed to establish secure database connection');
         }
       }
 
       this.initialized = true;
-      console.log('🏢 [ENTERPRISE DB] Enterprise database system initialized');
+
     }
   }
 
@@ -337,7 +337,7 @@ export class EnterpriseDB {
   // Get raw client for special cases (with safety checks)
   static async getRawClient(reason: string): Promise<PrismaClient> {
     await this.initialize();
-    console.warn(`⚠️ [ENTERPRISE DB] Raw client access: ${reason}`);
+    logger.warn(`⚠️ [ENTERPRISE DB] Raw client access: ${reason}`);
     return DatabaseConnectionManager.getConnection(`raw_${reason}`);
   }
 
@@ -381,12 +381,12 @@ export class EnterpriseDB {
 export const db = {
   // Proxy all Prisma methods through enterprise safety layer
   get $transaction() {
-    console.warn('⚠️ [ENTERPRISE DB] Direct $transaction access - consider using EnterpriseDB.write()');
+    logger.warn('⚠️ [ENTERPRISE DB] Direct $transaction access - consider using EnterpriseDB.write()');
     return EnterpriseDB.getRawClient('direct_transaction').then(client => client.$transaction);
   },
   
   get $queryRaw() {
-    console.warn('⚠️ [ENTERPRISE DB] Direct $queryRaw access - consider using EnterpriseDB.read()');
+    logger.warn('⚠️ [ENTERPRISE DB] Direct $queryRaw access - consider using EnterpriseDB.read()');
     return EnterpriseDB.getRawClient('direct_query').then(client => client.$queryRaw);
   },
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -53,7 +54,6 @@ export async function POST(
       return new NextResponse("Section not found", { status: 404 });
     }
 
-
     // Validate required fields for video creation
     if (!title || !url || !duration || !rating) {
       return new NextResponse("Missing required fields", { status: 400 });
@@ -80,12 +80,10 @@ export async function POST(
       headers: { 'Content-Type': 'application/json' } 
     });
   } catch (error) {
-    console.error("[POST ERROR] Courses/Chapter/Section ID:", error);
+    logger.error("[POST ERROR] Courses/Chapter/Section ID:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
-
 
 export async function PATCH(
   req: Request,
@@ -150,12 +148,10 @@ export async function PATCH(
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[PATCH ERROR] Video Update:", error);
+    logger.error("[PATCH ERROR] Video Update:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
-
 
 export async function DELETE(
   req: Request,
@@ -202,7 +198,7 @@ export async function DELETE(
 
     return NextResponse.json(deletedVideo);
   } catch (error) {
-    console.error("[DELETE_VIDEO_ERROR]", error);
+    logger.error("[DELETE_VIDEO_ERROR]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

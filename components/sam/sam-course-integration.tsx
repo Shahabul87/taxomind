@@ -188,13 +188,13 @@ export function SAMCourseIntegration() {
   // Handle quick help actions
   const handleQuickHelp = useCallback((helpText: string) => {
     // This would typically open the SAM assistant with the pre-filled message
-    console.log('Quick help:', helpText);
+
   }, []);
 
   // Handle suggestion actions
   const handleSuggestion = useCallback((suggestion: string) => {
     // This would typically trigger the suggested action
-    console.log('Suggestion:', suggestion);
+
   }, []);
 
   if (!isInCourseContext || !courseContext) {

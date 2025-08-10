@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ connected: !!account }, { status: 200 });
     }
   } catch (error) {
-    console.error('Error checking social account:', error);
+    logger.error('Error checking social account:', error);
     return NextResponse.json(
       { error: 'Failed to check social account connection' }, 
       { status: 500 }

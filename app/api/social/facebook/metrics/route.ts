@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { facebookClient, transformFacebookData, formatFacebookError } from '@/lib/facebook';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -69,7 +70,7 @@ export async function GET() {
     } catch (apiError: any) {
       // Handle specific Facebook API errors
       const errorMessage = formatFacebookError(apiError);
-      console.error('Facebook API error:', errorMessage);
+      logger.error('Facebook API error:', errorMessage);
       
       return NextResponse.json(
         { error: errorMessage }, 
@@ -77,7 +78,7 @@ export async function GET() {
       );
     }
   } catch (error) {
-    console.error('Error fetching Facebook metrics:', error);
+    logger.error('Error fetching Facebook metrics:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve metrics from Facebook' }, 
       { status: 500 }

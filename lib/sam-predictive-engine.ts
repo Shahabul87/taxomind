@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { openai } from "@/lib/openai";
 import { anthropic } from "@/lib/anthropic";
+import { logger } from '@/lib/logger';
 
 // Types for Predictive Learning Intelligence
 export interface StudentProfile {
@@ -266,7 +267,7 @@ export class SAMPredictiveEngine {
 
       return prediction;
     } catch (error) {
-      console.error('Error predicting learning outcomes:', error);
+      logger.error('Error predicting learning outcomes:', error);
       throw new Error('Failed to predict learning outcomes');
     }
   }
@@ -327,7 +328,7 @@ export class SAMPredictiveEngine {
 
       return analysis;
     } catch (error) {
-      console.error('Error identifying at-risk students:', error);
+      logger.error('Error identifying at-risk students:', error);
       throw new Error('Failed to identify at-risk students');
     }
   }
@@ -371,7 +372,7 @@ export class SAMPredictiveEngine {
 
       return plan;
     } catch (error) {
-      console.error('Error recommending interventions:', error);
+      logger.error('Error recommending interventions:', error);
       throw new Error('Failed to recommend interventions');
     }
   }
@@ -417,7 +418,7 @@ export class SAMPredictiveEngine {
 
       return optimization;
     } catch (error) {
-      console.error('Error optimizing learning velocity:', error);
+      logger.error('Error optimizing learning velocity:', error);
       throw new Error('Failed to optimize learning velocity');
     }
   }
@@ -450,7 +451,7 @@ export class SAMPredictiveEngine {
 
       return score;
     } catch (error) {
-      console.error('Error calculating success probability:', error);
+      logger.error('Error calculating success probability:', error);
       throw new Error('Failed to calculate success probability');
     }
   }

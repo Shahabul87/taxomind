@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(
   req: NextRequest,
@@ -82,7 +83,7 @@ export async function POST(
       interaction,
     });
   } catch (error) {
-    console.error("Recommendation interaction error:", error);
+    logger.error("Recommendation interaction error:", error);
     return NextResponse.json(
       { error: "Failed to record interaction" },
       { status: 500 }

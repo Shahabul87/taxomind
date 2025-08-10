@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { gdprManager } from '@/lib/compliance/gdpr-manager';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Request validation schemas
 const consentRequestSchema = z.object({
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('GDPR API GET error:', error);
+    logger.error('GDPR API GET error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('GDPR API POST error:', error);
+    logger.error('GDPR API POST error:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -188,7 +189,7 @@ export async function DELETE(req: NextRequest) {
       message: 'Your account and all associated data have been permanently deleted',
     });
   } catch (error) {
-    console.error('GDPR API DELETE error:', error);
+    logger.error('GDPR API DELETE error:', error);
     return NextResponse.json(
       { error: 'Failed to delete account' },
       { status: 500 }

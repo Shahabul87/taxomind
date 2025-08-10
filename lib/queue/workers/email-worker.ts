@@ -4,6 +4,7 @@
  */
 
 import { Job } from 'bullmq';
+import { logger } from '@/lib/logger';
 import { 
   SendWelcomeEmailData, 
   SendNotificationEmailData, 
@@ -36,10 +37,7 @@ class MockEmailService implements EmailService {
     }
     
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    console.log(`[EMAIL_SERVICE] Sent email to ${to}: ${subject}`);
-    console.log(`[EMAIL_SERVICE] Template: ${template}, Data:`, data);
-    
+
     return {
       messageId,
       status: 'sent',
@@ -171,7 +169,7 @@ export class EmailWorker {
       return jobResult;
 
     } catch (error) {
-      console.error(`[EMAIL_WORKER] Welcome email failed for ${userEmail}:`, error);
+      logger.error(`[EMAIL_WORKER] Welcome email failed for ${userEmail}:`, error);
       
       const jobResult: EmailJobResult = {
         success: false,
@@ -232,7 +230,7 @@ export class EmailWorker {
       return jobResult;
 
     } catch (error) {
-      console.error(`[EMAIL_WORKER] Notification email failed for ${userEmail}:`, error);
+      logger.error(`[EMAIL_WORKER] Notification email failed for ${userEmail}:`, error);
       
       const jobResult: EmailJobResult = {
         success: false,
@@ -257,7 +255,7 @@ export class EmailWorker {
       const daysSinceAccess = Math.floor((Date.now() - lastAccessDate.getTime()) / (1000 * 60 * 60 * 24));
       
       if (daysSinceAccess < 1) {
-        console.log(`[EMAIL_WORKER] Skipping reminder for ${userEmail} - recent access detected`);
+
         return {
           success: true,
           data: { skipped: true, reason: 'Recent access detected' },
@@ -310,7 +308,7 @@ export class EmailWorker {
       return jobResult;
 
     } catch (error) {
-      console.error(`[EMAIL_WORKER] Course reminder failed for ${userEmail}:`, error);
+      logger.error(`[EMAIL_WORKER] Course reminder failed for ${userEmail}:`, error);
       
       const jobResult: EmailJobResult = {
         success: false,
@@ -374,7 +372,7 @@ export class EmailWorker {
           }
           
         } catch (batchError) {
-          console.error(`[EMAIL_WORKER] Batch ${i / batchSize + 1} failed:`, batchError);
+          logger.error(`[EMAIL_WORKER] Batch ${i / batchSize + 1} failed:`, batchError);
           // Continue with other batches
         }
       }
@@ -399,7 +397,7 @@ export class EmailWorker {
       return jobResult;
 
     } catch (error) {
-      console.error(`[EMAIL_WORKER] Bulk announcement failed:`, error);
+      logger.error(`[EMAIL_WORKER] Bulk announcement failed:`, error);
       
       const jobResult: EmailJobResult = {
         success: false,
@@ -458,7 +456,7 @@ export class EmailWorker {
       };
 
     } catch (error) {
-      console.error(`[EMAIL_WORKER] Password reset email failed:`, error);
+      logger.error(`[EMAIL_WORKER] Password reset email failed:`, error);
       throw error;
     }
   };
@@ -508,7 +506,7 @@ export class EmailWorker {
       };
 
     } catch (error) {
-      console.error(`[EMAIL_WORKER] Certificate email failed:`, error);
+      logger.error(`[EMAIL_WORKER] Certificate email failed:`, error);
       throw error;
     }
   };

@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
       )
     });
   } catch (error) {
-    console.error('Learning velocity error:', error);
+    logger.error('Learning velocity error:', error);
     return NextResponse.json(
       { error: 'Failed to calculate learning velocity' },
       { status: 500 }

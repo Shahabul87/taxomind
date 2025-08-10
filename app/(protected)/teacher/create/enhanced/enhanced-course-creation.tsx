@@ -7,6 +7,7 @@ import { GraduationCap, Sparkles, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SimplifiedCourseWizard } from "../_components/simplified-course-wizard";
 import Link from "next/link";
+import { logger } from '@/lib/logger';
 
 export const EnhancedCourseCreationPage = () => {
   const router = useRouter();
@@ -17,8 +18,7 @@ export const EnhancedCourseCreationPage = () => {
     
     try {
       // Simulate course creation with AI
-      console.log("Creating course with data:", courseData);
-      
+
       // Here you would typically make an API call to create the course
       // For now, we'll simulate the process
       await new Promise(resolve => setTimeout(resolve, 3000));
@@ -29,7 +29,7 @@ export const EnhancedCourseCreationPage = () => {
       router.push("/teacher/courses");
       
     } catch (error) {
-      console.error("Course creation error:", error);
+      logger.error("Course creation error:", error);
       toast.error("Failed to create course. Please try again.");
     } finally {
       setIsCreating(false);

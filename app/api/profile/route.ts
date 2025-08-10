@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function PATCH(req: Request) {
   try {
@@ -11,7 +12,6 @@ export async function PATCH(req: Request) {
     }
 
     const values = await req.json();
-    console.log("[PROFILE_PATCH] Request body values:", values);
 
     const updateData: any = {};
     
@@ -34,23 +34,20 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error("[PROFILE_UPDATE]", error);
+    logger.error("[PROFILE_UPDATE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
 export async function GET() {
   try {
-    console.log("[PROFILE_GET] Starting profile fetch...");
+
     const session = await auth();
-    console.log("[PROFILE_GET] Session:", { userId: session?.user?.id, email: session?.user?.email });
 
     if (!session?.user?.id) {
-      console.log("[PROFILE_GET] No user session found");
+
       return new NextResponse("Unauthorized", { status: 401 });
     }
-
-    console.log("[PROFILE_GET] Fetching user data for ID:", session.user.id);
 
     // First, try to get basic user data
     const userData = await db.user.findUnique({
@@ -66,11 +63,9 @@ export async function GET() {
     });
 
     if (!userData) {
-      console.log("[PROFILE_GET] User not found in database");
+
       return new NextResponse("User not found", { status: 404 });
     }
-
-    console.log("[PROFILE_GET] Basic user data found:", userData);
 
     // Try to get counts safely
     let stats = {
@@ -121,7 +116,7 @@ export async function GET() {
         };
       }
     } catch (countError) {
-      console.warn("[PROFILE_GET] Error calculating counts, using defaults:", countError);
+      logger.warn("[PROFILE_GET] Error calculating counts, using defaults:", countError);
     }
 
     // Try to get social media accounts safely
@@ -155,7 +150,7 @@ export async function GET() {
       stats.following = totalFollowing;
 
     } catch (socialError) {
-      console.warn("[PROFILE_GET] Error fetching social media accounts:", socialError);
+      logger.warn("[PROFILE_GET] Error fetching social media accounts:", socialError);
     }
 
     // Try to get subscriptions safely
@@ -190,7 +185,7 @@ export async function GET() {
       stats.monthlySpending = monthlySpending;
 
     } catch (subscriptionError) {
-      console.warn("[PROFILE_GET] Error fetching subscriptions:", subscriptionError);
+      logger.warn("[PROFILE_GET] Error fetching subscriptions:", subscriptionError);
     }
 
     // Try to get profile links safely
@@ -201,7 +196,7 @@ export async function GET() {
         orderBy: { createdAt: 'desc' }
       });
     } catch (profileLinksError) {
-      console.warn("[PROFILE_GET] Error fetching profile links:", profileLinksError);
+      logger.warn("[PROFILE_GET] Error fetching profile links:", profileLinksError);
     }
 
     const enhancedUserData = {
@@ -212,11 +207,10 @@ export async function GET() {
       profileLinks
     };
 
-    console.log("[PROFILE_GET] Returning enhanced user data:", enhancedUserData);
     return NextResponse.json(enhancedUserData);
 
   } catch (error) {
-    console.error("[PROFILE_GET] Unexpected error:", error);
+    logger.error("[PROFILE_GET] Unexpected error:", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

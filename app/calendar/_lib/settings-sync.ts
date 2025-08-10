@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useSettingsStore } from './settings-store';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 export const useSettingsSync = () => {
   const { settings, setSettings, isInitialized, setInitialized } = useSettingsStore();
@@ -18,7 +19,7 @@ export const useSettingsSync = () => {
           setInitialized(true);
         }
       } catch (error) {
-        console.error('Failed to fetch settings:', error);
+        logger.error('Failed to fetch settings:', error);
       }
     };
 
@@ -42,7 +43,7 @@ export const useSettingsSync = () => {
         throw new Error('Failed to sync settings');
       }
     } catch (error) {
-      console.error('Failed to sync settings:', error);
+      logger.error('Failed to sync settings:', error);
       // Only show error toast if it's not the initial sync
       if (isInitialized) {
         toast.error('Failed to save settings');

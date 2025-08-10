@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Resend } from 'resend';
+import { logger } from '@/lib/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[NOTIFICATION_SEND]", error);
+    logger.error("[NOTIFICATION_SEND]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -89,7 +90,7 @@ export async function GET() {
 
     return NextResponse.json(notifications);
   } catch (error) {
-    console.error("[NOTIFICATIONS_GET]", error);
+    logger.error("[NOTIFICATIONS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -115,7 +116,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json(notification);
   } catch (error) {
-    console.error("[NOTIFICATION_PATCH]", error);
+    logger.error("[NOTIFICATION_PATCH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

@@ -11,6 +11,7 @@ import { Post } from "@prisma/client";
 import Image from 'next/image';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { logger } from '@/lib/logger';
 import {
   Form,
   FormControl,
@@ -74,14 +75,13 @@ export const ReplyComment = ({
       router.refresh();
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.error("Error adding reply:", error.response?.data || error.message);
+        logger.error("Error adding reply:", error.response?.data || error.message);
       } else {
-        console.error("Error adding reply:", error);
+        logger.error("Error adding reply:", error);
       }
       toast.error("Something went wrong. Please try again.");
     }
   };
-  
 
   const handleReactionSelect = (emoji: string) => {
     // Add the selected emoji to the current reply content value

@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { KnowledgeGraphBuilder } from './graph-builder';
 import { KnowledgeGraphAnalyzer } from './graph-analyzer';
+import { logger } from '@/lib/logger';
 import { 
   KnowledgeGraph, 
   KnowledgeNode, 
@@ -37,7 +38,7 @@ export class KnowledgeGraphService {
     }
 
     // Build new graph
-    console.log(`Building knowledge graph for course: ${courseId}`);
+
     const builder = new KnowledgeGraphBuilder();
     const graph = await builder.buildFromCourseStructure(courseId);
     
@@ -283,7 +284,7 @@ export class KnowledgeGraphService {
         };
       }
     } catch (error) {
-      console.error('Failed to load graph from cache:', error);
+      logger.error('Failed to load graph from cache:', error);
     }
     return null;
   }
@@ -302,7 +303,7 @@ export class KnowledgeGraphService {
         JSON.stringify(data)
       );
     } catch (error) {
-      console.error('Failed to save graph to cache:', error);
+      logger.error('Failed to save graph to cache:', error);
     }
   }
 
@@ -783,7 +784,7 @@ export class KnowledgeGraphService {
 
   private async saveLearningPath(learningPath: LearningPath): Promise<void> {
     // In a real implementation, save to database
-    console.log('Saving learning path:', learningPath.id);
+
   }
 
   private async findSuitableNextNodes(

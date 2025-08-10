@@ -78,7 +78,7 @@ async function fetchDashboardCoursesFromDatabase(userId: string): Promise<Dashbo
       coursesInProgress,
     }
   } catch (error) {
-    console.log("[GET_DASHBOARD_COURSES]", error);
+
     return {
       completedCourses: [],
       coursesInProgress: [],

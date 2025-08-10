@@ -2,6 +2,7 @@
 
 import { Redis } from '@upstash/redis';
 import { Redis as IORedis } from 'ioredis';
+import { logger } from '@/lib/logger';
 
 // For Upstash Redis (Serverless - Recommended for Vercel)
 export const upstashRedis = (() => {
@@ -9,14 +10,14 @@ export const upstashRedis = (() => {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   
   if (!url || !token) {
-    console.warn('Upstash Redis credentials not found, using fallback');
+    logger.warn('Upstash Redis credentials not found, using fallback');
     return null;
   }
   
   try {
     return new Redis({ url, token });
   } catch (error) {
-    console.warn('Failed to initialize Upstash Redis:', error);
+    logger.warn('Failed to initialize Upstash Redis:', error);
     return null;
   }
 })();
@@ -27,7 +28,7 @@ export const ioRedis = (process.env.REDIS_URL && !process.env.DISABLE_REDIS)
       try {
         return new IORedis(process.env.REDIS_URL);
       } catch (error) {
-        console.warn('Failed to initialize IORedis:', error);
+        logger.warn('Failed to initialize IORedis:', error);
         return null;
       }
     })()
@@ -36,7 +37,7 @@ export const ioRedis = (process.env.REDIS_URL && !process.env.DISABLE_REDIS)
 // Use Upstash for production, IORedis for local development
 export const redis = (() => {
   if (process.env.DISABLE_REDIS) {
-    console.log('Redis disabled via DISABLE_REDIS environment variable');
+
     return null;
   }
   

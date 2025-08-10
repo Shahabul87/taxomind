@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { generateIntelligentCourseContent, type EnhancedContentRequest } from './ai-content-generator';
+import { logger } from '@/lib/logger';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -108,7 +109,7 @@ export async function generateCourseBlueprint(
     };
 
     try {
-      console.log('[BLUEPRINT] Attempting enhanced AI generation...');
+
       const intelligentBlueprint = await generateIntelligentCourseContent(enhancedRequirements);
       
       // Transform to the expected format
@@ -142,12 +143,11 @@ export async function generateCourseBlueprint(
         })),
         metadata: intelligentBlueprint.metadata
       };
-      
-      console.log('[BLUEPRINT] Enhanced AI generation successful');
+
       return transformedBlueprint;
       
     } catch (enhancedError) {
-      console.warn('[BLUEPRINT] Enhanced generation failed, falling back to standard generation:', enhancedError);
+      logger.warn('[BLUEPRINT] Enhanced generation failed, falling back to standard generation:', enhancedError);
       
       // Fallback to the original generation method
       const prompt = createCourseGenerationPrompt(requirements);
@@ -182,12 +182,11 @@ export async function generateCourseBlueprint(
         totalEstimatedHours: calculateTotalDuration(blueprint.chapters)
       };
 
-      console.log('[BLUEPRINT] Standard generation successful');
       return blueprint;
     }
     
   } catch (error) {
-    console.error('Error generating course blueprint:', error);
+    logger.error('Error generating course blueprint:', error);
     throw new Error(`Failed to generate course blueprint: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -231,7 +230,7 @@ Keep it concise and focused on helping them improve their course design.`;
     return content.text.trim();
     
   } catch (error) {
-    console.error('Error generating Sam suggestion:', error);
+    logger.error('Error generating Sam suggestion:', error);
     // Fallback to pre-defined responses
     return samPersonality.suggestions[Math.floor(Math.random() * samPersonality.suggestions.length)];
   }

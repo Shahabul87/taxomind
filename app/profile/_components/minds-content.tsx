@@ -9,6 +9,7 @@ import { MindCard } from "./mind-card";
 import { NewMindDialog } from "./new-mind-dialog";
 import { MindFilterDialog } from "./mind-filter-dialog";
 import { MindMapEditor } from "./mind-map-editor";
+import { logger } from '@/lib/logger';
 
 interface Mind {
   id: string;
@@ -109,7 +110,7 @@ export const MindsContent = ({ userId }: { userId: string }) => {
       // Refresh the mind maps list
       // You can implement this by refetching the data or updating the local state
     } catch (error) {
-      console.error('Error saving mind map:', error);
+      logger.error('Error saving mind map:', error);
       // You might want to show a toast notification here
     }
   };

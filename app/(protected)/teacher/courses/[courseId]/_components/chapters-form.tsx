@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Chapter, Course } from "@prisma/client";
 import { AIChapterPreferencesDialog, type AIChapterGenerationPreferences } from "./ai-chapter-preferences";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -56,11 +57,7 @@ export const ChaptersForm = ({
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      console.log("[CHAPTERS_FORM] Starting chapter creation:", { courseId, title: values.title });
-      console.log("[CHAPTERS_FORM] Request URL:", `/api/courses/${courseId}/chapters`);
-      console.log("[CHAPTERS_FORM] Request payload:", values);
-      console.log("[CHAPTERS_FORM] Current domain:", window.location.origin);
-      
+
       const response = await axios.post(`/api/courses/${courseId}/chapters`, values, {
         headers: {
           'Content-Type': 'application/json',
@@ -68,17 +65,16 @@ export const ChaptersForm = ({
         withCredentials: true,
         timeout: 30000, // 30 second timeout
       });
-      
-      console.log("[CHAPTERS_FORM] Chapter created successfully:", response.data);
+
       toast.success("Chapter created");
       setIsCreating(false);
       form.reset();
       router.refresh();
     } catch (error: any) {
-      console.error("[CHAPTERS_FORM] Chapter creation failed:");
-      console.error("[CHAPTERS_FORM] Error details:", error);
-      console.error("[CHAPTERS_FORM] Response status:", error?.response?.status);
-      console.error("[CHAPTERS_FORM] Response data:", error?.response?.data);
+      logger.error("[CHAPTERS_FORM] Chapter creation failed:");
+      logger.error("[CHAPTERS_FORM] Error details:", error);
+      logger.error("[CHAPTERS_FORM] Response status:", error?.response?.status);
+      logger.error("[CHAPTERS_FORM] Response data:", error?.response?.data);
       
       // Provide more specific error messages
       let errorMessage = "Something went wrong";
@@ -97,7 +93,7 @@ export const ChaptersForm = ({
         errorMessage = `Error: ${error.message}`;
       }
       
-      console.error("[CHAPTERS_FORM] Showing error message:", errorMessage);
+      logger.error("[CHAPTERS_FORM] Showing error message:", errorMessage);
       toast.error(errorMessage);
     }
   };
@@ -111,7 +107,7 @@ export const ChaptersForm = ({
       toast.success("Chapters reordered");
       router.refresh();
     } catch (error) {
-      console.error("Error reordering chapters:", error);
+      logger.error("Error reordering chapters:", error);
       toast.error("Something went wrong");
     } finally {
       setIsUpdating(false);
@@ -129,7 +125,7 @@ export const ChaptersForm = ({
       toast.success("Chapter deleted");
       router.refresh();
     } catch (error) {
-      console.error("Error deleting chapter:", error);
+      logger.error("Error deleting chapter:", error);
       toast.error("Something went wrong");
     } finally {
       setIsDeleting(false);
@@ -144,8 +140,7 @@ export const ChaptersForm = ({
 
     setIsGeneratingAI(true);
     try {
-      console.log('[CHAPTERS_FORM] Starting AI chapter generation:', { courseId, preferences });
-      
+
       // First, generate chapters with AI
       const aiResponse = await fetch('/api/ai/bulk-chapters', {
         method: 'POST',
@@ -171,8 +166,6 @@ export const ChaptersForm = ({
         throw new Error('Invalid AI response format');
       }
 
-      console.log('[CHAPTERS_FORM] AI chapters generated:', aiData.data.length);
-
       // Create chapters in database
       const createdChapters = [];
       for (let i = 0; i < aiData.data.length; i++) {
@@ -187,9 +180,9 @@ export const ChaptersForm = ({
           });
           
           createdChapters.push(createResponse.data);
-          console.log(`[CHAPTERS_FORM] Created chapter ${i + 1}:`, createResponse.data.title);
+
         } catch (error: any) {
-          console.error(`[CHAPTERS_FORM] Failed to create chapter ${i + 1}:`, error);
+          logger.error(`[CHAPTERS_FORM] Failed to create chapter ${i + 1}:`, error);
           // Continue with remaining chapters instead of failing completely
         }
       }
@@ -203,7 +196,7 @@ export const ChaptersForm = ({
       }
       
     } catch (error: any) {
-      console.error('[CHAPTERS_FORM] AI chapter generation failed:', error);
+      logger.error('[CHAPTERS_FORM] AI chapter generation failed:', error);
       toast.error("Failed to generate chapters with AI. Please try again.");
       // Re-throw error so dialog can handle modal state appropriately
       throw error;

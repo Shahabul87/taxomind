@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from '@/lib/logger';
 import { 
   Users, 
   Loader2,
@@ -237,7 +238,7 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
       // Redirect to OAuth flow
       window.location.href = `/api/auth/${platform.id}/connect`;
     } catch (error) {
-      console.error('Error connecting platform:', error);
+      logger.error('Error connecting platform:', error);
       setConnectingPlatform(null);
     }
   };
@@ -252,8 +253,7 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
     setCurrentStep('fetch');
 
     try {
-      console.log('Fetching metadata for:', profileUrl);
-      
+
       // First, save the profile link
       const saveResponse = await axios.post('/api/profile/links', {
         userId,
@@ -299,7 +299,7 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
       }
 
     } catch (error) {
-      console.error('Error fetching metadata:', error);
+      logger.error('Error fetching metadata:', error);
       
       // Enhanced error handling with better user feedback
       let errorMessage = 'Failed to fetch profile metadata';
@@ -365,7 +365,7 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
         setIsOpen(false);
       }
     } catch (error) {
-      console.error('Error saving selection:', error);
+      logger.error('Error saving selection:', error);
       toast.error('Failed to save your preferences');
     } finally {
       setIsSubmitting(false);

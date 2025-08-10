@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { getEnvironmentConfig, devLog } from "./db-environment";
+import { logger } from '@/lib/logger';
 
 // Initialize Resend with better error handling
 let resend: Resend | null = null;
@@ -8,10 +9,10 @@ try {
   if (process.env.RESEND_API_KEY) {
     resend = new Resend(process.env.RESEND_API_KEY);
   } else {
-    console.warn('RESEND_API_KEY not found. Email functionality will be disabled.');
+    logger.warn('RESEND_API_KEY not found. Email functionality will be disabled.');
   }
 } catch (error) {
-  console.error('Failed to initialize Resend:', error);
+  logger.error('Failed to initialize Resend:', error);
 }
 
 // Helper function to get the appropriate domain
@@ -75,7 +76,7 @@ export const sendTwoFactorTokenEmail = async (
 ) => {
   // Check if email is configured
   if (!isEmailConfigured()) {
-    console.warn('Email not configured. 2FA token would be:', token);
+    logger.warn('Email not configured. 2FA token would be:', token);
     return;
   }
 
@@ -106,13 +107,13 @@ export const sendTwoFactorTokenEmail = async (
     }
     
     if (result.error) {
-      console.error("Email API Error:", result.error);
+      logger.error("Email API Error:", result.error);
       return;
     }
 
     return result;
   } catch (error) {
-    console.error("Detailed error:", error);
+    logger.error("Detailed error:", error);
     return null;
   }
 };
@@ -125,8 +126,8 @@ export const sendPasswordResetEmail = async (
   
   // Check if email is configured
   if (!isEmailConfigured()) {
-    console.warn('Email not configured. Reset link would be:', resetLink);
-    console.warn('In development, you can manually visit this URL to reset password.');
+    logger.warn('Email not configured. Reset link would be:', resetLink);
+    logger.warn('In development, you can manually visit this URL to reset password.');
     return;
   }
   
@@ -220,14 +221,13 @@ export const sendPasswordResetEmail = async (
     });
 
     if (error) {
-      console.error("Resend API Error:", error);
+      logger.error("Resend API Error:", error);
       throw new Error(`Failed to send reset email: ${error.message}`);
     }
 
-    console.log('Password reset email sent successfully:', data);
     return data;
   } catch (error) {
-    console.error("Reset email error:", error);
+    logger.error("Reset email error:", error);
     throw error;
   }
 };
@@ -240,8 +240,8 @@ export const sendVerificationEmail = async (
 
   // Check if email is configured
   if (!isEmailConfigured()) {
-    console.warn('Email not configured. Verification link would be:', confirmLink);
-    console.warn('In development, you can manually visit this URL to verify email.');
+    logger.warn('Email not configured. Verification link would be:', confirmLink);
+    logger.warn('In development, you can manually visit this URL to verify email.');
     return;
   }
 
@@ -340,14 +340,13 @@ export const sendVerificationEmail = async (
     }
     
     if (result.error) {
-      console.error("Email API Error:", result.error);
+      logger.error("Email API Error:", result.error);
       throw new Error(`Failed to send verification email: ${result.error.message}`);
     }
 
-    console.log('Verification email sent successfully:', result);
     return result;
   } catch (error) {
-    console.error("Verification email error:", error);
+    logger.error("Verification email error:", error);
     throw error;
   }
 };

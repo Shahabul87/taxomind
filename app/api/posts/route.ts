@@ -2,6 +2,7 @@ import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSimplePostsForBlog } from "@/actions/get-simple-posts";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -61,7 +62,7 @@ export async function POST(
     });
     
   } catch (error) {
-    console.error("[POSTS] Error:", error);
+    logger.error("[POSTS] Error:", error);
     
     return new NextResponse(JSON.stringify({ 
       success: false,
@@ -75,19 +76,16 @@ export async function POST(
 
 export async function GET() {
   try {
-    console.log("🔄 [API] /api/posts - Starting to fetch posts...");
-    
+
     const posts = await getSimplePostsForBlog();
-    
-    console.log(`✅ [API] /api/posts - Successfully fetched ${posts.length} posts`);
-    
+
     return NextResponse.json({
       success: true,
       posts,
       count: posts.length
     });
   } catch (error) {
-    console.error("💥 [API] /api/posts - Error fetching posts:", error);
+    logger.error("💥 [API] /api/posts - Error fetching posts:", error);
     
     return NextResponse.json(
       {

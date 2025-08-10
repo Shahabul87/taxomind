@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request, props: { params: Promise<{ userId: string }> }) {
   const params = await props.params;
@@ -16,7 +17,7 @@ export async function GET(req: Request, props: { params: Promise<{ userId: strin
 
     return NextResponse.json(userDetails);
   } catch (error) {
-    console.error("[USER_GET]", error);
+    logger.error("[USER_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -43,7 +44,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ userId: str
 
     return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error("[USER_PATCH]", error);
+    logger.error("[USER_PATCH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

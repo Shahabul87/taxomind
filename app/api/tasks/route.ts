@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { logger } from '@/lib/logger';
 
 // GET endpoint to retrieve all tasks for the authenticated user
 export async function GET() {
@@ -22,7 +23,7 @@ export async function GET() {
     
     return NextResponse.json(tasks);
   } catch (error) {
-    console.error("[TASKS_GET]", error);
+    logger.error("[TASKS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
     
     return NextResponse.json(task);
   } catch (error) {
-    console.error("[TASKS_POST]", error);
+    logger.error("[TASKS_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -116,7 +117,7 @@ export async function DELETE(req: Request) {
     
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("[TASKS_DELETE]", error);
+    logger.error("[TASKS_DELETE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -183,7 +184,7 @@ export async function PATCH(req: Request) {
     
     return NextResponse.json(updatedTask);
   } catch (error) {
-    console.error("[TASKS_PATCH]", error);
+    logger.error("[TASKS_PATCH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

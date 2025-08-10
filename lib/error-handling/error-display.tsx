@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { logger } from '@/lib/logger';
 import { 
   AlertTriangle, 
   RefreshCw, 
@@ -124,7 +125,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy error details:', err);
+      logger.error('Failed to copy error details:', err);
     }
   };
 

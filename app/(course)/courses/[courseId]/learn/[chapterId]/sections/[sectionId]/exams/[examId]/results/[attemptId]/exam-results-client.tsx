@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   Trophy, 
   Target, 
@@ -109,7 +110,7 @@ export default function ExamResultsClient({ params }: ExamResultsClientProps) {
         }
       }
     } catch (error) {
-      console.error("Error fetching results:", error);
+      logger.error("Error fetching results:", error);
     } finally {
       setLoading(false);
     }

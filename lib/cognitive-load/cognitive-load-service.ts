@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { CognitiveLoadAnalyzer } from './load-analyzer';
+import { logger } from '@/lib/logger';
 import {
   CognitiveLoadAssessment,
   CognitiveLoadProfile,
@@ -55,8 +56,6 @@ export class CognitiveLoadManagementService {
     interventions: LoadAdaptation[];
     monitoring: boolean;
   }> {
-    
-    console.log(`Managing cognitive load: ${studentId} -> ${contentId}`);
 
     // Perform cognitive load assessment
     const assessment = await this.analyzer.assessCognitiveLoad(
@@ -98,11 +97,10 @@ export class CognitiveLoadManagementService {
     const monitoringKey = `${studentId}_${contentId}`;
     
     if (this.monitoringActive.get(monitoringKey)) {
-      console.log('Monitoring already active for:', monitoringKey);
+
       return;
     }
 
-    console.log('Starting cognitive load monitoring for:', monitoringKey);
     this.monitoringActive.set(monitoringKey, true);
 
     const defaultConfig: LoadMonitoringConfig = {
@@ -150,7 +148,7 @@ export class CognitiveLoadManagementService {
   async stopLoadMonitoring(studentId: string, contentId: string): Promise<void> {
     const monitoringKey = `${studentId}_${contentId}`;
     this.monitoringActive.set(monitoringKey, false);
-    console.log('Stopped cognitive load monitoring for:', monitoringKey);
+
   }
 
   // Get student's cognitive load profile
@@ -248,7 +246,6 @@ export class CognitiveLoadManagementService {
     interventionType: InterventionType,
     parameters?: any
   ): Promise<LoadAdaptation> {
-    console.log(`Applying intervention: ${interventionType} for ${studentId}`);
 
     const intervention = await this.createLoadIntervention(
       studentId,
@@ -276,7 +273,8 @@ export class CognitiveLoadManagementService {
       includeStudentDetails?: boolean;
       includeStrategies?: boolean;
       includePredictions?: boolean;
-    } = {}
+    } = {
+}
   ): Promise<CognitiveLoadAnalytics> {
     
     const [summary, patterns, strategies, recommendations, trends] = await Promise.all([
@@ -346,8 +344,6 @@ export class CognitiveLoadManagementService {
     recoveryPlan: LoadRecommendation[];
     monitoringIntensified: boolean;
   }> {
-    
-    console.log(`Handling overload emergency for student: ${studentId}`);
 
     // Immediate emergency actions
     const emergencyActions: LoadAdaptation[] = [];
@@ -428,9 +424,9 @@ export class CognitiveLoadManagementService {
       try {
         await this.executeIntervention(intervention);
         applied.push(intervention);
-        console.log(`Applied intervention: ${intervention.type}`);
+
       } catch (error) {
-        console.error('Failed to apply intervention:', error);
+        logger.error('Failed to apply intervention:', error);
       }
     }
 
@@ -448,8 +444,7 @@ export class CognitiveLoadManagementService {
   }
 
   private async applyContentChange(change: ContentChange): Promise<void> {
-    console.log(`Applying content change: ${change.changeType} to ${change.element}`);
-    
+
     // Implementation would interact with content delivery system
     switch (change.changeType) {
       case 'hide_element':
@@ -502,7 +497,7 @@ export class CognitiveLoadManagementService {
         await this.checkInterventionTriggers(assessment, config);
 
       } catch (error) {
-        console.error('Monitoring interval error:', error);
+        logger.error('Monitoring interval error:', error);
       }
     }, config.assessmentFrequency * 60 * 1000); // Convert minutes to milliseconds
   }
@@ -527,8 +522,7 @@ export class CognitiveLoadManagementService {
   }
 
   private async triggerOverloadIntervention(assessment: CognitiveLoadAssessment): Promise<void> {
-    console.log('Triggering overload intervention');
-    
+
     if (assessment.assessment.overloadRisk.level === 'critical') {
       await this.handleOverloadEmergency(
         assessment.studentId,
@@ -546,8 +540,7 @@ export class CognitiveLoadManagementService {
   }
 
   private async monitorInterventionEffectiveness(intervention: LoadAdaptation): Promise<void> {
-    console.log(`Monitoring effectiveness of intervention: ${intervention.id}`);
-    
+
     // Implementation would measure actual effectiveness
     intervention.effectiveness = {
       measured: true,
@@ -725,9 +718,7 @@ export class CognitiveLoadManagementService {
   }
 
   private async intensifyMonitoring(studentId: string, contentId: string): Promise<void> {
-    console.log('Intensifying monitoring for:', studentId);
-  }
-
+}
   // Analytics methods
   private async generateAnalyticsSummary(
     courseId: string,
@@ -783,29 +774,21 @@ export class CognitiveLoadManagementService {
     try {
       await redis.setex(cacheKey, 1800, JSON.stringify(profile)); // 30 minutes TTL
     } catch (error) {
-      console.error('Failed to cache profile:', error);
+      logger.error('Failed to cache profile:', error);
     }
   }
 
   private async saveProfileToDatabase(profile: CognitiveLoadProfile): Promise<void> {
-    console.log('Saving profile to database:', profile.studentId);
-  }
-
+}
   private async logLoadAssessment(
     assessment: CognitiveLoadAssessment,
     interventions: LoadAdaptation[]
   ): Promise<void> {
-    console.log('Logging load assessment:', assessment.id);
-  }
-
+}
   private async logIntervention(intervention: LoadAdaptation): Promise<void> {
-    console.log('Logging intervention:', intervention.id);
-  }
-
+}
   private async updateInterventionInDatabase(intervention: LoadAdaptation): Promise<void> {
-    console.log('Updating intervention effectiveness:', intervention.id);
-  }
-
+}
   private async getStudentLoadHistory(studentId: string, courseId: string): Promise<LoadHistoryEntry[]> {
     return []; // Placeholder
   }
@@ -815,14 +798,11 @@ export class CognitiveLoadManagementService {
   }
 
   private async updateLoadPatterns(profile: CognitiveLoadProfile, entry: LoadHistoryEntry): Promise<void> {
-    console.log('Updating load patterns');
-  }
-
+}
   private async updateLoadPreferences(
     profile: CognitiveLoadProfile,
     adaptations: LoadAdaptation[],
     outcome: SessionOutcome
   ): Promise<void> {
-    console.log('Updating load preferences');
-  }
+}
 }

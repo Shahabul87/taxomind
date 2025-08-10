@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { SAMBadgeType, SAMMessageType, SAMInteractionType, BadgeLevel } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // SAM Conversation Management
 export async function createSAMConversation(userId: string, options?: {
@@ -25,7 +26,7 @@ export async function createSAMConversation(userId: string, options?: {
       }
     });
   } catch (error) {
-    console.error('Error creating SAM conversation:', error);
+    logger.error('Error creating SAM conversation:', error);
     throw error;
   }
 }
@@ -56,7 +57,7 @@ export async function getSAMConversations(userId: string, options?: {
       take: options?.limit || 20,
     });
   } catch (error) {
-    console.error('Error getting SAM conversations:', error);
+    logger.error('Error getting SAM conversations:', error);
     throw error;
   }
 }
@@ -86,7 +87,7 @@ export async function addSAMMessage(conversationId: string, data: {
 
     return message;
   } catch (error) {
-    console.error('Error adding SAM message:', error);
+    logger.error('Error adding SAM message:', error);
     throw error;
   }
 }
@@ -116,7 +117,7 @@ export async function recordSAMInteraction(data: {
       },
     });
   } catch (error) {
-    console.error('Error recording SAM interaction:', error);
+    logger.error('Error recording SAM interaction:', error);
     throw error;
   }
 }
@@ -156,7 +157,7 @@ export async function awardSAMPoints(userId: string, data: {
 
     return pointsRecord;
   } catch (error) {
-    console.error('Error awarding SAM points:', error);
+    logger.error('Error awarding SAM points:', error);
     throw error;
   }
 }
@@ -175,7 +176,7 @@ export async function getSAMPoints(userId: string, options?: {
       take: options?.limit || 50,
     });
   } catch (error) {
-    console.error('Error getting SAM points:', error);
+    logger.error('Error getting SAM points:', error);
     throw error;
   }
 }
@@ -218,7 +219,7 @@ export async function unlockSAMBadge(userId: string, data: {
       },
     });
   } catch (error) {
-    console.error('Error unlocking SAM badge:', error);
+    logger.error('Error unlocking SAM badge:', error);
     throw error;
   }
 }
@@ -237,7 +238,7 @@ export async function getSAMBadges(userId: string, options?: {
       orderBy: { unlockedAt: 'desc' },
     });
   } catch (error) {
-    console.error('Error getting SAM badges:', error);
+    logger.error('Error getting SAM badges:', error);
     throw error;
   }
 }
@@ -273,7 +274,7 @@ export async function updateSAMStreak(userId: string, data: {
       },
     });
   } catch (error) {
-    console.error('Error updating SAM streak:', error);
+    logger.error('Error updating SAM streak:', error);
     throw error;
   }
 }
@@ -292,7 +293,7 @@ export async function getSAMStreaks(userId: string, options?: {
       orderBy: { lastActivityDate: 'desc' },
     });
   } catch (error) {
-    console.error('Error getting SAM streaks:', error);
+    logger.error('Error getting SAM streaks:', error);
     throw error;
   }
 }
@@ -329,7 +330,7 @@ export async function updateSAMLearningProfile(userId: string, data: {
       },
     });
   } catch (error) {
-    console.error('Error updating SAM learning profile:', error);
+    logger.error('Error updating SAM learning profile:', error);
     throw error;
   }
 }
@@ -343,7 +344,7 @@ export async function getSAMLearningProfile(userId: string, courseId?: string) {
       },
     });
   } catch (error) {
-    console.error('Error getting SAM learning profile:', error);
+    logger.error('Error getting SAM learning profile:', error);
     return null;
   }
 }
@@ -375,7 +376,7 @@ export async function recordSAMAnalytics(data: {
       },
     });
   } catch (error) {
-    console.error('Error recording SAM analytics:', error);
+    logger.error('Error recording SAM analytics:', error);
     throw error;
   }
 }
@@ -409,7 +410,7 @@ export async function getSAMAnalytics(userId: string, options?: {
       take: options?.limit || 100,
     });
   } catch (error) {
-    console.error('Error getting SAM analytics:', error);
+    logger.error('Error getting SAM analytics:', error);
     throw error;
   }
 }
@@ -435,7 +436,7 @@ export async function getSAMInteractions(userId: string, options?: {
       take: options?.limit || 100,
     });
   } catch (error) {
-    console.error('Error getting SAM interactions:', error);
+    logger.error('Error getting SAM interactions:', error);
     return [];
   }
 }
@@ -486,7 +487,7 @@ export async function getUserSAMStats(userId: string, courseId?: string) {
       streaks: activeStreaks,
     };
   } catch (error) {
-    console.error('Error getting user SAM stats:', error);
+    logger.error('Error getting user SAM stats:', error);
     throw error;
   }
 }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { logger } from '@/lib/logger';
 import { 
   Brain, 
   Lightbulb, 
@@ -148,7 +149,7 @@ export function SAMContextualChat({
           throw new Error('Failed to get SAM response');
         }
       } catch (error) {
-        console.error('Error sending message to SAM:', error);
+        logger.error('Error sending message to SAM:', error);
         
         // Fallback contextual response
         const fallbackResponse = contextualResponse 

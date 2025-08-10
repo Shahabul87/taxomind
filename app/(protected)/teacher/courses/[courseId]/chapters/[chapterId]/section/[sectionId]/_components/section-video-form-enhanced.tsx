@@ -4,6 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { logger } from '@/lib/logger';
 import { 
   Pencil, Video, Loader2, YoutubeIcon, Eye, EyeOff, 
   ExternalLink, Brain, Sparkles, Shield, TrendingUp,
@@ -102,7 +103,7 @@ export const SectionYoutubeVideoFormEnhanced = ({
       }
     } catch (error) {
       toast.error("Failed to analyze video");
-      console.error("Video analysis error:", error);
+      logger.error("Video analysis error:", error);
     } finally {
       setIsAnalyzing(false);
     }

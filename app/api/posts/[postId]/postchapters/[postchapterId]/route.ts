@@ -2,8 +2,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-
-
+import { logger } from '@/lib/logger';
 
 export async function DELETE(
   req: Request,
@@ -69,14 +68,10 @@ export async function DELETE(
 
     return NextResponse.json(deletedChapter);
   } catch (error) {
-    console.log("[DELETE_POSTCHAPTER_ERROR]", error);
+
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
-
-
-
 
 export async function PATCH(
   req: Request,
@@ -137,7 +132,7 @@ export async function PATCH(
     // Use a type guard to check for a message on the error object
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-    console.error("[PATCH ERROR] Post/PostChapterSection:", errorMessage);
+    logger.error("[PATCH ERROR] Post/PostChapterSection:", errorMessage);
     // Provide a more descriptive error response
     return new NextResponse(
       JSON.stringify({ error: "Internal Server Error", details: errorMessage }),

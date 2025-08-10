@@ -36,8 +36,6 @@ const SearchPage = async (props: SearchPageProps) => {
     ...searchParams,
   });
 
-  console.log(courses)
-
   return (
     <>
       {/* <div className="px-6 pt-10 md:hidden md:mb-0 block">

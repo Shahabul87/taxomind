@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getComprehensiveAnalytics } from '@/lib/sam-analytics-engine';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
       data: analytics,
     });
   } catch (error) {
-    console.error('Error fetching comprehensive analytics:', error);
+    logger.error('Error fetching comprehensive analytics:', error);
     return NextResponse.json(
       { error: 'Failed to fetch analytics' },
       { status: 500 }

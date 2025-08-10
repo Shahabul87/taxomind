@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -10,13 +11,12 @@ export async function POST(
   { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
-    console.log("[ANALYTICS_REPORT] Starting report generation");
-    
+
     // Get current user
     const user = await currentUser();
     
     if (!user?.id) {
-      console.log("[ANALYTICS_REPORT] No user found - unauthorized");
+
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
@@ -29,16 +29,14 @@ export async function POST(
     const userRole = dbUser?.role;
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      console.log(`[ANALYTICS_REPORT] User role ${userRole} not authorized`);
+
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
     
     const { courseId } = await params;
     const body = await req.json();
     const { timeframe, metrics } = body;
-    
-    console.log("[ANALYTICS_REPORT] Generating report for course:", courseId);
-    
+
     // Verify course ownership
     const course = await db.course.findUnique({
       where: {
@@ -68,9 +66,7 @@ export async function POST(
       metrics,
       content: reportContent
     };
-    
-    console.log("[ANALYTICS_REPORT] Report generated successfully");
-    
+
     // Return as downloadable JSON for now
     return new NextResponse(JSON.stringify(report, null, 2), {
       headers: {
@@ -80,11 +76,11 @@ export async function POST(
     });
     
   } catch (error) {
-    console.error("[ANALYTICS_REPORT] Error:", error);
+    logger.error("[ANALYTICS_REPORT] Error:", error);
     
     if (error instanceof Error) {
-      console.error("[ANALYTICS_REPORT] Error message:", error.message);
-      console.error("[ANALYTICS_REPORT] Error stack:", error.stack);
+      logger.error("[ANALYTICS_REPORT] Error message:", error.message);
+      logger.error("[ANALYTICS_REPORT] Error stack:", error.stack);
     }
     
     return new NextResponse("Internal Server Error", { status: 500 });

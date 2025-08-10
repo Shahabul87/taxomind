@@ -7,6 +7,7 @@ import { File, Loader2, PlusCircle, X, FileIcon, Sparkles, Brain, Shield } from 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/fileupload/file-upload";
@@ -73,7 +74,7 @@ export const AttachmentFormEnhanced = ({
       }
     } catch (error) {
       toast.error("Failed to analyze content");
-      console.error("Analysis error:", error);
+      logger.error("Analysis error:", error);
     } finally {
       setIsAnalyzing(false);
     }

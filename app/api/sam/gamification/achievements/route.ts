@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getSAMBadges } from '@/lib/sam-database';
 import { TEACHER_ACHIEVEMENTS } from '@/lib/sam-achievements';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
       data: achievements,
     });
   } catch (error) {
-    console.error('Error fetching achievements:', error);
+    logger.error('Error fetching achievements:', error);
     return NextResponse.json(
       { error: 'Failed to fetch achievements' },
       { status: 500 }

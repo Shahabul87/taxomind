@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
         const result = await uploadFileToCloudinary(file);
         uploadedResults.push(result);
       } catch (uploadError) {
-        console.error("Failed to upload file:", uploadError);
+        logger.error("Failed to upload file:", uploadError);
         return NextResponse.json(
           { error: "Failed to upload file. Please try again." },
           { status: 500 }
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
     );
 
   } catch (error) {
-    console.log("Upload image failed", error);
+
     return NextResponse.json({ error: "Upload image failed" }, { status: 500 });
   }
 }
@@ -112,7 +113,7 @@ async function uploadFileToCloudinary(file: File): Promise<CloudinaryUploadResul
         },
         (error, result) => {
           if (error) {
-            console.error("Cloudinary upload error:", error);
+            logger.error("Cloudinary upload error:", error);
             reject(error);
           } else {
             resolve(result as CloudinaryUploadResult);

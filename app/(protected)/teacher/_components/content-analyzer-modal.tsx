@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { logger } from '@/lib/logger';
 import { 
   Video, 
   FileText, 
@@ -104,7 +105,7 @@ export function ContentAnalyzerModal({
         throw new Error('Analysis failed');
       }
     } catch (error) {
-      console.error('Analysis error:', error);
+      logger.error('Analysis error:', error);
       toast.error('Failed to analyze content. Please try again.');
     } finally {
       setIsAnalyzing(false);

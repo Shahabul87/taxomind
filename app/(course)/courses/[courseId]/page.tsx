@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { logger } from '@/lib/logger';
 import { currentUser } from '@/lib/auth'
 import CourseCard from "./course-feature";
 import { CourseTabsDemo } from "./course-tab-demo";
@@ -98,7 +99,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
         },
       });
     } catch (error) {
-      console.error("Error checking enrollment:", error);
+      logger.error("Error checking enrollment:", error);
     }
   }
 
@@ -119,7 +120,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
       },
     });
   } catch (error) {
-    console.error("Error fetching reviews:", error);
+    logger.error("Error fetching reviews:", error);
     // Continue with empty reviews array
   }
 

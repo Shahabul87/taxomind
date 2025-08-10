@@ -1,6 +1,7 @@
 // Redis Configuration - Fallback implementation for development and production
 
 import { Redis } from 'ioredis';
+import { logger } from '@/lib/logger';
 
 declare global {
   var redis: Redis | undefined;
@@ -28,7 +29,7 @@ export const redis = (() => {
       globalThis.redis = redisClient;
       return redisClient;
     } catch (error) {
-      console.warn('Redis connection failed, using fallback:', error);
+      logger.warn('Redis connection failed, using fallback:', error);
     }
   }
   
@@ -231,18 +232,14 @@ class MockRedis {
 
   // Pub/Sub operations (simplified for development)
   async publish(channel: string, message: string): Promise<number> {
-    console.log(`[MockRedis] Published to ${channel}:`, message);
+
     return 1;
   }
 
   async subscribe(channel: string): Promise<void> {
-    console.log(`[MockRedis] Subscribed to ${channel}`);
-  }
-
+}
   on(event: string, callback: (channel: string, message: string) => void): void {
-    console.log(`[MockRedis] Event listener registered for ${event}`);
-  }
-
+}
   // Additional methods for compatibility
   async info(section?: string): Promise<string> {
     return 'redis_version:6.0.0-mock\nused_memory_human:1.0M\nconnected_clients:1';

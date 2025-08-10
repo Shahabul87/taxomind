@@ -103,7 +103,7 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
         <div className="mt-6 pt-4 border-t border-emerald-100/50 dark:border-slate-600/30">
           <motion.button
             onClick={() => {
-              console.log('Objectives toggle clicked, current state:', showAllObjectives);
+
               setShowAllObjectives(!showAllObjectives);
             }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-slate-700 hover:bg-emerald-200 dark:hover:bg-slate-600 text-emerald-700 dark:text-emerald-400 rounded-lg font-medium transition-colors duration-200"

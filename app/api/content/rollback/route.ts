@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/api-protection";
 import { ContentVersioningService } from "@/lib/content-versioning";
+import { logger } from '@/lib/logger';
 
 export const POST = withAuth(async (request: NextRequest) => {
   try {
@@ -23,7 +24,7 @@ export const POST = withAuth(async (request: NextRequest) => {
 
     return Response.json({ version });
   } catch (error) {
-    console.error("[CONTENT_ROLLBACK_POST]", error);
+    logger.error("[CONTENT_ROLLBACK_POST]", error);
     return Response.json(
       { error: "Failed to rollback content" },
       { status: 500 }

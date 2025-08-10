@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   Sparkles, TrendingUp, Brain, Target, BookOpen, 
   Clock, ChevronRight, X, Check, RotateCcw,
@@ -58,7 +59,7 @@ export const LearningPathRecommendations = () => {
       const response = await axios.get("/api/learning-paths/recommend");
       setRecommendations(response.data.recommendations || []);
     } catch (error) {
-      console.error("Failed to fetch recommendations:", error);
+      logger.error("Failed to fetch recommendations:", error);
     } finally {
       setLoading(false);
     }
@@ -73,7 +74,7 @@ export const LearningPathRecommendations = () => {
         setRecommendations(response.data.recommendations);
       }
     } catch (error) {
-      console.error("Failed to generate recommendations:", error);
+      logger.error("Failed to generate recommendations:", error);
       toast.error("Failed to generate recommendations");
     } finally {
       setGenerating(false);
@@ -103,7 +104,7 @@ export const LearningPathRecommendations = () => {
 
       setSelectedPath(null);
     } catch (error) {
-      console.error("Failed to record interaction:", error);
+      logger.error("Failed to record interaction:", error);
       toast.error("Failed to process action");
     }
   };

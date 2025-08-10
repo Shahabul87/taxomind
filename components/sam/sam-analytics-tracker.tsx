@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useSamAITutor } from '@/app/(protected)/teacher/_components/sam-ai-tutor-provider';
 import { recordAnalyticsSession } from '@/lib/sam-analytics-engine';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 
 interface SAMAnalyticsTrackerProps {
   courseId?: string;
@@ -48,7 +49,7 @@ export function SAMAnalyticsTracker({
       sessionStartRef.current = new Date();
       interactionCountRef.current = 0;
     } catch (error) {
-      console.error('Error recording analytics session:', error);
+      logger.error('Error recording analytics session:', error);
     }
   }, [session?.user?.id, courseId, chapterId, sectionId]);
 

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import Parser from 'rss-parser';
 import { NewsArticle } from './sam-news-engine';
+import { logger } from '@/lib/logger';
 
 interface NewsSource {
   name: string;
@@ -104,7 +105,7 @@ export class SAMNewsFetcher {
       
       return articles;
     } catch (error) {
-      console.error(`Error fetching RSS feed from ${sourceUrl}:`, error);
+      logger.error(`Error fetching RSS feed from ${sourceUrl}:`, error);
       return [];
     }
   }
@@ -114,7 +115,7 @@ export class SAMNewsFetcher {
    */
   async fetchFromNewsAPI(): Promise<NewsArticle[]> {
     if (!process.env.NEWS_API_KEY) {
-      console.log('NewsAPI key not configured');
+
       return [];
     }
 
@@ -161,7 +162,7 @@ export class SAMNewsFetcher {
         }] : undefined
       }));
     } catch (error) {
-      console.error('Error fetching from NewsAPI:', error);
+      logger.error('Error fetching from NewsAPI:', error);
       return [];
     }
   }
@@ -171,7 +172,7 @@ export class SAMNewsFetcher {
    */
   async fetchFromBingNews(): Promise<NewsArticle[]> {
     if (!process.env.BING_API_KEY) {
-      console.log('Bing API key not configured');
+
       return [];
     }
 
@@ -220,7 +221,7 @@ export class SAMNewsFetcher {
         }] : undefined
       }));
     } catch (error) {
-      console.error('Error fetching from Bing News:', error);
+      logger.error('Error fetching from Bing News:', error);
       return [];
     }
   }

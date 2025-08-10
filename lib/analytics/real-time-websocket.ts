@@ -2,6 +2,7 @@
 
 import { EventTrackingService } from './event-tracking-service';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 
 export interface RealtimeAnalyticsData {
   activeUsers: number;
@@ -58,20 +59,17 @@ export class RealtimeAnalyticsWebSocket {
   initialize() {
     if (this.isRunning) return;
 
-    console.log('Initializing Real-time Analytics WebSocket...');
-    
     this.startRealTimeUpdates();
     this.startPingInterval();
     this.setupEventListeners();
     
     this.isRunning = true;
-    console.log('Real-time Analytics WebSocket initialized');
+
   }
 
   // Add new client connection
   addClient(clientId: string, ws: WebSocket, subscription: Omit<ClientSubscription, 'id' | 'lastPing'>) {
-    console.log(`Adding client: ${clientId}`);
-    
+
     this.clients.set(clientId, ws);
     this.subscriptions.set(clientId, {
       id: clientId,
@@ -91,8 +89,7 @@ export class RealtimeAnalyticsWebSocket {
 
   // Remove client connection
   removeClient(clientId: string) {
-    console.log(`Removing client: ${clientId}`);
-    
+
     const ws = this.clients.get(clientId);
     if (ws) {
       ws.close();
@@ -121,10 +118,10 @@ export class RealtimeAnalyticsWebSocket {
           this.handleFilter(clientId, message.data);
           break;
         default:
-          console.warn(`Unknown message type: ${message.type}`);
+          logger.warn(`Unknown message type: ${message.type}`);
       }
     } catch (error) {
-      console.error('Error handling WebSocket message:', error);
+      logger.error('Error handling WebSocket message:', error);
     }
   }
 
@@ -186,7 +183,7 @@ export class RealtimeAnalyticsWebSocket {
 
   // Handle WebSocket errors
   private handleError(clientId: string, error: Error) {
-    console.error(`WebSocket error for client ${clientId}:`, error);
+    logger.error(`WebSocket error for client ${clientId}:`, error);
     this.removeClient(clientId);
   }
 
@@ -195,7 +192,7 @@ export class RealtimeAnalyticsWebSocket {
     try {
       await this.sendAnalyticsData(clientId);
     } catch (error) {
-      console.error('Error sending initial data:', error);
+      logger.error('Error sending initial data:', error);
     }
   }
 
@@ -212,7 +209,7 @@ export class RealtimeAnalyticsWebSocket {
         timestamp: Date.now()
       });
     } catch (error) {
-      console.error('Error sending analytics data:', error);
+      logger.error('Error sending analytics data:', error);
     }
   }
 
@@ -250,7 +247,7 @@ export class RealtimeAnalyticsWebSocket {
         timestamp: now
       };
     } catch (error) {
-      console.error('Error generating analytics data:', error);
+      logger.error('Error generating analytics data:', error);
       return {
         activeUsers: 0,
         currentEvents: 0,
@@ -273,7 +270,7 @@ export class RealtimeAnalyticsWebSocket {
       const count = await redis.scard(key);
       return count;
     } catch (error) {
-      console.error('Error getting active users:', error);
+      logger.error('Error getting active users:', error);
       return 0;
     }
   }
@@ -288,7 +285,7 @@ export class RealtimeAnalyticsWebSocket {
       const rate = await redis.get(key);
       return parseFloat(rate || '0');
     } catch (error) {
-      console.error('Error getting event rate:', error);
+      logger.error('Error getting event rate:', error);
       return 0;
     }
   }
@@ -299,7 +296,7 @@ export class RealtimeAnalyticsWebSocket {
       const load = await redis.get('analytics:system:load');
       return parseFloat(load || '0');
     } catch (error) {
-      console.error('Error getting system load:', error);
+      logger.error('Error getting system load:', error);
       return 0;
     }
   }
@@ -314,7 +311,7 @@ export class RealtimeAnalyticsWebSocket {
       const score = await redis.get(key);
       return parseFloat(score || '0');
     } catch (error) {
-      console.error('Error calculating engagement score:', error);
+      logger.error('Error calculating engagement score:', error);
       return 0;
     }
   }
@@ -338,7 +335,7 @@ export class RealtimeAnalyticsWebSocket {
         };
       }).sort((a, b) => b.count - a.count).slice(0, 10);
     } catch (error) {
-      console.error('Error getting top activities:', error);
+      logger.error('Error getting top activities:', error);
       return [];
     }
   }
@@ -354,7 +351,7 @@ export class RealtimeAnalyticsWebSocket {
       
       return alerts.map(alert => JSON.parse(alert));
     } catch (error) {
-      console.error('Error getting analytics alerts:', error);
+      logger.error('Error getting analytics alerts:', error);
       return [];
     }
   }
@@ -366,7 +363,7 @@ export class RealtimeAnalyticsWebSocket {
       try {
         ws.send(JSON.stringify(message));
       } catch (error) {
-        console.error(`Error sending message to client ${clientId}:`, error);
+        logger.error(`Error sending message to client ${clientId}:`, error);
         this.removeClient(clientId);
       }
     }
@@ -400,7 +397,7 @@ export class RealtimeAnalyticsWebSocket {
       // Remove inactive clients
       this.subscriptions.forEach((subscription, clientId) => {
         if (now - subscription.lastPing > timeout) {
-          console.log(`Removing inactive client: ${clientId}`);
+
           this.removeClient(clientId);
         } else {
           // Send ping
@@ -494,7 +491,7 @@ export class RealtimeAnalyticsWebSocket {
       await redis.hset(activityKey, event.eventType, JSON.stringify(parsed));
       await redis.expire(activityKey, 300);
     } catch (error) {
-      console.error('Error updating real-time metrics:', error);
+      logger.error('Error updating real-time metrics:', error);
     }
   }
 
@@ -546,7 +543,7 @@ export class RealtimeAnalyticsWebSocket {
         }
       }
     } catch (error) {
-      console.error('Error checking for alerts:', error);
+      logger.error('Error checking for alerts:', error);
     }
   }
 
@@ -561,7 +558,7 @@ export class RealtimeAnalyticsWebSocket {
       await redis.ltrim(key, 0, 99); // Keep last 100 alerts
       await redis.expire(key, 86400); // 24 hours
     } catch (error) {
-      console.error('Error saving alert:', error);
+      logger.error('Error saving alert:', error);
     }
   }
 
@@ -576,8 +573,7 @@ export class RealtimeAnalyticsWebSocket {
 
   // Shutdown WebSocket server
   shutdown() {
-    console.log('Shutting down Real-time Analytics WebSocket...');
-    
+
     // Clear intervals
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
@@ -597,8 +593,7 @@ export class RealtimeAnalyticsWebSocket {
     this.clients.clear();
     this.subscriptions.clear();
     this.isRunning = false;
-    
-    console.log('Real-time Analytics WebSocket shutdown complete');
+
   }
 }
 

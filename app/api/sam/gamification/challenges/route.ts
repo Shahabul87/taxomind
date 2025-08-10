@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { getAvailableChallengesForUser, getActiveChallenges } from '@/lib/sam-achievement-engine';
 import { CHALLENGES } from '@/lib/sam-achievements';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
       data: allChallenges,
     });
   } catch (error) {
-    console.error('Error fetching challenges:', error);
+    logger.error('Error fetching challenges:', error);
     return NextResponse.json(
       { error: 'Failed to fetch challenges' },
       { status: 500 }

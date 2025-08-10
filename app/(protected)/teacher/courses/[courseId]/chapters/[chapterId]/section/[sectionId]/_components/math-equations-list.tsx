@@ -5,6 +5,7 @@ import axios from 'axios';
 import Image from 'next/image';
 import { BookOpen, Calculator, ChevronDown, ChevronUp, Code2, Loader2, PlusCircle, RefreshCw, XCircle } from 'lucide-react';
 import { InlineMath, BlockMath } from 'react-katex';
+import { logger } from '@/lib/logger';
 import "katex/dist/katex.min.css";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,7 +72,7 @@ export const MathEquationsList = ({ courseId, chapterId, sectionId, refreshTrigg
       
       setEquations(response.data);
     } catch (err) {
-      console.error("Failed to fetch math equations:", err);
+      logger.error("Failed to fetch math equations:", err);
       setError("Failed to load math equations. Please try again later.");
       toast.error("Failed to load math equations");
     } finally {

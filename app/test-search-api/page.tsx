@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SearchService } from '../(homepage)/services/search-service';
+import { logger } from '@/lib/logger';
 
 export default function TestSearchAPI() {
   const [query, setQuery] = useState('react');
@@ -20,8 +21,7 @@ export default function TestSearchAPI() {
     setResponseDetails('');
     
     try {
-      console.log(`Testing direct fetch to: ${requestUrl}`);
-      
+
       const fetchResponse = await fetch(requestUrl, {
         method: 'GET',
         headers: {
@@ -67,7 +67,7 @@ export default function TestSearchAPI() {
         ? fetchError.message 
         : 'Unknown fetch error';
       setError(`Fetch error: ${errorMessage}`);
-      console.error('Fetch error:', fetchError);
+      logger.error('Fetch error:', fetchError);
     } finally {
       setLoading(false);
     }
@@ -81,23 +81,21 @@ export default function TestSearchAPI() {
     
     try {
       // Use our service
-      console.log(`Testing via SearchService with query: ${query}`);
-      
+
       // Configure which API to use
       const useMockApi = false; // False to use real API, true to use mock
       SearchService.useMockApi = useMockApi;
       SearchService.useEmergencyFallback = false;
       
       const serviceResults = await SearchService.searchContent(query);
-      console.log('Service returned:', serviceResults);
-      
+
       setResults(serviceResults);
     } catch (serviceError) {
       const errorMessage = serviceError && typeof serviceError === 'object' && 'message' in serviceError 
         ? serviceError.message 
         : 'Unknown service error';
       setError(`Service error: ${errorMessage}`);
-      console.error('Service error:', serviceError);
+      logger.error('Service error:', serviceError);
     } finally {
       setLoading(false);
     }

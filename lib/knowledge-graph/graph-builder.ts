@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 import { 
   KnowledgeGraph, 
   KnowledgeNode, 
@@ -37,7 +38,6 @@ export class KnowledgeGraphBuilder {
 
   // Build knowledge graph from course structure
   async buildFromCourseStructure(courseId: string): Promise<KnowledgeGraph> {
-    console.log(`Building knowledge graph for course: ${courseId}`);
 
     // Get course data
     const course = await db.course.findUnique({
@@ -140,8 +140,6 @@ export class KnowledgeGraphBuilder {
     // Cache the graph
     await this.cacheGraph(courseId);
 
-    console.log(`Knowledge graph built: ${this.graph.nodes.size} nodes, ${this.graph.edges.size} edges`);
-    
     return this.graph;
   }
 
@@ -734,7 +732,7 @@ export class KnowledgeGraphBuilder {
         JSON.stringify(graphData)
       );
     } catch (error) {
-      console.error('Failed to cache knowledge graph:', error);
+      logger.error('Failed to cache knowledge graph:', error);
     }
   }
 

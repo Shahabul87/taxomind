@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 'use client'
 
 // Web Vitals thresholds (based on Google's Core Web Vitals)
@@ -53,7 +55,7 @@ const sendToAnalytics = async (metric: Metric) => {
       }).catch(console.error)
     }
   } catch (error) {
-    console.error('Failed to send web vitals:', error)
+    logger.error('Failed to send web vitals:', error)
   }
 }
 
@@ -71,10 +73,9 @@ export const initPerformanceMonitoring = async () => {
     getFCP(sendToAnalytics)
     getLCP(sendToAnalytics)
     getTTFB(sendToAnalytics)
-    
-    console.log('✅ Web Vitals monitoring initialized')
+
   } catch (error) {
-    console.error('Failed to initialize web vitals monitoring:', error)
+    logger.error('Failed to initialize web vitals monitoring:', error)
   }
 }
 
@@ -99,7 +100,7 @@ export const measurePerformance = (name: string, startMark: string, endMark?: st
         })
       }
     } catch (error) {
-      console.error('Failed to measure performance:', error)
+      logger.error('Failed to measure performance:', error)
     }
   }
 }
@@ -161,7 +162,7 @@ export const trackResourceTiming = () => {
   try {
     observer.observe({ entryTypes: ['resource'] })
   } catch (error) {
-    console.error('Failed to observe resource timing:', error)
+    logger.error('Failed to observe resource timing:', error)
   }
 }
 

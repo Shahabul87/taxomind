@@ -39,7 +39,7 @@ export const CreateBlogInputSection = () => {
   const { isSubmitting, isValid } = form.formState;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-   console.log(values)
+
     try {
       const response = await axios.post("/api/posts", values);
       router.push(`/teacher/posts/${response.data.id}`);

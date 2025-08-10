@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Enterprise intelligence error:", error);
+    logger.error("Enterprise intelligence error:", error);
     return NextResponse.json(
       { error: "Failed to process enterprise intelligence request" },
       { status: 500 }
@@ -246,7 +247,7 @@ async function generateSecurityMetrics(startDate: Date) {
       }
     };
   } catch (error) {
-    console.error("Error generating security metrics:", error);
+    logger.error("Error generating security metrics:", error);
     return generateFallbackSecurityMetrics();
   }
 }
@@ -284,7 +285,7 @@ async function generatePerformanceMetrics(startDate: Date) {
       }
     };
   } catch (error) {
-    console.error("Error generating performance metrics:", error);
+    logger.error("Error generating performance metrics:", error);
     return generateFallbackPerformanceMetrics();
   }
 }
@@ -342,7 +343,7 @@ async function generatePredictiveAnalytics(startDate: Date, modelType?: string) 
       ]
     };
   } catch (error) {
-    console.error("Error generating predictive analytics:", error);
+    logger.error("Error generating predictive analytics:", error);
     return generateFallbackPredictiveAnalytics();
   }
 }
@@ -405,7 +406,7 @@ async function generateBusinessIntelligence(startDate: Date, segments?: string[]
       ]
     };
   } catch (error) {
-    console.error("Error generating business intelligence:", error);
+    logger.error("Error generating business intelligence:", error);
     return generateFallbackBusinessIntelligence();
   }
 }
@@ -508,7 +509,7 @@ export async function GET(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("Error fetching enterprise intelligence data:", error);
+    logger.error("Error fetching enterprise intelligence data:", error);
     return NextResponse.json(
       { error: "Failed to fetch enterprise intelligence data" },
       { status: 500 }

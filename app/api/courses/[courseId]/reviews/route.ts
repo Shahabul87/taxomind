@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 import { currentUser } from "@/lib/auth";
 
@@ -7,7 +8,6 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
   const params = await props.params;
   try {
     const user = await currentUser();
-    
 
     if (!user?.id) {
         return new NextResponse("Unauthorized", { status: 401 });
@@ -70,7 +70,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
 
     return NextResponse.json(review);
   } catch (error) {
-    console.error("[COURSE_REVIEW_CREATE]", error);
+    logger.error("[COURSE_REVIEW_CREATE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -99,7 +99,7 @@ export async function GET(req: Request, props: { params: Promise<{ courseId: str
 
     return NextResponse.json(reviews);
   } catch (error) {
-    console.error("[COURSE_REVIEWS_GET]", error);
+    logger.error("[COURSE_REVIEWS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

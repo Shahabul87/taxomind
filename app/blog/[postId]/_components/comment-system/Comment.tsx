@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { MoreHorizontal, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { logger } from '@/lib/logger';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,19 +91,16 @@ export const Comment = ({
   // Debug logging
   useEffect(() => {
     if (depth > 0) {
-      console.log(`Reply comment ${localComment.id} with parent ${parentId || 'unknown'}, depth: ${depth}`);
-    }
+}
   }, [depth, localComment.id, parentId]);
   
   useEffect(() => {
     if (depth > 0) {
-      console.log(`[Reply ${comment.id}] Depth: ${depth}, Parent: ${parentId}, Has replies: ${comment.replies?.length || 0}`);
+
       if (comment.parentReplyId) {
-        console.log(`  → This is a nested reply to reply ${comment.parentReplyId}`);
-      }
+}
       if (comment.replies?.length) {
-        console.log(`  → This reply has ${comment.replies.length} nested replies`);
-      }
+}
     }
   }, [comment, depth, parentId]);
   
@@ -144,8 +142,7 @@ export const Comment = ({
     try {
       if (depth > 0) {
         // This is a reply to another reply
-        console.log(`Replying to a reply: ${localComment.id}, parent: ${parentId}, depth: ${depth}`);
-        
+
         // Try both APIs for nested replies - using create-nested-reply for consistent handling
         try {
           // Add detailed debugger for troubleshooting
@@ -167,33 +164,24 @@ export const Comment = ({
           };
           
           console.log("Request data (stringified):", JSON.stringify(requestData));
-          console.log("DEBUGGING - Current Reply:", {
-            replyId: localComment.id,
-            depth,
-            parentId,
-            parentReplyId: localComment.parentReplyId,
-            fullComment: localComment
-          });
-          
+
           // Try the primary nested reply API first
           let response;
           
           try {
             // Add more detailed debugging
-            console.log(`Attempting primary API call to /api/create-nested-reply...`);
-            
+
             response = await axios.post(`/api/create-nested-reply`, requestData, {
               headers: {
                 'Content-Type': 'application/json'
               }
             });
-            
-            console.log("Primary API call successful");
+
           } catch (primaryApiError) {
-            console.error("Primary API failed with error:", primaryApiError);
+            logger.error("Primary API failed with error:", primaryApiError);
             
             if (axios.isAxiosError(primaryApiError)) {
-              console.error("Primary API error details:", {
+              logger.error("Primary API error details:", {
                 status: primaryApiError.response?.status,
                 statusText: primaryApiError.response?.statusText,
                 data: primaryApiError.response?.data,
@@ -202,21 +190,19 @@ export const Comment = ({
             }
             
             // If the primary API fails, try the fallback
-            console.log("Attempting fallback API call to /api/nested-replies...");
-            
+
             try {
               response = await axios.post(`/api/nested-replies`, requestData, {
                 headers: {
                   'Content-Type': 'application/json'
                 }
               });
-              
-              console.log("Fallback API call successful");
+
             } catch (fallbackError) {
-              console.error("Fallback API failed with error:", fallbackError);
+              logger.error("Fallback API failed with error:", fallbackError);
               
               if (axios.isAxiosError(fallbackError)) {
-                console.error("Fallback API error details:", {
+                logger.error("Fallback API error details:", {
                   status: fallbackError.response?.status,
                   statusText: fallbackError.response?.statusText,
                   data: fallbackError.response?.data,
@@ -225,35 +211,29 @@ export const Comment = ({
               }
               
               // If both APIs fail, try the third fallback
-              console.log("Attempting third fallback API call to /api/nested-reply...");
-              
+
               try {
                 response = await axios.post(`/api/nested-reply`, requestData, {
                   headers: {
                     'Content-Type': 'application/json'
                   }
                 });
-                
-                console.log("Third fallback API call successful");
+
               } catch (thirdError) {
-                console.error("Third fallback also failed:", thirdError);
+                logger.error("Third fallback also failed:", thirdError);
                 
                 // Last resort - use the simple-reply API that has minimal validation
-                console.log("LAST RESORT: Trying simplified API at /api/simple-reply...");
-                
+
                 response = await axios.post(`/api/simple-reply`, requestData, {
                   headers: {
                     'Content-Type': 'application/json'
                   }
                 });
-                
-                console.log("Simple reply API call successful");
+
               }
             }
           }
-          
-          console.log("Nested reply created successfully:", response.data);
-          
+
           // Ensure the reply has the correct structure
           const newReply = {
             ...response.data,
@@ -301,27 +281,27 @@ export const Comment = ({
           // Show success message
           toast.success("Reply added successfully");
         } catch (apiError) {
-          console.error("Nested reply API error:", apiError);
+          logger.error("Nested reply API error:", apiError);
           
           if (axios.isAxiosError(apiError)) {
             const statusCode = apiError.response?.status;
             const responseData = apiError.response?.data;
             
-            console.error(`API Error - Status: ${statusCode}, Message:`, responseData);
+            logger.error(`API Error - Status: ${statusCode}, Message:`, responseData);
             
             // Detailed error based on status code
             if (statusCode === 401) {
               toast.error("You must be signed in to reply");
             } else if (statusCode === 404) {
               toast.error("The comment or post was not found");
-              console.error("404 Details:", apiError.response?.data);
+              logger.error("404 Details:", apiError.response?.data);
             } else if (statusCode === 400) {
               toast.error(`Bad request: ${responseData?.error || 'Invalid data'}`);
             } else {
               toast.error(`Error: ${apiError.response?.data?.error || apiError.message}`);
             }
           } else {
-            console.error("Non-Axios error:", apiError);
+            logger.error("Non-Axios error:", apiError);
             toast.error("Failed to add reply. Please try again.");
           }
         }
@@ -332,13 +312,13 @@ export const Comment = ({
       
       setIsReplying(false);
     } catch (error) {
-      console.error("Error replying:", error);
+      logger.error("Error replying:", error);
       
       // Provide more detailed error messages
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 404) {
           toast.error("Error: API endpoint not found.");
-          console.error("API endpoint not found. Details:", error.response?.data);
+          logger.error("API endpoint not found. Details:", error.response?.data);
         } else if (error.response?.status === 400) {
           toast.error(error.response.data?.error || "Invalid request when adding reply");
         } else if (error.response?.status === 401) {
@@ -378,8 +358,7 @@ export const Comment = ({
             commentId: parentId || '',
             replyId: localComment.id
           }).toString();
-        
-        console.log(`Update URL: ${url}`);
+
         const response = await axios.patch(url, {
           content: editContent
         });
@@ -413,9 +392,9 @@ export const Comment = ({
       setIsEditing(false);
       toast.success("Update successful");
     } catch (error) {
-      console.error("Error updating comment/reply:", error);
+      logger.error("Error updating comment/reply:", error);
       if (axios.isAxiosError(error)) {
-        console.error(`Status: ${error.response?.status}, Message:`, error.response?.data);
+        logger.error(`Status: ${error.response?.status}, Message:`, error.response?.data);
         toast.error(`Failed to update: ${error.response?.data?.error || error.message}`);
       } else {
         toast.error("Failed to update");
@@ -460,21 +439,14 @@ export const Comment = ({
       // Use different delete strategies based on the depth
       if (depth > 0) {
         // This is a nested reply, use dedicated endpoint
-        console.log(`Attempting to delete nested reply:`, {
-          replyId: localComment.id,
-          parentId,
-          postId,
-          depth
-        });
-        
+
         // Properly encode the URL parameters
         const url = `/api/delete-nested-reply?` + 
           new URLSearchParams({
             postId,
             replyId: localComment.id
           }).toString();
-        
-        console.log(`Delete URL: ${url}`);
+
         await axios.delete(url);
         
         // Success message
@@ -484,7 +456,7 @@ export const Comment = ({
         await onDelete(localComment.id);
       }
     } catch (error) {
-      console.error("Error deleting comment/reply:", error);
+      logger.error("Error deleting comment/reply:", error);
       
       // If deletion fails, restore the comment in UI
       if (depth > 0 && parentId && onCommentUpdate) {
@@ -502,7 +474,7 @@ export const Comment = ({
       }
       
       if (axios.isAxiosError(error)) {
-        console.error(`Status: ${error.response?.status}, Message:`, error.response?.data);
+        logger.error(`Status: ${error.response?.status}, Message:`, error.response?.data);
         
         // More specific error messages
         if (error.response?.status === 404) {
@@ -519,13 +491,7 @@ export const Comment = ({
   };
 
   const handleReactionUpdate = (updatedComment: Partial<CommentType>) => {
-    console.log(`Reaction update in ${depth > 0 ? 'reply' : 'comment'}:`, {
-      commentId: localComment.id,
-      parentId,
-      depth,
-      updatedReactions: updatedComment.reactions?.length || 0
-    });
-    
+
     setLocalComment(prev => ({
       ...prev,
       reactions: updatedComment.reactions || prev.reactions
@@ -673,11 +639,10 @@ export const Comment = ({
                   onReply={canReply ? onReply : undefined}
                   onUpdate={onUpdate}
                   onCommentUpdate={(updatedReply) => {
-                    console.log(`Reply update for parent comment ${localComment.id}:`, updatedReply);
-                    
+
                     // Check if this is a delete operation
                     if (updatedReply._delete) {
-                      console.log(`Deleting reply ${updatedReply.id} from UI`);
+
                       // Filter out the deleted reply
                       const updatedReplies = (localComment.replies || []).filter(r => 
                         r.id !== updatedReply.id
@@ -702,9 +667,7 @@ export const Comment = ({
                     // Handle case where a deletion was attempted but failed
                     // and the comment was restored with the failure message
                     if (updatedReply._delete === false && updatedReply.content) {
-                      console.log(`Restoring previously deleted reply ${updatedReply.id}`);
-                    }
-                    
+}
                     // Regular update (not deletion)
                     // Find the updated reply in the list
                     const updatedReplies = (localComment.replies || []).map(r => 

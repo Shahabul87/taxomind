@@ -7,6 +7,7 @@ import { ProfileSection } from "./ProfileSection";
 import { StatsGrid } from "./StatsGrid";
 import { SocialPlatforms } from "./SocialPlatforms";
 import { LoadingState, AuthErrorState, ErrorState } from "./LoadingStates";
+import { logger } from '@/lib/logger';
 
 interface UserStats {
   followers: number;
@@ -75,14 +76,7 @@ export function EnhancedAnimatedHeader({ userId, initialData }: EnhancedAnimated
           sidebarWidth = 80;
         }
       }
-      
-      console.log('Layout dimensions detected:', {
-        headerHeight,
-        sidebarWidth,
-        isMobile,
-        hasUser: !!userData
-      });
-      
+
       setLayoutDimensions({ headerHeight, sidebarWidth, isMobile });
     };
 
@@ -110,13 +104,12 @@ export function EnhancedAnimatedHeader({ userId, initialData }: EnhancedAnimated
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        console.log('Fetching user profile data...');
+
         const response = await fetch('/api/profile');
-        console.log('Response status:', response.status);
-        
+
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('API Error:', errorText);
+          logger.error('API Error:', errorText);
           
           if (response.status === 401) {
             setAuthError('You need to be logged in to view your profile');
@@ -128,10 +121,10 @@ export function EnhancedAnimatedHeader({ userId, initialData }: EnhancedAnimated
         }
         
         const data = await response.json();
-        console.log('Profile data received:', data);
+
         setUserData(data);
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        logger.error('Error fetching user data:', error);
         toast.error(`Failed to load profile data: ${error instanceof Error ? error.message : 'Unknown error'}`);
         
         // Don't set mock data - let it show empty states
@@ -163,8 +156,6 @@ export function EnhancedAnimatedHeader({ userId, initialData }: EnhancedAnimated
   if (!userData) {
     return <ErrorState message="Failed to load profile data" />;
   }
-
-  console.log('Current layout dimensions:', layoutDimensions);
 
   return (
     <div className="w-full">

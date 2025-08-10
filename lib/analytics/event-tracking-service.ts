@@ -2,6 +2,7 @@
 
 import { redis } from '@/lib/redis';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export interface AnalyticsEvent {
   eventType: string;
@@ -15,8 +16,8 @@ export interface AnalyticsEvent {
 export class EventTrackingService {
   private static instance: EventTrackingService;
 
-  constructor() {}
-
+  constructor() {
+}
   static getInstance(): EventTrackingService {
     if (!EventTrackingService.instance) {
       EventTrackingService.instance = new EventTrackingService();
@@ -32,7 +33,8 @@ export class EventTrackingService {
     options: {
       sessionId?: string;
       metadata?: Record<string, any>;
-    } = {}
+    } = {
+}
   ): Promise<void> {
     try {
       const timestamp = new Date();
@@ -45,7 +47,8 @@ export class EventTrackingService {
         userId,
         sessionId: options.sessionId || `session_${Date.now()}`,
         timestamp,
-        metadata: options.metadata || {}
+        metadata: options.metadata || {
+}
       };
 
       // Store in database for persistent analytics
@@ -57,9 +60,8 @@ export class EventTrackingService {
       // Track user activity
       await this.trackUserActivity(userId, dayKey);
 
-      console.log(`Event tracked: ${eventType} for user ${userId}`);
     } catch (error) {
-      console.error('Failed to track event:', error);
+      logger.error('Failed to track event:', error);
       // Don't throw to avoid breaking user experience
     }
   }
@@ -78,7 +80,7 @@ export class EventTrackingService {
         }
       });
     } catch (error) {
-      console.error('Failed to store event in database:', error);
+      logger.error('Failed to store event in database:', error);
       // Continue with Redis tracking even if DB fails
     }
   }
@@ -109,7 +111,7 @@ export class EventTrackingService {
       await redis.lpush('analytics:recent_events', eventJson);
       await redis.ltrim('analytics:recent_events', 0, 999); // Keep last 1000 events
     } catch (error) {
-      console.error('Failed to update Redis metrics:', error);
+      logger.error('Failed to update Redis metrics:', error);
     }
   }
 
@@ -123,7 +125,7 @@ export class EventTrackingService {
       // Update user's last activity
       await redis.hset('analytics:user_activity', userId, Date.now().toString());
     } catch (error) {
-      console.error('Failed to track user activity:', error);
+      logger.error('Failed to track user activity:', error);
     }
   }
 
@@ -159,7 +161,7 @@ export class EventTrackingService {
         activeUsers
       };
     } catch (error) {
-      console.error('Failed to get event stats:', error);
+      logger.error('Failed to get event stats:', error);
       return {
         totalEvents: 0,
         eventTypes: {},
@@ -180,7 +182,7 @@ export class EventTrackingService {
         }
       }).filter(Boolean);
     } catch (error) {
-      console.error('Failed to get recent events:', error);
+      logger.error('Failed to get recent events:', error);
       return [];
     }
   }
@@ -191,7 +193,8 @@ export class EventTrackingService {
     courseId: string,
     chapterId?: string,
     eventType: 'course_start' | 'chapter_complete' | 'quiz_complete' | 'course_complete' | 'interaction',
-    eventData: Record<string, any> = {}
+    eventData: Record<string, any> = {
+}
   ): Promise<void> {
     await this.trackEvent(userId, `learning_${eventType}`, {
       courseId,
@@ -209,7 +212,8 @@ export class EventTrackingService {
   async trackMLEvent(
     userId: string,
     mlEventType: 'prediction' | 'recommendation' | 'model_update' | 'insight_generated',
-    eventData: Record<string, any> = {}
+    eventData: Record<string, any> = {
+}
   ): Promise<void> {
     await this.trackEvent(userId, `ml_${mlEventType}`, eventData, {
       metadata: {
@@ -222,7 +226,8 @@ export class EventTrackingService {
   async trackJobMarketEvent(
     userId: string,
     jobEventType: 'skill_assessment' | 'career_analysis' | 'job_match' | 'salary_projection',
-    eventData: Record<string, any> = {}
+    eventData: Record<string, any> = {
+}
   ): Promise<void> {
     await this.trackEvent(userId, `job_market_${jobEventType}`, eventData, {
       metadata: {
@@ -247,9 +252,8 @@ export class EventTrackingService {
         await redis.del(`analytics:active_users:${oldDateKey}`);
       }
 
-      console.log('Analytics cleanup completed');
     } catch (error) {
-      console.error('Failed to cleanup analytics data:', error);
+      logger.error('Failed to cleanup analytics data:', error);
     }
   }
 }

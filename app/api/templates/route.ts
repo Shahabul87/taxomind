@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Templates GET error:", error);
+    logger.error("Templates GET error:", error);
     return NextResponse.json(
       { error: "Failed to fetch templates" },
       { status: 500 }
@@ -147,7 +148,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(template, { status: 201 });
 
   } catch (error) {
-    console.error("Templates POST error:", error);
+    logger.error("Templates POST error:", error);
     return NextResponse.json(
       { error: "Failed to create template" },
       { status: 500 }

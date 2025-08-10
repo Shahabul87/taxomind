@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import { 
   getUserSAMStats, 
   getSAMInteractions,
@@ -102,7 +103,7 @@ export async function getComprehensiveAnalytics(
       trends,
     };
   } catch (error) {
-    console.error('Error getting comprehensive analytics:', error);
+    logger.error('Error getting comprehensive analytics:', error);
     throw error;
   }
 }
@@ -587,6 +588,6 @@ export async function recordAnalyticsSession(
       sectionId: sessionData.sectionId,
     });
   } catch (error) {
-    console.error('Error recording analytics session:', error);
+    logger.error('Error recording analytics session:', error);
   }
 }

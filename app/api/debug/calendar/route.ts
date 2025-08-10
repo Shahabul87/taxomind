@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -28,7 +29,7 @@ export async function GET() {
         dbConnected = true;
       }
     } catch (dbError) {
-      console.error("Database connection error:", dbError);
+      logger.error("Database connection error:", dbError);
       errorMessage = dbError instanceof Error ? dbError.message : "Unknown database error";
       dbConnected = false;
     }
@@ -46,7 +47,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error("Debug route error:", error);
+    logger.error("Debug route error:", error);
     return NextResponse.json(
       {
         success: false,

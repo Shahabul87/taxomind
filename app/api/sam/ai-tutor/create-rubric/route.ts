@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -75,7 +76,7 @@ Each criterion should have:
     });
 
   } catch (error) {
-    console.error('Rubric creation error:', error);
+    logger.error('Rubric creation error:', error);
     return NextResponse.json(
       { error: 'Failed to create rubric' },
       { status: 500 }

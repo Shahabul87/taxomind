@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { logger } from '@/lib/logger';
 import { 
   AlertCircle, 
   RefreshCw, 
@@ -58,7 +59,7 @@ export class AIErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error details
-    console.error('[AI_ERROR_BOUNDARY] Component error caught:', {
+    logger.error('[AI_ERROR_BOUNDARY] Component error caught:', {
       error: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
@@ -102,7 +103,7 @@ export class AIErrorBoundary extends Component<Props, State> {
         })
       });
     } catch (analyticsError) {
-      console.warn('Failed to send error analytics:', analyticsError);
+      logger.warn('Failed to send error analytics:', analyticsError);
     }
   }
 

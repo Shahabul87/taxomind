@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { logger } from '@/lib/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -23,7 +24,7 @@ export const sendEmail = async ({
 }: EmailParams) => {
   try {
     if (!process.env.RESEND_API_KEY) {
-      console.warn('RESEND_API_KEY is not set. Email not sent.');
+      logger.warn('RESEND_API_KEY is not set. Email not sent.');
       return { success: false, error: 'Email service not configured' };
     }
     
@@ -36,13 +37,13 @@ export const sendEmail = async ({
     });
 
     if (error) {
-      console.error('Error sending email:', error);
+      logger.error('Error sending email:', error);
       return { success: false, error };
     }
 
     return { success: true, data };
   } catch (error) {
-    console.error('Exception when sending email:', error);
+    logger.error('Exception when sending email:', error);
     return { success: false, error };
   }
 }; 

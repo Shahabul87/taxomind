@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { openai } from "@/lib/openai";
+import { logger } from '@/lib/logger';
 
 // Unique Innovation Features Engine
 // Implements Cognitive Fitness, Learning DNA, Study Buddy, and Quantum Paths
@@ -411,7 +412,7 @@ export class SAMInnovationEngine {
         recommendations,
       };
     } catch (error) {
-      console.error("Error assessing cognitive fitness:", error);
+      logger.error("Error assessing cognitive fitness:", error);
       throw new Error("Failed to assess cognitive fitness");
     }
   }
@@ -604,7 +605,7 @@ export class SAMInnovationEngine {
         phenotype,
       };
     } catch (error) {
-      console.error("Error generating learning DNA:", error);
+      logger.error("Error generating learning DNA:", error);
       throw new Error("Failed to generate learning DNA");
     }
   }
@@ -709,7 +710,7 @@ export class SAMInnovationEngine {
 
       return studyBuddy;
     } catch (error) {
-      console.error("Error creating study buddy:", error);
+      logger.error("Error creating study buddy:", error);
       throw new Error("Failed to create study buddy");
     }
   }
@@ -768,7 +769,7 @@ export class SAMInnovationEngine {
 
       return interaction;
     } catch (error) {
-      console.error("Error interacting with buddy:", error);
+      logger.error("Error interacting with buddy:", error);
       throw new Error("Failed to interact with study buddy");
     }
   }
@@ -816,7 +817,7 @@ export class SAMInnovationEngine {
 
       return quantumPath;
     } catch (error) {
-      console.error("Error creating quantum path:", error);
+      logger.error("Error creating quantum path:", error);
       throw new Error("Failed to create quantum learning path");
     }
   }
@@ -864,7 +865,7 @@ export class SAMInnovationEngine {
 
       return observation;
     } catch (error) {
-      console.error("Error observing quantum path:", error);
+      logger.error("Error observing quantum path:", error);
       throw new Error("Failed to observe quantum path");
     }
   }

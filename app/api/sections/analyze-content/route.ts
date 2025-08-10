@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -29,13 +30,12 @@ interface AIContentSuggestion {
 
 export async function POST(req: Request) {
   try {
-    console.log("[SECTION_ANALYSIS] Starting section content analysis");
-    
+
     // Get current user
     const user = await currentUser();
     
     if (!user?.id) {
-      console.log("[SECTION_ANALYSIS] No user found - unauthorized");
+
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
@@ -48,15 +48,13 @@ export async function POST(req: Request) {
     const userRole = dbUser?.role;
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      console.log(`[SECTION_ANALYSIS] User role ${userRole} not authorized`);
+
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
     
     const body = await req.json();
     const { sectionId, chapterId, courseId, sectionData, context } = body;
-    
-    console.log("[SECTION_ANALYSIS] Analyzing section:", sectionId);
-    
+
     // Verify section ownership through course
     const course = await db.course.findUnique({
       where: {
@@ -90,20 +88,18 @@ export async function POST(req: Request) {
     // Perform AI content analysis
     const analysis = await analyzeSectionContent(section, context);
     const suggestions = await generateContentSuggestions(section, context);
-    
-    console.log("[SECTION_ANALYSIS] Analysis completed for section:", sectionId);
-    
+
     return NextResponse.json({
       analysis,
       suggestions
     });
     
   } catch (error) {
-    console.error("[SECTION_ANALYSIS] Error:", error);
+    logger.error("[SECTION_ANALYSIS] Error:", error);
     
     if (error instanceof Error) {
-      console.error("[SECTION_ANALYSIS] Error message:", error.message);
-      console.error("[SECTION_ANALYSIS] Error stack:", error.stack);
+      logger.error("[SECTION_ANALYSIS] Error message:", error.message);
+      logger.error("[SECTION_ANALYSIS] Error stack:", error.stack);
     }
     
     return new NextResponse("Internal Server Error", { status: 500 });
@@ -111,8 +107,7 @@ export async function POST(req: Request) {
 }
 
 async function analyzeSectionContent(section: any, context: any): Promise<ContentAnalysis> {
-  console.log("[SECTION_ANALYSIS] Starting content analysis");
-  
+
   // Analyze current content
   const contentItems = [
     ...(section.videos || []),
@@ -164,8 +159,7 @@ async function analyzeSectionContent(section: any, context: any): Promise<Conten
 }
 
 async function generateContentSuggestions(section: any, context: any): Promise<AIContentSuggestion[]> {
-  console.log("[SECTION_ANALYSIS] Generating content suggestions");
-  
+
   const suggestions: AIContentSuggestion[] = [];
   const currentBloomsLevel = inferBloomsLevel(section.title, section.description || '');
   

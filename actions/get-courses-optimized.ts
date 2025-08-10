@@ -6,6 +6,7 @@
 import { db } from "@/lib/db";
 import { withCache, invalidatePattern } from "@/lib/cache/simple-cache";
 import { Course, Category } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 interface GetCoursesParams {
   userId?: string;
@@ -147,7 +148,7 @@ export async function getCoursesOptimized({
       },
     };
   } catch (error) {
-    console.error("[GET_COURSES_OPTIMIZED]", error);
+    logger.error("[GET_COURSES_OPTIMIZED]", error);
     return {
       courses: [],
       pagination: {
@@ -200,7 +201,7 @@ async function getProgressOptimized(
         
         return progressPercentage;
       } catch (error) {
-        console.error("[GET_PROGRESS_OPTIMIZED]", error);
+        logger.error("[GET_PROGRESS_OPTIMIZED]", error);
         return 0;
       }
     },

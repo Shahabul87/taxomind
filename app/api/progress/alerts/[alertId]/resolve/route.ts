@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Resolve/dismiss a progress alert
 export async function PATCH(
@@ -75,7 +76,7 @@ export async function PATCH(
     */
 
   } catch (error) {
-    console.error("Resolve alert error:", error);
+    logger.error("Resolve alert error:", error);
     return NextResponse.json(
       { error: "Failed to resolve alert" },
       { status: 500 }

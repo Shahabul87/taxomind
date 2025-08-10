@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 import {
   Users,
   Eye,
@@ -140,7 +141,7 @@ export const CourseCreatorDashboard = ({
       const data = await response.json();
       setAnalytics(data.analytics);
     } catch (error) {
-      console.error('Error fetching creator analytics:', error);
+      logger.error('Error fetching creator analytics:', error);
       toast.error('Failed to load creator analytics');
     } finally {
       setIsLoading(false);

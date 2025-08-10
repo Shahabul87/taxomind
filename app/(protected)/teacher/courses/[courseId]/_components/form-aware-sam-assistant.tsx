@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect, createContext, useCont
 import { IntelligentSamAssistant } from './intelligent-sam-assistant';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 // Form control context to share form refs
 interface FormControlContext {
@@ -110,7 +111,7 @@ export function FormControlProvider({
   const submitLearningObjectives = useCallback(() => {
     if (learningObjectivesForm) {
       learningObjectivesForm.handleSubmit((data: any) => {
-        console.log('Submitting learning objectives:', data);
+
       })();
     }
   }, [learningObjectivesForm]);
@@ -118,7 +119,7 @@ export function FormControlProvider({
   const submitChapter = useCallback(() => {
     if (chaptersForm) {
       chaptersForm.handleSubmit((data: any) => {
-        console.log('Submitting chapter:', data);
+
       })();
     }
   }, [chaptersForm]);
@@ -126,7 +127,7 @@ export function FormControlProvider({
   const submitTitle = useCallback(() => {
     if (titleForm) {
       titleForm.handleSubmit((data: any) => {
-        console.log('Submitting title:', data);
+
       })();
     }
   }, [titleForm]);
@@ -134,7 +135,7 @@ export function FormControlProvider({
   const submitDescription = useCallback(() => {
     if (descriptionForm) {
       descriptionForm.handleSubmit((data: any) => {
-        console.log('Submitting description:', data);
+
       })();
     }
   }, [descriptionForm]);
@@ -205,7 +206,7 @@ export function FormAwareSamAssistant({
         
         // Submit the form
         await learningObjectivesForm.handleSubmit(async (values: any) => {
-          console.log('Submitting learning objectives via form:', values);
+
         })();
         
         toast.success("Learning objectives populated in form!");
@@ -223,7 +224,7 @@ export function FormAwareSamAssistant({
         router.refresh();
       }
     } catch (error) {
-      console.error('Failed to update learning objectives:', error);
+      logger.error('Failed to update learning objectives:', error);
       toast.error('Failed to update learning objectives');
     }
   }, [courseId, learningObjectivesForm, router]);
@@ -282,7 +283,7 @@ export function FormAwareSamAssistant({
         router.refresh();
       }
     } catch (error) {
-      console.error('Failed to update chapters:', error);
+      logger.error('Failed to update chapters:', error);
       toast.error('Failed to update chapters');
     }
   }, [courseId, chaptersForm, setIsCreatingChapter, router]);
@@ -304,7 +305,7 @@ export function FormAwareSamAssistant({
         router.refresh();
       }
     } catch (error) {
-      console.error('Failed to update title:', error);
+      logger.error('Failed to update title:', error);
       toast.error('Failed to update title');
     }
   }, [courseId, titleForm, router]);
@@ -326,7 +327,7 @@ export function FormAwareSamAssistant({
         router.refresh();
       }
     } catch (error) {
-      console.error('Failed to update description:', error);
+      logger.error('Failed to update description:', error);
       toast.error('Failed to update description');
     }
   }, [courseId, descriptionForm, router]);
@@ -345,7 +346,7 @@ export function FormAwareSamAssistant({
       toast.success(`${chapterIds.length} chapters deleted!`);
       router.refresh();
     } catch (error) {
-      console.error('Failed to delete chapters:', error);
+      logger.error('Failed to delete chapters:', error);
       toast.error('Failed to delete chapters');
     }
   }, [courseId, router]);

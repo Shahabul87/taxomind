@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   Users, 
   Zap, 
@@ -107,24 +108,19 @@ export function ProfileHeader({ userId, username, avatarUrl, joinDate, profileLi
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true);
-      
-      console.log("Connecting platform:", values);
-      console.log("Using endpoint:", `/api/users/${userId}/profile-links`);
-      
+
       // Post to the API endpoint for profile links - using the endpoint found in the codebase
       const response = await axios.post(`/api/users/${userId}/profile-links`, {
         platform: values.platform,
         url: values.url
       });
-      
-      console.log("Response received:", response.data);
-      
+
       toast.success(`${values.platform} account connected`);
       form.reset();
       setIsConnectModalOpen(false);
       router.refresh(); // Refresh the page to show the new link
     } catch (error) {
-      console.error("Error connecting platform:", error);
+      logger.error("Error connecting platform:", error);
       toast.error("Failed to connect account. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -158,7 +154,7 @@ export function ProfileHeader({ userId, username, avatarUrl, joinDate, profileLi
           // Additionally simulate opening the platform in a new tab
           window.open(`https://www.${basePlatformId}.com/`, '_blank');
         } catch (error) {
-          console.error("Error connecting platform:", error);
+          logger.error("Error connecting platform:", error);
           toast.error(`Failed to connect to ${platform.name}. Please try again.`);
         } finally {
           setIsSubmitting(false);
@@ -166,7 +162,7 @@ export function ProfileHeader({ userId, username, avatarUrl, joinDate, profileLi
         }
       }, 1500); // Add a delay to simulate an API call
     } catch (error) {
-      console.error("Error connecting platform:", error);
+      logger.error("Error connecting platform:", error);
       toast.error(`Failed to connect to ${platform.name}. Please try again.`);
       setIsSubmitting(false);
       setConnectingPlatform(null);

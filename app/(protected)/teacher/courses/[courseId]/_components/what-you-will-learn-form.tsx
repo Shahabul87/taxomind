@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { logger } from '@/lib/logger';
 import {
   Form,
   FormControl,
@@ -98,16 +99,13 @@ export const WhatYouWillLearnForm = ({
   // Listen for SAM form population events
   useEffect(() => {
     const handleSamFormPopulation = (event: CustomEvent) => {
-      console.log('📥 Learning objectives form received SAM populate event:', event.detail);
-      
+
       if (event.detail?.formId === 'learning-objectives-form' || 
           event.detail?.formId === 'learning-objectives' ||
           event.detail?.formId === 'what-you-will-learn-form' ||
           event.detail?.formId === 'what-you-will-learn' ||
           event.detail?.formId === 'objectives-form') {
-        
-        console.log('✅ Matched form ID for learning objectives');
-        
+
         // Store the data to be populated
         if (event.detail?.data?.learningObjectives || 
             event.detail?.data?.whatYouWillLearn || 
@@ -132,8 +130,7 @@ export const WhatYouWillLearnForm = ({
                        pendingSamData.objectives;
       
       if (objectives && Array.isArray(objectives)) {
-        console.log('📝 Setting learning objectives:', objectives);
-        
+
         // Clear existing objectives
         const currentLength = fields.length;
         for (let i = currentLength - 1; i >= 0; i--) {
@@ -224,7 +221,7 @@ export const WhatYouWillLearnForm = ({
       
       router.refresh();
     } catch (error) {
-      console.error("Save error:", error);
+      logger.error("Save error:", error);
       toast.error("Something went wrong");
       // Revert the state
       update(index, {
@@ -255,7 +252,7 @@ export const WhatYouWillLearnForm = ({
       remove(index);
       router.refresh();
     } catch (error) {
-      console.error("Delete error:", error);
+      logger.error("Delete error:", error);
       toast.error("Something went wrong");
     } finally {
       setGlobalLoading(false);
@@ -300,7 +297,7 @@ export const WhatYouWillLearnForm = ({
           isSaving: false
         });
       } catch (error) {
-        console.error("Add suggestion error:", error);
+        logger.error("Add suggestion error:", error);
         toast.error("Something went wrong");
         // Remove if failed
         const lastIndex = form.getValues("whatYouWillLearn").length - 1;
@@ -330,7 +327,7 @@ export const WhatYouWillLearnForm = ({
       toast.success("Learning objectives reordered");
       router.refresh();
     } catch (error) {
-      console.error("Reorder error:", error);
+      logger.error("Reorder error:", error);
       toast.error("Failed to reorder objectives");
     } finally {
       setGlobalLoading(false);

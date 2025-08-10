@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -29,7 +30,7 @@ export async function GET() {
 
     return NextResponse.json(messages);
   } catch (error) {
-    console.error("[MESSAGES_GET]", error);
+    logger.error("[MESSAGES_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(message);
   } catch (error) {
-    console.error("[MESSAGE_POST]", error);
+    logger.error("[MESSAGE_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -89,7 +90,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json(message);
   } catch (error) {
-    console.error("[MESSAGE_PATCH]", error);
+    logger.error("[MESSAGE_PATCH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

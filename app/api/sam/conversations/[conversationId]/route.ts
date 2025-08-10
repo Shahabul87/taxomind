@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schema for path parameters
 const paramsSchema = z.object({
@@ -83,7 +84,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Error fetching conversation:', error);
+    logger.error('Error fetching conversation:', error);
     
     return NextResponse.json({
       error: 'Failed to fetch conversation',
@@ -182,7 +183,7 @@ export async function PATCH(
     });
 
   } catch (error) {
-    console.error('Error updating conversation:', error);
+    logger.error('Error updating conversation:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json({
@@ -255,7 +256,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('Error deleting conversation:', error);
+    logger.error('Error deleting conversation:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json({

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request, props: { params: Promise<{ courseId: string }> }) {
   const params = await props.params;
@@ -37,7 +38,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
 
     return NextResponse.json(enrollment);
   } catch (error) {
-    console.error("[COURSE_ENROLL]", error);
+    logger.error("[COURSE_ENROLL]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

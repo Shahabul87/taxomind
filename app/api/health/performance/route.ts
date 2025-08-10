@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { perfMonitor } from "@/lib/monitoring/performance";
 import { cache } from "@/lib/cache/simple-cache";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -50,7 +51,7 @@ export async function GET() {
       recommendations: getRecommendations(avgResponseTime, dbResponseTime, cacheStats.size),
     });
   } catch (error) {
-    console.error("[HEALTH_PERFORMANCE]", error);
+    logger.error("[HEALTH_PERFORMANCE]", error);
     return NextResponse.json(
       {
         status: 'error',

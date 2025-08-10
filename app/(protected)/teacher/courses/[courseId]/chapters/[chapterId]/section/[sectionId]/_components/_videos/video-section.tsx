@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -166,7 +167,7 @@ export const VideoSectionForm = ({
         throw new Error("No metadata returned");
       }
     } catch (error) {
-      console.error("Error fetching video metadata:", error);
+      logger.error("Error fetching video metadata:", error);
       toast.error("Could not fetch video details. Please enter them manually.");
       
       // Set default values from URL
@@ -224,7 +225,7 @@ export const VideoSectionForm = ({
         toast.error("Clipboard content is not a valid URL");
       }
     } catch (err) {
-      console.error("Error accessing clipboard:", err);
+      logger.error("Error accessing clipboard:", err);
       toast.error("Unable to access clipboard");
     }
   };
@@ -255,7 +256,7 @@ export const VideoSectionForm = ({
       resetForm();
       router.refresh();
     } catch (error: any) {
-      console.error("Video creation error:", error);
+      logger.error("Video creation error:", error);
       toast.error(error.response?.data || "Failed to add video");
     }
   };

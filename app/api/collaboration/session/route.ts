@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -111,7 +112,7 @@ export async function GET(req: NextRequest) {
       participants: [],
     });
   } catch (error) {
-    console.error("Error fetching collaboration session:", error);
+    logger.error("Error fetching collaboration session:", error);
     return NextResponse.json(
       { error: "Failed to fetch collaboration session" },
       { status: 500 }
@@ -182,7 +183,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(collaborationSession);
   } catch (error) {
-    console.error("Error creating collaboration session:", error);
+    logger.error("Error creating collaboration session:", error);
     return NextResponse.json(
       { error: "Failed to create collaboration session" },
       { status: 500 }
@@ -285,7 +286,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error updating collaboration session:", error);
+    logger.error("Error updating collaboration session:", error);
     return NextResponse.json(
       { error: "Failed to update collaboration session" },
       { status: 500 }

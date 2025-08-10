@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   try {
-    console.log("[COURSES] Starting course creation request");
-    
+
     // Get current user
     const user = await currentUser();
     console.log("[COURSES] Full user object:", JSON.stringify(user, null, 2));
     
     if (!user?.id) {
-      console.log("[COURSES] No user found - unauthorized");
+
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
@@ -27,32 +27,26 @@ export async function POST(req: Request) {
     
     // Use database role as source of truth
     const userRole = dbUser?.role;
-    console.log(`[COURSES] Final role check: session.role=${user.role}, db.role=${dbUser?.role}, using=${userRole}`);
-    
+
     if (!userRole) {
-      console.log(`[COURSES] No role found for user`);
+
       return new NextResponse("User role not found", { status: 403 });
     }
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      console.log(`[COURSES] User role ${userRole} not authorized for course creation`);
+
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
-    
-    console.log(`[COURSES] Role check passed: ${userRole}`);
-    
+
     // Parse request body
     const body = await req.json();
     const { title, description, learningObjectives } = body;
-    console.log("[COURSES] Request body:", body);
-    
+
     if (!title || title.trim().length === 0) {
-      console.log("[COURSES] Title validation failed");
+
       return new NextResponse("Title is required", { status: 400 });
     }
-    
-    console.log(`[COURSES] Creating course for user ${user.id} with title: ${title}`);
-    
+
     // Handle learning objectives - convert array to string for courseGoals or use whatYouWillLearn array
     let courseGoalsString = null;
     let whatYouWillLearnArray = [];
@@ -76,15 +70,14 @@ export async function POST(req: Request) {
       }
     });
 
-    console.log(`[COURSES] Course created successfully: ${course.id}`);
     return NextResponse.json(course);
     
   } catch (error) {
-    console.error("[COURSES] Error creating course:", error);
+    logger.error("[COURSES] Error creating course:", error);
     
     if (error instanceof Error) {
-      console.error("[COURSES] Error message:", error.message);
-      console.error("[COURSES] Error stack:", error.stack);
+      logger.error("[COURSES] Error message:", error.message);
+      logger.error("[COURSES] Error stack:", error.stack);
       
       // Check for specific Prisma errors
       if (error.message.includes('Foreign key constraint')) {
@@ -115,9 +108,7 @@ export const GET = async (req: Request) => {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const isFeatured = searchParams.get("featured") === "true" ? true : undefined;
-    
-    console.log(`🚀 [COURSES_API] Fetching courses with filters:`, { categoryId, search, page, limit, isFeatured });
-    
+
     // Build where clause based on working schema
     const whereClause: any = {
       isPublished: true,
@@ -226,12 +217,10 @@ export const GET = async (req: Request) => {
         isEnrolled: user?.id ? course.Enrollment.length > 0 : false,
       };
     });
-    
-    console.log(`✅ [COURSES_API] Successfully fetched ${processedCourses.length} courses`);
-    
+
     return NextResponse.json(processedCourses);
   } catch (error) {
-    console.error("[COURSES_API]", error);
+    logger.error("[COURSES_API]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 };

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface DebugNestedRepliesProps {
   postId: string;
@@ -49,7 +50,7 @@ export default function DebugNestedReplies({ postId }: DebugNestedRepliesProps) 
         setDepth(prevDepth => prevDepth + 1);
       }
     } catch (error: any) {
-      console.error('Error testing nested reply:', error);
+      logger.error('Error testing nested reply:', error);
       
       setResult({
         success: false,

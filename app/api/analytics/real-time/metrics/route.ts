@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(metrics);
   } catch (error) {
-    console.error('Real-time metrics error:', error);
+    logger.error('Real-time metrics error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch real-time metrics' },
       { status: 500 }
@@ -325,7 +326,7 @@ export async function POST(req: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('Real-time subscription error:', error);
+    logger.error('Real-time subscription error:', error);
     return NextResponse.json(
       { error: 'Failed to handle subscription' },
       { status: 500 }

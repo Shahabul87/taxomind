@@ -3,6 +3,7 @@
 import { redis } from '@/lib/redis';
 import { db } from '@/lib/db';
 import { EventTrackingService } from './event-tracking-service';
+import { logger } from '@/lib/logger';
 
 export interface AnalyticsData {
   dailyStats: DailyStats;
@@ -90,8 +91,6 @@ export class AnalyticsEngine {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log('Initializing Analytics Engine...');
-    
     try {
       // Verify dependencies
       await this.verifyDependencies();
@@ -103,9 +102,9 @@ export class AnalyticsEngine {
       await this.initializeCache();
       
       this.initialized = true;
-      console.log('Analytics Engine initialized successfully');
+
     } catch (error) {
-      console.error('Failed to initialize Analytics Engine:', error);
+      logger.error('Failed to initialize Analytics Engine:', error);
       throw error;
     }
   }
@@ -142,7 +141,7 @@ export class AnalyticsEngine {
         performanceMetrics
       };
     } catch (error) {
-      console.error('Failed to get analytics:', error);
+      logger.error('Failed to get analytics:', error);
       throw error;
     }
   }
@@ -179,7 +178,7 @@ export class AnalyticsEngine {
       
       return dailyStats;
     } catch (error) {
-      console.error('Failed to get daily stats:', error);
+      logger.error('Failed to get daily stats:', error);
       return this.getDefaultDailyStats(today);
     }
   }
@@ -209,7 +208,7 @@ export class AnalyticsEngine {
       
       return weeklyStats;
     } catch (error) {
-      console.error('Failed to get weekly stats:', error);
+      logger.error('Failed to get weekly stats:', error);
       return this.getDefaultWeeklyStats(weekKey);
     }
   }
@@ -239,7 +238,7 @@ export class AnalyticsEngine {
       
       return monthlyStats;
     } catch (error) {
-      console.error('Failed to get monthly stats:', error);
+      logger.error('Failed to get monthly stats:', error);
       return this.getDefaultMonthlyStats(monthKey);
     }
   }
@@ -269,7 +268,7 @@ export class AnalyticsEngine {
         errorRate
       };
     } catch (error) {
-      console.error('Failed to get real-time metrics:', error);
+      logger.error('Failed to get real-time metrics:', error);
       return {
         activeUsers: 0,
         currentEvents: 0,
@@ -296,7 +295,7 @@ export class AnalyticsEngine {
       
       return patterns;
     } catch (error) {
-      console.error('Failed to get learning patterns:', error);
+      logger.error('Failed to get learning patterns:', error);
       return [];
     }
   }
@@ -322,7 +321,7 @@ export class AnalyticsEngine {
       
       return metrics;
     } catch (error) {
-      console.error('Failed to get performance metrics:', error);
+      logger.error('Failed to get performance metrics:', error);
       return {
         averageSessionTime: 0,
         completionRate: 0,
@@ -369,12 +368,12 @@ export class AnalyticsEngine {
 
   private async setupAggregationJobs(): Promise<void> {
     // Setup periodic aggregation jobs
-    console.log('Setting up analytics aggregation jobs...');
+
   }
 
   private async initializeCache(): Promise<void> {
     // Initialize analytics cache
-    console.log('Initializing analytics cache...');
+
   }
 
   private async getUserStats(date: string): Promise<any> {

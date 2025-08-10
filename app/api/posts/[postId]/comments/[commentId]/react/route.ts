@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export async function PATCH(
   req: Request,
@@ -66,7 +67,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedComment);
   } catch (error) {
-    console.error("[COMMENT_REACTION]", error);
+    logger.error("[COMMENT_REACTION]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

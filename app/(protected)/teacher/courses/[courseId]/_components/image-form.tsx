@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 
 import { UploadButton } from "@/utils/uploadthing";
 
-
 interface ImageFormProps {
   initialData: Course
   courseId: string;
@@ -46,8 +45,6 @@ export const ImageForm = ({
       toast.error("Something went wrong");
     }
   }
- 
-  
 
   return (
     <div className="mt-6 border border-[#94a3b8] bg-gray-700 rounded-md p-4">
@@ -101,7 +98,7 @@ export const ImageForm = ({
               endpoint="imageUploader"
               onClientUploadComplete={(res) => {
                 onSubmit({ imageUrl: res?.[0].url });
-                console.log("Files: ", res);
+
                 alert("Upload Completed");
               }}
               onUploadError={(error: Error) => {

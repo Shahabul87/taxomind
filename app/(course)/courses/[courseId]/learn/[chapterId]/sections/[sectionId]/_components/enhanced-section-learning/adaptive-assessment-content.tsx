@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   Brain, 
   Target, 
@@ -115,7 +116,7 @@ export const AdaptiveAssessmentContent = ({ sectionId, courseId, chapterId }: Ad
         toast.error('Failed to load assessment analysis');
       }
     } catch (error) {
-      console.error('Error fetching analysis:', error);
+      logger.error('Error fetching analysis:', error);
       toast.error('Failed to load assessment analysis');
     } finally {
       setLoading(false);
@@ -150,7 +151,7 @@ export const AdaptiveAssessmentContent = ({ sectionId, courseId, chapterId }: Ad
         toast.error('Failed to generate adaptive questions');
       }
     } catch (error) {
-      console.error('Error generating questions:', error);
+      logger.error('Error generating questions:', error);
       toast.error('Failed to generate adaptive questions');
     } finally {
       setGeneratingQuestions(false);

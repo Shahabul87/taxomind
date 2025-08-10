@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * SAM Memory System - Persistent Context Management
  * Maintains contextual information throughout the entire course creation journey
@@ -347,7 +349,7 @@ export class SamMemorySystem {
         localStorage.setItem(this.storageKey, JSON.stringify(this.context));
       }
     } catch (error) {
-      console.warn('Failed to save SAM context to localStorage:', error);
+      logger.warn('Failed to save SAM context to localStorage:', error);
     }
   }
 
@@ -364,7 +366,7 @@ export class SamMemorySystem {
         this.context = {};
       }
     } catch (error) {
-      console.warn('Failed to load SAM context from localStorage:', error);
+      logger.warn('Failed to load SAM context from localStorage:', error);
       this.context = {};
     }
   }

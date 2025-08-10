@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function PATCH(req: Request, props: { params: Promise<{ ideaId: string }> }) {
   const params = await props.params;
@@ -30,7 +31,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ ideaId: str
 
     return NextResponse.json(idea);
   } catch (error) {
-    console.error("[IDEA_PATCH]", error);
+    logger.error("[IDEA_PATCH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -52,7 +53,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ ideaId: st
 
     return NextResponse.json(idea);
   } catch (error) {
-    console.error("[IDEA_DELETE]", error);
+    logger.error("[IDEA_DELETE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

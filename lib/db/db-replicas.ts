@@ -7,6 +7,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Pool, PoolConfig, PoolClient } from 'pg';
 import { Redis } from '@upstash/redis';
+import { logger } from '@/lib/logger';
 
 export interface DatabaseConfig {
   url: string;
@@ -113,7 +114,6 @@ export class DatabaseReplicaManager {
     this.startHealthMonitoring();
     this.startMetricsCollection();
 
-    console.log(`[DB_REPLICAS] Enterprise replica manager initialized with master and ${replicaConfigs.length} replicas`);
   }
 
   /**
@@ -168,7 +168,6 @@ export class DatabaseReplicaManager {
     // Set up pool event listeners
     this.setupPoolEventListeners(pool, config.name);
 
-    console.log(`[DB_REPLICAS] Added enterprise replica: ${config.name} with connection pool`);
   }
 
   /**
@@ -190,7 +189,6 @@ export class DatabaseReplicaManager {
       this.healthStatus.delete(replicaName);
       this.metrics.delete(replicaName);
 
-      console.log(`[DB_REPLICAS] Removed replica: ${replicaName}`);
     }
   }
 
@@ -215,7 +213,7 @@ export class DatabaseReplicaManager {
     const healthyReplicas = this.getHealthyReplicas();
     
     if (healthyReplicas.length === 0) {
-      console.warn('[DB_REPLICAS] No healthy replicas available, falling back to master');
+      logger.warn('[DB_REPLICAS] No healthy replicas available, falling back to master');
       return this.masterClient;
     }
 
@@ -232,7 +230,7 @@ export class DatabaseReplicaManager {
     const healthyReplicas = this.getHealthyReplicas();
     
     if (healthyReplicas.length === 0) {
-      console.warn('[DB_REPLICAS] No healthy replica pools available, falling back to master');
+      logger.warn('[DB_REPLICAS] No healthy replica pools available, falling back to master');
       return this.masterPool;
     }
 
@@ -272,7 +270,7 @@ export class DatabaseReplicaManager {
         },
       };
     } catch (error) {
-      console.error(`[DB_REPLICAS] Failed to get connection from ${replicaId}:`, error);
+      logger.error(`[DB_REPLICAS] Failed to get connection from ${replicaId}:`, error);
       
       // If replica failed and this wasn't a write, try master
       if (!isWrite && replicaId !== 'master') {
@@ -304,7 +302,7 @@ export class DatabaseReplicaManager {
         lastError = error as Error;
         this.recordQueryError(clientName, error as Error);
         
-        console.warn(`[DB_REPLICAS] Query failed on ${clientName}, attempt ${attempt + 1}:`, error);
+        logger.warn(`[DB_REPLICAS] Query failed on ${clientName}, attempt ${attempt + 1}:`, error);
         
         // Mark replica as unhealthy if it's not the master
         if (clientName !== 'master') {
@@ -419,12 +417,11 @@ export class DatabaseReplicaManager {
       
       const result = await callback(connection.client);
       await connection.client.query('COMMIT');
-      
-      console.log('[DB_REPLICAS] Transaction committed successfully');
+
       return result;
     } catch (error) {
       await connection.client.query('ROLLBACK');
-      console.error('[DB_REPLICAS] Transaction rolled back:', error);
+      logger.error('[DB_REPLICAS] Transaction rolled back:', error);
       throw error;
     } finally {
       connection.release();
@@ -436,7 +433,7 @@ export class DatabaseReplicaManager {
    */
   setLoadBalancingStrategy(strategy: LoadBalancingStrategy): void {
     this.loadBalancingStrategy = strategy;
-    console.log(`[DB_REPLICAS] Load balancing strategy changed to: ${strategy}`);
+
   }
 
   /**
@@ -711,16 +708,16 @@ export class DatabaseReplicaManager {
    */
   private setupPoolEventListeners(pool: Pool, poolName: string): void {
     pool.on('connect', (client) => {
-      console.log(`[DB_REPLICAS] Pool client connected: ${poolName}`);
+
     });
 
     pool.on('error', (err, client) => {
-      console.error(`[DB_REPLICAS] Pool error for ${poolName}:`, err);
+      logger.error(`[DB_REPLICAS] Pool error for ${poolName}:`, err);
       this.markReplicaUnhealthy(poolName, err);
     });
 
     pool.on('remove', (client) => {
-      console.log(`[DB_REPLICAS] Pool client removed: ${poolName}`);
+
     });
   }
 
@@ -814,7 +811,7 @@ export class DatabaseReplicaManager {
         lastError: error instanceof Error ? error.message : 'Unknown error',
       });
 
-      console.error(`[DB_REPLICAS] Health check failed for ${name}:`, error);
+      logger.error(`[DB_REPLICAS] Health check failed for ${name}:`, error);
     }
   }
 
@@ -835,10 +832,9 @@ export class DatabaseReplicaManager {
           loadBalancingStrategy: this.loadBalancingStrategy,
         })
       );
-      
-      console.log('[DB_REPLICAS] Enterprise metrics persisted successfully');
+
     } catch (error) {
-      console.error('[DB_REPLICAS] Failed to persist metrics:', error);
+      logger.error('[DB_REPLICAS] Failed to persist metrics:', error);
     }
   }
 
@@ -948,8 +944,7 @@ export class DatabaseReplicaManager {
       metrics.throughputPerMinute = 0;
       metrics.peakThroughput = 0;
     }
-    
-    console.log('[DB_REPLICAS] Enterprise metrics reset');
+
   }
 
   /**
@@ -966,7 +961,7 @@ export class DatabaseReplicaManager {
     const config = this.replicaConfigs.get(replicaName);
     if (config) {
       config.priority = priority;
-      console.log(`[DB_REPLICAS] Updated ${replicaName} priority to ${priority}`);
+
     }
   }
 
@@ -980,8 +975,7 @@ export class DatabaseReplicaManager {
         health.isHealthy = false;
       }
     }
-    
-    console.log('[DB_REPLICAS] Forced failover to master - all replicas marked unhealthy');
+
   }
 
   /**
@@ -994,8 +988,7 @@ export class DatabaseReplicaManager {
       health.errorCount = 0;
       health.lastCheck = new Date();
       health.lastError = undefined;
-      
-      console.log(`[DB_REPLICAS] Manually restored health for replica: ${replicaName}`);
+
     }
   }
 
@@ -1026,7 +1019,7 @@ export class DatabaseReplicaManager {
    * Graceful shutdown
    */
   async shutdown(): Promise<void> {
-    console.log('[DB_REPLICAS] Starting enterprise shutdown...');
+
     this.isShuttingDown = true;
 
     try {
@@ -1040,7 +1033,7 @@ export class DatabaseReplicaManager {
 
       // Persist final metrics
       await this.collectAndPersistMetrics().catch(err => 
-        console.warn('[DB_REPLICAS] Failed to persist final metrics:', err)
+        logger.warn('[DB_REPLICAS] Failed to persist final metrics:', err)
       );
 
       // Disconnect all clients and close pools
@@ -1068,9 +1061,8 @@ export class DatabaseReplicaManager {
       this.healthStatus.clear();
       this.metrics.clear();
 
-      console.log('[DB_REPLICAS] Enterprise shutdown completed successfully');
     } catch (error) {
-      console.error('[DB_REPLICAS] Error during shutdown:', error);
+      logger.error('[DB_REPLICAS] Error during shutdown:', error);
       throw error;
     }
   }

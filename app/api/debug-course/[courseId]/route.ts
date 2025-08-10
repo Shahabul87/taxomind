@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -11,8 +12,7 @@ export async function GET(
 ) {
   try {
     const { courseId } = await params;
-    console.log("[DEBUG_COURSE] Debugging course:", courseId);
-    
+
     const user = await currentUser();
     
     // Get course details
@@ -73,11 +73,9 @@ export async function GET(
       }
     };
 
-    console.log("[DEBUG_COURSE] Debug info:", debugInfo);
-    
     return NextResponse.json(debugInfo);
   } catch (error) {
-    console.error("[DEBUG_COURSE] Error:", error);
+    logger.error("[DEBUG_COURSE] Error:", error);
     return NextResponse.json({ 
       error: "Debug failed", 
       details: error instanceof Error ? error.message : "Unknown error",

@@ -196,19 +196,17 @@ export class BloomsAnalysisEngine {
 
     // Use cached analysis if content hasn't changed and not forced
     if (existingAnalysis && !forceReanalyze && existingAnalysis.contentHash === currentContentHash) {
-      console.log(`Using cached analysis for course ${courseId} - content unchanged`);
+
       return this.parseStoredAnalysis(existingAnalysis);
     }
 
     // Log why we're re-analyzing
     if (forceReanalyze) {
-      console.log(`Forced re-analysis for course ${courseId}`);
-    } else if (existingAnalysis && existingAnalysis.contentHash !== currentContentHash) {
-      console.log(`Re-analyzing course ${courseId} - content has changed`);
-    } else {
-      console.log(`First-time analysis for course ${courseId}`);
-    }
 
+    } else if (existingAnalysis && existingAnalysis.contentHash !== currentContentHash) {
+
+    } else {
+}
     // Perform new analysis
     const analysis = await this.performAnalysis(course, depth, includeRecommendations);
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(idea);
   } catch (error) {
-    console.error("[IDEA_POST]", error);
+    logger.error("[IDEA_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -66,7 +67,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(ideas);
   } catch (error) {
-    console.error("[IDEAS_GET]", error);
+    logger.error("[IDEAS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

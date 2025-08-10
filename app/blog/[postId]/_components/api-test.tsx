@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 export default function ApiTest() {
   const [testing, setTesting] = useState(false);
@@ -27,9 +28,9 @@ export default function ApiTest() {
         // Just do a simple OPTIONS request to check if the endpoint exists
         await axios.options(endpoint);
         newResults[endpoint] = true;
-        console.log(`API endpoint ${endpoint} exists`);
+
       } catch (error: any) {
-        console.error(`Error testing ${endpoint}:`, error);
+        logger.error(`Error testing ${endpoint}:`, error);
         const statusCode = error.response?.status;
         // If we get a 405 Method Not Allowed, the endpoint exists but doesn't support OPTIONS
         // 401/403 means it exists but we're not authenticated
@@ -70,7 +71,7 @@ export default function ApiTest() {
       
       toast.success('Test POST successful');
     } catch (error: any) {
-      console.error('Test POST failed:', error);
+      logger.error('Test POST failed:', error);
       
       setTestPostResult({
         success: false,
@@ -94,9 +95,7 @@ export default function ApiTest() {
         commentId: 'test-comment-id',
         // Include both comment and reply for testing
       };
-      
-      console.log("Testing reaction API with payload:", payload);
-      
+
       // Make the API request
       const response = await axios.post('/api/comment-reaction', payload);
       
@@ -115,19 +114,16 @@ export default function ApiTest() {
           postId: 'test-post-id',
           replyId: 'test-reply-id',
         };
-        
-        console.log("Testing nested reply reaction API with payload:", nestedPayload);
-        
+
         const nestedResponse = await axios.post('/api/comment-reaction', nestedPayload);
-        
-        console.log("Nested reply reaction API test successful:", nestedResponse.data);
+
         toast.success('Nested reply reaction API test successful');
       } catch (nestedError) {
-        console.error('Nested reply reaction API test failed:', nestedError);
+        logger.error('Nested reply reaction API test failed:', nestedError);
         toast.error(`Nested reply test failed: ${nestedError.response?.status || 'Unknown error'}`);
       }
     } catch (error: any) {
-      console.error('Reaction API test failed:', error);
+      logger.error('Reaction API test failed:', error);
       
       setReactionTestResult({
         success: false,

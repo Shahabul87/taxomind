@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 const prisma = new PrismaClient();
 
@@ -54,7 +55,7 @@ export async function GET(
     const error = searchParams.get('error');
 
     if (error) {
-      console.error('OAuth error:', error);
+      logger.error('OAuth error:', error);
       return NextResponse.redirect(
         new URL('/profile?error=oauth_cancelled', request.url)
       );
@@ -116,7 +117,7 @@ export async function GET(
     );
 
   } catch (error) {
-    console.error('OAuth callback error:', error);
+    logger.error('OAuth callback error:', error);
     return NextResponse.redirect(
       new URL('/profile?error=callback_failed', request.url)
     );
@@ -290,7 +291,7 @@ async function saveSocialAccount(userId: string, platform: string, accountData: 
       },
     });
   } catch (error) {
-    console.error('Error saving social account:', error);
+    logger.error('Error saving social account:', error);
     throw error;
   }
 }
@@ -306,7 +307,7 @@ async function triggerDataSync(userId: string, platform: string) {
       body: JSON.stringify({ userId }),
     });
   } catch (error) {
-    console.error('Error triggering data sync:', error);
+    logger.error('Error triggering data sync:', error);
     // Don't throw - this is non-critical
   }
 } 

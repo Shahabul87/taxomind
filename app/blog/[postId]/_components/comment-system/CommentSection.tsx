@@ -8,6 +8,7 @@ import { Comment, CommentType } from "./Comment";
 import { CommentBox } from "./CommentBox";
 import { Post } from "@prisma/client";
 import { MessageSquare, Filter, Clock, ThumbsUp } from "lucide-react";
+import { logger } from '@/lib/logger';
 import {
   Select,
   SelectContent,
@@ -55,7 +56,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
     if (status === 'loading') return;
     
     if (status === 'error') {
-      console.error("Session fetch error detected");
+      logger.error("Session fetch error detected");
       setIsSessionError(true);
     } else {
       setIsSessionError(false);
@@ -173,7 +174,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
         updateUrlWithPage(pageToFetch);
       }
     } catch (error) {
-      console.error("Error fetching comments:", error);
+      logger.error("Error fetching comments:", error);
       toast.error("Failed to load comments");
     } finally {
       setIsLoading(false);
@@ -210,7 +211,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       
       toast.success("Comment added");
     } catch (error) {
-      console.error("Error adding comment:", error);
+      logger.error("Error adding comment:", error);
       
       // Handle rate limit errors
       if (axios.isAxiosError(error) && error.response?.status === 429) {
@@ -239,8 +240,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       });
 
       const newReply = response.data;
-      console.log("New reply added:", newReply);
-      
+
       // Update the comments state with the new reply
       setComments(prev => 
         prev.map(comment => {
@@ -260,7 +260,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       
       toast.success("Reply added");
     } catch (error) {
-      console.error("Error adding reply:", error);
+      logger.error("Error adding reply:", error);
       toast.error("Failed to add reply");
     }
   };
@@ -402,7 +402,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       
       toast.success("Comment updated");
     } catch (error) {
-      console.error("Error updating comment/reply:", error);
+      logger.error("Error updating comment/reply:", error);
       
       // More detailed error messages
       if (axios.isAxiosError(error)) {
@@ -473,8 +473,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
         
         if (isNestedReply) {
           // This is a nested reply (beyond first level) - use the nested-reply delete endpoint
-          console.log("Deleting nested reply:", commentId, "from parent comment:", parentCommentId);
-          
+
           // Use the specialized API for deleting nested replies
           await axios.delete(`/api/delete-nested-reply?${new URLSearchParams({
             postId,
@@ -527,7 +526,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       
       toast.success("Comment deleted");
     } catch (error) {
-      console.error("Error deleting comment/reply:", error);
+      logger.error("Error deleting comment/reply:", error);
       
       // More detailed error messages
       if (axios.isAxiosError(error)) {
@@ -551,13 +550,12 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
     }
 
     try {
-      console.log(`Handling reaction for ${isReply ? 'reply' : 'comment'}:`, { commentId, reactionType });
-      
+
       // The API call is handled by the ReactionButton component, 
       // but we're providing this function for consistent interface
       return;
     } catch (error) {
-      console.error("Error reacting to comment:", error);
+      logger.error("Error reacting to comment:", error);
       toast.error("Failed to react to comment");
       throw error;
     }
@@ -762,8 +760,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
                   }
                   
                   // If we get here, it's likely a nested reply update
-                  console.log("Handling nested reply update for comment:", comment.id);
-                  
+
                   // Helper function to recursively process nested replies
                   const processNestedReplies = (replies: CommentType[]): CommentType[] => {
                     if (!replies || replies.length === 0) return [];
@@ -773,13 +770,13 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
                       if (reply.id === updatedComment.id) {
                         // Check if this is a delete operation
                         if (updatedComment._delete === true) {
-                          console.log(`Filtering out deleted reply: ${reply.id}`);
+
                           return null; // Will be filtered out
                         }
                         
                         // Check if this is a "restore after failed deletion" operation
                         if (updatedComment._delete === false) {
-                          console.log(`Restoring reply after failed deletion: ${reply.id}`);
+
                           // Make sure we use the updated content that doesn't accumulate error messages
                           return { ...reply, ...updatedComment };
                         }
@@ -799,9 +796,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
                         // If this reply had replies, but all its replies were deleted,
                         // we need to update its UI state to reflect it has no more replies
                         if (hadNestedReplies && !hasRepliesAfterUpdate) {
-                          console.log(`All nested replies of ${reply.id} were deleted`);
-                        }
-                        
+}
                         return {
                           ...reply,
                           replies: updatedNestedReplies

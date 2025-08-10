@@ -304,8 +304,7 @@ export class ProgressTracker {
 
   static async sendRealtimeNotification(alert: ProgressAlert): Promise<void> {
     // Implement WebSocket or Server-Sent Events for real-time notifications
-    console.log("Sending real-time notification:", alert);
-    
+
     // For now, we'll integrate with the dashboard's notification system
     // This will be implemented in the next step
   }

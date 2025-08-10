@@ -3,11 +3,12 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { logger } from '@/lib/logger';
 
 export function initializeTracing() {
   // Only initialize in production or when OTEL is explicitly enabled
   if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_OTEL !== 'true') {
-    console.log('OpenTelemetry tracing disabled in development');
+
     return;
   }
 
@@ -38,17 +39,17 @@ export function initializeTracing() {
 
   sdk.start()
     .then(() => {
-      console.log('OpenTelemetry tracing initialized successfully');
+
     })
     .catch((error) => {
-      console.error('Error initializing OpenTelemetry:', error);
+      logger.error('Error initializing OpenTelemetry:', error);
     });
 
   // Graceful shutdown
   process.on('SIGTERM', () => {
     sdk.shutdown()
       .then(() => console.log('OpenTelemetry terminated'))
-      .catch((error) => console.error('Error terminating OpenTelemetry', error))
+      .catch((error) => logger.error('Error terminating OpenTelemetry', error))
       .finally(() => process.exit(0));
   });
 }

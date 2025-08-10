@@ -5,6 +5,7 @@ import { useIntersectionObserver } from '@/hooks/use-intersection-observer';
 import { LoadingSpinner } from './ui/loading-spinner';
 import { ErrorBoundary } from './ui/error-boundary';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 interface ProgressiveLoaderProps {
   children: React.ReactNode;
@@ -109,7 +110,8 @@ export function ProgressiveLoader({
 // HOC for progressive loading
 export function withProgressiveLoading<T extends object>(
   Component: React.ComponentType<T>,
-  options: Omit<ProgressiveLoaderProps, 'children'> = {}
+  options: Omit<ProgressiveLoaderProps, 'children'> = {
+}
 ) {
   return function ProgressiveComponent(props: T) {
     return (

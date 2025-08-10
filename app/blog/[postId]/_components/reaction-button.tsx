@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { logger } from '@/lib/logger';
 
 const reactions = [
   { id: 'like', emoji: '👍', label: 'Like', color: '#2563eb' },
@@ -49,17 +50,10 @@ export const ReactionButton = ({
 
     // Validate IDs
     if (!postId || !commentId) {
-      console.error("Missing required IDs:", { postId, commentId });
+      logger.error("Missing required IDs:", { postId, commentId });
       toast.error("Missing required data");
       return;
     }
-
-    console.log("Attempting to add reaction:", {
-      postId,
-      commentId,
-      type,
-      userId: session.user.id
-    });
 
     try {
       setIsLoading(true);
@@ -96,15 +90,11 @@ export const ReactionButton = ({
         reactions: updatedReactions
       });
 
-      console.log("Making API request to:", `/api/posts/${postId}/comments/${commentId}/reactions`);
-      
       // Make API call
       const response = await axios.post(
         `/api/posts/${postId}/comments/${commentId}/reactions`,
         { type }
       );
-
-      console.log("API response:", response.data);
 
       // Update with server response
       if (response.data) {
@@ -115,7 +105,7 @@ export const ReactionButton = ({
         setShowReactions(false);
       }
     } catch (error: any) {
-      console.error("Reaction error:", error.response || error);
+      logger.error("Reaction error:", error.response || error);
       // Revert to initial state on error
       setLocalReactions(initialReactions);
       onReactionUpdate({ id: commentId, reactions: initialReactions });

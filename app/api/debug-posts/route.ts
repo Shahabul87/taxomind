@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
-    console.log("🔍 DEBUG API: Checking database posts...");
 
     // Get total count
     const totalCount = await db.post.count();
-    console.log(`📊 Total posts: ${totalCount}`);
 
     // Get all posts with basic info
     const allPosts = await db.post.findMany({
@@ -48,11 +47,10 @@ export async function GET() {
       })),
     };
 
-    console.log("✅ DEBUG API: Response prepared:", response.summary);
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error("💥 DEBUG API: Error:", error);
+    logger.error("💥 DEBUG API: Error:", error);
     
     return NextResponse.json({
       success: false,

@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Calendar, CalendarEvent as CalendarEventType } from "@/app/components/calendar";
+import { logger } from '@/lib/logger';
 
 interface EventsProps {
   group: any;
@@ -104,7 +105,7 @@ export const EventsWithCalendar = ({ group, currentUser, isGroupMember }: Events
       
       setEvents(mockEvents);
     } catch (error) {
-      console.error("Error fetching events:", error);
+      logger.error("Error fetching events:", error);
     } finally {
       setIsLoading(false);
     }

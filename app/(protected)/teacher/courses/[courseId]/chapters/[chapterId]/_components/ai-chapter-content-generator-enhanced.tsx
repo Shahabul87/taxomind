@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   Bot, 
   Sparkles, 
@@ -296,7 +297,7 @@ export const AIChapterContentGeneratorEnhanced = ({
         throw new Error("Failed to generate content");
       }
     } catch (error) {
-      console.error("Content generation error:", error);
+      logger.error("Content generation error:", error);
       toast.error("Failed to generate content. Using demo content.");
       // Use demo content as fallback
       setGeneratedContent(getDemoContent());

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 // Types for progressive disclosure system
 export interface ProgressiveFeature {
@@ -171,12 +172,12 @@ export class ProgressiveDisclosureSystem {
         };
       }
     } catch (error) {
-      console.warn('Failed to load progressive disclosure state:', error);
+      logger.warn('Failed to load progressive disclosure state:', error);
       // Clear corrupted data
       try {
         localStorage.removeItem(this.storageKey);
       } catch (clearError) {
-        console.warn('Failed to clear corrupted state:', clearError);
+        logger.warn('Failed to clear corrupted state:', clearError);
       }
     }
 
@@ -191,7 +192,8 @@ export class ProgressiveDisclosureSystem {
       unlockedFeatures: [],
       dismissedHints: [],
       lastActivity: Date.now(),
-      contextualData: {}
+      contextualData: {
+}
     };
   }
 
@@ -201,7 +203,7 @@ export class ProgressiveDisclosureSystem {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.userState));
     } catch (error) {
-      console.warn('Failed to save progressive disclosure state:', error);
+      logger.warn('Failed to save progressive disclosure state:', error);
     }
   }
 
@@ -260,7 +262,7 @@ export class ProgressiveDisclosureSystem {
 
     const feature = this.config.features.find(f => f.id === featureId);
     if (!feature) {
-      console.warn(`Feature ${featureId} not found in configuration`);
+      logger.warn(`Feature ${featureId} not found in configuration`);
       return false;
     }
 
@@ -270,7 +272,7 @@ export class ProgressiveDisclosureSystem {
         dep => !this.userState.unlockedFeatures.includes(dep)
       );
       if (unmetDependencies.length > 0) {
-        console.warn(`Cannot unlock ${featureId}: unmet dependencies: ${unmetDependencies.join(', ')}`);
+        logger.warn(`Cannot unlock ${featureId}: unmet dependencies: ${unmetDependencies.join(', ')}`);
         return false;
       }
     }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Calendar, RefreshCw, Share2, ChevronDown, ChevronUp, Link2, Check } from "lucide-react";
 import { SocialMediaShareButtons } from './social-media-sharing-buttons';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '@/lib/logger';
 
 interface BlogPostInfoProps {
   title: string;
@@ -30,7 +31,7 @@ export const BlogPostInfo = ({ title, createdAt, updatedAt }: BlogPostInfoProps)
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      logger.error('Failed to copy:', err);
     }
   };
 

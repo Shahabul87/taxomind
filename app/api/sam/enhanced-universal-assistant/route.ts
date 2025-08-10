@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Anthropic } from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -41,13 +42,13 @@ async function callAnthropicWithRetry(
     try {
       return await anthropic.messages.create(messageRequest);
     } catch (error: any) {
-      console.error(`Anthropic API attempt ${attempt} failed:`, error);
+      logger.error(`Anthropic API attempt ${attempt} failed:`, error);
       
       // Check if it's a rate limit or overload error
       if (error.status === 529 || error.status === 503 || error.status === 429) {
         if (attempt < maxRetries) {
           const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
-          console.log(`Retrying in ${delay}ms...`);
+
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
@@ -264,7 +265,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
 
   } catch (error: any) {
-    console.error('SAM Enhanced Universal Assistant Error:', error);
+    logger.error('SAM Enhanced Universal Assistant Error:', error);
     
     // Handle specific error types
     let errorMessage = "I'm experiencing technical difficulties. Please try again in a moment.";

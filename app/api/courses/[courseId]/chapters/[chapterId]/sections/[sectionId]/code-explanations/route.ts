@@ -59,7 +59,7 @@ export async function POST(
 
     return NextResponse.json(createdExplanations);
   } catch (error) {
-    console.log("[CODE_EXPLANATIONS_POST]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -107,7 +107,7 @@ export async function GET(
 
     return NextResponse.json(codeExplanations);
   } catch (error) {
-    console.log("[CODE_EXPLANATIONS_GET]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

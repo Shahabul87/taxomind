@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { 
   getSAMLearningProfile, 
   updateSAMLearningProfile 
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
       data: profile,
     });
   } catch (error) {
-    console.error('Error fetching SAM learning profile:', error);
+    logger.error('Error fetching SAM learning profile:', error);
     return NextResponse.json(
       { error: 'Failed to fetch learning profile' },
       { status: 500 }
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
       data: profile,
     });
   } catch (error) {
-    console.error('Error updating SAM learning profile:', error);
+    logger.error('Error updating SAM learning profile:', error);
     return NextResponse.json(
       { error: 'Failed to update learning profile' },
       { status: 500 }

@@ -1,9 +1,9 @@
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export const getPostData = async (postId: string) => {
   try {
-    console.log("Fetching post data for:", postId);
-    
+
     const post = await db.post.findUnique({
       where: {
         id: postId,
@@ -76,20 +76,13 @@ export const getPostData = async (postId: string) => {
     });
 
     if (!post) {
-      console.log("Post not found:", postId);
+
       return null;
     }
 
-    console.log("Post data loaded:", {
-      id: post.id,
-      commentCount: post.comments.length,
-      hasComments: post.comments.length > 0,
-      firstCommentId: post.comments[0]?.id
-    });
-
     return post;
   } catch (error) {
-    console.error("[GET_POST_DATA]", error);
+    logger.error("[GET_POST_DATA]", error);
     return null;
   }
 }; 

@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { Section, Chapter, Video, Blog, Article, Note, CodeExplanation } from "@prisma/client";
 import type { user_progress } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 export type SectionWithAllRelations = Section & {
   chapter: Chapter & {
@@ -109,7 +110,7 @@ export async function getSection(
     };
 
   } catch (error) {
-    console.error("[GET_SECTION]", error);
+    logger.error("[GET_SECTION]", error);
     return {
       section: null,
       nextSection: null,

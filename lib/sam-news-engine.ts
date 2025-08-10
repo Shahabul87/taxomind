@@ -3,6 +3,7 @@ import { samNewsRankingEngine, RankedNewsArticle } from './sam-news-ranking-engi
 import { samRealNewsFetcher } from './sam-real-news-fetcher';
 import { shouldUseRealNews, newsConfig } from '@/lib/config/news-config';
 import { newsCache } from '@/lib/news-cache';
+import { logger } from '@/lib/logger';
 
 export interface NewsArticle {
   articleId: string;
@@ -590,7 +591,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
         }
       });
     } catch (error) {
-      console.error('Error creating news alert:', error);
+      logger.error('Error creating news alert:', error);
     }
 
     return alert;
@@ -733,7 +734,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
         }
       });
     } catch (error) {
-      console.error('Error recording news reading:', error);
+      logger.error('Error recording news reading:', error);
     }
   }
 
@@ -744,8 +745,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
       const useRealData = shouldUseRealNews();
       
       if (useRealData) {
-        console.log('Fetching real AI news from web sources...');
-        
+
         try {
           // Fetch real news from RSS feeds and APIs
           const realArticles = await samRealNewsFetcher.fetchAllNews();
@@ -764,16 +764,14 @@ The act has been praised by educators and tech leaders as a model for global AI 
             
             return realArticles;
           } else {
-            console.log('No real articles fetched, falling back to cached/demo data');
-          }
+}
         } catch (fetchError) {
-          console.error('Error fetching real news, using fallback:', fetchError);
+          logger.error('Error fetching real news, using fallback:', fetchError);
           // Continue to fallback data
         }
       }
       
       // For development/demo, or as fallback when real news fails
-      console.log('Using generated AI news for demo/fallback...');
 
       const fetchedArticles: NewsArticle[] = [];
       
@@ -1191,7 +1189,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
 
       return fetchedArticles;
     } catch (error) {
-      console.error('Error fetching real-time news:', error);
+      logger.error('Error fetching real-time news:', error);
       // Return existing cached news as fallback
       return Array.from(this.newsDatabase.values())
         .sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime())

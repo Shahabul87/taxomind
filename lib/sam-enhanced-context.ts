@@ -1,4 +1,5 @@
 import { samMasterIntegration } from './sam-master-integration';
+import { logger } from '@/lib/logger';
 
 /**
  * Enhanced SAM Context Integration
@@ -33,7 +34,7 @@ export async function enhanceSAMContext(
       suggestedActions: generateSuggestedActions(enhancedContext),
     };
   } catch (error) {
-    console.error('Error enhancing SAM context:', error);
+    logger.error('Error enhancing SAM context:', error);
     // Return existing context if enhancement fails
     return existingContext;
   }
@@ -71,7 +72,7 @@ export async function processSAMQueryWithEngines(
       nextSteps: response.actions,
     };
   } catch (error) {
-    console.error('Error processing SAM query with engines:', error);
+    logger.error('Error processing SAM query with engines:', error);
     throw error;
   }
 }

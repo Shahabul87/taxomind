@@ -8,6 +8,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface ProfileImageUploadProps {
   userId: string;
@@ -88,7 +89,7 @@ export const ProfileImageUpload = ({
       toast.success("Profile image updated!");
       router.refresh();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       toast.error("Something went wrong");
     } finally {
       setUploading(false);

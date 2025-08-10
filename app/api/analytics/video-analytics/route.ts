@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ videos: videoAnalytics });
     }
   } catch (error) {
-    console.error('Video analytics error:', error);
+    logger.error('Video analytics error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch video analytics' },
       { status: 500 }

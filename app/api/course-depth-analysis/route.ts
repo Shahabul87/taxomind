@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import anthropic from '@/lib/anthropic-client';
+import { logger } from '@/lib/logger';
 
 // Import SAM evaluation engines
 async function integrateSAMEngineAnalysis(courseContent: any) {
@@ -9,7 +10,8 @@ async function integrateSAMEngineAnalysis(courseContent: any) {
     bloomsAnalysis: {},
     marketAnalysis: {},
     qualityAnalysis: {},
-    completionAnalysis: {}
+    completionAnalysis: {
+}
   };
 
   try {
@@ -22,14 +24,14 @@ async function integrateSAMEngineAnalysis(courseContent: any) {
     if (bloomsResult.status === 'fulfilled') {
       samAnalysis.bloomsAnalysis = bloomsResult.value;
     } else {
-      console.error('Blooms analysis failed:', bloomsResult.reason);
+      logger.error('Blooms analysis failed:', bloomsResult.reason);
       samAnalysis.bloomsAnalysis = generateFallbackBloomsAnalysis(courseContent);
     }
 
     if (marketResult.status === 'fulfilled') {
       samAnalysis.marketAnalysis = marketResult.value;
     } else {
-      console.error('Market analysis failed:', marketResult.reason);
+      logger.error('Market analysis failed:', marketResult.reason);
       samAnalysis.marketAnalysis = generateFallbackMarketAnalysis(courseContent);
     }
 
@@ -37,7 +39,7 @@ async function integrateSAMEngineAnalysis(courseContent: any) {
     samAnalysis.qualityAnalysis = await analyzeQuality(courseContent);
     samAnalysis.completionAnalysis = analyzeCompletion(courseContent);
   } catch (error) {
-    console.error('SAM engine integration error:', error);
+    logger.error('SAM engine integration error:', error);
     // Use fallback analyses
     samAnalysis.bloomsAnalysis = generateFallbackBloomsAnalysis(courseContent);
     samAnalysis.marketAnalysis = generateFallbackMarketAnalysis(courseContent);
@@ -80,7 +82,7 @@ async function analyzeBlooms(courseContent: any) {
       }))
     };
   } catch (error) {
-    console.error('SAM Blooms analysis failed:', error);
+    logger.error('SAM Blooms analysis failed:', error);
   }
   
   return generateFallbackBloomsAnalysis(courseContent);
@@ -111,7 +113,7 @@ async function analyzeMarket(courseContent: any) {
       }
     };
   } catch (error) {
-    console.error('SAM Market analysis failed:', error);
+    logger.error('SAM Market analysis failed:', error);
   }
   
   return generateFallbackMarketAnalysis(courseContent);
@@ -315,8 +317,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (existingAnalysis && existingAnalysis.contentHash === currentContentHash) {
-        console.log(`Using cached analysis for course ${courseId} - content unchanged`);
-        
+
         // Return the cached analysis
         const cachedDistribution = existingAnalysis.bloomsDistribution as any;
         
@@ -337,7 +338,8 @@ export async function POST(req: NextRequest) {
             recommendations: existingAnalysis.recommendations as any,
             insights: generateInsights(
               { overallDistribution: cachedDistribution },
-              {}
+              {
+}
             ),
             bloomsInsights: generateBloomsInsights(cachedDistribution, {}),
             metadata: {
@@ -416,7 +418,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Integrate SAM Engine Analysis
-    console.log('Integrating SAM engines for comprehensive analysis...');
+
     const samAnalysis = await integrateSAMEngineAnalysis(courseContent);
 
     // Call AI for comprehensive analysis
@@ -608,13 +610,13 @@ Use this exact JSON structure:
         try {
           return await anthropic.messages.create(messageRequest);
         } catch (error: any) {
-          console.error(`Anthropic API attempt ${attempt} failed:`, error);
+          logger.error(`Anthropic API attempt ${attempt} failed:`, error);
           
           // Check if it's a rate limit or overload error
           if (error.status === 529 || error.status === 503 || error.status === 429) {
             if (attempt < maxRetries) {
               const delay = 1000 * Math.pow(2, attempt - 1); // Exponential backoff
-              console.log(`Retrying course depth analysis in ${delay}ms...`);
+
               await new Promise(resolve => setTimeout(resolve, delay));
               continue;
             }
@@ -652,7 +654,7 @@ Use this exact JSON structure:
         throw new Error('No JSON found in response');
       }
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
+      logger.error('Failed to parse AI response:', parseError);
       // Fallback analysis
       analysis = generateFallbackAnalysis(courseContent);
     }
@@ -717,7 +719,7 @@ Use this exact JSON structure:
           }
         });
       } catch (error) {
-        console.error('Failed to store analysis in database:', error);
+        logger.error('Failed to store analysis in database:', error);
       }
     }
 
@@ -727,7 +729,7 @@ Use this exact JSON structure:
     });
 
   } catch (error: any) {
-    console.error('Course depth analysis error:', error);
+    logger.error('Course depth analysis error:', error);
     
     // Handle specific Anthropic API errors
     let errorMessage = 'Failed to analyze course depth';

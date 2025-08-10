@@ -5,6 +5,7 @@
 
 import { QueueManager } from './queue-manager';
 import { Redis } from 'ioredis';
+import { logger } from '@/lib/logger';
 
 export interface QueueDashboardData {
   overview: {
@@ -601,7 +602,7 @@ export class QueueDashboard {
         await this.redis.zremrangebyscore('queue_dashboard:performance_history', 0, oneDayAgo);
         
       } catch (error) {
-        console.error('[QUEUE_DASHBOARD] Failed to collect metrics:', error);
+        logger.error('[QUEUE_DASHBOARD] Failed to collect metrics:', error);
       }
     }, 60000); // Collect every minute
   }
@@ -708,7 +709,7 @@ export class QueueDashboard {
   async shutdown(): Promise<void> {
     this.metricsHistory.clear();
     this.alerts = [];
-    console.log('[QUEUE_DASHBOARD] Shutdown completed');
+
   }
 }
 

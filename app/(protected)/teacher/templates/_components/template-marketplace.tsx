@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { logger } from '@/lib/logger';
 import { 
   Search, 
   Filter, 
@@ -173,7 +174,7 @@ export function TemplateMarketplace({
         setPopularTags(data.popularTags);
       }
     } catch (error) {
-      console.error("Failed to fetch categories");
+      logger.error("Failed to fetch categories");
     }
   };
 

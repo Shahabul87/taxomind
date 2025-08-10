@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { logger } from '@/lib/logger';
 import {
   BarChart,
   Bar,
@@ -95,7 +96,7 @@ export function VideoAnalyticsDashboard({ courseId, isTeacher = false }: VideoAn
         setSelectedVideo(data.videos[0]);
       }
     } catch (error) {
-      console.error('Failed to fetch video analytics:', error);
+      logger.error('Failed to fetch video analytics:', error);
     } finally {
       setLoading(false);
     }

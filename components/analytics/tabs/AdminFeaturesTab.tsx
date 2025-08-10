@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { logger } from '@/lib/logger';
 import { 
   Settings, Database, Wifi, Link, Shield, AlertCircle,
   CheckCircle, XCircle, Activity, Server, Cpu, HardDrive,
@@ -38,7 +39,7 @@ export function AdminFeaturesTab({ analytics, performance }: AdminFeaturesProps)
       setSystemData(data);
       setIsLoading(false);
     } catch (error) {
-      console.error('Failed to fetch system data:', error);
+      logger.error('Failed to fetch system data:', error);
       setIsLoading(false);
     }
   };
@@ -248,7 +249,7 @@ export function AdminFeaturesTab({ analytics, performance }: AdminFeaturesProps)
                 size="sm" 
                 className="w-full"
                 onClick={() => {
-                  console.log(`Managing ${feature.name}...`);
+
                 }}
               >
                 Manage

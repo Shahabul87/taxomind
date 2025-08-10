@@ -22,14 +22,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
   performSearch
 }) => {
   // Add debug logging
-  console.log("🔍 SearchOverlay rendering with:", { 
-    isSearchOpen, 
-    query: searchQuery, 
-    resultsCount: searchResults?.length || 0, 
-    isSearching, 
-    hasError: !!searchError 
-  });
-  
+
   if (!isSearchOpen) return null;
 
   return (
@@ -108,7 +101,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                   <div className="mt-4 space-y-3">
                     <button 
                       onClick={() => {
-                        console.log("🛠️ Debug - Force search clicked");
+
                         performSearch();
                       }}
                       className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md text-sm"

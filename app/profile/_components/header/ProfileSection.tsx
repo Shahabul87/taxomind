@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProfileImageUpload } from "../ProfileImageUpload";
+import { logger } from '@/lib/logger';
 import { 
   Crown, Mail, Calendar, Globe, Edit3, 
   Settings, Share2, Award
@@ -54,7 +55,7 @@ export function ProfileSection({ userData, userId, onImageUpdate }: ProfileSecti
         toast.success("Profile link copied to clipboard!");
       }
     } catch (error) {
-      console.error('Error sharing:', error);
+      logger.error('Error sharing:', error);
       // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(window.location.href);

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { logger } from '@/lib/logger';
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -214,7 +215,7 @@ export const LatexCommandsHelper: React.FC<LatexCommandsHelperProps> = ({
       await navigator.clipboard.writeText(command);
       toast.success(`Copied: ${command}`);
     } catch (error) {
-      console.error("Failed to copy command:", error);
+      logger.error("Failed to copy command:", error);
       toast.error("Failed to copy command");
     }
   };

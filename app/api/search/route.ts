@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Add these exports to make the endpoint publicly accessible and not cached
 export const dynamic = 'force-dynamic';
@@ -32,16 +33,14 @@ interface SearchResponse {
 }
 
 export async function GET(request: NextRequest) {
-  console.log("🔍 Search API received request");
-  
+
   try {
     // Get search query from URL
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || '';
-    console.log("📝 Search query:", query);
-    
+
     if (!query || query.length < 2) {
-      console.log("⚠️ Search query too short");
+
       return NextResponse.json(
         { error: 'Search query must be at least 2 characters' },
         { status: 400 }
@@ -49,16 +48,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Process the search query
-    console.log("🏁 Starting search process");
+
     const results = await performSearch(query);
-    console.log(`✅ Search complete, found ${results.length} results`);
-    
+
     return NextResponse.json({
       results,
       totalResults: results.length,
     });
   } catch (error) {
-    console.error('❌ Search API error:', error);
+    logger.error('❌ Search API error:', error);
     return NextResponse.json(
       { error: 'An error occurred while searching' },
       { status: 500 }
@@ -73,17 +71,15 @@ async function performSearch(query: string): Promise<SearchResult[]> {
   // Clean and prepare the query for better search
   const cleanQuery = query.trim().toLowerCase();
   const searchTerms = cleanQuery.split(/\s+/).filter(term => term.length >= 2);
-  console.log("🔎 Search terms:", searchTerms);
 
   if (searchTerms.length === 0) {
-    console.log("⚠️ No valid search terms found");
+
     return [];
   }
 
   // Search courses
   try {
-    console.log("📚 Searching courses...");
-    
+
     // Simple search approach that will pass type checking
     const courses = await db.course.findMany({
       where: {
@@ -102,9 +98,7 @@ async function performSearch(query: string): Promise<SearchResult[]> {
         }
       }
     });
-    
-    console.log(`Found ${courses.length} courses`);
-    
+
     // Transform courses to search results
     courses.forEach(course => {
       // Extract content from chapters for better snippets if needed
@@ -124,13 +118,12 @@ async function performSearch(query: string): Promise<SearchResult[]> {
       });
     });
   } catch (error) {
-    console.error('Error searching courses:', error);
+    logger.error('Error searching courses:', error);
   }
 
   // Search blogs
   try {
-    console.log("📰 Searching blogs...");
-    
+
     // Simple search approach that will pass type checking
     const blogs = await db.blog.findMany({
       where: {
@@ -146,9 +139,7 @@ async function performSearch(query: string): Promise<SearchResult[]> {
         User: true
       }
     });
-    
-    console.log(`Found ${blogs.length} blogs`);
-    
+
     // Transform blogs to search results
     blogs.forEach(blog => {
       // Combine all searchable content for better snippets
@@ -163,7 +154,7 @@ async function performSearch(query: string): Promise<SearchResult[]> {
       });
     });
   } catch (error) {
-    console.error('Error searching blogs:', error);
+    logger.error('Error searching blogs:', error);
   }
 
   // Sort results by relevance

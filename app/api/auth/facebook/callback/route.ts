@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { auth } from '@/auth';
 import axios from 'axios';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,14 +13,14 @@ export async function GET(req: NextRequest) {
     
     // Verify state to prevent CSRF
     if (!code || !state) {
-      console.error('Missing code or state parameter');
+      logger.error('Missing code or state parameter');
       return NextResponse.redirect(new URL('/profile?error=auth_callback_error', req.url));
     }
     
     // Get the current user session
     const session = await auth();
     if (!session?.user?.id) {
-      console.error('No authenticated user found');
+      logger.error('No authenticated user found');
       return NextResponse.redirect(new URL('/auth/login', req.url));
     }
     
@@ -92,7 +93,7 @@ export async function GET(req: NextRequest) {
     // Redirect back to the profile page
     return NextResponse.redirect(new URL('/profile?connected=facebook', req.url));
   } catch (error) {
-    console.error('Error in Facebook callback:', error);
+    logger.error('Error in Facebook callback:', error);
     return NextResponse.redirect(new URL('/profile?error=facebook_connection_failed', req.url));
   }
 } 

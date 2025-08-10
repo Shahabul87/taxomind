@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 // Import admin-specific tabs
 import { AdminFeaturesTab } from './tabs/AdminFeaturesTab';
@@ -38,7 +39,7 @@ export function AdminAnalyticsDashboard({ user, className }: AdminAnalyticsDashb
       setSystemData(data);
       setIsLoading(false);
     } catch (error) {
-      console.error('Failed to fetch system data:', error);
+      logger.error('Failed to fetch system data:', error);
       setIsLoading(false);
     }
   };

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getUserAchievementSummary } from '@/lib/sam-achievement-engine';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
       data: summary,
     });
   } catch (error) {
-    console.error('Error fetching gamification stats:', error);
+    logger.error('Error fetching gamification stats:', error);
     return NextResponse.json(
       { error: 'Failed to fetch gamification stats' },
       { status: 500 }

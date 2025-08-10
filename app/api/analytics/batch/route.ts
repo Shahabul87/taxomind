@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -41,8 +42,6 @@ export async function POST(req: Request) {
     const successful = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
 
-    console.log(`[ANALYTICS_BATCH] Processed ${events.length} events: ${successful} successful, ${failed} failed`);
-
     return NextResponse.json({ 
       success: true, 
       processed: events.length,
@@ -50,7 +49,7 @@ export async function POST(req: Request) {
       failed 
     });
   } catch (error) {
-    console.error('[ANALYTICS] Error processing batch:', error);
+    logger.error('[ANALYTICS] Error processing batch:', error);
     return NextResponse.json({ success: false }, { status: 200 });
   }
 }
@@ -73,15 +72,7 @@ async function processBatchEvent(event: AnalyticsEvent, userId?: string): Promis
 async function storeBatchEvent(event: AnalyticsEvent): Promise<void> {
   // Log for development
   if (process.env.NODE_ENV === 'development') {
-    console.log('[ANALYTICS_BATCH_EVENT]', {
-      type: event.eventType,
-      category: event.eventCategory,
-      userId: event.userId,
-      sessionId: event.sessionId,
-      timestamp: event.timestamp
-    });
-  }
-  
+}
   // In production, implement batch storage optimization
   // Examples: bulk database insert, batch external API calls, etc.
 }

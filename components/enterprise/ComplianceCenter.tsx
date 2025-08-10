@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { logger } from '@/lib/logger';
 import { 
   Shield, AlertTriangle, CheckCircle, XCircle, Clock, 
   FileText, Download, Eye, Filter, Search, RefreshCw,
@@ -69,7 +70,7 @@ export function ComplianceCenter({ className }: ComplianceCenterProps) {
         setSummary(data.data.summary);
       }
     } catch (error) {
-      console.error('Error fetching compliance data:', error);
+      logger.error('Error fetching compliance data:', error);
     } finally {
       setIsLoading(false);
     }

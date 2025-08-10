@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 // Enterprise-level error handling and security types
 interface DataFetchResult<T> {
@@ -52,8 +53,8 @@ class EnterpriseDataAPI {
   private readonly retryAttempts = 3;
   private readonly retryDelay = 1000; // 1 second
 
-  private constructor() {}
-
+  private constructor() {
+}
   static getInstance(): EnterpriseDataAPI {
     if (!EnterpriseDataAPI.instance) {
       EnterpriseDataAPI.instance = new EnterpriseDataAPI();
@@ -70,7 +71,7 @@ class EnterpriseDataAPI {
       try {
         return await operation();
       } catch (error) {
-        console.error(`[${operationName}] Attempt ${i + 1} failed:`, error);
+        logger.error(`[${operationName}] Attempt ${i + 1} failed:`, error);
         
         if (i === attempts - 1) {
           throw error;
@@ -87,7 +88,7 @@ class EnterpriseDataAPI {
       await db.$queryRaw`SELECT 1`;
       return true;
     } catch (error) {
-      console.error("[DB_CONNECTION] Database connection test failed:", error);
+      logger.error("[DB_CONNECTION] Database connection test failed:", error);
       return false;
     }
   }
@@ -103,7 +104,7 @@ class EnterpriseDataAPI {
       ` as [{ exists: boolean }];
       return result[0]?.exists || false;
     } catch (error) {
-      console.error(`[TABLE_CHECK] Error checking table ${tableName}:`, error);
+      logger.error(`[TABLE_CHECK] Error checking table ${tableName}:`, error);
       return false;
     }
   }
@@ -120,7 +121,7 @@ class EnterpriseDataAPI {
       ` as [{ exists: boolean }];
       return result[0]?.exists || false;
     } catch (error) {
-      console.error(`[COLUMN_CHECK] Error checking column ${tableName}.${columnName}:`, error);
+      logger.error(`[COLUMN_CHECK] Error checking column ${tableName}.${columnName}:`, error);
       return false;
     }
   }
@@ -196,14 +197,6 @@ class EnterpriseDataAPI {
       const isArchivedExists = await this.checkColumnExists("Post", "isArchived");
       const authorIdExists = await this.checkColumnExists("Post", "authorId");
 
-      console.log("[ENTERPRISE_API] Column existence check:", {
-        titleExists,
-        bodyExists,
-        publishedExists,
-        isArchivedExists,
-        authorIdExists
-      });
-
       // Build safe query based on existing columns
       const skip = (validatedPagination.page - 1) * validatedPagination.pageSize;
       
@@ -263,8 +256,7 @@ class EnterpriseDataAPI {
           posts = await db.$queryRawUnsafe(dataQuery, ...params, validatedPagination.pageSize, skip) as any[];
         } else {
           // Fallback query with basic columns only
-          console.log("[ENTERPRISE_API] Using fallback query due to missing columns");
-          
+
           const basicQuery = `
             SELECT 
               id,
@@ -310,7 +302,7 @@ class EnterpriseDataAPI {
       }, 'fetchPosts');
 
     } catch (error) {
-      console.error("[ENTERPRISE_API] Error in fetchPosts:", error);
+      logger.error("[ENTERPRISE_API] Error in fetchPosts:", error);
       
       if (error instanceof z.ZodError) {
         return this.createErrorResponse(
@@ -377,13 +369,6 @@ class EnterpriseDataAPI {
       const subtitleExists = await this.checkColumnExists("Course", "subtitle");
       const isFeaturedExists = await this.checkColumnExists("Course", "isFeatured");
       const categoryIdExists = await this.checkColumnExists("Course", "categoryId");
-
-      console.log("[ENTERPRISE_API] Course column existence check:", {
-        slugExists,
-        subtitleExists,
-        isFeaturedExists,
-        categoryIdExists
-      });
 
       return await this.withRetry(async () => {
         const skip = (validatedPagination.page - 1) * validatedPagination.pageSize;
@@ -462,7 +447,7 @@ class EnterpriseDataAPI {
       }, 'fetchCourses');
 
     } catch (error) {
-      console.error("[ENTERPRISE_API] Error in fetchCourses:", error);
+      logger.error("[ENTERPRISE_API] Error in fetchCourses:", error);
       
       return this.createErrorResponse(
         ErrorCode.UNKNOWN_ERROR,
@@ -502,13 +487,6 @@ class EnterpriseDataAPI {
       const createdAtExists = await this.checkColumnExists("Category", "createdAt");
       const updatedAtExists = await this.checkColumnExists("Category", "updatedAt");
 
-      console.log("[ENTERPRISE_API] Category column existence check:", {
-        slugExists,
-        nameExists,
-        createdAtExists,
-        updatedAtExists
-      });
-
       return await this.withRetry(async () => {
         // Use raw query for safety when schema might be inconsistent
         const dataQuery = `
@@ -537,7 +515,7 @@ class EnterpriseDataAPI {
       }, 'fetchCategories');
 
     } catch (error) {
-      console.error("[ENTERPRISE_API] Error in fetchCategories:", error);
+      logger.error("[ENTERPRISE_API] Error in fetchCategories:", error);
       
       return this.createErrorResponse(
         ErrorCode.UNKNOWN_ERROR,

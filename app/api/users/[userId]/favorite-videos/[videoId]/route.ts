@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function DELETE(
   req: Request,
@@ -34,12 +35,10 @@ export async function DELETE(
 
     return NextResponse.json(deletedFavoriteVideo);
   } catch (error) {
-    console.error("[DELETE_FAVORITE_VIDEO_ERROR]", error);
+    logger.error("[DELETE_FAVORITE_VIDEO_ERROR]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
-
 
 export async function PATCH(
   req: Request,
@@ -69,7 +68,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedVideo);
   } catch (error) {
-    console.error("[FAVORITE VIDEO UPDATE]", error);
+    logger.error("[FAVORITE VIDEO UPDATE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

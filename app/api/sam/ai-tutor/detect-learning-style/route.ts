@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(detectedStyle);
 
   } catch (error) {
-    console.error('Learning style detection error:', error);
+    logger.error('Learning style detection error:', error);
     return NextResponse.json(
       { error: 'Failed to detect learning style' },
       { status: 500 }

@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { logger } from '@/lib/logger';
 import { 
   Plus, Save, Eye, Trash2, Copy, Move, Settings, 
   FileText, Image, Video, Code, CheckCircle, Download,
@@ -161,7 +162,7 @@ export function TemplateBuilder({
       toast.success('Template saved successfully');
     } catch (error) {
       toast.error('Failed to save template');
-      console.error(error);
+      logger.error(error);
     }
   };
 

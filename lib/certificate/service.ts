@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { CertificateGenerator, CertificateData, CertificateTemplate, CertificateType } from "./generator";
 import { nanoid } from "nanoid";
+import { logger } from '@/lib/logger';
 
 enum CertificateEvent {
   GENERATED = "GENERATED",
@@ -17,7 +18,7 @@ const uploadFile = async (buffer: Buffer, path: string, contentType: string): Pr
 
 const sendCertificateEmail = async (email: string, data: any): Promise<void> => {
   // Mock email sending - implement when email service is set up
-  console.log(`Certificate email would be sent to ${email}`);
+
 };
 
 export class CertificateService {
@@ -136,7 +137,7 @@ export class CertificateService {
       };
 
     } catch (error) {
-      console.error("Certificate generation error:", error);
+      logger.error("Certificate generation error:", error);
       return {
         success: false,
         error: "Failed to generate certificate"
@@ -157,7 +158,7 @@ export class CertificateService {
       };
 
     } catch (error) {
-      console.error("Certificate verification error:", error);
+      logger.error("Certificate verification error:", error);
       return {
         isValid: false,
         error: "Verification failed"
@@ -174,7 +175,7 @@ export class CertificateService {
       return { success: false, error: "Certificate revocation not yet implemented" };
 
     } catch (error) {
-      console.error("Certificate revocation error:", error);
+      logger.error("Certificate revocation error:", error);
       return {
         success: false,
         error: "Failed to revoke certificate"
@@ -286,7 +287,7 @@ export class CertificateService {
     eventData: any
   ): Promise<void> {
     // TODO: Implement when certificate analytics tables are added
-    console.log(`Certificate event: ${eventType} for certificate ${certificateId}`);
+
   }
 
   private async logVerificationEvent(
@@ -294,7 +295,7 @@ export class CertificateService {
     verificationCode: string
   ): Promise<void> {
     // TODO: Implement when certificate verification tables are added
-    console.log(`Certificate verification: ${verificationCode} for certificate ${certificateId}`);
+
   }
 }
 

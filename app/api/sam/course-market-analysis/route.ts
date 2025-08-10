@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { MarketAnalysisEngine } from '@/lib/sam-market-engine';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Market analysis error:', error);
+    logger.error('Market analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to perform market analysis' },
       { status: 500 }
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get market analysis error:', error);
+    logger.error('Get market analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve market analysis' },
       { status: 500 }
@@ -162,6 +163,6 @@ async function recordSAMInteraction(
       },
     });
   } catch (error) {
-    console.error('Error recording SAM interaction:', error);
+    logger.error('Error recording SAM interaction:', error);
   }
 }

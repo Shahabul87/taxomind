@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 const createErrorResponse = (message: string, status = 500) => {
-  console.error(`[UNIVERSAL_REACTIONS] Error: ${message}`);
+  logger.error(`[UNIVERSAL_REACTIONS] Error: ${message}`);
   return NextResponse.json(
     { error: message },
     { status }
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
         return createErrorResponse("Unauthorized", 401);
       }
     } catch (sessionError) {
-      console.error("[UNIVERSAL_REACTIONS] Session Error:", sessionError);
+      logger.error("[UNIVERSAL_REACTIONS] Session Error:", sessionError);
       return createErrorResponse("Authentication error. Please sign in again.", 401);
     }
 
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
     try {
       body = await req.json();
     } catch (parseError) {
-      console.error("[UNIVERSAL_REACTIONS] JSON Parse Error:", parseError);
+      logger.error("[UNIVERSAL_REACTIONS] JSON Parse Error:", parseError);
       return createErrorResponse("Invalid request format", 400);
     }
     
@@ -46,8 +47,6 @@ export async function POST(req: NextRequest) {
     if (!commentId && !replyId) {
       return createErrorResponse("Either commentId or replyId is required", 400);
     }
-
-    console.log("[UNIVERSAL_REACTIONS] Processing request:", { type, commentId, replyId, postId });
 
     // First verify the post exists
     const post = await db.post.findUnique({
@@ -73,7 +72,7 @@ export async function POST(req: NextRequest) {
       return createErrorResponse("Invalid request parameters", 400);
     }
   } catch (error) {
-    console.error("[UNIVERSAL_REACTIONS] Error:", error);
+    logger.error("[UNIVERSAL_REACTIONS] Error:", error);
     
     // Provide more specific error messages
     if (error instanceof Error) {
@@ -164,7 +163,7 @@ async function handleCommentReaction(userId: string, type: string, commentId: st
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[COMMENT_REACTION_HANDLER] Error:", error);
+    logger.error("[COMMENT_REACTION_HANDLER] Error:", error);
     throw error;
   }
 }
@@ -255,7 +254,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[REPLY_REACTION_HANDLER] Error:", error);
+    logger.error("[REPLY_REACTION_HANDLER] Error:", error);
     throw error;
   }
 } 

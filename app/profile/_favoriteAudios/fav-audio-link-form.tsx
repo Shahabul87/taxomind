@@ -12,6 +12,7 @@ import Image from "next/image";
 import { FavoriteAudio } from "@prisma/client";
 import { FavoriteAudioList } from "./fav-audio-link-list";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -163,8 +164,7 @@ export const FavoriteAudioLinkForm = ({
       
       // Use our API endpoint to fetch metadata
       const response = await axios.get(`/api/fetch-audio-metadata?url=${encodeURIComponent(url)}`);
-      console.log("Audio metadata response:", response.data);
-      
+
       if (response.data?.title) {
         form.setValue('title', response.data.title);
       }
@@ -206,7 +206,7 @@ export const FavoriteAudioLinkForm = ({
       
       toast.success("Audio details fetched");
     } catch (error) {
-      console.error("Error fetching audio metadata:", error);
+      logger.error("Error fetching audio metadata:", error);
       toast.error("Couldn't fetch audio details. Please enter them manually.");
     } finally {
       setIsLoading(false);
@@ -366,8 +366,7 @@ export const FavoriteAudioLinkForm = ({
           
           try {
             const response = await axios.get(`/api/fetch-audio-metadata?url=${encodeURIComponent(text)}`);
-            console.log("Audio metadata from paste:", response.data);
-            
+
             if (response.data) {
               // Set the form values
               if (response.data.title) {
@@ -414,7 +413,7 @@ export const FavoriteAudioLinkForm = ({
               toast.error("Couldn't find audio details. Please enter them manually.", { id: "fetching-metadata" });
             }
           } catch (error) {
-            console.error("Error fetching metadata:", error);
+            logger.error("Error fetching metadata:", error);
             toast.error("Couldn't fetch audio details. Please enter them manually.", { id: "fetching-metadata" });
           }
         }

@@ -79,7 +79,7 @@ const CourseSuccessPage = async ({ params, searchParams }: CourseSuccessPageProp
   }
 
   if (!enrollment) {
-    console.log(`Enrollment not found after ${maxRetries} retries for user ${user.id} and course ${resolvedParams.courseId}`);
+
     return redirect(`/courses/${resolvedParams.courseId}?error=enrollment_not_found&debug=1`);
   }
 

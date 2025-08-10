@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
     const user = await currentUser();
-   
-   
+
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(customTab);
   } catch (error) {
-    console.error("[CUSTOM_TABS_POST]", error);
+    logger.error("[CUSTOM_TABS_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

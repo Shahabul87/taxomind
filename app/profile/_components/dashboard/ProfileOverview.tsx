@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { logger } from '@/lib/logger';
 import { 
   Users, 
   MessageCircle, 
@@ -51,7 +52,7 @@ export function ProfileOverview({ userId }: ProfileOverviewProps) {
         const data = await getDashboardData();
         setStats(data);
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+        logger.error("Error fetching dashboard data:", error);
       } finally {
         setLoading(false);
       }
@@ -106,7 +107,7 @@ export function ProfileOverview({ userId }: ProfileOverviewProps) {
                 <ConnectPlatformModal 
                   userId={userId}
                   onProfileLinksUpdated={(links) => {
-                    console.log('Profile links updated:', links);
+
                     // Optionally refresh the data
                   }}
                 >
@@ -245,7 +246,7 @@ export function ProfileOverview({ userId }: ProfileOverviewProps) {
                 <ConnectPlatformModal 
                   userId={userId}
                   onProfileLinksUpdated={(links) => {
-                    console.log('Profile links updated:', links);
+
                     // Optionally refresh the data
                   }}
                 >

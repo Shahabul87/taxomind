@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -150,7 +151,7 @@ export async function POST(
     });
 
   } catch (error: any) {
-    console.error('Exam creation error:', error);
+    logger.error('Exam creation error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',
@@ -227,7 +228,7 @@ export async function GET(
     });
 
   } catch (error: any) {
-    console.error('Exam fetch error:', error);
+    logger.error('Exam fetch error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

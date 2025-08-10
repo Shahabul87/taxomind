@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function PATCH(req: Request, props: { params: Promise<{ billId: string }> }) {
   const params = await props.params;
@@ -21,7 +22,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ billId: str
 
     return NextResponse.json(bill);
   } catch (error) {
-    console.error("[BILL_PATCH]", error);
+    logger.error("[BILL_PATCH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -43,7 +44,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ billId: st
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[BILL_DELETE]", error);
+    logger.error("[BILL_DELETE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

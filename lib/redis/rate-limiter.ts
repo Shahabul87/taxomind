@@ -1,6 +1,7 @@
 // Rate Limiting with Redis for API Protection
 
 import { redis, REDIS_KEYS, REDIS_TTL } from './config';
+import { logger } from '@/lib/logger';
 
 interface RateLimitResult {
   allowed: boolean;
@@ -57,7 +58,7 @@ export class RateLimiter {
         resetAt: new Date(now + window)
       };
     } catch (error) {
-      console.error('Rate limit check error:', error);
+      logger.error('Rate limit check error:', error);
       // On error, allow the request
       return { allowed: true, remaining: maxRequests, resetAt: new Date() };
     }

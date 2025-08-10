@@ -25,7 +25,7 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
 
     return NextResponse.json(resource);
   } catch (error) {
-    console.log("[RESOURCES_POST]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -52,7 +52,7 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
 
     return NextResponse.json(resources);
   } catch (error) {
-    console.log("[RESOURCES_GET]", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

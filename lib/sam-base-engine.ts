@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Base class for all SAM engines
 export abstract class SAMBaseEngine {
@@ -17,7 +18,7 @@ export abstract class SAMBaseEngine {
         this.initialized = true;
       }
     } catch (error) {
-      console.error(`Failed to initialize ${this.name}:`, error);
+      logger.error(`Failed to initialize ${this.name}:`, error);
       throw new Error(`Engine initialization failed: ${this.name}`);
     }
   }
@@ -33,7 +34,7 @@ export abstract class SAMBaseEngine {
     try {
       return await operation();
     } catch (error) {
-      console.error(`Database operation failed in ${this.name}:`, error);
+      logger.error(`Database operation failed in ${this.name}:`, error);
       if (fallback !== undefined) {
         return fallback;
       }
@@ -65,7 +66,7 @@ export abstract class SAMBaseEngine {
       });
     } catch (error) {
       // Log error but don't throw - interaction recording shouldn't break main flow
-      console.error(`Failed to record interaction in ${this.name}:`, error);
+      logger.error(`Failed to record interaction in ${this.name}:`, error);
     }
   }
 
@@ -93,7 +94,7 @@ export abstract class SAMBaseEngine {
       }
       return operation(array);
     } catch (error) {
-      console.error(`Array operation failed in ${this.name}:`, error);
+      logger.error(`Array operation failed in ${this.name}:`, error);
       return fallback;
     }
   }
@@ -175,13 +176,13 @@ export abstract class SAMBaseEngine {
       const duration = performance.now() - start;
       
       if (duration > 1000) {
-        console.warn(`Slow operation in ${this.name}: ${operation} took ${duration.toFixed(2)}ms`);
+        logger.warn(`Slow operation in ${this.name}: ${operation} took ${duration.toFixed(2)}ms`);
       }
       
       return result;
     } catch (error) {
       const duration = performance.now() - start;
-      console.error(`Operation failed in ${this.name}: ${operation} after ${duration.toFixed(2)}ms`, error);
+      logger.error(`Operation failed in ${this.name}: ${operation} after ${duration.toFixed(2)}ms`, error);
       throw error;
     }
   }

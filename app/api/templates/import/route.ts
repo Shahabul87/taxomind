@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Template import error:", error);
+    logger.error("Template import error:", error);
     return NextResponse.json(
       { error: "Failed to import templates" },
       { status: 500 }

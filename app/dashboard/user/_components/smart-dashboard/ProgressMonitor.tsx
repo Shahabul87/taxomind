@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   AlertTriangle, CheckCircle2, TrendingDown, 
   Clock, Brain, Target, Bell, X,
@@ -134,7 +135,7 @@ export function ProgressMonitor({ user }: ProgressMonitorProps) {
         }
       }
     } catch (error) {
-      console.error("Failed to fetch progress data:", error);
+      logger.error("Failed to fetch progress data:", error);
       // Set default data on error
       setAlerts([]);
       setMetrics({

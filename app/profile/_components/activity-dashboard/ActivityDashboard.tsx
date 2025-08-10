@@ -9,6 +9,7 @@ import ActivityDateGroup from './ActivityDateGroup';
 import ActivityFilters from './ActivityFilters';
 import ActivityStats from './ActivityStats';
 import ActivityForm from './ActivityForm';
+import { logger } from '@/lib/logger';
 
 interface ActivityDashboardProps {
   userId: string;
@@ -70,7 +71,7 @@ const ActivityDashboard: React.FC<ActivityDashboardProps> = ({
       
     } catch (err) {
       setError('Failed to load activities. Please try again.');
-      console.error('Error loading activities:', err);
+      logger.error('Error loading activities:', err);
     } finally {
       setIsLoading(false);
     }

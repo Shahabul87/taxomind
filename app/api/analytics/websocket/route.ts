@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 // WebSocket upgrade handler for real-time analytics
 export async function GET(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('WebSocket error:', error);
+    logger.error('WebSocket error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

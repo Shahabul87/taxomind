@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { BloomsLevel, QuestionDifficulty } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Adaptive exam error:', error);
+    logger.error('Adaptive exam error:', error);
     return NextResponse.json(
       { error: 'Failed to process adaptive response' },
       { status: 500 }
@@ -169,7 +170,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get adaptive metrics error:', error);
+    logger.error('Get adaptive metrics error:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve adaptive metrics' },
       { status: 500 }

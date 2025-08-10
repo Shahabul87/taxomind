@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 export async function PATCH(
   req: NextRequest,
@@ -51,7 +52,7 @@ export async function PATCH(
     return NextResponse.json(activity);
     
   } catch (error) {
-    console.error("[ACTIVITY_PATCH]", error);
+    logger.error("[ACTIVITY_PATCH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -91,7 +92,7 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 });
     
   } catch (error) {
-    console.error("[ACTIVITY_DELETE]", error);
+    logger.error("[ACTIVITY_DELETE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

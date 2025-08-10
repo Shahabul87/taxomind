@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 import { 
   CalendarEvent, 
   CalendarEventInput, 
@@ -24,7 +25,7 @@ export async function getCalendarEvents(
     const session = await auth();
     authenticatedUserId = session?.user?.id;
   } catch (error) {
-    console.error("Authentication error:", error);
+    logger.error("Authentication error:", error);
     // If headers/cookies can't be accessed, fall back to the passed userId
   }
   
@@ -92,7 +93,7 @@ export async function getCalendarEvents(
     }
     
     if (lastError) {
-      console.error("Database error after retries:", lastError);
+      logger.error("Database error after retries:", lastError);
       throw new Error("Failed to load calendar events from database");
     }
 
@@ -124,7 +125,7 @@ export async function getCalendarEvents(
           );
           allEvents.push(...expandedEvents);
         } catch (error) {
-          console.error("Error expanding recurring event:", error, event);
+          logger.error("Error expanding recurring event:", error, event);
           // Continue with other events even if one fails
         }
       }
@@ -132,7 +133,7 @@ export async function getCalendarEvents(
 
     return allEvents;
   } catch (error) {
-    console.error("Error in getCalendarEvents:", error);
+    logger.error("Error in getCalendarEvents:", error);
     throw new Error(`Failed to fetch calendar events: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

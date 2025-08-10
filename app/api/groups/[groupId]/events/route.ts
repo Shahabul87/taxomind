@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 const eventSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -72,7 +73,7 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
 
       return NextResponse.json(event);
     } catch (validationError) {
-      console.error("Validation error:", validationError);
+      logger.error("Validation error:", validationError);
       if (validationError instanceof z.ZodError) {
         return new NextResponse(JSON.stringify({
           error: "Validation failed",
@@ -85,7 +86,7 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
       throw validationError;
     }
   } catch (error) {
-    console.error("[EVENTS_POST]", error);
+    logger.error("[EVENTS_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -121,7 +122,7 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
 
     return NextResponse.json(events);
   } catch (error) {
-    console.error("[EVENTS_GET]", error);
+    logger.error("[EVENTS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 } 

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { DM_Sans } from 'next/font/google'
 import './globals.css'
 import clsx from "clsx";
+import { logger } from '@/lib/logger';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -84,7 +85,7 @@ async function AsyncHeader() {
   try {
     user = await currentUser();
   } catch (error) {
-    console.error("Error fetching user:", error);
+    logger.error("Error fetching user:", error);
     user = null;
   }
 
@@ -98,7 +99,7 @@ async function AsyncLayoutWithSidebar({ children }: { children: React.ReactNode 
   try {
     user = await currentUser();
   } catch (error) {
-    console.error("Error fetching user for sidebar:", error);
+    logger.error("Error fetching user for sidebar:", error);
     user = null;
   }
 
@@ -120,7 +121,7 @@ export default async function RootLayout({
   try {
     session = await auth();
   } catch (error) {
-    console.error("Error fetching auth session:", error);
+    logger.error("Error fetching auth session:", error);
     session = null;
   }
 

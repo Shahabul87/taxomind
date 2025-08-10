@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import * as z from 'zod';
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
       try {
         questions = await generateAIQuestions(section, strategy, request);
       } catch (error) {
-        console.error('AI question generation failed:', error);
+        logger.error('AI question generation failed:', error);
         questions = generateFallbackQuestions(section, strategy, request);
       }
     } else {
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Adaptive question recommendation error:', error);
+    logger.error('Adaptive question recommendation error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

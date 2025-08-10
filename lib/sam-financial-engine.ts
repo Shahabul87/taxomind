@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Financial Intelligence Engine
 // Provides comprehensive financial analytics, revenue optimization, and pricing strategies
@@ -252,7 +253,7 @@ export class SAMFinancialEngine {
         recommendations,
       };
     } catch (error) {
-      console.error("Error analyzing financials:", error);
+      logger.error("Error analyzing financials:", error);
       throw new Error("Failed to analyze financials");
     }
   }

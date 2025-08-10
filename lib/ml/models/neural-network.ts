@@ -424,14 +424,13 @@ export class NeuralNetworkModel extends BaseMLModel {
     };
 
     // In a real implementation, save to file system or database
-    console.log('Model saved:', this.modelId);
+
   }
 
   // Load model weights
   async loadModel(modelPath: string): Promise<void> {
     // In a real implementation, load from file system or database
-    console.log('Loading model from:', modelPath);
-    
+
     // For now, just initialize weights
     this.initializeWeights();
   }

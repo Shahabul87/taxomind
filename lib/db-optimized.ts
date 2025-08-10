@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 declare global {
   var prisma: PrismaClient | undefined;
@@ -31,7 +32,7 @@ const prismaWithOptimizations = () => {
     
     // Log slow queries in development
     if (process.env.NODE_ENV === 'development' && duration > 100) {
-      console.warn(`Slow query (${duration}ms):`, {
+      logger.warn(`Slow query (${duration}ms):`, {
         model: params.model,
         action: params.action,
       });

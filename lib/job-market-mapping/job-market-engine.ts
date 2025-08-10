@@ -53,8 +53,6 @@ export class JobMarketEngine {
     includeProjections: boolean = true,
     timeHorizon: number = 12 // months
   ): Promise<JobMarketMapping> {
-    
-    console.log(`Generating job market mapping for student: ${studentId}`);
 
     // Analyze current skills
     const skillAnalysis = await this.analyzeStudentSkills(studentId);
@@ -133,7 +131,6 @@ export class JobMarketEngine {
   }
 
   async analyzeStudentSkills(studentId: string): Promise<SkillAnalysis> {
-    console.log(`Analyzing skills for student: ${studentId}`);
 
     // Get all assessed skills
     const assessedSkills = await this.getStudentSkills(studentId);
@@ -176,7 +173,6 @@ export class JobMarketEngine {
   }
 
   async getJobMarketData(skills: AssessedSkill[]): Promise<JobMarketData> {
-    console.log('Fetching job market data...');
 
     // Get relevant job postings
     const jobPostings = await this.fetchRelevantJobPostings(skills);
@@ -228,8 +224,6 @@ export class JobMarketEngine {
     jobMarketData: JobMarketData,
     timeHorizon: number
   ): Promise<CareerPathway[]> {
-    
-    console.log(`Generating career pathways for student: ${studentId}`);
 
     // Identify potential target roles
     const potentialRoles = await this.identifyPotentialTargetRoles(
@@ -264,8 +258,6 @@ export class JobMarketEngine {
     careerPathways: CareerPathway[],
     jobMarketData: JobMarketData
   ): Promise<SkillGap[]> {
-    
-    console.log('Identifying skill gaps...');
 
     const skillGaps: SkillGap[] = [];
     const studentSkillMap = new Map(
@@ -311,8 +303,6 @@ export class JobMarketEngine {
     careerPathways: CareerPathway[],
     jobMarketData: JobMarketData
   ): Promise<CareerRecommendation[]> {
-    
-    console.log('Generating career recommendations...');
 
     const recommendations: CareerRecommendation[] = [];
 
@@ -372,8 +362,6 @@ export class JobMarketEngine {
     timeHorizon: number,
     includeProjections: boolean
   ): Promise<MarketTrend[]> {
-    
-    console.log('Analyzing market trends...');
 
     const trends: MarketTrend[] = [];
 
@@ -413,8 +401,6 @@ export class JobMarketEngine {
       // Get default target role based on skills
       targetRole = await this.getDefaultTargetRole(skillAnalysis);
     }
-
-    console.log(`Building competency matrix for role: ${targetRole.title}`);
 
     // Get role competency requirements
     const roleCompetencies = await this.getRoleCompetencies(targetRole.roleId);
@@ -471,7 +457,6 @@ export class JobMarketEngine {
   // Market analysis methods
 
   private async fetchRelevantJobPostings(skills: AssessedSkill[]): Promise<JobPosting[]> {
-    console.log('Fetching relevant job postings...');
 
     // Create skill keywords for search
     const skillKeywords = skills.map(s => s.skillName);
@@ -826,7 +811,7 @@ export class JobMarketEngine {
   // Utility and helper methods
 
   private async initializeEngine(): Promise<void> {
-    console.log('Initializing Job Market Engine...');
+
     // Initialize data connections, cache, algorithms
   }
 
@@ -881,7 +866,8 @@ export class JobMarketEngine {
       averageProficiency: this.calculateAverageProficiency(categorySkills),
       marketRelevance: Math.random() * 0.4 + 0.6, // 0.6-1.0
       futureProjection: {},
-      recommendedFocus: {}
+      recommendedFocus: {
+}
     }));
   }
 
@@ -928,7 +914,8 @@ export class JobMarketEngine {
   private async analyzeRoleEvolution(): Promise<any[]> { return []; }
   private async performCompetitorAnalysis(skills: AssessedSkill[]): Promise<any[]> { return []; }
   private async performMarketSegmentation(): Promise<any[]> { return []; }
-  private async storeMapping(mapping: JobMarketMapping): Promise<void> { }
+  private async storeMapping(mapping: JobMarketMapping): Promise<void> {
+}
   private async getDataSources(): Promise<any[]> { return []; }
   private async getRequiredSkillsForRole(roleId: string): Promise<RequiredSkill[]> { return []; }
   private mapExperienceToRoleLevel(experience: ExperienceLevel): any { return 'individual_contributor'; }

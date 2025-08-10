@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import { useState } from "react";
+import { logger } from '@/lib/logger';
 
 interface SimpleLogoutButtonProps {
   children?: React.ReactNode;
@@ -17,17 +18,15 @@ export const SimpleLogoutButton = ({
   const onClick = async () => {
     try {
       setIsLoading(true);
-      console.log("SimpleLogoutButton: Starting logout...");
-      
+
       // Use NextAuth's client-side signOut - most reliable method
       await signOut({ 
         callbackUrl: "/",
         redirect: true 
       });
-      
-      console.log("SimpleLogoutButton: Logout completed");
+
     } catch (error) {
-      console.error("SimpleLogoutButton: Logout error:", error);
+      logger.error("SimpleLogoutButton: Logout error:", error);
       // Fallback: force redirect
       window.location.href = "/";
     } finally {

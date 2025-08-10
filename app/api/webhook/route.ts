@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -16,17 +17,13 @@ export async function POST(req: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
 
-    console.log("Webhook event type:", event.type);
-
     const session = event.data.object as Stripe.Checkout.Session;
     const userId = session?.metadata?.userId;
     const courseId = session?.metadata?.courseId;
 
-    console.log("Webhook metadata:", { userId, courseId });
-
     if (event.type === "checkout.session.completed") {
       if (!userId || !courseId) {
-        console.log("Missing metadata in webhook");
+
         return new Response("Webhook Error: Missing metadata", { status: 400 });
       }
 
@@ -41,8 +38,6 @@ export async function POST(req: Request) {
           }
         });
 
-        console.log("Existing enrollment:", existingEnrollment);
-
         if (!existingEnrollment) {
           // Create enrollment
           const enrollment = await db.enrollment.create({
@@ -51,19 +46,19 @@ export async function POST(req: Request) {
               courseId: courseId,
             }
           });
-          console.log("Created new enrollment:", enrollment);
+
         }
 
         return new Response(null, { status: 200 });
       } catch (error) {
-        console.error("Webhook DB error:", error);
+        logger.error("Webhook DB error:", error);
         return new Response("Webhook Error: Database error", { status: 500 });
       }
     }
 
     return new Response(null, { status: 200 });
   } catch (error: any) {
-    console.error("Webhook construction error:", error);
+    logger.error("Webhook construction error:", error);
     return new Response(`Webhook Error: ${error.message}`, { status: 400 });
   }
 }

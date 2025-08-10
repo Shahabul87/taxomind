@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
 
@@ -178,7 +179,7 @@ export class AIErrorHandler {
     this.errorLog.push(errorEntry);
 
     // Log to console with context
-    console.error(`[AI_ERROR_HANDLER] ${severity.toUpperCase()}: ${context.operation}`, {
+    logger.error(`[AI_ERROR_HANDLER] ${severity.toUpperCase()}: ${context.operation}`, {
       error: error.message,
       context,
       stack: error.stack
@@ -195,8 +196,7 @@ export class AIErrorHandler {
     retryCount: number,
     method: string
   ): void {
-    console.log(`[AI_ERROR_HANDLER] RECOVERY: ${context.operation} recovered after ${retryCount} attempts using ${method}`);
-    
+
     // Update error log
     const lastError = this.errorLog.find(entry => 
       entry.context.operation === context.operation && 

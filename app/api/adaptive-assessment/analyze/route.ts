@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -137,7 +138,7 @@ export async function POST(
     });
 
   } catch (error: any) {
-    console.error('Adaptive assessment analysis error:', error);
+    logger.error('Adaptive assessment analysis error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

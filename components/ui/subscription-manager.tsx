@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import {
   Crown,
   Zap,
@@ -334,7 +335,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
       setSubscription(upgradedSub);
       onUpgrade?.(tier);
     } catch (error) {
-      console.error('Upgrade failed:', error);
+      logger.error('Upgrade failed:', error);
     }
   };
 

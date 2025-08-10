@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { logger } from '@/lib/logger';
 import { 
   Users, MessageCircle, History, Save, Share2, Download,
   Eye, EyeOff, Clock, CheckCircle, AlertCircle, MoreHorizontal,
@@ -116,7 +117,7 @@ export function CollaborativeEditor({
         setupWebSocketConnection();
 
       } catch (error) {
-        console.error('Failed to initialize collaborative editor:', error);
+        logger.error('Failed to initialize collaborative editor:', error);
         toast.error('Failed to connect to collaborative editor');
       }
     };
@@ -200,7 +201,6 @@ export function CollaborativeEditor({
     });
 
   }, [documentId, user, handleRemoteOperation]);
-
 
   // Handle remote operations
   const handleRemoteOperation = useCallback((operation: Operation) => {
@@ -333,7 +333,7 @@ export function CollaborativeEditor({
       toast.success('Comment added');
     } catch (error) {
       toast.error('Failed to add comment');
-      console.error(error);
+      logger.error(error);
     }
   }, [user, documentId, selectedText, commentText]);
 
@@ -345,7 +345,7 @@ export function CollaborativeEditor({
       toast.success('Document saved');
     } catch (error) {
       toast.error('Failed to save document');
-      console.error(error);
+      logger.error(error);
     }
   }, [documentId, user, editorState.content, onSave]);
 

@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("url");
 
-  console.log("Fetch article metadata API called with URL:", url);
-
   if (!url) {
-    console.log("Missing URL parameter");
+
     return NextResponse.json(
       { error: "URL parameter is required" },
       { status: 400 }
@@ -205,7 +204,7 @@ export async function GET(request: Request) {
     });
     
   } catch (error) {
-    console.error("Error in fetch-article-metadata API:", error);
+    logger.error("Error in fetch-article-metadata API:", error);
     
     // Fallback - create a title from the URL
     try {
@@ -222,9 +221,7 @@ export async function GET(request: Request) {
       
       // Auto-detect platform from URL
       const platform = detectPlatform(url);
-      
-      console.log("Using guessed title:", guessedTitle);
-      
+
       return NextResponse.json({
         title: guessedTitle,
         favicon: faviconUrl,
@@ -234,7 +231,7 @@ export async function GET(request: Request) {
         is_fallback: true
       });
     } catch (fallbackError) {
-      console.error("Fallback error:", fallbackError);
+      logger.error("Fallback error:", fallbackError);
       
       return NextResponse.json({
         title: "Article",
@@ -296,7 +293,7 @@ async function handleMediumUrl(url: string) {
           }
         }
       } catch (e) {
-        console.error("Error parsing Medium JSON data:", e);
+        logger.error("Error parsing Medium JSON data:", e);
       }
     }
     
@@ -336,7 +333,7 @@ async function handleMediumUrl(url: string) {
       success: true
     });
   } catch (error) {
-    console.error("Error fetching Medium metadata:", error);
+    logger.error("Error fetching Medium metadata:", error);
     return fallbackResponse(url, "Medium");
   }
 }
@@ -389,7 +386,7 @@ async function handleSubstackUrl(url: string) {
       success: true
     });
   } catch (error) {
-    console.error("Error fetching Substack metadata:", error);
+    logger.error("Error fetching Substack metadata:", error);
     return fallbackResponse(url, "Substack");
   }
 }

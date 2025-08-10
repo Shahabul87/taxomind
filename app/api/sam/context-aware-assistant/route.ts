@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import anthropic from '@/lib/anthropic-client';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -95,7 +96,7 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
     });
 
   } catch (error) {
-    console.error('Context-Aware SAM API Error:', error);
+    logger.error('Context-Aware SAM API Error:', error);
     return NextResponse.json(
       { error: 'Failed to process request' },
       { status: 500 }

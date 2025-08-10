@@ -16,6 +16,7 @@ import { ContentOptimizer } from "@/components/course-creation/content-optimizer
 import { ProgressiveDisclosurePanel } from "@/components/course-creation/progressive-disclosure-panel";
 import { useProgressiveCourseCreation } from "@/hooks/use-progressive-course-creation";
 import { trackAIFeatureUsage, trackFormProgress, trackGenerationStart, trackGenerationEnd } from "@/lib/analytics-tracker";
+import { logger } from '@/lib/logger';
 import { 
   Bot, 
   ArrowRight, 
@@ -380,7 +381,7 @@ export const SamCourseCreatorModal = ({
         });
       }
     } catch (error) {
-      console.error('Error getting Sam suggestion:', error);
+      logger.error('Error getting Sam suggestion:', error);
     } finally {
       setIsLoadingSuggestion(false);
     }
@@ -429,7 +430,7 @@ export const SamCourseCreatorModal = ({
         });
       }
     } catch (error) {
-      console.error('Error validating form:', error);
+      logger.error('Error validating form:', error);
     } finally {
       setIsValidating(false);
     }
@@ -477,7 +478,7 @@ export const SamCourseCreatorModal = ({
         }
       }
     } catch (error) {
-      console.error('Error generating title suggestions:', error);
+      logger.error('Error generating title suggestions:', error);
     } finally {
       setIsLoadingTitleSuggestions(false);
     }
@@ -525,7 +526,7 @@ export const SamCourseCreatorModal = ({
         }
       }
     } catch (error) {
-      console.error('Error generating overview suggestions:', error);
+      logger.error('Error generating overview suggestions:', error);
     } finally {
       setIsLoadingOverviewSuggestions(false);
     }
@@ -553,7 +554,6 @@ export const SamCourseCreatorModal = ({
     return () => clearTimeout(timeoutId);
   }, [formData.courseTitle, generateOverviewSuggestions]);
 
-  
   // Initialize Sam greeting
   useEffect(() => {
     if (open && !samGreeting) {

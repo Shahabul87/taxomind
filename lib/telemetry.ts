@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 // Simplified telemetry without OpenTelemetry dependencies
 // This provides basic performance monitoring without external packages
 
@@ -34,7 +36,7 @@ class SimpleTelemetry {
 
     // Log performance issues
     if (this.isPerformanceIssue(name, value)) {
-      console.warn(`Performance issue detected: ${name} = ${value}ms`, metadata)
+      logger.warn(`Performance issue detected: ${name} = ${value}ms`, metadata)
     }
   }
 
@@ -210,8 +212,7 @@ export const performanceMonitoring = {
 // Initialize telemetry
 export const initTelemetry = () => {
   if (process.env.ENABLE_TELEMETRY === 'true') {
-    console.log('Simple telemetry monitoring started')
-  }
+}
 }
 
 // Export for backward compatibility

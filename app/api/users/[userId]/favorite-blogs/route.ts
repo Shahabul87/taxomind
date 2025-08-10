@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request, props: { params: Promise<{ userId: string }> }) {
   const params = await props.params;
@@ -24,7 +25,7 @@ export async function POST(req: Request, props: { params: Promise<{ userId: stri
 
     return NextResponse.json(newFavoriteBlog);
   } catch (error) {
-    console.error("[FAVORITE BLOG POST]", error);
+    logger.error("[FAVORITE BLOG POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

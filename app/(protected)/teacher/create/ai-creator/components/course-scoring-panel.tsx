@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { logger } from '@/lib/logger';
 import { 
   Target, 
   Sparkles, 
@@ -163,7 +164,7 @@ export function CourseScoringPanel({ formData, onUpdateFormData, className }: Co
         setShowTitleSuggestions(true);
       }
     } catch (error) {
-      console.error('Error generating title suggestions:', error);
+      logger.error('Error generating title suggestions:', error);
       toast.error('Failed to generate title suggestions');
     } finally {
       setIsGeneratingTitles(false);
@@ -237,15 +238,13 @@ Make each overview unique, highlighting different aspects and benefits of the co
       const result = await response.json();
       
       // Debug: Log the raw response to see what SAM is returning
-      console.log('SAM Raw Response:', result.response);
-      
+
       // Try multiple parsing strategies
       let suggestions: OverviewSuggestion[] = [];
       
       // Strategy 1: Parse structured format with **Overview X:**
       const overviewBlocks = result.response.split('**Overview ').slice(1);
-      console.log('Overview blocks found:', overviewBlocks.length);
-      
+
       if (overviewBlocks.length > 0) {
         suggestions = overviewBlocks.map((block: string, index: number) => {
           console.log(`Processing block ${index + 1}:`, block.substring(0, 100) + '...');
@@ -287,13 +286,7 @@ Make each overview unique, highlighting different aspects and benefits of the co
           if (reasoningMatch) {
             reasoning = reasoningMatch[1].trim();
           }
-          
-          console.log(`Extracted overview ${index + 1}:`, { 
-            overviewLength: overview.length, 
-            score: relevanceScore, 
-            reasoningLength: reasoning.length 
-          });
-          
+
           return {
             overview: overview || `Transformer implementation course option ${index + 1}`,
             webSearchBased: true,
@@ -305,7 +298,7 @@ Make each overview unique, highlighting different aspects and benefits of the co
       
       // Strategy 2: If structured parsing fails, try numbered list parsing
       if (suggestions.length === 0) {
-        console.log('Structured parsing failed, trying numbered list parsing...');
+
         const numberedMatches = result.response.match(/\d+\.\s*([^\.]+(?:\.[^\.]*)*)/g);
         if (numberedMatches && numberedMatches.length > 0) {
           suggestions = numberedMatches.slice(0, 3).map((match: string, index: number) => {
@@ -322,7 +315,7 @@ Make each overview unique, highlighting different aspects and benefits of the co
       
       // Strategy 3: If all parsing fails, create multiple fallback suggestions
       if (suggestions.length === 0) {
-        console.log('All parsing failed, creating fallback suggestions...');
+
         suggestions = [
           {
             overview: `Master ${formData.courseTitle} with this comprehensive course designed for ${formData.targetAudience || 'learners'}. Learn essential skills, practical applications, and real-world techniques through hands-on projects and expert guidance. Perfect for advancing your knowledge and career prospects in ${formData.courseCategory || 'this field'}.`,
@@ -344,9 +337,7 @@ Make each overview unique, highlighting different aspects and benefits of the co
           }
         ];
       }
-      
-      console.log(`Final suggestions count: ${suggestions.length}`);
-      
+
       if (suggestions.length > 0) {
         setOverviewSuggestions(suggestions.slice(0, 3)); // Ensure max 3 suggestions
         setShowOverviewSuggestions(true);
@@ -355,7 +346,7 @@ Make each overview unique, highlighting different aspects and benefits of the co
         toast.error('Failed to generate overview suggestions. Please try again.');
       }
     } catch (error) {
-      console.error('Error generating overview suggestions:', error);
+      logger.error('Error generating overview suggestions:', error);
       toast.error('Failed to generate overview suggestions');
     } finally {
       setIsGeneratingOverviews(false);

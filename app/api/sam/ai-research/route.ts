@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { samResearchEngine } from '@/lib/sam-research-engine';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -127,7 +128,7 @@ export async function GET(req: NextRequest) {
       }
     }
   } catch (error) {
-    console.error('AI Research API error:', error);
+    logger.error('AI Research API error:', error);
     return NextResponse.json(
       { error: 'Failed to process research request' },
       { status: 500 }
@@ -255,7 +256,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (error) {
-    console.error('AI Research API POST error:', error);
+    logger.error('AI Research API POST error:', error);
     return NextResponse.json(
       { error: 'Failed to process research request' },
       { status: 500 }

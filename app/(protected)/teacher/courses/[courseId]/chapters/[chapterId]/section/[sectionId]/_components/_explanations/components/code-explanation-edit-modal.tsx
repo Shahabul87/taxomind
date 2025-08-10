@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Send, Loader2, X } from "lucide-react";
+import { logger } from '@/lib/logger';
 import {
   Dialog,
   DialogContent,
@@ -243,7 +244,7 @@ export const CodeExplanationEditModal = ({
       
     } catch (error) {
       toast.error("Something went wrong. Please try again.");
-      console.error("Update error:", error);
+      logger.error("Update error:", error);
     } finally {
       setIsSubmitting(false);
     }

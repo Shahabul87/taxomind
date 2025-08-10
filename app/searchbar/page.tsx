@@ -44,29 +44,24 @@ export default function PlaceholdersAndVanishInputDemo(props: SearchPageProps) {
   const [courses, setCourses] = useState<CourseForHomepage[]>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log(e.target.value);
+
   };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("submitted");
+
   };
 
   useEffect(() => {
     const fetchCourses = async () => {
       const fetchedCourses = await getCoursesForHomepage();
       // Log the courses to see what we're getting
-      console.log("Search page courses:", fetchedCourses.map(course => ({
-        id: course.id,
-        title: course.title,
-        cleanDescription: course.cleanDescription?.substring(0, 30)
+
       })));
       setCourses(fetchedCourses);
     };
     fetchCourses();
   }, [searchParams]);
-
-
 
   return (
     <SidebarDemo>

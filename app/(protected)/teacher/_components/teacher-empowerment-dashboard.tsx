@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { logger } from '@/lib/logger';
 import { 
   BarChart3, 
   Users, 
@@ -110,7 +111,7 @@ export function TeacherEmpowermentDashboard({
         setInsights(data.insights);
       }
     } catch (error) {
-      console.error('Error fetching insights:', error);
+      logger.error('Error fetching insights:', error);
       toast.error('Failed to fetch insights');
     } finally {
       setIsLoading(false);
@@ -133,7 +134,7 @@ export function TeacherEmpowermentDashboard({
         toast.success('Lesson plan generated successfully!');
       }
     } catch (error) {
-      console.error('Error generating lesson plan:', error);
+      logger.error('Error generating lesson plan:', error);
       toast.error('Failed to generate lesson plan');
     } finally {
       setIsLoading(false);

@@ -3,6 +3,7 @@ import { EachMessagePayload } from 'kafkajs';
 import { initializeConsumer, KAFKA_TOPICS, KafkaMessage } from '../index';
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 
 // Data aggregation for ML training
 interface MLTrainingData {
@@ -59,7 +60,7 @@ export async function processMLDataMessage(
     await checkDataReadiness(data.studentId, data.courseId);
     
   } catch (error) {
-    console.error('Error processing ML data:', error);
+    logger.error('Error processing ML data:', error);
   }
 }
 
@@ -227,7 +228,7 @@ async function prepareTrainingData(
     };
     
   } catch (error) {
-    console.error('Error preparing training data:', error);
+    logger.error('Error preparing training data:', error);
     return null;
   }
 }
@@ -340,10 +341,9 @@ export async function startMLDataConsumer(): Promise<void> {
     await consumer.run({
       eachMessage: processMLDataMessage
     });
-    
-    console.log('ML data consumer started');
+
   } catch (error) {
-    console.error('Failed to start ML data consumer:', error);
+    logger.error('Failed to start ML data consumer:', error);
     throw error;
   }
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Plus, Tag } from "lucide-react";
+import { logger } from '@/lib/logger';
 import { 
   Dialog,
   DialogContent,
@@ -65,7 +66,6 @@ export const NewMindDialog = ({ open, onClose, userId }: NewMindDialogProps) => 
       };
 
       // await axios.post("/api/minds", mind);
-      console.log("Submitting mind map:", mind);
 
       onClose();
       // Reset form
@@ -75,7 +75,7 @@ export const NewMindDialog = ({ open, onClose, userId }: NewMindDialogProps) => 
       setVisibility("private");
       setTags([]);
     } catch (error) {
-      console.error("Failed to create mind map:", error);
+      logger.error("Failed to create mind map:", error);
     } finally {
       setIsSubmitting(false);
     }

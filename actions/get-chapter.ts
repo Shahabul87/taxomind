@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { Chapter, Section, Course } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 export type ChapterWithSectionsAndCourse = Chapter & {
   sections: (Section & {
@@ -83,7 +84,7 @@ export async function getChapter(
     };
 
   } catch (error) {
-    console.error("[GET_CHAPTER]", error);
+    logger.error("[GET_CHAPTER]", error);
     return {
       chapter: null,
       error: "Failed to fetch chapter"

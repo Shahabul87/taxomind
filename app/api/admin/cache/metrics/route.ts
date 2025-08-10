@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { redis } from "@/lib/redis/config";
 import { ServerActionCache } from "@/lib/redis/server-action-cache";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error("Cache metrics API error:", error);
+    logger.error("Cache metrics API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error("Cache management API error:", error);
+    logger.error("Cache management API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -131,7 +132,7 @@ async function getCacheOverview() {
       timestamp: new Date().toISOString()
     };
   } catch (error) {
-    console.error("Cache overview error:", error);
+    logger.error("Cache overview error:", error);
     return { error: "Failed to get cache overview" };
   }
 }
@@ -160,7 +161,7 @@ async function getCachePerformance() {
 
     return performance;
   } catch (error) {
-    console.error("Cache performance error:", error);
+    logger.error("Cache performance error:", error);
     return { error: "Failed to get cache performance" };
   }
 }
@@ -215,7 +216,7 @@ async function getCacheKeys() {
       timestamp: new Date().toISOString()
     };
   } catch (error) {
-    console.error("Cache keys error:", error);
+    logger.error("Cache keys error:", error);
     return { error: "Failed to get cache keys" };
   }
 }
@@ -269,10 +270,10 @@ async function flushAllCache() {
   try {
     // Note: flushall might not be available in all Redis implementations
     // Alternative: get all keys and delete them
-    console.log("Flushing all cache...");
+
     // await redis.flushall();
   } catch (error) {
-    console.error("Flush all cache error:", error);
+    logger.error("Flush all cache error:", error);
     throw error;
   }
 }
@@ -283,11 +284,11 @@ async function flushCachePattern(pattern: string) {
   }
 
   try {
-    console.log(`Flushing cache pattern: ${pattern}`);
+
     // Implementation would scan for keys matching pattern and delete them
     // This is a placeholder for the actual implementation
   } catch (error) {
-    console.error("Flush cache pattern error:", error);
+    logger.error("Flush cache pattern error:", error);
     throw error;
   }
 }

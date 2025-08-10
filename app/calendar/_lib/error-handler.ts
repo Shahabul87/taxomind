@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface ErrorOptions {
   silent?: boolean;
@@ -36,12 +37,12 @@ export const handleCalendarError = (error: unknown, options: ErrorOptions = {}) 
           toast.error(error.message);
       }
     }
-    console.error(`[${error.code}]`, error.metadata);
+    logger.error(`[${error.code}]`, error.metadata);
   } else {
     if (!options.silent) {
       toast.error("An unexpected error occurred");
     }
-    console.error("[CALENDAR_ERROR]", error);
+    logger.error("[CALENDAR_ERROR]", error);
   }
 
   return options.fallback;

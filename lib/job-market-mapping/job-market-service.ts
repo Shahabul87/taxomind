@@ -7,9 +7,9 @@ export class JobMarketService {
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    console.log('Initializing Job Market Service...');
+
     this.initialized = true;
-    console.log('Job Market Service initialized successfully');
+
   }
 
   async healthCheck(): Promise<{ status: string; details?: any }> {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import {
   Bot,
   Sparkles,
@@ -232,7 +233,7 @@ export const SimplifiedAICourseAssistant = ({
           await new Promise(resolve => setTimeout(resolve, 2000));
       }
     } catch (error) {
-      console.error('AI generation error:', error);
+      logger.error('AI generation error:', error);
       // Error handling is done in the individual components/hooks
     } finally {
       // Always clear the loading state and active feature
@@ -269,7 +270,7 @@ export const SimplifiedAICourseAssistant = ({
       setShowPresetSelector(false);
       // You could show a success message or redirect here
     } catch (error) {
-      console.error('Preset application failed:', error);
+      logger.error('Preset application failed:', error);
       // Keep preset selector open on error to allow retry
     } finally {
       setIsGenerating(false);
@@ -281,7 +282,7 @@ export const SimplifiedAICourseAssistant = ({
     setShowPresetSelector(false);
     // Navigate to custom preset creation wizard
     // This would typically open a modal or navigate to a dedicated page
-    console.log('Opening custom preset creation wizard...');
+
   };
 
   return (

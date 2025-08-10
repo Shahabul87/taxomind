@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -49,7 +50,7 @@ export async function GET(
     });
     
   } catch (error) {
-    console.error("[ACTIVITIES_GET]", error);
+    logger.error("[ACTIVITIES_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

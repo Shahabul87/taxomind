@@ -8,6 +8,7 @@ import { Queue, Worker, Job, QueueOptions, WorkerOptions, JobsOptions, Connectio
 import { Redis } from '@upstash/redis';
 import { QueueConfig, JobType, JobData, WorkerFunction, QueueMetrics } from './job-definitions';
 import IORedis from 'ioredis';
+import { logger } from '@/lib/logger';
 
 /**
  * Enterprise Queue Manager with advanced features
@@ -231,7 +232,6 @@ export class QueueManager {
     // Set up queue health monitoring
     this.setupQueueHealthCheck(queue, config.name);
 
-    console.log(`[QUEUE_MANAGER] Added enterprise queue: ${config.name} with ${config.concurrency} workers`);
   }
 
   /**
@@ -239,7 +239,7 @@ export class QueueManager {
    */
   registerHandler<T>(queueName: string, handler: WorkerFunction<T>): void {
     this.jobHandlers.set(queueName, handler);
-    console.log(`[QUEUE_MANAGER] Registered handler for queue: ${queueName}`);
+
   }
 
   /**
@@ -247,7 +247,7 @@ export class QueueManager {
    */
   startWorker(queueName: string): void {
     if (this.isShuttingDown) {
-      console.warn(`[QUEUE_MANAGER] Cannot start worker for ${queueName}: system is shutting down`);
+      logger.warn(`[QUEUE_MANAGER] Cannot start worker for ${queueName}: system is shutting down`);
       return;
     }
     
@@ -255,7 +255,7 @@ export class QueueManager {
     const handler = this.jobHandlers.get(queueName);
 
     if (!config || !handler) {
-      console.error(`[QUEUE_MANAGER] Cannot start worker for ${queueName}: missing config or handler`);
+      logger.error(`[QUEUE_MANAGER] Cannot start worker for ${queueName}: missing config or handler`);
       return;
     }
 
@@ -298,7 +298,7 @@ export class QueueManager {
     if (worker) {
       await worker.close();
       this.workers.delete(queueName);
-      console.log(`[QUEUE_MANAGER] Stopped worker for queue: ${queueName}`);
+
     }
   }
 
@@ -326,7 +326,6 @@ export class QueueManager {
     }
 
     const job = await queue.add(jobType, data, jobOptions);
-    console.log(`[QUEUE_MANAGER] Added job ${job.id} to queue ${queueName}`);
 
     return job;
   }
@@ -350,7 +349,6 @@ export class QueueManager {
     }));
 
     const addedJobs = await queue.addBulk(jobsWithDefaults);
-    console.log(`[QUEUE_MANAGER] Added ${addedJobs.length} jobs to queue ${queueName}`);
 
     return addedJobs;
   }
@@ -422,7 +420,7 @@ export class QueueManager {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error(`[QUEUE_MANAGER] Error getting stats for ${queueName}:`, error);
+      logger.error(`[QUEUE_MANAGER] Error getting stats for ${queueName}:`, error);
       return {
         name: queueName,
         health: { score: 0, status: 'error' },
@@ -460,7 +458,6 @@ export class QueueManager {
       await job.retry();
     }
 
-    console.log(`[QUEUE_MANAGER] Retried ${failed.length} failed jobs in queue ${queueName}`);
   }
 
   /**
@@ -478,7 +475,7 @@ export class QueueManager {
     }
 
     const cleaned = await queue.clean(grace, status, limit);
-    console.log(`[QUEUE_MANAGER] Cleaned ${cleaned.length} ${status} jobs from queue ${queueName}`);
+
   }
 
   /**
@@ -491,7 +488,7 @@ export class QueueManager {
     }
 
     await queue.pause();
-    console.log(`[QUEUE_MANAGER] Paused queue: ${queueName}`);
+
   }
 
   /**
@@ -504,7 +501,7 @@ export class QueueManager {
     }
 
     await queue.resume();
-    console.log(`[QUEUE_MANAGER] Resumed queue: ${queueName}`);
+
   }
 
   /**
@@ -512,7 +509,7 @@ export class QueueManager {
    */
   private setupQueueEventListeners(queue: Queue, queueName: string): void {
     queue.on('added', (job) => {
-      console.log(`[QUEUE] Job ${job.id} added to ${queueName}`);
+
     });
 
     queue.on('completed', (job) => {
@@ -535,11 +532,11 @@ export class QueueManager {
       metrics.processed++;
       metrics.failed++;
 
-      console.error(`[QUEUE] Job ${job?.id} failed in ${queueName}:`, err.message);
+      logger.error(`[QUEUE] Job ${job?.id} failed in ${queueName}:`, err.message);
     });
 
     queue.on('stalled', (jobId) => {
-      console.warn(`[QUEUE] Job ${jobId} stalled in ${queueName}`);
+      logger.warn(`[QUEUE] Job ${jobId} stalled in ${queueName}`);
     });
   }
 
@@ -550,7 +547,7 @@ export class QueueManager {
     worker.on('active', (job) => {
       const metrics = this.metrics.get(queueName)!;
       metrics.active++;
-      console.log(`[WORKER] Processing job ${job.id} in ${queueName}`);
+
     });
 
     worker.on('completed', (job) => {
@@ -561,11 +558,11 @@ export class QueueManager {
     worker.on('failed', (job, err) => {
       const metrics = this.metrics.get(queueName)!;
       metrics.active--;
-      console.error(`[WORKER] Job ${job?.id} failed in worker ${queueName}:`, err.message);
+      logger.error(`[WORKER] Job ${job?.id} failed in worker ${queueName}:`, err.message);
     });
 
     worker.on('error', (err) => {
-      console.error(`[WORKER] Worker error in ${queueName}:`, err);
+      logger.error(`[WORKER] Worker error in ${queueName}:`, err);
     });
   }
 
@@ -610,7 +607,6 @@ export class QueueManager {
     };
 
     const job = await queue.add(jobType, data, jobOptions);
-    console.log(`[QUEUE_MANAGER] Scheduled recurring job ${job.id} in queue ${queueName} with pattern ${cronPattern}`);
 
     return job;
   }
@@ -625,7 +621,7 @@ export class QueueManager {
     }
 
     await queue.removeRepeatable(jobId);
-    console.log(`[QUEUE_MANAGER] Removed recurring job ${jobId} from queue ${queueName}`);
+
   }
 
   /**
@@ -682,7 +678,7 @@ export class QueueManager {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error('[QUEUE_MANAGER] Error generating dashboard data:', error);
+      logger.error('[QUEUE_MANAGER] Error generating dashboard data:', error);
       return {
         error: 'Failed to generate dashboard data',
         summary: {
@@ -700,7 +696,7 @@ export class QueueManager {
    * Graceful shutdown with proper cleanup
    */
   async shutdown(): Promise<void> {
-    console.log('[QUEUE_MANAGER] Starting graceful shutdown...');
+
     this.isShuttingDown = true;
 
     try {
@@ -715,12 +711,10 @@ export class QueueManager {
       // Pause all queues to prevent new jobs
       const pausePromises = Array.from(this.queues.keys()).map(queueName => 
         this.pauseQueue(queueName).catch(err => 
-          console.warn(`[QUEUE_MANAGER] Failed to pause queue ${queueName}:`, err)
+          logger.warn(`[QUEUE_MANAGER] Failed to pause queue ${queueName}:`, err)
         )
       );
       await Promise.all(pausePromises);
-
-      console.log('[QUEUE_MANAGER] All queues paused, waiting for active jobs to complete...');
 
       // Wait for active jobs to complete (with timeout)
       await this.waitForActiveJobsToComplete(30000); // 30 second timeout
@@ -728,7 +722,7 @@ export class QueueManager {
       // Stop all workers gracefully
       const workerPromises = Array.from(this.workers.keys()).map(queueName => 
         this.stopWorker(queueName).catch(err => 
-          console.warn(`[QUEUE_MANAGER] Failed to stop worker ${queueName}:`, err)
+          logger.warn(`[QUEUE_MANAGER] Failed to stop worker ${queueName}:`, err)
         )
       );
       await Promise.all(workerPromises);
@@ -736,14 +730,14 @@ export class QueueManager {
       // Close all queues
       const queuePromises = Array.from(this.queues.values()).map(queue => 
         queue.close().catch(err => 
-          console.warn('[QUEUE_MANAGER] Failed to close queue:', err)
+          logger.warn('[QUEUE_MANAGER] Failed to close queue:', err)
         )
       );
       await Promise.all(queuePromises);
 
       // Close Redis connections
       await this.ioRedis.quit().catch(err => 
-        console.warn('[QUEUE_MANAGER] Failed to close IORedis connection:', err)
+        logger.warn('[QUEUE_MANAGER] Failed to close IORedis connection:', err)
       );
 
       // Persist final metrics
@@ -756,9 +750,8 @@ export class QueueManager {
       this.jobHandlers.clear();
       this.metrics.clear();
 
-      console.log('[QUEUE_MANAGER] Graceful shutdown completed successfully');
     } catch (error) {
-      console.error('[QUEUE_MANAGER] Error during shutdown:', error);
+      logger.error('[QUEUE_MANAGER] Error during shutdown:', error);
       throw error;
     }
   }
@@ -777,15 +770,14 @@ export class QueueManager {
       );
       
       if (totalActiveJobs === 0) {
-        console.log('[QUEUE_MANAGER] All active jobs completed');
+
         return;
       }
-      
-      console.log(`[QUEUE_MANAGER] Waiting for ${totalActiveJobs} active jobs to complete...`);
+
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    console.warn('[QUEUE_MANAGER] Timeout waiting for active jobs to complete');
+    logger.warn('[QUEUE_MANAGER] Timeout waiting for active jobs to complete');
   }
 
   /**
@@ -803,7 +795,7 @@ export class QueueManager {
         })
       );
     } catch (error) {
-      console.warn('[QUEUE_MANAGER] Failed to persist final metrics:', error);
+      logger.warn('[QUEUE_MANAGER] Failed to persist final metrics:', error);
     }
   }
 
@@ -824,16 +816,15 @@ export class QueueManager {
       }
       
       try {
-        console.log(`[WORKER] Starting job ${job.id} in queue ${queueName}`);
+
         const result = await handler(job);
         
         const processingTime = Date.now() - startTime;
-        console.log(`[WORKER] Completed job ${job.id} in ${processingTime}ms`);
-        
+
         return result;
       } catch (error) {
         const processingTime = Date.now() - startTime;
-        console.error(`[WORKER] Job ${job.id} failed after ${processingTime}ms:`, error);
+        logger.error(`[WORKER] Job ${job.id} failed after ${processingTime}ms:`, error);
         
         if (metrics) {
           metrics.totalRetries += (job.attemptsMade || 0) - 1;
@@ -856,7 +847,7 @@ export class QueueManager {
       try {
         await this.performHealthCheck();
       } catch (error) {
-        console.error('[QUEUE_MANAGER] Health check failed:', error);
+        logger.error('[QUEUE_MANAGER] Health check failed:', error);
       }
     }, 30000); // Every 30 seconds
   }
@@ -869,7 +860,7 @@ export class QueueManager {
       try {
         await this.collectAndPersistMetrics();
       } catch (error) {
-        console.error('[QUEUE_MANAGER] Metrics collection failed:', error);
+        logger.error('[QUEUE_MANAGER] Metrics collection failed:', error);
       }
     }, 60000); // Every minute
   }
@@ -882,7 +873,7 @@ export class QueueManager {
     try {
       await this.ioRedis.ping();
     } catch (error) {
-      console.error('[QUEUE_MANAGER] Redis connection health check failed:', error);
+      logger.error('[QUEUE_MANAGER] Redis connection health check failed:', error);
       return;
     }
 
@@ -891,21 +882,21 @@ export class QueueManager {
       try {
         await queue.getJobCounts();
       } catch (error) {
-        console.error(`[QUEUE_MANAGER] Health check failed for queue ${queueName}:`, error);
+        logger.error(`[QUEUE_MANAGER] Health check failed for queue ${queueName}:`, error);
       }
     }
 
     // Check worker health
     for (const [queueName, worker] of this.workers.entries()) {
       if (!worker.isRunning() && !this.isShuttingDown) {
-        console.warn(`[QUEUE_MANAGER] Worker for queue ${queueName} is not running`);
+        logger.warn(`[QUEUE_MANAGER] Worker for queue ${queueName} is not running`);
         // Attempt to restart worker
         try {
           await this.stopWorker(queueName);
           this.startWorker(queueName);
-          console.log(`[QUEUE_MANAGER] Restarted worker for queue ${queueName}`);
+
         } catch (error) {
-          console.error(`[QUEUE_MANAGER] Failed to restart worker for ${queueName}:`, error);
+          logger.error(`[QUEUE_MANAGER] Failed to restart worker for ${queueName}:`, error);
         }
       }
     }
@@ -916,15 +907,15 @@ export class QueueManager {
    */
   private setupQueueHealthCheck(queue: Queue, queueName: string): void {
     queue.on('error', (error) => {
-      console.error(`[QUEUE_HEALTH] Queue ${queueName} error:`, error);
+      logger.error(`[QUEUE_HEALTH] Queue ${queueName} error:`, error);
     });
 
     queue.on('ioredis:close', () => {
-      console.warn(`[QUEUE_HEALTH] Queue ${queueName} Redis connection closed`);
+      logger.warn(`[QUEUE_HEALTH] Queue ${queueName} Redis connection closed`);
     });
 
     queue.on('ioredis:reconnecting', () => {
-      console.log(`[QUEUE_HEALTH] Queue ${queueName} Redis reconnecting...`);
+
     });
   }
 
@@ -933,15 +924,15 @@ export class QueueManager {
    */
   private setupWorkerHealthCheck(worker: Worker, queueName: string): void {
     worker.on('error', (error) => {
-      console.error(`[WORKER_HEALTH] Worker ${queueName} error:`, error);
+      logger.error(`[WORKER_HEALTH] Worker ${queueName} error:`, error);
     });
 
     worker.on('ioredis:close', () => {
-      console.warn(`[WORKER_HEALTH] Worker ${queueName} Redis connection closed`);
+      logger.warn(`[WORKER_HEALTH] Worker ${queueName} Redis connection closed`);
     });
 
     worker.on('ioredis:reconnecting', () => {
-      console.log(`[WORKER_HEALTH] Worker ${queueName} Redis reconnecting...`);
+
     });
   }
 
@@ -978,7 +969,7 @@ export class QueueManager {
         );
       }
     } catch (error) {
-      console.error('[QUEUE_MANAGER] Failed to collect and persist metrics:', error);
+      logger.error('[QUEUE_MANAGER] Failed to collect and persist metrics:', error);
     }
   }
 

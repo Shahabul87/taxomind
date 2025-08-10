@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function PATCH(
   req: Request,
@@ -46,7 +47,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedPostChapter);
   } catch (error) {
-    console.error("[POSTCHAPTER_ID_UNPUBLISH]", error);
+    logger.error("[POSTCHAPTER_ID_UNPUBLISH]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { logger } from '@/lib/logger';
 import { 
   MessageCircle, 
   Send, 
@@ -349,7 +350,7 @@ How can I assist you today?`,
       setMessages(prev => [...prev, samMessage]);
       
     } catch (error) {
-      console.error('SAM Error:', error);
+      logger.error('SAM Error:', error);
       
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),

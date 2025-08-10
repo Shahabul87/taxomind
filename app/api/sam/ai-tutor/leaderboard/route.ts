@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching leaderboard:', error);
+    logger.error('Error fetching leaderboard:', error);
     return NextResponse.json(
       { error: 'Failed to fetch leaderboard' },
       { status: 500 }
@@ -321,7 +322,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error handling leaderboard action:', error);
+    logger.error('Error handling leaderboard action:', error);
     return NextResponse.json(
       { error: 'Failed to process leaderboard action' },
       { status: 500 }

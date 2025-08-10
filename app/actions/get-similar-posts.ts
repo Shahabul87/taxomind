@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function getSimilarPosts(postId: string, category: string | null) {
   try {
@@ -31,7 +32,7 @@ export async function getSimilarPosts(postId: string, category: string | null) {
 
     return similarPosts;
   } catch (error) {
-    console.error("Error fetching similar posts:", error);
+    logger.error("Error fetching similar posts:", error);
     return [];
   }
 } 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -82,13 +83,12 @@ export async function GET(
   { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
-    console.log("[STUDENT_PREDICTIONS] Starting prediction generation");
-    
+
     // Get current user
     const user = await currentUser();
     
     if (!user?.id) {
-      console.log("[STUDENT_PREDICTIONS] No user found - unauthorized");
+
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
@@ -101,14 +101,12 @@ export async function GET(
     const userRole = dbUser?.role;
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      console.log(`[STUDENT_PREDICTIONS] User role ${userRole} not authorized`);
+
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
     
     const { courseId } = await params;
-    
-    console.log("[STUDENT_PREDICTIONS] Generating predictions for course:", courseId);
-    
+
     // Verify course ownership
     const course = await db.course.findUnique({
       where: {
@@ -145,9 +143,7 @@ export async function GET(
     const studentPredictions = await generateStudentPredictions(course);
     const coursePredictions = await generateCoursePredictions(course, studentPredictions);
     const modelInfo = generateModelInfo();
-    
-    console.log("[STUDENT_PREDICTIONS] Predictions generated successfully for course:", courseId);
-    
+
     return NextResponse.json({
       studentPredictions,
       coursePredictions,
@@ -155,11 +151,11 @@ export async function GET(
     });
     
   } catch (error) {
-    console.error("[STUDENT_PREDICTIONS] Error:", error);
+    logger.error("[STUDENT_PREDICTIONS] Error:", error);
     
     if (error instanceof Error) {
-      console.error("[STUDENT_PREDICTIONS] Error message:", error.message);
-      console.error("[STUDENT_PREDICTIONS] Error stack:", error.stack);
+      logger.error("[STUDENT_PREDICTIONS] Error message:", error.message);
+      logger.error("[STUDENT_PREDICTIONS] Error stack:", error.stack);
     }
     
     return new NextResponse("Internal Server Error", { status: 500 });
@@ -167,8 +163,7 @@ export async function GET(
 }
 
 async function generateStudentPredictions(course: any): Promise<StudentPrediction[]> {
-  console.log("[STUDENT_PREDICTIONS] Generating individual student predictions");
-  
+
   // Get all enrolled students
   const allStudents = [
     ...course.Purchase.map((p: any) => p.user),
@@ -401,8 +396,7 @@ function determineEngagementTrend(performance: any, daysSinceEnrollment: number)
 }
 
 async function generateCoursePredictions(course: any, studentPredictions: StudentPrediction[]): Promise<CoursePredictions> {
-  console.log("[STUDENT_PREDICTIONS] Generating course-level predictions");
-  
+
   // Calculate risk distribution
   const riskCounts = studentPredictions.reduce((acc, student) => {
     acc[student.riskLevel]++;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { ProgressTracker } from "@/lib/progress-tracking";
+import { logger } from '@/lib/logger';
 
 // Start a new learning session
 export async function POST(req: NextRequest) {
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
     */
 
   } catch (error) {
-    console.error("Start learning session error:", error);
+    logger.error("Start learning session error:", error);
     return NextResponse.json(
       { error: "Failed to start learning session" },
       { status: 500 }
@@ -205,7 +206,7 @@ export async function GET(req: NextRequest) {
     */
 
   } catch (error) {
-    console.error("Get learning sessions error:", error);
+    logger.error("Get learning sessions error:", error);
     return NextResponse.json(
       { error: "Failed to fetch learning sessions" },
       { status: 500 }

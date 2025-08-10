@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
     
     return response;
   } catch (error) {
-    console.error('Error initiating Facebook OAuth:', error);
+    logger.error('Error initiating Facebook OAuth:', error);
     return NextResponse.redirect(new URL('/profile?error=facebook_connection_failed', req.url));
   }
 } 

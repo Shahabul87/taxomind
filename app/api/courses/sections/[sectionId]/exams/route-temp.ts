@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -59,7 +60,7 @@ export async function GET(
 
     return NextResponse.json(examsWithDefaults);
   } catch (error) {
-    console.error("[SECTION_EXAMS_GET_TEMP]", error);
+    logger.error("[SECTION_EXAMS_GET_TEMP]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

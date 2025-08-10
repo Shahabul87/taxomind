@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { 
   createSAMConversation, 
   getSAMConversations, 
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
       data: conversations,
     });
   } catch (error) {
-    console.error('Error fetching SAM conversations:', error);
+    logger.error('Error fetching SAM conversations:', error);
     return NextResponse.json(
       { error: 'Failed to fetch conversations' },
       { status: 500 }
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
   } catch (error) {
-    console.error('Error handling SAM conversation request:', error);
+    logger.error('Error handling SAM conversation request:', error);
     return NextResponse.json(
       { error: 'Failed to process request' },
       { status: 500 }

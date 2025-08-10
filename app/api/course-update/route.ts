@@ -1,28 +1,24 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   try {
-    console.log("Course update request received");
-    
+
     // Get user session
     const session = await auth();
-    console.log("Session check:", session ? "Valid" : "Invalid");
-    
+
     if (!session?.user?.id) {
-      console.log("Authentication failed: No user ID in session");
+
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
     // Parse request body
     const body = await req.json();
     const { courseId, ...updateData } = body;
-    
-    console.log("Update request:", { courseId, updateData });
-    console.log("Authenticated user ID:", session.user.id);
 
     if (!courseId) {
       return NextResponse.json({ error: "Course ID is required" }, { status: 400 });
@@ -37,13 +33,9 @@ export async function POST(req: Request) {
     });
 
     if (!existingCourse) {
-      console.log("Course not found or doesn't belong to user");
-      console.log("User ID:", session.user.id);
-      console.log("Course ID:", courseId);
+
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
-
-    console.log("Found existing course:", existingCourse.id);
 
     // Prepare update data
     const finalUpdateData: any = {};
@@ -55,8 +47,6 @@ export async function POST(req: Request) {
     if (updateData.whatYouWillLearn !== undefined) finalUpdateData.whatYouWillLearn = updateData.whatYouWillLearn;
     if (updateData.isPublished !== undefined) finalUpdateData.isPublished = updateData.isPublished;
     if (updateData.categoryId !== undefined) finalUpdateData.categoryId = updateData.categoryId;
-
-    console.log("Final update data:", finalUpdateData);
 
     // Only update if there are fields to update
     if (Object.keys(finalUpdateData).length === 0) {
@@ -73,20 +63,19 @@ export async function POST(req: Request) {
         data: finalUpdateData,
       });
 
-      console.log("Course updated successfully:", course.id);
       return NextResponse.json({
         success: true,
         course,
         message: "Course updated successfully"
       });
     } catch (dbError: any) {
-      console.error("Database error during update:", dbError);
+      logger.error("Database error during update:", dbError);
       return NextResponse.json({ 
         error: `Database Error: ${dbError.message}` 
       }, { status: 500 });
     }
   } catch (error: any) {
-    console.error("[COURSE_UPDATE] Detailed error:", error);
+    logger.error("[COURSE_UPDATE] Detailed error:", error);
     return NextResponse.json({ 
       error: `Internal Error: ${error.message}` 
     }, { status: 500 });

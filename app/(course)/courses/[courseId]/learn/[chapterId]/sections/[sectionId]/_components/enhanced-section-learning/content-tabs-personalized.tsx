@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 import { 
   BookOpen, 
   FileText, 
@@ -203,10 +204,9 @@ export const ContentTabsPersonalized = ({
       const recommendations = generateAdaptiveRecommendations();
       setAdaptiveRecommendations(recommendations);
     } catch (error) {
-      console.error("Failed to load adaptive recommendations:", error);
+      logger.error("Failed to load adaptive recommendations:", error);
     }
   }, [generateAdaptiveRecommendations, setAdaptiveRecommendations]);
-
 
   const getLearningStyleIcon = (style: string) => {
     if (style.includes('Visual')) return <Eye className="w-4 h-4" />;

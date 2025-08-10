@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // Enterprise Intelligence Suite Engine
 // Provides organizational learning analytics, ROI calculations, and workforce development
@@ -236,7 +237,7 @@ export class SAMEnterpriseEngine {
         budgetAnalysis,
       };
     } catch (error) {
-      console.error("Error analyzing organization:", error);
+      logger.error("Error analyzing organization:", error);
       throw new Error("Failed to analyze organization");
     }
   }
@@ -274,7 +275,7 @@ export class SAMEnterpriseEngine {
         talentPipeline,
       };
     } catch (error) {
-      console.error("Error predicting workforce development:", error);
+      logger.error("Error predicting workforce development:", error);
       throw new Error("Failed to predict workforce development");
     }
   }

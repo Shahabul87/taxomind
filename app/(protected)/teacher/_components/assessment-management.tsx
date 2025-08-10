@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { logger } from '@/lib/logger';
 import { 
   ClipboardList, 
   Target, 
@@ -197,7 +198,7 @@ export function AssessmentManagement({
 
       setAssessments(mockAssessments);
     } catch (error) {
-      console.error('Error fetching assessments:', error);
+      logger.error('Error fetching assessments:', error);
       toast.error('Failed to load assessments');
     } finally {
       setIsLoading(false);
@@ -238,7 +239,7 @@ export function AssessmentManagement({
 
       setStudentAnalytics(mockAnalytics);
     } catch (error) {
-      console.error('Error fetching student analytics:', error);
+      logger.error('Error fetching student analytics:', error);
     }
   }, []);
 
@@ -300,7 +301,7 @@ export function AssessmentManagement({
         });
       }
     } catch (error) {
-      console.error('Error creating assessment:', error);
+      logger.error('Error creating assessment:', error);
       toast.error('Failed to create assessment');
     } finally {
       setIsLoading(false);
@@ -327,7 +328,7 @@ export function AssessmentManagement({
         // Handle rubric data
       }
     } catch (error) {
-      console.error('Error generating rubric:', error);
+      logger.error('Error generating rubric:', error);
       toast.error('Failed to generate rubric');
     }
   }, [createAssessmentForm]);
@@ -350,7 +351,7 @@ export function AssessmentManagement({
         // Handle analysis data
       }
     } catch (error) {
-      console.error('Error analyzing responses:', error);
+      logger.error('Error analyzing responses:', error);
       toast.error('Failed to analyze responses');
     }
   }, []);

@@ -1,4 +1,5 @@
 import { SearchResult } from '../types/header-types';
+import { logger } from '@/lib/logger';
 
 interface SearchResponse {
   results: SearchResult[];
@@ -33,11 +34,10 @@ export class DatabaseSearchService {
   static retryDelay = 1000; // ms
   
   static async searchContent(query: string): Promise<SearchResult[]> {
-    console.log("🔍 DatabaseSearchService called with query:", query);
-    
+
     // Special handling for common search terms during development
     if (query.toLowerCase().includes("transform")) {
-      console.log("🤖 Special handling for transformer search");
+
       return [
         {
           id: 'special-1',
@@ -62,7 +62,7 @@ export class DatabaseSearchService {
         query.toLowerCase().includes("claude") ||
         query.toLowerCase().includes("deepseek") ||
         query.toLowerCase().includes("gemini")) {
-      console.log("🤖 Special handling for AI model search");
+
       return [
         {
           id: 'special-ai-1',
@@ -82,7 +82,7 @@ export class DatabaseSearchService {
     }
     
     if (!query || query.trim().length < 2) {
-      console.log("⚠️ Search query too short");
+
       return [];
     }
     
@@ -91,7 +91,7 @@ export class DatabaseSearchService {
     
     while (retryCount <= this.maxRetries) {
       if (retryCount > 0) {
-        console.log(`🔄 Retry attempt ${retryCount} of ${this.maxRetries}`);
+
         // Wait before retrying
         await new Promise(resolve => setTimeout(resolve, this.retryDelay));
       }
@@ -101,9 +101,7 @@ export class DatabaseSearchService {
         
         // Always use the real database API
         const apiUrl = `/api/search?q=${encodedQuery}`;
-        
-        console.log(`🌐 Making search request to database API: ${apiUrl}`);
-        
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
         
@@ -119,11 +117,9 @@ export class DatabaseSearchService {
           });
           
           clearTimeout(timeoutId);
-          
-          console.log("📊 Database search response status:", response.status, response.statusText);
-          
+
           if (!response.ok) {
-            console.error(`⛔ Database search API returned error status: ${response.status}`);
+            logger.error(`⛔ Database search API returned error status: ${response.status}`);
             
             // Only retry on server errors (500+), not on client errors (400-499)
             if (response.status >= 500 && retryCount < this.maxRetries) {
@@ -141,9 +137,9 @@ export class DatabaseSearchService {
           let data;
           try {
             data = JSON.parse(responseText);
-            console.log("✅ Successfully parsed database response as JSON");
+
           } catch (jsonError) {
-            console.error("❌ Failed to parse database response as JSON:", jsonError);
+            logger.error("❌ Failed to parse database response as JSON:", jsonError);
             
             // Retry on parse errors
             if (retryCount < this.maxRetries) {
@@ -156,7 +152,7 @@ export class DatabaseSearchService {
           
           // Validate the data structure
           if (!data || typeof data !== 'object') {
-            console.error("❌ Invalid database response data structure");
+            logger.error("❌ Invalid database response data structure");
             
             // Retry on invalid data
             if (retryCount < this.maxRetries) {
@@ -169,11 +165,11 @@ export class DatabaseSearchService {
           
           // Handle missing or invalid results array
           if (!data.results || !Array.isArray(data.results)) {
-            console.error("❌ Invalid database search results format");
+            logger.error("❌ Invalid database search results format");
             
             // Check if there's anything we can use in the response
             if (Array.isArray(data)) {
-              console.log("⚠️ Data itself is an array, using it as results");
+
               return data;
             }
             
@@ -187,16 +183,15 @@ export class DatabaseSearchService {
           }
           
           // Log search result summary
-          console.log(`📊 Database search found ${data.results.length} results`);
-          
+
           return data.results;
         } catch (fetchError) {
           clearTimeout(timeoutId);
           
           if (fetchError && typeof fetchError === 'object' && 'name' in fetchError && fetchError.name === 'AbortError') {
-            console.error("⌛ Database search request timed out after 5 seconds");
+            logger.error("⌛ Database search request timed out after 5 seconds");
           } else {
-            console.error("❌ Database fetch error:", fetchError);
+            logger.error("❌ Database fetch error:", fetchError);
           }
           
           // Retry on network/fetch errors
@@ -208,7 +203,7 @@ export class DatabaseSearchService {
           throw fetchError;
         }
       } catch (error) {
-        console.error("💥 Database search service error:", error);
+        logger.error("💥 Database search service error:", error);
         
         // Last retry failed, return empty results
         if (retryCount >= this.maxRetries) {

@@ -2,6 +2,7 @@
 
 import { redis, REDIS_KEYS, REDIS_TTL } from './config';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 interface CacheOptions {
   ttl?: number; // Time to live in seconds
@@ -30,7 +31,8 @@ export class AICache {
   static async set(
     key: string, 
     data: any, 
-    options: CacheOptions = {}
+    options: CacheOptions = {
+}
   ): Promise<void> {
     if (!redis) return;
 
@@ -61,7 +63,7 @@ export class AICache {
       // Track cache hit rate
       await redis.hincrby('cache:stats', 'sets', 1);
     } catch (error) {
-      console.error('Cache set error:', error);
+      logger.error('Cache set error:', error);
     }
   }
 
@@ -80,7 +82,7 @@ export class AICache {
           const parsed = JSON.parse(cached as string);
           return parsed.data as T;
         } catch (error) {
-          console.warn('Failed to parse AI cache data for key:', cacheKey, error);
+          logger.warn('Failed to parse AI cache data for key:', cacheKey, error);
           // Clear corrupted cache entry
           await redis.del(cacheKey);
           await redis.hincrby('cache:stats', 'corruption_errors', 1);
@@ -91,7 +93,7 @@ export class AICache {
       await redis.hincrby('cache:stats', 'misses', 1);
       return null;
     } catch (error) {
-      console.error('Cache get error:', error);
+      logger.error('Cache get error:', error);
       return null;
     }
   }
@@ -108,7 +110,7 @@ export class AICache {
         await redis.del(`tag:${tag}`);
       }
     } catch (error) {
-      console.error('Cache invalidation error:', error);
+      logger.error('Cache invalidation error:', error);
     }
   }
 
@@ -191,7 +193,7 @@ export function CacheResult(options: CacheOptions = {}) {
       // Try to get from cache
       const cached = await AICache.get(cacheKey);
       if (cached !== null) {
-        console.log(`Cache hit for ${propertyName}`);
+
         return cached;
       }
       

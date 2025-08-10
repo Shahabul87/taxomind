@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { logger } from '@/lib/logger';
 import { 
   Trophy, 
   Target, 
@@ -88,7 +89,7 @@ export function GamificationDashboard({
       setLeaderboard(leaderboardData.leaderboard || []);
       setUserStats(leaderboardData.userRank || {});
     } catch (error) {
-      console.error('Error fetching gamification data:', error);
+      logger.error('Error fetching gamification data:', error);
       toast.error('Failed to load gamification data');
     } finally {
       setIsLoading(false);
@@ -118,7 +119,7 @@ export function GamificationDashboard({
         fetchGamificationData();
       }
     } catch (error) {
-      console.error('Error starting challenge:', error);
+      logger.error('Error starting challenge:', error);
       toast.error('Failed to start challenge');
     }
   }, [fetchGamificationData]);
@@ -145,7 +146,7 @@ export function GamificationDashboard({
         setMotivationMessage(data.motivation);
       }
     } catch (error) {
-      console.error('Error getting motivation:', error);
+      logger.error('Error getting motivation:', error);
       toast.error('Failed to get motivation');
     }
   }, [learningContext, userStats]);

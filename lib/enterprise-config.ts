@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 // Enterprise Configuration Management
 // Provides strict environment isolation and safety controls
 
@@ -143,7 +145,6 @@ class EnterpriseConfigManager {
       throw new Error(`🚨 [ENTERPRISE CONFIG] Unknown environment: ${nodeEnv}`);
     }
 
-    console.log(`🏢 [ENTERPRISE CONFIG] Loaded configuration for: ${nodeEnv}`);
     return config;
   }
 
@@ -170,7 +171,7 @@ class EnterpriseConfigManager {
       if (config.security.crossEnvBlocked) {
         throw new Error(`🚨 [ENTERPRISE CONFIG] Cross-environment access blocked: Development environment cannot use remote database`);
       } else {
-        console.warn(`⚠️ [ENTERPRISE CONFIG] WARNING: Development environment using non-local database`);
+        logger.warn(`⚠️ [ENTERPRISE CONFIG] WARNING: Development environment using non-local database`);
       }
     }
 
@@ -180,10 +181,9 @@ class EnterpriseConfigManager {
 
     // Validate SSL requirements
     if (config.database.ssl && !dbUrl.includes('sslmode=require')) {
-      console.warn(`⚠️ [ENTERPRISE CONFIG] SSL required but not configured in DATABASE_URL`);
+      logger.warn(`⚠️ [ENTERPRISE CONFIG] SSL required but not configured in DATABASE_URL`);
     }
 
-    console.log(`✅ [ENTERPRISE CONFIG] Configuration validated for ${config.name}`);
   }
 
   static isProductionLike(): boolean {

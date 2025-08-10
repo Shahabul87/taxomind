@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -14,8 +15,6 @@ export async function POST(
     const user = await currentUser();
     const { title, description, url, author, category } = await req.json();
 
-    console.log(params.chapterId)
-
     // Check if the user is authenticated
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -28,7 +27,6 @@ export async function POST(
         userId: user.id,
       },
     });
-   
 
     if (!ownCourse) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -41,8 +39,6 @@ export async function POST(
       },
     });
 
-   
-
     if (!chapterData) {
       return new NextResponse("Chapter not found", { status: 404 });
     }
@@ -54,8 +50,6 @@ export async function POST(
       },
     });
 
-  
-
     if (!sectionData) {
       return new NextResponse("Section not found", { status: 404 });
     }
@@ -64,8 +58,6 @@ export async function POST(
     if (!title || !url || !author || !category) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
-
-    
 
     // Create a new blog entry in the database
     const newBlog = await db.blog.create({
@@ -80,24 +72,16 @@ export async function POST(
       },
     });
 
-    console.log(newBlog)
-
-  
-
     // Return the newly created blog information
     return new NextResponse(JSON.stringify(newBlog), { 
       status: 201, 
       headers: { 'Content-Type': 'application/json' } 
     });
   } catch (error) {
-    console.error("[POST ERROR] Courses/Chapter/Section ID:", error);
+    logger.error("[POST ERROR] Courses/Chapter/Section ID:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
-
-
-
 
 export async function PATCH(
   req: Request,
@@ -161,13 +145,10 @@ export async function PATCH(
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[PATCH ERROR] Blog Update:", error);
+    logger.error("[PATCH ERROR] Blog Update:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
-
-
 
 export async function DELETE(
   req: Request,
@@ -214,7 +195,7 @@ export async function DELETE(
 
     return NextResponse.json(deletedBlog);
   } catch (error) {
-    console.error("[DELETE_BLOG_ERROR]", error);
+    logger.error("[DELETE_BLOG_ERROR]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

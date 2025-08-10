@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { randomBytes } from 'crypto';
+import { logger } from '@/lib/logger';
 
 type PerformanceMetric = {
   id: string;
@@ -111,7 +112,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Performance metrics API error:', error);
+    logger.error('Performance metrics API error:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

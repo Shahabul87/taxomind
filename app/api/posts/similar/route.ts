@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSimilarPosts } from "@/app/actions/get-similar-posts";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(similarPosts);
   } catch (error) {
-    console.error("Error in similar posts API:", error);
+    logger.error("Error in similar posts API:", error);
     return NextResponse.json(
       { error: "Failed to fetch similar posts" },
       { status: 500 }

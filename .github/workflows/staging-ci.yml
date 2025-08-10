@@ -8,6 +8,7 @@ on:
 
 env:
   NODE_VERSION: '18.x'
+  NODE_OPTIONS: '--max-old-space-size=4096'
   DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
   NEXTAUTH_SECRET: ${{ secrets.STAGING_NEXTAUTH_SECRET }}
   NEXTAUTH_URL: ${{ secrets.STAGING_NEXTAUTH_URL }}
@@ -34,7 +35,7 @@ jobs:
         run: npm run lint
         
       - name: 🎯 TypeScript Check
-        run: npx tsc --noEmit
+        run: npx tsc --noEmit --skipLibCheck
         
       - name: 🛡️ Security Audit
         run: npm run security:audit

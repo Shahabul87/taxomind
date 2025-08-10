@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
       } : null,
     });
   } catch (error) {
-    console.error("Error sending collaboration message:", error);
+    logger.error("Error sending collaboration message:", error);
     return NextResponse.json(
       { error: "Failed to send message" },
       { status: 500 }
@@ -208,7 +209,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(formattedMessages);
   } catch (error) {
-    console.error("Error fetching collaboration messages:", error);
+    logger.error("Error fetching collaboration messages:", error);
     return NextResponse.json(
       { error: "Failed to fetch messages" },
       { status: 500 }

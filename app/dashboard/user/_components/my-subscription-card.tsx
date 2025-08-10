@@ -65,12 +65,6 @@ const MySubscriptionCard = ({
   const active = isActive();
 
   // Debug logs
-  console.log('Card Debug:', {
-    name: subscription.name,
-    endDate: subscription.endOfSubscription,
-    isActive: active,
-    totalSubs: totalSubscriptions
-  });
 
   return (
     <div className="space-y-6">

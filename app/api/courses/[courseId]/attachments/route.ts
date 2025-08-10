@@ -38,7 +38,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
 
     return NextResponse.json(attachment);
   } catch (error) {
-    console.log("COURSE_ID_ATTACHMENTS", error);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

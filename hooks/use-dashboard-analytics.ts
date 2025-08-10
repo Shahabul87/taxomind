@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface AnalyticsSummary {
   totalLearningTime: number;
@@ -169,7 +170,7 @@ export function useDashboardAnalytics(
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch analytics';
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error('Dashboard analytics error:', err);
+      logger.error('Dashboard analytics error:', err);
     } finally {
       setLoading(false);
     }
@@ -228,7 +229,7 @@ export function useRealtimeActivity(
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch activity';
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error('Activity tracking error:', err);
+      logger.error('Activity tracking error:', err);
     } finally {
       setLoading(false);
     }
@@ -269,7 +270,7 @@ export function useRealtimeActivity(
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to track activity';
-      console.error('Activity tracking error:', err);
+      logger.error('Activity tracking error:', err);
       throw new Error(errorMessage);
     }
   };
@@ -319,7 +320,7 @@ export function usePerformanceMetrics(
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch performance metrics';
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error('Performance metrics error:', err);
+      logger.error('Performance metrics error:', err);
     } finally {
       setLoading(false);
     }
@@ -359,7 +360,7 @@ export function useRealtimePulse() {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch real-time pulse';
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error('Real-time pulse error:', err);
+      logger.error('Real-time pulse error:', err);
     } finally {
       setLoading(false);
     }

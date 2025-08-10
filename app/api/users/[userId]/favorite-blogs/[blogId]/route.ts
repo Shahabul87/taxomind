@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 export async function DELETE(
   req: Request,
@@ -34,11 +35,10 @@ export async function DELETE(
 
     return NextResponse.json(deletedFavoriteBlog);
   } catch (error) {
-    console.error("[DELETE_FAVORITE_BLOG_ERROR]", error);
+    logger.error("[DELETE_FAVORITE_BLOG_ERROR]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
-
 
 export async function PATCH(
   req: Request,
@@ -68,7 +68,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedBlog);
   } catch (error) {
-    console.error("[FAVORITE BLOG UPDATE]", error);
+    logger.error("[FAVORITE BLOG UPDATE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

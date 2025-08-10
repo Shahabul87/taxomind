@@ -2,6 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 import { db } from "@/lib/db";
 import { RegisterSchema } from "@/schemas";
@@ -19,7 +20,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     const validatedFields = RegisterSchema.safeParse(body);
 
-    console.log(validatedFields)
     if (!validatedFields.success) {
       return NextResponse.json(
         { error: "Invalid fields!" },
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       }
     }, { status: 201 });
   } catch (error) {
-    console.error("[REGISTER_ERROR]", error);
+    logger.error("[REGISTER_ERROR]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
