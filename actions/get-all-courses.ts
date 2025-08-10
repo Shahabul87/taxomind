@@ -75,8 +75,6 @@ export const getCoursesForHomepage = async (): Promise<CourseWithProgressWithCat
       };
     });
 
-    })));
-
     return processedCourses;
   } catch (error) {
     logger.error("[GET_COURSES]", error);

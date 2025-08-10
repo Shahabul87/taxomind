@@ -314,8 +314,7 @@ async function logAdminAccess(userId: string, action: string) {
     //     userId,
     //     action,
     //     timestamp: new Date(),
-    //     metadata: {
-}
+    //     metadata: {}
     //   }
     // });
   } catch (error) {

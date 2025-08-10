@@ -56,8 +56,6 @@ export default function PlaceholdersAndVanishInputDemo(props: SearchPageProps) {
     const fetchCourses = async () => {
       const fetchedCourses = await getCoursesForHomepage();
       // Log the courses to see what we're getting
-
-      })));
       setCourses(fetchedCourses);
     };
     fetchCourses();

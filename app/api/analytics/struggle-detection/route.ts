@@ -69,9 +69,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Log struggle indicator (simplified)
-
-    });
-
+    // TODO: Implement struggle logging
+    
     return NextResponse.json({ success: true });
   } catch (error) {
     logger.error('Struggle recording error:', error);

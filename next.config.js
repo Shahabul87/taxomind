@@ -108,12 +108,14 @@ const nextConfig = {
         pathname: '/**',
       }
     ],
-    // Legacy domains support for backward compatibility
-    domains: ['res.cloudinary.com', 'utfs.io', 'ui-avatars.com'],
+    // Optimized image settings
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    minimumCacheTTL: 60 * 60 * 24, // 24 hours
-    unoptimized: true, // Skip optimization for unknown domains
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days cache
+    // unoptimized: false, // Enable optimization (this is the default)
   },
 
   // Webpack configuration to handle OpenTelemetry packages
@@ -148,7 +150,7 @@ const nextConfig = {
   },
 
   typescript: {
-    ignoreBuildErrors: true,  // Temporarily disable TypeScript checking during builds
+    ignoreBuildErrors: false,  // ✅ Enable TypeScript checking during builds
   },
 
   // Essential headers
