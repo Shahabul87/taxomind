@@ -472,7 +472,7 @@ export function formatLogMessage(level: string, message: string, data?: any): st
   });
 }
 
-export default {
+const GatewayMiddleware = {
   RequestTransformer,
   ResponseTransformer,
   MonitoringMiddleware,
@@ -480,3 +480,5 @@ export default {
   logResponse,
   logError,
 };
+
+export default GatewayMiddleware;

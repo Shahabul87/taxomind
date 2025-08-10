@@ -579,10 +579,12 @@ export class JobFactory {
   }
 }
 
-export default {
+const JobDefinitions = {
   JOB_PRIORITIES,
   JOB_DELAYS,
   JOB_PRESETS,
   JobValidator,
   JobFactory,
 };
+
+export default JobDefinitions;

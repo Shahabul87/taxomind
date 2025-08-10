@@ -1,9 +1,12 @@
 /**
- * Database Read Replicas
- * Configuration and management for read replica database connections
+ * Database Read Replicas - Phase 3 Enterprise Implementation
+ * Advanced read replica management with PostgreSQL connection pooling
+ * Features: Load balancing, health monitoring, automatic failover, connection pooling
  */
 
 import { PrismaClient } from '@prisma/client';
+import { Pool, PoolConfig, PoolClient } from 'pg';
+import { Redis } from '@upstash/redis';
 
 export interface DatabaseConfig {
   url: string;
@@ -14,6 +17,8 @@ export interface DatabaseConfig {
   maxConnections: number;
   connectionTimeout: number;
   queryTimeout: number;
+  weight?: number; // For load balancing
+  tags?: string[];
 }
 
 export interface ReplicaHealth {
@@ -23,6 +28,11 @@ export interface ReplicaHealth {
   responseTime: number;
   errorCount: number;
   connectionCount: number;
+  totalQueries: number;
+  failureRate: number;
+  peakConnections: number;
+  avgResponseTime: number;
+  lastError?: string;
 }
 
 export interface QueryMetrics {
@@ -30,22 +40,50 @@ export interface QueryMetrics {
   averageResponseTime: number;
   errorCount: number;
   lastReset: Date;
+  throughputPerMinute: number;
+  peakThroughput: number;
 }
 
 /**
- * Database Replica Manager
+ * Load balancing strategies
+ */
+export type LoadBalancingStrategy = 
+  | 'round-robin'
+  | 'weighted-round-robin'
+  | 'least-connections'
+  | 'priority-based'
+  | 'health-weighted'
+  | 'geographic';
+
+/**
+ * Enterprise Database Replica Manager with advanced features
  */
 export class DatabaseReplicaManager {
+  private redis: Redis;
   private masterClient: PrismaClient;
+  private masterPool: Pool;
   private replicaClients: Map<string, PrismaClient> = new Map();
+  private replicaPools: Map<string, Pool> = new Map();
   private replicaConfigs: Map<string, DatabaseConfig> = new Map();
   private healthStatus: Map<string, ReplicaHealth> = new Map();
   private metrics: Map<string, QueryMetrics> = new Map();
   private healthCheckInterval?: NodeJS.Timeout;
+  private metricsCollectionInterval?: NodeJS.Timeout;
   private currentReplicaIndex = 0;
+  private loadBalancingStrategy: LoadBalancingStrategy = 'weighted-round-robin';
+  private isShuttingDown = false;
 
-  constructor(masterConfig: DatabaseConfig, replicaConfigs: DatabaseConfig[] = []) {
-    // Initialize master connection
+  constructor(
+    masterConfig: DatabaseConfig, 
+    replicaConfigs: DatabaseConfig[] = [],
+    redis?: Redis
+  ) {
+    this.redis = redis || new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    });
+
+    // Initialize master Prisma connection
     this.masterClient = new PrismaClient({
       datasources: {
         db: {
@@ -55,6 +93,9 @@ export class DatabaseReplicaManager {
       log: ['query', 'error', 'warn'],
     });
 
+    // Initialize master connection pool
+    this.masterPool = new Pool(this.createPoolConfig(masterConfig));
+
     // Initialize replica connections
     replicaConfigs.forEach(config => {
       this.addReplica(config);
@@ -63,21 +104,46 @@ export class DatabaseReplicaManager {
     // Add master to configs for health monitoring
     this.replicaConfigs.set('master', masterConfig);
     this.initializeMetrics('master');
+    this.initializeHealthStatus('master');
 
-    // Start health monitoring
+    // Set up pool event listeners for master
+    this.setupPoolEventListeners(this.masterPool, 'master');
+
+    // Start monitoring
     this.startHealthMonitoring();
+    this.startMetricsCollection();
 
-    console.log(`[DB_REPLICAS] Initialized with master and ${replicaConfigs.length} replicas`);
+    console.log(`[DB_REPLICAS] Enterprise replica manager initialized with master and ${replicaConfigs.length} replicas`);
   }
 
   /**
-   * Add a new read replica
+   * Create PostgreSQL pool configuration
+   */
+  private createPoolConfig(config: DatabaseConfig): PoolConfig {
+    const url = new URL(config.url);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port) || 5432,
+      database: url.pathname.substring(1),
+      user: url.username,
+      password: url.password,
+      max: config.maxConnections,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: config.connectionTimeout,
+      statement_timeout: config.queryTimeout,
+      query_timeout: config.queryTimeout,
+    };
+  }
+
+  /**
+   * Add a new read replica with connection pool
    */
   addReplica(config: DatabaseConfig): void {
     if (config.role !== 'read-replica') {
       throw new Error('Only read-replica configurations can be added as replicas');
     }
 
+    // Create Prisma client
     const client = new PrismaClient({
       datasources: {
         db: {
@@ -87,11 +153,22 @@ export class DatabaseReplicaManager {
       log: ['error', 'warn'],
     });
 
-    this.replicaClients.set(config.name, client);
-    this.replicaConfigs.set(config.name, config);
-    this.initializeMetrics(config.name);
+    // Create connection pool
+    const pool = new Pool(this.createPoolConfig(config));
 
-    console.log(`[DB_REPLICAS] Added replica: ${config.name}`);
+    this.replicaClients.set(config.name, client);
+    this.replicaPools.set(config.name, pool);
+    this.replicaConfigs.set(config.name, {
+      ...config,
+      weight: config.weight || 1,
+    });
+    this.initializeMetrics(config.name);
+    this.initializeHealthStatus(config.name);
+
+    // Set up pool event listeners
+    this.setupPoolEventListeners(pool, config.name);
+
+    console.log(`[DB_REPLICAS] Added enterprise replica: ${config.name} with connection pool`);
   }
 
   /**
@@ -99,9 +176,16 @@ export class DatabaseReplicaManager {
    */
   async removeReplica(replicaName: string): Promise<void> {
     const client = this.replicaClients.get(replicaName);
-    if (client) {
-      await client.$disconnect();
+    const pool = this.replicaPools.get(replicaName);
+    
+    if (client && pool) {
+      await Promise.all([
+        client.$disconnect(),
+        pool.end(),
+      ]);
+      
       this.replicaClients.delete(replicaName);
+      this.replicaPools.delete(replicaName);
       this.replicaConfigs.delete(replicaName);
       this.healthStatus.delete(replicaName);
       this.metrics.delete(replicaName);
@@ -118,6 +202,13 @@ export class DatabaseReplicaManager {
   }
 
   /**
+   * Get master pool for direct SQL queries
+   */
+  getMasterPool(): Pool {
+    return this.masterPool;
+  }
+
+  /**
    * Get optimal read replica client
    */
   getReadReplica(): PrismaClient {
@@ -128,11 +219,68 @@ export class DatabaseReplicaManager {
       return this.masterClient;
     }
 
-    // Use round-robin with health-based selection
     const selectedReplica = this.selectOptimalReplica(healthyReplicas);
     const client = this.replicaClients.get(selectedReplica.name);
     
     return client || this.masterClient;
+  }
+
+  /**
+   * Get optimal read replica pool
+   */
+  getReadReplicaPool(): Pool {
+    const healthyReplicas = this.getHealthyReplicas();
+    
+    if (healthyReplicas.length === 0) {
+      console.warn('[DB_REPLICAS] No healthy replica pools available, falling back to master');
+      return this.masterPool;
+    }
+
+    const selectedReplica = this.selectOptimalReplica(healthyReplicas);
+    const pool = this.replicaPools.get(selectedReplica.name);
+    
+    return pool || this.masterPool;
+  }
+
+  /**
+   * Get database connection from pool
+   */
+  async getConnection(isWrite: boolean = false): Promise<{
+    client: PoolClient;
+    replicaId: string;
+    release: () => void;
+  }> {
+    const pool = isWrite ? this.masterPool : this.getReadReplicaPool();
+    const replicaId = isWrite ? 'master' : this.getPoolName(pool);
+    
+    try {
+      const startTime = Date.now();
+      const client = await pool.connect();
+      const responseTime = Date.now() - startTime;
+
+      // Update metrics
+      this.updateConnectionMetrics(replicaId, responseTime);
+
+      console.log(`[DB_REPLICAS] Connected to ${replicaId} (${responseTime}ms)`);
+
+      return {
+        client,
+        replicaId,
+        release: () => {
+          client.release();
+          this.updateDisconnectionMetrics(replicaId);
+        },
+      };
+    } catch (error) {
+      console.error(`[DB_REPLICAS] Failed to get connection from ${replicaId}:`, error);
+      
+      // If replica failed and this wasn't a write, try master
+      if (!isWrite && replicaId !== 'master') {
+        return this.getConnection(true);
+      }
+      
+      throw error;
+    }
   }
 
   /**
@@ -154,13 +302,13 @@ export class DatabaseReplicaManager {
 
       } catch (error) {
         lastError = error as Error;
-        this.recordQueryError(clientName);
+        this.recordQueryError(clientName, error as Error);
         
         console.warn(`[DB_REPLICAS] Query failed on ${clientName}, attempt ${attempt + 1}:`, error);
         
         // Mark replica as unhealthy if it's not the master
         if (clientName !== 'master') {
-          this.markReplicaUnhealthy(clientName);
+          this.markReplicaUnhealthy(clientName, error as Error);
         }
         
         // If this was the last attempt or it was already on master, throw the error
@@ -185,13 +333,67 @@ export class DatabaseReplicaManager {
       return result;
       
     } catch (error) {
-      this.recordQueryError('master');
+      this.recordQueryError('master', error as Error);
       throw error;
     }
   }
 
   /**
-   * Execute transaction on master (writes must be on master)
+   * Execute raw SQL query on read replica
+   */
+  async executeRawReadQuery<T = any>(
+    query: string,
+    params?: any[],
+    options?: { preferredRegion?: string; timeout?: number }
+  ): Promise<T[]> {
+    const connection = await this.getConnection(false);
+    
+    try {
+      const startTime = Date.now();
+      const result = await connection.client.query(query, params);
+      const queryTime = Date.now() - startTime;
+      
+      this.recordQuerySuccess(connection.replicaId, queryTime);
+      console.log(`[DB_REPLICAS] Raw read query executed on ${connection.replicaId} (${queryTime}ms)`);
+      
+      return result.rows;
+    } catch (error) {
+      this.recordQueryError(connection.replicaId, error as Error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * Execute raw SQL query on master
+   */
+  async executeRawWriteQuery<T = any>(
+    query: string,
+    params?: any[],
+    options?: { timeout?: number }
+  ): Promise<T[]> {
+    const connection = await this.getConnection(true);
+    
+    try {
+      const startTime = Date.now();
+      const result = await connection.client.query(query, params);
+      const queryTime = Date.now() - startTime;
+      
+      this.recordQuerySuccess('master', queryTime);
+      console.log(`[DB_REPLICAS] Raw write query executed on master (${queryTime}ms)`);
+      
+      return result.rows;
+    } catch (error) {
+      this.recordQueryError('master', error as Error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * Execute transaction on master
    */
   async executeTransaction<T>(
     transactionFn: (client: PrismaClient) => Promise<T>
@@ -200,34 +402,105 @@ export class DatabaseReplicaManager {
   }
 
   /**
+   * Execute raw SQL transaction on master
+   */
+  async executeRawTransaction<T>(
+    callback: (client: PoolClient) => Promise<T>,
+    options?: { isolationLevel?: string; timeout?: number }
+  ): Promise<T> {
+    const connection = await this.getConnection(true);
+    
+    try {
+      await connection.client.query('BEGIN');
+      
+      if (options?.isolationLevel) {
+        await connection.client.query(`SET TRANSACTION ISOLATION LEVEL ${options.isolationLevel}`);
+      }
+      
+      const result = await callback(connection.client);
+      await connection.client.query('COMMIT');
+      
+      console.log('[DB_REPLICAS] Transaction committed successfully');
+      return result;
+    } catch (error) {
+      await connection.client.query('ROLLBACK');
+      console.error('[DB_REPLICAS] Transaction rolled back:', error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * Set load balancing strategy
+   */
+  setLoadBalancingStrategy(strategy: LoadBalancingStrategy): void {
+    this.loadBalancingStrategy = strategy;
+    console.log(`[DB_REPLICAS] Load balancing strategy changed to: ${strategy}`);
+  }
+
+  /**
    * Get healthy replicas
    */
   private getHealthyReplicas(): ReplicaHealth[] {
     return Array.from(this.healthStatus.values())
       .filter(health => health.isHealthy && health.name !== 'master')
-      .sort((a, b) => a.responseTime - b.responseTime); // Sort by response time
+      .sort((a, b) => a.responseTime - b.responseTime);
   }
 
   /**
-   * Select optimal replica using load balancing strategy
+   * Select optimal replica using configured load balancing strategy
    */
   private selectOptimalReplica(healthyReplicas: ReplicaHealth[]): ReplicaHealth {
     if (healthyReplicas.length === 1) {
       return healthyReplicas[0];
     }
 
-    // Weighted round-robin based on response time and priority
-    const weights = healthyReplicas.map(replica => {
+    switch (this.loadBalancingStrategy) {
+      case 'round-robin':
+        return this.selectRoundRobin(healthyReplicas);
+      
+      case 'weighted-round-robin':
+        return this.selectWeightedRoundRobin(healthyReplicas);
+      
+      case 'least-connections':
+        return this.selectLeastConnections(healthyReplicas);
+      
+      case 'priority-based':
+        return this.selectPriorityBased(healthyReplicas);
+      
+      case 'health-weighted':
+        return this.selectHealthWeighted(healthyReplicas);
+      
+      case 'geographic':
+        return this.selectGeographic(healthyReplicas);
+      
+      default:
+        return healthyReplicas[0];
+    }
+  }
+
+  /**
+   * Round-robin selection
+   */
+  private selectRoundRobin(replicas: ReplicaHealth[]): ReplicaHealth {
+    const selected = replicas[this.currentReplicaIndex % replicas.length];
+    this.currentReplicaIndex++;
+    return selected;
+  }
+
+  /**
+   * Weighted round-robin selection
+   */
+  private selectWeightedRoundRobin(replicas: ReplicaHealth[]): ReplicaHealth {
+    const weights = replicas.map(replica => {
       const config = this.replicaConfigs.get(replica.name)!;
-      const responseTimeFactor = 1000 / (replica.responseTime + 1); // Lower response time = higher weight
-      const priorityFactor = config.priority || 1;
       return {
         replica,
-        weight: responseTimeFactor * priorityFactor,
+        weight: config.weight || 1,
       };
     });
 
-    // Select based on weighted probability
     const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
     let random = Math.random() * totalWeight;
 
@@ -238,8 +511,75 @@ export class DatabaseReplicaManager {
       }
     }
 
-    // Fallback to first healthy replica
-    return healthyReplicas[0];
+    return replicas[0];
+  }
+
+  /**
+   * Least connections selection
+   */
+  private selectLeastConnections(replicas: ReplicaHealth[]): ReplicaHealth {
+    return replicas.reduce((best, current) => 
+      current.connectionCount < best.connectionCount ? current : best
+    );
+  }
+
+  /**
+   * Priority-based selection
+   */
+  private selectPriorityBased(replicas: ReplicaHealth[]): ReplicaHealth {
+    return replicas.reduce((best, current) => {
+      const bestConfig = this.replicaConfigs.get(best.name)!;
+      const currentConfig = this.replicaConfigs.get(current.name)!;
+      return currentConfig.priority < bestConfig.priority ? current : best;
+    });
+  }
+
+  /**
+   * Health-weighted selection (faster replicas get higher weight)
+   */
+  private selectHealthWeighted(replicas: ReplicaHealth[]): ReplicaHealth {
+    const weights = replicas.map(replica => ({
+      replica,
+      weight: 1000 / Math.max(replica.responseTime, 1),
+    }));
+
+    const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
+    let random = Math.random() * totalWeight;
+
+    for (const { replica, weight } of weights) {
+      random -= weight;
+      if (random <= 0) {
+        return replica;
+      }
+    }
+
+    return replicas[0];
+  }
+
+  /**
+   * Geographic selection (prefer same region)
+   */
+  private selectGeographic(replicas: ReplicaHealth[]): ReplicaHealth {
+    // For now, just return the first replica
+    // In a real implementation, you'd check regions and prefer local ones
+    return replicas[0];
+  }
+
+  /**
+   * Get pool name for metrics
+   */
+  private getPoolName(pool: Pool): string {
+    if (pool === this.masterPool) {
+      return 'master';
+    }
+
+    for (const [name, replicaPool] of this.replicaPools.entries()) {
+      if (pool === replicaPool) {
+        return name;
+      }
+    }
+
+    return 'unknown';
   }
 
   /**
@@ -268,7 +608,50 @@ export class DatabaseReplicaManager {
       averageResponseTime: 0,
       errorCount: 0,
       lastReset: new Date(),
+      throughputPerMinute: 0,
+      peakThroughput: 0,
     });
+  }
+
+  /**
+   * Initialize health status
+   */
+  private initializeHealthStatus(clientName: string): void {
+    this.healthStatus.set(clientName, {
+      name: clientName,
+      isHealthy: true,
+      lastCheck: new Date(),
+      responseTime: 0,
+      errorCount: 0,
+      connectionCount: 0,
+      totalQueries: 0,
+      failureRate: 0,
+      peakConnections: 0,
+      avgResponseTime: 0,
+    });
+  }
+
+  /**
+   * Update connection metrics
+   */
+  private updateConnectionMetrics(clientName: string, responseTime: number): void {
+    const health = this.healthStatus.get(clientName);
+    if (health) {
+      health.totalQueries++;
+      health.avgResponseTime = (health.avgResponseTime + responseTime) / 2;
+      health.connectionCount++;
+      health.peakConnections = Math.max(health.peakConnections, health.connectionCount);
+    }
+  }
+
+  /**
+   * Update disconnection metrics
+   */
+  private updateDisconnectionMetrics(clientName: string): void {
+    const health = this.healthStatus.get(clientName);
+    if (health) {
+      health.connectionCount = Math.max(0, health.connectionCount - 1);
+    }
   }
 
   /**
@@ -281,28 +664,64 @@ export class DatabaseReplicaManager {
       metrics.averageResponseTime = 
         (metrics.averageResponseTime * (metrics.queryCount - 1) + responseTime) / metrics.queryCount;
     }
+
+    const health = this.healthStatus.get(clientName);
+    if (health) {
+      health.responseTime = responseTime;
+      health.totalQueries++;
+      health.avgResponseTime = (health.avgResponseTime + responseTime) / 2;
+      health.failureRate = health.errorCount / health.totalQueries;
+    }
   }
 
   /**
    * Record query error
    */
-  private recordQueryError(clientName: string): void {
+  private recordQueryError(clientName: string, error: Error): void {
     const metrics = this.metrics.get(clientName);
     if (metrics) {
       metrics.errorCount++;
+    }
+
+    const health = this.healthStatus.get(clientName);
+    if (health) {
+      health.errorCount++;
+      health.totalQueries++;
+      health.failureRate = health.errorCount / health.totalQueries;
+      health.lastError = error.message;
     }
   }
 
   /**
    * Mark replica as unhealthy
    */
-  private markReplicaUnhealthy(replicaName: string): void {
+  private markReplicaUnhealthy(replicaName: string, error: Error): void {
     const health = this.healthStatus.get(replicaName);
     if (health) {
       health.isHealthy = false;
       health.errorCount++;
       health.lastCheck = new Date();
+      health.lastError = error.message;
+      health.failureRate = health.errorCount / Math.max(health.totalQueries, 1);
     }
+  }
+
+  /**
+   * Setup pool event listeners for monitoring
+   */
+  private setupPoolEventListeners(pool: Pool, poolName: string): void {
+    pool.on('connect', (client) => {
+      console.log(`[DB_REPLICAS] Pool client connected: ${poolName}`);
+    });
+
+    pool.on('error', (err, client) => {
+      console.error(`[DB_REPLICAS] Pool error for ${poolName}:`, err);
+      this.markReplicaUnhealthy(poolName, err);
+    });
+
+    pool.on('remove', (client) => {
+      console.log(`[DB_REPLICAS] Pool client removed: ${poolName}`);
+    });
   }
 
   /**
@@ -310,11 +729,22 @@ export class DatabaseReplicaManager {
    */
   private startHealthMonitoring(): void {
     this.healthCheckInterval = setInterval(async () => {
+      if (this.isShuttingDown) return;
       await this.checkAllHealth();
     }, 30000); // Check every 30 seconds
 
     // Initial health check
     setTimeout(() => this.checkAllHealth(), 1000);
+  }
+
+  /**
+   * Start metrics collection
+   */
+  private startMetricsCollection(): void {
+    this.metricsCollectionInterval = setInterval(async () => {
+      if (this.isShuttingDown) return;
+      await this.collectAndPersistMetrics();
+    }, 60000); // Every minute
   }
 
   /**
@@ -347,13 +777,19 @@ export class DatabaseReplicaManager {
       const responseTime = Date.now() - startTime;
       const currentHealth = this.healthStatus.get(name);
       
+      const pool = name === 'master' ? this.masterPool : this.replicaPools.get(name);
+      
       this.healthStatus.set(name, {
         name,
         isHealthy: true,
         lastCheck: new Date(),
         responseTime,
         errorCount: currentHealth?.errorCount || 0,
-        connectionCount: this.getConnectionCount(name),
+        connectionCount: pool ? pool.totalCount : 0,
+        totalQueries: currentHealth?.totalQueries || 0,
+        failureRate: currentHealth ? currentHealth.errorCount / Math.max(currentHealth.totalQueries, 1) : 0,
+        peakConnections: currentHealth?.peakConnections || 0,
+        avgResponseTime: currentHealth ? (currentHealth.avgResponseTime + responseTime) / 2 : responseTime,
       });
 
       if (currentHealth && !currentHealth.isHealthy) {
@@ -371,6 +807,11 @@ export class DatabaseReplicaManager {
         responseTime: Date.now() - startTime,
         errorCount,
         connectionCount: 0,
+        totalQueries: currentHealth?.totalQueries || 0,
+        failureRate: errorCount / Math.max(currentHealth?.totalQueries || 1, 1),
+        peakConnections: currentHealth?.peakConnections || 0,
+        avgResponseTime: currentHealth?.avgResponseTime || 0,
+        lastError: error instanceof Error ? error.message : 'Unknown error',
       });
 
       console.error(`[DB_REPLICAS] Health check failed for ${name}:`, error);
@@ -378,12 +819,27 @@ export class DatabaseReplicaManager {
   }
 
   /**
-   * Get connection count for database
+   * Collect and persist metrics
    */
-  private getConnectionCount(name: string): number {
-    // In a real implementation, you would query the database for active connections
-    // For now, return a mock value
-    return Math.floor(Math.random() * 10) + 1;
+  private async collectAndPersistMetrics(): Promise<void> {
+    try {
+      const statistics = await this.getComprehensiveStatistics();
+      
+      // Persist to Redis
+      await this.redis.setex(
+        'db_replicas:enterprise_metrics',
+        300, // 5 minutes TTL
+        JSON.stringify({
+          ...statistics,
+          timestamp: new Date(),
+          loadBalancingStrategy: this.loadBalancingStrategy,
+        })
+      );
+      
+      console.log('[DB_REPLICAS] Enterprise metrics persisted successfully');
+    } catch (error) {
+      console.error('[DB_REPLICAS] Failed to persist metrics:', error);
+    }
   }
 
   /**
@@ -413,6 +869,67 @@ export class DatabaseReplicaManager {
   }
 
   /**
+   * Get comprehensive statistics
+   */
+  async getComprehensiveStatistics(): Promise<{
+    health: Record<string, ReplicaHealth>;
+    metrics: Record<string, QueryMetrics>;
+    pools: Record<string, any>;
+    summary: {
+      totalReplicas: number;
+      healthyReplicas: number;
+      totalConnections: number;
+      totalQueries: number;
+      avgResponseTime: number;
+      overallErrorRate: number;
+      loadBalancingStrategy: string;
+    };
+  }> {
+    const health = Object.fromEntries(this.healthStatus.entries());
+    const metrics = Object.fromEntries(this.metrics.entries());
+    const pools: Record<string, any> = {};
+
+    // Collect pool statistics
+    pools['master'] = {
+      totalCount: this.masterPool.totalCount,
+      idleCount: this.masterPool.idleCount,
+      waitingCount: this.masterPool.waitingCount,
+    };
+
+    for (const [name, pool] of this.replicaPools.entries()) {
+      pools[name] = {
+        totalCount: pool.totalCount,
+        idleCount: pool.idleCount,
+        waitingCount: pool.waitingCount,
+      };
+    }
+
+    // Calculate summary statistics
+    const replicas = Array.from(this.healthStatus.values()).filter(h => h.name !== 'master');
+    const healthyReplicas = replicas.filter(r => r.isHealthy).length;
+    const totalConnections = Object.values(pools).reduce((sum, pool) => sum + pool.totalCount, 0);
+    const totalQueries = Object.values(health).reduce((sum, h) => sum + h.totalQueries, 0);
+    const avgResponseTime = Object.values(health).reduce((sum, h) => sum + h.avgResponseTime, 0) / Math.max(Object.keys(health).length, 1);
+    const totalErrors = Object.values(health).reduce((sum, h) => sum + h.errorCount, 0);
+    const overallErrorRate = totalQueries > 0 ? (totalErrors / totalQueries) * 100 : 0;
+
+    return {
+      health,
+      metrics,
+      pools,
+      summary: {
+        totalReplicas: replicas.length,
+        healthyReplicas,
+        totalConnections,
+        totalQueries,
+        avgResponseTime,
+        overallErrorRate,
+        loadBalancingStrategy: this.loadBalancingStrategy,
+      },
+    };
+  }
+
+  /**
    * Get query metrics
    */
   getQueryMetrics(): Record<string, QueryMetrics> {
@@ -428,9 +945,11 @@ export class DatabaseReplicaManager {
       metrics.averageResponseTime = 0;
       metrics.errorCount = 0;
       metrics.lastReset = new Date();
+      metrics.throughputPerMinute = 0;
+      metrics.peakThroughput = 0;
     }
     
-    console.log('[DB_REPLICAS] Metrics reset');
+    console.log('[DB_REPLICAS] Enterprise metrics reset');
   }
 
   /**
@@ -474,6 +993,7 @@ export class DatabaseReplicaManager {
       health.isHealthy = true;
       health.errorCount = 0;
       health.lastCheck = new Date();
+      health.lastError = undefined;
       
       console.log(`[DB_REPLICAS] Manually restored health for replica: ${replicaName}`);
     }
@@ -483,8 +1003,8 @@ export class DatabaseReplicaManager {
    * Get load distribution report
    */
   getLoadDistribution(): Record<string, { percentage: number; queryCount: number }> {
-    const totalQueries = Array.from(this.metrics.values())
-      .reduce((sum, metrics) => sum + metrics.queryCount, 0);
+    const totalQueries = Array.from(this.healthStatus.values())
+      .reduce((sum, health) => sum + health.totalQueries, 0);
 
     if (totalQueries === 0) {
       return {};
@@ -492,10 +1012,10 @@ export class DatabaseReplicaManager {
 
     const distribution: Record<string, { percentage: number; queryCount: number }> = {};
 
-    for (const [name, metrics] of this.metrics.entries()) {
+    for (const [name, health] of this.healthStatus.entries()) {
       distribution[name] = {
-        percentage: Math.round((metrics.queryCount / totalQueries) * 100 * 100) / 100,
-        queryCount: metrics.queryCount,
+        percentage: Math.round((health.totalQueries / totalQueries) * 100 * 100) / 100,
+        queryCount: health.totalQueries,
       };
     }
 
@@ -506,33 +1026,53 @@ export class DatabaseReplicaManager {
    * Graceful shutdown
    */
   async shutdown(): Promise<void> {
-    console.log('[DB_REPLICAS] Shutting down...');
+    console.log('[DB_REPLICAS] Starting enterprise shutdown...');
+    this.isShuttingDown = true;
 
-    // Stop health monitoring
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
+    try {
+      // Stop monitoring intervals
+      if (this.healthCheckInterval) {
+        clearInterval(this.healthCheckInterval);
+      }
+      if (this.metricsCollectionInterval) {
+        clearInterval(this.metricsCollectionInterval);
+      }
+
+      // Persist final metrics
+      await this.collectAndPersistMetrics().catch(err => 
+        console.warn('[DB_REPLICAS] Failed to persist final metrics:', err)
+      );
+
+      // Disconnect all clients and close pools
+      const shutdownPromises: Promise<void>[] = [];
+
+      // Disconnect master
+      shutdownPromises.push(this.masterClient.$disconnect());
+      shutdownPromises.push(this.masterPool.end());
+
+      // Disconnect all replicas
+      for (const client of this.replicaClients.values()) {
+        shutdownPromises.push(client.$disconnect());
+      }
+
+      for (const pool of this.replicaPools.values()) {
+        shutdownPromises.push(pool.end());
+      }
+
+      await Promise.all(shutdownPromises);
+
+      // Clear all maps
+      this.replicaClients.clear();
+      this.replicaPools.clear();
+      this.replicaConfigs.clear();
+      this.healthStatus.clear();
+      this.metrics.clear();
+
+      console.log('[DB_REPLICAS] Enterprise shutdown completed successfully');
+    } catch (error) {
+      console.error('[DB_REPLICAS] Error during shutdown:', error);
+      throw error;
     }
-
-    // Disconnect all clients
-    const disconnectPromises: Promise<void>[] = [];
-
-    // Disconnect master
-    disconnectPromises.push(this.masterClient.$disconnect());
-
-    // Disconnect all replicas
-    for (const client of this.replicaClients.values()) {
-      disconnectPromises.push(client.$disconnect());
-    }
-
-    await Promise.all(disconnectPromises);
-
-    // Clear all maps
-    this.replicaClients.clear();
-    this.replicaConfigs.clear();
-    this.healthStatus.clear();
-    this.metrics.clear();
-
-    console.log('[DB_REPLICAS] Shutdown completed');
   }
 }
 
@@ -552,6 +1092,7 @@ export function createDefaultReplicaConfig(): {
     maxConnections: 50,
     connectionTimeout: 5000,
     queryTimeout: 30000,
+    weight: 1,
   };
 
   const replicas: DatabaseConfig[] = [
@@ -564,20 +1105,35 @@ export function createDefaultReplicaConfig(): {
       maxConnections: 30,
       connectionTimeout: 5000,
       queryTimeout: 30000,
+      weight: 2,
+      tags: ['primary-region', 'high-performance'],
     },
     {
       url: process.env.DATABASE_READ_REPLICA_2_URL || 'postgresql://localhost:5434/taxomind_replica_2',
       name: 'replica-2',
       role: 'read-replica',
       region: 'secondary',
-      priority: 1,
+      priority: 3,
       maxConnections: 30,
       connectionTimeout: 5000,
       queryTimeout: 30000,
+      weight: 1,
+      tags: ['secondary-region', 'backup'],
     },
   ];
 
   return { master, replicas };
+}
+
+/**
+ * Create enterprise database replicas instance
+ */
+export function createEnterpriseReplicas(
+  masterConfig: DatabaseConfig,
+  replicaConfigs: DatabaseConfig[] = [],
+  redis?: Redis
+): DatabaseReplicaManager {
+  return new DatabaseReplicaManager(masterConfig, replicaConfigs, redis);
 }
 
 export default DatabaseReplicaManager;

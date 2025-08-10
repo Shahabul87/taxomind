@@ -471,9 +471,11 @@ export class CircuitBreakerConfigBuilder {
   }
 }
 
-export default {
+const CircuitBreakerConfig = {
   CircuitBreakerPresets,
   EnvironmentConfig,
   ConfigValidator,
   CircuitBreakerConfigBuilder,
 };
+
+export default CircuitBreakerConfig;

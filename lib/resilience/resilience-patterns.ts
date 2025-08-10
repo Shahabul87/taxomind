@@ -619,7 +619,7 @@ export class ErrorClassifier {
   }
 }
 
-export default {
+const ResiliencePatterns = {
   RetryPattern,
   TimeoutPattern,
   FallbackPattern,
@@ -630,3 +630,5 @@ export default {
   TimeoutError,
   RateLimitError,
 };
+
+export default ResiliencePatterns;

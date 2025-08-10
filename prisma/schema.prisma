@@ -127,6 +127,8 @@ model User {
   LearningDNA                             LearningDNA[]
   StudyBuddy                              StudyBuddy[]
   QuantumLearningPath                     QuantumLearningPath[]
+  UserConsent                             UserConsent[]
+  GDPRRequest                             GDPRRequest[]
 }
 
 model Account {
@@ -3846,4 +3848,3 @@ model DataBreach {
 
   @@map("data_breaches")
 }
-EOF < /dev/null

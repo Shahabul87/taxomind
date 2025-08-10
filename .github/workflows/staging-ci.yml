@@ -133,16 +133,21 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
         
-      - name: 🚀 Deploy to Vercel/Railway
+      - name: 🚀 Deploy to Railway Staging
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING_TOKEN }}
         run: |
-          echo "Deploying to staging environment..."
-          # Add your deployment commands here
-          # Example: vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+          echo "Installing Railway CLI..."
+          npm install -g @railway/cli
+          
+          echo "Deploying to Railway staging environment..."
+          railway up --service taxomind-staging --environment staging --detach
           
       - name: 🧪 Staging Health Check
         run: |
           echo "Running staging health checks..."
-          # Add health check commands
+          sleep 30
+          curl -f https://taxomind-staging.up.railway.app/api/health || exit 1
           
   # 📊 Performance Testing
   performance:
