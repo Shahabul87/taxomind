@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const { withSentryConfig } = require('@sentry/nextjs');
+
 const nextConfig = {
   reactStrictMode: true,
   
@@ -14,7 +16,7 @@ const nextConfig = {
   },
   
   // External packages for Next.js 15
-  serverExternalPackages: ['@noble/hashes', 'bcryptjs'],
+  serverExternalPackages: ['@noble/hashes', 'bcryptjs', '@grpc/grpc-js'],
   
   // Essential image configuration
   images: {
@@ -114,7 +116,32 @@ const nextConfig = {
     unoptimized: true, // Skip optimization for unknown domains
   },
 
-  // NO CUSTOM WEBPACK CONFIG - Let Next.js handle everything
+  // Webpack configuration to handle OpenTelemetry packages
+  webpack: (config, { isServer }) => {
+    // Exclude gRPC and OpenTelemetry packages from client-side bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'stream': false,
+        'util': false,
+        'buffer': false,
+        'crypto': false,
+        'fs': false,
+        'path': false,
+        'child_process': false,
+      };
+
+      // Exclude OpenTelemetry gRPC packages from client bundle
+      config.externals = config.externals || [];
+      config.externals.push({
+        '@grpc/grpc-js': 'commonjs @grpc/grpc-js',
+        '@opentelemetry/exporter-logs-otlp-grpc': 'commonjs @opentelemetry/exporter-logs-otlp-grpc',
+        '@opentelemetry/otlp-grpc-exporter-base': 'commonjs @opentelemetry/otlp-grpc-exporter-base',
+      });
+    }
+
+    return config;
+  },
   
   eslint: {
     ignoreDuringBuilds: false, // ✅ Enable linting during builds
@@ -154,4 +181,18 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// Sentry configuration options
+const sentryWebpackPluginOptions = {
+  silent: true, // Suppresses all logs
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: true,
+};
+
+// Export with Sentry only if DSN is configured
+module.exports = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
+  : nextConfig;

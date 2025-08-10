@@ -1,0 +1,263 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduled-migration
+  namespace: taxomind
+  labels:
+    app: taxomind
+    component: scheduled-migration
+spec:
+  schedule: "0 2 * * *"  # Run daily at 2 AM
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid  # Don't run concurrent migrations
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  suspend: false  # Set to true to pause scheduled migrations
+  jobTemplate:
+    metadata:
+      labels:
+        app: taxomind
+        component: scheduled-migration
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800  # 30 minutes timeout
+      ttlSecondsAfterFinished: 259200  # Clean up after 3 days
+      template:
+        metadata:
+          labels:
+            app: taxomind
+            component: scheduled-migration
+          annotations:
+            sidecar.istio.io/inject: "false"
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: taxomind-migration-sa
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          containers:
+            - name: migration-checker
+              image: taxomind/migrations:latest
+              imagePullPolicy: Always
+              env:
+                - name: NODE_ENV
+                  value: "production"
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: taxomind-db-secret
+                      key: database-url
+                - name: SCHEDULED_RUN
+                  value: "true"
+                - name: LOG_LEVEL
+                  value: "info"
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: taxomind-alerts
+                      key: slack-webhook-url
+                      optional: true
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  
+                  echo "Checking for pending migrations..."
+                  
+                  # Check migration status
+                  STATUS_OUTPUT=$(npx prisma migrate status 2>&1) || true
+                  
+                  if echo "$STATUS_OUTPUT" | grep -q "Database schema is not up to date"; then
+                    echo "Pending migrations detected. Running migrations..."
+                    
+                    # Send notification about migration start
+                    if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+                      curl -X POST "$SLACK_WEBHOOK_URL" \
+                        -H 'Content-type: application/json' \
+                        --data '{"text":"🔄 Starting scheduled database migration for Taxomind LMS"}' || true
+                    fi
+                    
+                    # Create backup
+                    echo "Creating backup before migration..."
+                    BACKUP_NAME="scheduled-backup-$(date +%Y%m%d-%H%M%S)"
+                    
+                    # Apply migrations
+                    npx prisma migrate deploy
+                    
+                    # Verify success
+                    npx prisma migrate status
+                    
+                    echo "Scheduled migration completed successfully"
+                    
+                    # Send success notification
+                    if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+                      curl -X POST "$SLACK_WEBHOOK_URL" \
+                        -H 'Content-type: application/json' \
+                        --data '{"text":"✅ Scheduled database migration completed successfully for Taxomind LMS"}' || true
+                    fi
+                    
+                  elif echo "$STATUS_OUTPUT" | grep -q "No pending migrations"; then
+                    echo "No pending migrations found"
+                  else
+                    echo "Error checking migration status:"
+                    echo "$STATUS_OUTPUT"
+                    
+                    # Send error notification
+                    if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+                      curl -X POST "$SLACK_WEBHOOK_URL" \
+                        -H 'Content-type: application/json' \
+                        --data "{\"text\":\"❌ Error checking migration status: $STATUS_OUTPUT\"}" || true
+                    fi
+                    
+                    exit 1
+                  fi
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: false
+                runAsNonRoot: true
+
+---
+# ConfigMap for migration monitoring script
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: migration-monitor
+  namespace: taxomind
+  labels:
+    app: taxomind
+    component: migration-monitor
+data:
+  monitor.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Migration monitoring started..."
+    
+    # Monitor for failed jobs
+    while true; do
+      FAILED_JOBS=$(kubectl get jobs -n taxomind -l component=scheduled-migration \
+        --field-selector status.failed=1 --no-headers | wc -l)
+      
+      if [ "$FAILED_JOBS" -gt 0 ]; then
+        echo "Found $FAILED_JOBS failed migration jobs"
+        
+        # Get details of failed jobs
+        kubectl get jobs -n taxomind -l component=scheduled-migration \
+          --field-selector status.failed=1 -o yaml > /tmp/failed-migrations.yaml
+        
+        # Send alert (implement your alerting mechanism here)
+        if [ -n "${ALERT_WEBHOOK_URL:-}" ]; then
+          curl -X POST "$ALERT_WEBHOOK_URL" \
+            -H 'Content-type: application/json' \
+            --data '{"severity":"high","message":"Database migration job failed","namespace":"taxomind"}' || true
+        fi
+        
+        # Clean up failed jobs older than 24 hours
+        kubectl delete jobs -n taxomind -l component=scheduled-migration \
+          --field-selector status.failed=1 \
+          $(kubectl get jobs -n taxomind -l component=scheduled-migration \
+            --field-selector status.failed=1 \
+            --sort-by=.metadata.creationTimestamp \
+            -o jsonpath='{range .items[:-1]}{.metadata.name}{" "}{end}') || true
+      fi
+      
+      sleep 300  # Check every 5 minutes
+    done
+
+---
+# Deployment for migration monitoring
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: migration-monitor
+  namespace: taxomind
+  labels:
+    app: taxomind
+    component: migration-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taxomind
+      component: migration-monitor
+  template:
+    metadata:
+      labels:
+        app: taxomind
+        component: migration-monitor
+    spec:
+      serviceAccountName: taxomind-migration-monitor-sa
+      containers:
+        - name: monitor
+          image: bitnami/kubectl:latest
+          command: ["/bin/bash", "/scripts/monitor.sh"]
+          env:
+            - name: ALERT_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: taxomind-alerts
+                  key: alert-webhook-url
+                  optional: true
+          volumeMounts:
+            - name: monitor-scripts
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: monitor-scripts
+          configMap:
+            name: migration-monitor
+            defaultMode: 0755
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: taxomind-migration-monitor-sa
+  namespace: taxomind
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: taxomind-migration-monitor-role
+  namespace: taxomind
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: taxomind-migration-monitor-rolebinding
+  namespace: taxomind
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: taxomind-migration-monitor-role
+subjects:
+  - kind: ServiceAccount
+    name: taxomind-migration-monitor-sa
+    namespace: taxomind
