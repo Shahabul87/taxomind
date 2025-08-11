@@ -136,7 +136,7 @@ export function useLazyLoading(
       callback();
       setHasLoaded(true);
     }
-  }, [isIntersecting, hasLoaded, callback, ...dependencies]);
+  }, [isIntersecting, hasLoaded, callback, dependencies]);
 
   return { elementRef, hasLoaded };
 }

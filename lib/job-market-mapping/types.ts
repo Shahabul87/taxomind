@@ -166,7 +166,7 @@ export interface EmergingSkill {
   adoptionRate: number; // 0-1
   marketDemand: MarketDemandLevel;
   relevanceScore: number; // 0-1
-  learningDifficulty: LearningDifficulty;
+  learningQuestionDifficulty: LearningQuestionDifficulty;
   timeToMastery: TimeEstimate;
   relatedSkills: string[];
   industry: Industry[];
@@ -278,7 +278,7 @@ export interface RequiredSkill {
   proficiencyLevel: ProficiencyLevel;
   importance: SkillImportance;
   marketDemand: MarketDemandLevel;
-  acquisitionDifficulty: LearningDifficulty;
+  acquisitionQuestionDifficulty: LearningQuestionDifficulty;
   timeToAcquire: TimeEstimate;
   learningPath: LearningPath;
   assessmentCriteria: AssessmentCriterion[];
@@ -293,7 +293,7 @@ export interface LearningResource {
   provider: string;
   format: LearningFormat;
   duration: TimeEstimate;
-  difficulty: LearningDifficulty;
+  difficulty: LearningQuestionDifficulty;
   cost: CostStructure;
   rating: number; // 0-5
   skillsAddressed: string[];
@@ -311,7 +311,7 @@ export interface LearningPath {
   targetSkills: string[];
   modules: LearningModule[];
   totalDuration: TimeEstimate;
-  difficulty: LearningDifficulty;
+  difficulty: LearningQuestionDifficulty;
   prerequisites: string[];
   learningObjectives: LearningObjective[];
   assessmentStrategy: AssessmentStrategy;
@@ -423,7 +423,7 @@ export type GapUrgency = 'immediate' | 'urgent' | 'moderate' | 'low' | 'future';
 
 export type MarketDemandLevel = 'very_high' | 'high' | 'moderate' | 'low' | 'very_low';
 
-export type LearningDifficulty = 'very_easy' | 'easy' | 'moderate' | 'hard' | 'very_hard';
+export type LearningQuestionDifficulty = 'very_easy' | 'easy' | 'moderate' | 'hard' | 'very_hard';
 
 export type RecommendationType = 
   | 'skill_development' | 'career_change' | 'certification' | 'education'

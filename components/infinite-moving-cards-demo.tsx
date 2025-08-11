@@ -36,7 +36,7 @@ const testimonials = [
   },
   {
     quote:
-      "It is not that I'm so smart. But I stay with the questions much longer.",
+      "It is not that I&apos;m so smart. But I stay with the questions much longer.",
     name: "Albert Einstein",
     title: "Physicist and Nobel Laureate",
   },

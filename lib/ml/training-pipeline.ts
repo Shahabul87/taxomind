@@ -54,7 +54,7 @@ export class MLTrainingPipeline {
         throw new Error(`Model accuracy ${metrics.accuracy} below threshold`);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Training failed:', error);
       throw error;
     }
@@ -78,7 +78,7 @@ export class MLTrainingPipeline {
         ]
       },
       include: {
-        course: true
+        Course: true
       },
       take: 1000 // Limit for initial training
     });
@@ -104,7 +104,7 @@ export class MLTrainingPipeline {
           }
         });
 
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Failed to process student ${enrollment.userId}:`, error);
       }
     }
@@ -239,7 +239,7 @@ export class MLTrainingPipeline {
       try {
 
         await this.trainModel(modelType, defaultParameters);
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Failed to train ${modelType}:`, error);
       }
     }
@@ -254,7 +254,7 @@ export class MLTrainingPipeline {
       try {
         await this.retrainAllModels();
 
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Scheduled retraining failed:', error);
       }
     }, retrainingInterval);
@@ -312,7 +312,7 @@ export class MLTrainingPipeline {
             console.log(`Updated ${modelType} model - Accuracy: ${(metrics.accuracy * 100).toFixed(2)}%`);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Incremental training failed for ${modelType}:`, error);
       }
     }
@@ -332,7 +332,7 @@ export class MLTrainingPipeline {
         // In production, load actual weights
         return model;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to load model ${modelType}:`, error);
     }
 
@@ -364,7 +364,7 @@ export class MLTrainingPipeline {
           features,
           label: this.extractLabel(labels, modelType)
         });
-      } catch (error) {
+      } catch (error: any) {
         // Skip failed feature extraction
       }
     }

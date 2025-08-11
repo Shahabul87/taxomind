@@ -59,7 +59,7 @@ export async function generateAIInsights(
     });
 
     return insights.slice(0, 10); // Return top 10 insights
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error generating AI insights:", error);
     return [];
   }
@@ -89,7 +89,7 @@ function generateLearningInsights(userData: any, context: AIInsightsContext): AI
   }
 
   // Check for course completion patterns
-  const enrollments = userData.enrollments || [];
+  const enrollments = userData.Enrollment || [];
   const completionRate = calculateAverageCompletionRate(enrollments);
   
   if (completionRate > 80) {
@@ -214,7 +214,7 @@ function generateGoalInsights(userData: any, context: AIInsightsContext): AIInsi
     });
   } else {
     // Analyze goal completion patterns
-    const completedGoals = goals.filter(goal => goal.status === 'COMPLETED').length;
+    const completedGoals = goals.filter((goal: any) => goal.status === 'COMPLETED').length;
     const completionRate = goals.length > 0 ? (completedGoals / goals.length) * 100 : 0;
 
     if (completionRate > 70) {
@@ -296,7 +296,7 @@ function calculateLearningStreak(activities: any[]): number {
   return Math.min(learningActivities.length, 30); // Cap at 30 days
 }
 
-function calculateAverageCompletionRate(enrollments: any[]): number {
+function calculateAverageCompletionRate(Enrollment: any[]): number {
   if (enrollments.length === 0) return 0;
   
   const totalRate = enrollments.reduce((sum: number, enrollment: any) => {
@@ -323,7 +323,7 @@ function calculateEngagementScore(userData: any): number {
   score += (userData.posts?.length || 0) * 2;
   score += (userData.ideas?.length || 0) * 3;
   score += (userData.courses?.length || 0) * 5;
-  score += (userData.enrollments?.length || 0) * 4;
+  score += (userData.Enrollment?.length || 0) * 4;
   return Math.min(score, 100);
 }
 
@@ -344,8 +344,8 @@ function analyzeTimeOfDayPattern(activities: any[]): { peak: string | null; dist
   });
 
   const peak = Object.entries(timeSlots).reduce((max, [time, count]) => 
-    count > (timeSlots[max] || 0) ? time : max, null
+    count > (timeSlots[max as keyof typeof timeSlots] || 0) ? time : max, Object.keys(timeSlots)[0] || ''
   );
 
-  return { peak, distribution: timeSlots };
+  return { peak: peak as string, distribution: timeSlots };
 } 

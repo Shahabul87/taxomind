@@ -125,7 +125,7 @@ export class ProgressTracker {
     
     for (const alert of alerts) {
       // Store alert in database
-      // await db.progressAlert.create({ data: alert });
+      // await db.user_progressAlert.create({ data: alert });
       
       // Send real-time notification
       await this.sendRealtimeNotification(alert);
@@ -201,7 +201,7 @@ export class ProgressTracker {
     };
 
     // Store metrics in database
-    // await db.learningMetrics.upsert({
+    // await db.learning_metricss.upsert({
     //   where: { userId_courseId: { userId, courseId } },
     //   create: metrics,
     //   update: metrics

@@ -400,7 +400,7 @@ class MobilePerformanceOptimizer {
 
         return registration;
       })
-      .catch(error => {
+      .catch((error: any) => {
         logger.error('Service Worker registration failed:', error);
         return undefined;
       });

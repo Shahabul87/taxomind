@@ -189,12 +189,12 @@ export function SamIntegration({
   return (
     <IntelligentSamAssistant
       courseId={courseId}
-      courseData={courseData}
+      courseData={courseData as any}
       completionStatus={completionStatus}
       onUpdateLearningObjectives={handleUpdateLearningObjectives}
       onUpdateChapters={handleUpdateChapters}
       onDeleteChapters={handleDeleteChapters}
-      variant={variant}
+      variant={variant === 'inline' ? 'embedded' : variant}
     />
   );
 }

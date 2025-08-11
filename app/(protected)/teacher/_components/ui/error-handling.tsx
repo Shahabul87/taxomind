@@ -49,7 +49,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     
     // Log error to monitoring service
     if (process.env.NODE_ENV === 'production') {
-      logger.error('Error caught by boundary:', error, errorInfo);
+      logger.error(`Error caught by boundary: ${error}`, errorInfo);
     }
   }
 

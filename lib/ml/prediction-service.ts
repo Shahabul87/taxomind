@@ -46,7 +46,7 @@ export class MLPredictionService {
           } else {
             predictions[modelType] = this.getDefaultPrediction(features);
           }
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`Prediction failed for ${modelType}:`, error);
           predictions[modelType] = this.getDefaultPrediction(features);
         }
@@ -57,7 +57,7 @@ export class MLPredictionService {
 
       return predictions as Record<ModelType, PredictionOutput>;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get predictions:', error);
       throw error;
     }
@@ -90,7 +90,7 @@ export class MLPredictionService {
 
       return prediction;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to get ${modelType} prediction:`, error);
       const features = await this.featureEngineer.extractStudentFeatures(studentId, courseId);
       return this.getDefaultPrediction(features);
@@ -139,7 +139,7 @@ export class MLPredictionService {
 
       return model;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to load model ${modelType}:`, error);
       return null;
     }
@@ -164,7 +164,7 @@ export class MLPredictionService {
       recommendedContent: this.getRecommendedContent(features),
       suggestedInterventions: this.getSuggestedInterventions(overallScore),
       optimalStudyTime: features.preferredStudyTime,
-      adaptiveDifficulty: overallScore > 70 ? 0.7 : 0.4,
+      adaptiveQuestionDifficulty: overallScore > 70 ? 0.7 : 0.4,
       recommendedPace: overallScore > 70 ? 'fast' : overallScore > 50 ? 'normal' : 'slow',
       nextBestAction: this.getNextBestAction(features)
     };
@@ -248,7 +248,7 @@ export class MLPredictionService {
       };
 
       await redis.setex(cacheKey, 3600, JSON.stringify(cacheData));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to cache predictions:', error);
     }
   }
@@ -263,7 +263,7 @@ export class MLPredictionService {
     try {
       const cacheKey = `prediction:${studentId}:${courseId}:${modelType}`;
       await redis.setex(cacheKey, 3600, JSON.stringify(prediction));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to cache single prediction:', error);
     }
   }
@@ -281,7 +281,7 @@ export class MLPredictionService {
       if (cached) {
         return JSON.parse(cached);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get cached prediction:', error);
     }
     
@@ -303,7 +303,7 @@ export class MLPredictionService {
         const key = `${request.studentId}:${request.courseId}`;
         try {
           results[key] = await this.getPredictions(request.studentId, request.courseId);
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`Batch prediction failed for ${key}:`, error);
           // Use default predictions for failed requests
           const features = await this.featureEngineer.extractStudentFeatures(
@@ -343,7 +343,7 @@ export class MLPredictionService {
       }
 
       return 0.5; // Default confidence
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get prediction confidence:', error);
       return 0.5;
     }
@@ -372,7 +372,7 @@ export class MLPredictionService {
       try {
         await this.getModel(modelType);
 
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`✗ Failed to load ${modelType} model:`, error);
       }
     });

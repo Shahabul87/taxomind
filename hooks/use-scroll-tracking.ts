@@ -215,7 +215,8 @@ export function useScrollTracking(options: ScrollTrackingOptions = {}) {
       element.removeEventListener('scroll', handleScrollEnd);
       
       // Clear all position timers
-      Object.values(positionTimers.current).forEach(timer => {
+      const timers = positionTimers.current;
+      Object.values(timers).forEach(timer => {
         clearInterval(timer);
       });
       

@@ -141,6 +141,29 @@ export function SamCourseAssistant({
     scrollToBottom();
   }, [messages]);
 
+  const calculateCourseHealthScore = useCallback(() => {
+    let score = 0;
+    const maxScore = 100;
+    
+    // Basic completion (40 points)
+    const completionCount = Object.values(completionStatus).filter(Boolean).length;
+    score += (completionCount / Object.keys(completionStatus).length) * 40;
+    
+    // Content depth (30 points)
+    if (courseData.chapters.length >= 5) score += 15;
+    if (courseData.chapters.some(ch => ch.sections.length >= 3)) score += 15;
+    
+    // Learning objectives (20 points)
+    if (courseData.whatYouWillLearn.length >= 3) score += 10;
+    if (courseData.whatYouWillLearn.some(obj => obj.length >= 50)) score += 10;
+    
+    // Course metadata (10 points)
+    if (courseData.description && courseData.description.length >= 100) score += 5;
+    if (courseData.imageUrl) score += 5;
+    
+    return Math.round(score);
+  }, [courseData, completionStatus]);
+
   const buildCourseContext = useCallback(() => {
     const completionPercentage = Object.values(completionStatus).filter(Boolean).length / Object.keys(completionStatus).length * 100;
     
@@ -182,31 +205,6 @@ export function SamCourseAssistant({
     };
   }, [courseData, completionStatus, calculateCourseHealthScore]);
 
-  const calculateCourseHealthScore = useCallback(() => {
-    let score = 0;
-    const maxScore = 100;
-    
-    // Basic completion (40 points)
-    const completionCount = Object.values(completionStatus).filter(Boolean).length;
-    score += (completionCount / Object.keys(completionStatus).length) * 40;
-    
-    // Content depth (30 points)
-    if (courseData.chapters.length >= 5) score += 15;
-    else if (courseData.chapters.length >= 3) score += 10;
-    else if (courseData.chapters.length >= 1) score += 5;
-    
-    if (courseData.whatYouWillLearn.length >= 5) score += 15;
-    else if (courseData.whatYouWillLearn.length >= 3) score += 10;
-    else if (courseData.whatYouWillLearn.length >= 1) score += 5;
-    
-    // Publishing status (20 points)
-    if (courseData.isPublished) score += 20;
-    
-    // Resources (10 points)
-    if (courseData.attachments.length > 0) score += 10;
-    
-    return Math.round(score);
-  }, [courseData, completionStatus]);
 
   const handleQuickAction = async (action: string) => {
     const context = buildCourseContext();

@@ -81,7 +81,7 @@ export const useProgressiveCourseCreation = (userId?: string) => {
     };
 
     initializePatterns();
-  }, [userId]);
+  }, [userId, adaptInterface]);
 
   // Adapt interface based on user patterns
   const adaptInterface = useCallback((patterns: UserPattern) => {
@@ -152,7 +152,7 @@ export const useProgressiveCourseCreation = (userId?: string) => {
     
     // Generate suggestions for next step
     generateStepSuggestions(step + 1, formData);
-  }, [stepStartTime, userPattern]);
+  }, [stepStartTime, userPattern, generateStepSuggestions, savePatterns]);
 
   // Update patterns based on form data
   const updatePatternsFromFormData = (pattern: UserPattern, formData: any) => {

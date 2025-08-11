@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 // Near the top of the file, add a helper function for safer error responses
 const createErrorResponse = (message: string, status = 500) => {
@@ -18,9 +19,10 @@ export async function POST(
 ) {
   try {
     // At the start of the POST function, add a try/catch for the session check
+    let user;
     try {
-      const user = await currentUser();
-      if (!user) {
+      user = await currentUser();
+      if (!user || !user.id) {
         return createErrorResponse("Unauthorized", 401);
       }
     } catch (sessionError) {
@@ -99,7 +101,7 @@ export async function POST(
       // Check for existing reaction
       const existingReaction = await tx.reaction.findFirst({
         where: {
-          userId: user.id,
+          userId: user.id!,
           commentId: commentId,
           type: type,
         },
@@ -118,9 +120,11 @@ export async function POST(
         // Create new reaction
         await tx.reaction.create({
           data: {
+            id: randomUUID(),
             type,
-            userId: user.id,
+            userId: user.id!,
             commentId,
+            updatedAt: new Date(),
           },
         });
       }
@@ -131,7 +135,7 @@ export async function POST(
           id: commentId,
         },
         include: {
-          user: {
+          User: {
             select: {
               id: true,
               name: true,
@@ -150,14 +154,14 @@ export async function POST(
           },
           replies: {
             include: {
-              user: {
+              User: {
                 select: {
                   id: true,
                   name: true,
                   image: true,
                 },
               },
-              reactions: {
+              Reaction: {
                 include: {
                   user: {
                     select: {

@@ -316,7 +316,6 @@ export const CourseLearningOutcomeForm = ({
                           [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3 [&_ol]:space-y-1
                           [&_li]:mb-1 [&_li]:text-slate-800 [&_li]:dark:text-slate-200 [&_li]:leading-relaxed
                           [&_li]:marker:text-slate-600 [&_li]:dark:marker:text-slate-400"
-                        name="whatYouWillLearn"
                         data-field-purpose="learning-outcomes"
                         data-validation="required,min:10"
                         data-content-type="learning-objectives"

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/lib/logger';
 import { 
   AnalyticsData, 
@@ -14,7 +14,7 @@ export function useStableAnalytics(period: 'DAILY' | 'WEEKLY' | 'MONTHLY', cours
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -26,11 +26,11 @@ export function useStableAnalytics(period: 'DAILY' | 'WEEKLY' | 'MONTHLY', cours
     } finally {
       setLoading(false);
     }
-  };
+  }, [period, course]);
 
   useEffect(() => {
     fetchData();
-  }, [period, course]);
+  }, [period, course, fetchData]);
 
   return {
     data,
@@ -45,7 +45,7 @@ export function useStablePerformanceMetrics(period: 'DAILY' | 'WEEKLY' | 'MONTHL
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -57,11 +57,11 @@ export function useStablePerformanceMetrics(period: 'DAILY' | 'WEEKLY' | 'MONTHL
     } finally {
       setLoading(false);
     }
-  };
+  }, [period, days]);
 
   useEffect(() => {
     fetchData();
-  }, [period, days]);
+  }, [period, days, fetchData]);
 
   return {
     data,

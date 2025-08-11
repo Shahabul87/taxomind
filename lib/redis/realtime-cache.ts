@@ -108,7 +108,7 @@ export class RealTimeCacheManager extends EventEmitter {
       
       // Emit event for subscribers
       this.emit('event', event);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error caching real-time event:', error);
     }
   }
@@ -152,7 +152,7 @@ export class RealTimeCacheManager extends EventEmitter {
       }
       
       return parsedEvents.reverse(); // Most recent first
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting recent events:', error);
       return [];
     }
@@ -175,7 +175,7 @@ export class RealTimeCacheManager extends EventEmitter {
       
       // Emit session update event
       this.emit('sessionUpdate', session);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error updating live session:', error);
     }
   }
@@ -186,7 +186,7 @@ export class RealTimeCacheManager extends EventEmitter {
       const sessionKey = `session:${sessionId}`;
       
       return await cacheManager.get<LiveSession>(sessionKey, REALTIME_CACHE_CONFIG.SESSIONS);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting live session:', error);
       return null;
     }
@@ -208,7 +208,7 @@ export class RealTimeCacheManager extends EventEmitter {
       }
       
       return sessions;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting user active sessions:', error);
       return [];
     }
@@ -221,7 +221,7 @@ export class RealTimeCacheManager extends EventEmitter {
     total: number;
   }> {
     try {
-      const courseKey = `course:${courseId}:participants`;
+      const courseKey = `Course:${courseId}:participants`;
       const participants = await redis.hgetall(courseKey) || {};
       
       const online: string[] = [];
@@ -240,7 +240,7 @@ export class RealTimeCacheManager extends EventEmitter {
         idle,
         total: online.length + idle.length
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting course participants:', error);
       return { online: [], idle: [], total: 0 };
     }
@@ -258,7 +258,7 @@ export class RealTimeCacheManager extends EventEmitter {
       
       // Emit notification event
       this.emit('notification', notification);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error caching notification:', error);
     }
   }
@@ -289,7 +289,7 @@ export class RealTimeCacheManager extends EventEmitter {
       }
       
       return notifications;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting user notifications:', error);
       return [];
     }
@@ -311,7 +311,7 @@ export class RealTimeCacheManager extends EventEmitter {
         // Emit read event
         this.emit('notificationRead', notification);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error marking notification as read:', error);
     }
   }
@@ -328,7 +328,7 @@ export class RealTimeCacheManager extends EventEmitter {
       
       // Emit chat message event
       this.emit('chatMessage', message);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error caching chat message:', error);
     }
   }
@@ -362,7 +362,7 @@ export class RealTimeCacheManager extends EventEmitter {
       }
       
       return parsedMessages;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting chat messages:', error);
       return [];
     }
@@ -392,7 +392,7 @@ export class RealTimeCacheManager extends EventEmitter {
       
       // Emit presence update event
       this.emit('presenceUpdate', presenceData);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error updating user presence:', error);
     }
   }
@@ -411,7 +411,7 @@ export class RealTimeCacheManager extends EventEmitter {
         lastSeen: number;
         metadata?: Record<string, any>;
       }>(presenceKey, REALTIME_CACHE_CONFIG.PRESENCE);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting user presence:', error);
       return null;
     }
@@ -422,7 +422,7 @@ export class RealTimeCacheManager extends EventEmitter {
     try {
       const onlineUsersKey = 'presence:online';
       return await redis.smembers(onlineUsersKey) || [];
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting online users:', error);
       return [];
     }
@@ -453,7 +453,7 @@ export class RealTimeCacheManager extends EventEmitter {
     userId: string,
     status: string
   ): Promise<void> {
-    const courseKey = `course:${courseId}:participants`;
+    const courseKey = `Course:${courseId}:participants`;
     
     if (status === 'offline') {
       await redis.hdel(courseKey, userId);
@@ -504,7 +504,7 @@ export class RealTimeCacheManager extends EventEmitter {
     this.heartbeatInterval = setInterval(async () => {
       try {
         await this.performHeartbeat();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Heartbeat error:', error);
       }
     }, 30000); // 30 seconds
@@ -548,7 +548,7 @@ export class RealTimeCacheManager extends EventEmitter {
     this.cleanupInterval = setInterval(async () => {
       try {
         await this.performCleanup();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Cleanup error:', error);
       }
     }, 5 * 60 * 1000); // 5 minutes

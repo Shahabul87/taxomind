@@ -57,7 +57,7 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
       if (error.response) {
         // The request was made and the server responded with a status code
         const errorMessage = error.response.data || error.response.statusText || "Unknown error";
-        logger.error('Server error response:', error.response.status, errorMessage);
+        logger.error(`Server error response: ${error.response.status} - ${errorMessage}`);
         
         if (error.response.status === 401) {
           toast.error("You need to be logged in as a teacher to create courses");

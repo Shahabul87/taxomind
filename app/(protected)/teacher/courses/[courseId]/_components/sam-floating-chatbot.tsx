@@ -161,6 +161,25 @@ export function SamFloatingChatbot({
     }]);
   }, [courseData.title, courseData.chapters, courseData.isPublished, courseData.whatYouWillLearn.length]);
 
+  const calculateCourseHealthScore = useCallback(() => {
+    let score = 0;
+    const completionCount = Object.values(completionStatus).filter(Boolean).length;
+    score += (completionCount / Object.keys(completionStatus).length) * 40;
+    
+    if (courseData.chapters.length >= 5) score += 15;
+    else if (courseData.chapters.length >= 3) score += 10;
+    else if (courseData.chapters.length >= 1) score += 5;
+    
+    if (courseData.whatYouWillLearn.length >= 5) score += 15;
+    else if (courseData.whatYouWillLearn.length >= 3) score += 10;
+    else if (courseData.whatYouWillLearn.length >= 1) score += 5;
+    
+    if (courseData.isPublished) score += 20;
+    if (courseData.attachments.length > 0) score += 10;
+    
+    return Math.round(score);
+  }, [courseData, completionStatus]);
+
   const buildCourseContext = useCallback(() => {
     const completionPercentage = Object.values(completionStatus).filter(Boolean).length / Object.keys(completionStatus).length * 100;
     
@@ -186,25 +205,6 @@ export function SamFloatingChatbot({
       pageContext: 'course-management'
     };
   }, [courseData, completionStatus, calculateCourseHealthScore]);
-
-  const calculateCourseHealthScore = useCallback(() => {
-    let score = 0;
-    const completionCount = Object.values(completionStatus).filter(Boolean).length;
-    score += (completionCount / Object.keys(completionStatus).length) * 40;
-    
-    if (courseData.chapters.length >= 5) score += 15;
-    else if (courseData.chapters.length >= 3) score += 10;
-    else if (courseData.chapters.length >= 1) score += 5;
-    
-    if (courseData.whatYouWillLearn.length >= 5) score += 15;
-    else if (courseData.whatYouWillLearn.length >= 3) score += 10;
-    else if (courseData.whatYouWillLearn.length >= 1) score += 5;
-    
-    if (courseData.isPublished) score += 20;
-    if (courseData.attachments.length > 0) score += 10;
-    
-    return Math.round(score);
-  }, [courseData, completionStatus]);
 
   const handleQuickAction = async (action: string) => {
     const context = buildCourseContext();

@@ -294,32 +294,32 @@ export function useContextAwareSAM() {
   }, [updateContextWithFormData]);
 
   const getContextualGreeting = useCallback((): string => {
-    if (!currentContext) return "Hi! I'm SAM, your AI learning assistant. How can I help you today?";
+    if (!currentContext) return "Hi! I&apos;m SAM, your AI learning assistant. How can I help you today?";
 
     const { pageType, entityType, entityData } = currentContext;
 
     switch (pageType) {
       case 'course-edit':
         const courseName = entityData?.title || 'your course';
-        return `Hi! I'm here to help you work on "${courseName}". I can assist with course structure, content creation, student engagement strategies, or any questions about your course development.`;
+        return `Hi! I&apos;m here to help you work on "${courseName}". I can assist with course structure, content creation, student engagement strategies, or any questions about your course development.`;
         
       case 'chapter-edit':
         const chapterTitle = entityData?.chapter?.title || 'this chapter';
         const courseTitle = entityData?.course?.title || 'your course';
-        return `I'm ready to help you develop "${chapterTitle}" in "${courseTitle}". I can assist with chapter content, learning objectives, section planning, or any pedagogical questions.`;
+        return `I&apos;m ready to help you develop "${chapterTitle}" in "${courseTitle}". I can assist with chapter content, learning objectives, section planning, or any pedagogical questions.`;
         
       case 'section-edit':
         const sectionTitle = entityData?.section?.title || 'this section';
-        return `Let's work on "${sectionTitle}" together! I can help with content creation, assessments, interactive elements, or improving learning effectiveness.`;
+        return `Let&apos;s work on "${sectionTitle}" together! I can help with content creation, assessments, interactive elements, or improving learning effectiveness.`;
         
       case 'revolutionary-architect':
-        return `🚀 Welcome to the Revolutionary Course Architect! I'm SAM, your AI pedagogical partner. Let's create an amazing course together using learning science and market intelligence.`;
+        return `🚀 Welcome to the Revolutionary Course Architect! I&apos;m SAM, your AI pedagogical partner. Let&apos;s create an amazing course together using learning science and market intelligence.`;
         
       case 'course-create':
         return `Ready to create a new course? I'm here to guide you through the process, from initial concept to market-ready course. What subject would you like to teach?`;
         
       case 'courses-list':
-        return `I can see your course dashboard! I'm here to help with course management, analytics insights, student engagement strategies, or planning new courses.`;
+        return `I can see your course dashboard! I&apos;m here to help with course management, analytics insights, student engagement strategies, or planning new courses.`;
         
       case 'analytics-dashboard':
         return `Let's dive into your analytics! I can help interpret student performance data, suggest improvements, identify trends, or optimize your teaching strategies.`;
@@ -329,7 +329,7 @@ export function useContextAwareSAM() {
         return `Working on "${postTitle}"? I can help with content structure, engagement strategies, educational value, or writing improvements.`;
         
       default:
-        return `I'm SAM, your AI learning assistant. I can see you're working in the ${entityType || 'platform'} section. How can I help you today?`;
+        return `I&apos;m SAM, your AI learning assistant. I can see you&apos;re working in the ${entityType || 'platform'} section. How can I help you today?`;
     }
   }, [currentContext]);
 
@@ -415,7 +415,5 @@ export function SAMContextManager() {
   
   // This component doesn't render anything visible
   // It just manages context in the background
-  if (isLoading) {
-}
   return null;
 }

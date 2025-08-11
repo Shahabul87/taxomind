@@ -33,7 +33,7 @@ export async function enhanceSAMContext(
       },
       suggestedActions: generateSuggestedActions(enhancedContext),
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error enhancing SAM context:', error);
     // Return existing context if enhancement fails
     return existingContext;
@@ -71,7 +71,7 @@ export async function processSAMQueryWithEngines(
       recommendations: response.suggestions,
       nextSteps: response.actions,
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error processing SAM query with engines:', error);
     throw error;
   }
@@ -120,7 +120,7 @@ function generateSuggestedActions(context: any) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              courseId: context.course.id,
+              courseId: context.Course.id,
               includeWeakAreas: true,
             }),
           });
@@ -179,7 +179,7 @@ function generateSuggestedActions(context: any) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            courseId: context.course.id,
+            courseId: context.Course.id,
             userId: user.id,
             analysisDepth: 'comprehensive',
           }),

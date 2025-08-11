@@ -56,7 +56,7 @@ export interface EnhancedChapter {
 }
 
 export interface IntelligentCourseBlueprint {
-  course: {
+  Course: {
     title: string;
     description: string;
     subtitle: string;
@@ -107,7 +107,7 @@ export async function generateIntelligentCourseContent(
     
     // Step 5: Compile final blueprint
     const blueprint: IntelligentCourseBlueprint = {
-      course: courseStructure.course,
+      Course: courseStructure.course,
       chapters: enhancedChapters,
       courseLevelProject,
       metadata: {
@@ -116,7 +116,7 @@ export async function generateIntelligentCourseContent(
         bloomsDistribution: calculateBloomsDistribution(enhancedChapters),
         contentTypeDistribution: calculateContentDistribution(enhancedChapters),
         totalEstimatedHours: calculateTotalDuration(enhancedChapters),
-        difficultyProgression: analyzeDifficultyProgression(enhancedChapters),
+        difficultyProgression: analyzeQuestionDifficultyProgression(enhancedChapters),
         pedagogicalApproach: courseStrategy.approach,
         innovationFactors: courseStrategy.innovations
       }
@@ -124,7 +124,7 @@ export async function generateIntelligentCourseContent(
     
     return blueprint;
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error generating intelligent course content:', error);
     throw new Error(`Failed to generate intelligent course content: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -144,7 +144,7 @@ COURSE DETAILS:
 - Intent: ${requirements.courseIntent}
 - Overview: "${requirements.courseShortOverview}"
 - Target Audience: ${requirements.targetAudience}
-- Difficulty: ${requirements.difficulty}
+- QuestionDifficulty: ${requirements.difficulty}
 - Duration: ${requirements.duration}
 - Bloom's Focus: ${requirements.bloomsFocus.join(', ')}
 - Content Types: ${requirements.preferredContentTypes.join(', ')}
@@ -183,14 +183,14 @@ Focus on evidence-based educational practices and modern learning science princi
 async function generateDetailedCourseStructure(
   requirements: EnhancedContentRequest,
   strategy: { approach: string; innovations: string[]; learningPath: string; assessmentStrategy: string; }
-): Promise<{ course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> }> {
+): Promise<{ Course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> }> {
   const prompt = `Create a detailed course structure based on the requirements and learning strategy.
 
 COURSE REQUIREMENTS:
 - Title: "${requirements.courseTitle}"
 - Overview: "${requirements.courseShortOverview}"
 - Target Audience: ${requirements.targetAudience}
-- Difficulty: ${requirements.difficulty}
+- QuestionDifficulty: ${requirements.difficulty}
 - Duration: ${requirements.duration}
 - Chapter Count: ${requirements.chapterCount}
 - Learning Goals: ${requirements.courseGoals.join(', ')}
@@ -248,7 +248,7 @@ Make this course irresistible to the target audience while ensuring educational 
 
 async function generateEnhancedChapters(
   requirements: EnhancedContentRequest,
-  courseStructure: { course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> }
+  courseStructure: { Course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> }
 ): Promise<EnhancedChapter[]> {
   const chapters: EnhancedChapter[] = [];
   
@@ -259,9 +259,9 @@ async function generateEnhancedChapters(
     const chapterPrompt = `Generate a comprehensive chapter with detailed sections.
 
 COURSE CONTEXT:
-- Course: "${courseStructure.course.title}"
+- Course: "${courseStructure.Course.title}"
 - Target Audience: ${requirements.targetAudience}
-- Difficulty: ${requirements.difficulty}
+- QuestionDifficulty: ${requirements.difficulty}
 - Previous Chapters: ${previousChapters.join(', ') || 'None'}
 
 CHAPTER TO GENERATE:
@@ -352,7 +352,7 @@ async function generateCourseLevelProject(
 COURSE CONTEXT:
 - Title: "${requirements.courseTitle}"
 - Target Audience: ${requirements.targetAudience}
-- Difficulty: ${requirements.difficulty}
+- QuestionDifficulty: ${requirements.difficulty}
 - Intent: ${requirements.courseIntent}
 
 CHAPTERS COVERED:
@@ -445,7 +445,7 @@ function calculateTotalDuration(chapters: EnhancedChapter[]): number {
   return Math.round(totalMinutes / 60 * 10) / 10;
 }
 
-function analyzeDifficultyProgression(chapters: EnhancedChapter[]): string {
+function analyzeQuestionDifficultyProgression(chapters: EnhancedChapter[]): string {
   const bloomsLevels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
   const progression = chapters.map(c => bloomsLevels.indexOf(c.bloomsLevel));
   

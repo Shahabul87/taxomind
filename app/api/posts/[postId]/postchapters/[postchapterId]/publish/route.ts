@@ -23,7 +23,7 @@ export async function PATCH(
     // Verify that the post exists and belongs to the user
     const post = await db.post.findUnique({
       where: { id: params.postId, userId: user.id },
-      include: { postchapter: true },
+      include: { PostChapterSection: true },
     });
 
     if (!post) {

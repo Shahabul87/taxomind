@@ -28,6 +28,8 @@ const SAMLConfigSchema = z.object({
   authnRequestBinding: z.enum(['HTTP-POST', 'HTTP-Redirect']).default('HTTP-Redirect'),
 });
 
+export type SAMLConfiguration = z.infer<typeof SAMLConfigSchema>;
+
 export interface SAMLUserProfile {
   id: string;
   email: string;
@@ -324,3 +326,64 @@ export async function testSAMLConnection(organizationId: string): Promise<{
     };
   }
 }
+
+/**
+ * Multi-tenant SAML provider manager
+ */
+export class SAMLProviderManager {
+  private providers: Map<string, SAMLProvider> = new Map();
+
+  /**
+   * Registers a SAML provider for an organization
+   */
+  public registerProvider(organizationId: string): SAMLProvider {
+    const provider = new SAMLProvider(organizationId);
+    this.providers.set(organizationId, provider);
+    return provider;
+  }
+
+  /**
+   * Gets SAML provider for organization
+   */
+  public getProvider(organizationId: string): SAMLProvider | null {
+    return this.providers.get(organizationId) || null;
+  }
+
+  /**
+   * Removes SAML provider for organization
+   */
+  public removeProvider(organizationId: string): boolean {
+    return this.providers.delete(organizationId);
+  }
+
+  /**
+   * Lists all configured organizations
+   */
+  public getConfiguredOrganizations(): string[] {
+    return Array.from(this.providers.keys());
+  }
+
+  /**
+   * Gets summary of all providers
+   */
+  public getProvidersSummary() {
+    const summary: Record<string, any> = {};
+    
+    for (const [orgId, provider] of this.providers.entries()) {
+      summary[orgId] = {
+        organizationId: orgId,
+        issuer: provider['config'].issuer,
+        entryPoint: provider['config'].entryPoint,
+        callbackUrl: provider['config'].callbackUrl,
+        signatureAlgorithm: provider['config'].signatureAlgorithm,
+      };
+    }
+    
+    return summary;
+  }
+}
+
+/**
+ * Global SAML provider manager instance
+ */
+export const samlProviderManager = new SAMLProviderManager();

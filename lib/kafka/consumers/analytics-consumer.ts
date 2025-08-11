@@ -18,7 +18,7 @@ export async function processInteractionMessage(
     const { data, metadata } = kafkaMessage;
     
     // Store in database
-    await db.studentInteraction.create({
+    await db.sAMInteraction.create({
       data: {
         studentId: data.studentId,
         courseId: data.courseId,
@@ -36,7 +36,7 @@ export async function processInteractionMessage(
     // Check for patterns that need alerts
     await checkForAlertPatterns(data);
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error processing interaction message:', error);
   }
 }
@@ -70,7 +70,7 @@ export async function processVideoAnalyticsMessage(
       await flagStrugglePoint(data.videoId, data.position, data.studentId);
     }
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error processing video analytics:', error);
   }
 }
@@ -88,7 +88,7 @@ export async function processLearningMetricsMessage(
     const { data } = kafkaMessage;
     
     // Update or create learning metrics
-    await db.learningMetric.upsert({
+    await db.learning_metrics.upsert({
       where: {
         studentId_courseId_date: {
           studentId: data.studentId,
@@ -115,7 +115,7 @@ export async function processLearningMetricsMessage(
       metrics: data.metrics
     });
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error processing learning metrics:', error);
   }
 }
@@ -304,7 +304,7 @@ export async function startAnalyticsConsumer(): Promise<void> {
       })
     ]);
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to start analytics consumers:', error);
     throw error;
   }

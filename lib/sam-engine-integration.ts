@@ -772,7 +772,7 @@ export class SAMEngineIntegration {
           },
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error storing integrated analysis:', error);
     }
   }
@@ -817,7 +817,7 @@ export class SAMEngineIntegration {
   private async getTrendsForCourse(courseId: string): Promise<any> {
     try {
       // Get course details to determine relevant trends
-      const course = await db.course.findUnique({
+      const course = await db.Course.findUnique({
         where: { id: courseId },
         select: { 
           title: true, 
@@ -842,8 +842,8 @@ export class SAMEngineIntegration {
         educationalTrends: educationalTrends.slice(0, 3),
         trendingNow: await this.trendsEngine.getTrendingNow()
       };
-    } catch (error) {
-      logger.error('Error getting trends for course:', error);
+    } catch (error: any) {
+      logger.error('Error getting trends for Course:', error);
       return null;
     }
   }
@@ -851,7 +851,7 @@ export class SAMEngineIntegration {
   private async getRelevantNews(courseId: string): Promise<any> {
     try {
       // Get course details
-      const course = await db.course.findUnique({
+      const course = await db.Course.findUnique({
         where: { id: courseId },
         select: { 
           title: true, 
@@ -879,8 +879,8 @@ export class SAMEngineIntegration {
         weeklyDigest: digest,
         trendingTopics: await this.newsEngine.getTrendingTopics()
       };
-    } catch (error) {
-      logger.error('Error getting news for course:', error);
+    } catch (error: any) {
+      logger.error('Error getting news for Course:', error);
       return null;
     }
   }
@@ -888,7 +888,7 @@ export class SAMEngineIntegration {
   private async getRelatedResearch(courseId: string): Promise<any> {
     try {
       // Get course details
-      const course = await db.course.findUnique({
+      const course = await db.Course.findUnique({
         where: { id: courseId },
         select: { 
           title: true, 
@@ -922,8 +922,8 @@ export class SAMEngineIntegration {
         educationalPapers: educationalPapers.slice(0, 3),
         researchTrends: trends.slice(0, 3)
       };
-    } catch (error) {
-      logger.error('Error getting research for course:', error);
+    } catch (error: any) {
+      logger.error('Error getting research for Course:', error);
       return null;
     }
   }

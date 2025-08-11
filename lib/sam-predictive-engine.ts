@@ -266,7 +266,7 @@ export class SAMPredictiveEngine {
       await this.storePrediction(student.userId, prediction);
 
       return prediction;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error predicting learning outcomes:', error);
       throw new Error('Failed to predict learning outcomes');
     }
@@ -327,7 +327,7 @@ export class SAMPredictiveEngine {
       await this.storeRiskAnalysis(cohort.courseId, analysis);
 
       return analysis;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error identifying at-risk students:', error);
       throw new Error('Failed to identify at-risk students');
     }
@@ -371,7 +371,7 @@ export class SAMPredictiveEngine {
       await this.storeInterventionPlan(plan);
 
       return plan;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error recommending interventions:', error);
       throw new Error('Failed to recommend interventions');
     }
@@ -417,7 +417,7 @@ export class SAMPredictiveEngine {
       await this.storeVelocityOptimization(student.userId, optimization);
 
       return optimization;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error optimizing learning velocity:', error);
       throw new Error('Failed to optimize learning velocity');
     }
@@ -450,7 +450,7 @@ export class SAMPredictiveEngine {
       await this.storeProbabilityScore(context.studentProfile.userId, score);
 
       return score;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error calculating success probability:', error);
       throw new Error('Failed to calculate success probability');
     }
@@ -1214,7 +1214,7 @@ export class SAMPredictiveEngine {
         duration: Math.round(duration),
         topics: this.selectDailyTopics(optimalVelocity),
         activities: this.selectDailyActivities(student),
-        difficulty: this.selectDailyDifficulty(student, day)
+        difficulty: this.selectDailyQuestionDifficulty(student, day)
       });
     });
     
@@ -1262,7 +1262,7 @@ export class SAMPredictiveEngine {
     return activities;
   }
 
-  private selectDailyDifficulty(student: StudentProfile, day: string): 'easy' | 'medium' | 'hard' {
+  private selectDailyQuestionDifficulty(student: StudentProfile, day: string): 'easy' | 'medium' | 'hard' {
     // Start week easy, increase difficulty
     const dayIndex = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].indexOf(day);
     
@@ -1290,7 +1290,7 @@ export class SAMPredictiveEngine {
       studyFrequency: context.studentProfile.behaviorPatterns.studyFrequency,
       
       // Course features
-      courseDifficulty: context.courseContext.difficulty,
+      courseQuestionDifficulty: context.courseContext.difficulty,
       courseDuration: context.courseContext.duration,
       
       // Environment features
@@ -1307,7 +1307,7 @@ export class SAMPredictiveEngine {
       averageScore: 0.3,
       engagementLevel: 0.25,
       studyFrequency: 0.15,
-      courseDifficulty: -0.1
+      courseQuestionDifficulty: -0.1
     };
     
     let probability = 0;
@@ -1315,7 +1315,7 @@ export class SAMPredictiveEngine {
     probability += (features.averageScore / 100) * weights.averageScore;
     probability += features.engagementLevel * weights.engagementLevel;
     probability += (features.studyFrequency === 'daily' ? 1 : 0.5) * weights.studyFrequency;
-    probability += (features.courseDifficulty === 'hard' ? 0.8 : 1) * weights.courseDifficulty;
+    probability += (features.courseQuestionDifficulty === 'hard' ? 0.8 : 1) * weights.courseQuestionDifficulty;
     
     return { probability: Math.max(0, Math.min(1, probability)) };
   }

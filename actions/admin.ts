@@ -103,7 +103,7 @@ export async function getAdminDashboardData() {
     }, {} as Record<string, { month: number; year: number; count: number }>);
 
     // Convert to array for easier consumption in frontend
-    const userGrowthArray = Object.values(userGrowth).sort((a, b) => {
+    const userGrowthArray = Object.values(userGrowth).sort((a: { month: number; year: number; count: number }, b: { month: number; year: number; count: number }) => {
       if (a.year !== b.year) return a.year - b.year;
       return a.month - b.month;
     });

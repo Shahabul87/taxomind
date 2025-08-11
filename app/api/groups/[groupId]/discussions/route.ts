@@ -15,6 +15,7 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
 
     const discussion = await db.groupDiscussion.create({
       data: {
+        id: crypto.randomUUID(),
         title: values.title,
         content: values.content,
         groupId: params.groupId,
@@ -43,7 +44,7 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
         groupId: params.groupId,
       },
       include: {
-        author: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -52,8 +53,8 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
         },
         _count: {
           select: {
-            likedBy: true,
-            comments: true,
+            GroupDiscussionLike: true,
+            GroupDiscussionComment: true,
           },
         },
       },

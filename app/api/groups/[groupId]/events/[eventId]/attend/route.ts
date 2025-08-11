@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 export async function POST(
   req: Request,
@@ -49,11 +50,7 @@ export async function POST(
       include: {
         _count: {
           select: {
-            attendees: {
-              where: {
-                status: "attending",
-              },
-            },
+            GroupEventAttendee: true,
           },
         },
       },
@@ -61,7 +58,7 @@ export async function POST(
 
     if (
       event?.maxAttendees &&
-      event._count.attendees >= event.maxAttendees &&
+      event._count.GroupEventAttendee >= event.maxAttendees &&
       status === "attending"
     ) {
       return new NextResponse("Event is full", { status: 400 });
@@ -70,9 +67,11 @@ export async function POST(
     // Create new attendance
     const attendee = await db.groupEventAttendee.create({
       data: {
+        id: randomUUID(),
         eventId: params.eventId,
         userId: session.user.id,
         status,
+        updatedAt: new Date(),
       },
     });
 

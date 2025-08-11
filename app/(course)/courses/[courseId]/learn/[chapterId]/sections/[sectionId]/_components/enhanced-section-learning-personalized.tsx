@@ -171,38 +171,7 @@ export const EnhancedSectionLearningPersonalized = ({
     setCompletedCurrentSection(isCurrentSectionCompleted);
   }, [isCurrentSectionCompleted]);
 
-  // Load personalization data on mount
-  useEffect(() => {
-    loadPersonalizationData();
-  }, [user.id, courseId, sectionId, loadPersonalizationData]);
-
-  // Memoize expensive calculations
-  const progressPercentage = useMemo(() => {
-    return totalSections > 0 ? (completedSections / totalSections) * 100 : 0;
-  }, [totalSections, completedSections]);
-
-  const courseChapters = useMemo(() => course.chapters, [course.chapters]);
-
-  const chaptersWithProgress = useMemo((): ChapterWithProgress[] => {
-    return courseChapters.map(chapter => {
-      const completedCount = chapter.sections.reduce((count, section) => {
-        return count + (section.user_progress.some(p => p.isCompleted) ? 1 : 0);
-      }, 0);
-      
-      const progressPercentage = chapter.sections.length > 0 
-        ? (completedCount / chapter.sections.length) * 100 
-        : 0;
-      
-      return {
-        ...chapter,
-        completedSections: completedCount,
-        progressPercentage,
-        isCurrentChapter: chapter.id === chapterId,
-      };
-    });
-  }, [courseChapters, chapterId]);
-
-  // Load personalization data from SAM engine
+  // Load personalization data function
   const loadPersonalizationData = useCallback(async () => {
     setIsLoadingInsights(true);
     try {
@@ -240,6 +209,67 @@ export const EnhancedSectionLearningPersonalized = ({
     }
   }, [user.id, courseId, sectionId, completedSections, totalSections, chapterId]);
 
+  // Load personalization data on mount
+  useEffect(() => {
+    loadPersonalizationData();
+  }, [user.id, courseId, sectionId, loadPersonalizationData]);
+
+  // Calculate estimated read time
+  const getEstimatedReadTime = useMemo(() => {
+    // Use video duration if available, otherwise estimate based on section type
+    if (currentSection.duration) {
+      return Math.ceil(currentSection.duration / 60); // Convert seconds to minutes
+    }
+    
+    // Default estimate based on section type
+    const baseTime = currentSection.videoUrl ? 10 : 5; // 10 min for videos, 5 min for text
+    return baseTime;
+  }, [currentSection.duration, currentSection.videoUrl]);
+
+  // Handle section completion
+  const handleMarkComplete = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (response.ok) {
+        // Refresh the page or update state to reflect completion
+        window.location.reload();
+      }
+    } catch (error) {
+      logger.error('Error marking section complete:', error);
+    }
+  }, [courseId, chapterId, sectionId]);
+
+  // Memoize expensive calculations
+  const progressPercentage = useMemo(() => {
+    return totalSections > 0 ? (completedSections / totalSections) * 100 : 0;
+  }, [totalSections, completedSections]);
+
+  const courseChapters = useMemo(() => course.chapters, [course.chapters]);
+
+  const chaptersWithProgress = useMemo((): ChapterWithProgress[] => {
+    return courseChapters.map(chapter => {
+      const completedCount = chapter.sections.reduce((count, section) => {
+        return count + (section.user_progress.some(p => p.isCompleted) ? 1 : 0);
+      }, 0);
+      
+      const progressPercentage = chapter.sections.length > 0 
+        ? (completedCount / chapter.sections.length) * 100 
+        : 0;
+      
+      return {
+        ...chapter,
+        completedSections: completedCount,
+        progressPercentage,
+        isCurrentChapter: chapter.id === chapterId,
+      };
+    });
+  }, [courseChapters, chapterId]);
+
+  // Load personalization data from SAM engine
   // Update learning preferences
   const updatePreferences = useCallback(async (newPreferences: Partial<LearningPreferences>) => {
     const updated = { ...learningPreferences, ...newPreferences };
@@ -558,13 +588,21 @@ export const EnhancedSectionLearningPersonalized = ({
 
             {/* Chapter Navigation */}
             <ChapterNavigation
-              chapters={chaptersWithProgress}
-              currentChapterId={chapterId}
-              currentSectionId={sectionId}
+              course={course}
+              chaptersWithProgress={chaptersWithProgress}
+              progressPercentage={progressPercentage}
               courseId={courseId}
+              sectionId={sectionId}
               expandedChapters={expandedChapters}
-              setExpandedChapters={setExpandedChapters}
+              toggleChapter={(chapterId: string) => {
+                setExpandedChapters(prev => 
+                  prev.includes(chapterId) 
+                    ? prev.filter(id => id !== chapterId)
+                    : [...prev, chapterId]
+                );
+              }}
               getContentIcon={getContentIcon}
+              sidebarOpen={sidebarOpen}
             />
           </div>
         </div>
@@ -573,9 +611,15 @@ export const EnhancedSectionLearningPersonalized = ({
         <div className="flex-1 flex flex-col">
           {/* Section Header */}
           <SectionHeader
-            currentSection={currentSection}
             course={course}
-            isCompleted={completedCurrentSection}
+            currentChapter={currentChapter}
+            currentSection={currentSection}
+            completedCurrentSection={completedCurrentSection}
+            getEstimatedReadTime={getEstimatedReadTime}
+            getContentIcon={getContentIcon}
+            handleMarkComplete={handleMarkComplete}
+            courseId={courseId}
+            chapterId={chapterId}
           />
 
           {/* Enhanced Content Tabs with Personalization */}
@@ -689,9 +733,7 @@ export const EnhancedSectionLearningPersonalized = ({
             nextChapterSection={nextChapterSection}
             courseId={courseId}
             chapterId={chapterId}
-            currentSection={currentSection}
-            isCompleted={completedCurrentSection}
-            onComplete={setCompletedCurrentSection}
+            completedCurrentSection={completedCurrentSection}
           />
         </div>
       </div>
@@ -709,7 +751,7 @@ export const EnhancedSectionLearningPersonalized = ({
         sectionId={sectionId}
         userId={user.id}
         userName={user.name || 'Student'}
-        userAvatar={user.image}
+        userAvatar={user.image || undefined}
       />
     </div>
   );

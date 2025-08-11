@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
@@ -149,7 +149,7 @@ export function useDashboardAnalytics(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -174,7 +174,7 @@ export function useDashboardAnalytics(
     } finally {
       setLoading(false);
     }
-  };
+  }, [period, courseId]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -204,7 +204,7 @@ export function useRealtimeActivity(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchActivity = async () => {
+  const fetchActivity = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -233,7 +233,7 @@ export function useRealtimeActivity(
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, activityType, courseId]);
 
   const trackActivity = async (activityData: {
     activityType: string;
@@ -299,7 +299,7 @@ export function usePerformanceMetrics(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPerformance = async () => {
+  const fetchPerformance = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -324,7 +324,7 @@ export function usePerformanceMetrics(
     } finally {
       setLoading(false);
     }
-  };
+  }, [period, days]);
 
   useEffect(() => {
     fetchPerformance();

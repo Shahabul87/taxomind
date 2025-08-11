@@ -47,7 +47,7 @@ export class MLTrainingPipeline {
       
       this.initialized = true;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize ML Training Pipeline:', error);
       throw error;
     }
@@ -109,7 +109,7 @@ export class MLTrainingPipeline {
       // Notify completion
       await this.notifyTrainingCompletion(job, model);
       
-    } catch (error) {
+    } catch (error: any) {
       job.status = 'failed';
       job.error = error.message;
       job.endTime = new Date();
@@ -200,8 +200,8 @@ export class MLTrainingPipeline {
   }
 
   // Train difficulty prediction model
-  async trainDifficultyPredictionModel(): Promise<string> {
-    const difficultyData = await this.collectDifficultyData();
+  async trainQuestionDifficultyPredictionModel(): Promise<string> {
+    const difficultyData = await this.collectQuestionDifficultyData();
     
     return this.trainModel('difficulty_prediction', difficultyData, {
       algorithm: 'random_forest',
@@ -212,7 +212,7 @@ export class MLTrainingPipeline {
   // Collect learning data for a user
   private async collectLearningData(userId: string): Promise<any[]> {
     try {
-      const interactions = await db.studentInteraction.findMany({
+      const interactions = await db.sAMInteraction.findMany({
         where: { studentId: userId },
         take: 1000,
         orderBy: { timestamp: 'desc' }
@@ -225,7 +225,7 @@ export class MLTrainingPipeline {
         data: interaction.interactionData,
         session: interaction.sessionId
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to collect learning data:', error);
       return this.generateMockLearningData(userId);
     }
@@ -234,7 +234,7 @@ export class MLTrainingPipeline {
   // Collect content interaction data
   private async collectContentInteractionData(): Promise<any[]> {
     try {
-      const interactions = await db.studentInteraction.findMany({
+      const interactions = await db.sAMInteraction.findMany({
         take: 5000,
         orderBy: { timestamp: 'desc' },
         include: {
@@ -249,16 +249,16 @@ export class MLTrainingPipeline {
         engagement: this.calculateEngagement(interaction),
         timestamp: interaction.timestamp
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to collect content interaction data:', error);
       return this.generateMockContentData();
     }
   }
 
   // Collect difficulty assessment data
-  private async collectDifficultyData(): Promise<any[]> {
+  private async collectQuestionDifficultyData(): Promise<any[]> {
     // Generate mock difficulty data
-    return this.generateMockDifficultyData();
+    return this.generateMockQuestionDifficultyData();
   }
 
   // Health check
@@ -278,7 +278,7 @@ export class MLTrainingPipeline {
           recentJobs: this.getRecentJobs(5)
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'error',
         details: { error: error.message }
@@ -298,7 +298,7 @@ export class MLTrainingPipeline {
         }
       }
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to load existing models:', error);
     }
   }
@@ -321,7 +321,7 @@ export class MLTrainingPipeline {
     try {
       await redis.set(`ml:models:${model.id}`, JSON.stringify(model));
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to save model ${model.id}:`, error);
     }
   }
@@ -337,7 +337,7 @@ export class MLTrainingPipeline {
       };
       
       await redis.publish('ml:training:completed', JSON.stringify(notification));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to notify training completion:', error);
     }
   }
@@ -406,7 +406,7 @@ export class MLTrainingPipeline {
     return mockData;
   }
 
-  private generateMockDifficultyData(): any[] {
+  private generateMockQuestionDifficultyData(): any[] {
     const mockData = [];
     for (let i = 0; i < 300; i++) {
       mockData.push({

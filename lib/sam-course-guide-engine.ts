@@ -68,7 +68,7 @@ export interface SimilarCourse {
   id: string;
   title: string;
   similarity: number;
-  enrollments: number;
+  Enrollment: number;
   rating: number;
   price: number;
   strengths: string[];
@@ -178,7 +178,7 @@ export class CourseGuideEngine {
   }
 
   private async getCourseData(courseId: string): Promise<any> {
-    return db.course.findUnique({
+    return db.Course.findUnique({
       where: { id: courseId },
       include: {
         chapters: {
@@ -225,7 +225,7 @@ export class CourseGuideEngine {
     });
   }
 
-  private async calculateMetrics(course: any): Promise<CourseGuideMetrics> {
+  private async calculateMetrics(Course: any): Promise<CourseGuideMetrics> {
     const depth = this.calculateDepthMetrics(course);
     const engagement = await this.calculateEngagementMetrics(course);
     const marketAcceptance = this.calculateMarketAcceptanceMetrics(course);
@@ -237,7 +237,7 @@ export class CourseGuideEngine {
     };
   }
 
-  private calculateDepthMetrics(course: any): CourseGuideMetrics['depth'] {
+  private calculateDepthMetrics(Course: any): CourseGuideMetrics['depth'] {
     // Content richness based on sections, videos, and assessments
     const totalSections = course.chapters.reduce(
       (sum: number, ch: any) => sum + ch.sections.length,
@@ -289,7 +289,7 @@ export class CourseGuideEngine {
     };
   }
 
-  private async calculateEngagementMetrics(course: any): Promise<CourseGuideMetrics['engagement']> {
+  private async calculateEngagementMetrics(Course: any): Promise<CourseGuideMetrics['engagement']> {
     const totalEnrollments = course.Enrollment.length;
     
     if (totalEnrollments === 0) {
@@ -355,7 +355,7 @@ export class CourseGuideEngine {
     };
   }
 
-  private calculateMarketAcceptanceMetrics(course: any): CourseGuideMetrics['marketAcceptance'] {
+  private calculateMarketAcceptanceMetrics(Course: any): CourseGuideMetrics['marketAcceptance'] {
     // Enrollment growth (comparing recent vs older enrollments)
     const recentEnrollments = course.Purchase.filter(
       (p: any) => new Date(p.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -406,7 +406,7 @@ export class CourseGuideEngine {
   }
 
   private async generateInsights(
-    course: any,
+    Course: any,
     metrics: CourseGuideMetrics,
     marketAnalysis: any,
     bloomsAnalysis: any
@@ -521,7 +521,7 @@ export class CourseGuideEngine {
   }
 
   private async generateComparison(
-    course: any,
+    Course: any,
     marketAnalysis: any
   ): Promise<CourseComparison> {
     const competitors = await this.marketEngine.findCompetitors(course.id);
@@ -530,7 +530,7 @@ export class CourseGuideEngine {
       id: comp.id,
       title: comp.title,
       similarity: comp.similarity || 0,
-      enrollments: comp.enrollmentCount || 0,
+      Enrollment: comp.enrollmentCount || 0,
       rating: comp.rating || 0,
       price: comp.price || 0,
       strengths: comp.strengths || [],
@@ -555,12 +555,12 @@ export class CourseGuideEngine {
   }
 
   private determineMarketPosition(
-    course: any,
+    Course: any,
     competitors: SimilarCourse[],
     marketAnalysis: any
   ): 'leader' | 'competitive' | 'follower' | 'niche' {
     const avgCompetitorEnrollments = competitors.reduce(
-      (sum, c) => sum + c.enrollments, 0
+      (sum, c) => sum + c.Enrollment, 0
     ) / competitors.length;
     
     const courseEnrollments = course._count.Purchase;
@@ -576,7 +576,7 @@ export class CourseGuideEngine {
     }
   }
 
-  private identifyDifferentiators(course: any, competitors: SimilarCourse[]): string[] {
+  private identifyDifferentiators(Course: any, competitors: SimilarCourse[]): string[] {
     const differentiators: string[] = [];
     
     // Price differentiation
@@ -603,7 +603,7 @@ export class CourseGuideEngine {
     return differentiators;
   }
 
-  private identifyGaps(course: any, competitors: SimilarCourse[]): string[] {
+  private identifyGaps(Course: any, competitors: SimilarCourse[]): string[] {
     const gaps: string[] = [];
     
     // Identify common strengths in competitors that this course lacks
@@ -624,7 +624,7 @@ export class CourseGuideEngine {
   }
 
   private async generateRecommendations(
-    course: any,
+    Course: any,
     metrics: CourseGuideMetrics,
     insights: TeacherInsights,
     marketAnalysis: any,
@@ -702,7 +702,7 @@ export class CourseGuideEngine {
   }
 
   private async generateMarketingRecommendations(
-    course: any,
+    Course: any,
     metrics: CourseGuideMetrics,
     marketAnalysis: any
   ): Promise<MarketingRecommendation[]> {
@@ -732,7 +732,7 @@ export class CourseGuideEngine {
   }
 
   private async predictSuccess(
-    course: any,
+    Course: any,
     metrics: CourseGuideMetrics,
     marketAnalysis: any
   ): Promise<CourseGuideResponse['successPrediction']> {

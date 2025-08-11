@@ -1,4 +1,7 @@
-import { Issuer, Strategy as OpenIDStrategy, type Client, type TokenSet, type UserinfoResponse } from 'openid-client';
+import * as openidClient from 'openid-client';
+import type { Client, TokenSet, UserinfoResponse } from 'openid-client';
+
+const { Issuer } = openidClient;
 import { CryptoUtils } from '@/lib/security/crypto-utils';
 import { logger } from '@/lib/logger';
 

@@ -97,7 +97,7 @@ export class PrerequisiteAnalyzer {
     const sourceContentId = rule.sourceContentId;
 
     // Check completion status
-    const completion = await db.studentInteraction.findFirst({
+    const completion = await db.sAMInteraction.findFirst({
       where: {
         studentId,
         sectionId: sourceContentId,
@@ -117,7 +117,7 @@ export class PrerequisiteAnalyzer {
     }
 
     // Check quiz scores
-    const quizResults = await db.studentInteraction.findMany({
+    const quizResults = await db.sAMInteraction.findMany({
       where: {
         studentId,
         sectionId: sourceContentId,
@@ -167,7 +167,7 @@ export class PrerequisiteAnalyzer {
     }
 
     // Check for help requests
-    const helpRequests = await db.studentInteraction.count({
+    const helpRequests = await db.sAMInteraction.count({
       where: {
         studentId,
         sectionId: sourceContentId,
@@ -203,7 +203,7 @@ export class PrerequisiteAnalyzer {
 
     // Evaluate each condition
     for (const condition of rule.conditions) {
-      const relevantEvidence = evidence.filter(e => 
+      const relevantEvidence = evidence.filter((e: any) => 
         this.isRelevantEvidence(e, condition)
       );
 
@@ -350,7 +350,7 @@ export class PrerequisiteAnalyzer {
         reason: 'Critical prerequisite not met - must complete before proceeding',
         estimatedImpact: 0.8,
         estimatedTime: check.timeToComplete,
-        difficulty: await this.getContentDifficulty(check.sourceContentId),
+        difficulty: await this.getContentQuestionDifficulty(check.sourceContentId),
         alternativeOptions: await this.findAlternativeContent(check.sourceContentId)
       });
     }
@@ -368,7 +368,7 @@ export class PrerequisiteAnalyzer {
         reason: 'Prerequisite partially met - review recommended before proceeding',
         estimatedImpact: 0.6,
         estimatedTime: Math.ceil(check.timeToComplete * 0.5),
-        difficulty: await this.getContentDifficulty(check.sourceContentId),
+        difficulty: await this.getContentQuestionDifficulty(check.sourceContentId),
         alternativeOptions: []
       });
     }
@@ -383,7 +383,7 @@ export class PrerequisiteAnalyzer {
         reason: 'Some prerequisites not fully met - proceed with additional support',
         estimatedImpact: 0.4,
         estimatedTime: 0,
-        difficulty: await this.getContentDifficulty(contentId),
+        difficulty: await this.getContentQuestionDifficulty(contentId),
         alternativeOptions: await this.findEasierAlternatives(contentId)
       });
     }
@@ -397,7 +397,7 @@ export class PrerequisiteAnalyzer {
         reason: 'Insufficient prerequisites met - focus on foundational content first',
         estimatedImpact: 0.9,
         estimatedTime: 0,
-        difficulty: await this.getContentDifficulty(contentId),
+        difficulty: await this.getContentQuestionDifficulty(contentId),
         alternativeOptions: await this.findPrerequisitePath(studentId, contentId)
       });
     }
@@ -435,7 +435,7 @@ export class PrerequisiteAnalyzer {
         title: section.title,
         description: section.description,
         metadata: {
-          difficulty: this.inferDifficulty(section),
+          difficulty: this.inferQuestionDifficulty(section),
           estimatedTime: section.duration || 30,
           concepts: this.extractConcepts(section),
           skills: this.extractSkills(section),
@@ -631,7 +631,7 @@ export class PrerequisiteAnalyzer {
     const overallScore = Math.max(0, 1 - (errorWeight + warningWeight) / totalNodes);
 
     return {
-      isValid: errors.filter(e => e.severity === 'critical').length === 0,
+      isValid: errors.filter((e: any) => e.severity === 'critical').length === 0,
       errors,
       warnings,
       suggestions,
@@ -861,7 +861,7 @@ export class PrerequisiteAnalyzer {
 
   // Placeholder helper methods - would be implemented with actual data
   private async calculateTimeSpent(studentId: string, contentId: string): Promise<number> {
-    const interactions = await db.studentInteraction.findMany({
+    const interactions = await db.sAMInteraction.findMany({
       where: { studentId, sectionId: contentId },
       orderBy: { timestamp: 'asc' }
     });
@@ -884,7 +884,7 @@ export class PrerequisiteAnalyzer {
     return 30;
   }
 
-  private async getContentDifficulty(contentId: string): Promise<any> {
+  private async getContentQuestionDifficulty(contentId: string): Promise<any> {
     // Placeholder
     return 'intermediate';
   }
@@ -904,7 +904,7 @@ export class PrerequisiteAnalyzer {
     return [];
   }
 
-  private inferDifficulty(section: any): any {
+  private inferQuestionDifficulty(section: any): any {
     if (section.position <= 3) return 'beginner';
     if (section.position <= 6) return 'intermediate';
     return 'advanced';
@@ -931,7 +931,7 @@ export class PrerequisiteAnalyzer {
   }
 
   private async getStudentProgress(studentId: string, courseId: string): Promise<any> {
-    const completedSections = await db.studentInteraction.findMany({
+    const completedSections = await db.sAMInteraction.findMany({
       where: {
         studentId,
         courseId,
@@ -975,7 +975,7 @@ export class PrerequisiteAnalyzer {
         3600, // 1 hour TTL
         JSON.stringify(data)
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to save graph to cache:', error);
     }
   }

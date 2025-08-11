@@ -364,26 +364,44 @@ export function AssessmentManagement({
   };
 
   const handleArrayFieldChange = (field: string, index: number, value: string) => {
-    setCreateAssessmentForm(prev => ({
-      ...prev,
-      [field]: prev[field as keyof typeof prev].map((item: string, i: number) => 
-        i === index ? value : item
-      )
-    }));
+    setCreateAssessmentForm(prev => {
+      const currentField = prev[field as keyof typeof prev];
+      if (Array.isArray(currentField)) {
+        return {
+          ...prev,
+          [field]: currentField.map((item: string, i: number) => 
+            i === index ? value : item
+          )
+        };
+      }
+      return prev;
+    });
   };
 
   const addArrayField = (field: string) => {
-    setCreateAssessmentForm(prev => ({
-      ...prev,
-      [field]: [...prev[field as keyof typeof prev], '']
-    }));
+    setCreateAssessmentForm(prev => {
+      const currentField = prev[field as keyof typeof prev];
+      if (Array.isArray(currentField)) {
+        return {
+          ...prev,
+          [field]: [...currentField, '']
+        };
+      }
+      return prev;
+    });
   };
 
   const removeArrayField = (field: string, index: number) => {
-    setCreateAssessmentForm(prev => ({
-      ...prev,
-      [field]: prev[field as keyof typeof prev].filter((_: any, i: number) => i !== index)
-    }));
+    setCreateAssessmentForm(prev => {
+      const currentField = prev[field as keyof typeof prev];
+      if (Array.isArray(currentField)) {
+        return {
+          ...prev,
+          [field]: currentField.filter((_: any, i: number) => i !== index)
+        };
+      }
+      return prev;
+    });
   };
 
   const renderOverviewTab = () => (
@@ -523,35 +541,41 @@ export function AssessmentManagement({
             <div>
               <h4 className="font-semibold mb-3">Skill Mastery</h4>
               <div className="space-y-3">
-                {Object.entries(studentAnalytics.skillMastery || {}).map(([skill, score]) => (
-                  <div key={skill} className="flex items-center justify-between">
-                    <span className="text-sm capitalize">{skill}</span>
-                    <div className="flex items-center space-x-2">
-                      <Progress value={score as number} className="w-24 h-2" />
-                      <span className="text-sm font-medium w-8">{score}%</span>
+                {Object.entries(studentAnalytics.skillMastery || {}).map(([skill, score]) => {
+                  const scoreValue = typeof score === 'number' ? score : 0;
+                  return (
+                    <div key={skill} className="flex items-center justify-between">
+                      <span className="text-sm capitalize">{skill}</span>
+                      <div className="flex items-center space-x-2">
+                        <Progress value={scoreValue} className="w-24 h-2" />
+                        <span className="text-sm font-medium w-8">{scoreValue}%</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             
             <div>
               <h4 className="font-semibold mb-3">Performance Distribution</h4>
               <div className="space-y-3">
-                {Object.entries(studentAnalytics.performanceDistribution || {}).map(([level, count]) => (
-                  <div key={level} className="flex items-center justify-between">
-                    <span className="text-sm capitalize">{level.replace(/([A-Z])/g, ' $1').trim()}</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-24 h-2 bg-gray-200 rounded-full">
-                        <div 
-                          className="h-2 bg-blue-500 rounded-full"
-                          style={{ width: `${(count as number / 50) * 100}%` }}
-                        />
+                {Object.entries(studentAnalytics.performanceDistribution || {}).map(([level, count]) => {
+                  const countValue = typeof count === 'number' ? count : 0;
+                  return (
+                    <div key={level} className="flex items-center justify-between">
+                      <span className="text-sm capitalize">{level.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-24 h-2 bg-gray-200 rounded-full">
+                          <div 
+                            className="h-2 bg-blue-500 rounded-full"
+                            style={{ width: `${(countValue / 50) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium w-8">{countValue}</span>
                       </div>
-                      <span className="text-sm font-medium w-8">{count}</span>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -715,26 +739,29 @@ export function AssessmentManagement({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {Object.entries(studentAnalytics.performanceDistribution || {}).map(([level, count]) => (
-              <div key={level} className="flex items-center justify-between">
-                <span className="text-sm font-medium capitalize">{level.replace(/([A-Z])/g, ' $1').trim()}</span>
-                <div className="flex items-center space-x-3">
-                  <div className="w-32 h-4 bg-gray-200 rounded-full">
-                    <div 
-                      className={cn(
-                        "h-4 rounded-full",
-                        level === 'excellent' ? 'bg-green-500' :
-                        level === 'good' ? 'bg-blue-500' :
-                        level === 'average' ? 'bg-yellow-500' : 'bg-red-500'
-                      )}
-                      style={{ width: `${(count as number / 50) * 100}%` }}
-                    />
+            {Object.entries(studentAnalytics.performanceDistribution || {}).map(([level, count]) => {
+              const countValue = typeof count === 'number' ? count : 0;
+              return (
+                <div key={level} className="flex items-center justify-between">
+                  <span className="text-sm font-medium capitalize">{level.replace(/([A-Z])/g, ' $1').trim()}</span>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-32 h-4 bg-gray-200 rounded-full">
+                      <div 
+                        className={cn(
+                          "h-4 rounded-full",
+                          level === 'excellent' ? 'bg-green-500' :
+                          level === 'good' ? 'bg-blue-500' :
+                          level === 'average' ? 'bg-yellow-500' : 'bg-red-500'
+                        )}
+                        style={{ width: `${(countValue / 50) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium w-8">{countValue}</span>
+                    <span className="text-xs text-gray-500">{((countValue / 50) * 100).toFixed(0)}%</span>
                   </div>
-                  <span className="text-sm font-medium w-8">{count}</span>
-                  <span className="text-xs text-gray-500">{((count as number / 50) * 100).toFixed(0)}%</span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

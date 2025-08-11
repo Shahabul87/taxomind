@@ -19,7 +19,7 @@ export async function GET(
         postId: postId,
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -38,14 +38,14 @@ export async function GET(
         },
         replies: {
           include: {
-            user: {
+            User: {
               select: {
                 id: true,
                 name: true,
                 image: true,
               },
             },
-            reactions: {
+            Reaction: {
               include: {
                 user: {
                   select: {
@@ -84,7 +84,7 @@ export async function PATCH(
 ) {
   try {
     const user = await currentUser();
-    if (!user) {
+    if (!user || !user.id) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -117,7 +117,7 @@ export async function PATCH(
       );
     }
 
-    if (comment.userId !== user.id) {
+    if (!user.id || comment.userId !== user.id) {
       return NextResponse.json(
         { error: "Unauthorized: You can only edit your own comments" },
         { status: 403 }
@@ -134,7 +134,7 @@ export async function PATCH(
         updatedAt: new Date(),
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -171,7 +171,7 @@ export async function DELETE(
 ) {
   try {
     const user = await currentUser();
-    if (!user) {
+    if (!user || !user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -199,7 +199,7 @@ export async function DELETE(
       // 1. Delete all reactions on replies
       await tx.reaction.deleteMany({
         where: {
-          reply: {
+          Reply: {
             commentId,
           },
         },

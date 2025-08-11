@@ -92,13 +92,13 @@ class RequestBatcher {
     this.batches.delete(batchKey);
 
     try {
-      const requests = batch.requests.map(item => item.request);
+      const requests = batch.requests.map((item: any) => item.request);
       const results = await fetchFn(requests);
 
       batch.requests.forEach((item, index) => {
         item.resolve(results[index]);
       });
-    } catch (error) {
+    } catch (error: any) {
       batch.requests.forEach(item => {
         item.reject(error);
       });

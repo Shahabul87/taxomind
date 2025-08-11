@@ -58,8 +58,7 @@ export function useCoursesPageContext(courses: any[], stats: any) {
 
 export function useCourseDetailPageContext(course: any, chapters: any[], categories: any[]) {
   return useSamPageContext({
-    course,
-    chapters,
+    course: { ...course, chapters },
     categories,
     additionalCapabilities: ['content_editing', 'structure_analysis', 'learning_objectives']
   });
@@ -68,8 +67,7 @@ export function useCourseDetailPageContext(course: any, chapters: any[], categor
 export function useChapterDetailPageContext(course: any, chapter: any, sections: any[]) {
   return useSamPageContext({
     course,
-    chapter,
-    sections,
+    chapter: { ...chapter, sections },
     additionalCapabilities: ['section_creation', 'content_generation', 'assessment_creation']
   });
 }

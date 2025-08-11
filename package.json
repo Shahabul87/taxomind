@@ -17,6 +17,8 @@
     "dev": "node scripts/load-env.js && next dev",
     "build": "NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && NODE_OPTIONS='--max-old-space-size=8192' next build",
     "build:safe": "bash scripts/build-production.sh",
+    "build:fast": "NEXT_TELEMETRY_DISABLED=1 CI=true SKIP_SENTRY=true NODE_OPTIONS='--max-old-space-size=8192' next build",
+    "build:ci": "NODE_OPTIONS='--max-old-space-size=8192' next build --no-lint",
     "start": "node scripts/load-env.js && next start",
     "validate:env": "node scripts/validate-env.js",
     "prebuild": "node scripts/validate-env.js",
@@ -239,6 +241,8 @@
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "^4.0.0",
     "@next/bundle-analyzer": "^15.3.5",
+    "@opentelemetry/exporter-jaeger": "^2.0.1",
+    "@opentelemetry/winston-transport": "^0.14.0",
     "@shadcn/ui": "^0.0.4",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.1.5",

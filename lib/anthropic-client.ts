@@ -26,7 +26,7 @@ export interface CourseGenerationRequest {
 }
 
 export interface AIGeneratedBlueprint {
-  course: {
+  Course: {
     title: string;
     description: string;
     subtitle: string;
@@ -114,15 +114,15 @@ export async function generateCourseBlueprint(
       
       // Transform to the expected format
       const transformedBlueprint: AIGeneratedBlueprint = {
-        course: {
-          title: intelligentBlueprint.course.title,
-          description: intelligentBlueprint.course.description,
-          subtitle: intelligentBlueprint.course.subtitle,
-          learningOutcomes: intelligentBlueprint.course.learningOutcomes,
-          prerequisites: intelligentBlueprint.course.prerequisites,
-          targetAudience: intelligentBlueprint.course.targetAudience,
-          estimatedDuration: intelligentBlueprint.course.estimatedDuration,
-          difficulty: intelligentBlueprint.course.difficulty
+        Course: {
+          title: intelligentBlueprint.Course.title,
+          description: intelligentBlueprint.Course.description,
+          subtitle: intelligentBlueprint.Course.subtitle,
+          learningOutcomes: intelligentBlueprint.Course.learningOutcomes,
+          prerequisites: intelligentBlueprint.Course.prerequisites,
+          targetAudience: intelligentBlueprint.Course.targetAudience,
+          estimatedDuration: intelligentBlueprint.Course.estimatedDuration,
+          difficulty: intelligentBlueprint.Course.difficulty
         },
         chapters: intelligentBlueprint.chapters.map(chapter => ({
           title: chapter.title,
@@ -185,7 +185,7 @@ export async function generateCourseBlueprint(
       return blueprint;
     }
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error generating course blueprint:', error);
     throw new Error(`Failed to generate course blueprint: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -229,7 +229,7 @@ Keep it concise and focused on helping them improve their course design.`;
 
     return content.text.trim();
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error generating Sam suggestion:', error);
     // Fallback to pre-defined responses
     return samPersonality.suggestions[Math.floor(Math.random() * samPersonality.suggestions.length)];
@@ -246,7 +246,7 @@ COURSE REQUIREMENTS:
 - Intent: ${requirements.courseIntent}
 - Short Overview: "${requirements.courseShortOverview}"
 - Target Audience: ${requirements.targetAudience}
-- Difficulty: ${requirements.difficulty}
+- QuestionDifficulty: ${requirements.difficulty}
 - Duration: ${requirements.duration}
 - Chapters: ${requirements.chapterCount}
 - Sections per Chapter: ${requirements.sectionsPerChapter}

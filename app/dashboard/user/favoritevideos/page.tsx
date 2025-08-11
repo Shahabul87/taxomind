@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getProfileData } from "@/app/actions/get-profile-data";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Heart, ExternalLink, Plus, Clock, Calendar, Search } from "lucide-react";
 
 export default async function FavoriteVideosPage() {
@@ -145,11 +146,11 @@ function VideoCard({ video }: VideoCardProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow group">
       <div className="aspect-video bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img 
+        <Image 
           src={thumbnailUrl}
           alt={video.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
           <a 
@@ -197,11 +198,11 @@ function RecentVideoCard({ video }: VideoCardProps) {
     <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700 group">
       <div className="flex flex-col md:flex-row h-full">
         <div className="md:w-2/5 aspect-video bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
+          <Image 
             src={thumbnailUrl}
             alt={video.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute top-2 right-2">
             <span className="text-xs text-white bg-purple-600 px-2 py-1 rounded-full shadow-sm capitalize">

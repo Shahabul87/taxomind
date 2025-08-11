@@ -293,7 +293,7 @@ Make each overview unique, highlighting different aspects and benefits of the co
             relevanceScore,
             reasoning
           };
-        }).filter(suggestion => suggestion.overview.length > 20);
+        }).filter((suggestion: any) => suggestion.overview.length > 20);
       }
       
       // Strategy 2: If structured parsing fails, try numbered list parsing
@@ -644,7 +644,6 @@ Make each overview unique, highlighting different aspects and benefits of the co
             {/* Debug info */}
             <div className="text-xs text-blue-600 dark:text-blue-400 mb-2">
               Showing {overviewSuggestions.length} overview suggestions
-              {console.log('RENDER DEBUG - overviewSuggestions:', overviewSuggestions)}
             </div>
             
             {overviewSuggestions.length > 0 ? (

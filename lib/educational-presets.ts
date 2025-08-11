@@ -685,7 +685,7 @@ export class EducationalPresetManager {
     return scored
       .sort((a, b) => b.score - a.score)
       .slice(0, 6)
-      .map(item => item.preset);
+      .map((item: any) => item.preset);
   }
   
   static applyPresetToCourse(preset: EducationalPreset): {

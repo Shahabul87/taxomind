@@ -50,7 +50,7 @@ interface CourseCreationContext {
       }>;
     }>;
     generatedAt?: string;
-    generationMethod?: 'manual' | 'sam-complete' | 'blueprint';
+    generationMethod?: 'manual' | 'sam-complete' | 'blueprint' | 'unified-creation';
   };
 
   // Course Management Context
@@ -348,7 +348,7 @@ export class SamMemorySystem {
       if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
         localStorage.setItem(this.storageKey, JSON.stringify(this.context));
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to save SAM context to localStorage:', error);
     }
   }
@@ -365,7 +365,7 @@ export class SamMemorySystem {
         // Server-side rendering - initialize with empty context
         this.context = {};
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to load SAM context from localStorage:', error);
       this.context = {};
     }
@@ -386,7 +386,7 @@ export class SamMemorySystem {
     
     if (ctx.wizardData) {
       lines.push(`Course Creation: "${ctx.wizardData.courseTitle}" for ${ctx.wizardData.targetAudience}`);
-      lines.push(`Difficulty: ${ctx.wizardData.difficulty}, Focus: ${ctx.wizardData.bloomsFocus?.join(', ')}`);
+      lines.push(`QuestionDifficulty: ${ctx.wizardData.difficulty}, Focus: ${ctx.wizardData.bloomsFocus?.join(', ')}`);
     }
     
     if (ctx.courseData) {

@@ -40,7 +40,7 @@ export function useDynamicImport<T = any>(
       });
       options.onError?.(err);
     }
-  }, [importFn, options.onError]);
+  }, [importFn, options]);
 
   const preload = useCallback(() => {
     if (!state.component && !state.loading) {
@@ -52,7 +52,7 @@ export function useDynamicImport<T = any>(
     if (options.preload) {
       preload();
     }
-  }, [options.preload, preload]);
+  }, [options, preload]);
 
   return {
     ...state,
@@ -97,7 +97,7 @@ export function useConditionalImport<T = any>(
         });
         options.onError?.(err);
       });
-  }, [condition, importFn, options.onError]);
+  }, [condition, importFn, options]);
 
   return state;
 }

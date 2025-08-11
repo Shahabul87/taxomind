@@ -59,7 +59,7 @@ export const API_CACHE_STRATEGIES = {
     keyGenerator: (req: NextRequest) => {
       const url = new URL(req.url);
       const courseId = url.pathname.split('/').find(part => part.startsWith('course'));
-      return `course:${courseId}:${url.pathname}:${url.search}`;
+      return `Course:${courseId}:${url.pathname}:${url.search}`;
     }
   },
   
@@ -243,7 +243,7 @@ export class APICacheMiddleware {
         tags: config.tags,
         compress: true
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error caching response:', error);
     }
   }
@@ -280,7 +280,7 @@ export class APICacheMiddleware {
       if (this.shouldCacheResponse(response, config)) {
         await this.cacheResponse(cacheKey, response, config);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Background revalidation error:', error);
     }
   }

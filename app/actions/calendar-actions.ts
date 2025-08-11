@@ -125,7 +125,7 @@ export async function getCalendarEvents(
           );
           allEvents.push(...expandedEvents);
         } catch (error) {
-          logger.error("Error expanding recurring event:", error, event);
+          logger.error(`Error expanding recurring event: ${error}, Event: ${JSON.stringify(event)}`);
           // Continue with other events even if one fails
         }
       }

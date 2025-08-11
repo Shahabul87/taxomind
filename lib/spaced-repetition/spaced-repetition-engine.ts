@@ -30,7 +30,7 @@ import {
   LearningPreferences,
   BiometricFactors,
   MasteryTimeline,
-  DifficultyProgression,
+  QuestionDifficultyProgression,
   InterferenceRisk,
   RepetitionAlgorithm,
   RiskLevel,
@@ -165,7 +165,7 @@ export class SpacedRepetitionEngine {
 
     // Calculate optimal scheduling for each item
     const itemSchedules = await Promise.all(
-      activeItems.map(item => this.calculateItemSchedule(item, studentProfile))
+      activeItems.map((item: any) => this.calculateItemSchedule(item, studentProfile))
     );
 
     // Optimize global schedule considering constraints
@@ -361,7 +361,7 @@ export class SpacedRepetitionEngine {
     );
 
     // Calculate difficulty progression
-    const difficultyProgression = await this.calculateDifficultyProgression(
+    const difficultyProgression = await this.calculateQuestionDifficultyProgression(
       optimalSequence,
       masteryState
     );
@@ -515,7 +515,7 @@ export class SpacedRepetitionEngine {
       easeFactor: newEaseFactor,
       stability: memoryStrength.storageStrength,
       retrievability: memoryStrength.retrievalStrength,
-      difficulty: this.calculateDifficulty(performance, currentState),
+      difficulty: this.calculateQuestionDifficulty(performance, currentState),
       lastPerformance: performance,
       streakCount: newStreakCount,
       masteryLevel: newMasteryLevel
@@ -829,7 +829,7 @@ export class SpacedRepetitionEngine {
     return 'novice';
   }
 
-  private calculateDifficulty(performance: ReviewPerformance, state: RepetitionState): number {
+  private calculateQuestionDifficulty(performance: ReviewPerformance, state: RepetitionState): number {
     // Adjust difficulty based on performance and ease factor
     let difficulty = state.difficulty || 0.5;
     
@@ -957,8 +957,8 @@ export class SpacedRepetitionEngine {
   private async analyzeDependencies(objectives: string[]): Promise<any> { return {}; }
   private async calculateOptimalSequence(objectives: string[], dependencies: any, mastery: any): Promise<any[]> { return []; }
   private async generateSpacingRecommendations(sequence: any[], mastery: any): Promise<any[]> { return []; }
-  private async calculateDifficultyProgression(sequence: any[], mastery: any): Promise<DifficultyProgression> { return {} as DifficultyProgression; }
-  private async generateMilestonePlanning(sequence: any[], progression: DifficultyProgression): Promise<any[]> { return []; }
+  private async calculateQuestionDifficultyProgression(sequence: any[], mastery: any): Promise<QuestionDifficultyProgression> { return {} as QuestionDifficultyProgression; }
+  private async generateMilestonePlanning(sequence: any[], progression: QuestionDifficultyProgression): Promise<any[]> { return []; }
   private async estimateCompletionTime(sequence: any[], mastery: any): Promise<Date> { return new Date(); }
   private async identifyAdaptationPoints(sequence: any[]): Promise<any[]> { return []; }
   private async assessLearningRisks(sequence: any[], mastery: any): Promise<any> { return {}; }
@@ -1034,7 +1034,7 @@ interface PathOptimizationResult {
   learningObjectives: string[];
   optimalSequence: any[];
   spacingRecommendations: any[];
-  difficultyProgression: DifficultyProgression;
+  difficultyProgression: QuestionDifficultyProgression;
   milestones: any[];
   estimatedCompletion: Date;
   adaptationPoints: any[];

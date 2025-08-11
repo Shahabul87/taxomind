@@ -405,7 +405,7 @@ function buildContextualPrompt(
   }
 
   return `
-Context: I'm currently on a ${context.pageType} page${context.entityType ? ` working with ${context.entityType}` : ''}.
+Context: I&apos;m currently on a ${context.pageType} page${context.entityType ? ` working with ${context.entityType}` : ''}.
 ${contextualResponse.dataAwareness}
 
 Available capabilities: ${contextualResponse.capabilities.join(', ')}

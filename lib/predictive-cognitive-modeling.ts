@@ -5,7 +5,7 @@
  * to forecast student learning paths and predict cognitive development patterns.
  */
 
-import { BloomsLevel, QuestionType, Difficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 
 export interface CognitiveState {
   studentId: string;

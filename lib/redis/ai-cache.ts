@@ -62,7 +62,7 @@ export class AICache {
       
       // Track cache hit rate
       await redis.hincrby('cache:stats', 'sets', 1);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache set error:', error);
     }
   }
@@ -81,7 +81,7 @@ export class AICache {
         try {
           const parsed = JSON.parse(cached as string);
           return parsed.data as T;
-        } catch (error) {
+        } catch (error: any) {
           logger.warn('Failed to parse AI cache data for key:', cacheKey, error);
           // Clear corrupted cache entry
           await redis.del(cacheKey);
@@ -92,7 +92,7 @@ export class AICache {
       
       await redis.hincrby('cache:stats', 'misses', 1);
       return null;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache get error:', error);
       return null;
     }
@@ -109,7 +109,7 @@ export class AICache {
         await redis.del(...keys);
         await redis.del(`tag:${tag}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache invalidation error:', error);
     }
   }
@@ -159,7 +159,7 @@ export class AICache {
     
     await this.set(key, questions, {
       ttl: 7 * 24 * 60 * 60, // 7 days
-      tags: ['question_generation', `course:${courseId}`]
+      tags: ['question_generation', `Course:${courseId}`]
     });
   }
 

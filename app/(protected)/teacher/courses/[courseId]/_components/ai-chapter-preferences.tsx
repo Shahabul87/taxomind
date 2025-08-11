@@ -10,12 +10,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Settings, Loader2, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CourseDifficulty } from "@/lib/ai-course-types";
+import { CourseQuestionDifficulty } from "@/lib/ai-course-types";
 import { logger } from '@/lib/logger';
 
 export interface AIChapterGenerationPreferences {
   chapterCount: number;
-  difficulty: CourseDifficulty;
+  difficulty: CourseQuestionDifficulty;
   targetDuration: string;
   focusAreas: string[];
   includeKeywords?: string;
@@ -32,9 +32,9 @@ interface AIChapterPreferencesDialogProps {
 }
 
 const difficultyOptions = {
-  [CourseDifficulty.BEGINNER]: { label: "Beginner", description: "Foundational concepts, step-by-step" },
-  [CourseDifficulty.INTERMEDIATE]: { label: "Intermediate", description: "Building on basics, practical applications" },
-  [CourseDifficulty.ADVANCED]: { label: "Advanced", description: "Complex topics, expert-level content" }
+  [CourseQuestionDifficulty.BEGINNER]: { label: "Beginner", description: "Foundational concepts, step-by-step" },
+  [CourseQuestionDifficulty.INTERMEDIATE]: { label: "Intermediate", description: "Building on basics, practical applications" },
+  [CourseQuestionDifficulty.ADVANCED]: { label: "Advanced", description: "Complex topics, expert-level content" }
 };
 
 const durationOptions = [
@@ -71,7 +71,7 @@ export const AIChapterPreferencesDialog = ({
   const [open, setOpen] = useState(false);
   const [preferences, setPreferences] = useState<AIChapterGenerationPreferences>({
     chapterCount: 5,
-    difficulty: CourseDifficulty.INTERMEDIATE,
+    difficulty: CourseQuestionDifficulty.INTERMEDIATE,
     targetDuration: "3-4 hours",
     focusAreas: [],
     includeKeywords: "",
@@ -184,7 +184,7 @@ export const AIChapterPreferencesDialog = ({
             <Label className="text-gray-700 dark:text-gray-300 font-medium">Difficulty Level</Label>
             <Select
               value={preferences.difficulty}
-              onValueChange={(value) => setPreferences(prev => ({ ...prev, difficulty: value as CourseDifficulty }))}
+              onValueChange={(value) => setPreferences(prev => ({ ...prev, difficulty: value as CourseQuestionDifficulty }))}
             >
               <SelectTrigger className="border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
                 <SelectValue placeholder="Select difficulty" />

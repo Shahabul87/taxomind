@@ -174,7 +174,7 @@ export async function GET(request: Request) {
         favicon: null,
         artwork: null,
         success: false,
-        error: error.message || "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error"
       }, { status: 200 }); // Return 200 even for errors to handle gracefully on client
     }
   }
@@ -263,7 +263,7 @@ async function handleSoundCloudUrl(url: string) {
     
     if (response.data) {
       let title = response.data.title || "SoundCloud Track";
-      const artist = response.data.author_name || null;
+      let artist = response.data.author_name || null;
       
       // For SoundCloud, title often includes the artist name at the end "Song Name by Artist Name"
       if (title.includes(' by ') && !artist) {

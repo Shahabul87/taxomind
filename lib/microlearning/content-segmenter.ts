@@ -33,7 +33,7 @@ import {
   SegmentationRule,
   ContentType,
   ComplexityLevel,
-  DifficultyLevel,
+  QuestionDifficultyLevel,
   MediaElement,
   InteractiveElement,
   AssessmentCriterion,
@@ -460,7 +460,7 @@ export class MicrolearningContentSegmenter {
       content_based: 'Content-Based Segmentation',
       cognitive_load: 'Cognitive Load Segmentation',
       learning_objective: 'Learning Objective Segmentation',
-      difficulty_progression: 'Difficulty Progression Segmentation',
+      difficulty_progression: 'QuestionDifficulty Progression Segmentation',
       attention_span: 'Attention Span Segmentation',
       adaptive: 'Adaptive Segmentation',
       hybrid: 'Hybrid Segmentation'
@@ -1203,7 +1203,7 @@ export class MicrolearningContentSegmenter {
         enabled: false,
         algorithm: 'cat',
         parameters: {
-          startingDifficulty: 0.5,
+          startingQuestionDifficulty: 0.5,
           stepSize: 0.3,
           precisionTarget: 0.8,
           contentBalancing: true,
@@ -1788,7 +1788,7 @@ export class MicrolearningContentSegmenter {
     
     try {
       await redis.setex(cacheKey, 3600, JSON.stringify(segmentation)); // 1 hour TTL
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to cache segmentation:', error);
     }
   }

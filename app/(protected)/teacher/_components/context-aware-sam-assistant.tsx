@@ -134,14 +134,6 @@ export function ContextAwareSamAssistant() {
   // Get page-specific actions
   const pageActions = PAGE_SPECIFIC_ACTIONS[pageContext.pageType] || PAGE_SPECIFIC_ACTIONS.other;
 
-  // Initialize with context-aware welcome message
-  useEffect(() => {
-    if (messages.length === 0) {
-      const contextualWelcome = generateContextualWelcome();
-      setMessages([contextualWelcome]);
-    }
-  }, [pageContext.pageName, messages.length, generateContextualWelcome]);
-
   // Generate welcome message based on page context
   const generateContextualWelcome = useCallback((): ChatMessage => {
     const getPageIcon = () => {
@@ -223,10 +215,78 @@ What would you like to work on today?`,
     };
   }, [pageContext, pageActions]);
 
+  // Initialize with context-aware welcome message
+  useEffect(() => {
+    if (messages.length === 0) {
+      const contextualWelcome = generateContextualWelcome();
+      setMessages([contextualWelcome]);
+    }
+  }, [pageContext.pageName, messages.length, generateContextualWelcome]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Handle actions (navigation, form updates, etc.)
+  const handleAction = useCallback(async (action: any) => {
+    try {
+      switch (action.type) {
+        case 'navigation':
+          if (action.details.url) {
+            router.push(action.details.url);
+            toast.success(`Navigating to ${action.details.description || 'page'}`);
+          }
+          break;
+        case 'page_action':
+          // Handle page-specific actions
+          if (action.details.action === 'refresh') {
+            router.refresh();
+            toast.success('Page refreshed');
+          }
+          break;
+        case 'form_update':
+          // Handle form updates through the chapter form interactions
+          if ((window as any).chapterFormInteractions) {
+            const formActions = (window as any).chapterFormInteractions;
+            
+            switch (action.details.action) {
+              case 'update_chapter_title':
+                await formActions.updateChapterTitle(action.details.title);
+                break;
+              case 'update_chapter_description':
+                await formActions.updateChapterDescription(action.details.description);
+                break;
+              case 'update_learning_outcomes':
+                await formActions.updateLearningOutcomes(action.details.outcomes);
+                break;
+              case 'create_sections':
+                await formActions.createMultipleSections(action.details.sections);
+                break;
+              case 'publish_chapter':
+                await formActions.publishChapter();
+                break;
+              case 'unpublish_chapter':
+                await formActions.unpublishChapter();
+                break;
+              case 'update_chapter_access':
+                await formActions.updateChapterAccess(action.details.isFree);
+                break;
+              default:
+                // No default action for form updates
+            }
+          } else {
+            // No chapter form interactions available
+          }
+          break;
+        default:
+          // Unknown action type
+      }
+    } catch (error) {
+      logger.error('Action error:', error);
+      toast.error('Failed to perform action');
+    }
+  }, [router]);
 
   // Handle messages with context awareness
   const sendMessage = useCallback(async (content: string) => {
@@ -294,65 +354,6 @@ What would you like to work on today?`,
       setIsLoading(false);
     }
   }, [pageContext, pathname, messages, handleAction]);
-
-  // Handle actions (navigation, form updates, etc.)
-  const handleAction = useCallback(async (action: any) => {
-    try {
-      switch (action.type) {
-        case 'navigation':
-          if (action.details.url) {
-            router.push(action.details.url);
-            toast.success(`Navigating to ${action.details.description || 'page'}`);
-          }
-          break;
-        case 'page_action':
-          // Handle page-specific actions
-          if (action.details.action === 'refresh') {
-            router.refresh();
-            toast.success('Page refreshed');
-          }
-          break;
-        case 'form_update':
-          // Handle form updates through the chapter form interactions
-          if ((window as any).chapterFormInteractions) {
-            const formActions = (window as any).chapterFormInteractions;
-            
-            switch (action.details.action) {
-              case 'update_chapter_title':
-                await formActions.updateChapterTitle(action.details.title);
-                break;
-              case 'update_chapter_description':
-                await formActions.updateChapterDescription(action.details.description);
-                break;
-              case 'update_learning_outcomes':
-                await formActions.updateLearningOutcomes(action.details.outcomes);
-                break;
-              case 'create_sections':
-                await formActions.createMultipleSections(action.details.sections);
-                break;
-              case 'publish_chapter':
-                await formActions.publishChapter();
-                break;
-              case 'unpublish_chapter':
-                await formActions.unpublishChapter();
-                break;
-              case 'update_chapter_access':
-                await formActions.updateChapterAccess(action.details.isFree);
-                break;
-              default:
-
-            }
-          } else {
-}
-          break;
-        default:
-
-      }
-    } catch (error) {
-      logger.error('Action error:', error);
-      toast.error('Failed to perform action');
-    }
-  }, [router]);
 
   // Quick action handler
   const handleQuickAction = useCallback((actionValue: string) => {

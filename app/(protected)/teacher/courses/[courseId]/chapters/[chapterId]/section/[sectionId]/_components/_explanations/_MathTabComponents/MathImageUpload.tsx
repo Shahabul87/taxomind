@@ -64,7 +64,7 @@ export const MathImageUpload = ({
       }
     } catch (error) {
       toast.error("Something went wrong during upload");
-      logger.error(error);
+      logger.error('Math image upload error:', error);
     } finally {
       setIsUploading(false);
       // Reset the input value so the same file can be selected again

@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     const event = await db.groupEvent.findUnique({
       where: { id: eventId },
       include: {
-        creator: {
+        User_GroupEvent_creatorIdToUser: {
           select: {
             id: true,
             name: true,
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
             phone: true,
           }
         },
-        organizer: {
+        User_GroupEvent_organizerIdToUser: {
           select: {
             id: true,
             name: true,
@@ -46,8 +46,8 @@ export async function POST(req: Request) {
 
     // Send email notification to both creator and organizer if they exist
     const recipients = [
-      event.creator?.email,
-      event.organizer?.email
+      event.User_GroupEvent_creatorIdToUser?.email,
+      event.User_GroupEvent_organizerIdToUser?.email
     ].filter(Boolean) as string[];
 
     if (recipients.length > 0) {

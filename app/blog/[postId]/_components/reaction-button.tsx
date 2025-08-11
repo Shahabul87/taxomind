@@ -50,7 +50,7 @@ export const ReactionButton = ({
 
     // Validate IDs
     if (!postId || !commentId) {
-      logger.error("Missing required IDs:", { postId, commentId });
+      logger.error(`Missing required IDs: postId=${postId}, commentId=${commentId}`);
       toast.error("Missing required data");
       return;
     }

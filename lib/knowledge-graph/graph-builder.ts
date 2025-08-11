@@ -11,7 +11,7 @@ import {
   EdgeType,
   NodeMetadata,
   EdgeMetadata,
-  DifficultyLevel,
+  QuestionDifficultyLevel,
   BloomsLevel,
   CognitiveLoad
 } from './types';
@@ -40,7 +40,7 @@ export class KnowledgeGraphBuilder {
   async buildFromCourseStructure(courseId: string): Promise<KnowledgeGraph> {
 
     // Get course data
-    const course = await db.course.findUnique({
+    const course = await db.Course.findUnique({
       where: { id: courseId },
       include: {
         chapters: {
@@ -144,14 +144,14 @@ export class KnowledgeGraphBuilder {
   }
 
   // Create course node
-  private createCourseNode(course: any): KnowledgeNode {
+  private createCourseNode(Course: any): KnowledgeNode {
     return {
       id: this.generateNodeId('course', course.id),
       type: 'course',
       title: course.title,
       description: course.description,
       metadata: {
-        difficulty: this.inferDifficulty(course.level || 'intermediate'),
+        difficulty: this.inferQuestionDifficulty(course.level || 'intermediate'),
         estimatedTime: this.estimateCourseTime(course),
         bloomsLevel: 'apply',
         cognitiveLoad: 'medium',
@@ -173,14 +173,14 @@ export class KnowledgeGraphBuilder {
   }
 
   // Create chapter node
-  private createChapterNode(chapter: any, course: any): KnowledgeNode {
+  private createChapterNode(chapter: any, Course: any): KnowledgeNode {
     return {
       id: this.generateNodeId('topic', chapter.id),
       type: 'topic',
       title: chapter.title,
       description: chapter.description,
       metadata: {
-        difficulty: this.inferDifficulty(course.level || 'intermediate'),
+        difficulty: this.inferQuestionDifficulty(course.level || 'intermediate'),
         estimatedTime: this.estimateChapterTime(chapter),
         bloomsLevel: 'understand',
         cognitiveLoad: 'medium',
@@ -207,7 +207,7 @@ export class KnowledgeGraphBuilder {
       title: section.title,
       description: section.description,
       metadata: {
-        difficulty: this.inferSectionDifficulty(section),
+        difficulty: this.inferSectionQuestionDifficulty(section),
         estimatedTime: this.estimateSectionTime(section),
         bloomsLevel: this.inferBloomsLevel(section),
         cognitiveLoad: this.inferCognitiveLoad(section),
@@ -236,7 +236,7 @@ export class KnowledgeGraphBuilder {
       title: video.title,
       description: video.description,
       metadata: {
-        difficulty: this.inferVideoDifficulty(video),
+        difficulty: this.inferVideoQuestionDifficulty(video),
         estimatedTime: this.parseVideoDuration(video.duration) / 60, // Convert to minutes
         bloomsLevel: 'remember',
         cognitiveLoad: 'low',
@@ -264,7 +264,7 @@ export class KnowledgeGraphBuilder {
       title: `${section.title} - Quiz`,
       description: 'Assessment for ' + section.title,
       metadata: {
-        difficulty: this.inferQuizDifficulty(quiz),
+        difficulty: this.inferQuizQuestionDifficulty(quiz),
         estimatedTime: this.estimateQuizTime(quiz),
         bloomsLevel: 'apply',
         cognitiveLoad: 'medium',
@@ -285,14 +285,14 @@ export class KnowledgeGraphBuilder {
   }
 
   // Create assignment node
-  private createAssignmentNode(assignment: any, course: any): KnowledgeNode {
+  private createAssignmentNode(assignment: any, Course: any): KnowledgeNode {
     return {
       id: this.generateNodeId('assignment', assignment.id),
       type: 'assignment',
       title: assignment.title,
       description: assignment.description,
       metadata: {
-        difficulty: this.inferAssignmentDifficulty(assignment),
+        difficulty: this.inferAssignmentQuestionDifficulty(assignment),
         estimatedTime: this.estimateAssignmentTime(assignment),
         bloomsLevel: 'create',
         cognitiveLoad: 'high',
@@ -356,7 +356,7 @@ export class KnowledgeGraphBuilder {
 
   // Analyze student behavior patterns to infer relationships
   private async analyzeStudentBehaviorPatterns(courseId: string): Promise<void> {
-    const interactions = await db.studentInteraction.findMany({
+    const interactions = await db.sAMInteraction.findMany({
       where: { courseId },
       select: {
         studentId: true,
@@ -436,7 +436,7 @@ export class KnowledgeGraphBuilder {
       if (node && flag.count >= 5) {
         // Increase difficulty based on struggle count
         const difficultyMultiplier = Math.min(2.0, 1 + (flag.count / 20));
-        node.metadata.difficulty = this.adjustDifficulty(node.metadata.difficulty, difficultyMultiplier);
+        node.metadata.difficulty = this.adjustQuestionDifficulty(node.metadata.difficulty, difficultyMultiplier);
         node.metadata.cognitiveLoad = flag.count >= 10 ? 'high' : 'medium';
       }
     });
@@ -516,8 +516,8 @@ export class KnowledgeGraphBuilder {
   }
 
   // Utility methods for inference
-  private inferDifficulty(level: string): DifficultyLevel {
-    const mapping: Record<string, DifficultyLevel> = {
+  private inferQuestionDifficulty(level: string): QuestionDifficultyLevel {
+    const mapping: Record<string, QuestionDifficultyLevel> = {
       'Beginner': 'beginner',
       'Intermediate': 'intermediate',
       'Advanced': 'advanced',
@@ -526,7 +526,7 @@ export class KnowledgeGraphBuilder {
     return mapping[level] || 'intermediate';
   }
 
-  private inferSectionDifficulty(section: any): DifficultyLevel {
+  private inferSectionQuestionDifficulty(section: any): QuestionDifficultyLevel {
     // Infer difficulty based on section content
     const videoCount = section.videos?.length || 0;
     const hasQuiz = !!section.quiz;
@@ -553,7 +553,7 @@ export class KnowledgeGraphBuilder {
     return 'low';
   }
 
-  private inferVideoDifficulty(video: any): DifficultyLevel {
+  private inferVideoQuestionDifficulty(video: any): QuestionDifficultyLevel {
     const duration = this.parseVideoDuration(video.duration);
     
     if (duration > 30 * 60) return 'advanced'; // > 30 minutes
@@ -561,7 +561,7 @@ export class KnowledgeGraphBuilder {
     return 'beginner';
   }
 
-  private inferQuizDifficulty(quiz: any): DifficultyLevel {
+  private inferQuizQuestionDifficulty(quiz: any): QuestionDifficultyLevel {
     const questionCount = quiz.questions?.length || 0;
     
     if (questionCount > 10) return 'advanced';
@@ -569,7 +569,7 @@ export class KnowledgeGraphBuilder {
     return 'beginner';
   }
 
-  private inferAssignmentDifficulty(assignment: any): DifficultyLevel {
+  private inferAssignmentQuestionDifficulty(assignment: any): QuestionDifficultyLevel {
     // Infer based on estimated time and description complexity
     const estimatedTime = this.estimateAssignmentTime(assignment);
     
@@ -580,7 +580,7 @@ export class KnowledgeGraphBuilder {
   }
 
   // Time estimation methods
-  private estimateCourseTime(course: any): number {
+  private estimateCourseTime(Course: any): number {
     // Estimate based on content volume
     return 480; // Default 8 hours for a course
   }
@@ -670,8 +670,8 @@ export class KnowledgeGraphBuilder {
     return hours * 3600 + minutes * 60 + seconds;
   }
 
-  private adjustDifficulty(current: DifficultyLevel, multiplier: number): DifficultyLevel {
-    const levels: DifficultyLevel[] = ['beginner', 'intermediate', 'advanced', 'expert'];
+  private adjustQuestionDifficulty(current: QuestionDifficultyLevel, multiplier: number): QuestionDifficultyLevel {
+    const levels: QuestionDifficultyLevel[] = ['beginner', 'intermediate', 'advanced', 'expert'];
     const currentIndex = levels.indexOf(current);
     const newIndex = Math.min(levels.length - 1, Math.floor(currentIndex * multiplier));
     return levels[newIndex];
@@ -731,7 +731,7 @@ export class KnowledgeGraphBuilder {
         3600, // 1 hour TTL
         JSON.stringify(graphData)
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to cache knowledge graph:', error);
     }
   }

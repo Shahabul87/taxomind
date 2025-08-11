@@ -72,7 +72,7 @@ export function ContentAnalyzerModal({
   ];
 
   const handleContentDataChange = useCallback((field: string, value: any) => {
-    setContentData(prev => ({ ...prev, [field]: value }));
+    setContentData((prev: any) => ({ ...prev, [field]: value }));
   }, []);
 
   const handleAnalyze = useCallback(async () => {

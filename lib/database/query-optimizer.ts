@@ -28,7 +28,7 @@ export type OptimizedCourseQuery = Prisma.CourseGetPayload<{
         };
       };
     };
-    enrollments: {
+    Enrollment: {
       include: {
         user: {
           select: {
@@ -169,7 +169,7 @@ export class CourseQueryOptimizer {
             } : false,
           },
         },
-        enrollments: userId ? {
+        Enrollment: userId ? {
           where: { userId },
           select: {
             enrolledAt: true,
@@ -201,7 +201,7 @@ export class CourseQueryOptimizer {
       },
     };
 
-    return await db.course.findUnique(baseQuery);
+    return await db.Course.findUnique(baseQuery);
   }
 
   /**
@@ -241,7 +241,7 @@ export class CourseQueryOptimizer {
     };
 
     const [courses, total] = await Promise.all([
-      db.course.findMany({
+      db.Course.findMany({
         where,
         skip,
         take,
@@ -275,7 +275,7 @@ export class CourseQueryOptimizer {
           },
         },
       }),
-      db.course.count({ where }),
+      db.Course.count({ where }),
     ]);
 
     return { courses, total };
@@ -285,7 +285,7 @@ export class CourseQueryOptimizer {
    * Get teacher's courses with analytics - optimized
    */
   static async getTeacherCoursesWithAnalytics(userId: string) {
-    return await db.course.findMany({
+    return await db.Course.findMany({
       where: { userId },
       include: {
         category: true,
@@ -296,7 +296,7 @@ export class CourseQueryOptimizer {
             chapters: true,
           },
         },
-        enrollments: {
+        Enrollment: {
           select: {
             enrolledAt: true,
             progressPercentage: true,
@@ -346,7 +346,7 @@ export class ProgressQueryOptimizer {
           userId_courseId: { userId, courseId },
         },
         include: {
-          course: {
+          Course: {
             select: {
               id: true,
               title: true,
@@ -409,7 +409,7 @@ export class ProgressQueryOptimizer {
     return await db.userCourseEnrollment.findMany({
       where: { userId },
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true,
@@ -461,7 +461,7 @@ export class ProgressQueryOptimizer {
           timeSpent: true,
         },
       }),
-      db.studentInteraction.aggregate({
+      db.sAMInteraction.aggregate({
         where,
         _count: true,
         _avg: {
@@ -508,7 +508,7 @@ export class ExamQueryOptimizer {
               select: {
                 id: true,
                 title: true,
-                course: {
+                Course: {
                   select: {
                     id: true,
                     title: true,
@@ -706,7 +706,7 @@ export class BatchQueryOptimizer {
           progressPercentage: true,
         },
       }),
-      db.studentInteraction.groupBy({
+      db.sAMInteraction.groupBy({
         by: ["courseId"],
         where: { courseId: { in: courseIds } },
         _count: true,
@@ -729,7 +729,7 @@ export class BatchQueryOptimizer {
 
     courseIds.forEach(courseId => {
       analyticsMap.set(courseId, {
-        enrollments: enrollments.find(e => e.courseId === courseId),
+        Enrollment: enrollments.find(e => e.courseId === courseId),
         interactions: interactions.find(i => i.courseId === courseId),
         examAttempts: examAttempts.filter(a => 
           // Note: would need to resolve exam to course relationship
@@ -836,7 +836,7 @@ export class QueryPerformanceMonitor {
 
 // Export utility functions
 export const queryOptimizer = {
-  course: CourseQueryOptimizer,
+  Course: CourseQueryOptimizer,
   progress: ProgressQueryOptimizer,
   exam: ExamQueryOptimizer,
   batch: BatchQueryOptimizer,

@@ -167,7 +167,7 @@ export default function AICreatorPage() {
 
       if (!courseResponse.ok) {
         const errorText = await courseResponse.text();
-        logger.error('Course creation failed:', courseResponse.status, errorText);
+        logger.error(`Course creation failed: ${courseResponse.status} - ${errorText}`);
         throw new Error(`Failed to create course: ${courseResponse.status} - ${errorText}`);
       }
 
@@ -230,7 +230,7 @@ etc.`,
         if (chapterMatches && chapterMatches.length > 0) {
 
           // Create chapters for the course
-          const chapterPromises = chapterMatches.slice(0, formData.chapterCount || 5).map(async (match, index) => {
+          const chapterPromises = chapterMatches.slice(0, formData.chapterCount || 5).map(async (match: string, index: number) => {
             const title = match.replace(/^\d+\.\s*/, '').trim();
 
             try {
@@ -251,7 +251,7 @@ etc.`,
                 return chapter;
               } else {
                 const errorText = await chapterResponse.text();
-                logger.error(`Failed to create chapter "${title}":`, chapterResponse.status, errorText);
+                logger.error(`Failed to create chapter "${title}": ${chapterResponse.status} - ${errorText}`);
               }
             } catch (error) {
               logger.error(`Error creating chapter: ${title}`, error);
@@ -276,7 +276,7 @@ etc.`,
             courseDescription: formData.courseShortOverview,
             enhancedObjectives: formData.courseGoals || [],
             chapters: [], // Chapters are now created directly
-            generationMethod: 'unified-creation'
+            generationMethod: 'manual'
           });
           samMemory.incrementSuccessfulGenerations();
         });

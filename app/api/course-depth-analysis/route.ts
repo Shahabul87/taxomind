@@ -126,7 +126,8 @@ async function analyzeQuality(courseContent: any) {
     structureQuality: calculateStructureQuality(courseContent),
     completionScore: courseContent.completionPercentage,
     engagementPotential: calculateEngagementPotential(courseContent),
-    marketReadiness: calculateMarketReadiness(courseContent)
+    marketReadiness: calculateMarketReadiness(courseContent),
+    overallScore: 0
   };
   
   qualityMetrics.overallScore = Math.round(
@@ -387,14 +388,13 @@ export async function POST(req: NextRequest) {
       chapters: course.chapters.map(ch => ({
         title: ch.title || 'Untitled Chapter',
         description: ch.description || '',
-        learningOutcome: ch.learningOutcome || '',
+        learningOutcome: ch.learningOutcomes || '',
         isPublished: ch.isPublished,
         isFree: ch.isFree,
         position: ch.position,
         sectionsCount: ch.sections.length,
         sections: ch.sections.map(s => ({
           title: s.title || 'Untitled Section',
-          description: s.description || '',
           position: s.position,
           isPublished: s.isPublished
         }))
@@ -692,13 +692,13 @@ Use this exact JSON structure:
     };
 
     // Store the analysis with content hash (only if using Bloom's engine directly)
-    if (samAnalysis.bloomsAnalysis && samAnalysis.bloomsAnalysis.distribution) {
+    if (samAnalysis.bloomsAnalysis && 'distribution' in samAnalysis.bloomsAnalysis) {
       try {
         await db.courseBloomsAnalysis.upsert({
           where: { courseId },
           update: {
-            bloomsDistribution: samAnalysis.bloomsAnalysis.distribution,
-            cognitiveDepth: samAnalysis.bloomsAnalysis.cognitiveDepth || analysis.scores.depth,
+            bloomsDistribution: samAnalysis.bloomsAnalysis.distribution as any,
+            cognitiveDepth: (samAnalysis.bloomsAnalysis as any).cognitiveDepth || analysis.scores.depth,
             learningPathway: analysis.learningPathway || {},
             skillsMatrix: analysis.studentImpact?.skillsDeveloped || [],
             gapAnalysis: analysis.gaps || [],
@@ -708,8 +708,8 @@ Use this exact JSON structure:
           },
           create: {
             courseId,
-            bloomsDistribution: samAnalysis.bloomsAnalysis.distribution,
-            cognitiveDepth: samAnalysis.bloomsAnalysis.cognitiveDepth || analysis.scores.depth,
+            bloomsDistribution: samAnalysis.bloomsAnalysis.distribution as any,
+            cognitiveDepth: (samAnalysis.bloomsAnalysis as any).cognitiveDepth || analysis.scores.depth,
             learningPathway: analysis.learningPathway || {},
             skillsMatrix: analysis.studentImpact?.skillsDeveloped || [],
             gapAnalysis: analysis.gaps || [],

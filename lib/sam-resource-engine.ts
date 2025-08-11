@@ -195,7 +195,7 @@ export class SAMResourceEngine {
       await this.storeResourceDiscovery(topic, limitedResources);
       
       return limitedResources;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error discovering resources:', error);
       throw new Error('Failed to discover resources');
     }
@@ -285,7 +285,7 @@ export class SAMResourceEngine {
       this.qualityCache.set(cacheKey, qualityScore);
       
       return qualityScore;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error scoring resource quality:', error);
       return this.getDefaultQualityScore();
     }
@@ -342,7 +342,7 @@ export class SAMResourceEngine {
         recommendations,
         alternativeLicenses
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error checking license compatibility:', error);
       return {
         compatible: false,
@@ -396,7 +396,7 @@ export class SAMResourceEngine {
       await this.storeROIAnalysis(resource, analysis);
       
       return analysis;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing resource ROI:', error);
       throw new Error('Failed to analyze resource ROI');
     }
@@ -447,7 +447,7 @@ export class SAMResourceEngine {
       await this.storePersonalizedRecommendations(student.userId, recommendations);
       
       return recommendations;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error personalizing recommendations:', error);
       throw new Error('Failed to personalize recommendations');
     }
@@ -1205,7 +1205,7 @@ export class SAMResourceEngine {
       include: {
         samLearningProfile: true,
         Enrollment: {
-          include: { course: true }
+          include: { Course: true }
         }
       }
     });

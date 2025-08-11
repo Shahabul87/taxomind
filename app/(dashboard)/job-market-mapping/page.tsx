@@ -1,6 +1,6 @@
 // Job Market Mapping Interface - Complete career analysis and recommendations
 
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -129,7 +129,7 @@ export default function JobMarketMappingInterface() {
             className="flex items-center space-x-2"
           >
             <Zap className="h-4 w-4" />
-            <span>{isGenerating ? 'Generating...' : 'Refresh Analysis'}</span>
+            <span>{isGenerating ? "Generating..." : "Refresh Analysis"}</span>
           </Button>
         </div>
       </div>

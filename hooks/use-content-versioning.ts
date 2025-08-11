@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { VersionType, VersionStatus } from "@prisma/client";
 import { toast } from "sonner";
 
@@ -36,7 +36,7 @@ export function useContentVersioning(contentType: string, contentId: string) {
   const [creating, setCreating] = useState(false);
 
   // Fetch version history
-  const fetchVersions = async () => {
+  const fetchVersions = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(
@@ -58,7 +58,7 @@ export function useContentVersioning(contentType: string, contentId: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [contentType, contentId]);
 
   // Create new version
   const createVersion = async ({

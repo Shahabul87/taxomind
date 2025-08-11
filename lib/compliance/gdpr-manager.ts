@@ -103,7 +103,7 @@ export class GDPRComplianceManager {
       );
 
       return consent;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to record consent:', error);
       throw new Error('Failed to record consent');
     }
@@ -129,7 +129,7 @@ export class GDPRComplianceManager {
       });
 
       return Array.from(consentMap.values());
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get user consents:', error);
       throw new Error('Failed to retrieve consents');
     }
@@ -156,7 +156,7 @@ export class GDPRComplianceManager {
       }
 
       return consent.granted;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to check consent:', error);
       return false;
     }
@@ -196,7 +196,7 @@ export class GDPRComplianceManager {
           },
           Enrollment: {
             include: {
-              course: {
+              Course: {
                 select: {
                   title: true,
                   description: true,
@@ -259,7 +259,7 @@ export class GDPRComplianceManager {
           updatedAt: userData?.updatedAt,
         },
         learningData: {
-          enrollments: userData?.Enrollment || [],
+          Enrollment: userData?.Enrollment || [],
           progress: {
             courses: userData?.courseProgress || [],
             chapters: userData?.chapterProgress || [],
@@ -281,7 +281,7 @@ export class GDPRComplianceManager {
       };
 
       return exportData;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to export user data:', error);
       throw new Error('Failed to export user data');
     }
@@ -362,7 +362,7 @@ export class GDPRComplianceManager {
 
       // Log successful deletion
       await auditHelpers.logGDPREvent(userId, 'DATA_DELETION', 'User data deletion completed');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to delete user data:', error);
       throw new Error('Failed to delete user data');
     }
@@ -411,7 +411,7 @@ export class GDPRComplianceManager {
       });
 
       await auditHelpers.logGDPREvent(userId, 'DATA_REQUEST', 'User data anonymized');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to anonymize user data:', error);
       throw new Error('Failed to anonymize user data');
     }
@@ -485,7 +485,7 @@ export class GDPRComplianceManager {
         default:
           throw new Error(`Unsupported request type: ${validated.requestType}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to process GDPR request:', error);
       throw new Error('Failed to process GDPR request');
     }

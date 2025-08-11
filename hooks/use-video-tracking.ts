@@ -136,7 +136,7 @@ export function useVideoTracking(
 
     // Start heartbeat tracking
     startHeartbeat();
-  }, [videoElement, videoId, tracker, pathname, courseId, chapterId, sectionId]);
+  }, [videoElement, videoId, tracker, pathname, courseId, chapterId, sectionId, startHeartbeat]);
 
   // Track video pause
   const trackPause = useCallback(() => {
@@ -181,7 +181,7 @@ export function useVideoTracking(
 
     // Stop heartbeat tracking
     stopHeartbeat();
-  }, [videoElement, videoId, tracker, pathname, courseId, chapterId, sectionId]);
+  }, [videoElement, videoId, tracker, pathname, courseId, chapterId, sectionId, stopHeartbeat]);
 
   // Track seeking behavior
   const trackSeek = useCallback((fromTime: number, toTime: number) => {
@@ -366,7 +366,7 @@ export function useVideoTracking(
         });
       }
     }, heartbeatInterval * 1000);
-  }, [videoElement, videoId, heartbeatInterval, tracker, pathname, courseId, chapterId, sectionId]);
+  }, [videoElement, videoId, heartbeatInterval, tracker, pathname, courseId, chapterId, sectionId, calculateEngagementScore, stopHeartbeat]);
 
   const stopHeartbeat = useCallback(() => {
     if (heartbeatTimer.current) {
@@ -441,7 +441,7 @@ export function useVideoTracking(
     });
 
     stopHeartbeat();
-  }, [videoElement, videoId, calculateEngagementScore, metrics, tracker, pathname, courseId, chapterId, sectionId]);
+  }, [videoElement, videoId, calculateEngagementScore, metrics, tracker, pathname, courseId, chapterId, sectionId, stopHeartbeat]);
 
   // Set up event listeners
   useEffect(() => {

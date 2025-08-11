@@ -396,7 +396,7 @@ export const CHALLENGES: Challenge[] = [
       type: 'create_content',
       target: 1,
       conditions: {
-        complete_course: true,
+        complete_Course: true,
         min_chapters: 5,
         min_sections: 20,
         timeframe: 'this_month'

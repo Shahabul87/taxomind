@@ -28,12 +28,14 @@ export async function POST(
 
     const comment = await db.groupDiscussionComment.create({
       data: {
+        id: crypto.randomUUID(),
         content: validatedFields.data.content,
         authorId: session.user.id,
         discussionId: params.discussionId,
+        updatedAt: new Date(),
       },
       include: {
-        author: {
+        User: {
           select: {
             name: true,
             image: true,
@@ -76,7 +78,7 @@ export async function GET(
         discussionId: params.discussionId,
       },
       include: {
-        author: {
+        User: {
           select: {
             name: true,
             image: true,

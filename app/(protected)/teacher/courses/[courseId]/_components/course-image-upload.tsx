@@ -55,7 +55,7 @@ export const CourseImageUpload = ({
       toast.success("Image uploaded!");
       router.refresh();
     } catch (error) {
-      logger.error(error);
+      logger.error('Upload error:', error);
       toast.error("Something went wrong");
     } finally {
       setUploading(false);

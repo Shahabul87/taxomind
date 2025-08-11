@@ -129,7 +129,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
     onUpdateFormData(prev => ({
       ...prev,
       bloomsFocus: prev.bloomsFocus.includes(level)
-        ? prev.bloomsFocus.filter(l => l !== level)
+        ? prev.bloomsFocus.filter((l: string) => l !== level)
         : [...prev.bloomsFocus, level]
     }));
     toast.success(`${level} level added to focus!`);

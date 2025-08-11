@@ -392,7 +392,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          interactionType: 'POINTS_AWARDED',
+          interactionType: SAMInteractionType.GAMIFICATION_ACTION,
           context: { points, reason, learningContext },
           result: { newPoints: gamificationState.points + points },
           courseId: learningContext.currentCourse?.id,
@@ -470,7 +470,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            interactionType: 'BADGE_UNLOCKED',
+            interactionType: SAMInteractionType.GAMIFICATION_ACTION,
             context: { badgeId, badge: newBadge, learningContext },
             result: { badgeUnlocked: true },
             courseId: learningContext.currentCourse?.id,
@@ -524,7 +524,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            interactionType: 'STREAK_UPDATED',
+            interactionType: SAMInteractionType.GAMIFICATION_ACTION,
             context: { streakType: 'daily_learning', streaks: newStreaks, learningContext },
             result: { newCurrent, newLongest: newStreaks.longest },
             courseId: learningContext.currentCourse?.id,
@@ -722,19 +722,19 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
       
       // Fallback to basic interaction recording
       const interactionTypeMap: Record<string, SAMInteractionType> = {
-        'question_asked': 'QUESTION_ASKED',
-        'answer_provided': 'ANSWER_PROVIDED',
-        'content_generated': 'CONTENT_GENERATED',
-        'feedback_given': 'FEEDBACK_GIVEN',
-        'explanation_requested': 'EXPLANATION_REQUESTED',
-        'help_requested': 'HELP_REQUESTED',
-        'concept_explained': 'CONCEPT_EXPLAINED',
-        'practice_completed': 'PRACTICE_COMPLETED',
-        'assessment_taken': 'ASSESSMENT_TAKEN',
-        'progress_reviewed': 'PROGRESS_REVIEWED',
+        'question_asked': SAMInteractionType.CHAT_MESSAGE,
+        'answer_provided': SAMInteractionType.CHAT_MESSAGE,
+        'content_generated': SAMInteractionType.CONTENT_GENERATE,
+        'feedback_given': SAMInteractionType.CHAT_MESSAGE,
+        'explanation_requested': SAMInteractionType.LEARNING_ASSISTANCE,
+        'help_requested': SAMInteractionType.LEARNING_ASSISTANCE,
+        'concept_explained': SAMInteractionType.LEARNING_ASSISTANCE,
+        'practice_completed': SAMInteractionType.GAMIFICATION_ACTION,
+        'assessment_taken': SAMInteractionType.GAMIFICATION_ACTION,
+        'progress_reviewed': SAMInteractionType.ANALYTICS_VIEW,
       };
       
-      const interactionType = interactionTypeMap[type] || 'QUESTION_ASKED';
+      const interactionType = interactionTypeMap[type] || SAMInteractionType.CHAT_MESSAGE;
       
       fetch('/api/sam/interactions', {
         method: 'POST',

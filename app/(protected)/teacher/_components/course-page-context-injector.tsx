@@ -3,6 +3,25 @@
 import { useEffect } from 'react';
 import { useSAMGlobal } from '@/components/sam/sam-global-provider';
 
+// Import the LearningContext type
+interface LearningContext {
+  courseId?: string;
+  courseName?: string;
+  chapterId?: string;
+  chapterName?: string;
+  sectionId?: string;
+  sectionName?: string;
+  subject?: string;
+  topic?: string;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  progress?: number;
+  timeSpent?: number;
+  lastActivity?: string;
+  learningObjectives?: string[];
+  prerequisites?: string[];
+  nextSteps?: string[];
+}
+
 interface CoursePageContextInjectorProps {
   course?: {
     id: string;
@@ -185,24 +204,26 @@ export function CoursePageContextInjector({
     // Build metadata with capabilities
     const capabilities = buildCapabilities(entityType, entityData, relatedData, permissions);
 
-    // Inject comprehensive context
-    updateContext({
-      serverData: {
-        entityType,
-        entityId,
-        entityData,
-        relatedData,
-        permissions,
-        statistics: relatedData.stats
-      },
-      workflow,
-      metadata: {
-        capabilities,
-        lastUpdated: new Date(),
-        userRole: 'teacher', // Could be dynamic based on user context
-        relatedPages: buildRelatedPages(entityType, entityId, course, chapter)
-      }
-    });
+    // Inject comprehensive context based on LearningContext interface
+    const contextUpdate: Partial<LearningContext> = {};
+    
+    if (course) {
+      contextUpdate.courseId = course.id;
+      contextUpdate.courseName = course.title;
+      contextUpdate.subject = course.category?.name;
+    }
+    
+    if (chapter) {
+      contextUpdate.chapterId = chapter.id;
+      contextUpdate.chapterName = chapter.title;
+    }
+    
+    if (section) {
+      contextUpdate.sectionId = section.id;
+      contextUpdate.sectionName = section.title;
+    }
+
+    updateContext(contextUpdate);
 
   }, [course, chapter, section, categories, completionStatus, updateContext]);
 

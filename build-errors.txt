@@ -1,0 +1,46 @@
+
+> taxomind@1.0.0 prebuild
+> node scripts/validate-env.js
+
+🔧 Loading environment for: development
+✅ Found: .env.local
+✅ Found: .env.development
+✅ Found: .env
+📊 Environment Summary:
+   NODE_ENV: development
+   Database: Local (Local Docker)
+   App URL: http://localhost:3000
+   Redis: Disabled
+   Files loaded: .env.local, .env.development, .env
+
+🔍 Validating environment: development
+
+📋 Environment configuration:
+   - NODE_ENV: development
+   - Database: Configured
+   - Redis: Not configured
+   - Strict mode: Disabled
+   - Auth providers: Google GitHub
+
+✅ Environment validation passed!
+
+
+> taxomind@1.0.0 build
+> NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && NODE_OPTIONS='--max-old-space-size=8192' next build
+
+🔧 Loading environment for: development
+✅ Found: .env.local
+✅ Found: .env.development
+✅ Found: .env
+📊 Environment Summary:
+   NODE_ENV: development
+   Database: Local (Local Docker)
+   App URL: http://localhost:3000
+   Redis: Disabled
+   Files loaded: .env.local, .env.development, .env
+   ▲ Next.js 15.3.5
+   - Environments: .env.local, .env.production, .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 18.0s
+   Linting and checking validity of types ...

@@ -29,7 +29,7 @@ export class ErrorMonitoring {
         this.checkUserImpact(),
         this.checkComponentFailures()
       ]);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[ERROR_MONITORING] Alert check failed:', error);
     }
   }
@@ -214,7 +214,7 @@ export class ErrorMonitoring {
 
       // Send notifications
       await this.sendAlertNotification(alertData);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[ERROR_MONITORING] Failed to create alert:', error);
     }
   }
@@ -262,7 +262,7 @@ export class ErrorMonitoring {
             }]
           })
         });
-      } catch (error) {
+      } catch (error: any) {
         logger.error('[ERROR_MONITORING] Slack notification failed:', error);
       }
     }
@@ -348,7 +348,7 @@ export class ErrorMonitoring {
         })),
         trends
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[ERROR_MONITORING] Failed to get metrics:', error);
       return null;
     }
@@ -398,7 +398,7 @@ export class ErrorMonitoring {
           acknowledgedAt: new Date()
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[ERROR_MONITORING] Failed to acknowledge alert:', error);
     }
   }
@@ -411,7 +411,7 @@ export class ErrorMonitoring {
           resolvedAt: new Date()
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[ERROR_MONITORING] Failed to resolve alert:', error);
     }
   }
@@ -440,7 +440,7 @@ export class ErrorMonitoring {
         resolvedAt: alert.resolvedAt,
         metadata: alert.metadata ? JSON.parse(alert.metadata) : undefined
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[ERROR_MONITORING] Failed to get active alerts:', error);
       return [];
     }
@@ -500,7 +500,7 @@ export class ErrorMonitoring {
       );
 
       const uniqueUsers = new Set(todayErrors.map(e => e.userId).filter(Boolean)).size;
-      const resolvedErrors = todayErrors.filter(e => e.resolved).length;
+      const resolvedErrors = todayErrors.filter((e: any) => e.resolved).length;
 
       await db.errorMetrics.upsert({
         where: { date: today },
@@ -522,7 +522,7 @@ export class ErrorMonitoring {
           resolvedErrors
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[ERROR_MONITORING] Failed to update daily metrics:', error);
     }
   }

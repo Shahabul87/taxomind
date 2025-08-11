@@ -5,7 +5,7 @@
  * for cognitive performance across courses, programs, and institutions.
  */
 
-import { BloomsLevel, QuestionType, Difficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 
 export interface BenchmarkingScope {
   scopeType: 'course' | 'program' | 'department' | 'institution' | 'system';
@@ -124,7 +124,7 @@ export interface ActionItem {
 export interface PerformanceComparison {
   overallRankings: EntityRanking[];
   bloomsLevelComparison: BloomsLevelComparison;
-  difficultyComparison: DifficultyComparison;
+  difficultyComparison: QuestionDifficultyComparison;
   efficiencyComparison: EfficiencyComparison;
   qualityComparison: QualityComparison;
   progressionComparison: ProgressionComparison;
@@ -291,14 +291,14 @@ export interface SystemicIssue {
   systemLevelActions: string[];
 }
 
-export interface DifficultyComparison {
-  difficultyCalibration: DifficultyCalibration;
-  difficultyProgression: DifficultyProgressionComparison;
-  difficultyAlignment: DifficultyAlignment;
-  difficultyEffectiveness: DifficultyEffectiveness;
+export interface QuestionDifficultyComparison {
+  difficultyCalibration: QuestionDifficultyCalibration;
+  difficultyProgression: QuestionDifficultyProgressionComparison;
+  difficultyAlignment: QuestionDifficultyAlignment;
+  difficultyEffectiveness: QuestionDifficultyEffectiveness;
 }
 
-export interface DifficultyCalibration {
+export interface QuestionDifficultyCalibration {
   calibrationAccuracy: Record<string, number>;
   calibrationConsistency: Record<string, number>;
   studentPerceptionAlignment: Record<string, number>;
@@ -307,36 +307,36 @@ export interface DifficultyCalibration {
 
 export interface CalibrationAdjustment {
   entityId: string;
-  currentLevel: Difficulty;
-  recommendedLevel: Difficulty;
+  currentLevel: QuestionDifficulty;
+  recommendedLevel: QuestionDifficulty;
   rationale: string;
   expectedImpact: number;
 }
 
-export interface DifficultyProgressionComparison {
+export interface QuestionDifficultyProgressionComparison {
   progressionQuality: Record<string, number>;
   scaffoldingEffectiveness: Record<string, number>;
-  leapDetection: DifficultyLeap[];
+  leapDetection: QuestionDifficultyLeap[];
   smoothnessScore: Record<string, number>;
 }
 
-export interface DifficultyLeap {
-  fromLevel: Difficulty;
-  toLevel: Difficulty;
+export interface QuestionDifficultyLeap {
+  fromLevel: QuestionDifficulty;
+  toLevel: QuestionDifficulty;
   leapMagnitude: number;
   affectedEntities: string[];
   studentImpact: number;
   mitigationNeeded: boolean;
 }
 
-export interface DifficultyAlignment {
+export interface QuestionDifficultyAlignment {
   learningObjectiveAlignment: Record<string, number>;
   instructionalAlignment: Record<string, number>;
   assessmentAlignment: Record<string, number>;
   overallAlignment: Record<string, number>;
 }
 
-export interface DifficultyEffectiveness {
+export interface QuestionDifficultyEffectiveness {
   learningEffectiveness: Record<string, number>;
   engagementEffectiveness: Record<string, number>;
   retentionEffectiveness: Record<string, number>;
@@ -522,7 +522,7 @@ export interface OverloadTrigger {
   frequency: number;
   severity: number;
   predictability: number;
-  mitigationDifficulty: 'low' | 'medium' | 'high';
+  mitigationQuestionDifficulty: 'low' | 'medium' | 'high';
 }
 
 export interface RecoveryStrategy {

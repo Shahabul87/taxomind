@@ -49,6 +49,7 @@ export async function POST(
     // Create new like
     await db.groupDiscussionLike.create({
       data: {
+        id: crypto.randomUUID(),
         discussionId: params.discussionId,
         userId: session.user.id,
       },

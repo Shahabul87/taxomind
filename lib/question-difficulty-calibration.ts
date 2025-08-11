@@ -1,15 +1,15 @@
 /**
- * Question Difficulty Auto-Calibration System
+ * Question QuestionDifficulty Auto-Calibration System
  * 
  * This module automatically calibrates question difficulty based on student
  * performance data, ensuring optimal challenge levels within each Bloom's taxonomy level.
  */
 
-import { BloomsLevel, QuestionType, Difficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 
 export interface QuestionCalibrationData {
   questionId: string;
-  currentDifficulty: Difficulty;
+  currentQuestionDifficulty: QuestionDifficulty;
   bloomsLevel: BloomsLevel;
   questionType: QuestionType;
   cognitiveLoad: number;
@@ -50,8 +50,8 @@ export interface ContextualFactor {
 
 export interface CalibrationEvent {
   timestamp: Date;
-  oldDifficulty: Difficulty;
-  newDifficulty: Difficulty;
+  oldQuestionDifficulty: QuestionDifficulty;
+  newQuestionDifficulty: QuestionDifficulty;
   reason: string;
   confidence: number; // 0-1
   dataPointsUsed: number;
@@ -61,8 +61,8 @@ export interface CalibrationEvent {
 
 export interface CalibrationResult {
   questionId: string;
-  recommendedDifficulty: Difficulty;
-  currentDifficulty: Difficulty;
+  recommendedQuestionDifficulty: QuestionDifficulty;
+  currentQuestionDifficulty: QuestionDifficulty;
   calibrationConfidence: number; // 0-1
   evidenceStrength: number; // 0-1
   calibrationReason: string;
@@ -87,7 +87,7 @@ export interface AlternativeAdjustment {
   reasoning: string;
 }
 
-export interface DifficultyModel {
+export interface QuestionDifficultyModel {
   modelId: string;
   bloomsLevel: BloomsLevel;
   modelType: 'irt_2pl' | 'irt_3pl' | 'rasch' | 'neural_network' | 'ensemble';
@@ -111,7 +111,7 @@ export interface CalibrationCurve {
   abilityLevels: number[]; // Student ability points
   successProbabilities: number[]; // P(correct) at each ability level
   confidenceIntervals: [number, number][]; // CI for each point
-  optimalDifficultyPoint: number; // Ability level for 50% success
+  optimalQuestionDifficultyPoint: number; // Ability level for 50% success
 }
 
 export interface ValidationMetrics {
@@ -146,9 +146,9 @@ export interface AdaptiveThreshold {
   maxCognitiveLoad: number;
 }
 
-export class QuestionDifficultyCalibrator {
-  private static instance: QuestionDifficultyCalibrator;
-  private models: Map<BloomsLevel, DifficultyModel>;
+export class QuestionQuestionDifficultyCalibrator {
+  private static instance: QuestionQuestionDifficultyCalibrator;
+  private models: Map<BloomsLevel, QuestionDifficultyModel>;
   private calibrationHistory: Map<string, CalibrationEvent[]>;
   private config: CalibrationConfig;
   
@@ -159,11 +159,11 @@ export class QuestionDifficultyCalibrator {
     this.initializeModels();
   }
   
-  public static getInstance(): QuestionDifficultyCalibrator {
-    if (!QuestionDifficultyCalibrator.instance) {
-      QuestionDifficultyCalibrator.instance = new QuestionDifficultyCalibrator();
+  public static getInstance(): QuestionQuestionDifficultyCalibrator {
+    if (!QuestionQuestionDifficultyCalibrator.instance) {
+      QuestionQuestionDifficultyCalibrator.instance = new QuestionQuestionDifficultyCalibrator();
     }
-    return QuestionDifficultyCalibrator.instance;
+    return QuestionQuestionDifficultyCalibrator.instance;
   }
 
   /**
@@ -182,14 +182,14 @@ export class QuestionDifficultyCalibrator {
     }
 
     // Calculate current difficulty metrics
-    const currentMetrics = this.calculateDifficultyMetrics(calibrationData);
+    const currentMetrics = this.calculateQuestionDifficultyMetrics(calibrationData);
     
     // Apply calibration model
     const modelResult = await this.applyCalibrationModel(model, calibrationData, currentMetrics);
     
     // Determine recommended difficulty
-    const recommendedDifficulty = this.determineDifficultyLevel(
-      modelResult.estimatedDifficulty,
+    const recommendedQuestionDifficulty = this.determineQuestionDifficultyLevel(
+      modelResult.estimatedQuestionDifficulty,
       calibrationData.bloomsLevel
     );
     
@@ -198,8 +198,8 @@ export class QuestionDifficultyCalibrator {
     
     // Assess expected impact
     const expectedImpact = this.assessCalibrationImpact(
-      calibrationData.currentDifficulty,
-      recommendedDifficulty,
+      calibrationData.currentQuestionDifficulty,
+      recommendedQuestionDifficulty,
       currentMetrics
     );
     
@@ -208,19 +208,19 @@ export class QuestionDifficultyCalibrator {
     
     // Determine implementation priority
     const priority = this.determineImplementationPriority(
-      calibrationData.currentDifficulty,
-      recommendedDifficulty,
+      calibrationData.currentQuestionDifficulty,
+      recommendedQuestionDifficulty,
       confidence,
       expectedImpact
     );
 
     const result: CalibrationResult = {
       questionId: calibrationData.questionId,
-      recommendedDifficulty,
-      currentDifficulty: calibrationData.currentDifficulty,
+      recommendedQuestionDifficulty,
+      currentQuestionDifficulty: calibrationData.currentQuestionDifficulty,
       calibrationConfidence: confidence,
       evidenceStrength: this.calculateEvidenceStrength(calibrationData),
-      calibrationReason: this.generateCalibrationReason(calibrationData, currentMetrics, recommendedDifficulty),
+      calibrationReason: this.generateCalibrationReason(calibrationData, currentMetrics, recommendedQuestionDifficulty),
       expectedImpact,
       implementationPriority: priority,
       alternativeAdjustments: alternatives
@@ -268,7 +268,7 @@ export class QuestionDifficultyCalibrator {
   public async updateCalibrationModel(
     bloomsLevel: BloomsLevel,
     newData: QuestionCalibrationData[]
-  ): Promise<DifficultyModel> {
+  ): Promise<QuestionDifficultyModel> {
     
     const currentModel = this.models.get(bloomsLevel);
     if (!currentModel) {
@@ -297,34 +297,34 @@ export class QuestionDifficultyCalibrator {
   /**
    * Get difficulty recommendations for new questions
    */
-  public async recommendInitialDifficulty(
+  public async recommendInitialQuestionDifficulty(
     bloomsLevel: BloomsLevel,
     questionType: QuestionType,
     cognitiveLoad: number,
     contentComplexity: number = 0.5
   ): Promise<{
-    recommendedDifficulty: Difficulty;
+    recommendedQuestionDifficulty: QuestionDifficulty;
     confidence: number;
     reasoning: string;
   }> {
     
     const model = this.models.get(bloomsLevel);
     if (!model) {
-      return this.getDefaultDifficultyRecommendation(bloomsLevel);
+      return this.getDefaultQuestionDifficultyRecommendation(bloomsLevel);
     }
 
     // Estimate difficulty based on question characteristics
-    const estimatedDifficulty = this.estimateDifficultyFromCharacteristics(
+    const estimatedQuestionDifficulty = this.estimateQuestionDifficultyFromCharacteristics(
       bloomsLevel,
       questionType,
       cognitiveLoad,
       contentComplexity
     );
 
-    const recommendedDifficulty = this.determineDifficultyLevel(estimatedDifficulty, bloomsLevel);
+    const recommendedQuestionDifficulty = this.determineQuestionDifficultyLevel(estimatedQuestionDifficulty, bloomsLevel);
     
     return {
-      recommendedDifficulty,
+      recommendedQuestionDifficulty,
       confidence: 0.7, // Lower confidence for new questions
       reasoning: `Based on ${bloomsLevel} level, ${questionType} format, and cognitive load ${cognitiveLoad}`
     };
@@ -365,11 +365,11 @@ export class QuestionDifficultyCalibrator {
     return false;
   }
 
-  private calculateDifficultyMetrics(data: QuestionCalibrationData): any {
+  private calculateQuestionDifficultyMetrics(data: QuestionCalibrationData): any {
     const metrics = data.performanceMetrics;
     
     return {
-      actualDifficulty: 1 - metrics.successRate,
+      actualQuestionDifficulty: 1 - metrics.successRate,
       timeComplexity: this.normalizeTime(metrics.averageTime, data.bloomsLevel),
       discriminationQuality: metrics.discriminationIndex,
       cognitiveLoadAlignment: this.assessCognitiveLoadAlignment(data),
@@ -379,7 +379,7 @@ export class QuestionDifficultyCalibrator {
   }
 
   private async applyCalibrationModel(
-    model: DifficultyModel,
+    model: QuestionDifficultyModel,
     data: QuestionCalibrationData,
     metrics: any
   ): Promise<any> {
@@ -400,27 +400,27 @@ export class QuestionDifficultyCalibrator {
     }
   }
 
-  private applyIRT2PL(model: DifficultyModel, data: QuestionCalibrationData, metrics: any): any {
+  private applyIRT2PL(model: QuestionDifficultyModel, data: QuestionCalibrationData, metrics: any): any {
     // Item Response Theory 2-Parameter Logistic Model
     const a = model.parameters.discriminationParameter || 1.0; // Discrimination
-    const b = model.parameters.difficultyParameter || 0.0; // Difficulty
+    const b = model.parameters.difficultyParameter || 0.0; // QuestionDifficulty
     
     // Calculate optimal difficulty based on current performance
     const targetSuccessRate = this.getOptimalSuccessRate(data.bloomsLevel);
     
     // Inverse logistic function to find required difficulty parameter
     const logOdds = Math.log(targetSuccessRate / (1 - targetSuccessRate));
-    const requiredDifficulty = -logOdds / a;
+    const requiredQuestionDifficulty = -logOdds / a;
     
     return {
-      estimatedDifficulty: requiredDifficulty,
+      estimatedQuestionDifficulty: requiredQuestionDifficulty,
       discrimination: a,
       modelFit: this.calculateIRTFit(data, a, b),
       confidence: 0.85
     };
   }
 
-  private applyIRT3PL(model: DifficultyModel, data: QuestionCalibrationData, metrics: any): any {
+  private applyIRT3PL(model: QuestionDifficultyModel, data: QuestionCalibrationData, metrics: any): any {
     // Item Response Theory 3-Parameter Logistic Model (includes guessing)
     const a = model.parameters.discriminationParameter || 1.0;
     const b = model.parameters.difficultyParameter || 0.0;
@@ -431,10 +431,10 @@ export class QuestionDifficultyCalibrator {
     const targetSuccessRate = this.getOptimalSuccessRate(data.bloomsLevel);
     
     const logOdds = Math.log((targetSuccessRate - c) / (1 - targetSuccessRate));
-    const requiredDifficulty = -logOdds / a;
+    const requiredQuestionDifficulty = -logOdds / a;
     
     return {
-      estimatedDifficulty: requiredDifficulty,
+      estimatedQuestionDifficulty: requiredQuestionDifficulty,
       discrimination: a,
       guessing: c,
       modelFit: this.calculateIRTFit(data, a, b, c),
@@ -442,45 +442,45 @@ export class QuestionDifficultyCalibrator {
     };
   }
 
-  private applyRaschModel(model: DifficultyModel, data: QuestionCalibrationData, metrics: any): any {
+  private applyRaschModel(model: QuestionDifficultyModel, data: QuestionCalibrationData, metrics: any): any {
     // Rasch Model (1-Parameter IRT)
     const targetSuccessRate = this.getOptimalSuccessRate(data.bloomsLevel);
     
     // Simple logistic model
     const logOdds = Math.log(targetSuccessRate / (1 - targetSuccessRate));
-    const requiredDifficulty = -logOdds;
+    const requiredQuestionDifficulty = -logOdds;
     
     return {
-      estimatedDifficulty: requiredDifficulty,
+      estimatedQuestionDifficulty: requiredQuestionDifficulty,
       modelFit: this.calculateRaschFit(data),
       confidence: 0.8
     };
   }
 
-  private applyNeuralNetwork(model: DifficultyModel, data: QuestionCalibrationData, metrics: any): any {
+  private applyNeuralNetwork(model: QuestionDifficultyModel, data: QuestionCalibrationData, metrics: any): any {
     // Neural network prediction (simplified)
     const features = this.extractFeatures(data, metrics);
     const prediction = this.neuralNetworkPredict(model.parameters.weights || [], features);
     
     return {
-      estimatedDifficulty: prediction,
+      estimatedQuestionDifficulty: prediction,
       features,
       modelFit: 0.85,
       confidence: 0.88
     };
   }
 
-  private applyEnsembleModel(model: DifficultyModel, data: QuestionCalibrationData, metrics: any): any {
+  private applyEnsembleModel(model: QuestionDifficultyModel, data: QuestionCalibrationData, metrics: any): any {
     // Ensemble of multiple models
     const irtResult = this.applyIRT2PL(model, data, metrics);
     const raschResult = this.applyRaschModel(model, data, metrics);
     
     const ensembleWeights = model.parameters.ensembleWeights || [0.6, 0.4];
-    const weightedDifficulty = irtResult.estimatedDifficulty * ensembleWeights[0] + 
-                              raschResult.estimatedDifficulty * ensembleWeights[1];
+    const weightedQuestionDifficulty = irtResult.estimatedQuestionDifficulty * ensembleWeights[0] + 
+                              raschResult.estimatedQuestionDifficulty * ensembleWeights[1];
     
     return {
-      estimatedDifficulty: weightedDifficulty,
+      estimatedQuestionDifficulty: weightedQuestionDifficulty,
       componentResults: { irt: irtResult, rasch: raschResult },
       modelFit: Math.max(irtResult.modelFit, raschResult.modelFit),
       confidence: 0.92
@@ -495,13 +495,13 @@ export class QuestionDifficultyCalibrator {
     const difficultyAdjustment = targetSuccess - currentSuccess;
     
     return {
-      estimatedDifficulty: metrics.actualDifficulty + difficultyAdjustment,
+      estimatedQuestionDifficulty: metrics.actualQuestionDifficulty + difficultyAdjustment,
       modelFit: 0.7,
       confidence: 0.75
     };
   }
 
-  private determineDifficultyLevel(estimatedDifficulty: number, bloomsLevel: BloomsLevel): Difficulty {
+  private determineQuestionDifficultyLevel(estimatedQuestionDifficulty: number, bloomsLevel: BloomsLevel): QuestionDifficulty {
     // Map continuous difficulty to discrete levels
     const baseThresholds = {
       REMEMBER: { easy: 0.2, medium: 0.5, hard: 0.8 },
@@ -514,8 +514,8 @@ export class QuestionDifficultyCalibrator {
     
     const thresholds = baseThresholds[bloomsLevel];
     
-    if (estimatedDifficulty <= thresholds.easy) return 'easy';
-    if (estimatedDifficulty <= thresholds.medium) return 'medium';
+    if (estimatedQuestionDifficulty <= thresholds.easy) return 'easy';
+    if (estimatedQuestionDifficulty <= thresholds.medium) return 'medium';
     return 'hard';
   }
 
@@ -528,13 +528,13 @@ export class QuestionDifficultyCalibrator {
   }
 
   private assessCalibrationImpact(
-    currentDifficulty: Difficulty,
-    newDifficulty: Difficulty,
+    currentQuestionDifficulty: QuestionDifficulty,
+    newQuestionDifficulty: QuestionDifficulty,
     metrics: any
   ): CalibrationImpact {
     
     const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
-    const change = difficultyOrder[newDifficulty] - difficultyOrder[currentDifficulty];
+    const change = difficultyOrder[newQuestionDifficulty] - difficultyOrder[currentQuestionDifficulty];
     
     // Estimate impact based on difficulty change
     const baseImpact = Math.abs(change) * 0.1;
@@ -588,13 +588,13 @@ export class QuestionDifficultyCalibrator {
   }
 
   private determineImplementationPriority(
-    currentDifficulty: Difficulty,
-    newDifficulty: Difficulty,
+    currentQuestionDifficulty: QuestionDifficulty,
+    newQuestionDifficulty: QuestionDifficulty,
     confidence: number,
     impact: CalibrationImpact
   ): 'immediate' | 'high' | 'medium' | 'low' {
     
-    if (currentDifficulty === newDifficulty) return 'low';
+    if (currentQuestionDifficulty === newQuestionDifficulty) return 'low';
     
     const urgencyScore = confidence * Math.abs(impact.overallEffectivenessChange);
     
@@ -770,10 +770,10 @@ export class QuestionDifficultyCalibrator {
   private generateCalibrationReason(
     data: QuestionCalibrationData,
     metrics: any,
-    recommendedDifficulty: Difficulty
+    recommendedQuestionDifficulty: QuestionDifficulty
   ): string {
     
-    if (data.currentDifficulty === recommendedDifficulty) {
+    if (data.currentQuestionDifficulty === recommendedQuestionDifficulty) {
       return 'Current difficulty level is optimal based on performance data';
     }
     
@@ -792,8 +792,8 @@ export class QuestionDifficultyCalibrator {
   private createNoChangeResult(data: QuestionCalibrationData): CalibrationResult {
     return {
       questionId: data.questionId,
-      recommendedDifficulty: data.currentDifficulty,
-      currentDifficulty: data.currentDifficulty,
+      recommendedQuestionDifficulty: data.currentQuestionDifficulty,
+      currentQuestionDifficulty: data.currentQuestionDifficulty,
       calibrationConfidence: 0.9,
       evidenceStrength: 0.5,
       calibrationReason: 'Insufficient data or no calibration needed',
@@ -816,8 +816,8 @@ export class QuestionDifficultyCalibrator {
     
     const event: CalibrationEvent = {
       timestamp: new Date(),
-      oldDifficulty: result.currentDifficulty,
-      newDifficulty: result.recommendedDifficulty,
+      oldQuestionDifficulty: result.currentQuestionDifficulty,
+      newQuestionDifficulty: result.recommendedQuestionDifficulty,
       reason: result.calibrationReason,
       confidence: result.calibrationConfidence,
       dataPointsUsed: 0, // Would be calculated from actual data
@@ -845,7 +845,7 @@ export class QuestionDifficultyCalibrator {
     const bloomsLevels: BloomsLevel[] = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
     
     bloomsLevels.forEach(level => {
-      const model: DifficultyModel = {
+      const model: QuestionDifficultyModel = {
         modelId: `difficulty_model_${level.toLowerCase()}`,
         bloomsLevel: level,
         modelType: 'ensemble',
@@ -878,7 +878,7 @@ export class QuestionDifficultyCalibrator {
       abilityLevels,
       successProbabilities,
       confidenceIntervals,
-      optimalDifficultyPoint: 0.5
+      optimalQuestionDifficultyPoint: 0.5
     };
   }
 
@@ -954,7 +954,7 @@ export class QuestionDifficultyCalibrator {
     };
   }
 
-  private estimateDifficultyFromCharacteristics(
+  private estimateQuestionDifficultyFromCharacteristics(
     bloomsLevel: BloomsLevel,
     questionType: QuestionType,
     cognitiveLoad: number,
@@ -971,7 +971,7 @@ export class QuestionDifficultyCalibrator {
       CREATE: 0.7
     };
     
-    let estimatedDifficulty = baseValues[bloomsLevel];
+    let estimatedQuestionDifficulty = baseValues[bloomsLevel];
     
     // Adjust for question type
     const typeAdjustments = {
@@ -982,34 +982,34 @@ export class QuestionDifficultyCalibrator {
       FILL_IN_THE_BLANK: -0.05
     };
     
-    estimatedDifficulty += typeAdjustments[questionType] || 0;
+    estimatedQuestionDifficulty += typeAdjustments[questionType] || 0;
     
     // Adjust for cognitive load
-    estimatedDifficulty += (cognitiveLoad - 3) * 0.05;
+    estimatedQuestionDifficulty += (cognitiveLoad - 3) * 0.05;
     
     // Adjust for content complexity
-    estimatedDifficulty += (contentComplexity - 0.5) * 0.2;
+    estimatedQuestionDifficulty += (contentComplexity - 0.5) * 0.2;
     
-    return Math.max(0, Math.min(1, estimatedDifficulty));
+    return Math.max(0, Math.min(1, estimatedQuestionDifficulty));
   }
 
-  private getDefaultDifficultyRecommendation(bloomsLevel: BloomsLevel): {
-    recommendedDifficulty: Difficulty;
+  private getDefaultQuestionDifficultyRecommendation(bloomsLevel: BloomsLevel): {
+    recommendedQuestionDifficulty: QuestionDifficulty;
     confidence: number;
     reasoning: string;
   } {
     
     const defaults = {
-      REMEMBER: 'easy' as Difficulty,
-      UNDERSTAND: 'easy' as Difficulty,
-      APPLY: 'medium' as Difficulty,
-      ANALYZE: 'medium' as Difficulty,
-      EVALUATE: 'hard' as Difficulty,
-      CREATE: 'hard' as Difficulty
+      REMEMBER: 'easy' as QuestionDifficulty,
+      UNDERSTAND: 'easy' as QuestionDifficulty,
+      APPLY: 'medium' as QuestionDifficulty,
+      ANALYZE: 'medium' as QuestionDifficulty,
+      EVALUATE: 'hard' as QuestionDifficulty,
+      CREATE: 'hard' as QuestionDifficulty
     };
     
     return {
-      recommendedDifficulty: defaults[bloomsLevel],
+      recommendedQuestionDifficulty: defaults[bloomsLevel],
       confidence: 0.6,
       reasoning: `Default difficulty for ${bloomsLevel} level questions`
     };
@@ -1020,19 +1020,19 @@ export class QuestionDifficultyCalibrator {
     return data; // Simplified
   }
 
-  private async retrainModel(model: DifficultyModel, trainingData: any): Promise<DifficultyModel> {
+  private async retrainModel(model: QuestionDifficultyModel, trainingData: any): Promise<QuestionDifficultyModel> {
     // Model retraining logic would go here
     return { ...model, lastUpdated: new Date() };
   }
 
-  private async validateModel(model: DifficultyModel, data: any): Promise<ValidationMetrics> {
+  private async validateModel(model: QuestionDifficultyModel, data: any): Promise<ValidationMetrics> {
     // Model validation logic would go here
     return model.validationMetrics;
   }
 
-  private isModelImproved(oldModel: DifficultyModel, newModel: DifficultyModel): boolean {
+  private isModelImproved(oldModel: QuestionDifficultyModel, newModel: QuestionDifficultyModel): boolean {
     return newModel.validationMetrics.accuracy > oldModel.validationMetrics.accuracy;
   }
 }
 
-export default QuestionDifficultyCalibrator;
+export default QuestionQuestionDifficultyCalibrator;

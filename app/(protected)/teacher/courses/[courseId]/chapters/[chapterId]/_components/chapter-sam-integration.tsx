@@ -28,8 +28,8 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
   useEffect(() => {
     // Inject chapter-specific context into Enhanced SAM
     updateContext({
-      serverData: {
-        entityType: 'chapter',
+      entityType: 'chapter',
+      contextData: {
         entityId: chapterId,
         entityData: {
           id: chapter.id,
@@ -57,16 +57,16 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
           canDelete: true,
           canPublish: !chapter.isPublished,
           canUnpublish: chapter.isPublished,
+        },
+        metadata: {
+          capabilities: [
+            'update-chapter-details',
+            'generate-learning-outcomes',
+            'create-sections',
+            'manage-access',
+            'publish-chapter'
+          ]
         }
-      },
-      metadata: {
-        capabilities: [
-          'update-chapter-details',
-          'generate-learning-outcomes',
-          'create-sections',
-          'manage-access',
-          'publish-chapter'
-        ]
       }
     });
     

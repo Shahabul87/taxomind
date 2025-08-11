@@ -579,7 +579,9 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
                     {['Specific', 'Measurable', 'Achievable', 'Relevant', 'Time-bound'].map((criterion, idx) => {
                       const avgScore = analysisData.objectivesAnalysis.reduce((acc, obj) => {
                         const key = criterion.toLowerCase().replace('-', '') as keyof typeof obj.smartCriteria;
-                        return acc + (obj.smartCriteria?.[key]?.score || 0);
+                        const criteriaItem = obj.smartCriteria?.[key];
+                        const score = criteriaItem && typeof criteriaItem === 'object' && 'score' in criteriaItem ? (criteriaItem as any).score : 0;
+                        return acc + (score || 0);
                       }, 0) / (analysisData.objectivesAnalysis.length || 1);
                       
                       return (

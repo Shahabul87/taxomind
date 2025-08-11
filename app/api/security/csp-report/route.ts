@@ -306,9 +306,8 @@ export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
 }
 
 /**
- * Export route handlers
+ * Route handlers are exported directly above
  */
-export { POST as post, GET as get, OPTIONS as options };
 
 /**
  * Route configuration

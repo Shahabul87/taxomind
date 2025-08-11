@@ -24,9 +24,9 @@ export interface RecommendationResult {
   estimatedTime: number;
 }
 
-export interface DifficultyPrediction {
+export interface QuestionDifficultyPrediction {
   contentId: string;
-  predictedDifficulty: number;
+  predictedQuestionDifficulty: number;
   confidence: number;
   factors: string[];
   recommendation: string;
@@ -52,7 +52,7 @@ export class MLPredictionService {
       
       this.initialized = true;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize ML Prediction Service:', error);
       throw error;
     }
@@ -92,17 +92,17 @@ export class MLPredictionService {
       });
 
       return recommendations;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get content recommendations:', error);
       return this.getFallbackRecommendations(userId, limit);
     }
   }
 
   // Predict content difficulty for a user
-  async predictContentDifficulty(
+  async predictContentQuestionDifficulty(
     userId: string,
     contentId: string
-  ): Promise<DifficultyPrediction> {
+  ): Promise<QuestionDifficultyPrediction> {
     try {
       const cacheKey = `predictions:difficulty:${userId}:${contentId}`;
       
@@ -119,7 +119,7 @@ export class MLPredictionService {
       ]);
 
       // Predict difficulty
-      const prediction = await this.generateDifficultyPrediction(
+      const prediction = await this.generateQuestionDifficultyPrediction(
         userSkills,
         contentFeatures
       );
@@ -137,9 +137,9 @@ export class MLPredictionService {
       });
 
       return prediction;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to predict content difficulty:', error);
-      return this.getFallbackDifficultyPrediction(contentId);
+      return this.getFallbackQuestionDifficultyPrediction(contentId);
     }
   }
 
@@ -175,7 +175,7 @@ export class MLPredictionService {
       });
 
       return learningPath;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to predict learning path:', error);
       return this.getFallbackLearningPath(targetSkills);
     }
@@ -212,7 +212,7 @@ export class MLPredictionService {
       await redis.setex(cacheKey, 1800, engagementScore.toString());
 
       return engagementScore;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to predict engagement:', error);
       return 0.75; // Default engagement score
     }
@@ -240,7 +240,7 @@ export class MLPredictionService {
         achievements,
         timestamp: new Date()
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get real-time insights:', error);
       return this.getFallbackInsights(userId);
     }
@@ -261,7 +261,7 @@ export class MLPredictionService {
           modelsLoaded: this.mlPipeline ? this.mlPipeline.getAllModels().length : 0
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'error',
         details: { error: error.message }
@@ -335,10 +335,10 @@ export class MLPredictionService {
     };
   }
 
-  private async generateDifficultyPrediction(
+  private async generateQuestionDifficultyPrediction(
     userSkills: any,
     contentFeatures: any
-  ): Promise<DifficultyPrediction> {
+  ): Promise<QuestionDifficultyPrediction> {
     const difficulty = Math.max(
       0,
       contentFeatures.complexity - userSkills.overall + Math.random() * 2
@@ -346,7 +346,7 @@ export class MLPredictionService {
 
     return {
       contentId: 'content_id',
-      predictedDifficulty: Math.min(difficulty, 10),
+      predictedQuestionDifficulty: Math.min(difficulty, 10),
       confidence: Math.random() * 0.3 + 0.7,
       factors: ['user skill level', 'content complexity', 'prerequisites'],
       recommendation: difficulty > 7 ? 'Consider easier content first' : 'Good match for your level'
@@ -436,7 +436,7 @@ export class MLPredictionService {
     try {
       await redis.lpush('ml:predictions:recent', JSON.stringify(prediction));
       await redis.ltrim('ml:predictions:recent', 0, 999); // Keep last 1000
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to log prediction:', error);
     }
   }
@@ -475,10 +475,10 @@ export class MLPredictionService {
     return fallback;
   }
 
-  private getFallbackDifficultyPrediction(contentId: string): DifficultyPrediction {
+  private getFallbackQuestionDifficultyPrediction(contentId: string): QuestionDifficultyPrediction {
     return {
       contentId,
-      predictedDifficulty: 5,
+      predictedQuestionDifficulty: 5,
       confidence: 0.6,
       factors: ['average difficulty'],
       recommendation: 'Standard difficulty level'

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 // A simplified endpoint specifically for nested reply reactions
 export async function POST(req: NextRequest) {
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     // Authenticate the user
     const user = await currentUser();
-    if (!user) {
+    if (!user || !user.id) {
 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -84,9 +85,15 @@ export async function POST(req: NextRequest) {
         // Create new reaction
         const newReaction = await tx.reaction.create({
           data: {
+            id: randomUUID(),
             type,
-            userId: user.id,
             replyId,
+            updatedAt: new Date(),
+            user: {
+              connect: {
+                id: user.id
+              }
+            }
           },
         });
 
@@ -98,7 +105,7 @@ export async function POST(req: NextRequest) {
           id: replyId,
         },
         include: {
-          reactions: {
+          Reaction: {
             include: {
               user: {
                 select: {

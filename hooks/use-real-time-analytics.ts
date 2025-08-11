@@ -221,7 +221,7 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
     } catch (err) {
       logger.error('Failed to initialize WebSocket:', err);
     }
-  }, [enableWebSocket, session, courseId]);
+  }, [enableWebSocket, session]);
 
   // Resolve alert
   const resolveAlert = useCallback(async (alertId: string) => {
@@ -294,8 +294,9 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
 
     return () => {
       stopAutoRefresh();
-      if (wsRef.current) {
-        wsRef.current.close();
+      const ws = wsRef.current;
+      if (ws) {
+        ws.close();
       }
     };
   }, [refreshAll, initializeWebSocket, enableWebSocket, stopAutoRefresh]);
@@ -315,8 +316,9 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
   useEffect(() => {
     return () => {
       stopAutoRefresh();
-      if (wsRef.current) {
-        wsRef.current.close();
+      const ws = wsRef.current;
+      if (ws) {
+        ws.close();
       }
     };
   }, [stopAutoRefresh]);

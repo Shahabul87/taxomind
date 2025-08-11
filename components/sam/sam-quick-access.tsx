@@ -9,7 +9,7 @@ import {
   Brain, 
   FileText, 
   BookOpen,
-  ChartBar,
+  BarChart3,
   ArrowRight
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -73,7 +73,7 @@ export function SAMQuickAccess({
     },
     {
       title: 'My Progress',
-      icon: ChartBar,
+      icon: BarChart3,
       description: 'Learning dashboard',
       action: () => {
         toast({

@@ -60,7 +60,7 @@ export class EventTrackingService {
       // Track user activity
       await this.trackUserActivity(userId, dayKey);
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to track event:', error);
       // Don't throw to avoid breaking user experience
     }
@@ -69,7 +69,7 @@ export class EventTrackingService {
   // Store event in database
   private async storeInDatabase(event: AnalyticsEvent): Promise<void> {
     try {
-      await db.studentInteraction.create({
+      await db.sAMInteraction.create({
         data: {
           studentId: event.userId!,
           interactionType: event.eventType,
@@ -79,7 +79,7 @@ export class EventTrackingService {
           metadata: event.metadata
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to store event in database:', error);
       // Continue with Redis tracking even if DB fails
     }
@@ -110,7 +110,7 @@ export class EventTrackingService {
       
       await redis.lpush('analytics:recent_events', eventJson);
       await redis.ltrim('analytics:recent_events', 0, 999); // Keep last 1000 events
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update Redis metrics:', error);
     }
   }
@@ -124,7 +124,7 @@ export class EventTrackingService {
 
       // Update user's last activity
       await redis.hset('analytics:user_activity', userId, Date.now().toString());
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to track user activity:', error);
     }
   }
@@ -160,7 +160,7 @@ export class EventTrackingService {
         eventTypes: eventTypesConverted,
         activeUsers
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get event stats:', error);
       return {
         totalEvents: 0,
@@ -181,7 +181,7 @@ export class EventTrackingService {
           return null;
         }
       }).filter(Boolean);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get recent events:', error);
       return [];
     }
@@ -203,7 +203,7 @@ export class EventTrackingService {
     }, {
       metadata: {
         category: 'learning',
-        course: courseId
+        Course: courseId
       }
     });
   }
@@ -252,7 +252,7 @@ export class EventTrackingService {
         await redis.del(`analytics:active_users:${oldDateKey}`);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to cleanup analytics data:', error);
     }
   }

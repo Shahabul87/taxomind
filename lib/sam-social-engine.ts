@@ -1559,9 +1559,8 @@ export class SAMSocialEngine {
       data: {
         groupId,
         analysisType: 'effectiveness',
-        metrics: JSON.stringify(score),
-        overallScore: score.overall,
-        analyzedAt: new Date()
+        metrics: score as any,
+        overallScore: score.overall
       }
     });
   }
@@ -1571,9 +1570,8 @@ export class SAMSocialEngine {
       data: {
         communityId,
         analysisType: 'engagement',
-        metrics: JSON.stringify(metrics),
-        overallScore: metrics.participationRate,
-        analyzedAt: new Date()
+        metrics: metrics as any,
+        overallScore: metrics.participationRate
       }
     });
   }
@@ -1582,9 +1580,8 @@ export class SAMSocialEngine {
     await db.socialLearningAnalysis.create({
       data: {
         analysisType: 'knowledge-sharing',
-        metrics: JSON.stringify(impact),
-        overallScore: impact.knowledgeTransfer,
-        analyzedAt: new Date()
+        metrics: impact as any,
+        overallScore: impact.knowledgeTransfer
       }
     });
   }
@@ -1596,10 +1593,9 @@ export class SAMSocialEngine {
           mentorId: result.mentorId,
           menteeId: result.menteeId,
           compatibilityScore: result.compatibilityScore,
-          matchingFactors: JSON.stringify(result.matchingFactors),
-          suggestedActivities: JSON.stringify(result.suggestedActivities),
-          status: 'proposed',
-          createdAt: new Date()
+          matchingFactors: result.matchingFactors as any,
+          suggestedActivities: result.suggestedActivities as any,
+          status: 'proposed'
         }
       });
     }
@@ -1610,9 +1606,8 @@ export class SAMSocialEngine {
       data: {
         groupId,
         analysisType: 'group-dynamics',
-        metrics: JSON.stringify(analysis),
-        overallScore: analysis.healthScore,
-        analyzedAt: new Date()
+        metrics: analysis as any,
+        overallScore: analysis.healthScore
       }
     });
   }

@@ -77,7 +77,7 @@ export class MarketAnalysisEngine {
     includeRecommendations = true
   ): Promise<MarketAnalysisResponse> {
     // Get course data
-    const course = await db.course.findUnique({
+    const course = await db.Course.findUnique({
       where: { id: courseId },
       include: {
         category: true,
@@ -120,7 +120,7 @@ export class MarketAnalysisEngine {
   }
 
   private async performAnalysis(
-    course: any,
+    Course: any,
     analysisType: string,
     includeRecommendations: boolean
   ): Promise<MarketAnalysisResponse> {
@@ -173,7 +173,7 @@ Focus on ${analysisType} analysis${includeRecommendations ? ' with detailed reco
     return this.parseAnalysisResponse(analysisText, course);
   }
 
-  private buildCourseContext(course: any): string {
+  private buildCourseContext(Course: any): string {
     const totalSections = course.chapters.reduce((sum: number, ch: any) => sum + ch.sections.length, 0);
     const avgRating = this.calculateAverageRating(course.reviews);
     
@@ -204,7 +204,7 @@ ${this.extractTargetSkills(course)}
     return sum / reviews.length;
   }
 
-  private extractTargetSkills(course: any): string {
+  private extractTargetSkills(Course: any): string {
     // Extract skills from course content and structure
     const skills: string[] = [];
     
@@ -218,14 +218,14 @@ ${this.extractTargetSkills(course)}
     return skills.length > 0 ? skills.join(', ') : 'General Skills';
   }
 
-  private parseAnalysisResponse(analysisText: string, course: any): MarketAnalysisResponse {
+  private parseAnalysisResponse(analysisText: string, Course: any): MarketAnalysisResponse {
     try {
       // Try to parse as JSON first
       const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
-    } catch (error) {
+    } catch (error: any) {
       // If JSON parsing fails, extract data manually
     }
 
@@ -309,7 +309,7 @@ ${this.extractTargetSkills(course)}
         name: 'Generic Competitor Course',
         price: 59.99,
         rating: 4.5,
-        enrollments: 10000,
+        Enrollment: 10000,
         strengths: ['Established brand', 'Large student base'],
         weaknesses: ['Less personalized', 'Outdated content'],
         features: ['Video lessons', 'Quizzes', 'Certificate'],
@@ -464,7 +464,7 @@ ${this.extractTargetSkills(course)}
       url: c.competitorUrl || undefined,
       price: c.price,
       rating: c.rating || undefined,
-      enrollments: c.enrollments || undefined,
+      Enrollment: c.Enrollment || undefined,
       strengths: c.strengths as string[],
       weaknesses: c.weaknesses as string[],
       features: c.features as string[],
@@ -482,7 +482,7 @@ ${this.extractTargetSkills(course)}
         competitorUrl: competitorData.url,
         price: competitorData.price || 0,
         rating: competitorData.rating,
-        enrollments: competitorData.enrollments,
+        Enrollment: competitorData.Enrollment,
         features: competitorData.features || [],
         strengths: competitorData.strengths || [],
         weaknesses: competitorData.weaknesses || [],

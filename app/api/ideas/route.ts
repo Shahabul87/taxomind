@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
 
     const idea = await db.idea.create({
       data: {
+        id: randomUUID(),
         title,
         description,
         category,
@@ -22,6 +24,7 @@ export async function POST(req: Request) {
         status,
         tags,
         userId: session.user.id,
+        updatedAt: new Date(),
       },
     });
 
@@ -54,9 +57,9 @@ export async function GET(req: Request) {
       include: {
         _count: {
           select: {
-            ideaLikes: true,
-            ideaComments: true,
-            collaboratorUsers: true,
+            IdeaLike: true,
+            IdeaComment: true,
+            User_IdeaCollaborators: true,
           },
         },
       },

@@ -103,7 +103,7 @@ export class AnalyticsEngine {
       
       this.initialized = true;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize Analytics Engine:', error);
       throw error;
     }
@@ -140,7 +140,7 @@ export class AnalyticsEngine {
         learningPatterns,
         performanceMetrics
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get analytics:', error);
       throw error;
     }
@@ -177,7 +177,7 @@ export class AnalyticsEngine {
       await redis.setex(`analytics:daily:${today}:stats`, 3600, JSON.stringify(dailyStats));
       
       return dailyStats;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get daily stats:', error);
       return this.getDefaultDailyStats(today);
     }
@@ -207,7 +207,7 @@ export class AnalyticsEngine {
       await redis.setex(`analytics:weekly:${weekKey}:stats`, 14400, JSON.stringify(weeklyStats));
       
       return weeklyStats;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get weekly stats:', error);
       return this.getDefaultWeeklyStats(weekKey);
     }
@@ -237,7 +237,7 @@ export class AnalyticsEngine {
       await redis.setex(`analytics:monthly:${monthKey}:stats`, 86400, JSON.stringify(monthlyStats));
       
       return monthlyStats;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get monthly stats:', error);
       return this.getDefaultMonthlyStats(monthKey);
     }
@@ -267,7 +267,7 @@ export class AnalyticsEngine {
         responseTime,
         errorRate
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get real-time metrics:', error);
       return {
         activeUsers: 0,
@@ -294,7 +294,7 @@ export class AnalyticsEngine {
       await redis.setex('analytics:learning_patterns', 7200, JSON.stringify(patterns));
       
       return patterns;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get learning patterns:', error);
       return [];
     }
@@ -320,7 +320,7 @@ export class AnalyticsEngine {
       await redis.setex('analytics:performance_metrics', 3600, JSON.stringify(metrics));
       
       return metrics;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get performance metrics:', error);
       return {
         averageSessionTime: 0,
@@ -352,7 +352,7 @@ export class AnalyticsEngine {
           dbStatus: 'connected'
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'error',
         details: { error: error.message }
@@ -391,7 +391,7 @@ export class AnalyticsEngine {
 
   private async getCompletedLessons(date: string): Promise<number> {
     try {
-      const count = await db.progress.count({
+      const count = await db.user_progress.count({
         where: {
           isCompleted: true,
           updatedAt: {

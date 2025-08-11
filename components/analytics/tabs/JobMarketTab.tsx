@@ -143,7 +143,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
         const welcomeMessage = {
           id: Date.now(),
           type: 'ai',
-          content: `👋 Hi ${user?.name || 'there'}! I'm your AI Career Coach powered by Claude AI. I've analyzed your course portfolio and market data. You're currently at the ${data.context.marketInsights.avgMarketPercentile}th percentile with a $${data.context.marketInsights.avgSalaryPotential.toLocaleString()} salary potential. Let's create a personalized career development plan together!`,
+          content: `👋 Hi ${user?.name || 'there'}! I&apos;m your AI Career Coach powered by Claude AI. I&apos;ve analyzed your course portfolio and market data. You&apos;re currently at the ${data.context.marketInsights.avgMarketPercentile}th percentile with a $${data.context.marketInsights.avgSalaryPotential.toLocaleString()} salary potential. Let&apos;s create a personalized career development plan together!`,
           timestamp: new Date()
         };
         
@@ -158,7 +158,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
         const welcomeMessage = {
           id: Date.now(),
           type: 'ai',
-          content: `👋 Hi ${user?.name || 'there'}! I'm your AI Career Coach. I've analyzed your course portfolio and market data. Let's create a personalized career development plan together!`,
+          content: `👋 Hi ${user?.name || 'there'}! I&apos;m your AI Career Coach. I&apos;ve analyzed your course portfolio and market data. Let&apos;s create a personalized career development plan together!`,
           timestamp: new Date()
         };
         
@@ -175,7 +175,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
       const welcomeMessage = {
         id: Date.now(),
         type: 'ai',
-        content: `👋 Hi ${user?.name || 'there'}! I'm your AI Career Coach. Let's create a personalized career development plan together!`,
+        content: `👋 Hi ${user?.name || 'there'}! I&apos;m your AI Career Coach. Let&apos;s create a personalized career development plan together!`,
         timestamp: new Date()
       };
       
@@ -226,7 +226,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
       {
         id: 4,
         title: "Market Positioning",
-        description: `You're currently at ${Math.round(displayData.reduce((sum, course) => sum + course.marketPercentile, 0) / displayData.length)}th percentile. Target roles that match your growing skill set.`,
+        description: `You&apos;re currently at ${Math.round(displayData.reduce((sum, course) => sum + course.marketPercentile, 0) / displayData.length)}th percentile. Target roles that match your growing skill set.`,
         priority: "Medium",
         timeline: "Ongoing",
         action: "Update LinkedIn and resume with quantified achievements",
@@ -323,10 +323,10 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
     }
     
     if (message.includes('job') || message.includes('career') || message.includes('role')) {
-      return `🚀 You're on a great career trajectory! Focus on completing your current courses and building a strong portfolio. Consider senior-level positions that match your growing expertise. Need help creating a career action plan?`;
+      return `🚀 You&apos;re on a great career trajectory! Focus on completing your current courses and building a strong portfolio. Consider senior-level positions that match your growing expertise. Need help creating a career action plan?`;
     }
     
-    return `🤖 I understand you're asking about "${userMessage}". I'm here to help with your career development. Based on your progress, you're doing well! What specific aspect of your career would you like to focus on - skills, salary, or career progression?`;
+    return `🤖 I understand you&apos;re asking about "${userMessage}". I&apos;m here to help with your career development. Based on your progress, you&apos;re doing well! What specific aspect of your career would you like to focus on - skills, salary, or career progression?`;
   };
 
   const setCareerGoal = (goal: string) => {

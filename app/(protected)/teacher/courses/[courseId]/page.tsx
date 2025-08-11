@@ -460,27 +460,7 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
             {/* Course Depth Analyzer */}
             <CourseDepthAnalyzer
               courseId={params.courseId}
-              courseData={{
-                id: course.id,
-                title: course.title || "Untitled Course",
-                description: course.description || "",
-                whatYouWillLearn: course.whatYouWillLearn || [],
-                chapters: course.chapters.map(chapter => ({
-                  id: chapter.id,
-                  title: chapter.title || "Untitled Chapter",
-                  description: chapter.description || "",
-                  isPublished: chapter.isPublished,
-                  isFree: chapter.isFree,
-                  position: chapter.position,
-                  sections: chapter.sections?.map(section => ({
-                    id: section.id,
-                    title: section.title || "Untitled Section",
-                    description: section.description || "",
-                    position: section.position,
-                    isPublished: section.isPublished
-                  })) || []
-                }))
-              }}
+              courseData={course as any}
               completionStatus={completionStatus}
             />
           </div>

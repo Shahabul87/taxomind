@@ -73,7 +73,7 @@ export function useKeyboardNavigation(
 
 // Focus trap hook
 export function useFocusTrap(isActive: boolean) {
-  const containerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isActive) return;
@@ -504,7 +504,7 @@ export function AccessibleTabs({ tabs, defaultActiveTab, className }: Accessible
         {tabs.map((tab, index) => (
           <button
             key={tab.id}
-            ref={(el) => (tabRefs.current[index] = el)}
+            ref={(el) => { tabRefs.current[index] = el; }}
             role="tab"
             aria-selected={activeTab === tab.id}
             aria-controls={`tabpanel-${tab.id}`}
@@ -602,11 +602,4 @@ export function LiveRegion({ message, priority = 'polite', className }: LiveRegi
   );
 }
 
-// Export all accessibility utilities
-export {
-  useKeyboardNavigation,
-  useFocusTrap,
-  useScreenReader,
-  useHighContrastMode,
-  useReducedMotion
-};
+// All functions are already exported above with 'export function' declarations

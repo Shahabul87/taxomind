@@ -59,7 +59,7 @@ export async function getPersonalizedRecommendations(
     });
 
     return recommendations.slice(0, 15); // Return top 15 recommendations
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error generating recommendations:", error);
     return [];
   }
@@ -314,7 +314,7 @@ function generateGoalRecommendations(
 }
 
 // Helper functions
-function calculateCourseCompletionRate(course: any): number {
+function calculateCourseCompletionRate(Course: any): number {
   if (!course.chapters) return 0;
   
   const totalSections = course.chapters.reduce(

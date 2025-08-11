@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
           requestType: gdprData.requestType as any,
           reason: gdprData.reason,
         });
-        return NextResponse.json({ success: true, ...result });
+        return NextResponse.json({ ...result, success: true });
 
       case 'delete-account':
         // Delete user account and data
@@ -171,7 +171,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const session = await auth();
     
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

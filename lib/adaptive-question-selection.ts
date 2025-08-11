@@ -5,7 +5,7 @@
  * learning patterns, and optimal challenge zones to maximize learning effectiveness.
  */
 
-import { BloomsLevel, QuestionType, Difficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionQuestionDifficulty } from '@prisma/client';
 import { CognitivePrerequisiteMapper } from './cognitive-prerequisite-mapping';
 import { CognitiveAnalyticsEngine } from './cognitive-analytics';
 
@@ -14,7 +14,7 @@ export interface AdaptiveQuestion {
   question: string;
   bloomsLevel: BloomsLevel;
   questionType: QuestionType;
-  difficulty: Difficulty;
+  difficulty: QuestionQuestionDifficulty;
   cognitiveLoad: number; // 1-5
   prerequisites: BloomsLevel[];
   learningObjectives: string[];
@@ -79,7 +79,7 @@ export interface SelectionCriteria {
   questionCount: number;
   balanceRequirement?: {
     bloomsDistribution?: Record<BloomsLevel, number>;
-    difficultyDistribution?: Record<Difficulty, number>;
+    difficultyDistribution?: Record<QuestionDifficulty, number>;
     typeDistribution?: Record<QuestionType, number>;
   };
 }
@@ -524,11 +524,11 @@ export class AdaptiveQuestionSelector {
    */
   private calculateRemediationScore(question: AdaptiveQuestion, studentProfile: StudentProfile): number {
     const scaffoldingValue = question.adaptiveMetrics.scaffoldingValue * 0.4;
-    const appropriateDifficulty = question.difficulty === 'easy' ? 0.3 : question.difficulty === 'medium' ? 0.2 : 0;
+    const appropriateQuestionDifficulty = question.difficulty === 'easy' ? 0.3 : question.difficulty === 'medium' ? 0.2 : 0;
     const addressesWeakness = studentProfile.strengthsWeaknesses.cognitiveWeaknesses.includes(question.bloomsLevel) ? 0.2 : 0;
     const engagementScore = question.adaptiveMetrics.engagementScore * 0.1;
     
-    return scaffoldingValue + appropriateDifficulty + addressesWeakness + engagementScore;
+    return scaffoldingValue + appropriateQuestionDifficulty + addressesWeakness + engagementScore;
   }
 
   /**

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 export async function PATCH(
   req: Request,
@@ -17,13 +18,18 @@ export async function PATCH(
     const { type } = await req.json();
     const { commentId } = params;
 
+    if (!type || !['like', 'love', 'laugh', 'angry'].includes(type)) {
+      return new NextResponse("Invalid reaction type", { status: 400 });
+    }
+
     const comment = await db.comment.findUnique({
       where: { id: commentId },
       select: { 
-        likedBy: true, 
-        lovedBy: true,
-        likes: true,
-        loves: true
+        id: true,
+        reactions: {
+          where: { userId: user.id },
+          select: { id: true, type: true, userId: true }
+        }
       }
     });
 
@@ -31,35 +37,55 @@ export async function PATCH(
       return new NextResponse("Comment not found", { status: 404 });
     }
 
-    let updateData = {};
+    // Check if user already reacted
+    const existingReaction = comment.reactions.find(r => r.userId === user.id);
 
-    if (type === 'like') {
-      const hasLiked = comment.likedBy.includes(user.id);
-      updateData = {
-        likes: hasLiked ? comment.likes - 1 : comment.likes + 1,
-        likedBy: hasLiked 
-          ? { set: comment.likedBy.filter(id => id !== user.id) }
-          : { push: user.id }
-      };
-    } else if (type === 'love') {
-      const hasLoved = comment.lovedBy.includes(user.id);
-      updateData = {
-        loves: hasLoved ? comment.loves - 1 : comment.loves + 1,
-        lovedBy: hasLoved
-          ? { set: comment.lovedBy.filter(id => id !== user.id) }
-          : { push: user.id }
-      };
+    if (existingReaction) {
+      if (existingReaction.type === type) {
+        // Remove existing reaction of same type (toggle off)
+        await db.reaction.delete({
+          where: { id: existingReaction.id }
+        });
+      } else {
+        // Update existing reaction to new type
+        await db.reaction.update({
+          where: { id: existingReaction.id },
+          data: { type, updatedAt: new Date() }
+        });
+      }
+    } else {
+      // Create new reaction
+      await db.reaction.create({
+        data: {
+          id: randomUUID(),
+          type,
+          userId: user.id,
+          commentId,
+          updatedAt: new Date(),
+        }
+      });
     }
 
-    const updatedComment = await db.comment.update({
+    // Get updated comment with reactions
+    const updatedComment = await db.comment.findUnique({
       where: { id: commentId },
-      data: updateData,
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
             image: true,
+          }
+        },
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              }
+            }
           }
         }
       }
@@ -70,4 +96,4 @@ export async function PATCH(
     logger.error("[COMMENT_REACTION]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
-} 
+}

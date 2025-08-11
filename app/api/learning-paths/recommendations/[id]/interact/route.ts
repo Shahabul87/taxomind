@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 export async function POST(
   req: NextRequest,
@@ -41,6 +42,7 @@ export async function POST(
     // Record the interaction
     const interaction = await db.recommendationInteraction.create({
       data: {
+        id: randomUUID(),
         recommendationId: id,
         action,
       },
@@ -51,9 +53,11 @@ export async function POST(
       // Create enrollment for the learning path
       await db.pathEnrollment.create({
         data: {
+          id: randomUUID(),
           userId: session.user.id,
           pathId: recommendation.pathId,
           status: "ACTIVE",
+          updatedAt: new Date(),
         },
       });
 

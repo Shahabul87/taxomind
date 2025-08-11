@@ -3,6 +3,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 /**
  * Additional fallback API for nested replies - different URL structure
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     // Authenticate the user
     const user = await currentUser();
-    if (!user) {
+    if (!user || !user.id) {
 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -138,6 +139,7 @@ export async function POST(req: NextRequest) {
     // Create the nested reply with depth and path info
     const reply = await db.reply.create({
       data: {
+        id: randomUUID(),
         content,
         userId: user.id,
         postId,
@@ -145,16 +147,17 @@ export async function POST(req: NextRequest) {
         parentReplyId: parentReplyId || null,
         depth,
         path,
+        updatedAt: new Date(),
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
             image: true,
           },
         },
-        reactions: {
+        Reaction: {
           include: {
             user: {
               select: {

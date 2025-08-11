@@ -102,7 +102,7 @@ export async function getComprehensiveAnalytics(
       personalizedInsights,
       trends,
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting comprehensive analytics:', error);
     throw error;
   }
@@ -213,14 +213,14 @@ async function calculateContentInsights(
   const suggestionAcceptanceRate = suggestionsGiven > 0 ? (suggestionsApplied / suggestionsGiven) * 100 : 0;
 
   // Get content completion data
-  const completedContent = await db.course.count({
+  const completedContent = await db.Course.count({
     where: {
       userId,
       isPublished: true,
       ...(courseId && { id: courseId }),
     },
   });
-  const totalContent = await db.course.count({
+  const totalContent = await db.Course.count({
     where: {
       userId,
       ...(courseId && { id: courseId }),
@@ -229,7 +229,7 @@ async function calculateContentInsights(
   const contentCompletionRate = totalContent > 0 ? (completedContent / totalContent) * 100 : 0;
 
   // Calculate average time to complete (in hours)
-  const completedCourses = await db.course.findMany({
+  const completedCourses = await db.Course.findMany({
     where: {
       userId,
       isPublished: true,
@@ -587,7 +587,7 @@ export async function recordAnalyticsSession(
       chapterId: sessionData.chapterId,
       sectionId: sessionData.sectionId,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error recording analytics session:', error);
   }
 }

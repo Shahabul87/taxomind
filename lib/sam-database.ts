@@ -25,7 +25,7 @@ export async function createSAMConversation(userId: string, options?: {
         }
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error creating SAM conversation:', error);
     throw error;
   }
@@ -56,7 +56,7 @@ export async function getSAMConversations(userId: string, options?: {
       orderBy: { updatedAt: 'desc' },
       take: options?.limit || 20,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting SAM conversations:', error);
     throw error;
   }
@@ -86,7 +86,7 @@ export async function addSAMMessage(conversationId: string, data: {
     });
 
     return message;
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error adding SAM message:', error);
     throw error;
   }
@@ -116,7 +116,7 @@ export async function recordSAMInteraction(data: {
         conversationId: data.conversationId,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error recording SAM interaction:', error);
     throw error;
   }
@@ -156,7 +156,7 @@ export async function awardSAMPoints(userId: string, data: {
     });
 
     return pointsRecord;
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error awarding SAM points:', error);
     throw error;
   }
@@ -175,7 +175,7 @@ export async function getSAMPoints(userId: string, options?: {
       orderBy: { createdAt: 'desc' },
       take: options?.limit || 50,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting SAM points:', error);
     throw error;
   }
@@ -218,7 +218,7 @@ export async function unlockSAMBadge(userId: string, data: {
         unlockedAt: new Date(),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error unlocking SAM badge:', error);
     throw error;
   }
@@ -237,7 +237,7 @@ export async function getSAMBadges(userId: string, options?: {
       },
       orderBy: { unlockedAt: 'desc' },
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting SAM badges:', error);
     throw error;
   }
@@ -273,7 +273,7 @@ export async function updateSAMStreak(userId: string, data: {
         courseId: data.courseId,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error updating SAM streak:', error);
     throw error;
   }
@@ -292,7 +292,7 @@ export async function getSAMStreaks(userId: string, options?: {
       },
       orderBy: { lastActivityDate: 'desc' },
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting SAM streaks:', error);
     throw error;
   }
@@ -301,7 +301,7 @@ export async function getSAMStreaks(userId: string, options?: {
 // SAM Learning Profile
 export async function updateSAMLearningProfile(userId: string, data: {
   learningStyle?: string;
-  preferredDifficulty?: string;
+  preferredQuestionDifficulty?: string;
   interactionPreferences?: any;
   adaptiveSettings?: any;
   courseId?: string;
@@ -316,20 +316,20 @@ export async function updateSAMLearningProfile(userId: string, data: {
       },
       update: {
         learningStyle: data.learningStyle,
-        preferredDifficulty: data.preferredDifficulty,
+        preferredQuestionDifficulty: data.preferredQuestionDifficulty,
         interactionPreferences: data.interactionPreferences,
         adaptiveSettings: data.adaptiveSettings,
       },
       create: {
         userId,
         learningStyle: data.learningStyle || 'adaptive',
-        preferredDifficulty: data.preferredDifficulty || 'medium',
+        preferredQuestionDifficulty: data.preferredQuestionDifficulty || 'medium',
         interactionPreferences: data.interactionPreferences || {},
         adaptiveSettings: data.adaptiveSettings || {},
         courseId: data.courseId,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error updating SAM learning profile:', error);
     throw error;
   }
@@ -343,7 +343,7 @@ export async function getSAMLearningProfile(userId: string, courseId?: string) {
         courseId: courseId || '',
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting SAM learning profile:', error);
     return null;
   }
@@ -375,7 +375,7 @@ export async function recordSAMAnalytics(data: {
         sectionId: data.sectionId,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error recording SAM analytics:', error);
     throw error;
   }
@@ -409,7 +409,7 @@ export async function getSAMAnalytics(userId: string, options?: {
       orderBy: { createdAt: 'desc' },
       take: options?.limit || 100,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting SAM analytics:', error);
     throw error;
   }
@@ -435,7 +435,7 @@ export async function getSAMInteractions(userId: string, options?: {
       orderBy: { createdAt: 'desc' },
       take: options?.limit || 100,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting SAM interactions:', error);
     return [];
   }
@@ -486,7 +486,7 @@ export async function getUserSAMStats(userId: string, courseId?: string) {
       weeklyInteractions: recentInteractions,
       streaks: activeStreaks,
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting user SAM stats:', error);
     throw error;
   }

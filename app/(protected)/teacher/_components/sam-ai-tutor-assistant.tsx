@@ -144,7 +144,27 @@ export function SamAITutorAssistant() {
   } = useSamAITutor();
 
   // Real page data detection
-  const [pageData, setPageData] = useState({ 
+  const [pageData, setPageData] = useState<{
+    forms: Array<{
+      id: string;
+      purpose: string;
+      entityType: string;
+      entityId: string;
+      fields: Array<{
+        name: string;
+        type: string;
+        value: string;
+        placeholder: string;
+        required: boolean;
+        validation: string;
+      }>;
+      element: HTMLFormElement;
+    }>;
+    serverData: { entityData: any };
+    title: string;
+    breadcrumbs?: string[];
+    workflow: { currentStep: string };
+  }>({ 
     forms: [], 
     serverData: { entityData: null },
     title: 'SAM AI Tutor',
@@ -172,14 +192,26 @@ export function SamAITutorAssistant() {
       const entityType = form.getAttribute('data-entity-type') || '';
       const entityId = form.getAttribute('data-entity-id') || '';
       
-      const fields = Array.from(form.querySelectorAll('input, textarea, select')).map(field => ({
-        name: field.getAttribute('name') || '',
-        type: field.type || 'text',
-        value: (field as HTMLInputElement).value || '',
-        placeholder: field.getAttribute('placeholder') || '',
-        required: field.hasAttribute('required'),
-        validation: field.getAttribute('data-validation') || ''
-      }));
+      const fields = Array.from(form.querySelectorAll('input, textarea, select')).map(field => {
+        const tagName = field.tagName.toLowerCase();
+        const formField = field as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+        
+        let type = 'text';
+        if (tagName === 'input' || tagName === 'select') {
+          type = (formField as HTMLInputElement | HTMLSelectElement).type || 'text';
+        } else if (tagName === 'textarea') {
+          type = 'textarea';
+        }
+        
+        return {
+          name: field.getAttribute('name') || '',
+          type: type,
+          value: formField.value || '',
+          placeholder: field.getAttribute('placeholder') || '',
+          required: field.hasAttribute('required'),
+          validation: field.getAttribute('data-validation') || ''
+        };
+      });
       
       return {
         id: formId,
@@ -1386,7 +1418,7 @@ Tell me your course topic and target audience.`,
             content: `🏗️ **Course Structure Generator**
 
 Share your course topic and I&apos;ll design a comprehensive structure.`,
-            emotion: 'analytical'
+            emotion: 'thoughtful'
           });
           break;
         case 'generate_content':
@@ -1395,7 +1427,7 @@ Share your course topic and I&apos;ll design a comprehensive structure.`,
             content: `✨ **Content Generator Ready**
 
 What type of content would you like me to generate?`,
-            emotion: 'creative'
+            emotion: 'excited'
           });
           break;
         case 'student_insights':
@@ -1404,7 +1436,7 @@ What type of content would you like me to generate?`,
             content: `📊 **Student Performance Insights**
 
 I&apos;ll analyze your students&apos; learning patterns.`,
-            emotion: 'analytical'
+            emotion: 'thoughtful'
           });
           break;
         case 'create_rubric':
@@ -1413,7 +1445,7 @@ I&apos;ll analyze your students&apos; learning patterns.`,
             content: `📋 **Rubric Creator**
 
 Tell me about the assignment you need a rubric for.`,
-            emotion: 'helpful'
+            emotion: 'supportive'
           });
           break;
         case 'populate_form':
@@ -1422,7 +1454,7 @@ Tell me about the assignment you need a rubric for.`,
             content: `📝 **Smart Form Population**
 
 I can help fill out forms intelligently.`,
-            emotion: 'efficient'
+            emotion: 'encouraging'
           });
           break;
         case 'content_analysis':
@@ -1436,14 +1468,14 @@ I can help fill out forms intelligently.`,
             content: `🔍 **AI Intelligence Hub**
 
 Exploring the latest in AI...`,
-            emotion: 'curious'
+            emotion: 'thoughtful'
           });
           break;
         default:
           addMessage({
             type: 'sam',
             content: `I&apos;m ready to help with that!`,
-            emotion: 'helpful'
+            emotion: 'supportive'
           });
           break;
       }
@@ -1614,7 +1646,7 @@ Each objective will be measured through:
 • Course completion rate: Target 75%+
 • Student satisfaction: Target 4.5+ stars
 • Employment outcomes: Track career advancement`,
-            emotion: 'analytical',
+            emotion: 'thoughtful',
             suggestions: ['Refine positioning', 'Create marketing copy', 'Plan launch strategy']
           });
           
@@ -2131,7 +2163,7 @@ Each objective will be measured through:
       onClose={() => setShowContentAnalyzer(false)}
       onAnalysisComplete={handleAnalysisComplete}
       learningContext={learningContext}
-      tutorMode={tutorMode}
+      tutorMode={tutorMode === 'admin' ? 'teacher' : tutorMode}
     />
     
     {/* Gamification Dashboard */}
@@ -2139,7 +2171,7 @@ Each objective will be measured through:
       isOpen={showGamificationDashboard}
       onClose={() => setShowGamificationDashboard(false)}
       learningContext={learningContext}
-      tutorMode={tutorMode}
+      tutorMode={tutorMode === 'admin' ? 'teacher' : tutorMode}
     />
     
     {/* Assessment Management */}
@@ -2147,7 +2179,7 @@ Each objective will be measured through:
       isOpen={showAssessmentManagement}
       onClose={() => setShowAssessmentManagement(false)}
       courseId={learningContext.courseId}
-      teacherId={learningContext.userId}
+      teacherId=""
     />
     </>
   );

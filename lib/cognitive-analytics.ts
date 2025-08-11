@@ -21,7 +21,7 @@ export interface CognitivePerformanceData {
   attemptDate: Date;
   timeSpent: number; // in minutes
   questionCount: number;
-  difficultyProgression: DifficultyProgression;
+  difficultyProgression: QuestionDifficultyProgression;
   learningVelocity: number; // questions per minute
   confidenceLevel: number; // 0-1 scale
 }
@@ -40,11 +40,11 @@ export interface BloomsLevelPerformance {
   recommendedActions: string[];
 }
 
-export interface DifficultyProgression {
+export interface QuestionDifficultyProgression {
   easy: { attempted: number; correct: number; accuracy: number };
   medium: { attempted: number; correct: number; accuracy: number };
   hard: { attempted: number; correct: number; accuracy: number };
-  optimalDifficulty: 'easy' | 'medium' | 'hard';
+  optimalQuestionDifficulty: 'easy' | 'medium' | 'hard';
   progressionPattern: 'linear' | 'plateau' | 'declining' | 'erratic';
 }
 

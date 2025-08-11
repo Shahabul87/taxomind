@@ -284,7 +284,7 @@ export function useSamWizard() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        logger.error('Course creation failed:', response.status, errorText);
+        logger.error(`Course creation failed: ${response.status} - ${errorText}`);
         throw new Error(`Failed to create course: ${response.status} - ${errorText}`);
       }
 

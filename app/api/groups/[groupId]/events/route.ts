@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 const eventSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -43,6 +44,7 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
 
       const event = await db.groupEvent.create({
         data: {
+          id: randomUUID(),
           title: validatedData.title,
           description: validatedData.description || null,
           date: validatedData.date,
@@ -55,9 +57,10 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
           status: "upcoming",
           groupId: params.groupId,
           organizerId: session.user.id,
+          updatedAt: new Date(),
         },
         include: {
-          organizer: {
+          User_GroupEvent_organizerIdToUser: {
             select: {
               name: true,
               image: true,
@@ -65,7 +68,7 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
           },
           _count: {
             select: {
-              attendees: true
+              GroupEventAttendee: true
             }
           }
         }
@@ -103,7 +106,7 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
         status,
       },
       include: {
-        organizer: {
+        User_GroupEvent_organizerIdToUser: {
           select: {
             name: true,
             image: true,
@@ -111,7 +114,7 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
         },
         _count: {
           select: {
-            attendees: true
+            GroupEventAttendee: true
           }
         }
       },

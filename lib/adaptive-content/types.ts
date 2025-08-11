@@ -24,7 +24,7 @@ export type ContentType =
   | 'exercise';
 
 export interface ContentMetadata {
-  difficulty: DifficultyLevel;
+  difficulty: QuestionDifficultyLevel;
   duration: number; // minutes
   cognitiveLoad: CognitiveLoad;
   bloomsLevel: BloomsLevel;
@@ -34,7 +34,7 @@ export interface ContentMetadata {
   concepts: string[];
 }
 
-export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+export type QuestionDifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 export type CognitiveLoad = 'low' | 'medium' | 'high';
 export type BloomsLevel = 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create';
 
@@ -90,7 +90,7 @@ export type LearningPace = 'slow' | 'normal' | 'fast' | 'adaptive';
 
 export interface LearningPreferences {
   contentTypePreference: Record<ContentType, number>; // 0-1
-  difficultyPreference: DifficultyLevel;
+  difficultyPreference: QuestionDifficultyLevel;
   sessionLength: number; // preferred minutes
   timeOfDay: number[]; // 24-hour distribution
   breakFrequency: number; // minutes between breaks

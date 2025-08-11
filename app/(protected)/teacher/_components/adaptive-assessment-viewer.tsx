@@ -118,26 +118,6 @@ export function AdaptiveAssessmentViewer({
   const [showFeedback, setShowFeedback] = useState(false);
   const [lastResponse, setLastResponse] = useState<StudentResponse | null>(null);
 
-  // Initialize assessment
-  useEffect(() => {
-    if (isOpen && assessmentId) {
-      initializeAssessment();
-    }
-  }, [isOpen, assessmentId, initializeAssessment]);
-
-  const initializeAssessment = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // Start with the first adaptive question
-      await generateNextQuestion();
-    } catch (error) {
-      logger.error('Error initializing assessment:', error);
-      toast.error('Failed to initialize assessment');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [generateNextQuestion]);
-
   const generateNextQuestion = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -181,6 +161,63 @@ export function AdaptiveAssessmentViewer({
       setIsLoading(false);
     }
   }, [subject, topic, difficulty, studentResponses]);
+
+  const initializeAssessment = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Start with the first adaptive question
+      await generateNextQuestion();
+    } catch (error) {
+      logger.error('Error initializing assessment:', error);
+      toast.error('Failed to initialize assessment');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [generateNextQuestion]);
+
+  // Initialize assessment
+  useEffect(() => {
+    if (isOpen && assessmentId) {
+      initializeAssessment();
+    }
+  }, [isOpen, assessmentId, initializeAssessment]);
+
+  const checkAnswer = useCallback(async (answer: string, question: Question): Promise<boolean> => {
+    // For short answer and essay questions, use AI to check the answer
+    try {
+      const response = await fetch('/api/sam/ai-tutor/assessment-engine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'check_answer',
+          question,
+          answer,
+          subject,
+          topic
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.result.isCorrect;
+      }
+    } catch (error) {
+      logger.error('Error checking answer:', error);
+    }
+    
+    return false;
+  }, [subject, topic]);
+
+  const shouldContinueAssessment = useCallback((analysis: any): boolean => {
+    // Continue if we haven't reached mastery or if we need more data
+    const totalQuestions = studentResponses.length + 1;
+    
+    if (totalQuestions >= 10) return false; // Max questions limit
+    if (analysis.masteryLevel >= 0.8 && totalQuestions >= 5) return false; // Mastery achieved
+    if (analysis.strugglingLevel >= 0.8 && totalQuestions >= 8) return false; // Too many struggling
+    
+    return true; // Continue assessment
+  }, [studentResponses.length]);
 
   const submitAnswer = useCallback(async () => {
     if (!currentQuestion || !startTime) return;
@@ -256,41 +293,6 @@ export function AdaptiveAssessmentViewer({
       setIsSubmitting(false);
     }
   }, [currentQuestion, startTime, selectedOption, currentAnswer, confidence, hintsUsed, studentResponses, subject, topic, difficulty, checkAnswer, generateNextQuestion, shouldContinueAssessment]);
-
-  const checkAnswer = useCallback(async (answer: string, question: Question): Promise<boolean> => {
-    // For short answer and essay questions, use AI to check the answer
-    try {
-      const response = await fetch('/api/sam/ai-tutor/assessment-engine', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'check_answer',
-          question: question.text,
-          studentAnswer: answer,
-          expectedAnswer: question.correctAnswer,
-          subject,
-          topic
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.result.isCorrect;
-      }
-    } catch (error) {
-      logger.error('Error checking answer:', error);
-    }
-    
-    return false;
-  }, [subject, topic]);
-
-  const shouldContinueAssessment = useCallback((analysis: any): boolean => {
-    // Continue if we haven't reached mastery or if we need more data
-    const totalQuestions = studentResponses.length + 1;
-    const masteryLevel = analysis.masteryLevels?.proficient || 0;
-    
-    return totalQuestions < 15 && masteryLevel < 80;
-  }, [studentResponses.length]);
 
   const useHint = useCallback(() => {
     if (currentQuestion?.hints && hintsUsed < currentQuestion.hints.length) {

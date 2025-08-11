@@ -5,14 +5,14 @@
  * ensuring progressive difficulty and optimal learning pathways.
  */
 
-import { BloomsLevel, QuestionType, Difficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 
 export interface SequencedQuestion {
   questionId: string;
   position: number;
   bloomsLevel: BloomsLevel;
   questionType: QuestionType;
-  difficulty: Difficulty;
+  difficulty: QuestionDifficulty;
   cognitiveLoad: number;
   estimatedTime: number; // seconds
   prerequisites: string[];
@@ -283,7 +283,7 @@ export class IntelligentQuestionSequencer {
         return this.applyMasteryBasedSequencing(questions, studentProfile);
       
       case 'adaptive_difficulty':
-        return this.applyAdaptiveDifficultySequencing(questions, studentProfile);
+        return this.applyAdaptiveQuestionDifficultySequencing(questions, studentProfile);
       
       case 'zone_of_proximal_development':
         return this.applyZPDSequencing(questions, studentProfile);
@@ -310,7 +310,7 @@ export class IntelligentQuestionSequencer {
     // Sequence within each level by difficulty
     bloomsOrder.forEach(level => {
       const levelQuestions = groupedQuestions.get(level) || [];
-      const sortedLevelQuestions = this.sortByDifficulty(levelQuestions, studentProfile);
+      const sortedLevelQuestions = this.sortByQuestionDifficulty(levelQuestions, studentProfile);
       
       // Add transition scaffolding between levels
       if (sequenced.length > 0 && sortedLevelQuestions.length > 0) {
@@ -418,9 +418,9 @@ export class IntelligentQuestionSequencer {
   }
 
   /**
-   * Adaptive Difficulty Sequencing - Dynamically adjust based on performance
+   * Adaptive QuestionDifficulty Sequencing - Dynamically adjust based on performance
    */
-  private applyAdaptiveDifficultySequencing(
+  private applyAdaptiveQuestionDifficultySequencing(
     questions: SequencedQuestion[],
     studentProfile: StudentProfile
   ): SequencedQuestion[] {
@@ -429,15 +429,15 @@ export class IntelligentQuestionSequencer {
     const remaining = [...questions];
     
     // Start with appropriate difficulty based on student profile
-    let currentDifficultyTarget = this.calculateInitialDifficultyTarget(studentProfile);
+    let currentQuestionDifficultyTarget = this.calculateInitialQuestionDifficultyTarget(studentProfile);
     
     while (remaining.length > 0) {
       // Find questions matching current difficulty target
-      const candidates = this.findCandidateQuestions(remaining, currentDifficultyTarget, studentProfile);
+      const candidates = this.findCandidateQuestions(remaining, currentQuestionDifficultyTarget, studentProfile);
       
       if (candidates.length === 0) {
         // Adjust target if no candidates found
-        currentDifficultyTarget = this.adjustDifficultyTarget(currentDifficultyTarget, remaining);
+        currentQuestionDifficultyTarget = this.adjustQuestionDifficultyTarget(currentQuestionDifficultyTarget, remaining);
         continue;
       }
       
@@ -447,16 +447,16 @@ export class IntelligentQuestionSequencer {
       
       // Add adaptive difficulty rules
       selected.adaptiveRules.push(
-        this.createDifficultyAdaptationRule('increase', currentDifficultyTarget),
-        this.createDifficultyAdaptationRule('decrease', currentDifficultyTarget)
+        this.createQuestionDifficultyAdaptationRule('increase', currentQuestionDifficultyTarget),
+        this.createQuestionDifficultyAdaptationRule('decrease', currentQuestionDifficultyTarget)
       );
       
       sequenced.push(selected);
       remaining.splice(remaining.indexOf(selected), 1);
       
       // Update difficulty target based on predicted performance
-      currentDifficultyTarget = this.updateDifficultyTarget(
-        currentDifficultyTarget,
+      currentQuestionDifficultyTarget = this.updateQuestionDifficultyTarget(
+        currentQuestionDifficultyTarget,
         selected,
         studentProfile
       );
@@ -661,7 +661,7 @@ export class IntelligentQuestionSequencer {
     return grouped;
   }
 
-  private sortByDifficulty(questions: SequencedQuestion[], studentProfile: StudentProfile): SequencedQuestion[] {
+  private sortByQuestionDifficulty(questions: SequencedQuestion[], studentProfile: StudentProfile): SequencedQuestion[] {
     const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
     
     return [...questions].sort((a, b) => {
@@ -775,7 +775,7 @@ export class IntelligentQuestionSequencer {
     
     const cognitiveCoherence = this.assessCognitiveCoherence(questions);
     const scaffoldingEffectiveness = this.assessScaffoldingEffectiveness(questions, studentProfile);
-    const difficultyProgression = this.assessDifficultyProgression(questions);
+    const difficultyProgression = this.assessQuestionDifficultyProgression(questions);
     const timeOptimization = this.assessTimeOptimization(questions, studentProfile);
     const adaptiveReadiness = this.assessAdaptiveReadiness(questions);
     
@@ -908,9 +908,9 @@ export class IntelligentQuestionSequencer {
       }
     });
     
-    // Adaptive Difficulty Strategy
+    // Adaptive QuestionDifficulty Strategy
     this.sequencingStrategies.set('adaptive_difficulty', {
-      strategyName: 'Adaptive Difficulty Progression',
+      strategyName: 'Adaptive QuestionDifficulty Progression',
       description: 'Dynamically adjust difficulty based on performance',
       cognitiveModel: 'adaptive_difficulty',
       sequencingRules: [
@@ -950,11 +950,11 @@ export class IntelligentQuestionSequencer {
     if (available.length === 0) return null;
     
     // Simple selection based on difficulty match
-    const targetDifficulty = this.getTargetDifficulty(studentProfile);
-    return available.find(q => q.difficulty === targetDifficulty) || available[0];
+    const targetQuestionDifficulty = this.getTargetQuestionDifficulty(studentProfile);
+    return available.find(q => q.difficulty === targetQuestionDifficulty) || available[0];
   }
 
-  private getTargetDifficulty(studentProfile: StudentProfile): Difficulty {
+  private getTargetQuestionDifficulty(studentProfile: StudentProfile): QuestionDifficulty {
     const avgMastery = Object.values(studentProfile.masteryLevels).reduce((sum, m) => sum + m, 0) / 6;
     
     if (avgMastery > 0.8) return 'hard';
@@ -962,14 +962,14 @@ export class IntelligentQuestionSequencer {
     return 'easy';
   }
 
-  private calculateInitialDifficultyTarget(studentProfile: StudentProfile): number {
+  private calculateInitialQuestionDifficultyTarget(studentProfile: StudentProfile): number {
     const avgMastery = Object.values(studentProfile.masteryLevels).reduce((sum, m) => sum + m, 0) / 6;
     return avgMastery * 0.8 + 0.1; // Slightly below current mastery
   }
 
   private findCandidateQuestions(
     questions: SequencedQuestion[],
-    targetDifficulty: number,
+    targetQuestionDifficulty: number,
     studentProfile: StudentProfile
   ): SequencedQuestion[] {
     
@@ -977,12 +977,12 @@ export class IntelligentQuestionSequencer {
     const tolerance = 0.2;
     
     return questions.filter(q => {
-      const questionDifficulty = difficultyMap[q.difficulty];
-      return Math.abs(questionDifficulty - targetDifficulty) <= tolerance;
+      const questionQuestionDifficulty = difficultyMap[q.difficulty];
+      return Math.abs(questionQuestionDifficulty - targetQuestionDifficulty) <= tolerance;
     });
   }
 
-  private adjustDifficultyTarget(current: number, remaining: SequencedQuestion[]): number {
+  private adjustQuestionDifficultyTarget(current: number, remaining: SequencedQuestion[]): number {
     // Adjust towards available questions
     if (remaining.length === 0) return current;
     
@@ -1003,7 +1003,7 @@ export class IntelligentQuestionSequencer {
     return preferred || candidates[0];
   }
 
-  private updateDifficultyTarget(
+  private updateQuestionDifficultyTarget(
     current: number,
     selectedQuestion: SequencedQuestion,
     studentProfile: StudentProfile
@@ -1200,7 +1200,7 @@ export class IntelligentQuestionSequencer {
     return rules;
   }
 
-  private createDifficultyAdaptationRule(direction: 'increase' | 'decrease', currentTarget: number): AdaptiveRule {
+  private createQuestionDifficultyAdaptationRule(direction: 'increase' | 'decrease', currentTarget: number): AdaptiveRule {
     return {
       ruleType: direction === 'increase' ? 'advance_if_ready' : 'provide_remediation',
       condition: {
@@ -1226,7 +1226,7 @@ export class IntelligentQuestionSequencer {
     return 0.75; // Placeholder
   }
 
-  private assessDifficultyProgression(questions: SequencedQuestion[]): number {
+  private assessQuestionDifficultyProgression(questions: SequencedQuestion[]): number {
     return 0.85; // Placeholder
   }
 

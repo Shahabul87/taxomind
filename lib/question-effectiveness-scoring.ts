@@ -5,7 +5,7 @@
  * question quality, difficulty calibration, and learning effectiveness.
  */
 
-import { BloomsLevel, QuestionType, Difficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 
 export interface QuestionPerformanceData {
   questionId: string;
@@ -15,7 +15,7 @@ export interface QuestionPerformanceData {
   averageConfidence: number; // 0-1
   bloomsLevel: BloomsLevel;
   questionType: QuestionType;
-  difficulty: Difficulty;
+  difficulty: QuestionDifficulty;
   cognitiveLoad: number;
   studentPerformances: StudentPerformance[];
   temporalData: TemporalPerformance[];
@@ -96,7 +96,7 @@ export interface CohortAnalysis {
 
 export interface AggregateMetrics {
   averageDiscrimination: number;
-  averageDifficulty: number;
+  averageQuestionDifficulty: number;
   averageLearningGain: number;
   reliabilityCoefficient: number;
   validityScore: number;
@@ -162,7 +162,7 @@ export class QuestionEffectivenessScorer {
   private calculateEffectivenessMetrics(data: QuestionPerformanceData): EffectivenessMetrics {
     return {
       discriminationIndex: this.calculateDiscriminationIndex(data),
-      difficultyCalibratedScore: this.calculateDifficultyCalibration(data),
+      difficultyCalibratedScore: this.calculateQuestionDifficultyCalibration(data),
       learningGainScore: this.calculateLearningGain(data),
       engagementScore: this.calculateEngagementScore(data),
       cognitiveLoadAccuracy: this.calculateCognitiveLoadAccuracy(data),
@@ -200,14 +200,14 @@ export class QuestionEffectivenessScorer {
   /**
    * Calculate how well actual difficulty matches intended difficulty
    */
-  private calculateDifficultyCalibration(data: QuestionPerformanceData): number {
-    const actualDifficulty = 1 - (data.correctAnswers / data.totalAttempts);
+  private calculateQuestionDifficultyCalibration(data: QuestionPerformanceData): number {
+    const actualQuestionDifficulty = 1 - (data.correctAnswers / data.totalAttempts);
     
     // Expected difficulty based on intended level
-    const expectedDifficulty = this.getExpectedDifficulty(data.difficulty, data.bloomsLevel);
+    const expectedQuestionDifficulty = this.getExpectedQuestionDifficulty(data.difficulty, data.bloomsLevel);
     
     // Calculate calibration score (1 = perfect match, 0 = completely off)
-    const difference = Math.abs(actualDifficulty - expectedDifficulty);
+    const difference = Math.abs(actualQuestionDifficulty - expectedQuestionDifficulty);
     return Math.max(0, 1 - (difference * 2)); // Scale difference to 0-1
   }
 
@@ -278,7 +278,7 @@ export class QuestionEffectivenessScorer {
   private calculatePedagogicalValue(data: QuestionPerformanceData): number {
     // Composite score considering multiple factors
     const discrimination = this.calculateDiscriminationIndex(data);
-    const calibration = this.calculateDifficultyCalibration(data);
+    const calibration = this.calculateQuestionDifficultyCalibration(data);
     const learning = this.calculateLearningGain(data);
     const engagement = this.calculateEngagementScore(data);
     
@@ -358,7 +358,7 @@ export class QuestionEffectivenessScorer {
       weaknesses.push('Poor discrimination between skill levels');
     }
     if (metrics.difficultyCalibratedScore < 0.5) {
-      weaknesses.push('Difficulty level mismatch');
+      weaknesses.push('QuestionDifficulty level mismatch');
     }
     if (metrics.learningGainScore < 0.4) {
       weaknesses.push('Limited learning value');
@@ -424,24 +424,24 @@ export class QuestionEffectivenessScorer {
   ): CalibrationAdjustment[] {
     const adjustments: CalibrationAdjustment[] = [];
     
-    // Difficulty adjustment
+    // QuestionDifficulty adjustment
     if (metrics.difficultyCalibratedScore < 0.7) {
-      const actualDifficulty = 1 - (data.correctAnswers / data.totalAttempts);
-      let recommendedDifficulty: Difficulty = data.difficulty;
+      const actualQuestionDifficulty = 1 - (data.correctAnswers / data.totalAttempts);
+      let recommendedQuestionDifficulty: QuestionDifficulty = data.difficulty;
       
-      if (actualDifficulty < 0.3 && data.difficulty !== 'easy') {
-        recommendedDifficulty = data.difficulty === 'hard' ? 'medium' : 'easy';
-      } else if (actualDifficulty > 0.7 && data.difficulty !== 'hard') {
-        recommendedDifficulty = data.difficulty === 'easy' ? 'medium' : 'hard';
+      if (actualQuestionDifficulty < 0.3 && data.difficulty !== 'easy') {
+        recommendedQuestionDifficulty = data.difficulty === 'hard' ? 'medium' : 'easy';
+      } else if (actualQuestionDifficulty > 0.7 && data.difficulty !== 'hard') {
+        recommendedQuestionDifficulty = data.difficulty === 'easy' ? 'medium' : 'hard';
       }
       
-      if (recommendedDifficulty !== data.difficulty) {
+      if (recommendedQuestionDifficulty !== data.difficulty) {
         adjustments.push({
           property: 'difficulty',
           currentValue: data.difficulty,
-          recommendedValue: recommendedDifficulty,
+          recommendedValue: recommendedQuestionDifficulty,
           confidence: metrics.difficultyCalibratedScore,
-          reasoning: `Actual difficulty (${Math.round(actualDifficulty * 100)}%) doesn't match intended level`
+          reasoning: `Actual difficulty (${Math.round(actualQuestionDifficulty * 100)}%) doesn't match intended level`
         });
       }
     }
@@ -538,7 +538,7 @@ export class QuestionEffectivenessScorer {
   /**
    * Helper methods
    */
-  private getExpectedDifficulty(difficulty: Difficulty, bloomsLevel: BloomsLevel): number {
+  private getExpectedQuestionDifficulty(difficulty: QuestionDifficulty, bloomsLevel: BloomsLevel): number {
     const bloomsMultiplier = {
       REMEMBER: 0.8,
       UNDERSTAND: 0.7,
@@ -575,7 +575,7 @@ export class QuestionEffectivenessScorer {
     
     return {
       averageDiscrimination: analyses.reduce((sum, a) => sum + a.metrics.discriminationIndex, 0) / count,
-      averageDifficulty: analyses.reduce((sum, a) => sum + a.metrics.difficultyCalibratedScore, 0) / count,
+      averageQuestionDifficulty: analyses.reduce((sum, a) => sum + a.metrics.difficultyCalibratedScore, 0) / count,
       averageLearningGain: analyses.reduce((sum, a) => sum + a.metrics.learningGainScore, 0) / count,
       reliabilityCoefficient: 0.85, // Would calculate from actual data
       validityScore: 0.80 // Would calculate from actual data

@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { randomUUID } from "crypto";
 
 export async function POST(req: Request, props: { params: Promise<{ postId: string }> }) {
   const params = await props.params;
@@ -41,12 +42,14 @@ export async function POST(req: Request, props: { params: Promise<{ postId: stri
     // Create a new PostChapterSection
     const newChapter = await db.postChapterSection.create({
       data: {
+        id: randomUUID(),
         title,
         description,
         isPublished,
         isFree,
         postId: params.postId,
         position: newPosition,
+        updatedAt: new Date(),
       },
     });
 

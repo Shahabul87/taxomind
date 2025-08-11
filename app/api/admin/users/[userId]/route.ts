@@ -72,7 +72,7 @@ export const PATCH = withRole(UserRole.ADMIN, async (
     
     // Use EnterpriseDB for role updates
     const enterpriseDb = getEnterpriseDB({
-      userContext: user ? { id: user.id, role: user.role } : undefined,
+      userContext: (user?.id) ? { id: user.id, role: user.role as string } : undefined,
       auditEnabled: true
     });
     
@@ -121,7 +121,7 @@ export const DELETE = withRole(UserRole.ADMIN, async (
     
     // Use EnterpriseDB for this critical operation
     const enterpriseDb = getEnterpriseDB({
-      userContext: user ? { id: user.id, role: user.role } : undefined,
+      userContext: (user && user.id) ? { id: user.id, role: user.role as string } : undefined,
       auditEnabled: true
     });
     

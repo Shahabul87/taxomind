@@ -177,7 +177,7 @@ export class SAMGenerationEngine {
       
       // Calculate metadata
       const estimatedDuration = this.calculateCourseDuration(outline);
-      const difficulty = this.determineDifficulty(objectives);
+      const difficulty = this.determineQuestionDifficulty(objectives);
       const prerequisites = await this.identifyPrerequisites(objectives);
       
       // Generate course metadata
@@ -198,7 +198,7 @@ export class SAMGenerationEngine {
       await this.storeGeneratedContent('course', courseContent);
       
       return courseContent;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating course content:', error);
       throw new Error('Failed to generate course content');
     }
@@ -234,14 +234,14 @@ export class SAMGenerationEngine {
       await this.storeGeneratedAssessments(assessments);
       
       return assessments;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating assessments:', error);
       throw new Error('Failed to create assessments');
     }
   }
 
   // Generate Study Guides
-  async generateStudyGuides(course: Course): Promise<StudyGuide> {
+  async generateStudyGuides(Course: Course): Promise<StudyGuide> {
     try {
       // Analyze course content
       const courseAnalysis = await this.analyzeCourseForStudyGuide(course);
@@ -276,7 +276,7 @@ export class SAMGenerationEngine {
       await this.storeStudyGuide(studyGuide);
       
       return studyGuide;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating study guide:', error);
       throw new Error('Failed to generate study guide');
     }
@@ -302,7 +302,7 @@ export class SAMGenerationEngine {
       await this.storeExercises(validatedExercises);
       
       return validatedExercises;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating exercises:', error);
       throw new Error('Failed to create exercises');
     }
@@ -338,7 +338,7 @@ export class SAMGenerationEngine {
       await this.storeLocalizedContent(localizedContent);
       
       return localizedContent;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error adapting content language:', error);
       throw new Error('Failed to adapt content language');
     }
@@ -566,7 +566,7 @@ export class SAMGenerationEngine {
     return this.parseTranslatedContent(response.content[0].text || '', content);
   }
 
-  private async analyzeCourseForStudyGuide(course: any) {
+  private async analyzeCourseForStudyGuide(Course: any) {
     // Analyze course structure and content
     return {
       mainTopics: [],
@@ -632,7 +632,7 @@ export class SAMGenerationEngine {
     ];
   }
 
-  private async generateStudyTips(course: any, topics: KeyTopic[]): Promise<string[]> {
+  private async generateStudyTips(Course: any, topics: KeyTopic[]): Promise<string[]> {
     const tips = [
       "Review critical topics daily for better retention",
       "Practice with sample questions after each study session",
@@ -661,7 +661,7 @@ export class SAMGenerationEngine {
     ];
   }
 
-  private async generateStudyGuideOverview(course: any): Promise<string> {
+  private async generateStudyGuideOverview(Course: any): Promise<string> {
     return `This study guide covers the essential concepts from ${course.title}. Focus on the critical topics and use the practice questions to test your understanding.`;
   }
 
@@ -701,7 +701,7 @@ export class SAMGenerationEngine {
     return outline.chapters.reduce((total, chapter) => total + chapter.estimatedDuration, 0);
   }
 
-  private determineDifficulty(objectives: LearningObjective[]): string {
+  private determineQuestionDifficulty(objectives: LearningObjective[]): string {
     const bloomsLevels = objectives.map(obj => obj.bloomsLevel);
     const highLevelCount = bloomsLevels.filter(level => 
       ['analyze', 'evaluate', 'create'].includes(level.toLowerCase())

@@ -36,7 +36,7 @@ export class SamErrorBoundary extends Component<SamErrorBoundaryProps, SamErrorS
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    logger.error('Sam Error Boundary caught an error:', error, errorInfo);
+    logger.error(`Sam Error Boundary caught an error: ${error}`, errorInfo);
     
     // Track Sam-specific errors
     if (typeof window !== 'undefined') {

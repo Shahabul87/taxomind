@@ -28,7 +28,7 @@ interface CourseContent {
  * Generates a hash of course content to detect changes
  * Only includes fields that affect the depth analysis
  */
-export function generateCourseContentHash(course: CourseContent): string {
+export function generateCourseContentHash(Course: CourseContent): string {
   const contentToHash = {
     title: course.title,
     description: course.description,

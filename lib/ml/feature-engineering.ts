@@ -66,7 +66,7 @@ export class FeatureEngineer {
 
   // Get interaction data
   private async getInteractionData(studentId: string, courseId: string) {
-    return db.studentInteraction.findMany({
+    return db.sAMInteraction.findMany({
       where: {
         studentId,
         courseId,
@@ -80,7 +80,7 @@ export class FeatureEngineer {
 
   // Get metrics data
   private async getMetricsData(studentId: string, courseId: string) {
-    const metrics = await db.learningMetric.aggregate({
+    const metrics = await db.learning_metrics.aggregate({
       where: { studentId, courseId },
       _avg: {
         engagementScore: true,
@@ -107,7 +107,7 @@ export class FeatureEngineer {
 
   // Get video statistics
   private async getVideoStats(studentId: string, courseId: string) {
-    const videoEvents = await db.studentInteraction.findMany({
+    const videoEvents = await db.sAMInteraction.findMany({
       where: {
         studentId,
         courseId,
@@ -148,10 +148,10 @@ export class FeatureEngineer {
       const completed = events.some(e => e.eventName === 'video_complete');
       if (completed) totalCompleted++;
       
-      const pauses = events.filter(e => e.eventName === 'video_pause').length;
+      const pauses = events.filter((e: any) => e.eventName === 'video_pause').length;
       totalPauses += pauses;
       
-      const seeks = events.filter(e => e.eventName === 'video_seek').length;
+      const seeks = events.filter((e: any) => e.eventName === 'video_seek').length;
       totalSeeks += seeks;
       
       // Estimate watch time from events
@@ -175,7 +175,7 @@ export class FeatureEngineer {
 
   // Get quiz scores
   private async getQuizScores(studentId: string, courseId: string) {
-    const quizEvents = await db.studentInteraction.findMany({
+    const quizEvents = await db.sAMInteraction.findMany({
       where: {
         studentId,
         courseId,
@@ -390,7 +390,7 @@ export class FeatureEngineer {
     studentId: string,
     courseId: string
   ): Promise<number> {
-    const course = await db.course.findUnique({
+    const course = await db.Course.findUnique({
       where: { id: courseId },
       include: {
         chapters: {
@@ -403,7 +403,7 @@ export class FeatureEngineer {
 
     if (!course) return 0;
 
-    const completedSections = await db.studentInteraction.findMany({
+    const completedSections = await db.sAMInteraction.findMany({
       where: {
         studentId,
         courseId,

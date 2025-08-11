@@ -20,7 +20,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ postId: str
         userId,
       },
       include: {
-        postchapter: true,
+        PostChapterSection: true,
       }
     });
 

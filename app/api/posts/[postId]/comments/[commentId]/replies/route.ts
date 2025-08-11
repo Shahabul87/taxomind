@@ -10,7 +10,7 @@ export async function POST(
 ) {
   try {
     const user = await currentUser();
-    if (!user) {
+    if (!user || !user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -52,14 +52,9 @@ export async function POST(
           id: parentReplyId,
           commentId,
         },
-        include: {
-          // Include parent reply info to validate nesting depth
-          parentReply: {
-            select: {
-              id: true,
-              parentReplyId: true
-            }
-          }
+        select: {
+          id: true,
+          parentReplyId: true
         }
       });
 
@@ -71,26 +66,25 @@ export async function POST(
       // Check nesting depth to prevent excessive depth
       // This is a backup server-side check
       let replyDepth = 1; // Start at 1 for this reply
-      let currentReply = parentReply;
+      let currentParentId = parentReply.parentReplyId;
       
-      while (currentReply.parentReplyId) {
+      while (currentParentId && replyDepth <= 10) {
         replyDepth++;
         
-        // If we've gone too deep, we need to get the referenced parent
+        // If we've gone too deep, prevent excessive nesting
         if (replyDepth > 10) { // Hard limit on server side for safety
-
           return NextResponse.json({ 
             error: "Maximum reply nesting depth exceeded" 
           }, { status: 400 });
         }
         
         // Get the next parent in the chain
-        if (currentReply.parentReply) {
-          currentReply = currentReply.parentReply;
-        } else {
-          // If we can't follow the chain, break to prevent infinite loop
-          break;
-        }
+        const nextParent = await db.reply.findUnique({
+          where: { id: currentParentId },
+          select: { parentReplyId: true }
+        });
+        
+        currentParentId = nextParent?.parentReplyId || null;
       }
 
     }
@@ -105,14 +99,14 @@ export async function POST(
         parentReplyId: parentReplyId || null, // Include parentReplyId if provided
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
             image: true,
           },
         },
-        reactions: {
+        Reaction: {
           include: {
             user: {
               select: {
@@ -147,14 +141,14 @@ export async function GET(
         commentId,
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
             image: true,
           },
         },
-        reactions: {
+        Reaction: {
           include: {
             user: {
               select: {

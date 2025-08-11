@@ -102,7 +102,7 @@ export class ContentReorderingEngine {
     
     switch (strategy.algorithm) {
       case 'difficulty_adaptive':
-        return this.applyDifficultyAdaptiveReordering(content, profile, strategy);
+        return this.applyQuestionDifficultyAdaptiveReordering(content, profile, strategy);
       
       case 'engagement_optimized':
         return this.applyEngagementOptimizedReordering(content, profile, strategy);
@@ -133,15 +133,15 @@ export class ContentReorderingEngine {
     }
   }
 
-  // Difficulty Adaptive Reordering
-  private applyDifficultyAdaptiveReordering(
+  // QuestionDifficulty Adaptive Reordering
+  private applyQuestionDifficultyAdaptiveReordering(
     content: ContentItem[],
     profile: StudentProfile,
     strategy: ReorderingStrategy
   ): ContentItem[] {
     const difficultyLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
-    const targetDifficulty = profile.preferences.difficultyPreference;
-    const targetIndex = difficultyLevels.indexOf(targetDifficulty);
+    const targetQuestionDifficulty = profile.preferences.difficultyPreference;
+    const targetIndex = difficultyLevels.indexOf(targetQuestionDifficulty);
 
     return content.slice().sort((a, b) => {
       const aIndex = difficultyLevels.indexOf(a.metadata.difficulty);
@@ -456,11 +456,11 @@ export class ContentReorderingEngine {
   ): number {
     let score = 0;
 
-    // Difficulty factor
+    // QuestionDifficulty factor
     const difficultyLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
-    const targetDifficultyIndex = difficultyLevels.indexOf(profile.preferences.difficultyPreference);
-    const itemDifficultyIndex = difficultyLevels.indexOf(item.metadata.difficulty);
-    const difficultyScore = 1 - (Math.abs(targetDifficultyIndex - itemDifficultyIndex) / 3);
+    const targetQuestionDifficultyIndex = difficultyLevels.indexOf(profile.preferences.difficultyPreference);
+    const itemQuestionDifficultyIndex = difficultyLevels.indexOf(item.metadata.difficulty);
+    const difficultyScore = 1 - (Math.abs(targetQuestionDifficultyIndex - itemQuestionDifficultyIndex) / 3);
     score += difficultyScore * weights.difficulty;
 
     // Engagement factor
@@ -546,7 +546,7 @@ export class ContentReorderingEngine {
         description: `Optimized for ${profile.learningStyle.visual > 0.6 ? 'visual' : 'mixed'} learning style`
       },
       {
-        factor: 'Difficulty Progression',
+        factor: 'QuestionDifficulty Progression',
         importance: 0.7,
         influence: 0.5,
         description: `Matched to ${profile.preferences.difficultyPreference} difficulty preference`

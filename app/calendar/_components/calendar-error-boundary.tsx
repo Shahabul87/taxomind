@@ -24,7 +24,7 @@ export class CalendarErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    logger.error("Calendar error:", error, errorInfo);
+    logger.error(`Calendar error: ${error}, ErrorInfo: ${JSON.stringify(errorInfo)}`);
   }
 
   private handleRetry = () => {

@@ -24,7 +24,7 @@ const querySchema = z.object({
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { conversationId: string } }
+  context: { params: Promise<{ conversationId: string }> }
 ) {
   try {
     // Authentication check
@@ -37,6 +37,9 @@ export async function GET(
       }, { status: 401 });
     }
 
+    // Resolve params Promise
+    const params = await context.params;
+    
     // Validate path parameters
     const paramsValidation = paramsSchema.safeParse(params);
     

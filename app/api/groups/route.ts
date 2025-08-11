@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 const createGroupSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -77,6 +78,7 @@ export async function POST(req: Request) {
 
     await db.groupMember.create({
       data: {
+        id: randomUUID(),
         userId: session.user.id,
         groupId: group.id,
         role: "admin",
@@ -87,6 +89,7 @@ export async function POST(req: Request) {
     // Create a welcome post for the group
     await db.groupDiscussion.create({
       data: {
+        id: randomUUID(),
         title: "Welcome to the group!",
         content: `👋 Welcome to ${validatedData.name}! This is the first discussion in our group. Feel free to introduce yourself and share what you hope to gain from this community.`,
         groupId: group.id,
@@ -97,14 +100,14 @@ export async function POST(req: Request) {
     const groupWithMember = await db.group.findUnique({
       where: { id: group.id },
       include: {
-        members: true,
-        course: {
+        GroupMember: true,
+        Course: {
           select: {
             title: true,
             imageUrl: true,
           },
         },
-        categoryRef: true,
+        Category: true,
       },
     });
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 export async function POST(req: Request, props: { params: Promise<{ ideaId: string }> }) {
   const params = await props.params;
@@ -29,6 +30,7 @@ export async function POST(req: Request, props: { params: Promise<{ ideaId: stri
     } else {
       await db.ideaLike.create({
         data: {
+          id: randomUUID(),
           ideaId: params.ideaId,
           userId: session.user.id,
         },

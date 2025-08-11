@@ -78,9 +78,9 @@ export class RealtimeAnalyticsWebSocket {
     });
 
     // Setup WebSocket event handlers
-    ws.on('message', (data) => this.handleMessage(clientId, data));
+    ws.on('message', (data: any) => this.handleMessage(clientId, data));
     ws.on('close', () => this.removeClient(clientId));
-    ws.on('error', (error) => this.handleError(clientId, error));
+    ws.on('error', (error: any) => this.handleError(clientId, error));
     ws.on('pong', () => this.handlePong(clientId));
 
     // Send initial data
@@ -120,7 +120,7 @@ export class RealtimeAnalyticsWebSocket {
         default:
           logger.warn(`Unknown message type: ${message.type}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error handling WebSocket message:', error);
     }
   }
@@ -191,7 +191,7 @@ export class RealtimeAnalyticsWebSocket {
   private async sendInitialData(clientId: string) {
     try {
       await this.sendAnalyticsData(clientId);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error sending initial data:', error);
     }
   }
@@ -208,7 +208,7 @@ export class RealtimeAnalyticsWebSocket {
         data,
         timestamp: Date.now()
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error sending analytics data:', error);
     }
   }
@@ -246,7 +246,7 @@ export class RealtimeAnalyticsWebSocket {
         alerts,
         timestamp: now
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating analytics data:', error);
       return {
         activeUsers: 0,
@@ -264,12 +264,12 @@ export class RealtimeAnalyticsWebSocket {
   private async getActiveUsers(subscription: ClientSubscription): Promise<number> {
     try {
       const key = subscription.courseId 
-        ? `analytics:active_users:course:${subscription.courseId}` 
+        ? `analytics:active_users:Course:${subscription.courseId}` 
         : 'analytics:active_users:global';
       
       const count = await redis.scard(key);
       return count;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting active users:', error);
       return 0;
     }
@@ -279,12 +279,12 @@ export class RealtimeAnalyticsWebSocket {
   private async getCurrentEventRate(subscription: ClientSubscription): Promise<number> {
     try {
       const key = subscription.courseId 
-        ? `analytics:events:rate:course:${subscription.courseId}` 
+        ? `analytics:events:rate:Course:${subscription.courseId}` 
         : 'analytics:events:rate:global';
       
       const rate = await redis.get(key);
       return parseFloat(rate || '0');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting event rate:', error);
       return 0;
     }
@@ -295,7 +295,7 @@ export class RealtimeAnalyticsWebSocket {
     try {
       const load = await redis.get('analytics:system:load');
       return parseFloat(load || '0');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting system load:', error);
       return 0;
     }
@@ -305,12 +305,12 @@ export class RealtimeAnalyticsWebSocket {
   private async calculateEngagementScore(subscription: ClientSubscription): Promise<number> {
     try {
       const key = subscription.courseId 
-        ? `analytics:engagement:course:${subscription.courseId}` 
+        ? `analytics:engagement:Course:${subscription.courseId}` 
         : 'analytics:engagement:global';
       
       const score = await redis.get(key);
       return parseFloat(score || '0');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error calculating engagement score:', error);
       return 0;
     }
@@ -320,7 +320,7 @@ export class RealtimeAnalyticsWebSocket {
   private async getTopActivities(subscription: ClientSubscription): Promise<ActivityData[]> {
     try {
       const key = subscription.courseId 
-        ? `analytics:activities:course:${subscription.courseId}` 
+        ? `analytics:activities:Course:${subscription.courseId}` 
         : 'analytics:activities:global';
       
       const activities = await redis.hgetall(key);
@@ -334,7 +334,7 @@ export class RealtimeAnalyticsWebSocket {
           users: parsedData.users || []
         };
       }).sort((a, b) => b.count - a.count).slice(0, 10);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting top activities:', error);
       return [];
     }
@@ -344,13 +344,13 @@ export class RealtimeAnalyticsWebSocket {
   private async getAnalyticsAlerts(subscription: ClientSubscription): Promise<AnalyticsAlert[]> {
     try {
       const key = subscription.courseId 
-        ? `analytics:alerts:course:${subscription.courseId}` 
+        ? `analytics:alerts:Course:${subscription.courseId}` 
         : 'analytics:alerts:global';
       
       const alerts = await redis.lrange(key, 0, 19); // Get last 20 alerts
       
       return alerts.map(alert => JSON.parse(alert));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting analytics alerts:', error);
       return [];
     }
@@ -362,7 +362,7 @@ export class RealtimeAnalyticsWebSocket {
     if (ws && ws.readyState === WebSocket.OPEN) {
       try {
         ws.send(JSON.stringify(message));
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Error sending message to client ${clientId}:`, error);
         this.removeClient(clientId);
       }
@@ -410,12 +410,12 @@ export class RealtimeAnalyticsWebSocket {
   // Setup event listeners for analytics events
   private setupEventListeners() {
     // Listen for new analytics events
-    this.eventTracker.on('new_event', (event) => {
+    this.eventTracker.on('new_event', (event: any) => {
       this.handleNewEvent(event);
     });
     
     // Listen for system alerts
-    this.eventTracker.on('system_alert', (alert) => {
+    this.eventTracker.on('system_alert', (alert: any) => {
       this.handleSystemAlert(alert);
     });
   }
@@ -463,8 +463,8 @@ export class RealtimeAnalyticsWebSocket {
       await redis.expire('analytics:active_users:global', 300); // 5 minutes
       
       if (event.courseId) {
-        await redis.sadd(`analytics:active_users:course:${event.courseId}`, event.userId);
-        await redis.expire(`analytics:active_users:course:${event.courseId}`, 300);
+        await redis.sadd(`analytics:active_users:Course:${event.courseId}`, event.userId);
+        await redis.expire(`analytics:active_users:Course:${event.courseId}`, 300);
       }
       
       // Update event rate
@@ -472,13 +472,13 @@ export class RealtimeAnalyticsWebSocket {
       await redis.expire('analytics:events:count:global', 60); // 1 minute
       
       if (event.courseId) {
-        await redis.incr(`analytics:events:count:course:${event.courseId}`);
-        await redis.expire(`analytics:events:count:course:${event.courseId}`, 60);
+        await redis.incr(`analytics:events:count:Course:${event.courseId}`);
+        await redis.expire(`analytics:events:count:Course:${event.courseId}`, 60);
       }
       
       // Update activities
       const activityKey = event.courseId 
-        ? `analytics:activities:course:${event.courseId}`
+        ? `analytics:activities:Course:${event.courseId}`
         : 'analytics:activities:global';
       
       const activityData = await redis.hget(activityKey, event.eventType) || '{"count": 0, "users": []}';
@@ -490,7 +490,7 @@ export class RealtimeAnalyticsWebSocket {
       
       await redis.hset(activityKey, event.eventType, JSON.stringify(parsed));
       await redis.expire(activityKey, 300);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error updating real-time metrics:', error);
     }
   }
@@ -542,7 +542,7 @@ export class RealtimeAnalyticsWebSocket {
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error checking for alerts:', error);
     }
   }
@@ -551,13 +551,13 @@ export class RealtimeAnalyticsWebSocket {
   private async saveAlert(alert: AnalyticsAlert) {
     try {
       const key = alert.data?.courseId 
-        ? `analytics:alerts:course:${alert.data.courseId}`
+        ? `analytics:alerts:Course:${alert.data.courseId}`
         : 'analytics:alerts:global';
       
       await redis.lpush(key, JSON.stringify(alert));
       await redis.ltrim(key, 0, 99); // Keep last 100 alerts
       await redis.expire(key, 86400); // 24 hours
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error saving alert:', error);
     }
   }

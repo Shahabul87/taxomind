@@ -212,7 +212,7 @@ export class GatewayConfig {
         cache: {
           enabled: true,
           ttl: 300, // 5 minutes
-          key: (req) => `course:${req.url}:${req.headers.get('X-User-ID')}`
+          key: (req) => `Course:${req.url}:${req.headers.get('X-User-ID')}`
         },
         circuitBreaker: {
           enabled: true,
@@ -459,7 +459,7 @@ export class GatewayConfig {
           );
         }
         
-      } catch (error) {
+      } catch (error: any) {
         return NextResponse.json(
           { error: 'Invalid date range format' },
           { status: 400 }
@@ -508,7 +508,7 @@ export class GatewayConfig {
           );
         }
         
-      } catch (error) {
+      } catch (error: any) {
         return NextResponse.json(
           { error: 'Invalid JSON body' },
           { status: 400 }

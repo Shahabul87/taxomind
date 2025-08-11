@@ -62,7 +62,7 @@ export class SAMMasterIntegration {
         role: user.role,
         learningProfile: engineInsights.learningProfile,
       },
-      course: courseId ? await this.getCourseContext(courseId) : null,
+      Course: courseId ? await this.getCourseContext(courseId) : null,
       engineInsights,
       recommendations,
       conversationContext: {
@@ -185,7 +185,7 @@ export class SAMMasterIntegration {
         position: analysis.marketPosition,
         lastUpdated: analysis.analyzedAt,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching market insights:', error);
       return null;
     }
@@ -221,7 +221,7 @@ export class SAMMasterIntegration {
           lastAssessed: studentProgress.lastAssessedAt,
         } : null,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching Blooms insights:', error);
       return null;
     }
@@ -252,7 +252,7 @@ export class SAMMasterIntegration {
         successProbability: result.successProbability,
         criticalActions: result.criticalActions,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching course guide insights:', error);
       return null;
     }
@@ -286,7 +286,7 @@ export class SAMMasterIntegration {
           trend: m.improvementRate > 0 ? 'improving' : 'stable',
         })),
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching learning profile:', error);
       return null;
     }
@@ -296,7 +296,7 @@ export class SAMMasterIntegration {
    * Get course context
    */
   private async getCourseContext(courseId: string) {
-    const course = await db.course.findUnique({
+    const course = await db.Course.findUnique({
       where: { id: courseId },
       include: {
         _count: {
@@ -317,7 +317,7 @@ export class SAMMasterIntegration {
       description: course.description,
       chapters: course._count.chapters,
       students: course._count.Purchase,
-      enrollments: course._count.Enrollment,
+      Enrollment: course._count.Enrollment,
     };
   }
 
@@ -559,14 +559,14 @@ export class SAMMasterIntegration {
     if (context.user.role === 'ADMIN' && context.course) {
       actions.push({
         label: 'Run Full Analysis',
-        route: `/teacher/courses/${context.course.id}/sam-analysis`,
+        route: `/teacher/courses/${context.Course.id}/sam-analysis`,
         icon: 'analysis',
       });
 
       if (context.engineInsights.courseGuide?.criticalActions > 0) {
         actions.push({
           label: 'View Critical Actions',
-          route: `/teacher/courses/${context.course.id}/sam-analysis?tab=recommendations`,
+          route: `/teacher/courses/${context.Course.id}/sam-analysis?tab=recommendations`,
           icon: 'alert',
         });
       }
@@ -584,7 +584,7 @@ interface SAMEnhancedContext {
     role: string;
     learningProfile: any;
   };
-  course: any;
+  Course: any;
   engineInsights: EngineInsights;
   recommendations: PersonalizedRecommendations;
   conversationContext: {

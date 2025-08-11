@@ -8,7 +8,7 @@ import { BloomsProgressChart } from './blooms-progress-chart';
 import { CognitivePerformanceMetrics } from './cognitive-performance-metrics';
 import { LearningPathVisualization } from './learning-path-visualization';
 import { SkillsInventory } from './skills-inventory';
-import { Brain, ChartBar, Map, Sparkles, RefreshCw } from 'lucide-react';
+import { Brain, BarChart3, Map, Sparkles, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
 
@@ -151,7 +151,7 @@ export function StudentDashboard({ userId, courseId }: StudentDashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <ChartBar className="w-8 h-8 text-blue-600" />
+              <BarChart3 className="w-8 h-8 text-blue-600" />
               <span className="text-lg font-medium capitalize">
                 {cognitiveProfile?.optimalLearningStyle || 'Mixed'}
               </span>

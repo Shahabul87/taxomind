@@ -20,7 +20,7 @@ const updateConversationSchema = z.object({
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { conversationId: string } }
+  context: { params: Promise<{ conversationId: string }> }
 ) {
   try {
     // Authentication check
@@ -33,6 +33,9 @@ export async function GET(
       }, { status: 401 });
     }
 
+    // Resolve params Promise
+    const params = await context.params;
+    
     // Validate path parameters
     const paramsValidation = paramsSchema.safeParse(params);
     
@@ -96,7 +99,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { conversationId: string } }
+  context: { params: Promise<{ conversationId: string }> }
 ) {
   try {
     // Authentication check
@@ -109,6 +112,9 @@ export async function PATCH(
       }, { status: 401 });
     }
 
+    // Resolve params Promise
+    const params = await context.params;
+    
     // Validate path parameters
     const paramsValidation = paramsSchema.safeParse(params);
     
@@ -203,7 +209,7 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { conversationId: string } }
+  context: { params: Promise<{ conversationId: string }> }
 ) {
   try {
     // Authentication check
@@ -216,6 +222,9 @@ export async function DELETE(
       }, { status: 401 });
     }
 
+    // Resolve params Promise
+    const params = await context.params;
+    
     // Validate path parameters
     const paramsValidation = paramsSchema.safeParse(params);
     

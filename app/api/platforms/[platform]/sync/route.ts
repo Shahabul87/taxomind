@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -67,12 +68,10 @@ export async function POST(
     const platform = platformParam.toLowerCase();
     
     // Get social account for the platform
-    const socialAccount = await prisma.socialAccount.findUnique({
+    const socialAccount = await prisma.socialMediaAccount.findFirst({
       where: {
-        userId_platform: {
-          userId,
-          platform: platform.toUpperCase(),
-        },
+        userId,
+        platform: platform.toUpperCase() as any,
       },
     });
 
@@ -84,7 +83,7 @@ export async function POST(
     }
 
     // Check if token is expired and refresh if needed
-    if (socialAccount.expiresAt && socialAccount.expiresAt < new Date()) {
+    if (socialAccount.tokenExpiresAt && socialAccount.tokenExpiresAt < new Date()) {
       const refreshResult = await refreshAccessToken(socialAccount);
       if (!refreshResult.success) {
         return NextResponse.json(
@@ -105,7 +104,7 @@ export async function POST(
     }
 
     // Update last sync time
-    await prisma.socialAccount.update({
+    await prisma.socialMediaAccount.update({
       where: { id: socialAccount.id },
       data: { lastSyncAt: new Date() },
     });
@@ -139,7 +138,7 @@ async function refreshAccessToken(socialAccount: any): Promise<{ success: boolea
         params: {
           grant_type: 'refresh_token',
           refresh_token: socialAccount.refreshToken,
-          client_id: process.env.TWITTER_CLIENT_ID,
+          client_id: process.env.TWITTER_CLIENT_ID || '',
         },
       },
       // Add other platforms as needed
@@ -166,12 +165,12 @@ async function refreshAccessToken(socialAccount: any): Promise<{ success: boolea
     }
 
     // Update token in database
-    await prisma.socialAccount.update({
+    await prisma.socialMediaAccount.update({
       where: { id: socialAccount.id },
       data: {
         accessToken: data.access_token,
         refreshToken: data.refresh_token || socialAccount.refreshToken,
-        expiresAt: data.expires_in 
+        tokenExpiresAt: data.expires_in 
           ? new Date(Date.now() + data.expires_in * 1000)
           : null,
       },
@@ -232,35 +231,35 @@ const platformSyncers = {
       };
 
       // Save to analytics table
-      await prisma.socialAnalytics.create({
+      await prisma.socialMetric.create({
         data: {
-          socialAccountId: socialAccount.id,
-          analyticsType: 'FOLLOWER_COUNT',
+          id: randomUUID(),
+          socialMediaAccountId: socialAccount.id,
+          platform: socialAccount.platform,
+          metricType: 'FOLLOWERS',
           value: analyticsData.followerCount,
           recordedAt: new Date(),
-          metadata: { source: 'twitter_api' },
         },
       });
 
-      await prisma.socialAnalytics.create({
+      await prisma.socialMetric.create({
         data: {
-          socialAccountId: socialAccount.id,
-          analyticsType: 'ENGAGEMENT_RATE',
-          value: calculateEngagementRate(tweetsData.data || []),
+          id: randomUUID(),
+          socialMediaAccountId: socialAccount.id,
+          platform: socialAccount.platform,
+          metricType: 'ENGAGEMENT_RATE',
+          value: Math.round(calculateEngagementRate(tweetsData.data || [])),
+          percentage: calculateEngagementRate(tweetsData.data || []),
           recordedAt: new Date(),
-          metadata: { tweets: tweetsData.data?.length || 0 },
         },
       });
 
       // Update account with latest metrics
-      await prisma.socialAccount.update({
+      await prisma.socialMediaAccount.update({
         where: { id: socialAccount.id },
         data: {
           followerCount: analyticsData.followerCount,
-          metadata: {
-            ...socialAccount.metadata,
-            lastSync: analyticsData,
-          },
+          lastSyncAt: new Date(),
         },
       });
 
@@ -303,35 +302,34 @@ const platformSyncers = {
       };
 
       // Save analytics
-      await prisma.socialAnalytics.create({
+      await prisma.socialMetric.create({
         data: {
-          socialAccountId: socialAccount.id,
-          analyticsType: 'FOLLOWER_COUNT',
+          id: randomUUID(),
+          socialMediaAccountId: socialAccount.id,
+          platform: socialAccount.platform,
+          metricType: 'FOLLOWERS',
           value: analyticsData.followerCount,
           recordedAt: new Date(),
-          metadata: { source: 'github_api' },
         },
       });
 
-      await prisma.socialAnalytics.create({
+      await prisma.socialMetric.create({
         data: {
-          socialAccountId: socialAccount.id,
-          analyticsType: 'REPOSITORY_COUNT',
+          id: randomUUID(),
+          socialMediaAccountId: socialAccount.id,
+          platform: socialAccount.platform,
+          metricType: 'POSTS',
           value: analyticsData.publicRepos,
           recordedAt: new Date(),
-          metadata: { stars: analyticsData.totalStars, forks: analyticsData.totalForks },
         },
       });
 
       // Update account
-      await prisma.socialAccount.update({
+      await prisma.socialMediaAccount.update({
         where: { id: socialAccount.id },
         data: {
           followerCount: analyticsData.followerCount,
-          metadata: {
-            ...socialAccount.metadata,
-            lastSync: analyticsData,
-          },
+          lastSyncAt: new Date(),
         },
       });
 

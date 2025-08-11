@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const enrollment = await db.enrollment.findUnique({
       where: {
         userId_courseId: {
-          userId: session.user.id,
+          userId: session.user.id!,
           courseId,
         },
       },
@@ -44,11 +44,11 @@ export async function GET(req: NextRequest) {
       where: {
         courseId,
         chapterId,
-        sectionId,
+        contentId: sectionId, // Using contentId for section
         isActive: true,
       },
       include: {
-        participants: {
+        CollaborationParticipant: {
           include: {
             user: {
               select: {
@@ -64,15 +64,15 @@ export async function GET(req: NextRequest) {
 
     if (existingSession) {
       // Join existing session if not already a participant
-      const isParticipant = existingSession.participants.some(
+      const isParticipant = existingSession.CollaborationParticipant?.some(
         (p) => p.userId === session.user.id
-      );
+      ) || false;
 
       if (!isParticipant) {
         await db.collaborationParticipant.create({
           data: {
             sessionId: existingSession.id,
-            userId: session.user.id,
+            userId: session.user.id!,
             role: "student",
             joinedAt: new Date(),
           },
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
       await db.collaborationParticipant.updateMany({
         where: {
           sessionId: existingSession.id,
-          userId: session.user.id,
+          userId: session.user.id!,
         },
         data: {
           lastActivity: new Date(),
@@ -92,18 +92,16 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json({
         session: existingSession,
-        participants: existingSession.participants.map((p) => ({
+        participants: existingSession.CollaborationParticipant?.map((p) => ({
           id: p.user.id,
           name: p.user.name,
           avatar: p.user.image,
-          status: "online",
+          status: p.isActive ? "online" : "offline",
           role: p.role,
           joinedAt: p.joinedAt,
           lastActivity: p.lastActivity,
-          isVideoEnabled: false,
-          isAudioEnabled: false,
-          isScreenSharing: false,
-        })),
+          contributions: p.contributions,
+        })) || [],
       });
     }
 
@@ -141,7 +139,7 @@ export async function POST(req: NextRequest) {
     const enrollment = await db.enrollment.findUnique({
       where: {
         userId_courseId: {
-          userId: session.user.id,
+          userId: session.user.id!,
           courseId,
         },
       },
@@ -157,17 +155,22 @@ export async function POST(req: NextRequest) {
     // Create new collaboration session
     const collaborationSession = await db.collaborationSession.create({
       data: {
-        title: title || `Study Session - Section ${sectionId}`,
-        description: `Collaborative learning session for section ${sectionId}`,
-        hostId: session.user.id,
+        sessionId: `session_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        contentId: sectionId,
+        contentType: "SECTION",
+        participants: [],
+        activeParticipants: [],
         courseId,
         chapterId,
-        sectionId,
-        startTime: new Date(),
+        initiatorId: session.user.id!,
         isActive: true,
         sessionType: sessionType || "study-group",
-        maxParticipants: 20,
-        isPublic: true,
+        sessionData: {
+          title: title || `Study Session - Section ${sectionId}`,
+          description: `Collaborative learning session for section ${sectionId}`,
+          maxParticipants: 20,
+          isPublic: true,
+        },
       },
     });
 
@@ -175,7 +178,7 @@ export async function POST(req: NextRequest) {
     await db.collaborationParticipant.create({
       data: {
         sessionId: collaborationSession.id,
-        userId: session.user.id,
+        userId: session.user.id!,
         role: "student",
         joinedAt: new Date(),
       },
@@ -212,7 +215,7 @@ export async function PUT(req: NextRequest) {
     const participant = await db.collaborationParticipant.findFirst({
       where: {
         sessionId,
-        userId: session.user.id,
+        userId: session.user.id!,
       },
     });
 
@@ -230,9 +233,6 @@ export async function PUT(req: NextRequest) {
             id: participant.id,
           },
           data: {
-            isVideoEnabled: data.isVideoEnabled,
-            isAudioEnabled: data.isAudioEnabled,
-            isScreenSharing: data.isScreenSharing,
             lastActivity: new Date(),
           },
         });
@@ -245,7 +245,6 @@ export async function PUT(req: NextRequest) {
           },
           data: {
             lastActivity: new Date(),
-            currentFocus: data.currentFocus,
           },
         });
         break;
@@ -271,7 +270,7 @@ export async function PUT(req: NextRequest) {
             },
             data: {
               isActive: false,
-              endTime: new Date(),
+              endedAt: new Date(),
             },
           });
         }

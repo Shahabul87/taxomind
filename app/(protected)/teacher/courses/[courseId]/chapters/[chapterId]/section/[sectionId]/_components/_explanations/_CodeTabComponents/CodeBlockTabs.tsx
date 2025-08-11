@@ -153,11 +153,10 @@ export const CodeBlockTabs = ({
                     // Additional options to reduce validation
                     quickSuggestions: false,
                     parameterHints: { enabled: false },
-                    ordBasedSuggestions: false,
                     suggestOnTriggerCharacters: false,
                     acceptSuggestionOnEnter: "off",
                     tabCompletion: "off",
-                    wordBasedSuggestions: false,
+                    wordBasedSuggestions: "off",
                   }}
                 />
               </div>

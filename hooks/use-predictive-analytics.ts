@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
@@ -203,7 +203,7 @@ export function useCompletionPrediction(courseId?: string) {
 
   const { predictCourseCompletion } = usePredictiveAnalytics();
 
-  const refreshPrediction = async () => {
+  const refreshPrediction = useCallback(async () => {
     if (!courseId) {
       // Use default course for demo
       const result = await predictCourseCompletion('demo-course');
@@ -215,11 +215,11 @@ export function useCompletionPrediction(courseId?: string) {
     const result = await predictCourseCompletion(courseId);
     setPrediction(result);
     setLoading(false);
-  };
+  }, [courseId, predictCourseCompletion]);
 
   useEffect(() => {
     refreshPrediction();
-  }, [courseId]);
+  }, [courseId, refreshPrediction]);
 
   return {
     prediction,
@@ -236,7 +236,7 @@ export function useStudySchedule(courseId?: string) {
 
   const { predictOptimalStudySchedule } = usePredictiveAnalytics();
 
-  const refreshSchedule = async () => {
+  const refreshSchedule = useCallback(async () => {
     if (!courseId) {
       // Use default course for demo
       const result = await predictOptimalStudySchedule('demo-course');
@@ -248,11 +248,11 @@ export function useStudySchedule(courseId?: string) {
     const result = await predictOptimalStudySchedule(courseId);
     setSchedule(result);
     setLoading(false);
-  };
+  }, [courseId, predictOptimalStudySchedule]);
 
   useEffect(() => {
     refreshSchedule();
-  }, [courseId]);
+  }, [courseId, refreshSchedule]);
 
   return {
     schedule,
@@ -269,18 +269,18 @@ export function useAtRiskStudents(courseId: string) {
 
   const { identifyAtRiskStudents } = usePredictiveAnalytics();
 
-  const refreshStudents = async () => {
+  const refreshStudents = useCallback(async () => {
     if (!courseId) return;
     
     setLoading(true);
     const result = await identifyAtRiskStudents(courseId);
     setStudents(result);
     setLoading(false);
-  };
+  }, [courseId, identifyAtRiskStudents]);
 
   useEffect(() => {
     refreshStudents();
-  }, [courseId]);
+  }, [courseId, refreshStudents]);
 
   return {
     students,
@@ -297,7 +297,7 @@ export function usePersonalizedRecommendations(courseId?: string) {
 
   const { generatePersonalizedRecommendations } = usePredictiveAnalytics();
 
-  const refreshRecommendations = async () => {
+  const refreshRecommendations = useCallback(async () => {
     if (!courseId) {
       // Use default course for demo
       const result = await generatePersonalizedRecommendations('demo-course');
@@ -309,11 +309,11 @@ export function usePersonalizedRecommendations(courseId?: string) {
     const result = await generatePersonalizedRecommendations(courseId);
     setRecommendations(result);
     setLoading(false);
-  };
+  }, [courseId, generatePersonalizedRecommendations]);
 
   useEffect(() => {
     refreshRecommendations();
-  }, [courseId]);
+  }, [courseId, refreshRecommendations]);
 
   return {
     recommendations,

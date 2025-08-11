@@ -215,7 +215,7 @@ export interface EmotionContext {
 
 export interface LearningActivity {
   type: ActivityType;
-  difficulty: DifficultyLevel;
+  difficulty: QuestionDifficultyLevel;
   duration: number; // minutes
   progress: number; // 0-1
   performance: ActivityPerformance;
@@ -227,7 +227,7 @@ export type ActivityType =
   | 'project_work' | 'simulation' | 'reflection' | 'research'
   | 'collaboration' | 'presentation' | 'practice' | 'assessment';
 
-export type DifficultyLevel = 'very_easy' | 'easy' | 'moderate' | 'hard' | 'very_hard';
+export type QuestionDifficultyLevel = 'very_easy' | 'easy' | 'moderate' | 'hard' | 'very_hard';
 
 export interface ActivityPerformance {
   accuracy: number; // 0-1
@@ -1351,7 +1351,7 @@ export interface ImplementationGuide {
   steps: ImplementationStep[];
   resources_needed: string[];
   time_required: number; // minutes
-  difficulty: ImplementationDifficulty;
+  difficulty: ImplementationQuestionDifficulty;
 }
 
 export interface ImplementationStep {
@@ -1361,7 +1361,7 @@ export interface ImplementationStep {
   dependencies: string[];
 }
 
-export type ImplementationDifficulty = 'easy' | 'moderate' | 'difficult' | 'expert_required';
+export type ImplementationQuestionDifficulty = 'easy' | 'moderate' | 'difficult' | 'expert_required';
 
 export interface Evidence {
   type: EvidenceType;

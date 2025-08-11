@@ -802,7 +802,7 @@ export interface ExtensionContent {
   id: string;
   type: ExtensionType;
   content: string;
-  difficulty: DifficultyAdjustment;
+  difficulty: QuestionDifficultyAdjustment;
   connections: ContentConnection[];
   exploration: ExplorationPath[];
 }
@@ -811,14 +811,14 @@ export type ExtensionType =
   | 'enrichment' | 'challenge' | 'application' | 'connection' | 'exploration' 
   | 'project' | 'research' | 'creativity' | 'collaboration';
 
-export interface DifficultyAdjustment {
+export interface QuestionDifficultyAdjustment {
   level: number; // 0-1, higher than core content
-  type: DifficultyType;
+  type: QuestionDifficultyType;
   scaffolding: ScaffoldingLevel;
   support: SupportLevel;
 }
 
-export type DifficultyType = 'cognitive' | 'procedural' | 'conceptual' | 'metacognitive';
+export type QuestionDifficultyType = 'cognitive' | 'procedural' | 'conceptual' | 'metacognitive';
 export type ScaffoldingLevel = 'none' | 'minimal' | 'moderate' | 'full';
 
 export interface ContentConnection {
@@ -1137,7 +1137,7 @@ export interface AdaptiveAssessment {
 export type AdaptiveAlgorithm = 'cat' | 'multistage' | 'linear_on_the_fly' | 'shadow_testing';
 
 export interface AdaptiveParameters {
-  startingDifficulty: number; // 0-1
+  startingQuestionDifficulty: number; // 0-1
   stepSize: number; // 0-1
   precisionTarget: number; // 0-1
   contentBalancing: boolean;

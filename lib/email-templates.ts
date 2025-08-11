@@ -5,7 +5,7 @@ export interface CourseEnrollmentEmailData {
     name: string;
     email: string;
   };
-  course: {
+  Course: {
     title: string;
     description?: string;
     price?: number;

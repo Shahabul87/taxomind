@@ -349,7 +349,7 @@ Create questions that not only assess knowledge but promote deep learning and cr
     }
     
     // Check difficulty alignment
-    const difficultyAlignment = this.assessDifficultyAlignment(question);
+    const difficultyAlignment = this.assessQuestionDifficultyAlignment(question);
     if (difficultyAlignment < 0.7) {
       suggestions.push('Question difficulty may not align with cognitive complexity');
     }
@@ -459,15 +459,15 @@ Create questions that not only assess knowledge but promote deep learning and cr
     return Math.max(0, Math.min(1, score));
   }
   
-  private assessDifficultyAlignment(question: EnhancedQuestion): number {
+  private assessQuestionDifficultyAlignment(question: EnhancedQuestion): number {
     const bloomsLevel = ENHANCED_BLOOMS_FRAMEWORK[question.bloomsLevel];
     const expectedCognitiveLoad = bloomsLevel.cognitiveLoad;
     
-    // Difficulty should align with cognitive load
+    // QuestionDifficulty should align with cognitive load
     const difficultyMap = { easy: 1, medium: 3, hard: 5 };
-    const actualDifficulty = difficultyMap[question.difficulty];
+    const actualQuestionDifficulty = difficultyMap[question.difficulty];
     
-    const alignment = 1 - Math.abs(expectedCognitiveLoad - actualDifficulty) / 5;
+    const alignment = 1 - Math.abs(expectedCognitiveLoad - actualQuestionDifficulty) / 5;
     return Math.max(0, alignment);
   }
 }

@@ -226,7 +226,7 @@ export class CourseAnalyticsEngine {
     
     const multiplier = categoryMultipliers[formData.courseCategory] || 1.0;
     
-    // Difficulty level pricing
+    // QuestionDifficulty level pricing
     const difficultyPricing: Record<string, number> = {
       'BEGINNER': 50,
       'INTERMEDIATE': 75,

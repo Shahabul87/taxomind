@@ -92,8 +92,8 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   const trackMobileMenuInteraction = useCallback((action: string, item: string, category: string = 'mobile_menu') => {
     try {
       // Track with analytics service
-      if (typeof window !== 'undefined' && window.gtag) {
-        window.gtag('event', action, {
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', action, {
           event_category: category,
           event_label: item,
           user_id: user?.id || 'anonymous',

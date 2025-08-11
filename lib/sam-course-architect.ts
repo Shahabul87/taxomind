@@ -36,7 +36,7 @@ export interface CourseHistory {
   title: string;
   completionRate: number;
   satisfaction: number;
-  enrollments: number;
+  Enrollment: number;
   revenue: number;
   teachingMethods: string[];
 }
@@ -71,7 +71,7 @@ export interface CourseArchitecture {
   contentRecommendations: ContentRecommendation[];
   
   // Advanced intelligence
-  difficultyProgression: DifficultyProgression;
+  difficultyProgression: QuestionDifficultyProgression;
   engagementStrategy: EngagementStrategy;
   cognitiveLoadManagement: CognitiveLoadPlan;
   
@@ -224,16 +224,16 @@ export interface ContentRecommendation {
   learningEffectiveness: number;
 }
 
-export interface DifficultyProgression {
+export interface QuestionDifficultyProgression {
   curve: ProgressionCurve;
   cognitiveLoadByModule: number[];
-  difficultySpikes: DifficultySpike[];
+  difficultySpikes: QuestionDifficultySpike[];
   scaffoldingStrategies: ScaffoldingStrategy[];
 }
 
 export type ProgressionCurve = 'linear' | 'exponential' | 'stepped' | 'spiral' | 'custom';
 
-export interface DifficultySpike {
+export interface QuestionDifficultySpike {
   modulePosition: number;
   severity: number;
   reason: string;
@@ -417,7 +417,7 @@ export class SAMCourseArchitect {
     );
     
     // Plan difficulty progression and cognitive load
-    const difficultyProgression = await this.planDifficultyProgression(courseStructure);
+    const difficultyProgression = await this.planQuestionDifficultyProgression(courseStructure);
     const cognitiveLoadManagement = await this.planCognitiveLoad(courseStructure);
     
     // Design engagement strategy

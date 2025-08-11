@@ -181,7 +181,7 @@ export class SAMEnterpriseEngine {
         include: {
           Enrollment: {
             include: {
-              course: true,
+              Course: true,
             },
           },
           user_progress: true,
@@ -236,7 +236,7 @@ export class SAMEnterpriseEngine {
         complianceStatus,
         budgetAnalysis,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error analyzing organization:", error);
       throw new Error("Failed to analyze organization");
     }
@@ -274,7 +274,7 @@ export class SAMEnterpriseEngine {
         developmentPlan,
         talentPipeline,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error predicting workforce development:", error);
       throw new Error("Failed to predict workforce development");
     }
@@ -563,7 +563,7 @@ export class SAMEnterpriseEngine {
       },
     });
 
-    const courses = await db.course.count();
+    const courses = await db.Course.count();
 
     return {
       allocatedBudget,

@@ -94,13 +94,6 @@ export function TeacherEmpowermentDashboard({
     resources: ['']
   });
 
-  // Fetch teacher insights
-  useEffect(() => {
-    if (isOpen) {
-      fetchInsights();
-    }
-  }, [isOpen, selectedMetric, timeframe, fetchInsights]);
-
   const fetchInsights = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -117,6 +110,13 @@ export function TeacherEmpowermentDashboard({
       setIsLoading(false);
     }
   }, [courseId, selectedMetric, timeframe]);
+
+  // Fetch teacher insights
+  useEffect(() => {
+    if (isOpen) {
+      fetchInsights();
+    }
+  }, [isOpen, selectedMetric, timeframe, fetchInsights]);
 
   const handleGenerateLessonPlan = useCallback(async () => {
     setIsLoading(true);
@@ -149,26 +149,44 @@ export function TeacherEmpowermentDashboard({
   };
 
   const handleArrayFieldChange = (field: string, index: number, value: string) => {
-    setLessonPlanForm(prev => ({
-      ...prev,
-      [field]: prev[field as keyof typeof prev].map((item: string, i: number) => 
-        i === index ? value : item
-      )
-    }));
+    setLessonPlanForm(prev => {
+      const currentField = prev[field as keyof typeof prev];
+      if (Array.isArray(currentField)) {
+        return {
+          ...prev,
+          [field]: currentField.map((item: string, i: number) => 
+            i === index ? value : item
+          )
+        };
+      }
+      return prev;
+    });
   };
 
   const addArrayField = (field: string) => {
-    setLessonPlanForm(prev => ({
-      ...prev,
-      [field]: [...prev[field as keyof typeof prev], '']
-    }));
+    setLessonPlanForm(prev => {
+      const currentField = prev[field as keyof typeof prev];
+      if (Array.isArray(currentField)) {
+        return {
+          ...prev,
+          [field]: [...currentField, '']
+        };
+      }
+      return prev;
+    });
   };
 
   const removeArrayField = (field: string, index: number) => {
-    setLessonPlanForm(prev => ({
-      ...prev,
-      [field]: prev[field as keyof typeof prev].filter((_: any, i: number) => i !== index)
-    }));
+    setLessonPlanForm(prev => {
+      const currentField = prev[field as keyof typeof prev];
+      if (Array.isArray(currentField)) {
+        return {
+          ...prev,
+          [field]: currentField.filter((_: any, i: number) => i !== index)
+        };
+      }
+      return prev;
+    });
   };
 
   const renderOverviewTab = () => (

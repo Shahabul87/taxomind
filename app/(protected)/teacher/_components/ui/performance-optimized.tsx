@@ -225,7 +225,7 @@ export const LazyImage = memo<LazyImageProps>(({
 
   useEffect(() => {
     if (isVisible && !isLoaded && !error) {
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => setIsLoaded(true);
       img.onerror = () => setError(true);
       img.src = src;
@@ -520,12 +520,4 @@ export function useBatchUpdates<T>(initialValue: T[], batchSize: number = 10) {
   return { items, addItems, clearItems, isProcessing };
 }
 
-// Export all optimization utilities
-export {
-  useDebounce,
-  useThrottle,
-  useIntersectionObserver,
-  usePerformanceMonitor,
-  useCleanup,
-  useBatchUpdates
-};
+// All functions are already exported above with 'export function' declarations

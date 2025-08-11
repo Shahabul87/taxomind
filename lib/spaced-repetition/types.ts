@@ -82,7 +82,7 @@ export interface RepetitionPredictions {
   retentionProbability1week: number;
   retentionProbability1month: number;
   masteryTimeline: MasteryTimeline;
-  difficultyProgression: DifficultyProgression;
+  difficultyProgression: QuestionDifficultyProgression;
   interferenceRisk: InterferenceRisk;
 }
 
@@ -230,7 +230,7 @@ export interface EnvironmentalFactors {
 export interface LearningPreferences {
   preferredModality: LearningModality[];
   preferredPacing: PacingPreference;
-  preferredDifficulty: DifficultyPreference;
+  preferredQuestionDifficulty: QuestionDifficultyPreference;
   feedbackPreference: FeedbackPreference;
   motivationalPreference: MotivationalPreference;
 }
@@ -251,9 +251,9 @@ export interface MasteryTimeline {
   riskFactors: RiskFactor[];
 }
 
-export interface DifficultyProgression {
-  currentDifficulty: number; // 0-1
-  targetDifficulty: number; // 0-1
+export interface QuestionDifficultyProgression {
+  currentQuestionDifficulty: number; // 0-1
+  targetQuestionDifficulty: number; // 0-1
   progression: ProgressionStep[];
   adaptiveScaling: boolean;
   prerequisiteGaps: PrerequisiteGap[];
@@ -363,7 +363,7 @@ export type LearningModality = 'visual' | 'auditory' | 'kinesthetic' | 'reading_
 
 export type PacingPreference = 'self_paced' | 'structured' | 'adaptive' | 'accelerated' | 'deliberate';
 
-export type DifficultyPreference = 'gradual' | 'challenging' | 'adaptive' | 'consistent' | 'variable';
+export type QuestionDifficultyPreference = 'gradual' | 'challenging' | 'adaptive' | 'consistent' | 'variable';
 
 export type FeedbackPreference = 'immediate' | 'delayed' | 'detailed' | 'summary' | 'minimal';
 

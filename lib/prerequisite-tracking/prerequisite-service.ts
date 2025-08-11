@@ -407,7 +407,7 @@ export class PrerequisiteTrackingService {
 
     // Apply difficulty preference
     if (options.difficultyPreference) {
-      optimizedPath = await this.applyDifficultyPreference(optimizedPath, options.difficultyPreference);
+      optimizedPath = await this.applyQuestionDifficultyPreference(optimizedPath, options.difficultyPreference);
     }
 
     // Limit path length
@@ -443,7 +443,7 @@ export class PrerequisiteTrackingService {
     };
   }
 
-  private async applyDifficultyPreference(path: LearningPath, preference: string): Promise<LearningPath> {
+  private async applyQuestionDifficultyPreference(path: LearningPath, preference: string): Promise<LearningPath> {
     // Reorder steps to match difficulty preference
     // This is a simplified implementation
     return path;
@@ -460,7 +460,7 @@ export class PrerequisiteTrackingService {
         return {
           contentId,
           score: status.readinessScore,
-          difficulty: await this.getContentDifficulty(contentId)
+          difficulty: await this.getContentQuestionDifficulty(contentId)
         };
       })
     );
@@ -475,7 +475,7 @@ export class PrerequisiteTrackingService {
         const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3, 'expert': 4 };
         return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
       })
-      .map(item => item.contentId);
+      .map((item: any) => item.contentId);
   }
 
   private async applyAutomaticFix(error: any, courseId: string): Promise<void> {
@@ -575,7 +575,7 @@ export class PrerequisiteTrackingService {
 
   // Placeholder methods for database operations
   private async getStudentCompletedContent(studentId: string, courseId: string): Promise<string[]> {
-    const completions = await db.studentInteraction.findMany({
+    const completions = await db.sAMInteraction.findMany({
       where: {
         studentId,
         courseId,
@@ -606,7 +606,7 @@ export class PrerequisiteTrackingService {
     return '';
   }
 
-  private async getContentDifficulty(contentId: string): Promise<string> {
+  private async getContentQuestionDifficulty(contentId: string): Promise<string> {
     // Placeholder
     return 'intermediate';
   }
@@ -614,7 +614,7 @@ export class PrerequisiteTrackingService {
   private async saveStatusToCache(cacheKey: string, status: StudentPrerequisiteStatus): Promise<void> {
     try {
       await redis.setex(cacheKey, 300, JSON.stringify(status)); // 5 minutes TTL
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache save error:', error);
     }
   }
@@ -622,7 +622,7 @@ export class PrerequisiteTrackingService {
   private async savePathToCache(cacheKey: string, path: LearningPath): Promise<void> {
     try {
       await redis.setex(cacheKey, 1800, JSON.stringify(path)); // 30 minutes TTL
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache save error:', error);
     }
   }

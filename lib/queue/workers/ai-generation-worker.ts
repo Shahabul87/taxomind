@@ -145,7 +145,7 @@ class MockAIService implements AIService {
         tokensUsed: Math.round(Math.random() * 1500) + 300,
         qualityScore: Math.round((Math.random() * 25) + 75), // 75-100
         bloomsDistribution: this.calculateBloomsDistribution(questions),
-        difficultyDistribution: this.calculateDifficultyDistribution(questions),
+        difficultyDistribution: this.calculateQuestionDifficultyDistribution(questions),
       },
     };
   }
@@ -410,7 +410,7 @@ class MockAIService implements AIService {
     return distribution;
   }
 
-  private calculateDifficultyDistribution(questions: any[]): Record<string, number> {
+  private calculateQuestionDifficultyDistribution(questions: any[]): Record<string, number> {
     const distribution: Record<string, number> = {};
     questions.forEach(q => {
       distribution[q.difficulty] = (distribution[q.difficulty] || 0) + 1;
@@ -522,7 +522,7 @@ export class AIGenerationWorker {
 
       return jobResult;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[AI_WORKER] Content generation failed for course ${courseId}:`, error);
       
       const jobResult: AIGenerationJobResult = {
@@ -610,7 +610,7 @@ export class AIGenerationWorker {
 
       return jobResult;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[AI_WORKER] Quiz generation failed for course ${courseId}:`, error);
       
       const jobResult: AIGenerationJobResult = {
@@ -704,7 +704,7 @@ export class AIGenerationWorker {
 
       return jobResult;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[AI_WORKER] Learning path creation failed for user ${userId}:`, error);
       
       const jobResult: AIGenerationJobResult = {
@@ -758,7 +758,7 @@ export class AIGenerationWorker {
         processingTime: Date.now() - job.timestamp,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[AI_WORKER] Course analysis failed:`, error);
       throw error;
     }
@@ -799,7 +799,7 @@ export class AIGenerationWorker {
         processingTime: Date.now() - job.timestamp,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[AI_WORKER] Personalized content generation failed:`, error);
       throw error;
     }

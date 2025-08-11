@@ -27,7 +27,7 @@ export class AnalyticsErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    logger.error('Analytics Error Boundary caught an error:', error, errorInfo);
+    logger.error(`Analytics Error Boundary caught an error: ${error}`, errorInfo);
     
     // Check if it's the specific Next.js headers error
     if (error.message.includes('headers') && error.message.includes('request scope')) {

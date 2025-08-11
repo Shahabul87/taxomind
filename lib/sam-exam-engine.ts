@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionQuestionDifficulty } from '@prisma/client';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { logger } from '@/lib/logger';
 
@@ -32,7 +32,7 @@ export interface EnhancedQuestion {
   text: string;
   questionType: QuestionType;
   bloomsLevel: BloomsLevel;
-  difficulty: QuestionDifficulty;
+  difficulty: QuestionQuestionDifficulty;
   options?: string[];
   correctAnswer: any;
   explanation: string;
@@ -53,7 +53,7 @@ export interface ExamMetadata {
   totalPoints: number;
   estimatedDuration: number;
   bloomsDistribution: Record<BloomsLevel, number>;
-  difficultyDistribution: Record<QuestionDifficulty, number>;
+  difficultyDistribution: Record<QuestionQuestionDifficulty, number>;
   topicsCovered: string[];
   learningObjectives: string[];
 }
@@ -66,7 +66,7 @@ export interface BloomsComparison {
 }
 
 export interface AdaptiveSettings {
-  startingDifficulty: QuestionDifficulty;
+  startingQuestionDifficulty: QuestionQuestionDifficulty;
   adjustmentRules: AdaptiveRule[];
   performanceThresholds: PerformanceThreshold[];
   minQuestions: number;
@@ -327,7 +327,7 @@ export class AdvancedExamEngine {
     };
   }
 
-  private calculatePoints(difficulty: QuestionDifficulty, bloomsLevel: BloomsLevel): number {
+  private calculatePoints(difficulty: QuestionQuestionDifficulty, bloomsLevel: BloomsLevel): number {
     const difficultyPoints = {
       EASY: 1,
       MEDIUM: 2,
@@ -378,7 +378,7 @@ ${courseContext}
 - Total Questions Needed: ${count}
 - Question Types: ${config.questionTypes.join(', ')}
 - Bloom's Distribution: ${JSON.stringify(config.bloomsDistribution)}
-- Difficulty Distribution: ${JSON.stringify(config.difficultyDistribution)}
+- QuestionDifficulty Distribution: ${JSON.stringify(config.difficultyDistribution)}
 - Adaptive Mode: ${config.adaptiveMode}
 
 **Student Profile:**
@@ -428,7 +428,7 @@ Generate ${count} questions following the distribution requirements.`;
     }
 
     if (courseId) {
-      const course = await db.course.findUnique({
+      const course = await db.Course.findUnique({
         where: { id: courseId },
         include: {
           chapters: {
@@ -508,8 +508,8 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
           question.questionType = this.parseQuestionType(line);
         } else if (line.startsWith('Bloom')) {
           question.bloomsLevel = this.parseBloomsLevel(line);
-        } else if (line.startsWith('Difficulty:')) {
-          question.difficulty = this.parseDifficulty(line);
+        } else if (line.startsWith('QuestionDifficulty:')) {
+          question.difficulty = this.parseQuestionDifficulty(line);
         } else if (line.match(/^[A-D]\)/)) {
           question.options?.push(line.substring(2).trim());
         } else if (line.startsWith('Answer:') || line.startsWith('Correct:')) {
@@ -528,7 +528,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
       question.points = this.calculatePoints(question.difficulty, question.bloomsLevel);
 
       return question.text ? question : null;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error parsing question block:', error);
       return null;
     }
@@ -555,7 +555,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
     return 'UNDERSTAND';
   }
 
-  private parseDifficulty(line: string): QuestionDifficulty {
+  private parseQuestionDifficulty(line: string): QuestionQuestionDifficulty {
     const upper = line.toUpperCase();
     if (upper.includes('EASY')) return 'EASY';
     if (upper.includes('HARD')) return 'HARD';
@@ -749,7 +749,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
     studentAnalysis: any,
     config: ExamGenerationConfig
   ): AdaptiveSettings {
-    const startingDifficulty = this.determineStartingDifficulty(studentAnalysis);
+    const startingQuestionDifficulty = this.determineStartingQuestionDifficulty(studentAnalysis);
 
     const adjustmentRules: AdaptiveRule[] = [
       {
@@ -798,7 +798,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
     ];
 
     return {
-      startingDifficulty,
+      startingQuestionDifficulty,
       adjustmentRules,
       performanceThresholds,
       minQuestions: Math.floor(config.totalQuestions * 0.7),
@@ -806,7 +806,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
     };
   }
 
-  private determineStartingDifficulty(studentAnalysis: any): QuestionDifficulty {
+  private determineStartingQuestionDifficulty(studentAnalysis: any): QuestionQuestionDifficulty {
     if (!studentAnalysis) return 'MEDIUM';
     
     const overallLevel = studentAnalysis.overallLevel || 50;
@@ -980,7 +980,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
     targetDistribution: Record<BloomsLevel, number>
   ): Promise<void> {
     const actualDistribution = this.calculateActualDistribution(questions);
-    const difficultyMatrix = this.calculateDifficultyMatrix(questions);
+    const difficultyMatrix = this.calculateQuestionDifficultyMatrix(questions);
     const skillsAssessed = this.identifySkillsCovered(questions);
     const coverageMap = this.generateCoverageMap(questions);
 
@@ -1018,7 +1018,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
     return distribution;
   }
 
-  private calculateDifficultyMatrix(questions: EnhancedQuestion[]): any {
+  private calculateQuestionDifficultyMatrix(questions: EnhancedQuestion[]): any {
     const matrix: any = {};
     
     const bloomsLevels: BloomsLevel[] = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];

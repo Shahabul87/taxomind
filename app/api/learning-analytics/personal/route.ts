@@ -149,7 +149,7 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
       }
     },
     include: {
-      course: {
+      Course: {
         include: {
           chapters: {
             include: {
@@ -162,7 +162,7 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
                   },
                   exams: {
                     include: {
-                      userAttempts: {
+                      UserExamAttempt: {
                         where: {
                           userId: userId,
                           startedAt: {
@@ -170,9 +170,9 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
                           }
                         },
                         include: {
-                          answers: {
+                          UserAnswer: {
                             include: {
-                              question: {
+                              ExamQuestion: {
                                 select: {
                                   bloomsLevel: true,
                                   difficulty: true
@@ -207,10 +207,10 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
   const allExamAttempts: any[] = [];
 
   courseEnrollments.forEach(enrollment => {
-    const course = enrollment.course;
+    const course = enrollment.Course;
     const allSections = course.chapters.flatMap(ch => ch.sections);
     const completedSections = allSections.filter(section => 
-      section.userProgress.some(p => p.isCompleted)
+      section.user_progress.some(p => p.isCompleted)
     ).length;
     
     const progress = allSections.length > 0 ? (completedSections / allSections.length) * 100 : 0;
@@ -222,7 +222,7 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
 
     // Collect exam attempts
     const examAttempts = course.chapters.flatMap(ch => 
-      ch.sections.flatMap(s => s.exams.flatMap(e => e.userAttempts))
+      ch.sections.flatMap(s => s.exams.flatMap(e => e.UserExamAttempt))
     );
 
     allExamAttempts.push(...examAttempts);
@@ -250,7 +250,7 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
     // Calculate last activity
     const lastActivity = Math.max(
       ...examAttempts.map(a => new Date(a.startedAt).getTime()),
-      ...allSections.flatMap(s => s.userProgress.map(p => new Date(p.updatedAt).getTime())),
+      ...allSections.flatMap(s => s.user_progress.map(p => new Date(p.updatedAt).getTime())),
       new Date(enrollment.createdAt).getTime()
     );
 
@@ -341,7 +341,7 @@ function calculateLearningPatterns(examAttempts: any[]): any {
   });
   
   const preferredHour = Object.entries(hourCounts)
-    .reduce((max, [hour, count]) => (count as number) > (max.count as number) ? { hour, count } : max, { hour: '0', count: 0 });
+    .reduce((max, [hour, count]) => (count as number) > max.count ? { hour, count: count as number } : max, { hour: '0', count: 0 });
   
   const preferredStudyTime = 
     parseInt(preferredHour.hour) < 12 ? 'morning' :
@@ -361,7 +361,7 @@ function calculateLearningPatterns(examAttempts: any[]): any {
   });
 
   const mostActiveDay = Object.entries(dayCount)
-    .reduce((max, [day, count]) => (count as number) > (max.count as number) ? { day, count } : max, { day: 'Monday', count: 0 }).day;
+    .reduce((max, [day, count]) => (count as number) > max.count ? { day, count: count as number } : max, { day: 'Monday', count: 0 }).day;
 
   return {
     preferredStudyTime,

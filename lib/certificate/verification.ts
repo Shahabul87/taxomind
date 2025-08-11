@@ -47,7 +47,7 @@ export class VerificationService {
         error: 'Invalid verification code'
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Verification error:', error);
       return {
         isValid: false,
@@ -72,7 +72,7 @@ export class VerificationService {
             image: true
           }
         },
-        course: {
+        Course: {
           select: {
             id: true,
             title: true,
@@ -152,7 +152,7 @@ export class VerificationService {
       data: {
         certificate,
         recipient: certificate.user,
-        course: certificate.course,
+        Course: certificate.course,
         template: certificate.template
       },
       verificationDetails: {
@@ -259,7 +259,7 @@ export class VerificationService {
       });
 
       return qrCodeDataUrl;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('QR code generation error:', error);
       throw new Error('Failed to generate QR code');
     }
@@ -358,7 +358,7 @@ export class VerificationService {
         where: { id: credentialId },
         include: {
           user: { select: { name: true, email: true } },
-          course: { select: { title: true } }
+          Course: { select: { title: true } }
         }
       });
     } else {

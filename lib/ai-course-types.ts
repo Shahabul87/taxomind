@@ -1,11 +1,14 @@
 import * as z from "zod";
 
 // Enums for better type safety
-export enum CourseDifficulty {
+export enum CourseQuestionDifficulty {
   BEGINNER = "beginner",
   INTERMEDIATE = "intermediate", 
   ADVANCED = "advanced"
 }
+
+// Alias for backward compatibility
+export const CourseDifficulty = CourseQuestionDifficulty;
 
 export enum ContentType {
   VIDEO = "video",
@@ -28,7 +31,7 @@ export const CourseGenerationRequestSchema = z.object({
   description: z.string().optional(),
   targetAudience: z.string().min(1, "Target audience is required"),
   duration: z.string().min(1, "Duration is required"),
-  difficulty: z.nativeEnum(CourseDifficulty),
+  difficulty: z.nativeEnum(CourseQuestionDifficulty),
   learningGoals: z.array(z.string()).min(1, "At least one learning goal is required"),
   preferredContentTypes: z.array(z.nativeEnum(ContentType)).optional(),
   learningStyle: z.nativeEnum(LearningStyle).optional(),
@@ -57,7 +60,7 @@ export const CourseGenerationResponseSchema = z.object({
   prerequisites: z.array(z.string()),
   estimatedDuration: z.number(), // in hours
   targetAudience: z.string(),
-  difficulty: z.nativeEnum(CourseDifficulty),
+  difficulty: z.nativeEnum(CourseQuestionDifficulty),
   chapters: z.array(ChapterPlanSchema),
   whatYouWillLearn: z.array(z.string()),
   courseStructure: z.object({
@@ -74,7 +77,7 @@ export const ChapterGenerationRequestSchema = z.object({
   previousChapters: z.array(z.string()).optional(),
   learningObjectives: z.array(z.string()).min(1, "Learning objectives are required"),
   targetDuration: z.string().optional(),
-  difficulty: z.nativeEnum(CourseDifficulty),
+  difficulty: z.nativeEnum(CourseQuestionDifficulty),
 });
 
 export const ChapterGenerationResponseSchema = z.object({
@@ -104,7 +107,7 @@ export const ContentCurationRequestSchema = z.object({
   learningObjectives: z.array(z.string()).min(1, "Learning objectives are required"),
   contentTypes: z.array(z.nativeEnum(ContentType)).min(1, "At least one content type is required"),
   targetAudience: z.string().min(1, "Target audience is required"),
-  difficulty: z.nativeEnum(CourseDifficulty),
+  difficulty: z.nativeEnum(CourseQuestionDifficulty),
   estimatedTime: z.string().optional(),
   keywords: z.array(z.string()).optional(),
 });
@@ -213,7 +216,7 @@ export interface LearningPathNode {
   title: string;
   description: string;
   contentType: ContentType;
-  difficulty: CourseDifficulty;
+  difficulty: CourseQuestionDifficulty;
   estimatedTime: number; // in minutes
   prerequisites: string[];
   learningObjectives: string[];

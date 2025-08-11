@@ -152,7 +152,7 @@ export class QuestionValidator {
     return {
       bloomsAlignment: this.assessBloomsAlignment(question),
       clarityScore: this.assessClarity(question),
-      difficultyAlignment: this.assessDifficultyAlignment(question),
+      difficultyAlignment: this.assessQuestionDifficultyAlignment(question),
       cognitiveLoadAppropriate: this.assessCognitiveLoad(question),
       grammarScore: this.assessGrammar(question),
       biasScore: this.assessBias(question),
@@ -251,19 +251,19 @@ export class QuestionValidator {
   /**
    * Assess difficulty alignment
    */
-  private assessDifficultyAlignment(question: any): number {
+  private assessQuestionDifficultyAlignment(question: any): number {
     if (!question.bloomsLevel || !question.difficulty) return 0.5;
     
     const framework = ENHANCED_BLOOMS_FRAMEWORK[question.bloomsLevel as BloomsLevel];
     const expectedCognitiveLoad = framework.cognitiveLoad;
     
     const difficultyMap = { easy: 1, medium: 3, hard: 5 };
-    const actualDifficulty = difficultyMap[question.difficulty as keyof typeof difficultyMap];
+    const actualQuestionDifficulty = difficultyMap[question.difficulty as keyof typeof difficultyMap];
     
-    if (!actualDifficulty) return 0;
+    if (!actualQuestionDifficulty) return 0;
     
     // Calculate alignment score
-    const difference = Math.abs(expectedCognitiveLoad - actualDifficulty);
+    const difference = Math.abs(expectedCognitiveLoad - actualQuestionDifficulty);
     return Math.max(0, 1 - (difference / 4));
   }
   
@@ -376,12 +376,12 @@ export class QuestionValidator {
       });
     }
     
-    // Difficulty alignment issues
+    // QuestionDifficulty alignment issues
     if (criteria.difficultyAlignment < 0.5) {
       issues.push({
         type: 'warning',
         category: 'difficulty',
-        message: 'Difficulty level doesn\'t match cognitive complexity',
+        message: 'QuestionDifficulty level doesn\'t match cognitive complexity',
         impact: 0.2
       });
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 export async function POST(
   req: NextRequest,
@@ -21,7 +22,7 @@ export async function POST(
         isActive: true,
       },
       include: {
-        nodes: {
+        LearningPathNode: {
           orderBy: { order: "asc" }
         }
       }
@@ -54,24 +55,28 @@ export async function POST(
     // Create enrollment
     const enrollment = await db.pathEnrollment.create({
       data: {
+        id: randomUUID(),
         userId: session.user.id,
         pathId: pathId,
         status: "ACTIVE",
+        updatedAt: new Date(),
         // Create progress entries for each node
-        nodeProgress: {
-          create: path.nodes.map(node => ({
+        NodeProgress: {
+          create: path.LearningPathNode.map(node => ({
+            id: randomUUID(),
             nodeId: node.id,
             status: "NOT_STARTED",
+            updatedAt: new Date(),
           }))
         }
       },
       include: {
-        path: {
+        LearningPath: {
           include: {
-            nodes: true
+            LearningPathNode: true
           }
         },
-        nodeProgress: true
+        NodeProgress: true
       }
     });
 
@@ -108,19 +113,19 @@ export async function GET(
         }
       },
       include: {
-        path: {
+        LearningPath: {
           include: {
-            nodes: {
+            LearningPathNode: {
               orderBy: { order: "asc" }
             }
           }
         },
-        nodeProgress: {
+        NodeProgress: {
           include: {
-            node: true
+            LearningPathNode: true
           },
           orderBy: {
-            node: {
+            LearningPathNode: {
               order: "asc"
             }
           }

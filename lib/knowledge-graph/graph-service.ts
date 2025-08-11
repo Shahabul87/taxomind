@@ -91,7 +91,7 @@ export class KnowledgeGraphService {
         return this.recommendNextNodes(courseId, query.parameters.studentId!, query.parameters.context);
       
       case 'analyze_difficulty':
-        return this.analyzeDifficultyProgression(graph, query.parameters.sourceId!);
+        return this.analyzeQuestionDifficultyProgression(graph, query.parameters.sourceId!);
       
       default:
         throw new Error(`Unsupported query type: ${query.type}`);
@@ -283,7 +283,7 @@ export class KnowledgeGraphService {
           metadata: data.metadata
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to load graph from cache:', error);
     }
     return null;
@@ -302,7 +302,7 @@ export class KnowledgeGraphService {
         3600, // 1 hour TTL
         JSON.stringify(data)
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to save graph to cache:', error);
     }
   }
@@ -391,7 +391,7 @@ export class KnowledgeGraphService {
     return similarNodes
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 5)
-      .map(item => item.node);
+      .map((item: any) => item.node);
   }
 
   private calculateNodeSimilarity(node1: KnowledgeNode, node2: KnowledgeNode): number {
@@ -401,7 +401,7 @@ export class KnowledgeGraphService {
     // Type similarity
     if (node1.type === node2.type) similarity += 0.3;
 
-    // Difficulty similarity
+    // QuestionDifficulty similarity
     const difficultyLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
     const diff1Index = difficultyLevels.indexOf(node1.metadata.difficulty);
     const diff2Index = difficultyLevels.indexOf(node2.metadata.difficulty);
@@ -479,20 +479,20 @@ export class KnowledgeGraphService {
       .slice(0, 5);
   }
 
-  private analyzeDifficultyProgression(graph: KnowledgeGraph, startNodeId: string): any {
+  private analyzeQuestionDifficultyProgression(graph: KnowledgeGraph, startNodeId: string): any {
     const startNode = graph.nodes.get(startNodeId);
     if (!startNode) return null;
 
     const progression = {
-      currentDifficulty: startNode.metadata.difficulty,
-      nextLevels: this.findNextDifficultyLevels(graph, startNodeId),
-      suggestedPath: this.findOptimalDifficultyPath(graph, startNodeId)
+      currentQuestionDifficulty: startNode.metadata.difficulty,
+      nextLevels: this.findNextQuestionDifficultyLevels(graph, startNodeId),
+      suggestedPath: this.findOptimalQuestionDifficultyPath(graph, startNodeId)
     };
 
     return progression;
   }
 
-  private findNextDifficultyLevels(graph: KnowledgeGraph, nodeId: string): string[] {
+  private findNextQuestionDifficultyLevels(graph: KnowledgeGraph, nodeId: string): string[] {
     const currentNode = graph.nodes.get(nodeId);
     if (!currentNode) return [];
 
@@ -504,7 +504,7 @@ export class KnowledgeGraphService {
     return [...new Set(difficulties)];
   }
 
-  private findOptimalDifficultyPath(graph: KnowledgeGraph, startNodeId: string): string[] {
+  private findOptimalQuestionDifficultyPath(graph: KnowledgeGraph, startNodeId: string): string[] {
     // Find a path that gradually increases difficulty
     const path = [startNodeId];
     const visited = new Set([startNodeId]);
@@ -513,8 +513,8 @@ export class KnowledgeGraphService {
     const difficultyLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
     
     while (path.length < 10) { // Limit path length
-      const currentDifficulty = graph.nodes.get(currentNode)?.metadata.difficulty;
-      const currentIndex = difficultyLevels.indexOf(currentDifficulty || 'beginner');
+      const currentQuestionDifficulty = graph.nodes.get(currentNode)?.metadata.difficulty;
+      const currentIndex = difficultyLevels.indexOf(currentQuestionDifficulty || 'beginner');
       
       // Find next node with appropriate difficulty progression
       const nextNodes = this.findDependents(graph, currentNode)
@@ -547,7 +547,7 @@ export class KnowledgeGraphService {
 
   // Helper methods for student data
   private async getStudentCompletedNodes(studentId: string, courseId: string): Promise<string[]> {
-    const completedSections = await db.studentInteraction.findMany({
+    const completedSections = await db.sAMInteraction.findMany({
       where: {
         studentId,
         courseId,
@@ -563,12 +563,12 @@ export class KnowledgeGraphService {
 
   private async getStudentLearningData(studentId: string, courseId: string): Promise<any> {
     const [interactions, metrics, flags] = await Promise.all([
-      db.studentInteraction.findMany({
+      db.sAMInteraction.findMany({
         where: { studentId, courseId },
         orderBy: { timestamp: 'desc' },
         take: 100
       }),
-      db.learningMetric.findMany({
+      db.learning_metrics.findMany({
         where: { studentId, courseId },
         orderBy: { date: 'desc' },
         take: 7 // Last 7 days

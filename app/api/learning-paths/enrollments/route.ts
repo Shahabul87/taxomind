@@ -15,19 +15,19 @@ export async function GET(req: NextRequest) {
         userId: session.user.id,
       },
       include: {
-        path: {
+        LearningPath: {
           include: {
-            nodes: {
+            LearningPathNode: {
               orderBy: { order: "asc" }
             }
           }
         },
-        nodeProgress: {
+        NodeProgress: {
           include: {
-            node: true
+            LearningPathNode: true
           },
           orderBy: {
-            node: {
+            LearningPathNode: {
               order: "asc"
             }
           }
@@ -41,8 +41,8 @@ export async function GET(req: NextRequest) {
 
     // Calculate progress percentage for each enrollment
     const enrichedEnrollments = enrollments.map(enrollment => {
-      const totalNodes = enrollment.nodeProgress.length;
-      const completedNodes = enrollment.nodeProgress.filter(
+      const totalNodes = enrollment.NodeProgress.length;
+      const completedNodes = enrollment.NodeProgress.filter(
         np => np.status === "COMPLETED"
       ).length;
       

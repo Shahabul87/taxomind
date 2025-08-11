@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 // Helper function for safer error responses
 const createErrorResponse = (message: string, status = 500) => {
@@ -23,7 +24,7 @@ export async function POST(
     // Get user session
     try {
       user = await currentUser();
-      if (!user) {
+      if (!user || !user.id) {
         return createErrorResponse("Unauthorized", 401);
       }
     } catch (sessionError) {
@@ -93,7 +94,7 @@ export async function POST(
         postId,
       },
       include: {
-        reactions: {
+        Reaction: {
           include: {
             user: {
               select: {
@@ -112,7 +113,7 @@ export async function POST(
     }
 
     // Store the user ID to ensure it's accessible in the transaction
-    const userId = user.id;
+    const userId = user.id!;
     
     // Handle the reaction in a transaction
     const result = await db.$transaction(async (tx) => {
@@ -144,9 +145,11 @@ export async function POST(
         // Create new reaction
         await tx.reaction.create({
           data: {
+            id: randomUUID(),
             type,
             userId: userId, // Use the variable from outside the transaction
             replyId,
+            updatedAt: new Date(),
           },
         });
       }
@@ -157,14 +160,14 @@ export async function POST(
           id: replyId,
         },
         include: {
-          user: {
+          User: {
             select: {
               id: true,
               name: true,
               image: true,
             },
           },
-          reactions: {
+          Reaction: {
             include: {
               user: {
                 select: {

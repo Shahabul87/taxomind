@@ -13,7 +13,7 @@ import {
   Brain, 
   TrendingUp, 
   BookOpen,
-  ChartBar,
+  BarChart3,
   FileText,
   Loader2,
   ChevronRight
@@ -271,7 +271,7 @@ export function SAMEnginePoweredChat({
   const suggestedQuestions = [
     {
       text: "How am I doing in this course?",
-      icon: ChartBar,
+      icon: BarChart3,
     },
     {
       text: "What should I focus on next?",

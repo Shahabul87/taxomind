@@ -302,35 +302,35 @@ export class AuditSystem {
     
     // Apply filters
     if (query.startDate) {
-      events = events.filter(e => e.timestamp >= query.startDate!);
+      events = events.filter((e: any) => e.timestamp >= query.startDate!);
     }
     
     if (query.endDate) {
-      events = events.filter(e => e.timestamp <= query.endDate!);
+      events = events.filter((e: any) => e.timestamp <= query.endDate!);
     }
     
     if (query.userId) {
-      events = events.filter(e => e.userId === query.userId);
+      events = events.filter((e: any) => e.userId === query.userId);
     }
     
     if (query.action) {
-      events = events.filter(e => e.action.includes(query.action!));
+      events = events.filter((e: any) => e.action.includes(query.action!));
     }
     
     if (query.resource) {
-      events = events.filter(e => e.resource === query.resource);
+      events = events.filter((e: any) => e.resource === query.resource);
     }
     
     if (query.category) {
-      events = events.filter(e => e.category === query.category);
+      events = events.filter((e: any) => e.category === query.category);
     }
     
     if (query.severity) {
-      events = events.filter(e => e.severity === query.severity);
+      events = events.filter((e: any) => e.severity === query.severity);
     }
     
     if (query.success !== undefined) {
-      events = events.filter(e => e.success === query.success);
+      events = events.filter((e: any) => e.success === query.success);
     }
     
     // Sort events
@@ -433,12 +433,12 @@ export class AuditSystem {
     
     const summary = {
       totalEvents: events.length,
-      securityEvents: events.filter(e => e.category === 'security').length,
-      dataAccess: events.filter(e => e.category === 'data').length,
-      userActions: events.filter(e => e.category === 'user').length,
-      systemEvents: events.filter(e => e.category === 'system').length,
-      criticalEvents: events.filter(e => e.severity === 'critical').length,
-      failedActions: events.filter(e => !e.success).length
+      securityEvents: events.filter((e: any) => e.category === 'security').length,
+      dataAccess: events.filter((e: any) => e.category === 'data').length,
+      userActions: events.filter((e: any) => e.category === 'user').length,
+      systemEvents: events.filter((e: any) => e.category === 'system').length,
+      criticalEvents: events.filter((e: any) => e.severity === 'critical').length,
+      failedActions: events.filter((e: any) => !e.success).length
     };
     
     const report: ComplianceReport = {
@@ -604,7 +604,7 @@ export class AuditSystem {
     this.listeners.forEach(listener => {
       try {
         listener(event);
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error in audit listener:', error);
       }
     });

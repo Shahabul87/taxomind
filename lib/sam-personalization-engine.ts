@@ -254,7 +254,7 @@ export class SAMPersonalizationEngine {
       await this.storeLearningStyleProfile(behavior.userId, profile);
       
       return profile;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error detecting learning style:', error);
       throw new Error('Failed to detect learning style');
     }
@@ -308,7 +308,7 @@ export class SAMPersonalizationEngine {
       await this.storeContentOptimization(student.id, content.id, optimizedContent);
       
       return optimizedContent;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error optimizing cognitive load:', error);
       throw new Error('Failed to optimize cognitive load');
     }
@@ -370,7 +370,7 @@ export class SAMPersonalizationEngine {
       await this.storeEmotionalStateAnalysis(interactions[0].userId, emotionalState);
       
       return emotionalState;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error recognizing emotional state:', error);
       throw new Error('Failed to recognize emotional state');
     }
@@ -414,7 +414,7 @@ export class SAMPersonalizationEngine {
       await this.storeMotivationProfile(history.userId, profile);
       
       return profile;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing motivation patterns:', error);
       throw new Error('Failed to analyze motivation patterns');
     }
@@ -433,7 +433,7 @@ export class SAMPersonalizationEngine {
       const edges = this.createLearningEdges(nodes, profile);
       
       // Calculate difficulty progression
-      const difficultyProgression = this.calculateDifficultyProgression(nodes, profile);
+      const difficultyProgression = this.calculateQuestionDifficultyProgression(nodes, profile);
       
       // Estimate total duration
       const estimatedDuration = this.estimatePathDuration(nodes, profile);
@@ -463,7 +463,7 @@ export class SAMPersonalizationEngine {
       await this.storeLearningPath(path);
       
       return path;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating personalized path:', error);
       throw new Error('Failed to generate personalized path');
     }
@@ -505,7 +505,7 @@ export class SAMPersonalizationEngine {
       await this.storePersonalizationResult(context.userId, result);
       
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error applying personalization:', error);
       throw new Error('Failed to apply personalization');
     }
@@ -889,7 +889,7 @@ export class SAMPersonalizationEngine {
       });
       
       explanations.push(response.content[0].text || '');
-    } catch (error) {
+    } catch (error: any) {
       explanations.push('Additional explanations will be provided during the lesson');
     }
     
@@ -1557,7 +1557,7 @@ export class SAMPersonalizationEngine {
     return edges;
   }
 
-  private calculateDifficultyProgression(
+  private calculateQuestionDifficultyProgression(
     nodes: LearningNode[],
     profile: any
   ): number[] {
@@ -1723,7 +1723,7 @@ export class SAMPersonalizationEngine {
   ): Promise<any[]> {
     const adaptations: any[] = [];
     
-    // Difficulty adaptation
+    // QuestionDifficulty adaptation
     if (profile.progress?.length > 5) {
       const recentScores = profile.progress
         .slice(0, 5)

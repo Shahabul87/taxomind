@@ -92,7 +92,7 @@ export class EventBus extends EventEmitter {
       try {
         const event: EventMessage = JSON.parse(message);
         await this.processDistributedEvent(event);
-      } catch (error) {
+      } catch (error: any) {
         logger.error('[EVENT_BUS] Failed to process distributed event:', error);
       }
     });
@@ -159,7 +159,7 @@ export class EventBus extends EventEmitter {
 
       return event;
 
-    } catch (error) {
+    } catch (error: any) {
       this.metrics.failedEvents++;
       logger.error(`[EVENT_BUS] Failed to publish event ${eventType}:`, error);
       throw error;
@@ -267,7 +267,7 @@ export class EventBus extends EventEmitter {
 
         return;
 
-      } catch (error) {
+      } catch (error: any) {
         attempt++;
         subscription.errorCount++;
         
@@ -471,7 +471,7 @@ export class EventBus extends EventEmitter {
    */
   async getDeadLetterQueue(limit: number = 100): Promise<any[]> {
     const items = await this.redis.lrange('taxomind:dead_letter_queue', 0, limit - 1);
-    return items.map(item => JSON.parse(item));
+    return items.map((item: any) => JSON.parse(item));
   }
 
   /**
@@ -502,7 +502,7 @@ export class EventBus extends EventEmitter {
 
       return true;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[EVENT_BUS] Failed to reprocess dead letter item:', error);
       return false;
     }

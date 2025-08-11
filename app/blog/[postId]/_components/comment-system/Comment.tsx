@@ -287,7 +287,7 @@ export const Comment = ({
             const statusCode = apiError.response?.status;
             const responseData = apiError.response?.data;
             
-            logger.error(`API Error - Status: ${statusCode}, Message:`, responseData);
+            logger.error(`API Error - Status: ${statusCode}, Message: ${JSON.stringify(responseData)}`);
             
             // Detailed error based on status code
             if (statusCode === 401) {
@@ -394,7 +394,7 @@ export const Comment = ({
     } catch (error) {
       logger.error("Error updating comment/reply:", error);
       if (axios.isAxiosError(error)) {
-        logger.error(`Status: ${error.response?.status}, Message:`, error.response?.data);
+        logger.error(`Status: ${error.response?.status}, Message: ${JSON.stringify(error.response?.data)}`);
         toast.error(`Failed to update: ${error.response?.data?.error || error.message}`);
       } else {
         toast.error("Failed to update");
@@ -474,7 +474,7 @@ export const Comment = ({
       }
       
       if (axios.isAxiosError(error)) {
-        logger.error(`Status: ${error.response?.status}, Message:`, error.response?.data);
+        logger.error(`Status: ${error.response?.status}, Message: ${JSON.stringify(error.response?.data)}`);
         
         // More specific error messages
         if (error.response?.status === 404) {

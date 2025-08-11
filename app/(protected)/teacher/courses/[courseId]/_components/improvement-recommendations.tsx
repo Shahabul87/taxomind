@@ -23,7 +23,7 @@ import { useState } from "react";
 
 interface Recommendation {
   priority: 'high' | 'medium' | 'low';
-  type: 'content' | 'structure' | 'activity';
+  type: 'content' | 'structure' | 'activity' | 'objectives' | 'assessment';
   title: string;
   description: string;
   examples: string[];

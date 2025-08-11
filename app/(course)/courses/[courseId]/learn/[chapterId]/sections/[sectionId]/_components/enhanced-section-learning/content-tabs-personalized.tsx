@@ -137,18 +137,13 @@ export const ContentTabsPersonalized = ({
     }
   }, [preferences.contentFormat, currentSection.id, availableContent]);
 
-  // Load adaptive recommendations
-  useEffect(() => {
-    loadAdaptiveRecommendations();
-  }, [currentSection.id, preferences, loadAdaptiveRecommendations]);
-
   const generateAdaptiveRecommendations = useCallback(() => {
     const baseRecommendations = {
-      suggestedOrder: [],
+      suggestedOrder: [] as string[],
       estimatedTime: 0,
-      difficultyLevel: 'intermediate',
-      personalizedTips: [],
-      nextActions: []
+      difficultyLevel: 'intermediate' as string,
+      personalizedTips: [] as string[],
+      nextActions: [] as string[]
     };
 
     // Customize based on preferences
@@ -207,6 +202,11 @@ export const ContentTabsPersonalized = ({
       logger.error("Failed to load adaptive recommendations:", error);
     }
   }, [generateAdaptiveRecommendations, setAdaptiveRecommendations]);
+
+  // Load adaptive recommendations
+  useEffect(() => {
+    loadAdaptiveRecommendations();
+  }, [currentSection.id, preferences, loadAdaptiveRecommendations]);
 
   const getLearningStyleIcon = (style: string) => {
     if (style.includes('Visual')) return <Eye className="w-4 h-4" />;
@@ -418,7 +418,17 @@ export const ContentTabsPersonalized = ({
             )}
             {activeContentTab === "code" && (
               <CodeContent 
-                codeExplanations={currentSection.codeExplanations || []} 
+                codeExplanations={(currentSection.codeExplanations || []).map(code => ({
+                  id: code.id,
+                  title: code.heading || 'Code Example',
+                  description: code.explanation || undefined,
+                  code: undefined,
+                  language: undefined,
+                  difficulty: undefined,
+                  concepts: undefined,
+                  author: undefined,
+                  explanation: code.explanation || undefined
+                }))} 
               />
             )}
           </motion.div>
@@ -435,8 +445,7 @@ export const ContentTabsPersonalized = ({
           courseId={courseId}
           chapterId={chapterId}
           sectionId={sectionId}
-          currentTopic={currentSection.title}
-          userPreferences={preferences}
+          sectionTitle={currentSection.title}
         />
       </div>
     );

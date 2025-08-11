@@ -61,20 +61,19 @@ export function usePageSamContext(options: PageSamContextOptions) {
   const { updateContext } = useSAMGlobal();
   
   useEffect(() => {
-    // Build the context object
+    // Build the context object that matches LearningContext interface
     const context = {
-      serverData: {
-        entityType: options.entityType,
-        entityId: options.entityId,
-        entityData: options.entityData,
+      entityType: options.entityType,
+      entityData: options.entityData,
+      contextData: {
         relatedData: options.relatedData,
         permissions: options.permissions,
-        statistics: options.relatedData?.stats
-      },
-      workflow: options.workflow || {},
-      metadata: {
-        ...options.metadata,
-        capabilities: options.capabilities
+        statistics: options.relatedData?.stats,
+        workflow: options.workflow || {},
+        metadata: {
+          ...options.metadata,
+          capabilities: options.capabilities
+        }
       }
     };
     
@@ -102,9 +101,9 @@ export function usePageSamContext(options: PageSamContextOptions) {
     // Update specific context
     updateContext: (updates: Partial<PageSamContextOptions>) => {
       const context = {
-        serverData: {
-          ...updates
-        }
+        entityType: updates.entityType,
+        entityData: updates.entityData,
+        contextData: updates
       };
       updateContext(context);
     },

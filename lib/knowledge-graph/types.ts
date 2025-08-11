@@ -26,7 +26,7 @@ export type NodeType =
   | 'competency';
 
 export interface NodeMetadata {
-  difficulty: DifficultyLevel;
+  difficulty: QuestionDifficultyLevel;
   estimatedTime: number; // minutes
   bloomsLevel: BloomsLevel;
   cognitiveLoad: CognitiveLoad;
@@ -36,7 +36,7 @@ export interface NodeMetadata {
   learningObjectives: string[];
 }
 
-export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+export type QuestionDifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
 export type BloomsLevel = 
   | 'remember'
@@ -116,7 +116,7 @@ export interface LearningPath {
   description?: string;
   nodes: LearningPathNode[];
   totalEstimatedTime: number;
-  difficulty: DifficultyLevel;
+  difficulty: QuestionDifficultyLevel;
   completionRate: number;
   adaptations: PathAdaptation[];
   createdAt: Date;

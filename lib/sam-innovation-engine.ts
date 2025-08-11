@@ -411,7 +411,7 @@ export class SAMInnovationEngine {
         progress,
         recommendations,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error assessing cognitive fitness:", error);
       throw new Error("Failed to assess cognitive fitness");
     }
@@ -604,7 +604,7 @@ export class SAMInnovationEngine {
         mutations,
         phenotype,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error generating learning DNA:", error);
       throw new Error("Failed to generate learning DNA");
     }
@@ -709,7 +709,7 @@ export class SAMInnovationEngine {
       });
 
       return studyBuddy;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error creating study buddy:", error);
       throw new Error("Failed to create study buddy");
     }
@@ -768,7 +768,7 @@ export class SAMInnovationEngine {
       });
 
       return interaction;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error interacting with buddy:", error);
       throw new Error("Failed to interact with study buddy");
     }
@@ -816,7 +816,7 @@ export class SAMInnovationEngine {
       });
 
       return quantumPath;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error creating quantum path:", error);
       throw new Error("Failed to create quantum learning path");
     }
@@ -864,7 +864,7 @@ export class SAMInnovationEngine {
       });
 
       return observation;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error observing quantum path:", error);
       throw new Error("Failed to observe quantum path");
     }
@@ -1244,7 +1244,7 @@ export class SAMInnovationEngine {
     ] = await Promise.all([
       db.enrollment.findMany({
         where: { userId },
-        include: { course: true },
+        include: { Course: true },
       }),
       db.user_progress.findMany({
         where: { userId },
@@ -1322,20 +1322,20 @@ export class SAMInnovationEngine {
     return `${bestHour}:00`;
   }
 
-  private detectStrongestSubject(progress: any[], enrollments: any[]): string {
+  private detectStrongestSubject(progress: any[], Enrollment: any[]): string {
     // Find subject with best performance
     const subjectScores = new Map<string, { total: number; count: number }>();
 
     progress.forEach((p) => {
       const enrollment = enrollments.find((e) => e.courseId === p.courseId);
       if (enrollment?.course?.categoryId) {
-        const current = subjectScores.get(enrollment.course.categoryId) || {
+        const current = subjectScores.get(enrollment.Course.categoryId) || {
           total: 0,
           count: 0,
         };
         current.total += p.quizScore || 0;
         current.count++;
-        subjectScores.set(enrollment.course.categoryId, current);
+        subjectScores.set(enrollment.Course.categoryId, current);
       }
     });
 

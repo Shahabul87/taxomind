@@ -205,26 +205,6 @@ export function CollaborationWhiteboard({
     setHistoryIndex(newHistory.length - 1);
   }, [history, historyIndex]);
 
-  // Undo
-  const undo = useCallback(() => {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      setHistoryIndex(newIndex);
-      setPaths(history[newIndex]);
-      redrawCanvas(history[newIndex]);
-    }
-  }, [historyIndex, history, redrawCanvas]);
-
-  // Redo
-  const redo = useCallback(() => {
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1;
-      setHistoryIndex(newIndex);
-      setPaths(history[newIndex]);
-      redrawCanvas(history[newIndex]);
-    }
-  }, [historyIndex, history, redrawCanvas]);
-
   // Redraw canvas from paths
   const redrawCanvas = useCallback((pathsToDraw: DrawingPath[]) => {
     if (!contextRef.current || !canvasRef.current) return;
@@ -259,6 +239,26 @@ export function CollaborationWhiteboard({
     context.strokeStyle = color;
     context.lineWidth = brushWidth;
   }, [color, brushWidth]);
+
+  // Undo
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setPaths(history[newIndex]);
+      redrawCanvas(history[newIndex]);
+    }
+  }, [historyIndex, history, redrawCanvas]);
+
+  // Redo
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setPaths(history[newIndex]);
+      redrawCanvas(history[newIndex]);
+    }
+  }, [historyIndex, history, redrawCanvas]);
 
   // Download canvas as image
   const downloadCanvas = useCallback(() => {

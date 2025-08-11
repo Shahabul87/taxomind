@@ -4,17 +4,17 @@ import { currentUser, currentRole } from "@/lib/auth";
 
 export const ROLE_PERMISSIONS = {
   [UserRole.STUDENT]: [
-    "course:view",
-    "course:enroll",
+    "Course:view",
+    "Course:enroll",
     "exam:take",
     "progress:view_own",
     "analytics:view_own"
   ],
   [UserRole.TEACHER]: [
-    "course:view",
-    "course:create",
-    "course:edit_own",
-    "course:delete_own",
+    "Course:view",
+    "Course:create",
+    "Course:edit_own",
+    "Course:delete_own",
     "exam:create",
     "exam:edit_own",
     "exam:grade",
@@ -23,10 +23,10 @@ export const ROLE_PERMISSIONS = {
     "analytics:view_courses"
   ],
   [UserRole.ADMIN]: [
-    "course:view",
-    "course:create",
-    "course:edit_any",
-    "course:delete_any",
+    "Course:view",
+    "Course:create",
+    "Course:edit_any",
+    "Course:delete_any",
     "user:view_all",
     "user:edit_roles",
     "user:delete",

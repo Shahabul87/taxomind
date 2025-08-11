@@ -11,7 +11,7 @@ export async function POST(
 ) {
   try {
     const user = await currentUser();
-    if (!user) {
+    if (!user || !user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -50,7 +50,7 @@ export async function POST(
         postId,
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -135,7 +135,7 @@ export async function GET(
         postId,
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -154,14 +154,14 @@ export async function GET(
         },
         replies: {
           include: {
-            user: {
+            User: {
               select: {
                 id: true,
                 name: true,
                 image: true,
               },
             },
-            reactions: {
+            Reaction: {
               include: {
                 user: {
                   select: {
@@ -171,7 +171,7 @@ export async function GET(
                 },
               },
             },
-            parentReply: {
+            Reply: {
               select: {
                 id: true,
               }

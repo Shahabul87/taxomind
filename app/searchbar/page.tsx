@@ -5,15 +5,8 @@ import { db } from "@/lib/db";
 import { getCoursesForHomepage } from "@/actions/get-all-courses";
 import { CourseCardHome } from "@/components/course-card-home";
 import { Separator } from "@/components/ui/separator";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import { SidebarDemo } from "@/components/ui/sidebar-demo";
-
-interface SearchPageProps {
-  searchParams: Promise<{
-    title: string;
-    categoryId: string;
-  }>;
-}
 
 type CourseForHomepage = {
   id: string;
@@ -31,10 +24,9 @@ type CourseForHomepage = {
 
 import { PlaceholdersAndVanishInput } from "./placeholders-and-vanish-input";
 
-export default function PlaceholdersAndVanishInputDemo(props: SearchPageProps) {
-  const searchParams = use(props.searchParams);
+export default function PlaceholdersAndVanishInputDemo() {
   const placeholders = [
-    "What's the first rule of Fight Club?",
+    "What&apos;s the first rule of Fight Club?",
     "Who is Tyler Durden?",
     "Where is Andrew Laeddis Hiding?",
     "Write a Javascript method to reverse a string",
@@ -59,7 +51,7 @@ export default function PlaceholdersAndVanishInputDemo(props: SearchPageProps) {
       setCourses(fetchedCourses);
     };
     fetchCourses();
-  }, [searchParams]);
+  }, []);
 
   return (
     <SidebarDemo>

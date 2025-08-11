@@ -148,7 +148,7 @@ export class SAMContextualIntelligence {
       'Section planning and sequencing',
       'Assessment integration',
       'Engagement activity design',
-      'Difficulty progression'
+      'QuestionDifficulty progression'
     ];
 
     const suggestedActions = [];

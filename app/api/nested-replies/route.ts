@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     // Authenticate the user
     const user = await currentUser();
-    if (!user) {
+    if (!user || !user.id) {
 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -120,14 +120,14 @@ export async function POST(req: NextRequest) {
         path,
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
             image: true,
           },
         },
-        reactions: {
+        Reaction: {
           include: {
             user: {
               select: {

@@ -255,8 +255,6 @@ export function DirectFormAccessSAM({ courseId, courseData, completionStatus }: 
       courseId={courseId}
       courseData={courseData}
       completionStatus={completionStatus}
-      onUpdateLearningObjectives={handleUpdateLearningObjectives}
-      onUpdateChapters={handleUpdateChapters}
       variant="floating"
     />
   );

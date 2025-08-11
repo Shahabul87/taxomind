@@ -5,7 +5,7 @@
  * learning analytics, and instructional insights for educators and administrators.
  */
 
-import { BloomsLevel, QuestionType, Difficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 
 export interface AssessmentReport {
   reportId: string;
@@ -115,7 +115,7 @@ export interface LevelAnalysis {
   questionCount: number;
   averagePerformance: number;
   performanceDistribution: PerformanceDistribution;
-  difficultyProgression: DifficultyProgression;
+  difficultyProgression: QuestionDifficultyProgression;
   timeSpentAnalysis: TimeSpentAnalysis;
 }
 
@@ -126,7 +126,7 @@ export interface PerformanceDistribution {
   belowBasic: number;
 }
 
-export interface DifficultyProgression {
+export interface QuestionDifficultyProgression {
   easy: { attempted: number; success: number };
   medium: { attempted: number; success: number };
   hard: { attempted: number; success: number };
@@ -410,14 +410,14 @@ export interface AssessmentMetrics {
   assessmentReliability: number;
   assessmentValidity: number;
   discriminationIndex: number;
-  difficultyDistribution: Record<Difficulty, number>;
+  difficultyDistribution: Record<QuestionDifficulty, number>;
 }
 
 export interface QuestionMetric {
   questionId: string;
   questionType: QuestionType;
   bloomsLevel: BloomsLevel;
-  difficulty: Difficulty;
+  difficulty: QuestionDifficulty;
   performance: QuestionPerformance;
   analytics: QuestionAnalytics;
 }

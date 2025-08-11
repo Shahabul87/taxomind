@@ -160,7 +160,7 @@ export class BloomsAnalysisEngine {
     forceReanalyze = false
   ): Promise<BloomsAnalysisResponse> {
     // Get course data with all content
-    const course = await db.course.findUnique({
+    const course = await db.Course.findUnique({
       where: { id: courseId },
       include: {
         chapters: {
@@ -220,7 +220,7 @@ export class BloomsAnalysisEngine {
   }
 
   private async performAnalysis(
-    course: any,
+    Course: any,
     depth: string,
     includeRecommendations: boolean
   ): Promise<BloomsAnalysisResponse> {
@@ -678,7 +678,7 @@ Description: ${section.description || 'No description'}
   }
 
   private async generateRecommendations(
-    course: any,
+    Course: any,
     chapterAnalyses: ChapterBloomsAnalysis[],
     distribution: BloomsDistribution
   ): Promise<{

@@ -101,7 +101,7 @@ export function useSamCompleteGeneration() {
       // Step 3: Update course description
       updateProgress('description', 'Updating course description...', 40);
       
-      onFormDataUpdate(prev => ({
+      onFormDataUpdate((prev: any) => ({
         ...prev,
         courseDescription: courseStructure.courseDescription,
         courseShortOverview: courseStructure.courseDescription // Also update overview if needed
@@ -113,7 +113,7 @@ export function useSamCompleteGeneration() {
       // Step 4: Update learning objectives
       updateProgress('objectives', 'SAM is enhancing learning objectives...', 60);
       
-      onFormDataUpdate(prev => ({
+      onFormDataUpdate((prev: any) => ({
         ...prev,
         courseGoals: courseStructure.learningObjectives
       }));
@@ -124,13 +124,13 @@ export function useSamCompleteGeneration() {
       updateProgress('chapters', 'SAM is creating Bloom\'s-focused chapters...', 80);
       
       // Transform chapters to match form structure
-      const formattedChapters = courseStructure.chapters.map((chapter, index) => ({
+      const formattedChapters = courseStructure.chapters.map((chapter: any, index: number) => ({
         id: `temp-${Date.now()}-${index}`, // Temporary ID for form
         title: chapter.title,
         description: chapter.description,
         bloomsLevel: chapter.bloomsLevel,
         position: chapter.position,
-        sections: chapter.sections.map((section, sIndex) => ({
+        sections: chapter.sections.map((section: any, sIndex: number) => ({
           id: `temp-section-${Date.now()}-${index}-${sIndex}`,
           title: section.title,
           description: section.description,
@@ -142,7 +142,7 @@ export function useSamCompleteGeneration() {
         isPublished: false
       }));
 
-      onFormDataUpdate(prev => ({
+      onFormDataUpdate((prev: any) => ({
         ...prev,
         chapters: formattedChapters,
         chapterCount: formattedChapters.length,

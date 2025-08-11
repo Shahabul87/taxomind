@@ -314,7 +314,7 @@ export class NeuralNetworkModel extends BaseMLModel {
       recommendedContent: [],
       suggestedInterventions: [],
       optimalStudyTime: features.preferredStudyTime,
-      adaptiveDifficulty: 0.5,
+      adaptiveQuestionDifficulty: 0.5,
       recommendedPace: 'normal',
       nextBestAction: 'continue_current_path'
     };

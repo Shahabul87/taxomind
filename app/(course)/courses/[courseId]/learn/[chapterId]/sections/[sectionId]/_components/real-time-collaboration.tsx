@@ -163,42 +163,6 @@ export function RealTimeCollaboration({
   const videoRef = useRef<HTMLVideoElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  // Initialize collaboration session
-  const initializeCollaboration = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      
-      // Check for existing session
-      const { data: sessionData } = await axios.get(`/api/collaboration/session`, {
-        params: { courseId, chapterId, sectionId }
-      });
-
-      if (sessionData.session) {
-        setCurrentSession(sessionData.session);
-        setParticipants(sessionData.participants || []);
-      } else {
-        // Create new session
-        const { data: newSession } = await axios.post(`/api/collaboration/session`, {
-          courseId,
-          chapterId,
-          sectionId,
-          title: `Study Session - Section ${sectionId}`,
-          sessionType: 'study-group'
-        });
-        setCurrentSession(newSession);
-      }
-
-      // Initialize WebSocket connection
-      connectWebSocket();
-      
-    } catch (error) {
-      logger.error('Error initializing collaboration:', error);
-      toast.error('Failed to initialize collaboration session');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [courseId, chapterId, sectionId, connectWebSocket]);
-
   // WebSocket connection
   const connectWebSocket = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
@@ -254,6 +218,42 @@ export function RealTimeCollaboration({
 
     setParticipants(mockParticipants);
   }, [userId, userName, userAvatar]);
+
+  // Initialize collaboration session
+  const initializeCollaboration = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      
+      // Check for existing session
+      const { data: sessionData } = await axios.get(`/api/collaboration/session`, {
+        params: { courseId, chapterId, sectionId }
+      });
+
+      if (sessionData.session) {
+        setCurrentSession(sessionData.session);
+        setParticipants(sessionData.participants || []);
+      } else {
+        // Create new session
+        const { data: newSession } = await axios.post(`/api/collaboration/session`, {
+          courseId,
+          chapterId,
+          sectionId,
+          title: `Study Session - Section ${sectionId}`,
+          sessionType: 'study-group'
+        });
+        setCurrentSession(newSession);
+      }
+
+      // Initialize WebSocket connection
+      connectWebSocket();
+      
+    } catch (error) {
+      logger.error('Error initializing collaboration:', error);
+      toast.error('Failed to initialize collaboration session');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [courseId, chapterId, sectionId, connectWebSocket]);
 
   // Add system message
   const addSystemMessage = useCallback((content: string) => {
@@ -841,15 +841,15 @@ export function RealTimeCollaboration({
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <Label className="text-xs">Auto-join voice</Label>
-                          <Switch size="sm" />
+                          <Switch />
                         </div>
                         <div className="flex items-center justify-between">
                           <Label className="text-xs">Show typing indicators</Label>
-                          <Switch size="sm" defaultChecked />
+                          <Switch defaultChecked />
                         </div>
                         <div className="flex items-center justify-between">
                           <Label className="text-xs">Enable reactions</Label>
-                          <Switch size="sm" defaultChecked />
+                          <Switch defaultChecked />
                         </div>
                       </div>
                     </div>

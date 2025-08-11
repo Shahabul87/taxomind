@@ -261,7 +261,7 @@ export class TemplateEngine {
       description: `Combined template from: ${validTemplates.map(t => t.name).join(', ')}`,
       category: validTemplates[0].category,
       tags: [...new Set(validTemplates.flatMap(t => t.tags))],
-      difficulty: this.calculateCombinedDifficulty(validTemplates),
+      difficulty: this.calculateCombinedQuestionDifficulty(validTemplates),
       estimatedTime: validTemplates.reduce((sum, t) => sum + t.estimatedTime, 0),
       blocks: combinedBlocks,
       prerequisites: [...new Set(validTemplates.flatMap(t => t.prerequisites || []))],
@@ -316,7 +316,7 @@ export class TemplateEngine {
     }
 
     if (Array.isArray(content)) {
-      return content.map(item => this.processTemplateVariables(item, context));
+      return content.map((item: any) => this.processTemplateVariables(item, context));
     }
 
     if (typeof content === 'object' && content !== null) {
@@ -345,7 +345,7 @@ export class TemplateEngine {
     };
   }
 
-  private calculateCombinedDifficulty(templates: Template[]): 'beginner' | 'intermediate' | 'advanced' {
+  private calculateCombinedQuestionDifficulty(templates: Template[]): 'beginner' | 'intermediate' | 'advanced' {
     const difficultyMap = { beginner: 1, intermediate: 2, advanced: 3 };
     const average = templates.reduce((sum, t) => sum + difficultyMap[t.difficulty], 0) / templates.length;
     

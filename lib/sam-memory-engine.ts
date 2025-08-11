@@ -114,7 +114,7 @@ export class SAMMemoryEngine {
       await this.addContextualWelcomeMessage(conversationId);
 
       return conversationId;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error initializing conversation:', error);
       throw error;
     }
@@ -144,7 +144,7 @@ export class SAMMemoryEngine {
       await this.updateMemoryFromMessage(role, content, enrichedMetadata);
 
       return message.id;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error adding message with memory:', error);
       throw error;
     }
@@ -210,7 +210,7 @@ export class SAMMemoryEngine {
         context,
         relevantMemories,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting conversation history:', error);
       return { messages: [] };
     }
@@ -245,7 +245,7 @@ export class SAMMemoryEngine {
           learningStyle: learningProfile?.learningStyle || 'adaptive',
           preferredTone: learningProfile?.adaptiveSettings?.tone || 'encouraging',
           contentFormat: learningProfile?.interactionPreferences?.formats || ['text', 'visual'],
-          difficulty: learningProfile?.preferredDifficulty || 'medium',
+          difficulty: learningProfile?.preferredQuestionDifficulty || 'medium',
         },
         recentTopics,
         ongoingProjects,
@@ -253,7 +253,7 @@ export class SAMMemoryEngine {
         successPatterns: patterns.successes,
         currentGoals: patterns.goals,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting personalized context:', error);
       return {
         userPreferences: {
@@ -285,7 +285,7 @@ export class SAMMemoryEngine {
 - Learning Style: ${context.userPreferences.learningStyle}
 - Preferred Tone: ${context.userPreferences.preferredTone}
 - Content Format: ${context.userPreferences.contentFormat.join(', ')}
-- Difficulty Level: ${context.userPreferences.difficulty}
+- QuestionDifficulty Level: ${context.userPreferences.difficulty}
 
 ## Current Context
 - Course: ${this.context.courseId || 'General'}
@@ -328,7 +328,7 @@ Based on this context, provide a helpful, personalized response that:
 `;
 
       return contextPrompt;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating contextual prompt:', error);
       return userMessage;
     }
@@ -353,7 +353,7 @@ Based on this context, provide a helpful, personalized response that:
         keyInsights: this.extractInsightsFromMessages(conv.messages || []),
         assistanceProvided: this.extractAssistanceFromMessages(conv.messages || []),
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting conversation summaries:', error);
       return [];
     }
@@ -584,7 +584,7 @@ Based on this context, provide a helpful, personalized response that:
   private async getOngoingProjects(): Promise<PersonalizedContext['ongoingProjects']> {
     try {
       // Get user's courses in progress
-      const courses = await db.course.findMany({
+      const courses = await db.Course.findMany({
         where: {
           userId: this.context.userId,
           isPublished: false,
@@ -613,7 +613,7 @@ Based on this context, provide a helpful, personalized response that:
           progress: Math.round(progress),
         };
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting ongoing projects:', error);
       return [];
     }
@@ -657,7 +657,7 @@ Based on this context, provide a helpful, personalized response that:
         successes: [...new Set(successes)],
         goals: [...new Set(goals)],
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing user patterns:', error);
       return { challenges: [], successes: [], goals: [] };
     }

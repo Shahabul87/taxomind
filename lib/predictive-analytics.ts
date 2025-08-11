@@ -105,7 +105,7 @@ export class PredictiveAnalytics {
         confidenceScore
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error predicting course completion:", error);
       throw error;
     }
@@ -167,7 +167,7 @@ export class PredictiveAnalytics {
         estimatedCompletionWeeks
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error predicting study schedule:", error);
       throw error;
     }
@@ -248,7 +248,7 @@ export class PredictiveAnalytics {
       // Sort by risk score (highest first)
       return atRiskStudents.sort((a, b) => b.riskScore - a.riskScore);
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error identifying at-risk students:", error);
       throw error;
     }
@@ -280,7 +280,7 @@ export class PredictiveAnalytics {
 
       return recommendations;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error generating recommendations:", error);
       throw error;
     }
@@ -291,7 +291,7 @@ export class PredictiveAnalytics {
   private static async calculatePredictionFactors(metrics: any, recentSessions: any[]) {
     const now = new Date();
     const enrollmentDays = Math.ceil(
-      (now.getTime() - new Date(metrics.user.enrollments[0].createdAt).getTime()) / 
+      (now.getTime() - new Date(metrics.user.Enrollment[0].createdAt).getTime()) / 
       (1000 * 60 * 60 * 24)
     );
 

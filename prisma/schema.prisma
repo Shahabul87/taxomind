@@ -129,6 +129,10 @@ model User {
   QuantumLearningPath                     QuantumLearningPath[]
   UserConsent                             UserConsent[]
   GDPRRequest                             GDPRRequest[]
+  MentorMatches                           MentorMenteeMatch[]      @relation("MentorMatches")
+  MenteeMatches                           MentorMenteeMatch[]      @relation("MenteeMatches")
+  CollaborationParticipant                CollaborationParticipant[]
+  CollaborationMessage                    CollaborationMessage[]
 }
 
 model Account {
@@ -634,6 +638,7 @@ model Group {
   GroupMember       GroupMember[]
   GroupNotification GroupNotification[]
   GroupResource     GroupResource[]
+  SocialLearningAnalysis SocialLearningAnalysis[]
 
   @@index([categoryId])
   @@index([courseId])
@@ -2167,12 +2172,61 @@ model CollaborationSession {
   contributions      CollaborationContribution[]
   reactions          CollaborationReaction[]
   analytics          CollaborationAnalytics?
+  CollaborationParticipant CollaborationParticipant[]
+  CollaborationMessage     CollaborationMessage[]
 
   @@index([organizationId, contentId, isActive])
   @@index([sessionId, isActive])
   @@index([courseId, isActive])
   @@index([initiatorId])
   @@map("collaboration_sessions")
+}
+
+model CollaborationParticipant {
+  id            String    @id @default(cuid())
+  sessionId     String
+  userId        String
+  role          String    // student, teacher, moderator, etc.
+  joinedAt      DateTime  @default(now())
+  leftAt        DateTime?
+  lastActivity  DateTime  @default(now())
+  isActive      Boolean   @default(true)
+  contributions Int       @default(0)
+  
+  // Relations
+  session       CollaborationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([sessionId, userId])
+  @@index([sessionId, isActive])
+  @@index([userId])
+  @@index([lastActivity])
+  @@map("collaboration_participants")
+}
+
+model CollaborationMessage {
+  id            String    @id @default(cuid())
+  sessionId     String
+  userId        String
+  content       String    @db.Text
+  type          String    @default("text") // text, code, diagram, image, etc.
+  isPrivate     Boolean   @default(false)
+  replyToId     String?
+  editedAt      DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  session       CollaborationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replyTo       CollaborationMessage? @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies       CollaborationMessage[] @relation("MessageReplies")
+  
+  @@index([sessionId, createdAt])
+  @@index([userId])
+  @@index([replyToId])
+  @@map("collaboration_messages")
 }
 
 model AIModelPerformance {
@@ -3847,4 +3901,52 @@ model DataBreach {
   updatedAt        DateTime  @updatedAt
 
   @@map("data_breaches")
+}
+
+// Social Learning and Mentorship Models
+model SocialLearningAnalysis {
+  id               String    @id @default(cuid())
+  groupId          String?   // Reference to Group if analyzing group
+  communityId      String?   // Reference to community/course if analyzing community
+  analysisType     String    // effectiveness, engagement, knowledge-sharing, group-dynamics
+  metrics          Json      // JSON storage for complex metrics
+  overallScore     Float     // Overall score for quick queries
+  analyzedAt       DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  // Relations
+  group            Group?    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  @@index([groupId])
+  @@index([communityId])
+  @@index([analysisType])
+  @@index([analyzedAt])
+  @@map("social_learning_analyses")
+}
+
+model MentorMenteeMatch {
+  id                  String    @id @default(cuid())
+  mentorId            String    // User ID of the mentor
+  menteeId            String    // User ID of the mentee
+  compatibilityScore  Float     // Compatibility score (0-1)
+  matchingFactors     Json      // JSON storage for matching factors
+  suggestedActivities Json      // JSON storage for suggested activities
+  status              String    // proposed, accepted, active, completed, cancelled
+  startDate           DateTime? // When the mentorship started
+  endDate             DateTime? // When the mentorship ended
+  feedback            Json?     // Feedback from both parties
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  // Relations
+  mentor              User      @relation("MentorMatches", fields: [mentorId], references: [id], onDelete: Cascade)
+  mentee              User      @relation("MenteeMatches", fields: [menteeId], references: [id], onDelete: Cascade)
+  
+  @@unique([mentorId, menteeId]) // Prevent duplicate matches
+  @@index([mentorId])
+  @@index([menteeId])
+  @@index([status])
+  @@index([compatibilityScore])
+  @@map("mentor_mentee_matches")
 }

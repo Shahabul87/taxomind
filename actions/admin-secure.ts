@@ -23,8 +23,8 @@ const ERROR_MESSAGES = {
 };
 
 // Helper to get client IP for rate limiting
-function getClientIp(): string {
-  const headersList = headers();
+async function getClientIp(): Promise<string> {
+  const headersList = await headers();
   const forwardedFor = headersList.get('x-forwarded-for');
   const realIp = headersList.get('x-real-ip');
   return forwardedFor?.split(',')[0] || realIp || 'unknown';
@@ -43,12 +43,12 @@ export async function getAdminDashboardDataSecure(
     // Authentication check
     const session = await auth();
     
-    if (!session?.user || !canAccessAdminDashboard(session.user.role as UserRole)) {
+    if (!session?.user?.id || !canAccessAdminDashboard(session.user.role as UserRole)) {
       throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     // Rate limiting
-    const clientIp = getClientIp();
+    const clientIp = await getClientIp();
     const rateLimitKey = `admin-dashboard:${session.user.id}:${clientIp}`;
     const rateLimitResult = await rateLimiters.general.check(rateLimitKey);
     
@@ -261,7 +261,7 @@ async function getUserGrowthData(filter: any) {
     return acc;
   }, {} as Record<string, { month: number; year: number; count: number }>);
 
-  return Object.values(growth).sort((a, b) => {
+  return Object.values(growth).sort((a: { month: number; year: number; count: number }, b: { month: number; year: number; count: number }) => {
     if (a.year !== b.year) return a.year - b.year;
     return a.month - b.month;
   });
@@ -330,12 +330,12 @@ export async function exportUserDataSecure(
   try {
     const session = await auth();
     
-    if (!session?.user || session.user.role !== UserRole.ADMIN) {
+    if (!session?.user?.id || session.user.role !== UserRole.ADMIN) {
       throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     // Rate limit exports more strictly
-    const clientIp = getClientIp();
+    const clientIp = await getClientIp();
     const rateLimitKey = `export:${session.user.id}:${clientIp}`;
     const rateLimitResult = await rateLimiters.heavy.check(rateLimitKey);
     
@@ -371,7 +371,7 @@ export async function performBulkActionSecure(
   try {
     const session = await auth();
     
-    if (!session?.user || session.user.role !== UserRole.ADMIN) {
+    if (!session?.user?.id || session.user.role !== UserRole.ADMIN) {
       throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
@@ -381,7 +381,7 @@ export async function performBulkActionSecure(
     }
 
     // Rate limit bulk actions
-    const clientIp = getClientIp();
+    const clientIp = await getClientIp();
     const rateLimitKey = `bulk-action:${session.user.id}:${clientIp}`;
     const rateLimitResult = await rateLimiters.heavy.check(rateLimitKey);
     

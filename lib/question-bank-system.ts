@@ -5,14 +5,14 @@
  * search, categorization, and quality assurance capabilities.
  */
 
-import { BloomsLevel, QuestionType, Difficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 
 export interface QuestionBankItem {
   id: string;
   question: string;
   questionType: QuestionType;
   bloomsLevel: BloomsLevel;
-  difficulty: Difficulty;
+  difficulty: QuestionDifficulty;
   cognitiveLoad: number;
   subject: string;
   topic: string;
@@ -153,7 +153,7 @@ export interface SearchCriteria {
   query?: string;
   bloomsLevels?: BloomsLevel[];
   questionTypes?: QuestionType[];
-  difficulties?: Difficulty[];
+  difficulties?: QuestionDifficulty[];
   subjects?: string[];
   topics?: string[];
   subtopics?: string[];
@@ -219,7 +219,7 @@ export interface QuestionSet {
   questionIds: string[];
   criteria: SetCriteria;
   bloomsDistribution: Record<BloomsLevel, number>;
-  difficultyDistribution: Record<Difficulty, number>;
+  difficultyDistribution: Record<QuestionDifficulty, number>;
   estimatedTime: number;
   cognitiveLoadProfile: CognitiveLoadProfile;
   createdBy: string;
@@ -231,7 +231,7 @@ export interface QuestionSet {
 
 export interface SetCriteria {
   targetBloomsDistribution?: Record<BloomsLevel, number>;
-  targetDifficultyDistribution?: Record<Difficulty, number>;
+  targetQuestionDifficultyDistribution?: Record<QuestionDifficulty, number>;
   maxCognitiveLoad?: number;
   timeConstraint?: number;
   requiredTopics?: string[];
@@ -388,7 +388,7 @@ export class QuestionBankManager {
     
     // Enhance results with additional data
     const enhancedItems = await Promise.all(
-      searchResults.items.map(async (item) => {
+      searchResults.items.map(async (item: any) => {
         const fullItem = this.questionBank.get(item.id);
         if (fullItem) {
           return await this.enhanceQuestionForDisplay(fullItem, criteria);
@@ -461,7 +461,7 @@ export class QuestionBankManager {
     
     // Calculate distributions and metrics
     const bloomsDistribution = this.calculateBloomsDistribution(selectedQuestions);
-    const difficultyDistribution = this.calculateDifficultyDistribution(selectedQuestions);
+    const difficultyDistribution = this.calculateQuestionDifficultyDistribution(selectedQuestions);
     const estimatedTime = this.calculateEstimatedTime(selectedQuestions);
     const cognitiveLoadProfile = this.calculateCognitiveLoadProfile(selectedQuestions);
     
@@ -530,12 +530,12 @@ export class QuestionBankManager {
             importResult.failedImports++;
             importResult.errors.push(...validationResult.errors);
           }
-        } catch (error) {
+        } catch (error: any) {
           importResult.failedImports++;
           importResult.errors.push(`Failed to import question: ${error}`);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       importResult.errors.push(`Import process failed: ${error}`);
     }
     
@@ -594,7 +594,7 @@ export class QuestionBankManager {
       try {
         const result = await this.assessQuestionQuality(questionId);
         results.push(result);
-      } catch (error) {
+      } catch (error: any) {
         errors.push(`Failed to assess question ${questionId}: ${error}`);
       }
     }
@@ -875,7 +875,7 @@ export interface RecommendationContext {
   userId: string;
   subject: string;
   bloomsLevels: BloomsLevel[];
-  difficulty: Difficulty;
+  difficulty: QuestionDifficulty;
   maxRecommendations?: number;
   excludeIds?: string[];
 }

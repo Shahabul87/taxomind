@@ -23,7 +23,7 @@ import {
   TriggerSource,
   EmotionTrend,
   ActivityType,
-  DifficultyLevel,
+  QuestionDifficultyLevel,
   ModelInfo,
   ProcessingInfo,
   ValidationInfo,
@@ -394,7 +394,7 @@ export class EmotionDetector {
     
     return {
       type: contextData?.activityType || 'reading' as ActivityType,
-      difficulty: contextData?.difficulty || 'moderate' as DifficultyLevel,
+      difficulty: contextData?.difficulty || 'moderate' as QuestionDifficultyLevel,
       duration: contextData?.duration || 15,
       progress: contextData?.progress || 0.5,
       performance: {

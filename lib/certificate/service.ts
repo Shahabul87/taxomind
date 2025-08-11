@@ -47,7 +47,7 @@ export class CertificateService {
         }
       });
 
-      const course = await db.course.findUnique({
+      const course = await db.Course.findUnique({
         where: { id: courseId },
         include: {
           user: {
@@ -136,7 +136,7 @@ export class CertificateService {
         certificate
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Certificate generation error:", error);
       return {
         success: false,
@@ -157,7 +157,7 @@ export class CertificateService {
         error: "Certificate verification not yet implemented"
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Certificate verification error:", error);
       return {
         isValid: false,
@@ -174,7 +174,7 @@ export class CertificateService {
       // TODO: Implement when certificate tables are added
       return { success: false, error: "Certificate revocation not yet implemented" };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Certificate revocation error:", error);
       return {
         success: false,
@@ -215,7 +215,7 @@ export class CertificateService {
     }
 
     // Get course sections and user progress
-    const course = await db.course.findUnique({
+    const course = await db.Course.findUnique({
       where: { id: courseId },
       include: {
         chapters: {

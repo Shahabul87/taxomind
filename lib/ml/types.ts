@@ -66,7 +66,7 @@ export interface PredictionOutput {
   optimalStudyTime: number[]; // Hours of day
   
   // Personalization
-  adaptiveDifficulty: number; // 0-1 scale
+  adaptiveQuestionDifficulty: number; // 0-1 scale
   recommendedPace: 'slow' | 'normal' | 'fast';
   nextBestAction: string;
 }

@@ -31,7 +31,7 @@ export async function trackEnrollment(event: EnrollmentEvent) {
     // For now, we'll just log to console and store in database
 
     // Store in database for internal analytics
-    await db.analyticsEvent.create({
+    await (db as any).analyticsEvent?.create({
       data: {
         userId: event.userId,
         eventType: 'ENROLLMENT',
@@ -44,7 +44,7 @@ export async function trackEnrollment(event: EnrollmentEvent) {
         },
         createdAt: event.timestamp
       }
-    }).catch(error => {
+    }).catch((error: any) => {
       // Fail silently if analytics table doesn't exist
       logger.warn('Analytics tracking failed:', error.message);
     });
@@ -55,7 +55,7 @@ export async function trackEnrollment(event: EnrollmentEvent) {
       trackClientSideEnrollment(event);
     }
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Analytics tracking error:', error);
     // Don't throw - analytics should never break the main flow
   }
@@ -66,7 +66,7 @@ export async function trackUserAction(event: UserActionEvent) {
   try {
 
     // Store in database
-    await db.analyticsEvent.create({
+    await (db as any).analyticsEvent?.create({
       data: {
         userId: event.userId,
         eventType: 'USER_ACTION',
@@ -76,11 +76,11 @@ export async function trackUserAction(event: UserActionEvent) {
         },
         createdAt: event.timestamp
       }
-    }).catch(error => {
+    }).catch((error: any) => {
       logger.warn('User action tracking failed:', error.message);
     });
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('User action tracking error:', error);
   }
 }
@@ -122,7 +122,7 @@ function trackClientSideEnrollment(event: EnrollmentEvent) {
     //   body: JSON.stringify(event)
     // });
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Client-side tracking error:', error);
   }
 }
@@ -149,7 +149,7 @@ export async function trackCourseCompletion(userId: string, courseId: string, co
       });
     }
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Course completion tracking error:', error);
   }
 }
@@ -174,7 +174,7 @@ export async function trackChapterProgress(
       timestamp: new Date()
     });
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Chapter progress tracking error:', error);
   }
 }
@@ -192,7 +192,7 @@ export async function getEnrollmentAnalytics(days: number = 30) {
         }
       },
       include: {
-        course: {
+        Course: {
           select: {
             title: true,
             price: true
@@ -212,11 +212,11 @@ export async function getEnrollmentAnalytics(days: number = 30) {
 
     const analytics = {
       totalEnrollments: enrollments.length,
-      totalRevenue: enrollments.reduce((sum, enrollment) => sum + (enrollment.course.price || 0), 0),
-      freeEnrollments: enrollments.filter(e => !e.course.price || e.course.price === 0).length,
-      paidEnrollments: enrollments.filter(e => e.course.price && e.course.price > 0).length,
+      totalRevenue: enrollments.reduce((sum, enrollment: any) => sum + (enrollment.Course?.price || 0), 0),
+      freeEnrollments: enrollments.filter((e: any) => !e.Course?.price || e.Course?.price === 0).length,
+      paidEnrollments: enrollments.filter((e: any) => e.Course?.price && e.Course?.price > 0).length,
       averagePrice: enrollments.length > 0 
-        ? enrollments.reduce((sum, e) => sum + (e.course.price || 0), 0) / enrollments.length 
+        ? enrollments.reduce((sum, e: any) => sum + (e.Course?.price || 0), 0) / enrollments.length 
         : 0,
       enrollmentsByDay: groupEnrollmentsByDay(enrollments),
       topCourses: getTopCourses(enrollments)
@@ -224,14 +224,14 @@ export async function getEnrollmentAnalytics(days: number = 30) {
 
     return analytics;
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Analytics fetch error:', error);
     return null;
   }
 }
 
 // Helper functions
-function groupEnrollmentsByDay(enrollments: any[]) {
+function groupEnrollmentsByDay(Enrollment: any[]) {
   const grouped = enrollments.reduce((acc, enrollment) => {
     const date = enrollment.createdAt.toISOString().split('T')[0];
     acc[date] = (acc[date] || 0) + 1;
@@ -240,26 +240,26 @@ function groupEnrollmentsByDay(enrollments: any[]) {
 
   return Object.entries(grouped).map(([date, count]) => ({
     date,
-    enrollments: count
+    Enrollment: count
   }));
 }
 
-function getTopCourses(enrollments: any[]) {
+function getTopCourses(Enrollment: any[]) {
   const courseStats = enrollments.reduce((acc, enrollment) => {
-    const courseTitle = enrollment.course.title;
+    const courseTitle = enrollment.Course.title;
     if (!acc[courseTitle]) {
       acc[courseTitle] = {
         title: courseTitle,
-        enrollments: 0,
+        Enrollment: 0,
         revenue: 0
       };
     }
-    acc[courseTitle].enrollments += 1;
-    acc[courseTitle].revenue += enrollment.course.price || 0;
+    acc[courseTitle].Enrollment += 1;
+    acc[courseTitle].revenue += enrollment.Course.price || 0;
     return acc;
   }, {});
 
   return Object.values(courseStats)
-    .sort((a: any, b: any) => b.enrollments - a.enrollments)
+    .sort((a: any, b: any) => b.Enrollment - a.Enrollment)
     .slice(0, 10);
 } 

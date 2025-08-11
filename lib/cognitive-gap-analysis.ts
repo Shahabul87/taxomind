@@ -5,7 +5,7 @@
  * cognitive skill gaps, misalignments, and opportunities for improvement.
  */
 
-import { BloomsLevel, QuestionType, Difficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 
 export interface CurriculumElement {
   id: string;
@@ -17,7 +17,7 @@ export interface CurriculumElement {
   prerequisites: string[];
   cognitiveLoad: number;
   estimatedDuration: number; // minutes
-  difficulty: Difficulty;
+  difficulty: QuestionDifficulty;
   assessmentItems: AssessmentItem[];
 }
 
@@ -34,7 +34,7 @@ export interface AssessmentItem {
   id: string;
   questionType: QuestionType;
   bloomsLevel: BloomsLevel;
-  difficulty: Difficulty;
+  difficulty: QuestionDifficulty;
   cognitiveLoad: number;
   learningObjectiveIds: string[];
   performanceData?: ItemPerformanceData;
@@ -247,7 +247,7 @@ export class CognitiveGapAnalyzer {
       // Calculate coverage metrics
       const coverageScore = this.calculateCoverageScore(curriculum, level);
       const assessmentAlignment = this.calculateAssessmentAlignment(curriculum, level, performanceData);
-      const difficultyProgression = this.analyzeDifficultyProgression(curriculum, level);
+      const difficultyProgression = this.analyzeQuestionDifficultyProgression(curriculum, level);
       const cognitiveLoadBalance = this.analyzeCognitiveLoadBalance(curriculum, level);
       
       // Identify specific gaps
@@ -302,7 +302,7 @@ export class CognitiveGapAnalyzer {
       }
       
       // Examine difficulty progression
-      const difficultySpike = this.analyzeDifficultySpike(current, next, performanceData);
+      const difficultySpike = this.analyzeQuestionDifficultySpike(current, next, performanceData);
       if (difficultySpike.severity > 0.6) {
         gaps.push(difficultySpike);
       }
@@ -438,7 +438,7 @@ export class CognitiveGapAnalyzer {
     return assessedObjectives / totalObjectives;
   }
 
-  private analyzeDifficultyProgression(curriculum: CurriculumElement[], level: BloomsLevel): number {
+  private analyzeQuestionDifficultyProgression(curriculum: CurriculumElement[], level: BloomsLevel): number {
     const levelElements = curriculum.filter(element => element.bloomsLevels.includes(level));
     
     if (levelElements.length < 2) return 1; // Perfect if only one element
@@ -519,7 +519,7 @@ export class CognitiveGapAnalyzer {
         gapType: 'assessment',
         severity: assessmentAlignment < 0.4 ? 'critical' : assessmentAlignment < 0.6 ? 'high' : 'medium',
         description: `Poor assessment alignment for ${level} objectives`,
-        affectedElements: curriculum.filter(e => e.bloomsLevels.includes(level)).map(e => e.id),
+        affectedElements: curriculum.filter((e: any) => e.bloomsLevels.includes(level)).map(e => e.id),
         studentImpact: 1 - assessmentAlignment,
         recommendedSolution: `Create assessments that directly measure ${level} objectives`,
         implementationCost: 'low'
@@ -647,7 +647,7 @@ export class CognitiveGapAnalyzer {
     };
   }
 
-  private analyzeDifficultySpike(
+  private analyzeQuestionDifficultySpike(
     current: CurriculumElement,
     next: CurriculumElement,
     performanceData: Map<string, ItemPerformanceData>

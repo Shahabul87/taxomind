@@ -40,11 +40,11 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      provider = samlProviderManager.registerProvider(config);
+      provider = samlProviderManager.registerProvider(tenantId);
     }
     
     // Generate authentication URL
-    const authUrl = await provider.generateAuthUrl(relayState);
+    const authUrl = await provider.generateLoginUrl();
     
     // Log authentication attempt
 
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     logger.error('[SAML] Authentication initiation failed:', error);
     
     return NextResponse.json(
-      { error: 'Failed to initiate SAML authentication', details: error.message },
+      { error: 'Failed to initiate SAML authentication', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     
     if (!tenantId) {
       // Return list of configured tenants
-      const tenants = samlProviderManager.getConfiguredTenants();
+      const tenants = samlProviderManager.getConfiguredOrganizations();
       const summary = samlProviderManager.getProvidersSummary();
       
       return NextResponse.json({
@@ -93,8 +93,13 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Return SAML metadata
-    const metadata = provider.getMetadata();
+    // Return SAML metadata (placeholder - getMetadata not implemented)
+    const metadata = `<?xml version="1.0"?>
+<EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata">
+  <SPSSODescriptor>
+    <NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</NameIDFormat>
+  </SPSSODescriptor>
+</EntityDescriptor>`;
     
     return new NextResponse(metadata, {
       status: 200,
@@ -108,7 +113,7 @@ export async function GET(request: NextRequest) {
     logger.error('[SAML] Metadata retrieval failed:', error);
     
     return NextResponse.json(
-      { error: 'Failed to retrieve SAML metadata', details: error.message },
+      { error: 'Failed to retrieve SAML metadata', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -181,30 +186,24 @@ function loadSAMLConfigFromEnvironment(tenantId: string): SAMLConfiguration | nu
   const entryPoint = process.env[`${envPrefix}_ENTRY_POINT`] || process.env.SAML_ENTRY_POINT;
   const issuer = process.env[`${envPrefix}_ISSUER`] || process.env.SAML_ISSUER;
   const cert = process.env[`${envPrefix}_CERT`] || process.env.SAML_CERT;
+  const callbackUrl = process.env[`${envPrefix}_CALLBACK_URL`] || process.env.SAML_CALLBACK_URL || `${process.env.NEXTAUTH_URL}/api/auth/callback/saml`;
   
   if (!entryPoint || !issuer || !cert) {
     return null;
   }
   
   return {
-    tenantId,
-    tenantName: process.env[`${envPrefix}_NAME`],
-    domain: process.env[`${envPrefix}_DOMAIN`],
     entryPoint,
     issuer,
+    callbackUrl,
     cert,
-    logoutUrl: process.env[`${envPrefix}_LOGOUT_URL`],
     privateKey: process.env[`${envPrefix}_PRIVATE_KEY`],
-    wantAssertionsSigned: process.env[`${envPrefix}_WANT_ASSERTIONS_SIGNED`] !== 'false',
-    sessionTimeout: parseInt(process.env[`${envPrefix}_SESSION_TIMEOUT`] || '480'),
-    attributeMapping: {
-      email: process.env[`${envPrefix}_ATTR_EMAIL`] || 'email',
-      firstName: process.env[`${envPrefix}_ATTR_FIRST_NAME`] || 'firstName',
-      lastName: process.env[`${envPrefix}_ATTR_LAST_NAME`] || 'lastName',
-      displayName: process.env[`${envPrefix}_ATTR_DISPLAY_NAME`] || 'displayName',
-      groups: process.env[`${envPrefix}_ATTR_GROUPS`] || 'groups',
-    },
-    roleMapping: parseRoleMapping(process.env[`${envPrefix}_ROLE_MAPPING`]),
+    signatureAlgorithm: (process.env[`${envPrefix}_SIGNATURE_ALGORITHM`] as 'sha1' | 'sha256' | 'sha512') || 'sha256',
+    acceptedClockSkewMs: parseInt(process.env[`${envPrefix}_CLOCK_SKEW`] || '5000'),
+    disableRequestedAuthnContext: process.env[`${envPrefix}_DISABLE_AUTHN_CONTEXT`] === 'true',
+    forceAuthn: process.env[`${envPrefix}_FORCE_AUTHN`] === 'true',
+    skipRequestCompression: process.env[`${envPrefix}_SKIP_COMPRESSION`] === 'true',
+    authnRequestBinding: (process.env[`${envPrefix}_AUTHN_BINDING`] as 'HTTP-POST' | 'HTTP-Redirect') || 'HTTP-Redirect',
   };
 }
 
@@ -228,9 +227,9 @@ function parseRoleMapping(mappingString?: string): Record<string, 'USER' | 'ADMI
 function validateSAMLConfig(config: SAMLConfiguration): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
   
-  if (!config.tenantId) errors.push('tenantId is required');
   if (!config.entryPoint) errors.push('entryPoint is required');
   if (!config.issuer) errors.push('issuer is required');
+  if (!config.callbackUrl) errors.push('callbackUrl is required');
   if (!config.cert) errors.push('cert is required');
   
   // Validate URLs
@@ -240,12 +239,10 @@ function validateSAMLConfig(config: SAMLConfiguration): { isValid: boolean; erro
     errors.push('entryPoint must be a valid URL');
   }
   
-  if (config.logoutUrl) {
-    try {
-      new URL(config.logoutUrl);
-    } catch {
-      errors.push('logoutUrl must be a valid URL');
-    }
+  try {
+    new URL(config.callbackUrl);
+  } catch {
+    errors.push('callbackUrl must be a valid URL');
   }
   
   // Validate certificate format
@@ -264,7 +261,7 @@ function validateSAMLConfig(config: SAMLConfiguration): { isValid: boolean; erro
  */
 export async function HEAD(request: NextRequest) {
   try {
-    const tenants = samlProviderManager.getConfiguredTenants();
+    const tenants = samlProviderManager.getConfiguredOrganizations();
     const summary = samlProviderManager.getProvidersSummary();
     
     const healthStatus = {

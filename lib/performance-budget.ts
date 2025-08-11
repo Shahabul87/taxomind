@@ -88,7 +88,7 @@ const PERFORMANCE_BUDGETS: Record<string, PerformanceBudget> = {
       ttfb: 800, // 800ms
     },
   },
-  course: {
+  Course: {
     name: 'Course Learning',
     limits: {
       bundleSize: 1200 * 1024, // 1.2MB
@@ -180,7 +180,7 @@ class PerformanceBudgetMonitor {
     if ('PerformanceObserver' in window) {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        entries.forEach((entry) => {
+        entries.forEach((entry: any) => {
           if (entry.name === 'first-contentful-paint') {
             this.recordMetric('fcp', entry.startTime);
           }
@@ -203,7 +203,7 @@ class PerformanceBudgetMonitor {
     if ('PerformanceObserver' in window) {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        entries.forEach((entry) => {
+        entries.forEach((entry: any) => {
           if (entry.name === 'first-input') {
             const fid = (entry as any).processingStart - entry.startTime;
             this.recordMetric('fid', fid);
@@ -218,7 +218,7 @@ class PerformanceBudgetMonitor {
       let clsValue = 0;
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        entries.forEach((entry) => {
+        entries.forEach((entry: any) => {
           if (!(entry as any).hadRecentInput) {
             clsValue += (entry as any).value;
           }

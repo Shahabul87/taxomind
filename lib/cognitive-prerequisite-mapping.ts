@@ -379,7 +379,7 @@ export const SKILL_DEPENDENCIES: SkillDependency[] = [
     commonTransitionErrors: [
       {
         errorType: 'metacognitive',
-        description: 'Difficulty stepping back to see patterns',
+        description: 'QuestionDifficulty stepping back to see patterns',
         frequency: 0.5,
         interventionStrategy: 'Explicit metacognitive strategy instruction',
         preventionMethods: ['Think-aloud protocols', 'Strategy awareness training']
@@ -575,7 +575,7 @@ export class CognitivePrerequisiteMapper {
           level,
           riskType: 'plateau',
           probability: masteryGap * 0.8,
-          earlyWarningSignals: [`Difficulty progressing beyond ${Math.round(currentMastery * 100)}% mastery`],
+          earlyWarningSignals: [`QuestionDifficulty progressing beyond ${Math.round(currentMastery * 100)}% mastery`],
           interventionStrategies: COGNITIVE_PREREQUISITE_MAP[level]?.[0]?.scaffoldingStrategies || [],
           preventionMethods: ['Regular progress monitoring', 'Adaptive pacing']
         });

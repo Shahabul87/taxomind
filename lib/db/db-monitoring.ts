@@ -206,21 +206,21 @@ export class DatabasePerformanceMonitor {
 
     // Metrics collection
     const metricsInterval = setInterval(() => {
-      this.collectAllMetrics().catch(error => 
+      this.collectAllMetrics().catch((error: any) => 
         logger.error('[DB_MONITOR] Metrics collection error:', error)
       );
     }, this.config.metricsCollectionInterval);
 
     // Health checks
     const healthInterval = setInterval(() => {
-      this.performHealthChecks().catch(error => 
+      this.performHealthChecks().catch((error: any) => 
         logger.error('[DB_MONITOR] Health check error:', error)
       );
     }, this.config.healthCheckInterval);
 
     // Alert checking
     const alertInterval = setInterval(() => {
-      this.checkAlerts().catch(error => 
+      this.checkAlerts().catch((error: any) => 
         logger.error('[DB_MONITOR] Alert check error:', error)
       );
     }, this.config.alertCheckInterval);
@@ -308,7 +308,7 @@ export class DatabasePerformanceMonitor {
               
               return result;
               
-            } catch (error) {
+            } catch (error: any) {
               this.recordQuery({
                 query: queryInfo.query,
                 duration: Date.now() - startTime,
@@ -376,7 +376,7 @@ export class DatabasePerformanceMonitor {
         query = query.substring(0, 500) + '...';
       }
       
-    } catch (error) {
+    } catch (error: any) {
       // If we can't parse the query, just use the method name
       query = method;
     }
@@ -515,7 +515,7 @@ export class DatabasePerformanceMonitor {
    */
   private async collectAllMetrics(): Promise<void> {
     const promises = Array.from(this.databases.entries()).map(([name, db]) => 
-      this.collectDatabaseMetrics(name, db).catch(error => 
+      this.collectDatabaseMetrics(name, db).catch((error: any) => 
         logger.error(`[DB_MONITOR] Error collecting metrics for ${name}:`, error)
       )
     );
@@ -585,7 +585,7 @@ export class DatabasePerformanceMonitor {
    */
   private async performHealthChecks(): Promise<void> {
     const promises = Array.from(this.databases.entries()).map(([name, db]) => 
-      this.performDatabaseHealthCheck(name, db).catch(error => 
+      this.performDatabaseHealthCheck(name, db).catch((error: any) => 
         logger.error(`[DB_MONITOR] Health check error for ${name}:`, error)
       )
     );
@@ -616,7 +616,7 @@ export class DatabasePerformanceMonitor {
       // Calculate SLA metrics
       this.updateSLAMetrics(metrics, true, responseTime);
       
-    } catch (error) {
+    } catch (error: any) {
       metrics.health.isHealthy = false;
       metrics.health.consecutiveFailures++;
       
@@ -926,7 +926,7 @@ export class DatabasePerformanceMonitor {
       // Check system resources
       await this.checkSystemResources();
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[DB_MONITOR] System check failed:', error);
     }
   }
@@ -1248,7 +1248,7 @@ export class DatabasePerformanceMonitor {
       
       alert.notificationsSent++;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[DB_MONITOR] Failed to send alert notification:', error);
     }
   }
@@ -1275,7 +1275,7 @@ export class DatabasePerformanceMonitor {
           totalDatabases: Object.keys(allMetrics).length,
         })
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[DB_MONITOR] Failed to persist metrics:', error);
     }
   }

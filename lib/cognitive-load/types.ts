@@ -26,7 +26,7 @@ export interface LoadAssessment {
 export interface IntrinsicLoad {
   value: number; // 0-1, inherent complexity of the content
   factors: IntrinsicFactor[];
-  difficulty: DifficultyLevel;
+  difficulty: QuestionDifficultyLevel;
   conceptDensity: number; // concepts per minute
   abstractionLevel: AbstractionLevel;
   priorKnowledgeRequirement: number; // 0-1
@@ -389,13 +389,13 @@ export interface LoadPreferences {
   preferredLoadLevel: number; // 0-1, student's preferred cognitive load
   breakFrequency: number; // minutes between preferred breaks
   sessionLength: number; // preferred session length in minutes
-  difficultyProgression: DifficultyProgression;
+  difficultyProgression: QuestionDifficultyProgression;
   feedbackFrequency: FeedbackFrequency;
   supportLevel: SupportLevel;
   adaptationTolerance: number; // 0-1, tolerance for system adaptations
 }
 
-export type DifficultyProgression = 'gradual' | 'steep' | 'plateau' | 'variable';
+export type QuestionDifficultyProgression = 'gradual' | 'steep' | 'plateau' | 'variable';
 export type FeedbackFrequency = 'immediate' | 'frequent' | 'moderate' | 'minimal';
 export type SupportLevel = 'high' | 'medium' | 'low' | 'autonomous';
 
@@ -461,13 +461,13 @@ export interface StudentProfileCriteria {
 export type ExperienceLevel = 'novice' | 'intermediate' | 'advanced' | 'expert';
 
 export interface ContentCriteria {
-  complexity?: DifficultyLevel;
+  complexity?: QuestionDifficultyLevel;
   duration?: { min: number; max: number };
   type?: ContentType;
   interactivity?: { min: number; max: number };
 }
 
-export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+export type QuestionDifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 export type AbstractionLevel = 'concrete' | 'representational' | 'abstract';
 export type ContentType = 'text' | 'video' | 'interactive' | 'assessment' | 'simulation';
 

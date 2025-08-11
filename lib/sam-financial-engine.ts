@@ -81,7 +81,7 @@ interface CourseProfitability {
   costs: number;
   profit: number;
   margin: number;
-  enrollments: number;
+  Enrollment: number;
   completionRate: number;
   recommendedAction?: string;
 }
@@ -252,7 +252,7 @@ export class SAMFinancialEngine {
         forecasts,
         recommendations,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error analyzing financials:", error);
       throw new Error("Failed to analyze financials");
     }
@@ -271,7 +271,7 @@ export class SAMFinancialEngine {
         },
       },
       include: {
-        course: true,
+        Course: true,
         user: true,
       },
     });
@@ -344,7 +344,7 @@ export class SAMFinancialEngine {
       },
     });
 
-    const totalCourses = await db.course.count();
+    const totalCourses = await db.Course.count();
 
     // Cost estimates (these would typically come from actual expense tracking)
     const infrastructureCosts = totalStudents * 2.5; // $2.50 per student per month
@@ -456,7 +456,7 @@ export class SAMFinancialEngine {
     organizationId: string
   ): Promise<PricingAnalysis> {
     // Get current pricing data
-    const courses = await db.course.findMany({
+    const courses = await db.Course.findMany({
       include: {
         Purchase: true,
       },
@@ -909,7 +909,7 @@ export class SAMFinancialEngine {
     organizationId: string,
     dateRange: { start: Date; end: Date }
   ): Promise<CourseProfitability[]> {
-    const courses = await db.course.findMany({
+    const courses = await db.Course.findMany({
       include: {
         Purchase: {
           where: {
@@ -936,7 +936,7 @@ export class SAMFinancialEngine {
         costs,
         profit,
         margin,
-        enrollments: course.Enrollment.length,
+        Enrollment: course.Enrollment.length,
         completionRate: 0.7, // Would calculate from actual data
         recommendedAction: profit < 0 ? "Review pricing or reduce costs" : undefined,
       };

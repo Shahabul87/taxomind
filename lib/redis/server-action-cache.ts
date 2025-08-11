@@ -45,7 +45,7 @@ export class ServerActionCache {
             cached: true,
             fromCache: true
           };
-        } catch (error) {
+        } catch (error: any) {
           logger.warn('Failed to parse cached data for key:', key, error);
           // Clear corrupted cache entry
           await redis?.del(key);
@@ -70,7 +70,7 @@ export class ServerActionCache {
       }
 
       return { data, cached: true, fromCache: false };
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Cache error for key ${key}:`, error);
       
       // If cache error and invalidateOnError is true, fetch fresh data
@@ -93,7 +93,7 @@ export class ServerActionCache {
   ): Promise<CacheResult<T>> {
     const key = `${REDIS_KEYS.COURSE_DETAILS(courseId)}:${userId || 'public'}`;
     return this.withCache(key, REDIS_TTL.COURSE_DETAILS, fetchFn, {
-      tags: [`course:${courseId}`, 'courses'],
+      tags: [`Course:${courseId}`, 'courses'],
       invalidateOnError: true
     });
   }
@@ -128,7 +128,7 @@ export class ServerActionCache {
   ): Promise<CacheResult<T>> {
     const key = REDIS_KEYS.COURSE_PROGRESS(userId, courseId);
     return this.withCache(key, REDIS_TTL.COURSE_PROGRESS, fetchFn, {
-      tags: [`user:${userId}`, `course:${courseId}`, 'progress'],
+      tags: [`user:${userId}`, `Course:${courseId}`, 'progress'],
       invalidateOnError: false // Keep stale progress if needed
     });
   }
@@ -195,7 +195,7 @@ export class ServerActionCache {
           await redis.del(`tag:${tag}`);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache invalidation error:', error);
     }
   }
@@ -208,7 +208,7 @@ export class ServerActionCache {
 
     try {
       await redis.del(key);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Cache key invalidation error for ${key}:`, error);
     }
   }
@@ -222,7 +222,7 @@ export class ServerActionCache {
 
       // This would trigger cache population for popular courses
       // Implementation depends on specific caching needs
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache warming error:', error);
     }
   }
@@ -249,7 +249,7 @@ export class ServerActionCache {
         memoryUsage: '0B', // Would need specific implementation
         hitRate: 0 // Would need tracking implementation
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache stats error:', error);
       return { totalKeys: 0, memoryUsage: '0B' };
     }

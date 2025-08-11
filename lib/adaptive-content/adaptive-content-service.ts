@@ -97,11 +97,11 @@ export class AdaptiveContentService {
       id: section.id,
       type: this.mapSectionToContentType(section),
       title: section.title,
-      description: section.description || undefined,
+      description: (section as any).description || undefined,
       originalPosition: index,
       currentPosition: index,
       metadata: {
-        difficulty: this.inferDifficulty(section),
+        difficulty: this.inferQuestionDifficulty(section),
         duration: section.duration || 30,
         cognitiveLoad: this.inferCognitiveLoad(section),
         bloomsLevel: this.inferBloomsLevel(section),
@@ -121,16 +121,16 @@ export class AdaptiveContentService {
   // Build student profile from historical data
   private async getStudentProfile(studentId: string, courseId: string): Promise<StudentProfile> {
     // Get student interactions
-    const interactions = await db.studentInteraction.findMany({
-      where: { studentId, courseId },
-      orderBy: { timestamp: 'desc' },
+    const interactions = await db.sAMInteraction.findMany({
+      where: { userId: studentId, courseId },
+      orderBy: { createdAt: 'desc' },
       take: 100
     });
 
     // Get learning metrics
-    const metrics = await db.learningMetric.findMany({
-      where: { studentId, courseId },
-      orderBy: { date: 'desc' },
+    const metrics = await db.learning_metrics.findMany({
+      where: { userId: studentId, courseId },
+      orderBy: { createdAt: 'desc' },
       take: 7
     });
 
@@ -221,7 +221,7 @@ export class AdaptiveContentService {
       },
       {
         id: 'difficulty_adaptive',
-        name: 'Difficulty Adaptive',
+        name: 'QuestionDifficulty Adaptive',
         description: 'Adjusts content order based on student ability and progress',
         algorithm: 'difficulty_adaptive',
         parameters: {
@@ -331,7 +331,7 @@ export class AdaptiveContentService {
       // Update analytics
       await this.updateReorderingAnalytics(result);
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to record adaptation:', error);
     }
   }
@@ -354,7 +354,7 @@ export class AdaptiveContentService {
       // Learn from feedback for future adaptations
       await this.updateAdaptationLearning(sequenceId, feedback);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to record feedback:', error);
     }
   }
@@ -412,7 +412,7 @@ export class AdaptiveContentService {
     try {
       const cached = await redis.get(cacheKey);
       return cached ? JSON.parse(cached) : null;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache load error:', error);
       return null;
     }
@@ -421,7 +421,7 @@ export class AdaptiveContentService {
   private async saveSequenceToCache(cacheKey: string, sequence: ContentSequence): Promise<void> {
     try {
       await redis.setex(cacheKey, 1800, JSON.stringify(sequence)); // 30 minutes TTL
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache save error:', error);
     }
   }
@@ -453,7 +453,7 @@ export class AdaptiveContentService {
     return 'text';
   }
 
-  private inferDifficulty(section: any): 'beginner' | 'intermediate' | 'advanced' | 'expert' {
+  private inferQuestionDifficulty(section: any): 'beginner' | 'intermediate' | 'advanced' | 'expert' {
     // Simple inference - could be enhanced with ML
     if (section.position <= 3) return 'beginner';
     if (section.position <= 6) return 'intermediate';
@@ -484,8 +484,8 @@ export class AdaptiveContentService {
   }
 
   private async calculateAdaptiveFactors(sectionId: string, studentId: string): Promise<any> {
-    const interactions = await db.studentInteraction.findMany({
-      where: { sectionId, studentId },
+    const interactions = await db.sAMInteraction.findMany({
+      where: { userId: studentId },
       take: 20
     });
 

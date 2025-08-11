@@ -29,7 +29,7 @@ export class LearningPatternDetector {
       .sort((a, b) => b.score - a.score);
     
     // Return top 3 hours
-    return hoursWithScores.slice(0, 3).map(item => item.hour);
+    return hoursWithScores.slice(0, 3).map((item: any) => item.hour);
   }
 
   // Track study session patterns
@@ -67,7 +67,7 @@ export class LearningPatternDetector {
           REDIS_TTL.SESSION,
           JSON.stringify(currentSession)
         );
-      } catch (error) {
+      } catch (error: any) {
         logger.warn('Failed to parse learning session data for user:', userId, error);
         // Clear corrupted session and create new one
         await redis.del(sessionKey);

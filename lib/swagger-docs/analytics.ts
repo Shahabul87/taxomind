@@ -55,7 +55,7 @@
  *                         type: string
  *                       title:
  *                         type: string
- *                       enrollments:
+ *                       Enrollment:
  *                         type: integer
  *                       completions:
  *                         type: integer

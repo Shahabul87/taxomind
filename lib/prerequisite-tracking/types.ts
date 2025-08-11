@@ -35,7 +35,7 @@ export interface PrerequisiteMetadata {
   confidence: number; // 0-1, how certain we are about this dependency
   evidenceSource: EvidenceSource;
   impactOnSuccess: number; // 0-1, how much this affects success
-  difficulty: DifficultyLevel;
+  difficulty: QuestionDifficultyLevel;
   estimatedTime: number; // minutes to complete prerequisite
   successRate: number; // 0-1, success rate when prerequisite is met
   failureRate: number; // 0-1, failure rate when prerequisite is not met
@@ -54,7 +54,7 @@ export type EvidenceSource =
   | 'peer_feedback'         // Student and instructor feedback
   | 'academic_research';    // Based on educational research
 
-export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+export type QuestionDifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
 export interface CognitiveLoadImpact {
   intrinsic: number; // 0-1, inherent difficulty
@@ -140,7 +140,7 @@ export interface PrerequisiteRecommendation {
   reason: string;
   estimatedImpact: number; // 0-1, expected improvement
   estimatedTime: number; // minutes needed
-  difficulty: DifficultyLevel;
+  difficulty: QuestionDifficultyLevel;
   alternativeOptions: string[]; // Alternative content IDs
 }
 
@@ -162,7 +162,7 @@ export interface LearningPath {
   targetContentId: string;
   path: LearningPathStep[];
   totalEstimatedTime: number;
-  difficultyProgression: DifficultyLevel[];
+  difficultyProgression: QuestionDifficultyLevel[];
   completionProbability: number; // 0-1, likelihood of successful completion
   alternativePaths: AlternativePath[];
   createdAt: Date;
@@ -177,7 +177,7 @@ export interface LearningPathStep {
   estimatedTime: number;
   prerequisites: string[]; // Content IDs this step depends on
   unlocks: string[]; // Content IDs this step makes available
-  difficulty: DifficultyLevel;
+  difficulty: QuestionDifficultyLevel;
   cognitiveLoad: CognitiveLoadImpact;
   alternativeOptions: string[];
   adaptiveAdjustments: PathStepAdjustment[];
@@ -212,7 +212,7 @@ export interface AlternativePath {
   description: string;
   path: LearningPathStep[];
   estimatedTime: number;
-  difficulty: DifficultyLevel;
+  difficulty: QuestionDifficultyLevel;
   suitabilityScore: number; // 0-1, how suitable for this student
   pros: string[];
   cons: string[];
@@ -240,7 +240,7 @@ export type ContentNodeType =
   | 'lesson' | 'chapter' | 'module' | 'course' | 'skill' | 'concept' | 'assessment';
 
 export interface NodeMetadata {
-  difficulty: DifficultyLevel;
+  difficulty: QuestionDifficultyLevel;
   estimatedTime: number;
   concepts: string[];
   skills: string[];
@@ -491,7 +491,7 @@ export interface QueryParameters {
   includeOptional?: boolean;
   maxPathLength?: number;
   timeConstraint?: number;
-  difficultyPreference?: DifficultyLevel;
+  difficultyPreference?: QuestionDifficultyLevel;
   considerAlternatives?: boolean;
   optimizationObjective?: OptimizationObjective;
 }

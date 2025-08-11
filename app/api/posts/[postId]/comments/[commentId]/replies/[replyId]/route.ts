@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 // POST endpoint for adding a reply to an existing reply
 export async function POST(
@@ -10,7 +11,7 @@ export async function POST(
 ) {
   try {
     const user = await currentUser();
-    if (!user) {
+    if (!user || !user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -50,21 +51,23 @@ export async function POST(
     // Create new reply with parentReplyId set
     const newReply = await db.reply.create({
       data: {
+        id: randomUUID(),
         content,
-        userId: user.id,
+        userId: user.id!,
         postId,
         commentId,
         parentReplyId: replyId, // Set the parent reply ID
+        updatedAt: new Date(),
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
             image: true,
           },
         },
-        reactions: {
+        Reaction: {
           include: {
             user: {
               select: {

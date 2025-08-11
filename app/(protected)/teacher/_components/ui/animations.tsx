@@ -216,8 +216,7 @@ export function HoverScale({ children, scale = 1.05, className }: HoverScaleProp
     <div 
       className={cn("transition-transform duration-200 cursor-pointer", className)}
       style={{ 
-        transform: 'scale(1)',
-        ':hover': { transform: `scale(${scale})` }
+        transform: 'scale(1)'
       }}
       onMouseEnter={(e) => e.currentTarget.style.transform = `scale(${scale})`}
       onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
