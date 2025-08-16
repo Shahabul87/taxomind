@@ -55,8 +55,16 @@ const defaultConfig: FingerprintConfig = {
 /**
  * Extract device fingerprint from server-side headers
  */
-export async function extractServerFingerprint(request: Request): Promise<Partial<DeviceFingerprint>> {
+export async function extractServerFingerprint(request?: Request): Promise<Partial<DeviceFingerprint>> {
   try {
+    if (!request) {
+      return {
+        userAgent: '',
+        acceptHeader: '',
+        acceptLanguage: '',
+        acceptEncoding: '',
+      };
+    }
     return {
       userAgent: request.headers.get('user-agent') || '',
       acceptHeader: request.headers.get('accept') || '',

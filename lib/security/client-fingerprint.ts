@@ -74,7 +74,8 @@ export async function collectClientFingerprint(): Promise<ClientFingerprint> {
 async function getWebGLFingerprint(): Promise<string> {
   try {
     const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    const gl = canvas.getContext('webgl') as WebGLRenderingContext || 
+                canvas.getContext('experimental-webgl') as WebGLRenderingContext;
     
     if (!gl) return '';
 

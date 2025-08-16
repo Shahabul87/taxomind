@@ -37,7 +37,7 @@ function hasAccessToRoute(pathname: string, userRole: UserRole): boolean {
 
 const { auth } = NextAuth(authConfig);
 
-export default auth(async (req) => {
+export const middleware = auth(async (req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
   const pathname = nextUrl.pathname;
@@ -162,6 +162,8 @@ export default auth(async (req) => {
   const response = NextResponse.next();
   return applySecurityHeaders(response);
 });
+
+export default middleware;
 
 export const config = {
   matcher: [

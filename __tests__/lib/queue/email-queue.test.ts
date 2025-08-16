@@ -49,8 +49,10 @@ describe('EmailQueue', () => {
   let emailQueue: EmailQueue;
 
   beforeEach(() => {
+    // Reset singleton instance to get a fresh instance
+    (EmailQueue as any).instance = undefined;
     // Create a new instance for each test
-    emailQueue = new EmailQueue();
+    emailQueue = EmailQueue.getInstance();
     jest.clearAllMocks();
   });
 
@@ -78,6 +80,7 @@ describe('EmailQueue', () => {
   describe('Email Job Queuing', () => {
     test('should queue verification email successfully', async () => {
       const jobData = {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         verificationToken: 'test-token-123',
@@ -94,6 +97,7 @@ describe('EmailQueue', () => {
 
     test('should queue password reset email successfully', async () => {
       const jobData = {
+        jobType: 'send-password-reset-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         resetToken: 'reset-token-123',
@@ -110,6 +114,7 @@ describe('EmailQueue', () => {
 
     test('should queue 2FA email with high priority', async () => {
       const jobData = {
+        jobType: 'send-2fa-code-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         code: '123456',
@@ -126,6 +131,7 @@ describe('EmailQueue', () => {
 
     test('should queue MFA setup confirmation email', async () => {
       const jobData = {
+        jobType: 'send-mfa-setup-confirmation' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         method: 'totp' as const,
@@ -142,6 +148,7 @@ describe('EmailQueue', () => {
 
     test('should queue login alert email', async () => {
       const jobData = {
+        jobType: 'send-login-alert-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         loginDate: new Date(),
@@ -163,6 +170,7 @@ describe('EmailQueue', () => {
   describe('Email Job Validation', () => {
     test('should reject invalid email addresses', async () => {
       const jobData = {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'invalid-email',
         userName: 'Test User',
         verificationToken: 'test-token',
@@ -178,6 +186,7 @@ describe('EmailQueue', () => {
 
     test('should reject missing required fields', async () => {
       const jobData = {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         // Missing verificationToken
@@ -193,6 +202,7 @@ describe('EmailQueue', () => {
 
     test('should reject invalid 2FA code', async () => {
       const jobData = {
+        jobType: 'send-2fa-code-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         code: '12', // Too short
@@ -210,6 +220,7 @@ describe('EmailQueue', () => {
   describe('Rate Limiting', () => {
     test('should enforce rate limits', async () => {
       const jobData = {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         verificationToken: 'test-token',
@@ -241,6 +252,7 @@ describe('EmailQueue', () => {
   describe('Email Deduplication', () => {
     test('should detect and skip duplicate emails', async () => {
       const jobData = {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         verificationToken: 'same-token-123', // Same token = duplicate
@@ -265,6 +277,7 @@ describe('EmailQueue', () => {
       require('@/lib/mail').sendVerificationEmail = jest.fn().mockRejectedValue(new Error('Service unavailable'));
 
       const jobData = {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         verificationToken: 'test-token',
@@ -318,6 +331,7 @@ describe('EmailQueue', () => {
 
     test('should track job processing metrics', async () => {
       const jobData = {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         verificationToken: 'metrics-test',
@@ -350,6 +364,7 @@ describe('EmailQueue', () => {
   describe('Graceful Shutdown', () => {
     test('should shutdown gracefully', async () => {
       const jobData = {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'test@example.com',
         userName: 'Test User',
         verificationToken: 'shutdown-test',
@@ -530,7 +545,9 @@ describe('Integration Tests', () => {
   let emailProcessor: EmailProcessor;
 
   beforeEach(async () => {
-    emailQueue = new EmailQueue();
+    // Reset singleton instance to get a fresh instance
+    (EmailQueue as any).instance = undefined;
+    emailQueue = EmailQueue.getInstance();
     emailMonitor = new EmailMonitor();
     emailProcessor = new EmailProcessor({
       concurrency: 1,
@@ -552,6 +569,7 @@ describe('Integration Tests', () => {
 
     // Queue an email
     const jobData = {
+      jobType: 'send-verification-email' as EmailJobType,
       userEmail: 'integration-test@example.com',
       userName: 'Integration Test User',
       verificationToken: 'integration-test-token',
@@ -586,6 +604,7 @@ describe('Integration Tests', () => {
 
     const testEmails = [
       {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'user1@example.com',
         userName: 'User 1',
         verificationToken: 'token1',
@@ -594,6 +613,7 @@ describe('Integration Tests', () => {
         timestamp: new Date(),
       },
       {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'user2@example.com',
         userName: 'User 2',
         verificationToken: 'token2',
@@ -602,6 +622,7 @@ describe('Integration Tests', () => {
         timestamp: new Date(),
       },
       {
+        jobType: 'send-verification-email' as EmailJobType,
         userEmail: 'user3@example.com',
         userName: 'User 3',
         verificationToken: 'token3',
@@ -633,9 +654,12 @@ describe('Integration Tests', () => {
 describe('Error Recovery Tests', () => {
   test('should recover from Redis connection failures', async () => {
     // This test verifies the in-memory fallback works
-    const emailQueue = new EmailQueue();
+    // Reset singleton instance to get a fresh instance
+    (EmailQueue as any).instance = undefined;
+    const emailQueue = EmailQueue.getInstance();
 
     const jobData = {
+      jobType: 'send-verification-email' as EmailJobType,
       userEmail: 'recovery-test@example.com',
       userName: 'Recovery Test',
       verificationToken: 'recovery-token',
@@ -656,12 +680,15 @@ describe('Error Recovery Tests', () => {
   });
 
   test('should handle email service outages gracefully', async () => {
-    const emailQueue = new EmailQueue();
+    // Reset singleton instance to get a fresh instance
+    (EmailQueue as any).instance = undefined;
+    const emailQueue = EmailQueue.getInstance();
 
     // Mock email service to fail
     require('@/lib/mail').sendVerificationEmail = jest.fn().mockRejectedValue(new Error('Email service down'));
 
     const jobData = {
+      jobType: 'send-verification-email' as EmailJobType,
       userEmail: 'outage-test@example.com',
       userName: 'Outage Test',
       verificationToken: 'outage-token',

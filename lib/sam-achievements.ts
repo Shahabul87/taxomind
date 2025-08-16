@@ -55,7 +55,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Created your first course',
     icon: '🎯',
     category: 'learning',
-    badgeType: 'LEARNING_MILESTONE',
+    badgeType: 'LEARNING_CHAMPION',
     level: 'BRONZE',
     points: 50,
     requirements: {
@@ -70,7 +70,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Created 5 courses',
     icon: '🏗️',
     category: 'teaching',
-    badgeType: 'LEARNING_MILESTONE',
+    badgeType: 'LEARNING_CHAMPION',
     level: 'SILVER',
     points: 200,
     requirements: {
@@ -88,7 +88,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Created 15 courses',
     icon: '👑',
     category: 'teaching',
-    badgeType: 'LEARNING_MILESTONE',
+    badgeType: 'LEARNING_CHAMPION',
     level: 'GOLD',
     points: 500,
     requirements: {
@@ -108,7 +108,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Used SAM AI assistance 10 times',
     icon: '🤖',
     category: 'collaboration',
-    badgeType: 'COLLABORATION',
+    badgeType: 'CHAT_EXPERT',
     level: 'BRONZE',
     points: 30,
     requirements: {
@@ -123,7 +123,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Used SAM AI assistance 50 times',
     icon: '🤝',
     category: 'collaboration',
-    badgeType: 'COLLABORATION',
+    badgeType: 'CHAT_EXPERT',
     level: 'SILVER',
     points: 150,
     requirements: {
@@ -141,7 +141,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Used SAM AI assistance 200 times',
     icon: '⚡',
     category: 'collaboration',
-    badgeType: 'COLLABORATION',
+    badgeType: 'CHAT_EXPERT',
     level: 'GOLD',
     points: 400,
     requirements: {
@@ -161,7 +161,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Worked on content for 7 consecutive days',
     icon: '📅',
     category: 'consistency',
-    badgeType: 'CONSISTENCY',
+    badgeType: 'STREAK_KEEPER',
     level: 'SILVER',
     points: 100,
     requirements: {
@@ -177,7 +177,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Worked on content for 30 consecutive days',
     icon: '🎓',
     category: 'consistency',
-    badgeType: 'CONSISTENCY',
+    badgeType: 'STREAK_KEEPER',
     level: 'GOLD',
     points: 300,
     requirements: {
@@ -198,7 +198,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Created content with 90%+ AI quality score',
     icon: '⭐',
     category: 'mastery',
-    badgeType: 'ACHIEVEMENT',
+    badgeType: 'CONTENT_CREATOR',
     level: 'GOLD',
     points: 200,
     requirements: {
@@ -213,7 +213,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Applied 25 SAM suggestions to improve content',
     icon: '✨',
     category: 'mastery',
-    badgeType: 'ACHIEVEMENT',
+    badgeType: 'CONTENT_CREATOR',
     level: 'SILVER',
     points: 150,
     requirements: {
@@ -230,7 +230,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Generated content using all SAM AI features (expand, improve, rephrase)',
     icon: '🎨',
     category: 'creativity',
-    badgeType: 'ACHIEVEMENT',
+    badgeType: 'CONTENT_CREATOR',
     level: 'GOLD',
     points: 250,
     requirements: {
@@ -245,7 +245,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Created complete course with chapters, sections, and assessments',
     icon: '📚',
     category: 'teaching',
-    badgeType: 'LEARNING_MILESTONE',
+    badgeType: 'LEARNING_CHAMPION',
     level: 'PLATINUM',
     points: 400,
     requirements: {
@@ -267,7 +267,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'One of the first 100 users to try SAM AI',
     icon: '🚀',
     category: 'learning',
-    badgeType: 'SPECIAL',
+    badgeType: 'FIRST_INTERACTION',
     level: 'PLATINUM',
     points: 500,
     requirements: {
@@ -282,7 +282,7 @@ export const TEACHER_ACHIEVEMENTS: Achievement[] = [
     description: 'Provided feedback on SAM suggestions 50 times',
     icon: '💬',
     category: 'collaboration',
-    badgeType: 'COLLABORATION',
+    badgeType: 'CHAT_EXPERT',
     level: 'GOLD',
     points: 200,
     requirements: {
@@ -348,7 +348,7 @@ export const CHALLENGES: Challenge[] = [
     points: 100,
     bonusMultiplier: 1.5,
     requirements: {
-      type: 'create_content',
+      type: 'use_ai',
       target: 5,
       conditions: { 
         unique_courses: true,
@@ -393,7 +393,7 @@ export const CHALLENGES: Challenge[] = [
     points: 500,
     bonusMultiplier: 2.0,
     requirements: {
-      type: 'create_content',
+      type: 'use_ai',
       target: 1,
       conditions: {
         complete_Course: true,
@@ -421,7 +421,7 @@ export const CHALLENGES: Challenge[] = [
     points: 200,
     bonusMultiplier: 3.0,
     requirements: {
-      type: 'completion',
+      type: 'use_ai',
       target: 6,
       conditions: {
         actions: [

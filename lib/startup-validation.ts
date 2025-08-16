@@ -143,7 +143,7 @@ export function validateMinimalStartup(): boolean {
   ];
   
   // Add production-specific critical vars
-  if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+  if ((process.env.NODE_ENV as string) === 'production' || (process.env.NODE_ENV as string) === 'staging') {
     criticalVars.push('AUTH_SECRET', 'NEXTAUTH_URL');
   }
   
@@ -162,7 +162,7 @@ export function validateMinimalStartup(): boolean {
  * Ensures safe build environment without full app initialization
  */
 export function validateBuildEnvironment(): boolean {
-  const environment = process.env.NODE_ENV || 'development';
+  const environment = (process.env.NODE_ENV as 'development' | 'staging' | 'production' | 'test') || 'development';
   
   // Check if we're in a valid build environment
   if (!['development', 'staging', 'production', 'test'].includes(environment)) {

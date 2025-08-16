@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { jest } from '@jest/globals';
 
 /**
@@ -97,7 +98,7 @@ export const mockOpenAIClient = {
 /**
  * Stripe Service Mock
  */
-export const mockStripeClient = {
+export const mockStripeClient: any = {
   checkout: {
     sessions: {
       create: jest.fn().mockResolvedValue({
@@ -156,7 +157,7 @@ export const mockStripeClient = {
 /**
  * Cloudinary Service Mock
  */
-export const mockCloudinaryClient = {
+export const mockCloudinaryClient: any = {
   uploader: {
     upload: jest.fn().mockResolvedValue({
       secure_url: 'https://res.cloudinary.com/test/image/upload/v123456/test-image.jpg',
@@ -165,10 +166,10 @@ export const mockCloudinaryClient = {
       height: 600,
       format: 'jpg',
       resource_type: 'image',
-    }),
+    } as any),
     destroy: jest.fn().mockResolvedValue({
       result: 'ok',
-    }),
+    } as any),
   },
   api: {
     resources: jest.fn().mockResolvedValue({
@@ -182,7 +183,7 @@ export const mockCloudinaryClient = {
           secure_url: 'https://res.cloudinary.com/test/image/upload/v123456/test-image-2.jpg',
         },
       ],
-    }),
+    } as any),
   },
 };
 
@@ -198,7 +199,7 @@ export const mockNextAuthHandlers = {
       },
     });
   }),
-  POST: jest.fn().mockImplementation(async (req) => {
+  POST: jest.fn().mockImplementation(async (req: any) => {
     const body = await req.json();
     
     if (body.email && body.password) {
@@ -220,7 +221,7 @@ export const mockNextAuthHandlers = {
 /**
  * Resend Email Service Mock
  */
-export const mockResendClient = {
+export const mockResendClient: any = {
   emails: {
     send: jest.fn().mockResolvedValue({
       id: 'test-email-id',
@@ -228,14 +229,14 @@ export const mockResendClient = {
       to: ['test@example.com'],
       subject: 'Test Email',
       created_at: new Date().toISOString(),
-    }),
+    } as any),
   },
 };
 
 /**
  * Redis Cache Mock
  */
-export const mockRedisClient = {
+export const mockRedisClient: any = {
   get: jest.fn().mockImplementation(async (key: string) => {
     // Simulate cached data based on key patterns
     if (key.includes('course-list')) {
@@ -251,20 +252,20 @@ export const mockRedisClient = {
     
     return null; // Cache miss
   }),
-  set: jest.fn().mockResolvedValue('OK'),
-  del: jest.fn().mockResolvedValue(1),
-  exists: jest.fn().mockResolvedValue(1),
-  expire: jest.fn().mockResolvedValue(1),
-  flushall: jest.fn().mockResolvedValue('OK'),
-  disconnect: jest.fn().mockResolvedValue(undefined),
+  set: jest.fn().mockResolvedValue('OK' as any),
+  del: jest.fn().mockResolvedValue(1 as any),
+  exists: jest.fn().mockResolvedValue(1 as any),
+  expire: jest.fn().mockResolvedValue(1 as any),
+  flushall: jest.fn().mockResolvedValue('OK' as any),
+  disconnect: jest.fn().mockResolvedValue(undefined as any),
 };
 
 /**
  * Database Connection Pool Mock
  */
-export const mockDatabasePool = {
-  connect: jest.fn().mockResolvedValue(undefined),
-  end: jest.fn().mockResolvedValue(undefined),
+export const mockDatabasePool: any = {
+  connect: jest.fn().mockResolvedValue(undefined as any),
+  end: jest.fn().mockResolvedValue(undefined as any),
   query: jest.fn().mockImplementation(async (sql: string, params?: any[]) => {
     // Mock different query responses
     if (sql.includes('SELECT') && sql.includes('users')) {
@@ -287,11 +288,11 @@ export const mockDatabasePool = {
 /**
  * Analytics Service Mock
  */
-export const mockAnalyticsProvider = {
-  track: jest.fn().mockResolvedValue(undefined),
-  identify: jest.fn().mockResolvedValue(undefined),
-  page: jest.fn().mockResolvedValue(undefined),
-  flush: jest.fn().mockResolvedValue(undefined),
+export const mockAnalyticsProvider: any = {
+  track: jest.fn().mockResolvedValue(undefined as any),
+  identify: jest.fn().mockResolvedValue(undefined as any),
+  page: jest.fn().mockResolvedValue(undefined as any),
+  flush: jest.fn().mockResolvedValue(undefined as any),
 };
 
 /**
@@ -308,42 +309,42 @@ export const mockWebSocket = {
 /**
  * File Upload Service Mock
  */
-export const mockUploadService = {
+export const mockUploadService: any = {
   uploadFile: jest.fn().mockResolvedValue({
     url: 'https://example.com/uploads/test-file.pdf',
     filename: 'test-file.pdf',
     size: 1024000,
     type: 'application/pdf',
-  }),
-  deleteFile: jest.fn().mockResolvedValue({ success: true }),
+  } as any),
+  deleteFile: jest.fn().mockResolvedValue({ success: true } as any),
   getFileInfo: jest.fn().mockResolvedValue({
     url: 'https://example.com/uploads/test-file.pdf',
     filename: 'test-file.pdf',
     size: 1024000,
     uploadedAt: new Date(),
-  }),
+  } as any),
 };
 
 /**
  * Notification Service Mock
  */
-export const mockNotificationService = {
+export const mockNotificationService: any = {
   send: jest.fn().mockResolvedValue({
     id: 'notification-123',
     status: 'sent',
     timestamp: new Date(),
-  }),
+  } as any),
   sendBulk: jest.fn().mockResolvedValue({
     successful: 5,
     failed: 0,
     details: [],
-  }),
+  } as any),
 };
 
 /**
  * External API Mock (for integrations)
  */
-export const mockExternalAPI = {
+export const mockExternalAPI: any = {
   get: jest.fn().mockImplementation(async (url: string) => {
     if (url.includes('/courses')) {
       return {
@@ -360,15 +361,15 @@ export const mockExternalAPI = {
   post: jest.fn().mockResolvedValue({
     data: { success: true, id: 'new-resource-id' },
     status: 201,
-  }),
+  } as any),
   put: jest.fn().mockResolvedValue({
     data: { success: true, updated: true },
     status: 200,
-  }),
+  } as any),
   delete: jest.fn().mockResolvedValue({
     data: { success: true, deleted: true },
     status: 200,
-  }),
+  } as any),
 };
 
 /**

@@ -472,7 +472,7 @@ export class SAMPredictiveEngine {
       }),
       db.userExamAttempt.findMany({
         where: { userId },
-        include: { exam: true },
+        include: { Exam: true },
         orderBy: { startedAt: 'desc' },
         take: 50
       })

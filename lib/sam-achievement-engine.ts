@@ -16,7 +16,7 @@ import {
   recordSAMInteraction,
   getUserSAMStats
 } from './sam-database';
-import { SAMInteractionType } from '@prisma/client';
+import { SAMInteractionType, SAMStreakType } from '@prisma/client';
 
 // Track user action and check for achievement unlocks
 export async function trackAchievementProgress(
@@ -432,14 +432,14 @@ function isStreakAction(action: string): boolean {
   return streakActions.includes(action);
 }
 
-function getStreakType(action: string): string {
-  const streakMap: Record<string, string> = {
-    'content_created': 'daily_creation',
-    'ai_assistance_used': 'daily_ai_use',
-    'form_completed': 'daily_forms',
-    'suggestion_applied': 'daily_improvements',
+function getStreakType(action: string): SAMStreakType {
+  const streakMap: Record<string, SAMStreakType> = {
+    'content_created': 'CONTENT_CREATION',
+    'ai_assistance_used': 'DAILY_INTERACTION',
+    'form_completed': 'FORM_COMPLETION',
+    'suggestion_applied': 'DAILY_INTERACTION',
   };
-  return streakMap[action] || 'daily_activity';
+  return streakMap[action] || 'DAILY_INTERACTION';
 }
 
 function getChallengeTimeframe(challenge: Challenge): { start: Date; end: Date } {

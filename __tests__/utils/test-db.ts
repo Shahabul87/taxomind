@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 
 /**
  * Test database utilities for transactional testing
@@ -56,7 +56,7 @@ export class TestDatabase {
   /**
    * Begin a database transaction for test isolation
    */
-  async beginTransaction(): Promise<PrismaClient> {
+  async beginTransaction(): Promise<any> {
     return this.prisma.$transaction(async (tx) => {
       this.transactionId = crypto.randomUUID();
       return tx;
@@ -242,7 +242,6 @@ export class TestDatabase {
             data: {
               id: `${chapter.id}-section-${j}`,
               title: `Section ${i}.${j}: Fundamentals`,
-              description: `Detailed explanation of concepts`,
               videoUrl: `https://example.com/video-${i}-${j}.mp4`,
               position: j,
               isPublished: true,
@@ -258,8 +257,10 @@ export class TestDatabase {
     // Create test enrollments
     await this.prisma.enrollment.create({
       data: {
+        id: `enrollment-${crypto.randomUUID()}`,
         userId: testUsers[2].id, // Student
         courseId: courses[0].id,
+        updatedAt: new Date(),
       },
     });
 
@@ -341,7 +342,7 @@ export const teardownTestDatabase = async (): Promise<void> => {
  * Database transaction helper for test isolation
  */
 export const withTransaction = async <T>(
-  callback: (client: PrismaClient) => Promise<T>
+  callback: (client: any) => Promise<T>
 ): Promise<T> => {
   return testDb.getClient().$transaction(async (tx) => {
     return callback(tx);
@@ -458,6 +459,38 @@ export const createMockDatabase = () => ({
     findMany: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    upsert: jest.fn(),
+    count: jest.fn(),
+  },
+  auditLog: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    createMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    upsert: jest.fn(),
+    count: jest.fn(),
+  },
+  courseBloomsAnalysis: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    upsert: jest.fn(),
+    count: jest.fn(),
+  },
+  sectionBloomsMapping: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    createMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
     upsert: jest.fn(),
     count: jest.fn(),
   },

@@ -51,21 +51,21 @@ describe('Environment Separation Tests', () => {
       (process.env as any).NODE_ENV = 'development';
       process.env.DATABASE_URL = 'postgresql://localhost:5433/dev_db';
       
-      expect(canPerformDestructiveOperation('DROP TABLE')).toBe(true);
+      expect(canPerformDestructiveOperation()).toBe(true);
     });
 
     it('should block destructive operations in production', () => {
       (process.env as any).NODE_ENV = 'production';
       process.env.DATABASE_URL = 'postgresql://postgres.railway.internal:5432/railway';
       
-      expect(canPerformDestructiveOperation('DROP TABLE')).toBe(false);
+      expect(canPerformDestructiveOperation()).toBe(false);
     });
 
     it('should block destructive operations in staging', () => {
       (process.env as any).NODE_ENV = 'staging';
       process.env.DATABASE_URL = 'postgresql://staging-postgres.railway.internal:5432/staging_db';
       
-      expect(canPerformDestructiveOperation('DROP TABLE')).toBe(false);
+      expect(canPerformDestructiveOperation()).toBe(false);
     });
   });
 

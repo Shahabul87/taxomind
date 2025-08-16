@@ -74,7 +74,7 @@ async function migrateAuthentication() {
     for (const name of permissions) {
       await prisma.permission.upsert({
         where: { name },
-        create: { name, description: `Permission for ${name}` },
+        create: { name, description: `Permission for ${name}`, category: 'SYSTEM' },
         update: {}
       });
     }
@@ -156,10 +156,10 @@ async function migrateAuthentication() {
     await prisma.auditLog.create({
       data: {
         userId: 'SYSTEM',
-        action: 'AUTH_MIGRATION',
+        action: 'IMPORT',
         entityType: 'USER',
         entityId: 'ALL',
-        details: {
+        changes: {
           migratedAt: new Date().toISOString(),
           totalUsers: userCount,
           adminUsers: adminCount,

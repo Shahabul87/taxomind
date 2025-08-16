@@ -5,7 +5,31 @@
  * with enterprise-grade security settings optimized for different deployment environments.
  */
 
-import type { CookiesOptions } from "next-auth";
+import type { NextAuthConfig } from "next-auth";
+
+export interface CookieOptions {
+  name?: string;
+  options?: {
+    secure?: boolean;
+    httpOnly?: boolean;
+    sameSite?: 'strict' | 'lax' | 'none';
+    domain?: string;
+    path?: string;
+    maxAge?: number;
+    partitioned?: boolean;
+    priority?: 'low' | 'medium' | 'high';
+  };
+}
+
+export interface CookiesOptions {
+  sessionToken?: CookieOptions;
+  callbackUrl?: CookieOptions;
+  csrfToken?: CookieOptions;
+  pkceCodeVerifier?: CookieOptions;
+  state?: CookieOptions;
+  nonce?: CookieOptions;
+  webauthnChallenge?: CookieOptions;
+}
 
 export interface CookieSecurityOptions {
   environment?: 'development' | 'staging' | 'production';

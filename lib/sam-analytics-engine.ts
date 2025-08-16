@@ -157,7 +157,7 @@ function calculateLearningMetrics(
 
   return {
     totalInteractions,
-    averageSessionDuration,
+    averageSessionDuration: avgSessionDuration,
     mostActiveTime,
     preferredFeatures,
     contentQuality,
@@ -174,7 +174,7 @@ async function calculateContentInsights(
 ): Promise<ContentInsights> {
   // Get content-related interactions
   const contentInteractions = interactions.filter(i => 
-    ['CONTENT_GENERATED', 'CONTENT_IMPROVED', 'CONTENT_REPHRASED', 'SUGGESTION_APPLIED'].includes(i.interactionType)
+    ['CONTENT_GENERATE', 'FORM_SUBMIT', 'QUICK_ACTION'].includes(i.interactionType)
   );
 
   // Calculate most edited sections
@@ -200,16 +200,16 @@ async function calculateContentInsights(
 
   // Calculate AI assistance rate
   const totalContentActions = interactions.filter(i => 
-    i.interactionType.includes('CONTENT') || i.interactionType === 'FORM_COMPLETED'
+    i.interactionType.includes('CONTENT') || i.interactionType === 'FORM_SUBMIT'
   ).length;
   const aiAssistedActions = interactions.filter(i =>
-    ['CONTENT_GENERATED', 'AI_ASSISTANCE_USED', 'SUGGESTION_APPLIED'].includes(i.interactionType)
+    ['CONTENT_GENERATE', 'LEARNING_ASSISTANCE', 'QUICK_ACTION'].includes(i.interactionType)
   ).length;
   const aiAssistanceRate = totalContentActions > 0 ? (aiAssistedActions / totalContentActions) * 100 : 0;
 
   // Calculate suggestion acceptance rate
-  const suggestionsGiven = interactions.filter(i => i.interactionType === 'SUGGESTION_GIVEN').length;
-  const suggestionsApplied = interactions.filter(i => i.interactionType === 'SUGGESTION_APPLIED').length;
+  const suggestionsGiven = interactions.filter(i => i.interactionType === 'LEARNING_ASSISTANCE').length;
+  const suggestionsApplied = interactions.filter(i => i.interactionType === 'QUICK_ACTION').length;
   const suggestionAcceptanceRate = suggestionsGiven > 0 ? (suggestionsApplied / suggestionsGiven) * 100 : 0;
 
   // Get content completion data
@@ -388,53 +388,78 @@ async function calculateTrends(userId: string, courseId?: string): Promise<any> 
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // Get daily points
-  const pointsHistory = await db.sAMPoints.groupBy({
-    by: ['createdAt'],
+  // Get daily points  
+  const pointsHistory = await db.sAMPoints.findMany({
     where: {
       userId,
       courseId,
-      createdAt: { gte: thirtyDaysAgo },
+      awardedAt: { gte: thirtyDaysAgo },
     },
-    _sum: { points: true },
+    select: {
+      awardedAt: true,
+      points: true,
+    },
   });
 
-  const pointsTrend = pointsHistory.map(day => ({
-    date: day.createdAt.toISOString().split('T')[0],
-    points: day._sum.points || 0,
+  // Group points by date
+  const pointsByDate: Record<string, number> = {};
+  pointsHistory.forEach(point => {
+    const date = point.awardedAt.toISOString().split('T')[0];
+    pointsByDate[date] = (pointsByDate[date] || 0) + point.points;
+  });
+
+  const pointsTrend = Object.entries(pointsByDate).map(([date, points]) => ({
+    date,
+    points,
   }));
 
   // Get engagement trend (simplified - based on interaction count)
-  const interactionsByDay = await db.sAMInteraction.groupBy({
-    by: ['createdAt'],
+  const interactions = await db.sAMInteraction.findMany({
     where: {
       userId,
       courseId,
       createdAt: { gte: thirtyDaysAgo },
     },
-    _count: true,
+    select: {
+      createdAt: true,
+    },
   });
 
-  const engagementTrend = interactionsByDay.map(day => ({
-    date: day.createdAt.toISOString().split('T')[0],
-    score: Math.min(100, day._count * 10), // Simple scoring
+  // Group interactions by date
+  const interactionsByDate: Record<string, number> = {};
+  interactions.forEach(interaction => {
+    const date = interaction.createdAt.toISOString().split('T')[0];
+    interactionsByDate[date] = (interactionsByDate[date] || 0) + 1;
+  });
+
+  const engagementTrend = Object.entries(interactionsByDate).map(([date, count]) => ({
+    date,
+    score: Math.min(100, count * 10), // Simple scoring
   }));
 
   // Get productivity trend
-  const productivityByDay = await db.sAMInteraction.groupBy({
-    by: ['createdAt'],
+  const productivityInteractions = await db.sAMInteraction.findMany({
     where: {
       userId,
       courseId,
       createdAt: { gte: thirtyDaysAgo },
-      interactionType: { in: ['CONTENT_GENERATED', 'FORM_COMPLETED', 'CHAPTER_CREATED'] },
+      interactionType: { in: ['CONTENT_GENERATE', 'FORM_SUBMIT', 'QUICK_ACTION'] },
     },
-    _count: true,
+    select: {
+      createdAt: true,
+    },
   });
 
-  const productivityTrend = productivityByDay.map(day => ({
-    date: day.createdAt.toISOString().split('T')[0],
-    itemsCompleted: day._count,
+  // Group productivity interactions by date
+  const productivityByDate: Record<string, number> = {};
+  productivityInteractions.forEach(interaction => {
+    const date = interaction.createdAt.toISOString().split('T')[0];
+    productivityByDate[date] = (productivityByDate[date] || 0) + 1;
+  });
+
+  const productivityTrend = Object.entries(productivityByDate).map(([date, count]) => ({
+    date,
+    itemsCompleted: count,
   }));
 
   return {
@@ -503,14 +528,15 @@ function calculateDiversityScore(interactions: any[]): number {
 
 function mapInteractionToFeature(interactionType: string): string {
   const featureMap: Record<string, string> = {
-    'CONTENT_GENERATED': 'AI Content Generation',
-    'CONTENT_IMPROVED': 'Content Improvement',
-    'CONTENT_REPHRASED': 'Content Rephrasing',
-    'SUGGESTION_APPLIED': 'Suggestion Application',
-    'QUESTION_ASKED': 'Q&A System',
-    'FORM_COMPLETED': 'Form Completion',
-    'CHAPTER_CREATED': 'Chapter Creation',
-    'COURSE_CREATED': 'Course Creation',
+    'CONTENT_GENERATE': 'AI Content Generation',
+    'LEARNING_ASSISTANCE': 'Learning Assistance',
+    'QUICK_ACTION': 'Quick Actions',
+    'FORM_SUBMIT': 'Form Submission',
+    'CHAT_MESSAGE': 'Chat System',
+    'FORM_POPULATE': 'Form Population',
+    'NAVIGATION': 'Navigation',
+    'ANALYTICS_VIEW': 'Analytics',
+    'GAMIFICATION_ACTION': 'Gamification',
   };
   
   return featureMap[interactionType] || 'Other';
@@ -578,7 +604,6 @@ export async function recordAnalyticsSession(
   try {
     await recordSAMAnalytics({
       userId,
-      sessionId: sessionData.sessionId,
       interactionCount: sessionData.interactionCount,
       responseTime: sessionData.responseTime,
       satisfactionScore: sessionData.satisfactionScore,

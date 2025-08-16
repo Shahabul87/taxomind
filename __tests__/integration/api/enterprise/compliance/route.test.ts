@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
-import { testDb, setupTestDatabase, teardownTestDatabase } from '../../../utils/test-db';
-import { TestDataFactory } from '../../../utils/test-factory';
-import { ApiTestHelpers, AuthTestHelpers } from '../../../utils/test-helpers';
-import { setupMockProviders, resetMockProviders } from '../../../utils/mock-providers';
+import { testDb, setupTestDatabase, teardownTestDatabase } from '../../../../utils/test-db';
+import { TestDataFactory } from '../../../../utils/test-factory';
+import { ApiTestHelpers, AuthTestHelpers } from '../../../../utils/test-helpers';
+import { setupMockProviders, resetMockProviders } from '../../../../utils/mock-providers';
 
 // Import the actual route handler
 import { GET, POST } from '@/app/api/enterprise/compliance/route';
@@ -152,17 +152,17 @@ describe('/api/enterprise/compliance Integration Tests', () => {
         data: [
           {
             userId: testData.users.admin.id,
-            action: 'USER_LOGIN',
-            resourceType: 'USER',
-            resourceId: testData.users.admin.id,
-            metadata: { ip: '192.168.1.1' },
+            action: 'LOGIN',
+            entityType: 'USER',
+            entityId: testData.users.admin.id,
+            metadata: '{"ip": "192.168.1.1"}',
           },
           {
             userId: testData.users.teacher.id,
-            action: 'COURSE_CREATE',
-            resourceType: 'COURSE',
-            resourceId: testData.courses[0].id,
-            metadata: { courseTitle: 'Test Course' },
+            action: 'CREATE',
+            entityType: 'COURSE',
+            entityId: testData.courses[0].id,
+            metadata: '{"courseTitle": "Test Course"}',
           },
         ],
       });
@@ -688,7 +688,7 @@ describe('/api/enterprise/compliance Integration Tests', () => {
       const auditLogs = await testDb.getClient().auditLog.findMany({
         where: {
           userId: adminSession.user.id,
-          action: 'COMPLIANCE_POLICY_UPDATE',
+          action: 'UPDATE',
         },
         orderBy: {
           createdAt: 'desc',
@@ -737,7 +737,7 @@ describe('/api/enterprise/compliance Integration Tests', () => {
             start: '2024-01-01',
             end: '2024-12-31',
           },
-          actions: ['USER_LOGIN', 'COURSE_CREATE'],
+          actions: ['LOGIN', 'CREATE'],
           users: [testData.users.admin.id],
         },
         format: 'json',

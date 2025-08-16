@@ -315,8 +315,8 @@ Description: ${section.description || 'No description'}
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 500,
       temperature: 0.3,
+      system: systemPrompt,
       messages: [
-        { role: 'system', content: systemPrompt },
         { role: 'user', content: `Analyze this section and determine its primary Bloom's Taxonomy level:\n\n${content}` }
       ],
     });
@@ -873,12 +873,12 @@ Description: ${section.description || 'No description'}
   private async storeAnalysis(courseId: string, analysis: BloomsAnalysisResponse, contentHash?: string): Promise<void> {
     const data = {
       courseId,
-      bloomsDistribution: analysis.courseLevel.distribution,
+      bloomsDistribution: analysis.courseLevel.distribution as any,
       cognitiveDepth: analysis.courseLevel.cognitiveDepth,
-      learningPathway: analysis.learningPathway,
-      skillsMatrix: analysis.studentImpact.skillsDeveloped,
-      gapAnalysis: analysis.learningPathway.gaps,
-      recommendations: analysis.recommendations,
+      learningPathway: analysis.learningPathway as any,
+      skillsMatrix: analysis.studentImpact.skillsDeveloped as any,
+      gapAnalysis: analysis.learningPathway.gaps as any,
+      recommendations: analysis.recommendations as any,
       contentHash: contentHash || null,
       analyzedAt: new Date(),
     };
@@ -897,10 +897,10 @@ Description: ${section.description || 'No description'}
           sectionId: section.sectionId,
           bloomsLevel: section.bloomsLevel,
           primaryLevel: section.bloomsLevel,
-          secondaryLevels: [],
-          activities: section.activities,
-          assessments: [],
-          learningObjectives: section.learningObjectives,
+          secondaryLevels: [] as any,
+          activities: section.activities as any,
+          assessments: [] as any,
+          learningObjectives: section.learningObjectives as any,
         };
         
         await db.sectionBloomsMapping.upsert({

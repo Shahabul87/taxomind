@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
-import { testDb, setupTestDatabase, teardownTestDatabase } from '../../../utils/test-db';
-import { TestDataFactory } from '../../../utils/test-factory';
-import { ApiTestHelpers, AuthTestHelpers } from '../../../utils/test-helpers';
-import { setupMockProviders, resetMockProviders, mockAnthropicClient } from '../../../utils/mock-providers';
+import { testDb, setupTestDatabase, teardownTestDatabase } from '../../../../utils/test-db';
+import { TestDataFactory } from '../../../../utils/test-factory';
+import { ApiTestHelpers, AuthTestHelpers } from '../../../../utils/test-helpers';
+import { setupMockProviders, resetMockProviders, mockAnthropicClient } from '../../../../utils/mock-providers';
 
 // Import the actual route handler
 import { POST } from '@/app/api/sam/blooms-analysis/route';
@@ -33,7 +33,8 @@ describe('/api/sam/blooms-analysis Integration Tests', () => {
       });
 
       // Mock Anthropic responses for different content analysis
-      mockAnthropicClient.messages.create.mockImplementation(async ({ messages }) => {
+      mockAnthropicClient.messages.create.mockImplementation(async (params: any) => {
+        const { messages } = params;
         const content = messages[messages.length - 1].content;
         
         if (content.includes('Introduction')) {
@@ -573,7 +574,7 @@ describe('/api/sam/blooms-analysis Integration Tests', () => {
       });
 
       // Mock AI service error
-      mockAnthropicClient.messages.create.mockRejectedValue(
+      (mockAnthropicClient.messages.create as jest.Mock).mockRejectedValue(
         new Error('AI service unavailable')
       );
 

@@ -79,7 +79,7 @@ export class SessionManager {
           ipAddress: options.ipAddress,
           deviceInfo: options.deviceInfo,
           fingerprintHash,
-          fingerprintData: fullFingerprint,
+          fingerprintData: fullFingerprint as any,
           deviceId,
           deviceName,
           isTrustedDevice,
@@ -143,7 +143,7 @@ export class SessionManager {
 
       // Extract current fingerprint
       const currentFingerprint = await extractServerFingerprint();
-      const storedFingerprint = session.fingerprintData as DeviceFingerprint;
+      const storedFingerprint = session.fingerprintData as unknown as DeviceFingerprint;
 
       // Calculate similarity
       const analysis = calculateFingerprintSimilarity(

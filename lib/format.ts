@@ -1,4 +1,8 @@
-export const formatPrice = (price: number) => {
+export const formatPrice = (price: number | null | undefined) => {
+    if (price === null || price === undefined || price === 0) {
+      return "Free";
+    }
+    
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD"

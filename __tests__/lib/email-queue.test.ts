@@ -51,11 +51,27 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+// Mock Redis with a modifiable instance
+const mockRedisInstance = {
+  ping: jest.fn(),
+  get: jest.fn(),
+  set: jest.fn(),
+  setex: jest.fn(),
+  del: jest.fn(),
+  keys: jest.fn(),
+};
+
 jest.mock('@/lib/redis', () => ({
-  redis: null, // Start with Redis unavailable for in-memory testing
+  get redis() {
+    return this._redis;
+  },
+  set redis(value) {
+    this._redis = value;
+  },
+  _redis: null,
 }));
 
-jest.mock('./queue-manager', () => ({
+jest.mock('@/lib/queue/queue-manager', () => ({
   queueManager: {
     addQueue: jest.fn(),
     registerHandler: jest.fn(),
@@ -81,7 +97,7 @@ jest.mock('@/lib/mail', () => ({
 
 import { Queue, Worker, QueueEvents } from 'bullmq';
 import { logger } from '@/lib/logger';
-import { redis } from '@/lib/redis';
+import * as redisModule from '@/lib/redis';
 import { queueManager } from '@/lib/queue/queue-manager';
 import { sendVerificationEmail, sendPasswordResetEmail, sendTwoFactorTokenEmail } from '@/lib/mail';
 
@@ -92,6 +108,7 @@ describe('Email Queue System', () => {
   let mockQueueEvents: any;
 
   const mockVerificationData: VerificationEmailData = {
+    jobType: 'send-verification-email',
     userEmail: 'test@example.com',
     userName: 'Test User',
     verificationToken: 'verification-token-123',
@@ -100,6 +117,7 @@ describe('Email Queue System', () => {
   };
 
   const mockPasswordResetData: PasswordResetEmailData = {
+    jobType: 'send-password-reset-email',
     userEmail: 'test@example.com',
     userName: 'Test User',
     resetToken: 'reset-token-123',
@@ -109,6 +127,7 @@ describe('Email Queue System', () => {
   };
 
   const mock2FAData: TwoFactorEmailData = {
+    jobType: 'send-2fa-code-email',
     userEmail: 'test@example.com',
     userName: 'Test User',
     code: '123456',
@@ -118,6 +137,7 @@ describe('Email Queue System', () => {
   };
 
   const mockMFASetupData: MFASetupConfirmationData = {
+    jobType: 'send-mfa-setup-confirmation',
     userEmail: 'test@example.com',
     userName: 'Test User',
     method: 'totp',
@@ -126,6 +146,7 @@ describe('Email Queue System', () => {
   };
 
   const mockLoginAlertData: LoginAlertEmailData = {
+    jobType: 'send-login-alert-email',
     userEmail: 'test@example.com',
     userName: 'Test User',
     loginDate: new Date(),
@@ -141,6 +162,11 @@ describe('Email Queue System', () => {
     
     // Reset the singleton instance
     (EmailQueue as any).instance = undefined;
+    
+    // Clear queueManager state
+    if ((queueManager as any).queues) {
+      (queueManager as any).queues.clear();
+    }
     
     // Mock Queue, Worker, and QueueEvents
     mockQueue = {
@@ -158,9 +184,9 @@ describe('Email Queue System', () => {
       close: jest.fn(),
     };
     
-    (Queue as jest.Mock).mockImplementation(() => mockQueue);
-    (Worker as jest.Mock).mockImplementation(() => mockWorker);
-    (QueueEvents as jest.Mock).mockImplementation(() => mockQueueEvents);
+    (Queue as unknown as jest.Mock).mockImplementation(() => mockQueue);
+    (Worker as unknown as jest.Mock).mockImplementation(() => mockWorker);
+    (QueueEvents as unknown as jest.Mock).mockImplementation(() => mockQueueEvents);
     
     // Mock queue manager
     (queueManager.addQueue as jest.Mock).mockImplementation(() => {});
@@ -174,7 +200,7 @@ describe('Email Queue System', () => {
     (sendTwoFactorTokenEmail as jest.Mock).mockResolvedValue({ id: 'msg-789' });
     
     // Start with in-memory mode (no Redis)
-    (redis as any) = null;
+    (redisModule as any).redis = null;
   });
 
   afterEach(async () => {
@@ -196,6 +222,9 @@ describe('Email Queue System', () => {
     });
 
     it('should initialize with Redis when available', async () => {
+      // Reset singleton before test
+      (EmailQueue as any).instance = undefined;
+      
       // Mock Redis as available
       const mockRedis = {
         ping: jest.fn().mockResolvedValue('PONG'),
@@ -205,7 +234,10 @@ describe('Email Queue System', () => {
         del: jest.fn(),
         keys: jest.fn().mockResolvedValue([]),
       };
-      (redis as any) = mockRedis;
+      (redisModule as any).redis = mockRedis;
+      
+      // Clear previous mock calls
+      jest.clearAllMocks();
       
       queue = EmailQueue.getInstance();
       
@@ -231,35 +263,40 @@ describe('Email Queue System', () => {
     });
 
     it('should queue verification email job', async () => {
-      const result = await queue.addEmailJob('send-verification-email', mockVerificationData);
+      const jobData = { ...mockVerificationData, jobType: 'send-verification-email' as const };
+      const result = await queue.addEmailJob('send-verification-email', jobData);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string'); // In-memory mode returns string ID
     });
 
     it('should queue password reset email job', async () => {
-      const result = await queue.addEmailJob('send-password-reset-email', mockPasswordResetData);
+      const jobData = { ...mockPasswordResetData, jobType: 'send-password-reset-email' as const };
+      const result = await queue.addEmailJob('send-password-reset-email', jobData);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
     });
 
     it('should queue 2FA email job with high priority', async () => {
-      const result = await queue.addEmailJob('send-2fa-code-email', mock2FAData);
+      const jobData = { ...mock2FAData, jobType: 'send-2fa-code-email' as const };
+      const result = await queue.addEmailJob('send-2fa-code-email', jobData);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
     });
 
     it('should queue MFA setup confirmation email', async () => {
-      const result = await queue.addEmailJob('send-mfa-setup-confirmation', mockMFASetupData);
+      const jobData = { ...mockMFASetupData, jobType: 'send-mfa-setup-confirmation' as const };
+      const result = await queue.addEmailJob('send-mfa-setup-confirmation', jobData);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
     });
 
     it('should queue login alert email', async () => {
-      const result = await queue.addEmailJob('send-login-alert-email', mockLoginAlertData);
+      const jobData = { ...mockLoginAlertData, jobType: 'send-login-alert-email' as const };
+      const result = await queue.addEmailJob('send-login-alert-email', jobData);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -268,6 +305,9 @@ describe('Email Queue System', () => {
 
   describe('Job queuing with Redis', () => {
     beforeEach(() => {
+      // Reset singleton before each test
+      (EmailQueue as any).instance = undefined;
+      
       // Mock Redis as available
       const mockRedis = {
         ping: jest.fn().mockResolvedValue('PONG'),
@@ -277,19 +317,19 @@ describe('Email Queue System', () => {
         del: jest.fn(),
         keys: jest.fn().mockResolvedValue([]),
       };
-      (redis as any) = mockRedis;
+      (redisModule as any).redis = mockRedis;
       
       queue = EmailQueue.getInstance();
     });
 
     it('should queue jobs to Redis when available', async () => {
-      const result = await queue.addEmailJob('send-verification-email', mockVerificationData);
+      const jobData = { ...mockVerificationData, jobType: 'send-verification-email' as const };
+      const result = await queue.addEmailJob('send-verification-email', jobData);
       
       expect(mockQueue.add).toHaveBeenCalledWith(
         'send-verification-email',
         expect.objectContaining({
-          ...mockVerificationData,
-          jobType: 'send-verification-email',
+          ...jobData,
           timestamp: expect.any(Date),
         }),
         expect.objectContaining({
@@ -302,16 +342,20 @@ describe('Email Queue System', () => {
     });
 
     it('should apply deduplication when enabled', async () => {
+      // Reset singleton before test
+      (EmailQueue as any).instance = undefined;
+      
       const mockRedis = {
         ping: jest.fn().mockResolvedValue('PONG'),
         get: jest.fn().mockResolvedValue('1'), // Duplicate exists
         setex: jest.fn(),
         keys: jest.fn().mockResolvedValue([]),
       };
-      (redis as any) = mockRedis;
+      (redisModule as any).redis = mockRedis;
       
       queue = EmailQueue.getInstance();
-      const result = await queue.addEmailJob('send-verification-email', mockVerificationData);
+      const jobData = { ...mockVerificationData, jobType: 'send-verification-email' as const };
+      const result = await queue.addEmailJob('send-verification-email', jobData);
       
       expect(result).toBe('duplicate-skipped');
       expect(mockQueue.add).not.toHaveBeenCalled();
@@ -461,18 +505,24 @@ describe('Email Queue System', () => {
       
       // Fill up the rate limit (assuming default is 100/minute)
       for (let i = 0; i < 100; i++) {
-        await queue.addEmailJob('send-verification-email', {
+        const jobData = {
           ...mockVerificationData,
           userEmail: `${i}-${email}`, // Different emails to avoid deduplication
-        });
+          verificationToken: `token-${i}`, // Different tokens to avoid deduplication
+          jobType: 'send-verification-email' as const,
+        };
+        await queue.addEmailJob('send-verification-email', jobData);
       }
       
       // This should be rate limited
+      const rateLimitedJobData = {
+        ...mockVerificationData,
+        userEmail: email,
+        verificationToken: 'final-token',
+        jobType: 'send-verification-email' as const,
+      };
       await expect(
-        queue.addEmailJob('send-verification-email', {
-          ...mockVerificationData,
-          userEmail: email,
-        })
+        queue.addEmailJob('send-verification-email', rateLimitedJobData)
       ).rejects.toThrow('Rate limit exceeded');
     });
 
@@ -540,6 +590,9 @@ describe('Email Queue System', () => {
 
   describe('Dead Letter Queue (DLQ)', () => {
     beforeEach(() => {
+      // Reset singleton before each test
+      (EmailQueue as any).instance = undefined;
+      
       // Mock Redis for DLQ functionality
       const mockRedis = {
         ping: jest.fn().mockResolvedValue('PONG'),
@@ -547,7 +600,7 @@ describe('Email Queue System', () => {
         setex: jest.fn(),
         keys: jest.fn().mockResolvedValue([]),
       };
-      (redis as any) = mockRedis;
+      (redisModule as any).redis = mockRedis;
       
       queue = EmailQueue.getInstance();
     });
@@ -566,7 +619,7 @@ describe('Email Queue System', () => {
       
       await (queue as any).sendToDeadLetterQueue(mockJob.data, error);
       
-      expect((redis as any).setex).toHaveBeenCalledWith(
+      expect((redisModule as any).redis.setex).toHaveBeenCalledWith(
         expect.stringMatching(/^dlq:email:/),
         expect.any(Number),
         expect.stringContaining('send-verification-email')
@@ -581,9 +634,9 @@ describe('Email Queue System', () => {
         error: 'Previous error',
       });
       
-      (redis as any).keys.mockResolvedValue(['dlq:email:123']);
-      (redis as any).get.mockResolvedValue(dlqData);
-      (redis as any).del.mockResolvedValue(1);
+      (redisModule as any).redis.keys.mockResolvedValue(['dlq:email:123']);
+      (redisModule as any).redis.get.mockResolvedValue(dlqData);
+      (redisModule as any).redis.del.mockResolvedValue(1);
       
       mockQueue.add.mockResolvedValue({ id: 'reprocessed-job' });
       
@@ -593,7 +646,10 @@ describe('Email Queue System', () => {
       expect(result.errors).toHaveLength(0);
       expect(mockQueue.add).toHaveBeenCalledWith(
         'send-verification-email',
-        expect.objectContaining(mockVerificationData)
+        expect.objectContaining({
+          ...mockVerificationData,
+          jobType: 'send-verification-email'
+        })
       );
     });
   });
@@ -640,12 +696,15 @@ describe('Email Queue System', () => {
     });
 
     it('should provide Redis statistics when available', async () => {
+      // Reset singleton before test
+      (EmailQueue as any).instance = undefined;
+      
       // Mock Redis for statistics
       const mockRedis = {
         ping: jest.fn().mockResolvedValue('PONG'),
         keys: jest.fn().mockResolvedValue(['dlq:email:1', 'dlq:email:2']),
       };
-      (redis as any) = mockRedis;
+      (redisModule as any).redis = mockRedis;
       (queueManager.getQueueStats as jest.Mock).mockResolvedValue({
         waiting: 5,
         active: 2,
@@ -720,7 +779,8 @@ describe('Email Queue System', () => {
 
     it('should process remaining in-memory jobs during shutdown', async () => {
       // Add a job to in-memory queue
-      await queue.addEmailJob('send-verification-email', mockVerificationData);
+      const jobData = { ...mockVerificationData, jobType: 'send-verification-email' as const };
+      await queue.addEmailJob('send-verification-email', jobData);
       
       // Shutdown should process the remaining job
       await queue.shutdown();
@@ -733,8 +793,9 @@ describe('Email Queue System', () => {
       const shutdownPromise = queue.shutdown();
       
       // Try to add job during shutdown
+      const jobData = { ...mockVerificationData, jobType: 'send-verification-email' as const };
       await expect(
-        queue.addEmailJob('send-verification-email', mockVerificationData)
+        queue.addEmailJob('send-verification-email', jobData)
       ).rejects.toThrow('Email queue is shutting down');
       
       await shutdownPromise;
@@ -751,11 +812,14 @@ describe('Email Queue System', () => {
       const jobPromises = [];
       
       for (let i = 0; i < 100; i++) {
+        const jobData = {
+          ...mockVerificationData,
+          userEmail: `user${i}@example.com`,
+          verificationToken: `user-token-${i}`,
+          jobType: 'send-verification-email' as const,
+        };
         jobPromises.push(
-          queue.addEmailJob('send-verification-email', {
-            ...mockVerificationData,
-            userEmail: `user${i}@example.com`,
-          })
+          queue.addEmailJob('send-verification-email', jobData)
         );
       }
       
@@ -773,6 +837,7 @@ describe('Email Queue System', () => {
           ...mockVerificationData,
           jobType: 'send-verification-email' as EmailJobType,
           userEmail: `concurrent${i}@example.com`,
+          verificationToken: `concurrent-token-${i}`,
         };
         
         jobPromises.push((queue as any).processEmailJobData(jobData));
@@ -792,11 +857,14 @@ describe('Email Queue System', () => {
       
       // Mix of different operations
       for (let i = 0; i < 50; i++) {
+        const jobData = {
+          ...mockVerificationData,
+          userEmail: `stress${i}@example.com`,
+          verificationToken: `stress-token-${i}`,
+          jobType: 'send-verification-email' as const,
+        };
         concurrentOperations.push(
-          queue.addEmailJob('send-verification-email', {
-            ...mockVerificationData,
-            userEmail: `stress${i}@example.com`,
-          })
+          queue.addEmailJob('send-verification-email', jobData)
         );
         
         if (i % 10 === 0) {

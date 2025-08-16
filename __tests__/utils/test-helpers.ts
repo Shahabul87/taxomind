@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Session } from 'next-auth';
 import { ReactElement } from 'react';
 import { TestDataFactory } from './test-factory';
+import '@testing-library/jest-dom';
 
 /**
  * Common test utilities and helper functions
@@ -499,10 +500,11 @@ export const TestEnvironmentHelpers = {
    * Clean up test environment
    */
   cleanupTestEnv: () => {
-    delete process.env.NODE_ENV;
-    delete process.env.NEXTAUTH_SECRET;
-    delete process.env.NEXTAUTH_URL;
-    delete process.env.DATABASE_URL;
+    const env = process.env as any;
+    delete env.NODE_ENV;
+    delete env.NEXTAUTH_SECRET;
+    delete env.NEXTAUTH_URL;
+    delete env.DATABASE_URL;
   },
 
   /**

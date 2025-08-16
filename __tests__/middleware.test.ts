@@ -1,4 +1,4 @@
-import { middleware } from '@/middleware';
+import middlewareFunc from '@/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
@@ -37,7 +37,7 @@ describe('Middleware', () => {
 
       for (const route of publicRoutes) {
         const request = new NextRequest(`http://localhost:3000${route}`);
-        const response = await middleware(request);
+        const response = await middlewareFunc(request, {} as any);
 
         expect(response).toBeUndefined(); // No redirect
         expect(mockRedirect).not.toHaveBeenCalled();
@@ -48,7 +48,7 @@ describe('Middleware', () => {
       mockAuth.mockResolvedValue(null);
 
       const request = new NextRequest('http://localhost:3000/courses/course-123');
-      const response = await middleware(request);
+      const response = await middlewareFunc(request, {} as any);
 
       expect(response).toBeUndefined();
       expect(mockRedirect).not.toHaveBeenCalled();
@@ -68,7 +68,7 @@ describe('Middleware', () => {
 
       for (const route of protectedRoutes) {
         const request = new NextRequest(`http://localhost:3000${route}`);
-        await middleware(request);
+        await middlewareFunc(request, {} as any);
 
         expect(mockRedirect).toHaveBeenCalledWith(
           expect.stringContaining('/auth/login')
@@ -80,7 +80,7 @@ describe('Middleware', () => {
       mockAuth.mockResolvedValue(null);
 
       const request = new NextRequest('http://localhost:3000/dashboard');
-      await middleware(request);
+      await middlewareFunc(request, {} as any);
 
       expect(mockRedirect).toHaveBeenCalledWith(
         expect.stringContaining('callbackUrl=%2Fdashboard')
@@ -97,7 +97,7 @@ describe('Middleware', () => {
       });
 
       const request = new NextRequest('http://localhost:3000/dashboard');
-      const response = await middleware(request);
+      const response = await middlewareFunc(request, {} as any);
 
       expect(response).toBeUndefined();
       expect(mockRedirect).not.toHaveBeenCalled();
@@ -123,7 +123,7 @@ describe('Middleware', () => {
 
       for (const route of adminRoutes) {
         const request = new NextRequest(`http://localhost:3000${route}`);
-        await middleware(request);
+        await middlewareFunc(request, {} as any);
 
         expect(mockRedirect).toHaveBeenCalledWith(
           expect.stringContaining('/dashboard')
@@ -141,7 +141,7 @@ describe('Middleware', () => {
       });
 
       const request = new NextRequest('http://localhost:3000/admin/dashboard');
-      const response = await middleware(request);
+      const response = await middlewareFunc(request, {} as any);
 
       expect(response).toBeUndefined();
       expect(mockRedirect).not.toHaveBeenCalled();
@@ -164,7 +164,7 @@ describe('Middleware', () => {
 
       for (const route of adminSubRoutes) {
         const request = new NextRequest(`http://localhost:3000${route}`);
-        const response = await middleware(request);
+        const response = await middlewareFunc(request, {} as any);
 
         expect(response).toBeUndefined();
         expect(mockRedirect).not.toHaveBeenCalled();
@@ -190,7 +190,7 @@ describe('Middleware', () => {
 
       for (const route of authRoutes) {
         const request = new NextRequest(`http://localhost:3000${route}`);
-        await middleware(request);
+        await middlewareFunc(request, {} as any);
 
         expect(mockRedirect).toHaveBeenCalledWith(
           expect.stringContaining('/dashboard')
@@ -208,7 +208,7 @@ describe('Middleware', () => {
       });
 
       const request = new NextRequest('http://localhost:3000/auth/error');
-      const response = await middleware(request);
+      const response = await middlewareFunc(request, {} as any);
 
       expect(response).toBeUndefined();
       expect(mockRedirect).not.toHaveBeenCalled();
@@ -225,7 +225,7 @@ describe('Middleware', () => {
 
       for (const route of apiRoutes) {
         const request = new NextRequest(`http://localhost:3000${route}`);
-        const response = await middleware(request);
+        const response = await middlewareFunc(request, {} as any);
 
         expect(response).toBeUndefined();
         expect(mockAuth).not.toHaveBeenCalled();
@@ -244,7 +244,7 @@ describe('Middleware', () => {
 
       for (const asset of staticAssets) {
         const request = new NextRequest(`http://localhost:3000${asset}`);
-        const response = await middleware(request);
+        const response = await middlewareFunc(request, {} as any);
 
         expect(response).toBeUndefined();
         expect(mockAuth).not.toHaveBeenCalled();
@@ -270,7 +270,7 @@ describe('Middleware', () => {
 
       for (const route of teacherRoutes) {
         const request = new NextRequest(`http://localhost:3000${route}`);
-        const response = await middleware(request);
+        const response = await middlewareFunc(request, {} as any);
 
         expect(response).toBeUndefined();
         expect(mockRedirect).not.toHaveBeenCalled();
@@ -289,7 +289,7 @@ describe('Middleware', () => {
       });
 
       const request = new NextRequest('http://localhost:3000/dashboard');
-      const response = await middleware(request);
+      const response = await middlewareFunc(request, {} as any);
 
       // Admin can access regular dashboard
       expect(response).toBeUndefined();
@@ -306,7 +306,7 @@ describe('Middleware', () => {
       });
 
       const request = new NextRequest('http://localhost:3000/dashboard');
-      const response = await middleware(request);
+      const response = await middlewareFunc(request, {} as any);
 
       // Should still allow access to regular protected routes
       expect(response).toBeUndefined();
@@ -316,7 +316,7 @@ describe('Middleware', () => {
   describe('Edge Cases', () => {
     it('should handle malformed URLs gracefully', async () => {
       const request = new NextRequest('http://localhost:3000/../../etc/passwd');
-      const response = await middleware(request);
+      const response = await middlewareFunc(request, {} as any);
 
       expect(response).toBeUndefined();
     });
@@ -333,7 +333,7 @@ describe('Middleware', () => {
         },
       });
 
-      const response = await middleware(request);
+      const response = await middlewareFunc(request, {} as any);
       expect(response).toBeUndefined();
     });
 
@@ -341,7 +341,7 @@ describe('Middleware', () => {
       mockAuth.mockResolvedValue(null);
 
       const request = new NextRequest('http://localhost:3000/dashboard?tab=overview&filter=recent');
-      await middleware(request);
+      await middlewareFunc(request, {} as any);
 
       expect(mockRedirect).toHaveBeenCalledWith(
         expect.stringContaining('callbackUrl=%2Fdashboard%3Ftab%3Doverview%26filter%3Drecent')
@@ -352,7 +352,7 @@ describe('Middleware', () => {
       mockAuth.mockResolvedValue(null);
 
       const request = new NextRequest('http://localhost:3000/dashboard#section-1');
-      await middleware(request);
+      await middlewareFunc(request, {} as any);
 
       expect(mockRedirect).toHaveBeenCalled();
     });
