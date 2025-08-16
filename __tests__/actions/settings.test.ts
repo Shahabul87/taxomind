@@ -275,7 +275,7 @@ describe('settings action', () => {
     prismaMock.user.update.mockRejectedValue(new Error('Database error'));
 
     await expect(
-      settings({ name: 'New Name' })
+      settings({ name: 'New Name', role: 'USER' })
     ).rejects.toThrow('Database error');
   });
 
@@ -313,6 +313,7 @@ describe('settings action', () => {
 
     const result = await settings({
       newPassword: '123', // Too short
+      role: 'USER',
     });
 
     expect(result).toEqual({

@@ -3,7 +3,7 @@
 import { currentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
-export type UserRole = 'STUDENT' | 'TEACHER' | 'ADMIN' | 'USER';
+export type UserRole = 'USER' | 'ADMIN';
 
 export interface RoleRequirement {
   allowedRoles: UserRole[];
@@ -32,46 +32,34 @@ export async function requireRole(requirement: RoleRequirement) {
 
 // Helper function to determine user role
 function getUserRole(user: any): UserRole {
-  // Check if user has role property (new users)
+  // Check if user has role property
   if (user.role) {
     switch (user.role.toString().toUpperCase()) {
       case 'ADMIN':
         return 'ADMIN';
       case 'USER':
-        return 'TEACHER';
-      case 'USER':
-        return 'STUDENT';
-      case 'USER':
-        // Convert legacy USER role to STUDENT
-        return 'STUDENT';
       default:
-        return 'STUDENT';
+        return 'USER';
     }
   }
 
-  // Legacy users: Check by email domain or other criteria
+  // Legacy users: Check by email domain for admin
   if (user.email?.includes('@admin.') || user.email?.includes('admin@')) {
     return 'ADMIN';
   }
-  
-  if (user.email?.includes('@teacher.') || user.email?.includes('@faculty.') || user.email?.includes('teacher@')) {
-    return 'TEACHER';
-  }
 
-  // Default all users to student role for now
-  return 'STUDENT';
+  // Default all users to USER role
+  return 'USER';
 }
 
 // Get default dashboard for each role
 function getDefaultDashboard(role: UserRole): string {
   switch (role) {
     case 'ADMIN':
-      return '/analytics/admin';
-    case 'USER':
-      return '/analytics/teacher';
+      return '/dashboard/admin';
     case 'USER':
     default:
-      return '/analytics/student';
+      return '/dashboard/user';
   }
 }
 
@@ -82,7 +70,6 @@ export function useUserRole() {
   return {
     hasRole: (role: UserRole) => true, // Mock implementation
     isAdmin: () => false,
-    isTeacher: () => false,
-    isStudent: () => true
+    isUser: () => true
   };
 }

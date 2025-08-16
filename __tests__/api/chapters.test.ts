@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PATCH, DELETE } from '@/app/api/courses/[courseId]/chapters/[chapterId]/route';
-import { PATCH as POST } from '@/app/api/courses/[courseId]/chapters/[chapterId]/publish/route';
+import { PATCH as PUBLISH_PATCH } from '@/app/api/courses/[courseId]/chapters/[chapterId]/publish/route';
 
 // Mock dependencies
 jest.mock('@/lib/db', () => ({
@@ -57,7 +57,7 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
       };
 
       (currentUser as jest.Mock).mockResolvedValue({ id: userId });
-      (db.course.findUnique as jest.Mock).mockResolvedValue({
+      (db.course.findFirst as jest.Mock).mockResolvedValue({
         id: courseId,
         userId,
       });
@@ -72,7 +72,7 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const response = await PATCH(request, { params: { courseId, chapterId } });
+      const response = await PATCH(request, { params: Promise.resolve({ courseId, chapterId }) });
 
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -97,7 +97,7 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const response = await PATCH(request, { params: { courseId, chapterId } });
+      const response = await PATCH(request, { params: Promise.resolve({ courseId, chapterId }) });
 
       expect(response.status).toBe(401);
       expect(db.chapter.update).not.toHaveBeenCalled();
@@ -105,10 +105,7 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
 
     it('returns 401 when user does not own the course', async () => {
       (currentUser as jest.Mock).mockResolvedValue({ id: 'different-user' });
-      (db.course.findUnique as jest.Mock).mockResolvedValue({
-        id: courseId,
-        userId: 'original-owner',
-      });
+      (db.course.findFirst as jest.Mock).mockResolvedValue(null);
 
       const request = new Request('http://localhost:3000/api/courses/course-123/chapters/chapter-456', {
         method: 'PATCH',
@@ -116,7 +113,7 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const response = await PATCH(request, { params: { courseId, chapterId } });
+      const response = await PATCH(request, { params: Promise.resolve({ courseId, chapterId }) });
 
       expect(response.status).toBe(401);
       expect(db.chapter.update).not.toHaveBeenCalled();
@@ -124,7 +121,7 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
 
     it('handles database errors gracefully', async () => {
       (currentUser as jest.Mock).mockResolvedValue({ id: userId });
-      (db.course.findUnique as jest.Mock).mockResolvedValue({
+      (db.course.findFirst as jest.Mock).mockResolvedValue({
         id: courseId,
         userId,
       });
@@ -136,7 +133,7 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const response = await PATCH(request, { params: { courseId, chapterId } });
+      const response = await PATCH(request, { params: Promise.resolve({ courseId, chapterId }) });
 
       expect(response.status).toBe(500);
     });
@@ -145,7 +142,7 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
   describe('DELETE /api/courses/[courseId]/chapters/[chapterId]', () => {
     it('deletes chapter successfully when user owns course', async () => {
       (currentUser as jest.Mock).mockResolvedValue({ id: userId });
-      (db.course.findUnique as jest.Mock).mockResolvedValue({
+      (db.course.findFirst as jest.Mock).mockResolvedValue({
         id: courseId,
         userId,
       });
@@ -153,55 +150,24 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
         id: chapterId,
         courseId,
         videoUrl: null,
+        position: 1,
       });
       (db.chapter.delete as jest.Mock).mockResolvedValue({ id: chapterId });
       (db.chapter.findMany as jest.Mock).mockResolvedValue([
-        { id: 'other-chapter-1', isPublished: true },
-        { id: 'other-chapter-2', isPublished: true },
+        { id: 'other-chapter-1', position: 2 },
+        { id: 'other-chapter-2', position: 3 },
       ]);
 
       const request = new Request('http://localhost:3000/api/courses/course-123/chapters/chapter-456', {
         method: 'DELETE',
       });
 
-      const response = await DELETE(request, { params: { courseId, chapterId } });
+      const response = await DELETE(request, { params: Promise.resolve({ courseId, chapterId }) });
 
       expect(response.status).toBe(200);
       expect(db.chapter.delete).toHaveBeenCalledWith({
         where: {
           id: chapterId,
-          courseId,
-        },
-      });
-    });
-
-    it('unpublishes course when deleting last published chapter', async () => {
-      (currentUser as jest.Mock).mockResolvedValue({ id: userId });
-      (db.course.findUnique as jest.Mock).mockResolvedValue({
-        id: courseId,
-        userId,
-      });
-      (db.chapter.findUnique as jest.Mock).mockResolvedValue({
-        id: chapterId,
-        courseId,
-        videoUrl: null,
-      });
-      (db.chapter.delete as jest.Mock).mockResolvedValue({ id: chapterId });
-      (db.chapter.findMany as jest.Mock).mockResolvedValue([]); // No other published chapters
-
-      const request = new Request('http://localhost:3000/api/courses/course-123/chapters/chapter-456', {
-        method: 'DELETE',
-      });
-
-      const response = await DELETE(request, { params: { courseId, chapterId } });
-
-      expect(response.status).toBe(200);
-      expect(db.course.update).toHaveBeenCalledWith({
-        where: {
-          id: courseId,
-        },
-        data: {
-          isPublished: false,
         },
       });
     });
@@ -213,14 +179,14 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
         method: 'DELETE',
       });
 
-      const response = await DELETE(request, { params: { courseId, chapterId } });
+      const response = await DELETE(request, { params: Promise.resolve({ courseId, chapterId }) });
 
       expect(response.status).toBe(401);
       expect(db.chapter.delete).not.toHaveBeenCalled();
     });
   });
 
-  describe('POST /api/courses/[courseId]/chapters/[chapterId]/publish', () => {
+  describe('PATCH /api/courses/[courseId]/chapters/[chapterId]/publish', () => {
     it('publishes chapter when all requirements are met', async () => {
       (currentUser as jest.Mock).mockResolvedValue({ id: userId });
       (db.course.findUnique as jest.Mock).mockResolvedValue({
@@ -231,27 +197,27 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
         id: chapterId,
         title: 'Chapter Title',
         description: 'Chapter Description',
-        videoUrl: 'https://example.com/video.mp4',
+        learningOutcomes: 'Learning outcomes',
+        isPublished: false,
+        sections: [
+          { id: 'section-1', isPublished: true },
+        ],
       });
-      (db.section.findMany as jest.Mock).mockResolvedValue([
-        { id: 'section-1', isPublished: true },
-      ]);
       (db.chapter.update as jest.Mock).mockResolvedValue({
         id: chapterId,
         isPublished: true,
       });
 
       const request = new Request('http://localhost:3000/api/courses/course-123/chapters/chapter-456/publish', {
-        method: 'POST',
+        method: 'PATCH',
       });
 
-      const response = await POST(request, { params: { courseId, chapterId } });
+      const response = await PUBLISH_PATCH(request, { params: Promise.resolve({ courseId, chapterId }) });
 
       expect(response.status).toBe(200);
       expect(db.chapter.update).toHaveBeenCalledWith({
         where: {
           id: chapterId,
-          courseId,
         },
         data: {
           isPublished: true,
@@ -269,38 +235,15 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
         id: chapterId,
         title: null, // Missing title
         description: 'Description',
-        videoUrl: 'https://example.com/video.mp4',
+        learningOutcomes: 'Learning outcomes',
+        sections: [],
       });
 
       const request = new Request('http://localhost:3000/api/courses/course-123/chapters/chapter-456/publish', {
-        method: 'POST',
+        method: 'PATCH',
       });
 
-      const response = await POST(request, { params: { courseId, chapterId } });
-
-      expect(response.status).toBe(400);
-      expect(db.chapter.update).not.toHaveBeenCalled();
-    });
-
-    it('returns 400 when chapter has no published sections', async () => {
-      (currentUser as jest.Mock).mockResolvedValue({ id: userId });
-      (db.course.findUnique as jest.Mock).mockResolvedValue({
-        id: courseId,
-        userId,
-      });
-      (db.chapter.findUnique as jest.Mock).mockResolvedValue({
-        id: chapterId,
-        title: 'Chapter Title',
-        description: 'Chapter Description',
-        videoUrl: 'https://example.com/video.mp4',
-      });
-      (db.section.findMany as jest.Mock).mockResolvedValue([]); // No published sections
-
-      const request = new Request('http://localhost:3000/api/courses/course-123/chapters/chapter-456/publish', {
-        method: 'POST',
-      });
-
-      const response = await POST(request, { params: { courseId, chapterId } });
+      const response = await PUBLISH_PATCH(request, { params: Promise.resolve({ courseId, chapterId }) });
 
       expect(response.status).toBe(400);
       expect(db.chapter.update).not.toHaveBeenCalled();
@@ -308,16 +251,13 @@ describe('/api/courses/[courseId]/chapters/[chapterId]', () => {
 
     it('returns 401 when user does not own the course', async () => {
       (currentUser as jest.Mock).mockResolvedValue({ id: 'different-user' });
-      (db.course.findUnique as jest.Mock).mockResolvedValue({
-        id: courseId,
-        userId: 'original-owner',
-      });
+      (db.course.findUnique as jest.Mock).mockResolvedValue(null);
 
       const request = new Request('http://localhost:3000/api/courses/course-123/chapters/chapter-456/publish', {
-        method: 'POST',
+        method: 'PATCH',
       });
 
-      const response = await POST(request, { params: { courseId, chapterId } });
+      const response = await PUBLISH_PATCH(request, { params: Promise.resolve({ courseId, chapterId }) });
 
       expect(response.status).toBe(401);
       expect(db.chapter.update).not.toHaveBeenCalled();

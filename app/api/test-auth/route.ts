@@ -26,8 +26,7 @@ export async function GET() {
 
     const roleInfo = {
       isAdmin: role === UserRole.ADMIN,
-      isTeacher: role === UserRole.TEACHER,
-      isStudent: role === UserRole.STUDENT,
+      isUser: role === UserRole.USER,
     };
 
     return NextResponse.json({

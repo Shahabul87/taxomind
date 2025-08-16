@@ -160,7 +160,7 @@ async function checkOrganizationAccess(userId: string, organizationId: string): 
     where: {
       userId,
       organizationId,
-      role: { in: ['OWNER', 'ADMIN', 'INSTRUCTOR'] },
+      role: 'ADMIN',
     },
   });
   

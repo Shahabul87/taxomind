@@ -70,7 +70,7 @@ export const GET = withAPIAuth(
 export const DELETE = withAdminAuth(
   async (request: NextRequest, context: APIAuthContext) => {
     try {
-      const body = await parseRequestBody(request);
+      const body = await parseRequestBody(request) as Record<string, any>;
       validateRequiredFields(body, ["targetUserId"]);
 
       const { targetUserId } = body;
@@ -107,7 +107,7 @@ export const POST = withPermissions(
   "course:create",
   async (request: NextRequest, context: APIAuthContext) => {
     try {
-      const body = await parseRequestBody(request);
+      const body = await parseRequestBody(request) as Record<string, any>;
       validateRequiredFields(body, ["title", "description"]);
 
       const { title, description, categoryId } = body;
@@ -144,12 +144,12 @@ export const POST = withPermissions(
 export const PATCH = withOwnership(
   // Extract user ID from request body or params
   async (request: NextRequest, params?: any) => {
-    const body = await parseRequestBody(request);
+    const body = await parseRequestBody(request) as Record<string, any>;
     return body.courseUserId; // The owner of the course being modified
   },
   async (request: NextRequest, context: APIAuthContext) => {
     try {
-      const body = await parseRequestBody(request);
+      const body = await parseRequestBody(request) as Record<string, any>;
       validateRequiredFields(body, ["courseId", "courseUserId", "updates"]);
 
       const { courseId, courseUserId, updates } = body;
@@ -188,7 +188,7 @@ export const PATCH = withOwnership(
 export const PUT = withAPIAuth(
   async (request: NextRequest, context: APIAuthContext) => {
     try {
-      const body = await parseRequestBody(request);
+      const body = await parseRequestBody(request) as Record<string, any>;
       validateRequiredFields(body, ["action", "targetId"]);
 
       const { action, targetId } = body;

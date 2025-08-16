@@ -100,14 +100,14 @@ export async function POST(req: Request) {
     const groupWithMember = await db.group.findUnique({
       where: { id: group.id },
       include: {
-        GroupMember: true,
+        members: true,
         Course: {
           select: {
             title: true,
             imageUrl: true,
           },
         },
-        Category: true,
+        categoryRef: true,
       },
     });
 

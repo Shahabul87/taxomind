@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { getSimplePostsForBlog } from "@/actions/get-simple-posts";
@@ -80,12 +80,8 @@ export const GET = withAuth(async (
   } catch (error) {
     logger.error("💥 [API] /api/posts - Error fetching posts:", error);
     
-    return createSuccessResponse(
-      {
-        success: false,
-        error: "Failed to fetch posts",
-        message: error instanceof Error ? error.message : "Unknown error"
-      },
-      { status: 500 });
+    return createErrorResponse(
+      ApiError.internal("Failed to fetch posts")
+    );
   }
 });
