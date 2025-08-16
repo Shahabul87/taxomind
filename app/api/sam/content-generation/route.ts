@@ -15,10 +15,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is teacher or admin
-    if (session.user.role !== "TEACHER" && session.user.role !== "ADMIN") {
+    // Check if user is admin
+    if (session.user.role !== "ADMIN") {
       return NextResponse.json(
-        { error: "Only teachers and admins can generate content" },
+        { error: "Only admins can generate content" },
         { status: 403 }
       );
     }

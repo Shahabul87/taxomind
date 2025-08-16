@@ -33,9 +33,9 @@ export async function POST(req: Request) {
       return new NextResponse("User role not found", { status: 403 });
     }
     
-    if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
+    if (userRole !== 'ADMIN') {
 
-      return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
+      return new NextResponse(`Forbidden - Admin access required. Your role: ${userRole}`, { status: 403 });
     }
 
     // Parse request body

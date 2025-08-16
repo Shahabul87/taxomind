@@ -109,12 +109,12 @@ export const requestInstructorRole = async (
       return { error: "Unauthorized: Authentication required" };
     }
 
-    // Check if user is already an admin
+    // Check if user is already an admin (admins have all privileges)
     if (user.role === UserRole.ADMIN) {
       return { error: "You already have instructor privileges" };
     }
     
-    // Check if user has teacher flag
+    // Check if user has teacher flag (for legacy compatibility)
     const userData = await db.user.findUnique({
       where: { id: user.id },
       select: { isTeacher: true }

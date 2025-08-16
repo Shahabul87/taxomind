@@ -20,7 +20,7 @@ export const newPassword = async (
   }
 
   // Get client IP for rate limiting
-  const headersList = headers();
+  const headersList = await headers();
   const forwarded = headersList.get('x-forwarded-for');
   const realIp = headersList.get('x-real-ip');
   const cfConnectingIp = headersList.get('cf-connecting-ip');

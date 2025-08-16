@@ -32,14 +32,13 @@ export const registerTeacher = async (values: z.infer<typeof RegisterTeacherSche
     // Parse subjects string into array
     const subjectsArray = subjects.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
-    // Create user with USER role initially (can become teacher after verification)
+    // Create user with USER role (all content creation capabilities included)
     const user = await db.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: "USER", // All users start as USER role
-        isTeacher: false, // Will be set to true after verification
+        role: "USER", // All users can create content
       },
     });
 
@@ -62,7 +61,7 @@ export const registerTeacher = async (values: z.infer<typeof RegisterTeacherSche
         entityType: "USER",
         entityId: user.id,
         context: {
-          type: "TEACHER_REGISTRATION",
+          type: "USER_REGISTRATION",
           email,
           name,
           qualifications,
@@ -79,7 +78,7 @@ export const registerTeacher = async (values: z.infer<typeof RegisterTeacherSche
       verificationToken.token,
     );
 
-    logger.info(`Teacher registration initiated for ${email}`);
+    logger.info(`User registration initiated for ${email}`);
 
     return { 
       success: "Registration successful! Please check your email to verify your account. Your instructor application will be reviewed by our admin team." 

@@ -81,8 +81,8 @@ async function handlePredictOutcomes(data: any, userId: string) {
 }
 
 async function handleIdentifyAtRisk(data: any, user: any) {
-  // Check if user is teacher or admin
-  if (user.role !== "TEACHER" && user.role !== "ADMIN") {
+  // Check if user is admin
+  if (user.role !== "ADMIN") {
     throw new Error("Insufficient permissions");
   }
 

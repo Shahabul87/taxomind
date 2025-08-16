@@ -42,7 +42,5 @@ export interface AuthUser {
   email: string;
   name: string;
   role: UserRole;
-  isTeacher?: boolean;
-  isAffiliate?: boolean;
   image?: string;
 }

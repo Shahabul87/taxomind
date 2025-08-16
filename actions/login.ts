@@ -60,7 +60,7 @@ export const login = async (
       email, 
       `Rate limit exceeded - ${rateLimitResult.retryAfter}s remaining`, 
       'credentials',
-      { attemptCount: rateLimitResult.totalAttempts }
+      { remaining: rateLimitResult.remaining, limit: rateLimitResult.limit }
     );
     return { 
       error: `Too many login attempts. Try again in ${rateLimitResult.retryAfter} seconds.`,

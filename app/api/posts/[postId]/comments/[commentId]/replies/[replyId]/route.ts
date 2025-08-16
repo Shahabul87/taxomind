@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
 

@@ -1,79 +1,97 @@
+#!/usr/bin/env node
 /**
- * Migration script for enhanced authentication system
- * Run with: npx tsx scripts/migrate-auth.ts
+ * Authentication Migration Script
+ * Migrates users to the simplified two-role system (ADMIN and USER)
  */
 
 import { PrismaClient, UserRole } from '@prisma/client';
-import { Permission } from '../lib/permissions';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log('🚀 Starting authentication migration...');
+async function migrateAuthentication() {
+  console.log('🔐 Starting authentication migration...\n');
   
   try {
-    // Step 1: Migrate existing user roles
-    console.log('📝 Migrating user roles...');
+    // Step 1: Update all user roles to simplified system
+    console.log('📋 Migrating user roles to simplified system...');
     
-    // Update USER role to LEARNER
-    const userUpdate = await prisma.user.updateMany({
-      where: { role: 'USER' as any },
-      data: { role: "USER" }
-    });
-    console.log(`  ✅ Updated ${userUpdate.count} users from USER to LEARNER`);
+    // Count existing users by current roles
+    const userCount = await prisma.user.count();
+    const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
     
-    // Update STUDENT role to LEARNER
-    const studentUpdate = await prisma.user.updateMany({
-      where: { role: "USER" as any },
-      data: { role: "USER" }
-    });
-    console.log(`  ✅ Updated ${studentUpdate.count} users from STUDENT to LEARNER`);
+    console.log(`  Total users: ${userCount}`);
+    console.log(`  Admin users: ${adminCount}`);
+    console.log(`  Regular users: ${userCount - adminCount}`);
     
-    // Update TEACHER role to INSTRUCTOR
-    const teacherUpdate = await prisma.user.updateMany({
-      where: { role: "USER", isTeacher: true as any },
-      data: { role: "USER", isTeacher: true }
-    });
-    console.log(`  ✅ Updated ${teacherUpdate.count} users from TEACHER to INSTRUCTOR`);
-    
-    // Step 2: Create default permissions
-    console.log('🔑 Creating default permissions...');
-    
-    const permissionList = Object.values(Permission);
-    
-    for (const permissionName of permissionList) {
-      const category = getPermissionCategory(permissionName);
-      
-      await prisma.permission.upsert({
-        where: { name: permissionName },
-        update: {},
-        create: {
-          name: permissionName,
-          category,
-          description: `Permission for ${permissionName.toLowerCase().replace(/_/g, ' ')}`
+    // All non-admin users should have USER role
+    const updatedUsers = await prisma.user.updateMany({
+      where: {
+        role: {
+          not: 'ADMIN'
         }
+      },
+      data: {
+        role: 'USER'
+      }
+    });
+    
+    console.log(`  ✅ Updated ${updatedUsers.count} users to USER role`);
+    
+    // Step 2: Create permissions if they don't exist
+    console.log('\n🔑 Setting up permissions...');
+    
+    const permissions = [
+      // User permissions
+      'USER_VIEW_OWN',
+      'USER_MANAGE_OWN',
+      'USER_VIEW_ANALYTICS',
+      
+      // Course permissions
+      'COURSE_VIEW',
+      'COURSE_CREATE',
+      'COURSE_EDIT_OWN',
+      'COURSE_DELETE_OWN',
+      'COURSE_PUBLISH',
+      'COURSE_UNPUBLISH',
+      'COURSE_PRICE_SET',
+      'COURSE_PURCHASE',
+      
+      // Payment permissions
+      'PAYMENT_RECEIVE',
+      'PAYMENT_WITHDRAW',
+      'PAYMENT_VIEW_REPORTS',
+      
+      // Platform permissions
+      'CONTENT_MODERATE',
+      'CONTENT_FLAG',
+      'CONTENT_APPROVE',
+      'PLATFORM_ANALYTICS',
+      
+      // Admin permissions
+      'ALL_PERMISSIONS'
+    ];
+    
+    for (const name of permissions) {
+      await prisma.permission.upsert({
+        where: { name },
+        create: { name, description: `Permission for ${name}` },
+        update: {}
       });
     }
-    console.log(`  ✅ Created/updated ${permissionList.length} permissions`);
+    console.log('  ✅ Permissions created/verified');
     
-    // Step 3: Set up role-permission mappings
-    console.log('🔗 Setting up role-permission mappings...');
+    // Step 3: Create role-permission mappings
+    console.log('\n🔗 Creating role-permission mappings...');
     
     const rolePermissionMap: Record<UserRole, string[]> = {
-      ADMIN: permissionList, // Admins get all permissions
+      ADMIN: [
+        'ALL_PERMISSIONS'
+      ],
       USER: [
         'USER_VIEW_OWN',
         'USER_MANAGE_OWN',
         'COURSE_VIEW',
         'COURSE_PURCHASE',
-      ],
-      STUDENT: [
-        'USER_VIEW_OWN',
-        'USER_MANAGE_OWN',
-        'COURSE_VIEW',
-        'COURSE_PURCHASE',
-      ],
-      TEACHER: [
         'COURSE_CREATE',
         'COURSE_EDIT_OWN',
         'COURSE_DELETE_OWN',
@@ -81,40 +99,9 @@ async function main() {
         'COURSE_UNPUBLISH',
         'COURSE_PRICE_SET',
         'USER_VIEW_ANALYTICS',
-        'USER_MANAGE_OWN',
         'PAYMENT_RECEIVE',
         'PAYMENT_WITHDRAW',
-        'PAYMENT_VIEW_REPORTS',
-      ],
-      INSTRUCTOR: [
-        'COURSE_CREATE',
-        'COURSE_EDIT_OWN',
-        'COURSE_DELETE_OWN',
-        'COURSE_PUBLISH',
-        'COURSE_UNPUBLISH',
-        'COURSE_PRICE_SET',
-        'USER_VIEW_ANALYTICS',
-        'USER_MANAGE_OWN',
-        'PAYMENT_RECEIVE',
-        'PAYMENT_WITHDRAW',
-        'PAYMENT_VIEW_REPORTS',
-      ],
-      LEARNER: [
-        'USER_MANAGE_OWN',
-        'USER_VIEW_ANALYTICS',
-      ],
-      MODERATOR: [
-        'CONTENT_MODERATE',
-        'CONTENT_FLAG',
-        'CONTENT_APPROVE',
-        'USER_VIEW_ANALYTICS',
-        'PLATFORM_ANALYTICS',
-      ],
-      AFFILIATE: [
-        'USER_VIEW_ANALYTICS',
-        'USER_MANAGE_OWN',
-        'PAYMENT_RECEIVE',
-        'PAYMENT_VIEW_REPORTS',
+        'PAYMENT_VIEW_REPORTS'
       ]
     };
     
@@ -143,11 +130,17 @@ async function main() {
     }
     console.log('  ✅ Role-permission mappings created');
     
-    // Step 4: Set instructor status for existing instructors
-    console.log('👨‍🏫 Setting instructor status...');
+    // Step 4: Clean up legacy fields
+    console.log('\n🧹 Cleaning up legacy data...');
     
+    // Update users who were teachers/instructors
     const instructors = await prisma.user.findMany({
-      where: { role: "USER", isTeacher: true },
+      where: { 
+        role: "USER",
+        courses: {
+          some: {}
+        }
+      },
       include: {
         courses: {
           select: { id: true }
@@ -155,70 +148,58 @@ async function main() {
       }
     });
     
-    for (const instructor of instructors) {
-      const courseCount = instructor.courses.length;
-      let tier: 'BASIC' | 'STANDARD' | 'PREMIUM' = 'BASIC';
-      
-      if (courseCount > 20) tier = 'PREMIUM';
-      else if (courseCount > 5) tier = 'STANDARD';
-      
-      await prisma.user.update({
-        where: { id: instructor.id },
-        data: {
-          // instructorStatus fields removed - not in current schema
-          role: courseCount > 0 ? 'TEACHER' : 'USER'
-        }
-      });
-    }
-    console.log(`  ✅ Updated ${instructors.length} instructor profiles`);
+    console.log(`  Found ${instructors.length} users with courses (content creators)`);
     
-    // Step 5: Create audit log entry for migration
-    console.log('📊 Creating audit log...');
+    // Step 5: Create audit log entry
+    console.log('\n📝 Creating audit log...');
     
-    await prisma.enhancedAuditLog.create({
+    await prisma.auditLog.create({
       data: {
-        action: 'AUTH_MIGRATION_COMPLETED',
-        resource: 'SYSTEM',
-        severity: 'INFO',
-        metadata: {
-          migratedUsers: userUpdate.count + studentUpdate.count + teacherUpdate.count,
-          permissionsCreated: permissionList.length,
-          instructorsUpdated: instructors.length,
-          timestamp: new Date().toISOString()
+        userId: 'SYSTEM',
+        action: 'AUTH_MIGRATION',
+        entityType: 'USER',
+        entityId: 'ALL',
+        details: {
+          migratedAt: new Date().toISOString(),
+          totalUsers: userCount,
+          adminUsers: adminCount,
+          regularUsers: userCount - adminCount,
+          contentCreators: instructors.length
         }
       }
     });
     
-    console.log('✨ Migration completed successfully!');
+    console.log('  ✅ Audit log created');
     
-    // Display summary
-    console.log('\n📈 Migration Summary:');
-    console.log('─────────────────────');
-    console.log(`  Total users migrated: ${userUpdate.count + studentUpdate.count + teacherUpdate.count}`);
-    console.log(`  Permissions created: ${permissionList.length}`);
-    console.log(`  Instructors updated: ${instructors.length}`);
-    console.log('─────────────────────');
+    // Step 6: Summary
+    console.log('\n' + '='.repeat(50));
+    console.log('✅ Authentication Migration Complete!');
+    console.log('='.repeat(50));
+    console.log(`
+Summary:
+- Total users migrated: ${userCount}
+- Admin users: ${adminCount}
+- Regular users (with content creation access): ${userCount - adminCount}
+- Content creators identified: ${instructors.length}
+
+The system now uses a simplified two-role model:
+- ADMIN: Full system access
+- USER: Regular users with content creation capabilities
+
+All users can create courses and content.
+Role-based feature access is now handled through permissions.
+    `);
     
   } catch (error) {
     console.error('❌ Migration failed:', error);
-    throw error;
+    process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-function getPermissionCategory(permissionName: string): string {
-  if (permissionName.startsWith('COURSE_')) return 'COURSE';
-  if (permissionName.startsWith('CONTENT_')) return 'CONTENT';
-  if (permissionName.startsWith('USER_')) return 'USER';
-  if (permissionName.startsWith('PAYMENT_')) return 'PAYMENT';
-  if (permissionName.startsWith('PLATFORM_')) return 'PLATFORM';
-  return 'OTHER';
-}
-
 // Run the migration
-main()
-  .catch((error) => {
-    console.error('Fatal error:', error);
-    process.exit(1);
-  });
+migrateAuthentication().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});

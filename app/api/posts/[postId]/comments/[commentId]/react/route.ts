@@ -16,7 +16,7 @@ export const PATCH = withAuth(async (
     const { commentId } = params;
 
     if (!type || !['like', 'love', 'laugh', 'angry'].includes(type)) {
-      return new NextResponse("Invalid reaction type", { status: 400 });
+      return createErrorResponse(ApiError.badRequest("Invalid reaction type"));
     }
 
     const comment = await db.comment.findUnique({
@@ -31,7 +31,7 @@ export const PATCH = withAuth(async (
     });
 
     if (!comment) {
-      return new NextResponse("Comment not found", { status: 404 });
+      return createErrorResponse(ApiError.notFound("Comment not found"));
     }
 
     // Check if user already reacted

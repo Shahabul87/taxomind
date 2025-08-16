@@ -70,8 +70,8 @@ export async function POST(req: Request) {
     
     const userRole = dbUser?.role;
     
-    if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      return new Response(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
+    if (userRole !== 'ADMIN') {
+      return new Response(`Forbidden - Admin access required. Your role: ${userRole}`, { status: 403 });
     }
 
     const body = await req.json();

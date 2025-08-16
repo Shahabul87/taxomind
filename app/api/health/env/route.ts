@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   try {
     // Basic authentication for production environments
     if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
-      const headersList = headers();
+      const headersList = await headers();
       const authorization = headersList.get('authorization');
       
       if (!authorization) {
