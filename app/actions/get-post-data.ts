@@ -81,7 +81,7 @@ export const getPostData = async (postId: string) => {
     }
 
     return post;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_POST_DATA]", error);
     return null;
   }

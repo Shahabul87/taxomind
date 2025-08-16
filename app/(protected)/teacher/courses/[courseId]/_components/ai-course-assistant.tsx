@@ -100,7 +100,7 @@ Additional instructions: ${userPrompt || 'Follow the context requirements above.
     if (open) {
       try {
         recordFeatureUsage('ai-course-assistant', 2);
-      } catch (error) {
+      } catch (error: any) {
         logger.warn('Failed to record feature usage:', error);
       }
     }

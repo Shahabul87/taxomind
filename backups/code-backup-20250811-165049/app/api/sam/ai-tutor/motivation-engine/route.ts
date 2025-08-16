@@ -1,0 +1,525 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Anthropic } from '@anthropic-ai/sdk';
+import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await currentUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { 
+      motivationType, 
+      learningContext, 
+      userState, 
+      recentActivity,
+      personalityProfile 
+    } = await request.json();
+
+    let motivationResponse;
+
+    switch (motivationType) {
+      case 'daily_boost':
+        motivationResponse = await generateDailyMotivation(learningContext, userState);
+        break;
+      case 'struggle_support':
+        motivationResponse = await generateStruggleSupport(learningContext, userState, recentActivity);
+        break;
+      case 'achievement_celebration':
+        motivationResponse = await generateAchievementCelebration(learningContext, userState);
+        break;
+      case 'streak_encouragement':
+        motivationResponse = await generateStreakEncouragement(learningContext, userState);
+        break;
+      case 'goal_reminder':
+        motivationResponse = await generateGoalReminder(learningContext, userState);
+        break;
+      case 'peer_inspiration':
+        motivationResponse = await generatePeerInspiration(learningContext, userState);
+        break;
+      case 'comeback_motivation':
+        motivationResponse = await generateComebackMotivation(learningContext, userState);
+        break;
+      case 'personalized_message':
+        motivationResponse = await generatePersonalizedMessage(learningContext, userState, personalityProfile);
+        break;
+      default:
+        return NextResponse.json({ error: 'Invalid motivation type' }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      motivation: motivationResponse,
+      timestamp: new Date().toISOString(),
+      userId: user.id,
+      type: motivationType
+    });
+
+  } catch (error) {
+    logger.error('Motivation engine error:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate motivation' },
+      { status: 500 }
+    );
+  }
+}
+
+async function generateDailyMotivation(learningContext: any, userState: any) {
+  const systemPrompt = `You are SAM, an AI tutor providing daily motivation. Generate an inspiring, personalized daily motivation message based on the user's learning context and current state.
+
+**Learning Context:**
+${JSON.stringify(learningContext, null, 2)}
+
+**User State:**
+${JSON.stringify(userState, null, 2)}
+
+**Guidelines:**
+- Keep the message positive and encouraging
+- Reference specific learning goals or recent progress
+- Include actionable advice for the day
+- Use motivational language that resonates with learners
+- Keep it concise but impactful (2-3 sentences)
+- Include relevant emojis to make it engaging`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 300,
+    temperature: 0.8,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'Generate a daily motivation message for me.' }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'daily_boost',
+    message: motivationText,
+    actions: [
+      'Start today\'s lesson',
+      'Review yesterday\'s progress',
+      'Set a learning goal',
+      'Join a study session'
+    ],
+    mood: 'energetic',
+    priority: 'normal',
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+  };
+}
+
+async function generateStruggleSupport(learningContext: any, userState: any, recentActivity: any) {
+  const systemPrompt = `You are SAM, an AI tutor providing emotional support and encouragement during difficult learning moments. Generate a supportive, empathetic message that helps the user overcome their current learning struggle.
+
+**Learning Context:**
+${JSON.stringify(learningContext, null, 2)}
+
+**User State:**
+${JSON.stringify(userState, null, 2)}
+
+**Recent Activity:**
+${JSON.stringify(recentActivity, null, 2)}
+
+**Guidelines:**
+- Acknowledge the struggle without dismissing it
+- Provide specific, actionable advice to overcome the difficulty
+- Share encouraging perspective on learning challenges
+- Offer alternative learning strategies
+- Be warm, supportive, and understanding
+- Include growth mindset principles`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 400,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'I\'m struggling with this topic and feeling frustrated.' }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'struggle_support',
+    message: motivationText,
+    actions: [
+      'Try a different approach',
+      'Take a short break',
+      'Ask for help',
+      'Review fundamentals',
+      'Practice easier examples'
+    ],
+    mood: 'supportive',
+    priority: 'high',
+    resources: [
+      'Study techniques guide',
+      'Stress management tips',
+      'Peer support groups',
+      'Learning strategies'
+    ]
+  };
+}
+
+async function generateAchievementCelebration(learningContext: any, userState: any) {
+  const recentAchievements = userState.recentAchievements || [];
+  
+  const systemPrompt = `You are SAM, an AI tutor celebrating the user's achievements. Generate an enthusiastic, celebratory message acknowledging their accomplishments and encouraging continued progress.
+
+**Learning Context:**
+${JSON.stringify(learningContext, null, 2)}
+
+**User State:**
+${JSON.stringify(userState, null, 2)}
+
+**Recent Achievements:**
+${JSON.stringify(recentAchievements, null, 2)}
+
+**Guidelines:**
+- Celebrate the specific achievement enthusiastically
+- Acknowledge the effort and progress made
+- Connect the achievement to larger learning goals
+- Encourage continued momentum
+- Use celebratory language and emojis
+- Make it feel special and rewarding`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 300,
+    temperature: 0.8,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'I just completed a major milestone in my learning journey!' }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'achievement_celebration',
+    message: motivationText,
+    actions: [
+      'Share your success',
+      'Set the next goal',
+      'Reflect on progress',
+      'Celebrate with peers'
+    ],
+    mood: 'celebratory',
+    priority: 'high',
+    effects: [
+      'confetti',
+      'achievement_sound',
+      'badge_animation'
+    ]
+  };
+}
+
+async function generateStreakEncouragement(learningContext: any, userState: any) {
+  const streakData = userState.streakData || {};
+  
+  const systemPrompt = `You are SAM, an AI tutor encouraging the user to maintain their learning streak. Generate a motivating message that acknowledges their consistency and encourages them to continue.
+
+**Learning Context:**
+${JSON.stringify(learningContext, null, 2)}
+
+**User State:**
+${JSON.stringify(userState, null, 2)}
+
+**Streak Data:**
+${JSON.stringify(streakData, null, 2)}
+
+**Guidelines:**
+- Acknowledge the impressive consistency
+- Emphasize the power of daily habits
+- Encourage them to keep the streak alive
+- Mention the benefits of consistent practice
+- Keep the tone encouraging and motivational
+- Include streak-related imagery and language`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 300,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'I want to maintain my learning streak and stay motivated.' }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'streak_encouragement',
+    message: motivationText,
+    actions: [
+      'Continue today\'s lesson',
+      'Quick review session',
+      'Streak milestone reward',
+      'Share streak progress'
+    ],
+    mood: 'determined',
+    priority: 'normal',
+    streakInfo: {
+      current: streakData.current || 0,
+      best: streakData.best || 0,
+      nextMilestone: getNextStreakMilestone(streakData.current || 0)
+    }
+  };
+}
+
+async function generateGoalReminder(learningContext: any, userState: any) {
+  const goals = userState.goals || [];
+  
+  const systemPrompt = `You are SAM, an AI tutor helping the user stay focused on their learning goals. Generate a motivating reminder message that reconnects them with their objectives and encourages progress.
+
+**Learning Context:**
+${JSON.stringify(learningContext, null, 2)}
+
+**User State:**
+${JSON.stringify(userState, null, 2)}
+
+**Goals:**
+${JSON.stringify(goals, null, 2)}
+
+**Guidelines:**
+- Remind them of their specific goals
+- Show progress toward goals
+- Encourage continued effort
+- Break down next steps
+- Keep the tone motivational and focused
+- Connect daily actions to bigger picture`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 300,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'Help me stay focused on my learning goals.' }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'goal_reminder',
+    message: motivationText,
+    actions: [
+      'Review goal progress',
+      'Plan next steps',
+      'Adjust timeline',
+      'Celebrate milestones'
+    ],
+    mood: 'focused',
+    priority: 'normal',
+    goalProgress: goals.map((goal: any) => ({
+      name: goal.name,
+      progress: goal.progress || 0,
+      target: goal.target || 100,
+      deadline: goal.deadline
+    }))
+  };
+}
+
+async function generatePeerInspiration(learningContext: any, userState: any) {
+  const peerData = userState.peerData || {};
+  
+  const systemPrompt = `You are SAM, an AI tutor providing inspiration based on peer achievements and community success. Generate a motivating message that uses social proof and peer examples to inspire continued learning.
+
+**Learning Context:**
+${JSON.stringify(learningContext, null, 2)}
+
+**User State:**
+${JSON.stringify(userState, null, 2)}
+
+**Peer Data:**
+${JSON.stringify(peerData, null, 2)}
+
+**Guidelines:**
+- Reference peer achievements appropriately
+- Create healthy competition motivation
+- Emphasize learning community benefits
+- Encourage collaboration over competition
+- Use inspiring peer examples
+- Maintain positive, inclusive tone`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 300,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'I want to be inspired by what others are achieving in their learning.' }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'peer_inspiration',
+    message: motivationText,
+    actions: [
+      'View leaderboard',
+      'Join study group',
+      'Find study partner',
+      'Share your progress'
+    ],
+    mood: 'inspired',
+    priority: 'normal',
+    socialFeatures: [
+      'study_groups',
+      'peer_challenges',
+      'achievement_sharing',
+      'collaborative_learning'
+    ]
+  };
+}
+
+async function generateComebackMotivation(learningContext: any, userState: any) {
+  const inactivityData = userState.inactivityData || {};
+  
+  const systemPrompt = `You are SAM, an AI tutor welcoming back a user who has been inactive and helping them restart their learning journey. Generate a warm, encouraging comeback message that addresses their absence positively.
+
+**Learning Context:**
+${JSON.stringify(learningContext, null, 2)}
+
+**User State:**
+${JSON.stringify(userState, null, 2)}
+
+**Inactivity Data:**
+${JSON.stringify(inactivityData, null, 2)}
+
+**Guidelines:**
+- Welcome them back warmly without guilt
+- Acknowledge that breaks are normal
+- Focus on moving forward, not past inactivity
+- Suggest easy ways to restart
+- Rebuild confidence and momentum
+- Keep the tone positive and supportive`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 300,
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'I\'ve been away from learning for a while and want to get back into it.' }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'comeback_motivation',
+    message: motivationText,
+    actions: [
+      'Start with easy review',
+      'Set realistic goals',
+      'Join refresher course',
+      'Connect with community'
+    ],
+    mood: 'welcoming',
+    priority: 'high',
+    restartPlan: {
+      phase: 'gentle_restart',
+      duration: '1_week',
+      dailyTarget: 15, // minutes
+      focusAreas: ['review', 'confidence_building', 'habit_formation']
+    }
+  };
+}
+
+async function generatePersonalizedMessage(learningContext: any, userState: any, personalityProfile: any) {
+  const systemPrompt = `You are SAM, an AI tutor creating a highly personalized motivation message based on the user's unique personality profile and learning preferences.
+
+**Learning Context:**
+${JSON.stringify(learningContext, null, 2)}
+
+**User State:**
+${JSON.stringify(userState, null, 2)}
+
+**Personality Profile:**
+${JSON.stringify(personalityProfile, null, 2)}
+
+**Guidelines:**
+- Tailor the message to their personality type
+- Use their preferred communication style
+- Reference their specific interests and motivations
+- Address their unique challenges and strengths
+- Make it feel deeply personal and relevant
+- Use language that resonates with their values`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 400,
+    temperature: 0.8,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'Give me a personalized motivation message that speaks to who I am as a learner.' }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    type: 'personalized_message',
+    message: motivationText,
+    actions: generatePersonalizedActions(personalityProfile),
+    mood: getPersonalizedMood(personalityProfile),
+    priority: 'high',
+    personalizedElements: {
+      learningStyle: personalityProfile.learningStyle,
+      motivationFactors: personalityProfile.motivationFactors,
+      communicationStyle: personalityProfile.communicationStyle,
+      values: personalityProfile.values
+    }
+  };
+}
+
+function getNextStreakMilestone(currentStreak: number): number {
+  const milestones = [7, 14, 21, 30, 50, 100, 150, 200, 365];
+  return milestones.find(m => m > currentStreak) || currentStreak + 50;
+}
+
+function generatePersonalizedActions(personalityProfile: any): string[] {
+  const baseActions = [
+    'Continue learning',
+    'Set new goals',
+    'Review progress',
+    'Take a challenge'
+  ];
+
+  // Customize based on personality
+  if (personalityProfile.learningStyle === 'visual') {
+    baseActions.push('Create visual notes', 'Use diagrams');
+  }
+  if (personalityProfile.motivationFactors?.includes('competition')) {
+    baseActions.push('Join leaderboard', 'Challenge friends');
+  }
+  if (personalityProfile.values?.includes('collaboration')) {
+    baseActions.push('Find study partner', 'Join group study');
+  }
+
+  return baseActions;
+}
+
+function getPersonalizedMood(personalityProfile: any): string {
+  if (personalityProfile.communicationStyle === 'enthusiastic') return 'energetic';
+  if (personalityProfile.communicationStyle === 'analytical') return 'focused';
+  if (personalityProfile.communicationStyle === 'supportive') return 'encouraging';
+  return 'motivational';
+}

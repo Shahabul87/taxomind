@@ -97,7 +97,7 @@ export const NewBillDialog = ({ open, onOpenChange, onSuccess }: NewBillDialogPr
       onSuccess();
       onOpenChange(false);
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error creating bill:", error);
       toast.error("Failed to create bill");
     }

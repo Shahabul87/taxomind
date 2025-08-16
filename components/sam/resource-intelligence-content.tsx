@@ -164,7 +164,7 @@ export function ResourceIntelligenceContent({
         setLastUpdated(new Date());
         toast.success("Resources discovered successfully!");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to fetch resources:", error);
       toast.error("Failed to discover resources");
       // Use demo data as fallback

@@ -97,7 +97,7 @@ export function EnterpriseAdminTab({ analytics, performance, className }: Enterp
         uptimePercentage: 99.9,
       });
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching enterprise metrics:', error);
     } finally {
       setIsLoading(false);

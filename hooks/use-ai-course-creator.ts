@@ -220,7 +220,7 @@ export function useAICourseCreator(options: UseAICourseCreatorOptions = {}) {
         suggestions
       }));
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to generate suggestions:', error);
     }
   }, []);

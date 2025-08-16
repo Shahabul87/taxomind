@@ -1,36 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
 import { getFromCache, setInCache, getCommentsKey, shouldCachePost, invalidateCache } from "@/app/lib/cache";
 import { logger } from '@/lib/logger';
 
-export async function POST(
-  req: NextRequest,
-  props: { params: Promise<{ postId: string }> }
-) {
+export const POST = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-    const user = await currentUser();
-    if (!user || !user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
-    // Check rate limiting
-    const rateLimitResult = await isRateLimited(user.id, 'comment');
+    const rateLimitResult = await isRateLimited(context.user.id, 'comment');
     if (rateLimitResult.limited) {
 
-      return NextResponse.json({ 
+      return createSuccessResponse({ 
         error: getRateLimitMessage('comment', rateLimitResult.reset),
         rateLimitInfo: rateLimitResult
       }, { status: 429 });
     }
 
-    const { content } = await req.json();
+    const { content } = await request.json();
     const params = await props.params;
     const { postId } = params;
 
     if (!content) {
-      return NextResponse.json({ error: "Content is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Content is required" }, { status: 400 });
     }
 
     // Verify that the post exists
@@ -40,13 +36,13 @@ export async function POST(
     });
 
     if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Post not found" }, { status: 404 });
     }
 
     const comment = await db.comment.create({
       data: {
         content,
-        userId: user.id,
+        userId: context.user.id,
         postId,
       },
       include: {
@@ -74,17 +70,18 @@ export async function POST(
     // Invalidate cache for this post's comments
     await invalidateCache(`comments:${postId}:*`);
 
-    return NextResponse.json(comment);
+    return createSuccessResponse(comment);
   } catch (error) {
     logger.error("[COMMENT_POST]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return createSuccessResponse({ error: "Internal server error" }, { status: 500 });
   }
-}
+});
 
-export async function GET(
-  req: Request,
-  props: { params: Promise<{ postId: string }> }
-) {
+export const GET = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
     const params = await props.params;
     const { postId } = params;
@@ -100,7 +97,7 @@ export async function GET(
     
     if (cachedComments) {
 
-      return NextResponse.json(cachedComments, {
+      return createSuccessResponse(cachedComments, {
         headers: {
           'X-Cache': 'HIT',
           'Cache-Control': 'public, max-age=120' // 2 minutes
@@ -115,7 +112,7 @@ export async function GET(
     });
 
     if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Post not found" }, { status: 404 });
     }
 
     // Calculate pagination
@@ -214,7 +211,7 @@ export async function GET(
 
     }
 
-    return NextResponse.json(result, {
+    return createSuccessResponse(result, {
       headers: {
         'X-Cache': 'MISS',
         'Cache-Control': 'public, max-age=120' // 2 minutes
@@ -222,7 +219,7 @@ export async function GET(
     });
   } catch (error) {
     logger.error("[COMMENTS_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return createErrorResponse(ApiError.internal("Internal Error"));
   }
-}
+});
 

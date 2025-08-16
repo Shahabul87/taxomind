@@ -71,12 +71,9 @@ export class EventTrackingService {
     try {
       await db.sAMInteraction.create({
         data: {
-          studentId: event.userId!,
-          interactionType: event.eventType,
-          interactionData: event.eventData,
-          sessionId: event.sessionId!,
-          timestamp: event.timestamp!,
-          metadata: event.metadata
+          userId: event.userId!,
+          interactionType: event.eventType as any,
+          context: event.eventData || {},
         }
       });
     } catch (error: any) {
@@ -173,8 +170,11 @@ export class EventTrackingService {
   // Get recent events
   async getRecentEvents(limit: number = 100): Promise<AnalyticsEvent[]> {
     try {
-      const events = await redis.lrange('analytics:recent_events', 0, limit - 1);
-      return events.map(eventJson => {
+      if (!redis || typeof (redis as any).lrange !== 'function') {
+        return [];
+      }
+      const events = await (redis as any).lrange('analytics:recent_events', 0, limit - 1);
+      return events.map((eventJson: any) => {
         try {
           return JSON.parse(eventJson as string);
         } catch {
@@ -191,10 +191,9 @@ export class EventTrackingService {
   async trackLearningEvent(
     userId: string,
     courseId: string,
-    chapterId?: string,
     eventType: 'course_start' | 'chapter_complete' | 'quiz_complete' | 'course_complete' | 'interaction',
-    eventData: Record<string, any> = {
-}
+    chapterId?: string,
+    eventData: Record<string, any> = {}
   ): Promise<void> {
     await this.trackEvent(userId, `learning_${eventType}`, {
       courseId,
@@ -203,7 +202,7 @@ export class EventTrackingService {
     }, {
       metadata: {
         category: 'learning',
-        Course: courseId
+        course: courseId
       }
     });
   }

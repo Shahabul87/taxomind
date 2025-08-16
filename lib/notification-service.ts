@@ -56,7 +56,7 @@ export class NotificationService {
       });
 
       return { success: true, notification };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating notification:', error);
       return { success: false, error: 'Failed to create notification' };
     }
@@ -81,7 +81,7 @@ export class NotificationService {
       });
 
       return { success: true, count: result.count };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating bulk notifications:', error);
       return { success: false, error: 'Failed to create bulk notifications' };
     }
@@ -103,7 +103,7 @@ export class NotificationService {
       });
 
       return { success: true, notification };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error marking notification as read:', error);
       return { success: false, error: 'Failed to mark notification as read' };
     }
@@ -125,7 +125,7 @@ export class NotificationService {
       });
 
       return { success: true, count: result.count };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error marking all notifications as read:', error);
       return { success: false, error: 'Failed to mark all notifications as read' };
     }
@@ -144,7 +144,7 @@ export class NotificationService {
       });
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error deleting notification:', error);
       return { success: false, error: 'Failed to delete notification' };
     }
@@ -162,7 +162,7 @@ export class NotificationService {
       });
 
       return { success: true, count: result.count };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error deleting all notifications:', error);
       return { success: false, error: 'Failed to delete all notifications' };
     }
@@ -214,7 +214,7 @@ export class NotificationService {
         },
         unreadCount,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching user notifications:', error);
       return { success: false, error: 'Failed to fetch notifications' };
     }
@@ -233,7 +233,7 @@ export class NotificationService {
       });
 
       return { success: true, count };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting unread count:', error);
       return { success: false, error: 'Failed to get unread count' };
     }

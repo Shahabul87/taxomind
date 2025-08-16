@@ -645,7 +645,7 @@ export class SAMPersonalizationEngine {
     // Normalize strengths
     const total = Object.values(strengths).reduce((sum, val) => sum + val, 0);
     if (total > 0) {
-      Object.keys(strengths).forEach(key => {
+      (Object.keys(strengths) as Array<keyof typeof strengths>).forEach((key) => {
         strengths[key] = strengths[key] / total;
       });
     }
@@ -746,8 +746,11 @@ export class SAMPersonalizationEngine {
       take: 20
     });
     
-    const avgScore = recentPerformance.reduce((sum, p) => sum + (p.quizScore || 0), 0) / 
-                     recentPerformance.length;
+    const scores: number[] = (recentPerformance as any[])
+      .map((p: any) => p.quizScore || 0);
+    const avgScore = scores.length > 0
+      ? scores.reduce((sum, s) => sum + s, 0) / scores.length
+      : 0;
     
     return {
       maximum: 0.8 + (avgScore / 100) * 0.2, // 0.8 to 1.0 based on performance
@@ -1703,7 +1706,7 @@ export class SAMPersonalizationEngine {
     }
     
     // Time-based recommendations
-    if (context.timeConstraints?.length > 0) {
+    if ((context.timeConstraints?.length ?? 0) > 0) {
       recommendations.push({
         type: 'scheduling',
         content: 'Micro-learning sessions of 15-20 minutes',

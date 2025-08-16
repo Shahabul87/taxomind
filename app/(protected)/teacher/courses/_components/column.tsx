@@ -215,7 +215,7 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
           const dateObj = new Date(dateValue);
           if (isNaN(dateObj.getTime())) return 'Invalid Date';
           return format(dateObj, 'MMM dd, yyyy');
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Date formatting error:', error);
           return 'Invalid Date';
         }

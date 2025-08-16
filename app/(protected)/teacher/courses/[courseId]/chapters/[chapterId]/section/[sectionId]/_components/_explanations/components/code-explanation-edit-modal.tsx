@@ -242,7 +242,7 @@ export const CodeExplanationEditModal = ({
       onSuccess?.();
       onClose();
       
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong. Please try again.");
       logger.error("Update error:", error);
     } finally {

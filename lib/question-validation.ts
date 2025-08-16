@@ -180,7 +180,7 @@ export class QuestionValidator {
     // Check question type appropriateness
     const framework = ENHANCED_BLOOMS_FRAMEWORK[targetLevel];
     let typeScore = 0;
-    if (framework.typicalQuestionTypes.includes(question.questionType)) {
+    if (framework.typicalQuestionTypes.includes(question.questionType as QuestionType)) {
       typeScore = 1;
     } else {
       typeScore = 0.5; // Partial credit for unusual but potentially valid combinations
@@ -232,9 +232,8 @@ export class QuestionValidator {
     }
     
     // Check for ambiguous words
-    const ambiguousCount = AMBIGUOUS_WORDS.filter(word => 
-      questionText.toLowerCase().includes(word)
-    ).length;
+    const words: string[] = AMBIGUOUS_WORDS as string[];
+    const ambiguousCount = words.filter((word: string) => questionText.toLowerCase().includes(word)).length;
     score -= ambiguousCount * 0.1;
     
     // Check for multiple questions in one
@@ -257,8 +256,8 @@ export class QuestionValidator {
     const framework = ENHANCED_BLOOMS_FRAMEWORK[question.bloomsLevel as BloomsLevel];
     const expectedCognitiveLoad = framework.cognitiveLoad;
     
-    const difficultyMap = { easy: 1, medium: 3, hard: 5 };
-    const actualQuestionDifficulty = difficultyMap[question.difficulty as keyof typeof difficultyMap];
+    const difficultyMap: Record<'EASY' | 'MEDIUM' | 'HARD', number> = { EASY: 1, MEDIUM: 3, HARD: 5 };
+    const actualQuestionDifficulty = difficultyMap[(question.difficulty as 'EASY' | 'MEDIUM' | 'HARD')];
     
     if (!actualQuestionDifficulty) return 0;
     
@@ -320,7 +319,7 @@ export class QuestionValidator {
     let score = 1.0;
     
     // Check for overly complex vocabulary
-    const complexWords = text.split(' ').filter(word => word.length > 12);
+    const complexWords = text.split(' ').filter((word: string) => word.length > 12);
     if (complexWords.length > 3) score -= 0.2;
     
     // Check for clear structure

@@ -1,5 +1,5 @@
 // scripts/blog-seed.ts
-const { PrismaClient } = require("@prisma/client");
+import { PrismaClient } from "@prisma/client";
 
 const database = new PrismaClient();
 
@@ -606,7 +606,7 @@ const getUserById = async (req, res, next) => {
       throw new APIError('User not found', 404);
     }
     res.json({ success: true, data: user });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 };
@@ -671,7 +671,7 @@ const findUserByEmail = async (email) => {
   try {
     const result = await client.query(getUserByEmail.text, [email]);
     return result.rows[0];
-  } catch (error) {
+  } catch (error: any) {
     console.error('Database query error:', error);
     throw new APIError('Database operation failed', 500);
   } finally {
@@ -722,7 +722,7 @@ const cache = (duration = 300) => {
       };
       
       next();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Cache error:', error);
       next();
     }
@@ -810,7 +810,7 @@ const authenticate = async (req, res, next) => {
     
     req.user = user;
     next();
-  } catch (error) {
+  } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
       return next(new APIError('Token expired', 401));
     }
@@ -911,7 +911,7 @@ router.get('/health', async (req, res) => {
     // Database health check
     await pool.query('SELECT 1');
     health.database = 'connected';
-  } catch (error) {
+  } catch (error: any) {
     health.database = 'disconnected';
     health.status = 'error';
   }
@@ -920,7 +920,7 @@ router.get('/health', async (req, res) => {
     // Redis health check
     await client.ping();
     health.cache = 'connected';
-  } catch (error) {
+  } catch (error: any) {
     health.cache = 'disconnected';
     health.status = 'warning';
   }
@@ -1429,7 +1429,7 @@ class JWTService {
       }
       
       return decoded;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error('Invalid or expired access token');
     }
   }
@@ -1443,7 +1443,7 @@ class JWTService {
       }
       
       return decoded;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error('Invalid or expired refresh token');
     }
   }
@@ -1502,7 +1502,7 @@ const authorize = (requiredPermission) => {
       }
       
       next();
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({
         success: false,
         message: 'Authorization error'
@@ -1897,7 +1897,7 @@ ${blogCategories.map(cat => `  - ${cat}`).join('\n')}
 🚀 View the blog at: http://localhost:3000/blog
     `);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Error seeding blog:", error);
     throw error;
   } finally {

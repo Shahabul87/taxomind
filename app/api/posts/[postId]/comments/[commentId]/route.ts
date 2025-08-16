@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { invalidateCache, getCommentKey } from "@/app/lib/cache";
 import { logger } from '@/lib/logger';
+import { currentUser } from "@/lib/auth";
 
 // Get a single comment
-export async function GET(
-  req: NextRequest,
-  props: { params: Promise<{ postId: string; commentId: string }> }
-) {
+export const GET = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
     const params = await props.params;
     const { postId, commentId } = params;
@@ -61,45 +63,37 @@ export async function GET(
     });
 
     if (!comment) {
-      return NextResponse.json(
+      return createSuccessResponse(
         { error: "Comment not found" },
-        { status: 404 }
-      );
+        { status: 404 });
     }
 
-    return NextResponse.json(comment);
+    return createSuccessResponse(comment);
   } catch (error) {
     logger.error("[COMMENT_GET]", error);
-    return NextResponse.json(
+    return createSuccessResponse(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
-}
+});
 
 // Update a comment
-export async function PATCH(
-  req: NextRequest,
-  props: { params: Promise<{ postId: string; commentId: string }> }
-) {
+export const PATCH = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-    const user = await currentUser();
-    if (!user || !user.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
 
     const params = await props.params;
     const { postId, commentId } = params;
-    const { content } = await req.json();
+    const { content } = await request.json();
 
     if (!content) {
-      return NextResponse.json(
+      return createSuccessResponse(
         { error: "Content is required" },
-        { status: 400 }
-      );
+        { status: 400 });
     }
 
     // Find the comment to ensure it exists and belongs to the user
@@ -111,16 +105,9 @@ export async function PATCH(
     });
 
     if (!comment) {
-      return NextResponse.json(
+      return createSuccessResponse(
         { error: "Comment not found" },
         { status: 404 }
-      );
-    }
-
-    if (!user.id || comment.userId !== user.id) {
-      return NextResponse.json(
-        { error: "Unauthorized: You can only edit your own comments" },
-        { status: 403 }
       );
     }
 
@@ -154,26 +141,23 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(updatedComment);
+    return createSuccessResponse(updatedComment);
   } catch (error) {
     logger.error("[COMMENT_PATCH]", error);
-    return NextResponse.json(
+    return createSuccessResponse(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
-}
+});
 
 // Delete a comment
-export async function DELETE(
-  req: NextRequest,
-  props: { params: Promise<{ postId: string; commentId: string }> }
-) {
+export const DELETE = withAuth(async (
+  request: NextRequest,
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-    const user = await currentUser();
-    if (!user || !user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const params = await props.params;
     const { postId, commentId } = params;
@@ -183,12 +167,12 @@ export async function DELETE(
       where: {
         id: commentId,
         postId,
-        userId: user.id,
+        userId: context.user.id,
       },
     });
 
     if (!comment) {
-      return NextResponse.json(
+      return createSuccessResponse(
         { error: "Comment not found or unauthorized" },
         { status: 404 }
       );
@@ -234,12 +218,12 @@ export async function DELETE(
       invalidateCache(`replies:${commentId}:*`),
     ]);
 
-    return NextResponse.json({ success: true });
+    return createSuccessResponse({ success: true });
   } catch (error) {
     logger.error("[COMMENT_DELETE]", error);
-    return NextResponse.json(
+    return createSuccessResponse(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
-} 
+});

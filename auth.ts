@@ -9,9 +9,18 @@ import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation
 import { getAccountByUserId } from "@/data/account";
 import { checkEnvironmentVariables } from "@/lib/env-check";
 import { getRedirectUrl } from "@/routes";
+import { getSessionConfig, validateCookieConfig, DefaultCookieConfig } from "@/lib/security/cookie-config";
+import { authAuditHelpers } from "@/lib/audit/auth-audit";
+import { shouldEnforceMFAOnSignIn, logMFAEnforcementAction } from "@/lib/auth/mfa-enforcement";
+import { SessionManager } from "@/lib/security/session-manager";
 
 // Check environment variables on startup
 checkEnvironmentVariables();
+
+// Validate cookie configuration on startup
+if (!validateCookieConfig(DefaultCookieConfig)) {
+  console.error('Cookie configuration validation failed!');
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
@@ -21,39 +30,49 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   events: {
-    async linkAccount({ user }) {
+    async linkAccount({ user, account }) {
       await db.user.update({
         where: { id: user.id },
         data: { emailVerified: new Date() }
-      })
+      });
+      
+      // Log OAuth account linking
+      if (user.id && user.email && account?.provider) {
+        await authAuditHelpers.logOAuthSuccess(
+          user.id, 
+          user.email, 
+          account.provider
+        ).catch(console.error); // Don't fail auth if logging fails
+      }
+    },
+    async signIn({ user, account }) {
+      // Log successful sign-in events
+      if (user?.id && user?.email) {
+        const provider = account?.provider || 'credentials';
+        await authAuditHelpers.logSignInSuccess(
+          user.id, 
+          user.email, 
+          provider
+        ).catch(console.error); // Don't fail auth if logging fails
+      }
+    },
+    async signOut({ token }) {
+      // Log sign-out events
+      if (token?.sub && token?.email) {
+        await authAuditHelpers.logSignOut(
+          token.sub, 
+          token.email as string, 
+          false
+        ).catch(console.error); // Don't fail auth if logging fails
+      }
     }
   },
   callbacks: {
-    async redirect({ url, baseUrl, token }) {
+    async redirect({ url, baseUrl }) {
       // Handle role-based redirects after login
       if (url === baseUrl || url === `${baseUrl}/` || url.includes('/dashboard/user')) {
-        // If we have a token with role information, redirect based on role
-        if (token?.role) {
-          const roleBasedUrl = getRedirectUrl(token.role as string);
-          return `${baseUrl}${roleBasedUrl}`;
-        }
-        // If no role yet, try to get user info
-        if (token?.sub) {
-          try {
-            const user = await getUserById(token.sub);
-            if (user?.role) {
-              const roleBasedUrl = getRedirectUrl(user.role);
-              return `${baseUrl}${roleBasedUrl}`;
-            } else if (!user) {
-              // User not found - likely stale session from database switch
-              console.warn("User not found during redirect - clearing session");
-              return `${baseUrl}/auth/login`;
-            }
-          } catch (error) {
-            console.error("Error fetching user for redirect:", error);
-            return `${baseUrl}/auth/login`;
-          }
-        }
+        // Default redirect will be handled by middleware based on user role
+        return `${baseUrl}/dashboard`;
       }
       
       // If the URL is already an absolute URL (contains the baseUrl), use it
@@ -105,6 +124,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return false;
         }
 
+        // Check MFA enforcement for admin users
+        if (existingUser.role === "ADMIN") {
+          const mfaEnforcement = shouldEnforceMFAOnSignIn({
+            role: existingUser.role,
+            isTwoFactorEnabled: existingUser.isTwoFactorEnabled,
+            totpEnabled: existingUser.totpEnabled || false,
+            totpVerified: existingUser.totpVerified || false,
+            createdAt: existingUser.createdAt,
+          });
+
+          if (mfaEnforcement.enforce) {
+            console.log("MFA enforcement blocking admin sign-in:", mfaEnforcement.reason);
+            
+            // Log the enforcement action
+            await logMFAEnforcementAction(existingUser.id, "FORCED_SETUP", {
+              reason: mfaEnforcement.reason,
+              userAgent: "unknown", // Could extract from request if available
+              ipAddress: "unknown", // Could extract from request if available
+            }).catch(console.error);
+            
+            return false;
+          }
+        }
+
         if (existingUser.isTwoFactorEnabled) {
           console.log("2FA is enabled, checking confirmation");
           try {
@@ -128,12 +171,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         console.log("Authentication successful, allowing sign in");
         return true;
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error in signIn callback:", error);
         return false;
       }
     },
-    async session({ token, session }) {
+    async session({ token, session, req }) {
       if (!token || !session) {
         console.error("Missing token or session in session callback");
         return session;
@@ -141,10 +184,46 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       
       if (token.sub && session.user) {
         session.user.id = token.sub;
+
+        // Validate session fingerprint if we have a session token
+        try {
+          if (req && token.sessionToken) {
+            const validation = await SessionManager.validateSessionFingerprint(
+              token.sessionToken as string,
+              token.sub
+            );
+
+            // Add security metadata to session
+            session.security = {
+              riskLevel: validation.riskLevel,
+              fingerprintValid: validation.isValid,
+              lastCheck: new Date().toISOString(),
+            };
+
+            // If fingerprint validation fails critically, mark session as invalid
+            if (validation.shouldForceReauth) {
+              console.warn(`Session fingerprint validation failed for user ${token.sub}: ${validation.changes.join(', ')}`);
+              session.user = null; // This will force re-authentication
+              return session;
+            }
+
+            // Store validation result for middleware use
+            if (validation.shouldAlert && validation.changes.length > 0) {
+              console.warn(`Session fingerprint changes detected for user ${token.sub}:`, validation.changes);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to validate session fingerprint:', error);
+          // Don&apos;t fail the entire session for fingerprint validation errors
+          // but log it for monitoring
+        }
       }
       
       if (token.role && session.user) {
         session.user.role = token.role as UserRole;
+        
+        // Store role in session for dynamic session config
+        session.expires = new Date(Date.now() + getSessionConfig(token.role as string).maxAge * 1000).toISOString();
       }
 
       if (session.user) {
@@ -156,7 +235,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       
       return session;
     },
-    async jwt({ token }) {
+    async jwt({ token, trigger, session }) {
       if (!token || !token.sub) return token;
 
       try {
@@ -173,9 +252,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = existingUser.email || null;
         token.role = existingUser.role;
         token.isTwoFactorEnabled = !!existingUser.isTwoFactorEnabled;
+
+        // Generate or maintain session token for fingerprinting
+        if (!token.sessionToken) {
+          const crypto = require('crypto');
+          token.sessionToken = crypto.randomUUID();
+        }
         
         return token;
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error in JWT callback:", error);
         return token;
       }
@@ -184,8 +269,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
   session: { 
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-    updateAge: 24 * 60 * 60, // 24 hours
+    // Default session configuration - will be overridden per-user based on role
+    maxAge: getSessionConfig().maxAge,
+    updateAge: getSessionConfig().updateAge,
+    // Generate new session ID on role change
+    generateSessionToken: () => {
+      const crypto = require('crypto');
+      return crypto.randomUUID();
+    },
+  },
+  // Enhanced security settings
+  jwt: {
+    // JWT token expiration should match session maxAge
+    maxAge: getSessionConfig().maxAge,
+  },
+  // Override debug in production
+  debug: process.env.NODE_ENV === 'development',
+  // Additional security configuration
+  experimental: {
+    // Enable WebAuthn for future use
+    enableWebAuthn: true,
   },
   ...authConfig,
 });

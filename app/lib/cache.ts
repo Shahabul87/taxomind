@@ -25,7 +25,7 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
   try {
     const data = await redis.get(key);
     return data as T;
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Cache retrieval error for key ${key}:`, error);
     return null;
   }
@@ -41,7 +41,7 @@ export async function setInCache(key: string, data: any, ttlOverride?: number): 
     const ttl = ttlOverride || CACHE_TTL.comments;
     await redis.set(key, data, { ex: ttl });
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Cache set error for key ${key}:`, error);
     return false;
   }
@@ -64,7 +64,7 @@ export async function invalidateCache(pattern: string): Promise<boolean> {
     await pipeline.exec();
     
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Cache invalidation error for pattern ${pattern}:`, error);
     return false;
   }

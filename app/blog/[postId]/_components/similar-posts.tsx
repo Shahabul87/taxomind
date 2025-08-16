@@ -94,7 +94,7 @@ export const SimilarPosts = ({
             // Fallback to dummy data if API fails
             setSimilarPosts(dummySimilarPosts);
           }
-        } catch (error) {
+        } catch (error: any) {
           logger.error("Error fetching similar posts:", error);
           setSimilarPosts(dummySimilarPosts);
         } finally {

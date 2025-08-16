@@ -215,7 +215,9 @@ export class SAMNewsRankingEngine {
     
     // Breaking news and breakthroughs go viral
     if (article.category === 'breakthrough') score += 20;
-    if (article.category === 'breaking') score += 15;
+    // Treat very fresh articles as breaking
+    const ageMs = Date.now() - new Date(article.publishDate).getTime();
+    if (ageMs <= 3 * 60 * 60 * 1000) score += 15;
     
     return Math.min(100, score);
   }

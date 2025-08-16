@@ -51,7 +51,7 @@ export function ProfileOverview({ userId }: ProfileOverviewProps) {
       try {
         const data = await getDashboardData();
         setStats(data);
-      } catch (error) {
+      } catch (error: any) {
         logger.error("Error fetching dashboard data:", error);
       } finally {
         setLoading(false);

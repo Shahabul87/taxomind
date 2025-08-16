@@ -41,7 +41,7 @@ export const InviteMemberDialog = ({
       toast.success("Invitation sent successfully!");
       onClose();
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsSubmitting(false);

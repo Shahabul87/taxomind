@@ -221,7 +221,7 @@ export const CodeExplanationForm = ({
         router.refresh();
       }, 2000); // Hold for 2 seconds
       
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong. Please try again.");
       logger.error("Submission error:", error);
     } finally {

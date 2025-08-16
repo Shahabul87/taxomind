@@ -36,7 +36,7 @@ export class CalendarSync {
         externalId: event.id,
         source: 'google',
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to sync with Google Calendar:', error);
       throw error;
     }
@@ -64,7 +64,7 @@ export class CalendarSync {
       });
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to export to Google Calendar:', error);
       throw error;
     }
@@ -93,7 +93,7 @@ export class CalendarSync {
       });
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update Google Calendar event:', error);
       throw error;
     }
@@ -109,7 +109,7 @@ export class CalendarSync {
       });
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to delete Google Calendar event:', error);
       throw error;
     }

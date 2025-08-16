@@ -33,14 +33,21 @@ import {
   SegmentationRule,
   ContentType,
   ComplexityLevel,
-  QuestionDifficultyLevel,
+  QuestionDifficultyType,
   MediaElement,
   InteractiveElement,
   AssessmentCriterion,
   LearningOutcome,
-  BloomLevel,
+  CognitiveLevel,
   ObjectiveType,
-  TimingConfiguration
+  TimingConfiguration,
+  ContextScope,
+  ActionType,
+  TrendDirection,
+  FallbackType,
+  ValidationMethod,
+  UpdateFrequency,
+  ReportingFrequency
 } from './types';
 
 export class MicrolearningContentSegmenter {
@@ -303,7 +310,7 @@ export class MicrolearningContentSegmenter {
     };
 
     if (includeDetails) {
-      analytics.details = await this.getDetailedAnalytics(segmentation, timeRange);
+      (analytics as any).details = await this.getDetailedAnalytics(segmentation, timeRange);
     }
 
     return analytics;
@@ -492,7 +499,7 @@ export class MicrolearningContentSegmenter {
           operator: 'greater_than',
           value: 15,
           context: {
-            scope: 'segment',
+            scope: 'content' as ContextScope,
             variables: [
               {
                 name: 'duration',
@@ -512,7 +519,7 @@ export class MicrolearningContentSegmenter {
           }
         },
         action: {
-          type: 'chunk_content',
+          type: 'modify' as ActionType,
           parameters: {
             intensity: 0.8,
             duration: 0,
@@ -524,7 +531,7 @@ export class MicrolearningContentSegmenter {
             {
               target: 'segment_duration',
               change: {
-                type: 'chunk_content',
+                type: 'modify',
                 magnitude: 0.5,
                 direction: 'decrease',
                 confidence: 0.9
@@ -638,7 +645,7 @@ export class MicrolearningContentSegmenter {
       id: `objective_${content.id}_${index}`,
       description: goal,
       type: 'primary' as ObjectiveType,
-      level: 'comprehension' as BloomLevel,
+      level: 'comprehension' as CognitiveLevel,
       domain: 'cognitive',
       measurable: true,
       assessment: {
@@ -685,14 +692,14 @@ export class MicrolearningContentSegmenter {
         peak: 0.4,
         average: 0.3,
         variability: 0.3,
-        trend: 'decreasing'
+        trend: 'declining' as TrendDirection
       },
       germane: {
         baseline: 0.3,
         peak: 0.6,
         average: 0.5,
         variability: 0.2,
-        trend: 'increasing'
+        trend: 'improving' as TrendDirection
       },
       total: {
         baseline: baseLoad,
@@ -1379,7 +1386,7 @@ export class MicrolearningContentSegmenter {
     return [
       {
         id: `adaptation_${segment.id}_complexity`,
-        type: 'complexity_reduction',
+        type: 'difficulty',
         trigger: {
           condition: {
             type: 'performance',
@@ -1561,7 +1568,7 @@ export class MicrolearningContentSegmenter {
             accessibility: { wcag: false, universal: false, assistive: false, inclusive: true }
           },
           fallback: {
-            type: 'continue',
+            type: 'alternative' as FallbackType,
             action: 'continue',
             notification: true,
             logging: true
@@ -1593,7 +1600,7 @@ export class MicrolearningContentSegmenter {
           updateFrequency: 60000
         },
         validation: {
-          method: 'statistical',
+          method: 'automatic' as ValidationMethod,
           criteria: {
             structural: { format: true, length: true, organization: true, references: false },
             semantic: { meaning: true, context: true, accuracy: true, relevance: true },
@@ -1628,7 +1635,7 @@ export class MicrolearningContentSegmenter {
           reliability: 0.7
         },
         update: {
-          frequency: 'session',
+          frequency: 'session' as UpdateFrequency,
           trigger: [
             {
               condition: 'performance_change > 0.2',
@@ -1999,7 +2006,7 @@ export class MicrolearningContentSegmenter {
     const scaffolding: ScaffoldingContent[] = [];
 
     // Add hints for learners who need more support
-    const supportLevel = learnerProfile.learningPreferences.find(p => p.dimension === 'support')?.value || 0.5;
+    const supportLevel = learnerProfile.learningPreferences.find(p => p.dimension === 'structure')?.value || 0.5;
     
     if (supportLevel > 0.6) {
       scaffolding.push({
@@ -2055,7 +2062,7 @@ export class MicrolearningContentSegmenter {
     if (pacePreference < 0.7) { // Slower learners
       adaptations.push({
         id: `adapt_pace_slow_${segment.id}`,
-        type: 'pacing_adjustment',
+        type: 'pacing',
         trigger: {
           condition: {
             type: 'performance',
@@ -2099,7 +2106,7 @@ export class MicrolearningContentSegmenter {
             alerts: [],
             reporting: {
               enabled: true,
-              frequency: 'periodic',
+              frequency: 'daily' as ReportingFrequency,
               format: 'json',
               distribution: {
                 channels: ['api'],

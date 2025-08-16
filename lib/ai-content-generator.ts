@@ -56,7 +56,7 @@ export interface EnhancedChapter {
 }
 
 export interface IntelligentCourseBlueprint {
-  Course: {
+  course: {
     title: string;
     description: string;
     subtitle: string;
@@ -107,7 +107,7 @@ export async function generateIntelligentCourseContent(
     
     // Step 5: Compile final blueprint
     const blueprint: IntelligentCourseBlueprint = {
-      Course: courseStructure.course,
+      course: courseStructure.course,
       chapters: enhancedChapters,
       courseLevelProject,
       metadata: {
@@ -183,7 +183,7 @@ Focus on evidence-based educational practices and modern learning science princi
 async function generateDetailedCourseStructure(
   requirements: EnhancedContentRequest,
   strategy: { approach: string; innovations: string[]; learningPath: string; assessmentStrategy: string; }
-): Promise<{ Course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> }> {
+): Promise<{ course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> }> {
   const prompt = `Create a detailed course structure based on the requirements and learning strategy.
 
 COURSE REQUIREMENTS:
@@ -248,7 +248,7 @@ Make this course irresistible to the target audience while ensuring educational 
 
 async function generateEnhancedChapters(
   requirements: EnhancedContentRequest,
-  courseStructure: { Course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> }
+  courseStructure: { course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> }
 ): Promise<EnhancedChapter[]> {
   const chapters: EnhancedChapter[] = [];
   
@@ -259,7 +259,7 @@ async function generateEnhancedChapters(
     const chapterPrompt = `Generate a comprehensive chapter with detailed sections.
 
 COURSE CONTEXT:
-- Course: "${courseStructure.Course.title}"
+- course: "${courseStructure.course.title}"
 - Target Audience: ${requirements.targetAudience}
 - QuestionDifficulty: ${requirements.difficulty}
 - Previous Chapters: ${previousChapters.join(', ') || 'None'}

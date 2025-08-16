@@ -8,22 +8,47 @@ datasource db {
 }
 
 model User {
-  id                                      String                   @id @default(cuid())
+  id                                      String                               @id @default(cuid())
   name                                    String?
-  email                                   String?                  @unique
+  email                                   String?                              @unique
   emailVerified                           DateTime?
   image                                   String?
   password                                String?
   confirmPassword                         String?
-  role                                    UserRole                 @default(USER)
-  isTwoFactorEnabled                      Boolean                  @default(false)
+  role                                    UserRole                             @default(USER)
+  isTwoFactorEnabled                      Boolean                              @default(false)
+  totpSecret                              String?                              // Encrypted TOTP secret
+  totpEnabled                             Boolean                              @default(false)
+  totpVerified                            Boolean                              @default(false)
+  recoveryCodes                           String[]                             @default([])
   phone                                   String?
-  createdAt                               DateTime                 @default(now())
-  samTotalPoints                          Int                      @default(0)
-  samLevel                                Int                      @default(1)
+  createdAt                               DateTime                             @default(now())
+  isAccountLocked                         Boolean                              @default(false)
+  lockReason                              String?
+  lastLoginAt                             DateTime?
+  lastLoginIp                             String?
+  failedLoginAttempts                     Int                                  @default(0)
+  passwordChangedAt                       DateTime?
+  stripeAccountId                         String?
+  paypalAccountId                         String?
+  walletBalance                           Decimal                              @default(0)
+  totalCoursesCreated                     Int                                  @default(0)
+  totalCoursesSold                        Int                                  @default(0)
+  totalRevenue                            Decimal                              @default(0)
+  instructorRating                        Decimal?
+  learningStyle                           LearningStyle?
+  bloomsProgress                          Json?
+  samTotalPoints                          Int                                  @default(0)
+  samLevel                                Int                                  @default(1)
   samActiveChallenges                     Json?
   samCompletedChallenges                  Json?
   samChallengeStartDate                   DateTime?
+  affiliateActivatedAt                    DateTime?
+  affiliateCode                           String?                              @unique
+  affiliateEarnings                       Decimal                              @default(0)
+  isAffiliate                             Boolean                              @default(false)
+  isTeacher                               Boolean                              @default(false)
+  teacherActivatedAt                      DateTime?
   AIContentGeneration                     AIContentGeneration[]
   AIContentTemplate                       AIContentTemplate[]
   AIGeneratedContent                      AIGeneratedContent[]
@@ -36,13 +61,18 @@ model User {
   BackupCode                              BackupCode[]
   Bill                                    Bill[]
   Blog                                    Blog[]
+  BloomsPerformanceMetric                 BloomsPerformanceMetric[]
   CalendarEvent                           CalendarEvent[]
+  certifications                          Certification[]
+  CognitiveFitnessAssessment              CognitiveFitnessAssessment[]
   Comment                                 Comment[]
   ContentCollection                       ContentCollection[]
   ContentItem                             ContentItem[]
+  ContentOptimization                     ContentOptimization[]
   courses                                 Course[]
   courseReviews                           CourseReview[]
   CustomTab                               CustomTab[]
+  EmotionalStateAnalysis                  EmotionalStateAnalysis[]
   Enrollment                              Enrollment[]
   FavoriteArticle                         FavoriteArticle[]
   FavoriteAudio                           FavoriteAudio[]
@@ -54,85 +84,131 @@ model User {
   GroupDiscussion                         GroupDiscussion[]
   GroupDiscussionComment                  GroupDiscussionComment[]
   GroupDiscussionLike                     GroupDiscussionLike[]
-  GroupEvent_GroupEvent_creatorIdToUser   GroupEvent[]             @relation("GroupEvent_creatorIdToUser")
-  GroupEvent_GroupEvent_organizerIdToUser GroupEvent[]             @relation("GroupEvent_organizerIdToUser")
+  GroupEvent_GroupEvent_creatorIdToUser   GroupEvent[]                         @relation("GroupEvent_creatorIdToUser")
+  GroupEvent_GroupEvent_organizerIdToUser GroupEvent[]                         @relation("GroupEvent_organizerIdToUser")
   GroupEventAttendee                      GroupEventAttendee[]
   GroupMember                             GroupMember[]
   GroupNotification                       GroupNotification[]
   GroupResource                           GroupResource[]
-  Idea_Idea_userIdToUser                  Idea[]                   @relation("Idea_userIdToUser")
+  Idea_Idea_userIdToUser                  Idea[]                               @relation("Idea_userIdToUser")
   IdeaComment                             IdeaComment[]
   IdeaLike                                IdeaLike[]
+  LearningDNA                             LearningDNA[]
   LearningPath                            LearningPath[]
-  Message_Message_recipientIdToUser       Message[]                @relation("Message_recipientIdToUser")
-  Message_Message_senderIdToUser          Message[]                @relation("Message_senderIdToUser")
-  Mind_Mind_userIdToUser                  Mind[]                   @relation("Mind_userIdToUser")
+  LearningStyleAnalysis                   LearningStyleAnalysis[]
+  Message_Message_recipientIdToUser       Message[]                            @relation("Message_recipientIdToUser")
+  Message_Message_senderIdToUser          Message[]                            @relation("Message_senderIdToUser")
+  Mind_Mind_userIdToUser                  Mind[]                               @relation("Mind_userIdToUser")
   MindLike                                MindLike[]
+  MotivationProfile                       MotivationProfile[]
   Note                                    Note[]
   Notification                            Notification[]
   PathEnrollment                          PathEnrollment[]
   PathRecommendation                      PathRecommendation[]
+  PersonalizationResult                   PersonalizationResult[]
+  PersonalizedLearningPath                PersonalizedLearningPath[]
+  PersonalizedResourceRecommendation      PersonalizedResourceRecommendation[]
   Post                                    Post[]
+  PredictiveLearningAnalysis              PredictiveLearningAnalysis[]
   profileLinks                            ProfileLink[]
+  QuantumLearningPath                     QuantumLearningPath[]
   reactions                               Reaction[]
   Reply                                   Reply[]
   SocialMediaAccount                      SocialMediaAccount[]
+  StudentBloomsProgress                   StudentBloomsProgress[]
+  StudentCognitiveProfile                 StudentCognitiveProfile?
+  StudyBuddy                              StudyBuddy[]
   Subscription                            Subscription[]
   SupportTicket                           SupportTicket[]
   TOTPSecret                              TOTPSecret?
   Task                                    Task[]
+  TeacherInsights                         TeacherInsights[]
   twoFactorConfirmation                   TwoFactorConfirmation?
   UserAIPreferences                       UserAIPreferences?
   UserAnalytics                           UserAnalytics[]
+  userBadges                              UserBadge[]                          @relation("UserBadges")
   UserCalendarSettings                    UserCalendarSettings?
   UserExamAttempt                         UserExamAttempt[]
   UserSubscription                        UserSubscription[]
   Video                                   Video[]
-  auditLogs                               AuditLog[]               @relation("AuditLogUser")
-  approvedContentVersions                 ContentVersion[]         @relation("ContentVersionApprover")
-  authoredContentVersions                 ContentVersion[]         @relation("ContentVersionAuthor")
+  apiKeys                                 ApiKey[]
+  auditLogs                               AuditLog[]                           @relation("AuditLogUser")
+  CollaborationMessage                    CollaborationMessage[]
+  CollaborationParticipant                CollaborationParticipant[]
+  approvedContentVersions                 ContentVersion[]                     @relation("ContentVersionApprover")
+  authoredContentVersions                 ContentVersion[]                     @relation("ContentVersionAuthor")
+  enhancedAuditLogs                       EnhancedAuditLog[]
+  GDPRRequest                             GDPRRequest[]
+  instructorVerification                  InstructorVerification?
   learning_metrics                        learning_metrics[]
   learning_sessions                       learning_sessions[]
-  organizationMemberships                 OrganizationUser[]       @relation("OrganizationUsers")
+  MenteeMatches                           MentorMenteeMatch[]                  @relation("MenteeMatches")
+  MentorMatches                           MentorMenteeMatch[]                  @relation("MentorMatches")
+  organizationMemberships                 OrganizationUser[]                   @relation("OrganizationUsers")
+  passwordHistories                       PasswordHistory[]
   performance_metrics                     performance_metrics[]
   progress_alerts                         progress_alerts[]
   realtime_activities                     realtime_activities[]
-  samAnalytics                            SAMAnalytics[]           @relation("SAMAnalytics")
-  samBadges                               SAMBadge[]               @relation("SAMBadges")
-  samConversations                        SAMConversation[]        @relation("SAMConversations")
-  samInteractions                         SAMInteraction[]         @relation("SAMInteractions")
-  samLearningProfile                      SAMLearningProfile?      @relation("SAMLearningProfiles")
-  samPoints                               SAMPoints[]              @relation("SAMPoints")
-  samStreak                               SAMStreak?               @relation("SAMStreaks")
+  samAnalytics                            SAMAnalytics[]                       @relation("SAMAnalytics")
+  samBadges                               SAMBadge[]                           @relation("SAMBadges")
+  samConversations                        SAMConversation[]                    @relation("SAMConversations")
+  samInteractions                         SAMInteraction[]                     @relation("SAMInteractions")
+  samLearningProfile                      SAMLearningProfile?                  @relation("SAMLearningProfiles")
+  samPoints                               SAMPoints[]                          @relation("SAMPoints")
+  samStreak                               SAMStreak?                           @relation("SAMStreaks")
+  authSessions                            AuthSession[]
   study_streaks                           study_streaks[]
   user_achievements                       user_achievements[]
-  user_progress                           user_progress[]
-  Idea_IdeaCollaborators                  Idea[]                   @relation("IdeaCollaborators")
-  Mind_MindCollaborators                  Mind[]                   @relation("MindCollaborators")
-  
-  // New relations for SAM Enhanced Engines
-  StudentBloomsProgress                   StudentBloomsProgress[]
-  StudentCognitiveProfile                 StudentCognitiveProfile?
-  BloomsPerformanceMetric                 BloomsPerformanceMetric[]
-  TeacherInsights                         TeacherInsights[]
-  PredictiveLearningAnalysis              PredictiveLearningAnalysis[]
-  PersonalizedResourceRecommendation      PersonalizedResourceRecommendation[]
-  LearningStyleAnalysis                   LearningStyleAnalysis[]
-  ContentOptimization                     ContentOptimization[]
-  EmotionalStateAnalysis                  EmotionalStateAnalysis[]
-  MotivationProfile                       MotivationProfile[]
-  PersonalizedLearningPath                PersonalizedLearningPath[]
-  PersonalizationResult                   PersonalizationResult[]
-  CognitiveFitnessAssessment              CognitiveFitnessAssessment[]
-  LearningDNA                             LearningDNA[]
-  StudyBuddy                              StudyBuddy[]
-  QuantumLearningPath                     QuantumLearningPath[]
   UserConsent                             UserConsent[]
-  GDPRRequest                             GDPRRequest[]
-  MentorMatches                           MentorMenteeMatch[]      @relation("MentorMatches")
-  MenteeMatches                           MentorMenteeMatch[]      @relation("MenteeMatches")
-  CollaborationParticipant                CollaborationParticipant[]
-  CollaborationMessage                    CollaborationMessage[]
+  userPermissions                         UserPermission[]
+  user_progress                           user_progress[]
+  Idea_IdeaCollaborators                  Idea[]                               @relation("IdeaCollaborators")
+  Mind_MindCollaborators                  Mind[]                               @relation("MindCollaborators")
+  
+  // Collaborative Editing relations
+  createdCollaborativeSessions            CollaborativeSession[]
+  sessionParticipants                     SessionParticipant[]
+  collaborativeActivities                 CollaborativeActivity[]
+  sessionComments                         SessionComment[]
+  resolvedComments                        SessionComment[]                     @relation("CommentResolvedBy")
+  sessionConflicts1                       SessionConflict[]                    @relation("ConflictUser1")
+  sessionConflicts2                       SessionConflict[]                    @relation("ConflictUser2")
+  sessionSnapshots                        SessionSnapshot[]
+  collaborativeCursors                    CollaborativeCursor[]
+  collaborativeOperations                 CollaborativeOperation[]
+  collaborativePermissions                CollaborativePermission[]
+  grantedPermissions                      CollaborativePermission[]            @relation("PermissionGrantedBy")
+  revokedPermissions                      CollaborativePermission[]            @relation("PermissionRevokedBy")
+  createdPermissionRules                  PermissionRule[]
+  permissionActivitiesAsActor             PermissionActivity[]                 @relation("PermissionActor")
+  permissionActivitiesAsTarget            PermissionActivity[]                 @relation("PermissionTarget")
+  
+  // Content Governance relations
+  contentVersionApprovals                 ContentVersionApproval[]
+  approvalNotifications                   ApprovalNotification[]
+  approvalAuditLogs                       ApprovalAuditLog[]
+  bulkApprovalOperations                  BulkApprovalOperation[]
+  
+  // User Progress relations
+  userCourseEnrollments                   UserCourseEnrollment[]
+  userChapterCompletions                  UserChapterCompletion[]
+  userSectionCompletions                  UserSectionCompletion[]
+  
+  // Content Flag relations
+  contentFlags                            ContentFlag[]
+  reviewedContentFlags                    ContentFlag[]                        @relation("ContentFlagReviewer")
+  
+  // New Relations for Missing Models
+  badgeEvents                             BadgeEvent[]
+  badgeProgress                           BadgeProgress[]
+  learningSessions                        LearningSession[]
+  userProgressAlerts                      UserProgressAlert[]
+  skillProgress                           SkillProgress[]
+  skillGaps                               SkillGap[]
+  certificateEvents                       CertificateEvent[]
+  learningEvents                          LearningEvent[]
+  userLearningPattern                     UserLearningPattern?
+  sectionCompletionTracking               SectionCompletionTracking[]
 }
 
 model Account {
@@ -194,65 +270,70 @@ model Category {
 }
 
 model Course {
-  id                  String                @id @default(uuid())
-  title               String
-  description         String?
-  cleanDescription    String?
-  imageUrl            String?
-  price               Float?
-  isPublished         Boolean               @default(false)
-  courseGoals         String?
-  categoryId          String?
-  courseRatings       String?
-  activeLearners      Int?
-  userId              String
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  whatYouWillLearn    String[]              @default([])
-  slug                String?
-  subtitle            String?
-  isFeatured          Boolean               @default(false)
-  organizationId      String?
-  AIGeneratedContent  AIGeneratedContent[]
-  attachments         Attachment[]
-  chapters            Chapter[]
-  category            Category?             @relation(fields: [categoryId], references: [id])
-  organization        Organization?         @relation("OrganizationCourses", fields: [organizationId], references: [id])
-  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reviews             CourseReview[]
-  Enrollment          Enrollment[]
-  Group               Group[]
-  Purchase            Purchase[]
-  learning_metrics    learning_metrics[]
-  learning_sessions   learning_sessions[]
-  progress_alerts     progress_alerts[]
-  realtime_activities realtime_activities[]
-  samAnalytics        SAMAnalytics[]        @relation("SAMCourseAnalytics")
-  samBadges           SAMBadge[]            @relation("SAMCourseBadges")
-  samConversations    SAMConversation[]     @relation("SAMCourseSessions")
-  samInteractions     SAMInteraction[]      @relation("SAMCourseInteractions")
-  samPoints           SAMPoints[]           @relation("SAMCoursePoints")
-  study_streaks       study_streaks[]
-  user_achievements   user_achievements[]
-  user_progress       user_progress[]
+  id                           String                         @id @default(uuid())
+  title                        String
+  description                  String?
+  cleanDescription             String?
+  imageUrl                     String?
+  price                        Float?
+  isPublished                  Boolean                        @default(false)
+  courseGoals                  String?
+  categoryId                   String?
+  courseRatings                String?
+  activeLearners               Int?
+  userId                       String
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  whatYouWillLearn             String[]                       @default([])
+  slug                         String?
+  subtitle                     String?
+  isFeatured                   Boolean                        @default(false)
+  organizationId               String?
+  AIGeneratedContent           AIGeneratedContent[]
+  attachments                  Attachment[]
+  BloomsPerformanceMetric      BloomsPerformanceMetric[]
+  certifications               Certification[]
+  chapters                     Chapter[]
+  category                     Category?                      @relation(fields: [categoryId], references: [id])
+  organization                 Organization?                  @relation("OrganizationCourses", fields: [organizationId], references: [id])
+  user                         User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  CourseBloomsAnalysis         CourseBloomsAnalysis?
+  CourseCompetitor             CourseCompetitor[]
+  CourseGuideAnalysis          CourseGuideAnalysis?
+  CourseMarketAnalysis         CourseMarketAnalysis?
+  CourseOptimizationSuggestion CourseOptimizationSuggestion[]
+  reviews                      CourseReview[]
+  Enrollment                   Enrollment[]
+  Group                        Group[]
+  MultiMediaAnalysis           MultiMediaAnalysis[]
+  MultiModalAnalysis           MultiModalAnalysis[]
+  PredictiveLearningAnalysis   PredictiveLearningAnalysis[]
+  PricingExperiment            PricingExperiment[]
+  Purchase                     Purchase[]
+  QuestionBank                 QuestionBank[]
+  StudentBloomsProgress        StudentBloomsProgress[]
+  TeacherInsights              TeacherInsights[]
+  learning_metrics             learning_metrics[]
+  learning_sessions            learning_sessions[]
+  progress_alerts              progress_alerts[]
+  realtime_activities          realtime_activities[]
+  samAnalytics                 SAMAnalytics[]                 @relation("SAMCourseAnalytics")
+  samBadges                    SAMBadge[]                     @relation("SAMCourseBadges")
+  samConversations             SAMConversation[]              @relation("SAMCourseSessions")
+  samInteractions              SAMInteraction[]               @relation("SAMCourseInteractions")
+  samPoints                    SAMPoints[]                    @relation("SAMCoursePoints")
+  study_streaks                study_streaks[]
+  user_achievements            user_achievements[]
+  user_progress                user_progress[]
+  
+  // User Progress relations
+  userCourseEnrollments        UserCourseEnrollment[]
+  
+  // New relations for missing models
+  courseCompletionAnalytics    CourseCompletionAnalytics?
 
   @@index([categoryId])
   @@index([organizationId])
-  
-  // New relations for SAM Enhanced Engines
-  CourseMarketAnalysis        CourseMarketAnalysis?
-  CourseCompetitor            CourseCompetitor[]
-  CourseBloomsAnalysis        CourseBloomsAnalysis?
-  QuestionBank                QuestionBank[]
-  StudentBloomsProgress       StudentBloomsProgress[]
-  BloomsPerformanceMetric     BloomsPerformanceMetric[]
-  CourseGuideAnalysis         CourseGuideAnalysis?
-  TeacherInsights             TeacherInsights[]
-  CourseOptimizationSuggestion CourseOptimizationSuggestion[]
-  MultiMediaAnalysis          MultiMediaAnalysis[]
-  MultiModalAnalysis          MultiModalAnalysis[]
-  PredictiveLearningAnalysis  PredictiveLearningAnalysis[]
-  PricingExperiment           PricingExperiment[]
 }
 
 model Attachment {
@@ -288,6 +369,7 @@ model Chapter {
   status              String?
   AIGeneratedContent  AIGeneratedContent[]
   course              Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  MultiMediaAnalysis  MultiMediaAnalysis[]
   sections            Section[]
   learning_sessions   learning_sessions[]
   progress_alerts     progress_alerts[]
@@ -296,44 +378,50 @@ model Chapter {
   samInteractions     SAMInteraction[]      @relation("SAMChapterInteractions")
   samPoints           SAMPoints[]           @relation("SAMChapterPoints")
   user_progress       user_progress[]
-  MultiMediaAnalysis  MultiMediaAnalysis[]
+  
+  // User Progress relations
+  userChapterCompletions UserChapterCompletion[]
 
   @@index([courseId])
 }
 
 model Section {
-  id                  String                @id @default(uuid())
-  title               String
-  videoUrl            String?
-  position            Int
-  isPublished         Boolean               @default(false)
-  isFree              Boolean               @default(false)
-  duration            Int?
-  chapterId           String
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  type                String?
-  isPreview           Boolean?
-  completionStatus    String?
-  resourceUrls        String?
-  AIGeneratedContent  AIGeneratedContent[]
-  articles            Article[]
-  blogs               Blog[]
-  codeExplanations    CodeExplanation[]
-  exams               Exam[]
-  mathExplanations    MathExplanation[]
-  notes               Note[]
-  Question            Question[]
-  chapter             Chapter               @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  videos              Video[]
-  realtime_activities realtime_activities[]
-  samConversations    SAMConversation[]     @relation("SAMSectionSessions")
-  samInteractions     SAMInteraction[]      @relation("SAMSectionInteractions")
-  samPoints           SAMPoints[]           @relation("SAMSectionPoints")
-  user_progress       user_progress[]
-  
-  // New relations for SAM Enhanced Engines
+  id                   String                @id @default(uuid())
+  title                String
+  videoUrl             String?
+  position             Int
+  isPublished          Boolean               @default(false)
+  isFree               Boolean               @default(false)
+  duration             Int?
+  chapterId            String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  type                 String?
+  isPreview            Boolean?
+  completionStatus     String?
+  resourceUrls         String?
+  AIGeneratedContent   AIGeneratedContent[]
+  articles             Article[]
+  blogs                Blog[]
+  codeExplanations     CodeExplanation[]
+  exams                Exam[]
+  mathExplanations     MathExplanation[]
+  notes                Note[]
+  Question             Question[]
+  chapter              Chapter               @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   SectionBloomsMapping SectionBloomsMapping?
+  videos               Video[]
+  realtime_activities  realtime_activities[]
+  samConversations     SAMConversation[]     @relation("SAMSectionSessions")
+  samInteractions      SAMInteraction[]      @relation("SAMSectionInteractions")
+  samPoints            SAMPoints[]           @relation("SAMSectionPoints")
+  user_progress        user_progress[]
+  
+  // User Progress relations
+  userSectionCompletions UserSectionCompletion[]
+  
+  // New relations for missing models
+  sectionCompletionTracking SectionCompletionTracking[]
 
   @@index([chapterId])
 }
@@ -563,28 +651,26 @@ model ProfileLink {
 }
 
 model Exam {
-  id               String            @id @default(uuid())
-  title            String
-  description      String?
-  isPublished      Boolean           @default(false)
-  sectionId        String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  attempts         Int               @default(1)
-  endDate          DateTime?
-  instructions     String?
-  isActive         Boolean           @default(true)
-  passingScore     Float             @default(70)
-  showResults      Boolean           @default(true)
-  shuffleQuestions Boolean           @default(false)
-  startDate        DateTime?
-  timeLimit        Int?
-  section          Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  ExamQuestion     ExamQuestion[]
-  UserExamAttempt  UserExamAttempt[]
-  
-  // New relations for SAM Enhanced Engines
+  id                String             @id @default(uuid())
+  title             String
+  description       String?
+  isPublished       Boolean            @default(false)
+  sectionId         String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  attempts          Int                @default(1)
+  endDate           DateTime?
+  instructions      String?
+  isActive          Boolean            @default(true)
+  passingScore      Float              @default(70)
+  showResults       Boolean            @default(true)
+  shuffleQuestions  Boolean            @default(false)
+  startDate         DateTime?
+  timeLimit         Int?
+  section           Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   ExamBloomsProfile ExamBloomsProfile?
+  ExamQuestion      ExamQuestion[]
+  UserExamAttempt   UserExamAttempt[]
 
   @@index([sectionId])
   @@index([isPublished, isActive])
@@ -616,28 +702,28 @@ model CourseReview {
 }
 
 model Group {
-  id                String              @id @default(uuid())
-  name              String
-  description       String?
-  imageUrl          String?
-  privacy           String?
-  rules             String[]            @default([])
-  tags              String[]            @default([])
-  isPrivate         Boolean             @default(false)
-  category          String?
-  categoryId        String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  creatorId         String
-  courseId          String?
-  Category          Category?           @relation(fields: [categoryId], references: [id])
-  Course            Course?             @relation(fields: [courseId], references: [id])
-  User              User                @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  GroupDiscussion   GroupDiscussion[]
-  GroupEvent        GroupEvent[]
-  GroupMember       GroupMember[]
-  GroupNotification GroupNotification[]
-  GroupResource     GroupResource[]
+  id                     String                   @id @default(uuid())
+  name                   String
+  description            String?
+  imageUrl               String?
+  privacy                String?
+  rules                  String[]                 @default([])
+  tags                   String[]                 @default([])
+  isPrivate              Boolean                  @default(false)
+  category               String?
+  categoryId             String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  creatorId              String
+  courseId               String?
+  categoryRef            Category?                @relation(fields: [categoryId], references: [id])
+  Course                 Course?                  @relation(fields: [courseId], references: [id])
+  creator                User                     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  GroupDiscussion        GroupDiscussion[]
+  GroupEvent             GroupEvent[]
+  members                GroupMember[]
+  GroupNotification      GroupNotification[]
+  GroupResource          GroupResource[]
   SocialLearningAnalysis SocialLearningAnalysis[]
 
   @@index([categoryId])
@@ -2025,6 +2111,10 @@ model Organization {
   analytics             EnterpriseAnalytics[]
   users                 OrganizationUser[]
   securityEvents        SecurityEvent[]
+  
+  // Content Governance relations
+  approvalWorkflowTemplates ApprovalWorkflowTemplate[]
+  approvalAnalytics         ApprovalAnalytics[]
 
   @@map("organizations")
 }
@@ -2100,6 +2190,9 @@ model ContentVersion {
   approver       User?         @relation("ContentVersionApprover", fields: [approvedBy], references: [id])
   author         User          @relation("ContentVersionAuthor", fields: [authorId], references: [id])
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Content Governance relations
+  approvalWorkflows ApprovalWorkflow[]
 
   @@unique([contentId, versionNumber])
   @@index([organizationId, contentType, createdAt])
@@ -2112,7 +2205,7 @@ model AuditLog {
   organizationId String?
   userId         String?
   action         AuditAction
-  eventType      String?       // SOC2 event type classification
+  eventType      String?
   entityType     String
   entityId       String
   entityName     String?
@@ -2120,16 +2213,16 @@ model AuditLog {
   context        Json?
   ipAddress      String?
   userAgent      String?
-  sessionId      String?       // Session tracking for SOC2
-  requestId      String?       // Request correlation ID
-  userEmail      String?       // User email for audit trail
-  userRole       String?       // User role at time of event
-  resourceType   String?       // Resource type accessed
-  resourceId     String?       // Resource ID accessed
-  metadata       String?       // Encrypted sensitive metadata
-  riskScore      Int?          // Risk score (0-100)
+  sessionId      String?
+  requestId      String?
+  userEmail      String?
+  userRole       String?
+  resourceType   String?
+  resourceId     String?
+  metadata       String?
+  riskScore      Int?
   severity       AuditSeverity @default(INFO)
-  message        String?       // Human-readable audit message
+  message        String?
   tags           String[]      @default([])
   timestamp      DateTime      @default(now())
   createdAt      DateTime      @default(now())
@@ -2147,33 +2240,31 @@ model AuditLog {
 }
 
 model CollaborationSession {
-  id                 String        @id @default(cuid())
-  organizationId     String?
-  sessionId          String        @unique
-  contentId          String
-  contentType        ContentType
-  participants       Json
-  activeParticipants Json
-  sessionData        Json?
-  startedAt          DateTime      @default(now())
-  endedAt            DateTime?
-  duration           Int?
-  isActive           Boolean       @default(true)
-  organization       Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  // New fields for enhanced collaboration analytics
-  courseId           String?
-  chapterId          String?
-  initiatorId        String?
-  sessionType        String?       // discussion, co-creation, peer-review, etc.
-  activities         Json?         // Array of collaboration activities
-  metrics            Json?         // Session metrics
-  insights           Json?         // Generated insights
-  contributions      CollaborationContribution[]
-  reactions          CollaborationReaction[]
-  analytics          CollaborationAnalytics?
-  CollaborationParticipant CollaborationParticipant[]
+  id                       String                      @id @default(cuid())
+  organizationId           String?
+  sessionId                String                      @unique
+  contentId                String
+  contentType              ContentType
+  participants             Json
+  activeParticipants       Json
+  sessionData              Json?
+  startedAt                DateTime                    @default(now())
+  endedAt                  DateTime?
+  duration                 Int?
+  isActive                 Boolean                     @default(true)
+  courseId                 String?
+  chapterId                String?
+  initiatorId              String?
+  sessionType              String?
+  activities               Json?
+  metrics                  Json?
+  insights                 Json?
+  analytics                CollaborationAnalytics?
+  contributions            CollaborationContribution[]
+  reactions                CollaborationReaction[]
   CollaborationMessage     CollaborationMessage[]
+  CollaborationParticipant CollaborationParticipant[]
+  organization             Organization?               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, contentId, isActive])
   @@index([sessionId, isActive])
@@ -2183,20 +2274,18 @@ model CollaborationSession {
 }
 
 model CollaborationParticipant {
-  id            String    @id @default(cuid())
+  id            String               @id @default(cuid())
   sessionId     String
   userId        String
-  role          String    // student, teacher, moderator, etc.
-  joinedAt      DateTime  @default(now())
+  role          String
+  joinedAt      DateTime             @default(now())
   leftAt        DateTime?
-  lastActivity  DateTime  @default(now())
-  isActive      Boolean   @default(true)
-  contributions Int       @default(0)
-  
-  // Relations
+  lastActivity  DateTime             @default(now())
+  isActive      Boolean              @default(true)
+  contributions Int                  @default(0)
   session       CollaborationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@unique([sessionId, userId])
   @@index([sessionId, isActive])
   @@index([userId])
@@ -2205,24 +2294,22 @@ model CollaborationParticipant {
 }
 
 model CollaborationMessage {
-  id            String    @id @default(cuid())
-  sessionId     String
-  userId        String
-  content       String    @db.Text
-  type          String    @default("text") // text, code, diagram, image, etc.
-  isPrivate     Boolean   @default(false)
-  replyToId     String?
-  editedAt      DateTime?
-  deletedAt     DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  // Relations
-  session       CollaborationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  replyTo       CollaborationMessage? @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
-  replies       CollaborationMessage[] @relation("MessageReplies")
-  
+  id        String                 @id @default(cuid())
+  sessionId String
+  userId    String
+  content   String
+  type      String                 @default("text")
+  isPrivate Boolean                @default(false)
+  replyToId String?
+  editedAt  DateTime?
+  deletedAt DateTime?
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+  replyTo   CollaborationMessage?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies   CollaborationMessage[] @relation("MessageReplies")
+  session   CollaborationSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([sessionId, createdAt])
   @@index([userId])
   @@index([replyToId])
@@ -2428,11 +2515,1386 @@ model SAMAnalytics {
   @@map("sam_analytics")
 }
 
+model CourseMarketAnalysis {
+  id                  String   @id @default(uuid())
+  courseId            String   @unique
+  marketValue         Float
+  demandScore         Float
+  competitorAnalysis  Json
+  pricingAnalysis     Json
+  trendAnalysis       Json
+  brandingScore       Float
+  targetAudienceMatch Float
+  recommendedPrice    Float
+  marketPosition      String
+  opportunities       Json
+  threats             Json
+  lastAnalyzedAt      DateTime
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  course              Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+}
+
+model CourseCompetitor {
+  id             String   @id @default(uuid())
+  courseId       String
+  competitorName String
+  competitorUrl  String?
+  price          Float
+  rating         Float?
+  enrollments    Int?
+  features       Json
+  strengths      Json
+  weaknesses     Json
+  analyzedAt     DateTime @default(now())
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+}
+
+model CourseBloomsAnalysis {
+  id                 String   @id @default(uuid())
+  courseId           String   @unique
+  bloomsDistribution Json
+  cognitiveDepth     Float
+  learningPathway    Json
+  skillsMatrix       Json
+  gapAnalysis        Json
+  recommendations    Json
+  contentHash        String?
+  analyzedAt         DateTime @default(now())
+  course             Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([contentHash])
+}
+
+model SectionBloomsMapping {
+  id                 String      @id @default(uuid())
+  sectionId          String      @unique
+  bloomsLevel        BloomsLevel
+  primaryLevel       BloomsLevel
+  secondaryLevels    Json
+  activities         Json
+  assessments        Json
+  learningObjectives Json
+  section            Section     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@index([bloomsLevel])
+}
+
+model ExamBloomsProfile {
+  id                 String   @id @default(uuid())
+  examId             String   @unique
+  targetDistribution Json
+  actualDistribution Json
+  difficultyMatrix   Json
+  skillsAssessed     Json
+  coverageMap        Json
+  createdAt          DateTime @default(now())
+  exam               Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId])
+}
+
+model QuestionBank {
+  id            String             @id @default(uuid())
+  courseId      String?
+  subject       String
+  topic         String
+  subtopic      String?
+  question      String
+  questionType  QuestionType
+  bloomsLevel   BloomsLevel
+  difficulty    QuestionDifficulty
+  options       Json?
+  correctAnswer Json
+  explanation   String
+  hints         Json?
+  tags          String[]
+  usageCount    Int                @default(0)
+  successRate   Float?
+  avgTimeSpent  Float?
+  metadata      Json?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  course        Course?            @relation(fields: [courseId], references: [id])
+
+  @@index([courseId, subject, topic])
+  @@index([bloomsLevel, difficulty])
+  @@index([questionType])
+}
+
+model StudentBloomsProgress {
+  id              String   @id @default(uuid())
+  userId          String
+  courseId        String?
+  bloomsScores    Json
+  strengthAreas   Json
+  weaknessAreas   Json
+  progressHistory Json
+  lastAssessedAt  DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  course          Course?  @relation(fields: [courseId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+model Certification {
+  id               String                    @id @default(uuid())
+  userId           String
+  courseId         String
+  templateId       String?
+  verificationCode String                    @unique
+  issuedAt         DateTime                  @default(now())
+  expiresAt        DateTime?
+  isRevoked        Boolean                   @default(false)
+  revokedAt        DateTime?
+  revokedReason    String?
+  metadata         Json?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  verifications    CertificateVerification[]
+  course           Course                    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  template         CertificateTemplate?      @relation(fields: [templateId], references: [id])
+  user             User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // New relations for missing models
+  certificateEvents CertificateEvent[]
+  certificateAnalytics CertificateAnalytics?
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([verificationCode])
+}
+
+model CertificateTemplate {
+  id           String          @id @default(uuid())
+  name         String
+  templateType String
+  content      Json
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  certificates Certification[]
+
+  @@index([templateType])
+}
+
+model UserBadge {
+  id               String                    @id @default(uuid())
+  userId           String
+  badgeId          String
+  verificationCode String                    @unique
+  earnedAt         DateTime                  @default(now())
+  progress         Json?
+  metadata         Json?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  verifications    CertificateVerification[]
+  badge            Badge                     @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  user             User                      @relation("UserBadges", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+  @@index([verificationCode])
+}
+
+model Badge {
+  id          String      @id @default(uuid())
+  name        String
+  description String
+  badgeType   String
+  category    String?
+  level       BadgeLevel  @default(BRONZE)
+  points      Int         @default(0)
+  iconUrl     String?
+  iconData    Json?
+  colorScheme Json?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userBadges  UserBadge[]
+
+  @@index([badgeType])
+  @@index([category])
+}
+
+model CertificateVerification {
+  id               String         @id @default(uuid())
+  certificateId    String?
+  badgeId          String?
+  verificationCode String
+  verifierIp       String
+  verifierInfo     Json?
+  isValid          Boolean        @default(true)
+  verifiedAt       DateTime       @default(now())
+  createdAt        DateTime       @default(now())
+  userBadge        UserBadge?     @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  certificate      Certification? @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+
+  @@index([certificateId])
+  @@index([badgeId])
+  @@index([verificationCode])
+  @@index([verifiedAt])
+}
+
+model StudentCognitiveProfile {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  overallCognitiveLevel Float
+  bloomsMastery         Json
+  learningTrajectory    Json
+  skillsInventory       Json
+  performancePatterns   Json
+  optimalLearningStyle  String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model BloomsPerformanceMetric {
+  id                 String      @id @default(uuid())
+  userId             String
+  courseId           String?
+  bloomsLevel        BloomsLevel
+  accuracy           Float
+  avgResponseTime    Float
+  totalAttempts      Int
+  successfulAttempts Int
+  improvementRate    Float
+  challengeAreas     Json
+  recordedAt         DateTime    @default(now())
+  course             Course?     @relation(fields: [courseId], references: [id])
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, courseId])
+  @@index([bloomsLevel])
+}
+
+model CourseGuideAnalysis {
+  id                String   @id @default(uuid())
+  courseId          String   @unique
+  depthScore        Float
+  engagementMetrics Json
+  marketAcceptance  Json
+  studentOutcomes   Json
+  contentQuality    Json
+  improvementAreas  Json
+  competitiveEdge   Json
+  lastAnalyzedAt    DateTime
+  createdAt         DateTime @default(now())
+  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+}
+
+model TeacherInsights {
+  id              String   @id @default(uuid())
+  teacherId       String
+  courseId        String
+  insightType     String
+  data            Json
+  recommendations Json
+  priority        Int
+  actionable      Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher         User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId, courseId])
+  @@index([insightType])
+}
+
+model CourseOptimizationSuggestion {
+  id              String   @id @default(uuid())
+  courseId        String
+  suggestionType  String
+  description     String
+  impact          String
+  implementation  Json
+  estimatedEffort String
+  expectedOutcome Json
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, status])
+  @@index([suggestionType])
+}
+
+model MultiMediaAnalysis {
+  id                 String   @id @default(uuid())
+  courseId           String
+  chapterId          String?
+  contentType        String
+  contentUrl         String?
+  analysis           Json
+  engagementScore    Float?
+  accessibilityScore Float?
+  effectivenessScore Float?
+  metadata           Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  chapter            Chapter? @relation(fields: [chapterId], references: [id])
+  course             Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, contentType])
+  @@index([chapterId])
+}
+
+model MultiModalAnalysis {
+  id        String   @id @default(uuid())
+  courseId  String
+  insights  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+}
+
+model PredictiveLearningAnalysis {
+  id             String    @id @default(uuid())
+  userId         String?
+  courseId       String?
+  predictionType String
+  predictionData Json
+  confidence     Float
+  accuracy       Float?
+  validated      Boolean   @default(false)
+  validatedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  course         Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user           User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, predictionType])
+  @@index([courseId, predictionType])
+  @@index([createdAt])
+}
+
+model ResourceDiscovery {
+  id              String   @id @default(uuid())
+  topicId         String
+  topicName       String
+  resources       Json
+  resourceCount   Int
+  avgQualityScore Float
+  metadata        Json?
+  discoveredAt    DateTime @default(now())
+
+  @@index([topicId])
+  @@index([topicName])
+}
+
+model ResourceROIAnalysis {
+  id                 String   @id @default(uuid())
+  resourceUrl        String
+  resourceTitle      String
+  costBenefitRatio   Float
+  learningEfficiency Float
+  recommendation     String
+  analysis           Json
+  analyzedAt         DateTime @default(now())
+
+  @@index([resourceUrl])
+  @@index([recommendation])
+}
+
+model PersonalizedResourceRecommendation {
+  id                String   @id @default(uuid())
+  userId            String
+  recommendations   Json
+  topRecommendation String
+  avgMatchScore     Float
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model GeneratedContent {
+  id          String   @id @default(uuid())
+  contentType String
+  content     Json
+  metadata    Json?
+  quality     Float?
+  usage       Int      @default(0)
+  feedback    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([contentType, createdAt])
+  @@index([quality])
+}
+
+model LearningStyleAnalysis {
+  id              String   @id @default(uuid())
+  userId          String
+  primaryStyle    String
+  secondaryStyle  String?
+  styleStrengths  Json
+  evidenceFactors String[]
+  confidence      Float
+  analyzedAt      DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, analyzedAt])
+}
+
+model ContentOptimization {
+  id                String   @id @default(uuid())
+  userId            String
+  contentId         String
+  adaptations       Json
+  presentationOrder String[]
+  optimizationData  Json
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, contentId])
+}
+
+model EmotionalStateAnalysis {
+  id              String   @id @default(uuid())
+  userId          String
+  currentEmotion  String
+  confidence      Float
+  trend           String
+  indicators      Json
+  recommendations String[]
+  analyzedAt      DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, analyzedAt])
+}
+
+model MotivationProfile {
+  id                  String   @id @default(uuid())
+  userId              String
+  intrinsicFactors    Json
+  extrinsicFactors    Json
+  currentLevel        Float
+  triggers            String[]
+  barriers            String[]
+  sustainabilityScore Float
+  analyzedAt          DateTime @default(now())
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PersonalizedLearningPath {
+  id                String   @id @default(uuid())
+  pathId            String   @unique
+  userId            String
+  targetOutcome     String
+  nodes             Json
+  edges             Json
+  estimatedDuration Float
+  alternativePaths  Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([pathId])
+}
+
+model PersonalizationResult {
+  id              String   @id @default(uuid())
+  userId          String
+  recommendations Json
+  adaptations     Json
+  insights        Json
+  confidence      Float
+  appliedAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, appliedAt])
+}
+
+model OrganizationAnalytics {
+  id                 String   @id @default(uuid())
+  organizationId     String
+  totalLearners      Int
+  activeLearners     Int
+  engagementRate     Float
+  completionRate     Float
+  averageSkillGrowth Float
+  departmentMetrics  Json
+  skillGaps          Json
+  roiMetrics         Json
+  complianceMetrics  Json
+  budgetMetrics      Json
+  analyzedAt         DateTime @default(now())
+
+  @@index([organizationId, analyzedAt])
+}
+
+model WorkforcePrediction {
+  id                  String   @id @default(uuid())
+  organizationId      String
+  timeHorizon         Int
+  currentCapabilities Json
+  futureNeeds         Json
+  developmentPlan     Json
+  talentMetrics       Json
+  predictedAt         DateTime @default(now())
+
+  @@index([organizationId, predictedAt])
+}
+
+model ExecutiveReport {
+  id               String   @id @default(uuid())
+  reportId         String   @unique
+  organizationId   String
+  reportType       String
+  executiveSummary String
+  keyMetrics       Json
+  trends           Json
+  recommendations  Json
+  risks            Json
+  opportunities    Json
+  generatedAt      DateTime @default(now())
+
+  @@index([organizationId, reportType, generatedAt])
+  @@index([reportId])
+}
+
+model FinancialSnapshot {
+  id                      String   @id @default(uuid())
+  organizationId          String
+  totalRevenue            Float
+  totalCosts              Float
+  netProfit               Float
+  profitMargin            Float
+  activeSubscribers       Int
+  monthlyRecurringRevenue Float
+  metrics                 Json
+  period                  String
+  createdAt               DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([period])
+}
+
+model PricingExperiment {
+  id            String    @id @default(uuid())
+  experimentId  String    @unique
+  courseId      String?
+  name          String
+  variant       String
+  originalPrice Float
+  testPrice     Float
+  startDate     DateTime
+  endDate       DateTime?
+  conversions   Int       @default(0)
+  revenue       Float     @default(0)
+  views         Int       @default(0)
+  status        String
+  significance  Float?
+  winner        String?
+  createdAt     DateTime  @default(now())
+  course        Course?   @relation(fields: [courseId], references: [id])
+
+  @@index([courseId, status])
+  @@index([experimentId])
+}
+
+model SubscriptionAnalytics {
+  id                 String   @id @default(uuid())
+  organizationId     String
+  cohortMonth        String
+  initialSubscribers Int
+  activeSubscribers  Int
+  churnedSubscribers Int
+  upgrades           Int
+  downgrades         Int
+  revenue            Float
+  retentionRate      Float
+  ltv                Float
+  analyzedAt         DateTime @default(now())
+
+  @@unique([organizationId, cohortMonth])
+  @@index([organizationId, cohortMonth])
+}
+
+model CollaborationContribution {
+  id               String                  @id @default(uuid())
+  sessionId        String
+  userId           String
+  contributionType String
+  content          Json
+  impact           Float                   @default(0)
+  timestamp        DateTime                @default(now())
+  session          CollaborationSession    @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  reactions        CollaborationReaction[]
+
+  @@index([sessionId, userId])
+  @@index([contributionType])
+}
+
+model CollaborationReaction {
+  id             String                    @id @default(uuid())
+  contributionId String
+  userId         String
+  reactionType   String
+  sessionId      String
+  createdAt      DateTime                  @default(now())
+  contribution   CollaborationContribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  session        CollaborationSession      @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+
+  @@unique([contributionId, userId, reactionType])
+  @@index([contributionId])
+  @@index([userId])
+}
+
+model CollaborationAnalytics {
+  id                   String               @id @default(uuid())
+  sessionId            String               @unique
+  sessionAnalytics     Json
+  participantAnalytics Json
+  contentAnalytics     Json
+  networkAnalytics     Json
+  generatedAt          DateTime             @default(now())
+  session              CollaborationSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model CognitiveFitnessAssessment {
+  id              String   @id @default(uuid())
+  userId          String
+  overallScore    Float
+  dimensions      Json
+  exercises       Json
+  progress        Json
+  recommendations Json
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model FitnessSession {
+  id          String    @id @default(uuid())
+  userId      String
+  exerciseId  String
+  startTime   DateTime
+  endTime     DateTime?
+  duration    Float?
+  performance Json?
+  status      String
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, exerciseId])
+  @@index([status])
+}
+
+model FitnessMilestone {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  dimension   String
+  improvement Float
+  achievedAt  DateTime @default(now())
+
+  @@index([userId, dimension])
+}
+
+model LearningDNA {
+  id          String   @id @default(uuid())
+  userId      String
+  dnaSequence Json
+  traits      Json
+  heritage    Json
+  mutations   Json
+  phenotype   Json
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model StudyBuddy {
+  id            String             @id @default(uuid())
+  buddyId       String             @unique
+  userId        String
+  name          String
+  personality   Json
+  avatar        Json
+  relationship  Json
+  capabilities  Json
+  effectiveness Json?
+  isActive      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  adjustments   BuddyAdjustment[]
+  interactions  BuddyInteraction[]
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([buddyId])
+}
+
+model BuddyInteraction {
+  id              String     @id @default(uuid())
+  buddyId         String
+  userId          String
+  interactionType String
+  content         Json
+  userResponse    String?
+  effectiveness   Float      @default(0)
+  createdAt       DateTime   @default(now())
+  buddy           StudyBuddy @relation(fields: [buddyId], references: [buddyId], onDelete: Cascade)
+
+  @@index([buddyId, userId])
+  @@index([interactionType])
+}
+
+model BuddyAdjustment {
+  id             String     @id @default(uuid())
+  buddyId        String
+  adjustmentType String
+  parameters     Json
+  reason         String
+  impact         Float?
+  createdAt      DateTime   @default(now())
+  buddy          StudyBuddy @relation(fields: [buddyId], references: [buddyId], onDelete: Cascade)
+
+  @@index([buddyId])
+}
+
+model QuantumLearningPath {
+  id             String               @id @default(uuid())
+  pathId         String               @unique
+  userId         String
+  learningGoal   String
+  superposition  Json
+  entanglements  Json
+  probability    Json
+  coherenceLevel Float                @default(1.0)
+  collapsed      Boolean              @default(false)
+  collapse       Json?
+  finalStateId   String?
+  isActive       Boolean              @default(true)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  observations   QuantumObservation[]
+
+  @@index([userId, isActive])
+  @@index([pathId])
+}
+
+model QuantumObservation {
+  id              String              @id @default(uuid())
+  pathId          String
+  observationId   String              @unique
+  observationType String
+  observer        String
+  impact          Json
+  createdAt       DateTime            @default(now())
+  path            QuantumLearningPath @relation(fields: [pathId], references: [pathId], onDelete: Cascade)
+
+  @@index([pathId])
+  @@index([observationId])
+}
+
+model UserConsent {
+  id          String    @id @default(cuid())
+  userId      String
+  consentType String
+  granted     Boolean
+  purpose     String?
+  grantedAt   DateTime?
+  withdrawnAt DateTime?
+  expiresAt   DateTime?
+  ipAddress   String?
+  version     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consentType])
+  @@index([granted])
+  @@map("user_consents")
+}
+
+model GDPRRequest {
+  id                String    @id @default(cuid())
+  userId            String
+  requestType       String
+  status            String
+  requestedAt       DateTime  @default(now())
+  completedAt       DateTime?
+  reason            String?
+  responseData      Json?
+  verificationToken String?
+  processedBy       String?
+  notes             String?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([requestType, status])
+  @@map("gdpr_requests")
+}
+
+model DataProcessingActivity {
+  id                    String   @id @default(cuid())
+  name                  String
+  purpose               String
+  legalBasis            String
+  dataCategories        String[]
+  dataSubjects          String[]
+  recipients            String[]
+  retentionPeriod       String
+  securityMeasures      String
+  thirdCountryTransfers Boolean  @default(false)
+  transferSafeguards    String?
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("data_processing_activities")
+}
+
+model PrivacyPolicy {
+  id            String   @id @default(cuid())
+  version       String   @unique
+  content       String
+  effectiveDate DateTime
+  isActive      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive, effectiveDate])
+  @@map("privacy_policies")
+}
+
+model DataBreach {
+  id                  String    @id @default(cuid())
+  incidentDate        DateTime
+  discoveryDate       DateTime
+  reportedDate        DateTime?
+  severity            String
+  affectedUsers       Int
+  dataTypes           String[]
+  description         String
+  cause               String
+  measures            String
+  notifications       Json?
+  status              String
+  reportedToAuthority Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@map("data_breaches")
+}
+
+model SocialLearningAnalysis {
+  id           String   @id @default(cuid())
+  groupId      String?
+  communityId  String?
+  analysisType String
+  metrics      Json
+  overallScore Float
+  analyzedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  group        Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([communityId])
+  @@index([analysisType])
+  @@index([analyzedAt])
+  @@map("social_learning_analyses")
+}
+
+model MentorMenteeMatch {
+  id                  String    @id @default(cuid())
+  mentorId            String
+  menteeId            String
+  compatibilityScore  Float
+  matchingFactors     Json
+  suggestedActivities Json
+  status              String
+  startDate           DateTime?
+  endDate             DateTime?
+  feedback            Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  mentee              User      @relation("MenteeMatches", fields: [menteeId], references: [id], onDelete: Cascade)
+  mentor              User      @relation("MentorMatches", fields: [mentorId], references: [id], onDelete: Cascade)
+
+  @@unique([mentorId, menteeId])
+  @@index([mentorId])
+  @@index([menteeId])
+  @@index([status])
+  @@index([compatibilityScore])
+  @@map("mentor_mentee_matches")
+}
+
+model AuthSession {
+  id                    String    @id @default(cuid())
+  userId                String
+  token                 String    @unique
+  userAgent             String?
+  ipAddress             String?
+  deviceInfo            Json?
+  // Session fingerprinting fields
+  fingerprintHash       String?
+  fingerprintData       Json?     // Stores the full fingerprint for analysis
+  deviceId              String?   // Unique device identifier
+  deviceName            String?   // Human-readable device name
+  isTrustedDevice       Boolean   @default(false)
+  trustEstablishedAt    DateTime?
+  lastFingerprintCheck  DateTime?
+  fingerprintMismatches Int       @default(0)
+  riskLevel             String    @default("LOW") // LOW, MEDIUM, HIGH, CRITICAL
+  // Session management
+  createdAt             DateTime  @default(now())
+  expiresAt             DateTime
+  lastActivity          DateTime  @default(now())
+  isActive              Boolean   @default(true)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([fingerprintHash])
+  @@index([deviceId])
+  @@index([userId, isTrustedDevice])
+  @@map("auth_sessions")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  key         String    @unique
+  hashedKey   String    @unique
+  permissions Json
+  rateLimit   Int       @default(1000)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([hashedKey])
+  @@index([userId])
+  @@map("api_keys")
+}
+
+model EnhancedAuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  oldValue   Json?
+  newValue   Json?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  severity   String   @default("INFO")
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([severity])
+  @@index([createdAt])
+  @@map("enhanced_audit_logs")
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  description     String?
+  category        String
+  createdAt       DateTime         @default(now())
+  roles           RolePermission[]
+  userPermissions UserPermission[]
+
+  @@index([category])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  role         UserRole
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String     @id @default(cuid())
+  userId       String
+  permissionId String
+  granted      Boolean    @default(true)
+  expiresAt    DateTime?
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@map("user_permissions")
+}
+
+model InstructorVerification {
+  id                String           @id @default(cuid())
+  userId            String           @unique
+  documentType      String
+  documentUrl       String
+  verificationNotes String?
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  status            InstructorStatus @default(PENDING)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("instructor_verifications")
+}
+
+model RateLimit {
+  id          String   @id @default(cuid())
+  identifier  String
+  endpoint    String
+  count       Int      @default(1)
+  windowStart DateTime @default(now())
+
+  @@unique([identifier, endpoint, windowStart])
+  @@index([identifier])
+  @@index([windowStart])
+  @@map("rate_limits")
+}
+
+model PasswordHistory {
+  id             String   @id @default(cuid())
+  userId         String
+  hashedPassword String
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_histories")
+}
+
+// Collaborative Editing Models
+model CollaborativeSession {
+  id           String                    @id @default(cuid())
+  contentType  String
+  contentId    String
+  roomId       String                    @unique
+  title        String?
+  isActive     Boolean                   @default(true)
+  lockType     String                    @default("NONE")
+  lockedBy     String?
+  lockedAt     DateTime?
+  yjsState     Bytes?
+  yjsUpdates   Bytes?
+  createdById  String
+  createdAt    DateTime                  @default(now())
+  lastActivity DateTime                  @default(now())
+  participants SessionParticipant[]
+  activities   CollaborativeActivity[]
+  comments     SessionComment[]
+  conflicts    SessionConflict[]
+  snapshots    SessionSnapshot[]
+  cursors      CollaborativeCursor[]
+  operations   CollaborativeOperation[]
+  createdBy    User                      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@unique([contentType, contentId], name: "contentType_contentId")
+  @@index([contentType, contentId])
+  @@index([isActive])
+  @@map("collaborative_sessions")
+}
+
+model SessionParticipant {
+  sessionId    String
+  userId       String
+  role         String              @default("VIEWER")
+  cursorColor  String
+  displayName  String
+  isOnline     Boolean             @default(true)
+  joinedAt     DateTime            @default(now())
+  leftAt       DateTime?
+  lastSeen     DateTime            @default(now())
+  session      CollaborativeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, userId])
+  @@unique([sessionId, userId], name: "sessionId_userId")
+  @@index([sessionId])
+  @@index([userId])
+  @@map("session_participants")
+}
+
+model CollaborativeActivity {
+  id           String               @id @default(cuid())
+  sessionId    String
+  userId       String
+  activityType String
+  description  String
+  metadata     Json                 @default("{}")
+  timestamp    DateTime             @default(now())
+  session      CollaborativeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([activityType])
+  @@map("collaborative_activities")
+}
+
+model SessionComment {
+  id            String               @id @default(cuid())
+  sessionId     String
+  authorId      String
+  content       String
+  position      Int?
+  line          Int?
+  column        Int?
+  selectionStart Int?
+  selectionEnd   Int?
+  selectionText  String?
+  parentId      String?
+  status        String               @default("ACTIVE")
+  type          String               @default("COMMENT")
+  metadata      Json                 @default("{}")
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  session       CollaborativeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  author        User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  resolvedByUser User?               @relation("CommentResolvedBy", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  parent        SessionComment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       SessionComment[]     @relation("CommentReplies")
+
+  @@index([sessionId])
+  @@index([authorId])
+  @@index([status])
+  @@index([parentId])
+  @@map("session_comments")
+}
+
+model SessionConflict {
+  id          String               @id @default(cuid())
+  sessionId   String
+  user1Id     String
+  user2Id     String
+  conflictType String
+  description String
+  status      String               @default("PENDING")
+  priority    String               @default("MEDIUM")
+  conflictData Json                @default("{}")
+  resolved        Boolean              @default(false)
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  resolution      String?
+  resolutionType  String?
+  operation1Data  String?
+  operation2Data  String?
+  metadata        Json?                @default("{}")
+  detectedAt  DateTime             @default(now())
+  createdAt   DateTime             @default(now())
+  session     CollaborativeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user1       User                 @relation("ConflictUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2       User                 @relation("ConflictUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([resolved])
+  @@index([status])
+  @@index([priority])
+  @@map("session_conflicts")
+}
+
+model EditConflict {
+  id            String    @id @default(cuid())
+  sessionId     String
+  conflictData  Json
+  status        String    @default("PENDING")
+  resolvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([sessionId])
+  @@index([status])
+  @@map("edit_conflicts")
+}
+
+model SessionSnapshot {
+  id           String               @id @default(cuid())
+  sessionId    String
+  name         String
+  description  String?
+  snapshotType String               @default("MANUAL")
+  content      Json
+  yjsState     Bytes?
+  createdById  String
+  createdAt    DateTime             @default(now())
+  session      CollaborativeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdBy    User                 @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("session_snapshots")
+}
+
+// Extended Collaborative Editing Models
+model CollaborativeCursor {
+  sessionId      String
+  userId         String
+  position       Int
+  line           Int?
+  column         Int?
+  selectionStart Int?
+  selectionEnd   Int?
+  isTyping       Boolean          @default(false)
+  lastUpdate     DateTime         @default(now())
+  session        CollaborativeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, userId])
+  @@unique([sessionId, userId], name: "sessionId_userId")
+  @@index([sessionId])
+  @@index([userId])
+  @@index([lastUpdate])
+  @@map("collaborative_cursors")
+}
+
+model CollaborativeOperation {
+  id            String               @id @default(cuid())
+  sessionId     String
+  userId        String
+  clientId      String
+  operationType String
+  position      Int
+  length        Int?
+  content       String?
+  attributes    Json                 @default("{}")
+  revision      Int
+  timestamp     DateTime             @default(now())
+  session       CollaborativeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([revision])
+  @@index([timestamp])
+  @@map("collaborative_operations")
+}
+
+model CollaborativePermission {
+  userId        String
+  contentType   String
+  contentId     String
+  permissions   String[]
+  role          String               @default("VIEWER")
+  grantedBy     String?
+  grantedAt     DateTime?
+  expiresAt     DateTime?
+  isActive      Boolean              @default(true)
+  revokedBy     String?
+  revokedAt     DateTime?
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grantedByUser User?                @relation("PermissionGrantedBy", fields: [grantedBy], references: [id], onDelete: SetNull)
+  revokedByUser User?                @relation("PermissionRevokedBy", fields: [revokedBy], references: [id], onDelete: SetNull)
+
+  @@id([userId, contentType, contentId])
+  @@unique([userId, contentType, contentId], name: "userId_contentType_contentId")
+  @@index([contentType, contentId])
+  @@index([isActive])
+  @@map("collaborative_permissions")
+}
+
+model PermissionRule {
+  id          String    @id @default(cuid())
+  contentType String
+  contentId   String
+  userId      String?
+  userRole    String?
+  permissions String[]
+  conditions  Json?     @default("{}")
+  isActive    Boolean   @default(true)
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  creator     User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([contentType, contentId])
+  @@index([isActive])
+  @@map("permission_rules")
+}
+
+model PermissionActivity {
+  id           String   @id @default(cuid())
+  actorId      String
+  targetUserId String
+  contentType  String
+  contentId    String
+  activityType String
+  metadata     Json     @default("{}")
+  timestamp    DateTime @default(now())
+  actor        User     @relation("PermissionActor", fields: [actorId], references: [id], onDelete: Cascade)
+  targetUser   User     @relation("PermissionTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([actorId])
+  @@index([targetUserId])
+  @@index([contentType, contentId])
+  @@index([timestamp])
+  @@map("permission_activities")
+}
+
 enum UserRole {
-  STUDENT
-  TEACHER
   ADMIN
   USER
+}
+
+enum InstructorStatus {
+  PENDING
+  VERIFIED
+  SUSPENDED
+  REJECTED
+}
+
+enum InstructorTier {
+  BASIC
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
+enum LearningStyle {
+  VISUAL
+  AUDITORY
+  KINESTHETIC
+  READING_WRITING
 }
 
 enum QuestionType {
@@ -2969,6 +4431,26 @@ enum SAMMessageType {
   ACTION
 }
 
+model ErrorLog {
+  id          String   @id @default(cuid())
+  message     String
+  stack       String?
+  timestamp   DateTime @default(now())
+  userId      String?
+  userAgent   String?
+  url         String?
+  component   String?
+  errorType   String
+  severity    String
+  context     String?
+  metadata    String?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("error_logs")
+}
+
 enum SAMEmotion {
   ENCOURAGING
   SUPPORTIVE
@@ -3074,879 +4556,692 @@ enum AnalyticsPeriod {
   YEARLY
 }
 
-// ==========================================
-// NEW MODELS FOR SAM ENHANCED ENGINES
-// ==========================================
-
-// 1. Market-focused Course Evaluation Engine Models
-model CourseMarketAnalysis {
-  id                  String    @id @default(uuid())
-  courseId            String    @unique
-  marketValue         Float
-  demandScore         Float
-  competitorAnalysis  Json
-  pricingAnalysis     Json
-  trendAnalysis       Json
-  brandingScore       Float
-  targetAudienceMatch Float
-  recommendedPrice    Float
-  marketPosition      String
-  opportunities       Json
-  threats             Json
-  lastAnalyzedAt      DateTime
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  course              Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
+enum CollaborativeRole {
+  VIEWER
+  COMMENTER
+  EDITOR
+  MODERATOR
+  ADMIN
 }
 
-model CourseCompetitor {
-  id             String   @id @default(uuid())
-  courseId       String
-  competitorName String
-  competitorUrl  String?
-  price          Float
-  rating         Float?
-  enrollments    Int?
-  features       Json
-  strengths      Json
-  weaknesses     Json
-  analyzedAt     DateTime @default(now())
-  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
+enum PermissionType {
+  READ
+  WRITE
+  COMMENT
+  MODERATE
+  ADMIN
 }
 
-// 2. Bloom's Taxonomy Course Evaluation Models
-model CourseBloomsAnalysis {
-  id                 String   @id @default(uuid())
-  courseId           String   @unique
-  bloomsDistribution Json     // { remember: %, understand: %, apply: %, analyze: %, evaluate: %, create: % }
-  cognitiveDepth     Float
-  learningPathway    Json
-  skillsMatrix       Json
-  gapAnalysis        Json
-  recommendations    Json
-  contentHash        String?  // Hash of course content to detect changes
-  analyzedAt         DateTime @default(now())
-  course             Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
-  @@index([contentHash])
+enum CommentStatus {
+  ACTIVE
+  RESOLVED
+  DELETED
 }
 
-model SectionBloomsMapping {
-  id                 String        @id @default(uuid())
-  sectionId          String        @unique
-  bloomsLevel        BloomsLevel
-  primaryLevel       BloomsLevel
-  secondaryLevels    Json          // Array of secondary Bloom's levels
-  activities         Json
-  assessments        Json
-  learningObjectives Json
-  section            Section       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-
-  @@index([sectionId])
-  @@index([bloomsLevel])
+enum CommentType {
+  COMMENT
+  SUGGESTION
+  QUESTION
+  ISSUE
 }
 
-// 3. Enhanced Exam/Quiz Engine Models
-model ExamBloomsProfile {
-  id                 String   @id @default(uuid())
-  examId             String   @unique
-  targetDistribution Json     // Target Bloom's distribution
-  actualDistribution Json     // Actual distribution after creation
-  difficultyMatrix   Json     // Difficulty per Bloom's level
-  skillsAssessed     Json
-  coverageMap        Json     // Topic coverage analysis
-  createdAt          DateTime @default(now())
-  exam               Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-
-  @@index([examId])
+enum ConflictStatus {
+  PENDING
+  RESOLVED
+  IGNORED
 }
 
-model QuestionBank {
-  id            String              @id @default(uuid())
-  courseId      String?
-  subject       String
-  topic         String
-  subtopic      String?
-  question      String
-  questionType  QuestionType
-  bloomsLevel   BloomsLevel
-  difficulty    QuestionDifficulty
-  options       Json?
-  correctAnswer Json
-  explanation   String
-  hints         Json?
-  tags          String[]
-  usageCount    Int                 @default(0)
-  successRate   Float?
-  avgTimeSpent  Float?
-  metadata      Json?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  course        Course?             @relation(fields: [courseId], references: [id], onDelete: SetNull)
+enum ConflictType {
+  EDIT_OVERLAP
+  CONCURRENT_EDIT
+  VERSION_MISMATCH
+  LOCK_CONFLICT
+}
+
+enum ConflictPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum OperationType {
+  INSERT
+  DELETE
+  RETAIN
+  FORMAT
+  UPDATE
+}
+
+// Content Governance Enums
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+  EXPIRED
+  CANCELLED
+}
+
+enum ApprovalPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+  CRITICAL
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+  CANCELLED
+}
+
+enum NotificationType {
+  EMAIL
+  IN_APP
+  SMS
+  PUSH
+  SLACK
+  WEBHOOK
+}
+
+enum ApprovalAutoCondition {
+  NONE
+  MINOR_CHANGE
+  TRUSTED_AUTHOR
+  TIME_BASED
+  CONSENSUS_REACHED
+  QUALITY_SCORE_MET
+}
+
+enum BulkOperationType {
+  APPROVE_ALL
+  REJECT_ALL
+  REQUEST_REVISION_ALL
+  CANCEL_ALL
+  ARCHIVE_ALL
+}
+
+enum BulkOperationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  PARTIALLY_COMPLETED
+  CANCELLED
+}
+
+// Content Governance Models
+model ApprovalWorkflowTemplate {
+  id                String                @id @default(uuid())
+  name              String
+  description       String?
+  stages            Json                  // Array of approval stages
+  autoApprovalRules Json?                 // Conditions for auto-approval
+  escalationRules   Json?                 // Rules for escalation
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  isActive          Boolean               @default(true)
+  organizationId    String?
+  organization      Organization?         @relation(fields: [organizationId], references: [id])
+  workflows         ApprovalWorkflow[]
   
-  @@index([courseId, subject, topic])
-  @@index([bloomsLevel, difficulty])
-  @@index([questionType])
+  @@index([organizationId])
 }
 
-model StudentBloomsProgress {
-  id              String   @id @default(uuid())
-  userId          String
-  courseId        String?
-  bloomsScores    Json     // Scores per Bloom's level
-  strengthAreas   Json
-  weaknessAreas   Json
-  progressHistory Json
-  lastAssessedAt  DateTime
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course          Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+model ApprovalWorkflow {
+  id                String                    @id @default(uuid())
+  templateId        String
+  template          ApprovalWorkflowTemplate  @relation(fields: [templateId], references: [id])
+  contentVersionId  String
+  contentVersion    ContentVersion            @relation(fields: [contentVersionId], references: [id])
+  status            WorkflowStatus            @default(ACTIVE)
+  currentStage      Int                       @default(0)
+  stageData         Json                      // Current stage data and history
+  startedAt         DateTime                  @default(now())
+  completedAt       DateTime?
+  priority          ApprovalPriority          @default(MEDIUM)
+  metadata          Json?
+  approvals         ContentVersionApproval[]
+  notifications     ApprovalNotification[]
+  auditLogs         ApprovalAuditLog[]
+  
+  @@index([templateId])
+  @@index([contentVersionId])
+  @@index([status])
+}
+
+model ContentVersionApproval {
+  id              String           @id @default(uuid())
+  workflowId      String
+  workflow        ApprovalWorkflow @relation(fields: [workflowId], references: [id])
+  approverId      String
+  approver        User             @relation(fields: [approverId], references: [id])
+  status          ApprovalStatus   @default(PENDING)
+  comments        String?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  metadata        Json?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  @@index([workflowId])
+  @@index([approverId])
+  @@index([status])
+}
+
+model ApprovalNotification {
+  id              String             @id @default(uuid())
+  workflowId      String
+  workflow        ApprovalWorkflow   @relation(fields: [workflowId], references: [id])
+  recipientId     String
+  recipient       User               @relation(fields: [recipientId], references: [id])
+  type            NotificationType   @default(IN_APP)
+  status          String             @default("PENDING")
+  subject         String
+  message         String
+  sentAt          DateTime?
+  readAt          DateTime?
+  metadata        Json?
+  createdAt       DateTime           @default(now())
+  
+  @@index([workflowId])
+  @@index([recipientId])
+  @@index([status])
+}
+
+model ApprovalAuditLog {
+  id              String           @id @default(uuid())
+  workflowId      String
+  workflow        ApprovalWorkflow @relation(fields: [workflowId], references: [id])
+  actorId         String
+  actor           User             @relation(fields: [actorId], references: [id])
+  action          String
+  previousStatus  String?
+  newStatus       String?
+  details         Json?
+  timestamp       DateTime         @default(now())
+  
+  @@index([workflowId])
+  @@index([actorId])
+  @@index([timestamp])
+}
+
+model ApprovalAnalytics {
+  id                  String     @id @default(uuid())
+  date                DateTime   @default(now())
+  totalWorkflows      Int        @default(0)
+  pendingApprovals    Int        @default(0)
+  approvedCount       Int        @default(0)
+  rejectedCount       Int        @default(0)
+  averageApprovalTime Int?       // in minutes
+  bottlenecks         Json?      // Identified bottlenecks
+  performanceMetrics  Json?      // Various performance metrics
+  organizationId      String?
+  organization        Organization? @relation(fields: [organizationId], references: [id])
+  
+  @@index([date])
+  @@index([organizationId])
+}
+
+model BulkApprovalOperation {
+  id              String                @id @default(uuid())
+  type            BulkOperationType
+  status          BulkOperationStatus   @default(PENDING)
+  targetWorkflows Json                  // Array of workflow IDs
+  processedCount  Int                   @default(0)
+  totalCount      Int
+  results         Json?                 // Results of the operation
+  performedById   String
+  performedBy     User                  @relation(fields: [performedById], references: [id])
+  startedAt       DateTime              @default(now())
+  completedAt     DateTime?
+  error           String?
+  
+  @@index([performedById])
+  @@index([status])
+}
+
+// User Progress Tracking Models
+model UserCourseEnrollment {
+  id                   String    @id @default(uuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id])
+  courseId             String
+  course               Course    @relation(fields: [courseId], references: [id])
+  enrolledAt           DateTime  @default(now())
+  completedAt          DateTime?
+  progress             Float     @default(0)
+  lastAccessedAt       DateTime?
+  status               String    @default("ACTIVE")
+  certificateIssued    Boolean   @default(false)
+  metadata             Json?
   
   @@unique([userId, courseId])
   @@index([userId])
   @@index([courseId])
+  @@index([status])
 }
 
-// 4. Student Learning Dashboard Models
-model StudentCognitiveProfile {
-  id                   String   @id @default(uuid())
-  userId               String   @unique
-  overallCognitiveLevel Float
-  bloomsMastery        Json     // Mastery scores for each Bloom's level
-  learningTrajectory   Json     // Historical cognitive growth data
-  skillsInventory      Json     // Detailed skills mapping
-  performancePatterns  Json
-  optimalLearningStyle String
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model BloomsPerformanceMetric {
-  id               String      @id @default(uuid())
-  userId           String
-  courseId         String?
-  bloomsLevel      BloomsLevel
-  accuracy         Float
-  avgResponseTime  Float
-  totalAttempts    Int
-  successfulAttempts Int
-  improvementRate  Float
-  challengeAreas   Json
-  recordedAt       DateTime    @default(now())
-  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course           Course?     @relation(fields: [courseId], references: [id], onDelete: SetNull)
-
-  @@index([userId, courseId])
-  @@index([bloomsLevel])
-}
-
-// 5. Course Guide Engine Models
-model CourseGuideAnalysis {
-  id                String   @id @default(uuid())
-  courseId          String   @unique
-  depthScore        Float
-  engagementMetrics Json
-  marketAcceptance  Json
-  studentOutcomes   Json
-  contentQuality    Json
-  improvementAreas  Json
-  competitiveEdge   Json
-  lastAnalyzedAt    DateTime
-  createdAt         DateTime @default(now())
-  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
-}
-
-model TeacherInsights {
-  id              String   @id @default(uuid())
-  teacherId       String
-  courseId        String
-  insightType     String   // 'engagement', 'performance', 'content', 'market'
-  data            Json
-  recommendations Json
-  priority        Int
-  actionable      Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  teacher         User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+model UserChapterCompletion {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  chapterId     String
+  chapter       Chapter   @relation(fields: [chapterId], references: [id])
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  progress      Float     @default(0)
+  timeSpent     Int       @default(0) // in seconds
+  metadata      Json?
   
-  @@index([teacherId, courseId])
-  @@index([insightType])
-}
-
-model CourseOptimizationSuggestion {
-  id                String   @id @default(uuid())
-  courseId          String
-  suggestionType    String   // 'content', 'structure', 'assessment', 'engagement'
-  description       String
-  impact            String   // 'high', 'medium', 'low'
-  implementation    Json     // Step-by-step implementation guide
-  estimatedEffort   String   // 'minimal', 'moderate', 'significant'
-  expectedOutcome   Json
-  status            String   @default("pending") // 'pending', 'in_progress', 'completed', 'dismissed'
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId, status])
-  @@index([suggestionType])
-}
-
-// ==========================================
-// MULTI-MODAL CONTENT INTELLIGENCE ENGINE
-// ==========================================
-
-model MultiMediaAnalysis {
-  id                 String   @id @default(uuid())
-  courseId           String
-  chapterId          String?
-  contentType        String   // 'video', 'audio', 'interactive'
-  contentUrl         String?
-  analysis           Json     // Complete analysis results
-  engagementScore    Float?
-  accessibilityScore Float?
-  effectivenessScore Float?
-  metadata           Json?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  course             Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  chapter            Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
-
-  @@index([courseId, contentType])
+  @@unique([userId, chapterId])
+  @@index([userId])
   @@index([chapterId])
 }
 
-model MultiModalAnalysis {
-  id         String   @id @default(uuid())
-  courseId   String
-  insights   Json     // Comprehensive multi-modal insights
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
+model UserSectionCompletion {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  sectionId     String
+  section       Section   @relation(fields: [sectionId], references: [id])
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  progress      Float     @default(0)
+  timeSpent     Int       @default(0) // in seconds
+  attempts      Int       @default(1)
+  score         Float?
+  metadata      Json?
+  
+  @@unique([userId, sectionId])
+  @@index([userId])
+  @@index([sectionId])
 }
 
-// ==========================================
-// PREDICTIVE LEARNING INTELLIGENCE ENGINE
-// ==========================================
+// Content Flag Model for Knowledge Graph
+model ContentFlag {
+  id            String    @id @default(uuid())
+  contentType   String    // "course", "chapter", "section", etc.
+  contentId     String
+  flagType      String    // "quality", "inappropriate", "outdated", etc.
+  flaggedById   String
+  flaggedBy     User      @relation(fields: [flaggedById], references: [id])
+  reason        String?
+  status        String    @default("PENDING") // "PENDING", "REVIEWED", "RESOLVED", "DISMISSED"
+  reviewedById  String?
+  reviewedBy    User?     @relation("ContentFlagReviewer", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  resolution    String?
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([contentType, contentId])
+  @@index([flaggedById])
+  @@index([status])
+}
 
-model PredictiveLearningAnalysis {
-  id             String   @id @default(uuid())
-  userId         String?
-  courseId       String?
-  predictionType String   // 'OUTCOME', 'RISK_ANALYSIS', 'INTERVENTION_PLAN', 'VELOCITY_OPTIMIZATION', 'SUCCESS_PROBABILITY'
-  predictionData Json     // Complete prediction results
-  confidence     Float    // Confidence score for the prediction
-  accuracy       Float?   // Actual accuracy (updated after validation)
-  validated      Boolean  @default(false)
-  validatedAt    DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course         Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+model Analytics {
+  id            String   @id @default(cuid())
+  studentId     String
+  courseId      String?
+  eventType     String
+  metadata      Json?
+  timestamp     DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  @@index([userId, predictionType])
-  @@index([courseId, predictionType])
+  @@map("analytics")
+}
+
+model ErrorAlert {
+  id             String    @id @default(cuid())
+  errorId        String
+  type           String    // "SPIKE", "CRITICAL", "NEW_ERROR", "USER_IMPACT"
+  message        String
+  severity       String
+  metadata       String?
+  acknowledged   Boolean   @default(false)
+  acknowledgedBy String?
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+  timestamp      DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("error_alerts")
+}
+
+model ErrorMetrics {
+  id                String   @id @default(cuid())
+  date              DateTime @unique
+  totalErrors       Int
+  errorsByType      String   // JSON
+  errorsBySeverity  String   // JSON
+  errorsByComponent String   // JSON
+  uniqueUsers       Int
+  resolvedErrors    Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("error_metrics")
+}
+
+// ===============================================
+// MISSING MODELS IDENTIFIED FROM LIB ANALYSIS
+// ===============================================
+
+// Badge System Models (from lib/badge/service.ts)
+model BadgeDefinition {
+  id            String    @id @default(uuid())
+  name          String
+  slug          String    @unique
+  description   String
+  badgeType     String    // "ACHIEVEMENT", "MILESTONE", "STREAK", "SKILL"
+  category      String    // "LEARNING", "PERFORMANCE", "ENGAGEMENT", "SOCIAL"
+  level         BadgeLevel
+  points        Int       @default(0)
+  iconUrl       String?
+  iconData      Json?
+  colorScheme   Json?
+  unlockCriteria Json     // BadgeUnlockCriteria structure
+  metadata      Json?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  badgeEvents   BadgeEvent[]
+  badgeProgress BadgeProgress[]
+  
+  @@index([badgeType])
+  @@index([category])
+  @@index([level])
+}
+
+model BadgeEvent {
+  id            String         @id @default(uuid())
+  badgeId       String
+  badge         BadgeDefinition @relation(fields: [badgeId], references: [id])
+  userId        String?
+  user          User?          @relation(fields: [userId], references: [id])
+  eventType     String         // "EARNED", "PROGRESS_UPDATED", "VIEWED"
+  eventData     Json?
+  metadata      Json?
+  createdAt     DateTime       @default(now())
+  
+  @@index([badgeId])
+  @@index([userId])
+  @@index([eventType])
+}
+
+model BadgeProgress {
+  id            String         @id @default(uuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  badgeId       String
+  badge         BadgeDefinition @relation(fields: [badgeId], references: [id])
+  progress      Float          @default(0) // 0-100
+  currentValue  Int            @default(0)
+  targetValue   Int
+  lastUpdate    DateTime       @default(now())
+  metadata      Json?
+  
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+}
+
+// Learning Progress Models (from lib/progress-tracking.ts)
+model LearningSession {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  sessionType   String    // "course", "chapter", "section", "exam"
+  contentId     String
+  startTime     DateTime
+  endTime       DateTime?
+  duration      Int       @default(0) // in seconds
+  activities    Json?     // List of activities in session
+  engagement    Float?    // Engagement score
+  progress      Float     @default(0)
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([sessionType])
+  @@index([contentId])
+  @@index([startTime])
+}
+
+model UserProgressAlert {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  alertType     String    // "STRUGGLING", "INACTIVE", "ACHIEVEMENT", "MILESTONE"
+  severity      String    // "LOW", "MEDIUM", "HIGH", "CRITICAL"
+  title         String
+  message       String
+  relatedContent Json?    // Course, chapter, or section reference
+  actionRequired Boolean  @default(false)
+  isRead        Boolean   @default(false)
+  isDismissed   Boolean   @default(false)
+  expiresAt     DateTime?
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([alertType])
+  @@index([severity])
+  @@index([isRead])
+}
+
+// Skill System Models (from lib/sam-exam-engine.ts and assessment files)
+model Skill {
+  id            String    @id @default(uuid())
+  name          String
+  slug          String    @unique
+  description   String?
+  category      String?   // "technical", "soft", "domain-specific"
+  bloomsLevel   String?   // "remember", "understand", "apply", "analyze", "evaluate", "create"
+  prerequisites Json?     // Array of prerequisite skill IDs
+  difficulty    Int       @default(1) // 1-10 scale
+  isActive      Boolean   @default(true)
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  skillProgress SkillProgress[]
+  skillGaps     SkillGap[]
+  
+  @@index([category])
+  @@index([bloomsLevel])
+  @@index([difficulty])
+}
+
+model SkillProgress {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  skillId       String
+  skill         Skill     @relation(fields: [skillId], references: [id])
+  currentLevel  Int       @default(0) // 0-100
+  targetLevel   Int       @default(100)
+  mastery       Float     @default(0) // 0-100
+  attempts      Int       @default(0)
+  timeSpent     Int       @default(0) // in seconds
+  lastPracticed DateTime?
+  achievements  Json?     // List of achievements for this skill
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+  @@index([currentLevel])
+}
+
+model SkillGap {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  skillId       String
+  skill         Skill     @relation(fields: [skillId], references: [id])
+  gapType       String    // "knowledge", "practice", "application"
+  severity      String    // "low", "medium", "high", "critical"
+  currentLevel  Int
+  requiredLevel Int
+  recommendations Json?   // Array of recommended actions
+  identifiedAt  DateTime  @default(now())
+  resolvedAt    DateTime?
+  isResolved    Boolean   @default(false)
+  metadata      Json?
+  
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+  @@index([gapType])
+  @@index([severity])
+}
+
+// Certificate Event Models (from lib/certificate/service.ts)
+model CertificateEvent {
+  id            String       @id @default(uuid())
+  certificateId String
+  certificate   Certification @relation(fields: [certificateId], references: [id])
+  eventType     String       // "GENERATED", "VIEWED", "VERIFIED", "REVOKED"
+  userId        String?
+  user          User?        @relation(fields: [userId], references: [id])
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  
+  @@index([certificateId])
+  @@index([eventType])
+  @@index([userId])
   @@index([createdAt])
 }
 
-// ==========================================
-// RESOURCE INTELLIGENCE HUB ENGINE
-// ==========================================
-
-model ResourceDiscovery {
-  id               String   @id @default(uuid())
-  topicId          String
-  topicName        String
-  resources        Json     // Array of discovered resources
-  resourceCount    Int
-  avgQualityScore  Float
-  metadata         Json?
-  discoveredAt     DateTime @default(now())
+model CertificateAnalytics {
+  id                String       @id @default(uuid())
+  certificateId     String       @unique
+  certificate       Certification @relation(fields: [certificateId], references: [id])
+  totalVerifications Int          @default(0)
+  uniqueVerifiers   Int          @default(0)
+  lastVerified      DateTime?
+  verificationsByDay Json?       // Daily verification counts
+  verificationsByMethod Json?    // Verification method breakdown
+  fraudAttempts     Int          @default(0)
+  metadata          Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
   
-  @@index([topicId])
-  @@index([topicName])
+  @@index([totalVerifications])
+  @@index([lastVerified])
 }
 
-model ResourceROIAnalysis {
-  id                 String   @id @default(uuid())
-  resourceUrl        String
-  resourceTitle      String
-  costBenefitRatio   Float
-  learningEfficiency Float
-  recommendation     String   // 'highly-recommended', 'recommended', 'consider-alternatives', 'not-recommended'
-  analysis           Json     // Complete ROI analysis
-  analyzedAt         DateTime @default(now())
-  
-  @@index([resourceUrl])
-  @@index([recommendation])
-}
-
-model PersonalizedResourceRecommendation {
-  id                String   @id @default(uuid())
-  userId            String
-  recommendations   Json     // Array of personalized recommendations
-  topRecommendation String
-  avgMatchScore     Float
-  createdAt         DateTime @default(now())
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, createdAt])
-}
-
-// ==========================================
-// CONTENT GENERATION ASSISTANT ENGINE
-// ==========================================
-
-model GeneratedContent {
-  id           String   @id @default(uuid())
-  contentType  String   // 'course', 'assessment', 'study-guide', 'exercise', 'localized'
-  content      Json     // Complete generated content
-  metadata     Json?    // Additional metadata
-  quality      Float?   // Quality score if evaluated
-  usage        Int      @default(0) // Times used
-  feedback     Json?    // User feedback
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  @@index([contentType, createdAt])
-  @@index([quality])
-}
-
-// ==========================================
-// ADVANCED PERSONALIZATION ENGINE
-// ==========================================
-
-model LearningStyleAnalysis {
-  id               String   @id @default(uuid())
-  userId           String
-  primaryStyle     String   // 'visual', 'auditory', 'kinesthetic', 'reading-writing', 'mixed'
-  secondaryStyle   String?
-  styleStrengths   Json     // Scores for each learning style
-  evidenceFactors  String[]
-  confidence       Float
-  analyzedAt       DateTime @default(now())
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, analyzedAt])
-}
-
-model ContentOptimization {
-  id                String   @id @default(uuid())
-  userId            String
-  contentId         String
-  adaptations       Json     // Content adaptations applied
-  presentationOrder String[]
-  optimizationData  Json     // Complete optimization details
-  createdAt         DateTime @default(now())
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, contentId])
-}
-
-model EmotionalStateAnalysis {
-  id              String   @id @default(uuid())
-  userId          String
-  currentEmotion  String   // 'motivated', 'frustrated', 'confused', 'confident', 'anxious', 'neutral'
-  confidence      Float
-  trend           String   // 'improving', 'stable', 'declining'
-  indicators      Json     // Emotion indicators data
-  recommendations String[]
-  analyzedAt      DateTime @default(now())
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, analyzedAt])
-}
-
-model MotivationProfile {
-  id                  String   @id @default(uuid())
-  userId              String
-  intrinsicFactors    Json     // Internal motivation factors
-  extrinsicFactors    Json     // External motivation factors
-  currentLevel        Float
-  triggers            String[]
-  barriers            String[]
-  sustainabilityScore Float
-  analyzedAt          DateTime @default(now())
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+// Learning Analytics Models (from analytics files)
+model LearningEvent {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  eventType     String    // "page_view", "video_watch", "quiz_attempt", "discussion_post"
+  eventCategory String    // "learning", "social", "assessment", "navigation"
+  contentType   String?   // "course", "chapter", "section", "video", "quiz"
+  contentId     String?
+  sessionId     String?
+  duration      Int?      // in seconds
+  engagement    Float?    // engagement score 0-100
+  metadata      Json?
+  ipAddress     String?
+  userAgent     String?
+  referrer      String?
+  timestamp     DateTime  @default(now())
   
   @@index([userId])
-}
-
-model PersonalizedLearningPath {
-  id                String   @id @default(uuid())
-  pathId            String   @unique
-  userId            String
-  targetOutcome     String
-  nodes             Json     // Learning nodes in the path
-  edges             Json     // Connections between nodes
-  estimatedDuration Float
-  alternativePaths  Json     // Alternative learning paths
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, createdAt])
-  @@index([pathId])
-}
-
-model PersonalizationResult {
-  id              String   @id @default(uuid())
-  userId          String
-  recommendations Json     // Personalization recommendations
-  adaptations     Json     // Applied adaptations
-  insights        Json     // Extracted insights
-  confidence      Float
-  appliedAt       DateTime @default(now())
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, appliedAt])
-}
-
-// Enterprise Intelligence Models
-model OrganizationAnalytics {
-  id                     String   @id @default(uuid())
-  organizationId         String
-  totalLearners          Int
-  activeLearners         Int
-  engagementRate         Float
-  completionRate         Float
-  averageSkillGrowth     Float
-  departmentMetrics      Json     // Top performing departments
-  skillGaps              Json     // Skill gap analysis
-  roiMetrics             Json     // Learning ROI metrics
-  complianceMetrics      Json     // Compliance status
-  budgetMetrics          Json     // Budget analysis
-  analyzedAt             DateTime @default(now())
-  
-  @@index([organizationId, analyzedAt])
-}
-
-model WorkforcePrediction {
-  id                  String   @id @default(uuid())
-  organizationId      String
-  timeHorizon         Int      // Months
-  currentCapabilities Json     // Current capability matrix
-  futureNeeds         Json     // Predicted future skill needs
-  developmentPlan     Json     // Generated development plan
-  talentMetrics       Json     // Talent pipeline metrics
-  predictedAt         DateTime @default(now())
-  
-  @@index([organizationId, predictedAt])
-}
-
-model ExecutiveReport {
-  id               String   @id @default(uuid())
-  reportId         String   @unique
-  organizationId   String
-  reportType       String   // monthly, quarterly, annual
-  executiveSummary String   @db.Text
-  keyMetrics       Json     // Key performance metrics
-  trends           Json     // Trend analysis
-  recommendations  Json     // Strategic recommendations
-  risks            Json     // Identified risks
-  opportunities    Json     // Growth opportunities
-  generatedAt      DateTime @default(now())
-  
-  @@index([organizationId, reportType, generatedAt])
-  @@index([reportId])
-}
-
-// Financial Intelligence Models
-model FinancialSnapshot {
-  id                      String   @id @default(uuid())
-  organizationId          String
-  totalRevenue            Float
-  totalCosts              Float
-  netProfit               Float
-  profitMargin            Float
-  activeSubscribers       Int
-  monthlyRecurringRevenue Float
-  metrics                 Json     // Complete financial metrics
-  period                  String   // Date range identifier
-  createdAt               DateTime @default(now())
-  
-  @@index([organizationId, createdAt])
-  @@index([period])
-}
-
-model PricingExperiment {
-  id           String   @id @default(uuid())
-  experimentId String   @unique
-  courseId     String?
-  name         String
-  variant      String
-  originalPrice Float
-  testPrice    Float
-  startDate    DateTime
-  endDate      DateTime?
-  conversions  Int      @default(0)
-  revenue      Float    @default(0)
-  views        Int      @default(0)
-  status       String   // active, completed, paused
-  significance Float?   // Statistical significance
-  winner       String?  // control or variant
-  createdAt    DateTime @default(now())
-  course       Course?  @relation(fields: [courseId], references: [id])
-  
-  @@index([courseId, status])
-  @@index([experimentId])
-}
-
-model SubscriptionAnalytics {
-  id                 String   @id @default(uuid())
-  organizationId     String
-  cohortMonth        String   // YYYY-MM format
-  initialSubscribers Int
-  activeSubscribers  Int
-  churnedSubscribers Int
-  upgrades           Int
-  downgrades         Int
-  revenue            Float
-  retentionRate      Float
-  ltv                Float    // Lifetime value
-  analyzedAt         DateTime @default(now())
-  
-  @@index([organizationId, cohortMonth])
-  @@unique([organizationId, cohortMonth])
-}
-
-// Real-Time Collaboration Analytics Models
-// Note: CollaborationSession already exists above
-model CollaborationContribution {
-  id               String   @id @default(uuid())
-  sessionId        String
-  userId           String
-  contributionType String   // message, question, answer, resource, edit, reaction
-  content          Json     // Contribution content
-  impact           Float    @default(0) // 0-1 impact score
-  timestamp        DateTime @default(now())
-  session          CollaborationSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
-  reactions        CollaborationReaction[]
-  
-  @@index([sessionId, userId])
-  @@index([contributionType])
-}
-
-model CollaborationReaction {
-  id             String   @id @default(uuid())
-  contributionId String
-  userId         String
-  reactionType   String   // like, helpful, insightful, question
-  sessionId      String
-  createdAt      DateTime @default(now())
-  contribution   CollaborationContribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
-  session        CollaborationSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
-  
-  @@index([contributionId])
-  @@index([userId])
-  @@unique([contributionId, userId, reactionType])
-}
-
-model CollaborationAnalytics {
-  id                   String   @id @default(uuid())
-  sessionId            String   @unique
-  sessionAnalytics     Json     // Overall session metrics
-  participantAnalytics Json     // Participant-level analytics
-  contentAnalytics     Json     // Content and topic analytics
-  networkAnalytics     Json     // Collaboration network analysis
-  generatedAt          DateTime @default(now())
-  session              CollaborationSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
-  
+  @@index([eventType])
+  @@index([eventCategory])
+  @@index([contentType])
   @@index([sessionId])
+  @@index([timestamp])
 }
 
-// Innovation Features Models
-// Cognitive Fitness
-model CognitiveFitnessAssessment {
-  id               String   @id @default(uuid())
-  userId           String
-  overallScore     Float
-  dimensions       Json     // Cognitive dimensions (memory, attention, etc.)
-  exercises        Json     // Recommended exercises
-  progress         Json     // Fitness progress tracking
-  recommendations  Json     // Personalized recommendations
-  createdAt        DateTime @default(now())
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model UserLearningPattern {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  patternType   String    // "time_preference", "content_preference", "difficulty_preference"
+  patterns      Json      // Detected patterns data
+  confidence    Float     @default(0) // 0-100
+  effectiveness Float     @default(0) // 0-100
+  recommendations Json?   // Personalized recommendations
+  lastAnalyzed  DateTime  @default(now())
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   
-  @@index([userId, createdAt])
+  @@index([patternType])
+  @@index([confidence])
+  @@index([lastAnalyzed])
 }
 
-model FitnessSession {
-  id          String   @id @default(uuid())
-  userId      String
-  exerciseId  String
-  startTime   DateTime
-  endTime     DateTime?
-  duration    Float?   // Duration in minutes
-  performance Json?    // Performance metrics
-  status      String   // in_progress, completed, abandoned
-  createdAt   DateTime @default(now())
+// Section Completion Tracking (enhanced)
+model SectionCompletionTracking {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  sectionId       String
+  section         Section   @relation(fields: [sectionId], references: [id])
+  completionType  String    // "video", "reading", "quiz", "assignment", "discussion"
+  status          String    // "not_started", "in_progress", "completed", "skipped"
+  startedAt       DateTime?
+  completedAt     DateTime?
+  timeSpent       Int       @default(0) // in seconds
+  attempts        Int       @default(0)
+  score           Float?
+  maxScore        Float?
+  engagement      Float?    // engagement score
+  interactions    Json?     // Detailed interaction data
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   
-  @@index([userId, exerciseId])
+  @@unique([userId, sectionId, completionType])
+  @@index([userId])
+  @@index([sectionId])
   @@index([status])
+  @@index([completedAt])
 }
 
-model FitnessMilestone {
-  id           String   @id @default(uuid())
-  userId       String
-  name         String
-  dimension    String   // Which cognitive dimension
-  improvement  Float    // Improvement percentage
-  achievedAt   DateTime @default(now())
+// Course Completion Analytics
+model CourseCompletionAnalytics {
+  id              String    @id @default(uuid())
+  courseId        String    @unique
+  course          Course    @relation(fields: [courseId], references: [id])
+  totalEnrollments Int      @default(0)
+  totalCompletions Int      @default(0)
+  completionRate  Float     @default(0) // percentage
+  averageTime     Int       @default(0) // in hours
+  averageScore    Float     @default(0)
+  dropoffPoints   Json?     // Points where users commonly drop off
+  engagementMetrics Json?   // Detailed engagement analysis
+  demographics    Json?     // Completion by demographics
+  timeToComplete  Json?     // Time distribution analysis
+  satisfactionScore Float?  // Average satisfaction rating
+  metadata        Json?
+  lastAnalyzed    DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   
-  @@index([userId, dimension])
-}
-
-// Learning DNA
-model LearningDNA {
-  id          String   @id @default(uuid())
-  userId      String
-  dnaSequence Json     // DNA sequence with segments
-  traits      Json     // Learning traits
-  heritage    Json     // Learning heritage and evolution
-  mutations   Json     // DNA mutations over time
-  phenotype   Json     // Expressed characteristics
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, createdAt])
-}
-
-// Study Buddy
-model StudyBuddy {
-  id           String   @id @default(uuid())
-  buddyId      String   @unique
-  userId       String
-  name         String
-  personality  Json     // Buddy personality configuration
-  avatar       Json     // Avatar configuration
-  relationship Json     // Relationship metrics
-  capabilities Json     // Buddy capabilities
-  effectiveness Json?   // Effectiveness metrics
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  interactions BuddyInteraction[]
-  adjustments  BuddyAdjustment[]
-  
-  @@index([userId, isActive])
-  @@index([buddyId])
-}
-
-model BuddyInteraction {
-  id               String   @id @default(uuid())
-  buddyId          String
-  userId           String
-  interactionType  String   // conversation, quiz, encouragement, challenge, celebration
-  content          Json     // Interaction content
-  userResponse     String?  // User's response
-  effectiveness    Float    @default(0) // 0-1 effectiveness score
-  createdAt        DateTime @default(now())
-  buddy            StudyBuddy @relation(fields: [buddyId], references: [buddyId], onDelete: Cascade)
-  
-  @@index([buddyId, userId])
-  @@index([interactionType])
-}
-
-model BuddyAdjustment {
-  id              String   @id @default(uuid())
-  buddyId         String
-  adjustmentType  String   // personality, communication, strictness
-  parameters      Json     // What was adjusted
-  reason          String   // Why it was adjusted
-  impact          Float?   // Measured impact
-  createdAt       DateTime @default(now())
-  buddy           StudyBuddy @relation(fields: [buddyId], references: [buddyId], onDelete: Cascade)
-  
-  @@index([buddyId])
-}
-
-// Quantum Learning Paths
-model QuantumLearningPath {
-  id               String   @id @default(uuid())
-  pathId           String   @unique
-  userId           String
-  learningGoal     String
-  superposition    Json     // Possible path states
-  entanglements    Json     // Path entanglements
-  probability      Json     // Success probabilities
-  coherenceLevel   Float    @default(1.0)
-  collapsed        Boolean  @default(false)
-  collapse         Json?    // Final collapsed state
-  finalStateId     String?  // ID of final quantum state
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  observations     QuantumObservation[]
-  
-  @@index([userId, isActive])
-  @@index([pathId])
-}
-
-model QuantumObservation {
-  id              String   @id @default(uuid())
-  pathId          String
-  observationId   String   @unique
-  observationType String   // progress_check, assessment, interaction
-  observer        String   // userId or system
-  impact          Json     // Observation impact on path
-  createdAt       DateTime @default(now())
-  path            QuantumLearningPath @relation(fields: [pathId], references: [pathId], onDelete: Cascade)
-  
-  @@index([pathId])
-  @@index([observationId])
-}
-
-// GDPR Compliance Models
-model UserConsent {
-  id           String    @id @default(cuid())
-  userId       String
-  consentType  String    // MARKETING, ANALYTICS, PERSONALIZATION, etc.
-  granted      Boolean
-  purpose      String?   // Purpose of data processing
-  grantedAt    DateTime? // When consent was granted
-  withdrawnAt  DateTime? // When consent was withdrawn
-  expiresAt    DateTime? // When consent expires
-  ipAddress    String?   // IP address when consent was given
-  version      String    // Version of consent terms
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, consentType])
-  @@index([granted])
-  @@map("user_consents")
-}
-
-model GDPRRequest {
-  id             String    @id @default(cuid())
-  userId         String
-  requestType    String    // DATA_ACCESS, DATA_PORTABILITY, DATA_DELETION, etc.
-  status         String    // PENDING, IN_PROGRESS, COMPLETED, REJECTED
-  requestedAt    DateTime  @default(now())
-  completedAt    DateTime?
-  reason         String?   // Reason for request
-  responseData   Json?     // Response data for access requests
-  verificationToken String? // Token for email verification
-  processedBy    String?   // Admin who processed the request
-  notes          String?   // Admin notes
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, status])
-  @@index([requestType, status])
-  @@map("gdpr_requests")
-}
-
-model DataProcessingActivity {
-  id                String   @id @default(cuid())
-  name              String   // Name of processing activity
-  purpose           String   // Purpose of processing
-  legalBasis        String   // Legal basis (consent, contract, legitimate interest, etc.)
-  dataCategories    String[] // Categories of data processed
-  dataSubjects      String[] // Categories of data subjects
-  recipients        String[] // Recipients or categories of recipients
-  retentionPeriod   String   // Data retention period
-  securityMeasures  String   // Technical and organizational measures
-  thirdCountryTransfers Boolean @default(false)
-  transferSafeguards String? // Safeguards for third country transfers
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@map("data_processing_activities")
-}
-
-model PrivacyPolicy {
-  id          String   @id @default(cuid())
-  version     String   @unique
-  content     String   @db.Text
-  effectiveDate DateTime
-  isActive    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([isActive, effectiveDate])
-  @@map("privacy_policies")
-}
-
-model DataBreach {
-  id               String    @id @default(cuid())
-  incidentDate     DateTime
-  discoveryDate    DateTime
-  reportedDate     DateTime?
-  severity         String    // LOW, MEDIUM, HIGH, CRITICAL
-  affectedUsers    Int
-  dataTypes        String[]  // Types of data affected
-  description      String    @db.Text
-  cause            String    // Human error, system failure, malicious attack, etc.
-  measures         String    @db.Text // Measures taken
-  notifications    Json?     // Notification details
-  status           String    // DETECTED, CONTAINED, RESOLVED
-  reportedToAuthority Boolean @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  @@map("data_breaches")
-}
-
-// Social Learning and Mentorship Models
-model SocialLearningAnalysis {
-  id               String    @id @default(cuid())
-  groupId          String?   // Reference to Group if analyzing group
-  communityId      String?   // Reference to community/course if analyzing community
-  analysisType     String    // effectiveness, engagement, knowledge-sharing, group-dynamics
-  metrics          Json      // JSON storage for complex metrics
-  overallScore     Float     // Overall score for quick queries
-  analyzedAt       DateTime  @default(now())
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  
-  // Relations
-  group            Group?    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  
-  @@index([groupId])
-  @@index([communityId])
-  @@index([analysisType])
-  @@index([analyzedAt])
-  @@map("social_learning_analyses")
-}
-
-model MentorMenteeMatch {
-  id                  String    @id @default(cuid())
-  mentorId            String    // User ID of the mentor
-  menteeId            String    // User ID of the mentee
-  compatibilityScore  Float     // Compatibility score (0-1)
-  matchingFactors     Json      // JSON storage for matching factors
-  suggestedActivities Json      // JSON storage for suggested activities
-  status              String    // proposed, accepted, active, completed, cancelled
-  startDate           DateTime? // When the mentorship started
-  endDate             DateTime? // When the mentorship ended
-  feedback            Json?     // Feedback from both parties
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  
-  // Relations
-  mentor              User      @relation("MentorMatches", fields: [mentorId], references: [id], onDelete: Cascade)
-  mentee              User      @relation("MenteeMatches", fields: [menteeId], references: [id], onDelete: Cascade)
-  
-  @@unique([mentorId, menteeId]) // Prevent duplicate matches
-  @@index([mentorId])
-  @@index([menteeId])
-  @@index([status])
-  @@index([compatibilityScore])
-  @@map("mentor_mentee_matches")
+  @@index([completionRate])
+  @@index([averageScore])
+  @@index([lastAnalyzed])
 }

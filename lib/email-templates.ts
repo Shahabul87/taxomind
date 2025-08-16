@@ -5,7 +5,7 @@ export interface CourseEnrollmentEmailData {
     name: string;
     email: string;
   };
-  Course: {
+  course: {
     title: string;
     description?: string;
     price?: number;
@@ -230,7 +230,7 @@ export const generateEnrollmentConfirmationEmail = (data: CourseEnrollmentEmailD
 
     Congratulations! You've successfully enrolled in your new course.
 
-    Course: ${course.title}
+    course: ${course.title}
     Enrolled on: ${enrollmentDate.toLocaleDateString()}
     ${course.price && course.price > 0 ? `Investment: $${course.price}` : 'Type: Free Course'}
 

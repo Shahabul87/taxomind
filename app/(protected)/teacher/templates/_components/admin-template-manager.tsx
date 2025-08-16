@@ -130,7 +130,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
       } else {
         toast.error(data.error || "Failed to fetch templates");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to fetch templates");
     } finally {
       setIsLoading(false);
@@ -152,7 +152,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
       } else {
         logger.error("Failed to fetch analytics");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to fetch analytics");
     }
   };
@@ -171,7 +171,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
       } else {
         toast.error("Failed to mark template as official");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to mark template as official");
     }
   };
@@ -190,7 +190,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
       } else {
         toast.error("Failed to update template visibility");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to update template visibility");
     }
   };
@@ -207,7 +207,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
       } else {
         toast.error("Failed to delete template");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to delete template");
     }
   };
@@ -231,7 +231,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
       } else {
         toast.error("Failed to export templates");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to export templates");
     }
   };
@@ -258,7 +258,7 @@ export function AdminTemplateManager({ className }: AdminTemplateManagerProps) {
       } else {
         toast.error(result.error || "Failed to import templates");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to import templates");
     }
   };

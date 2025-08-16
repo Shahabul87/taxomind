@@ -33,7 +33,7 @@ export default function TestNestedReplies({ postId }: { postId: string }) {
 
       setResponse(result.data);
       toast.success('Nested reply created successfully');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating nested reply:', error);
       toast.error('Failed to create nested reply');
       setResponse(error);

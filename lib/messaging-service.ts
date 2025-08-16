@@ -67,7 +67,7 @@ export class MessagingService {
       });
 
       return { success: true, message };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error sending message:', error);
       return { success: false, error: 'Failed to send message' };
     }
@@ -128,7 +128,7 @@ export class MessagingService {
         },
         unreadCount,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching user messages:', error);
       return { success: false, error: 'Failed to fetch messages' };
     }
@@ -171,7 +171,7 @@ export class MessagingService {
       });
 
       return { success: true, messages };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching conversation:', error);
       return { success: false, error: 'Failed to fetch conversation' };
     }
@@ -193,7 +193,7 @@ export class MessagingService {
       });
 
       return { success: true, message };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error marking message as read:', error);
       return { success: false, error: 'Failed to mark message as read' };
     }
@@ -215,7 +215,7 @@ export class MessagingService {
       });
 
       return { success: true, count: result.count };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error marking all messages as read:', error);
       return { success: false, error: 'Failed to mark all messages as read' };
     }
@@ -246,7 +246,7 @@ export class MessagingService {
       });
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error deleting message:', error);
       return { success: false, error: 'Failed to delete message' };
     }
@@ -265,7 +265,7 @@ export class MessagingService {
       });
 
       return { success: true, count };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting unread count:', error);
       return { success: false, error: 'Failed to get unread count' };
     }
@@ -323,7 +323,7 @@ export class MessagingService {
       }));
 
       return { success: true, conversations };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching recent conversations:', error);
       return { success: false, error: 'Failed to fetch recent conversations' };
     }
@@ -384,7 +384,7 @@ export class MessagingService {
       });
 
       return { success: true, messages };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error searching messages:', error);
       return { success: false, error: 'Failed to search messages' };
     }
@@ -400,7 +400,7 @@ export class MessagingService {
       // In a real implementation, you'd create a BlockedUsers model
       
       return { success: true, message: 'User blocking feature requires BlockedUsers table implementation' };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error blocking user:', error);
       return { success: false, error: 'Failed to block user' };
     }
@@ -414,7 +414,7 @@ export class MessagingService {
       // This would check the BlockedUsers table
       // For now, return false
       return { success: true, isBlocked: false };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error checking if user is blocked:', error);
       return { success: false, error: 'Failed to check block status' };
     }

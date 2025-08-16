@@ -5,17 +5,17 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
-  IconBrandFacebook,
-  IconBrandTwitter,
-  IconBrandInstagram,
-  IconBrandLinkedin,
-  IconBrandGithub,
-  IconBrandYoutube,
-  IconBrandTwitch,
-  IconBrandDiscord,
-  IconBrandTiktok,
-  IconWorld,
-} from "@tabler/icons-react";
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  Github,
+  Youtube,
+  Twitch,
+  MessageCircle,
+  Music,
+  Globe,
+} from "lucide-react";
 
 interface ProfileLinkProps {
   profileLink: {
@@ -30,16 +30,16 @@ interface ProfileLinkProps {
 }
 
 const platformIcons: { [key: string]: React.ReactNode } = {
-  facebook: <IconBrandFacebook className="w-5 h-5" />,
-  twitter: <IconBrandTwitter className="w-5 h-5" />,
-  instagram: <IconBrandInstagram className="w-5 h-5" />,
-  linkedin: <IconBrandLinkedin className="w-5 h-5" />,
-  github: <IconBrandGithub className="w-5 h-5" />,
-  youtube: <IconBrandYoutube className="w-5 h-5" />,
-  twitch: <IconBrandTwitch className="w-5 h-5" />,
-  discord: <IconBrandDiscord className="w-5 h-5" />,
-  tiktok: <IconBrandTiktok className="w-5 h-5" />,
-  website: <IconWorld className="w-5 h-5" />,
+  facebook: <Facebook className="w-5 h-5" />,
+  twitter: <Twitter className="w-5 h-5" />,
+  instagram: <Instagram className="w-5 h-5" />,
+  linkedin: <Linkedin className="w-5 h-5" />,
+  github: <Github className="w-5 h-5" />,
+  youtube: <Youtube className="w-5 h-5" />,
+  twitch: <Twitch className="w-5 h-5" />,
+  discord: <MessageCircle className="w-5 h-5" />,
+  tiktok: <Music className="w-5 h-5" />,
+  website: <Globe className="w-5 h-5" />,
 };
 
 const MySocialMediaCard = ({ profileLink }: ProfileLinkProps) => {

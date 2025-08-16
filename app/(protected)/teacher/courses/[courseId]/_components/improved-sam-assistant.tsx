@@ -225,7 +225,7 @@ export function ImprovedSamAssistant({
   const saveConversation = useCallback((msgs: ChatMessage[]) => {
     try {
       localStorage.setItem(conversationKey, JSON.stringify(msgs));
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to save conversation:', error);
     }
   }, [conversationKey]);
@@ -241,7 +241,7 @@ export function ImprovedSamAssistant({
           timestamp: new Date(msg.timestamp)
         }));
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to load conversation:', error);
     }
     return [];
@@ -435,7 +435,7 @@ How can I help you improve your course today?`;
       
       setMessages(prev => [...prev, samMessage]);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('SAM Error:', error);
       
       const errorMessage: ChatMessage = {

@@ -805,7 +805,7 @@ export class CognitiveLoadAnalyzer {
 
   private analyzeContentComplexity(contentData: any): number {
     // Simple complexity analysis based on content metadata
-    const complexityMap = {
+    const complexityMap: Record<string, number> = {
       'beginner': 0.2,
       'intermediate': 0.5,
       'advanced': 0.8,
@@ -821,7 +821,7 @@ export class CognitiveLoadAnalyzer {
   }
 
   private analyzeAbstractionLevel(contentData: any): number {
-    const abstractionMap = {
+    const abstractionMap: Record<string, number> = {
       'concrete': 0.2,
       'representational': 0.5,
       'abstract': 0.8
@@ -836,7 +836,7 @@ export class CognitiveLoadAnalyzer {
 
   private analyzeLanguageComplexity(contentData: any): number {
     // Placeholder - would analyze reading level and language complexity
-    const readingLevelMap = {
+    const readingLevelMap: Record<string, number> = {
       'elementary': 0.2,
       'middle': 0.4,
       'high': 0.6,
@@ -1066,7 +1066,7 @@ export class CognitiveLoadAnalyzer {
         600, // 10 minutes TTL
         JSON.stringify(assessment)
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to cache assessment:', error);
     }
 

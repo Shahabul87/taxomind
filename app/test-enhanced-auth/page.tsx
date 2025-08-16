@@ -1,7 +1,7 @@
 "use client";
 
 import { useCurrentUser, useCurrentRole, useHasPermission } from "@/hooks/use-enhanced-auth";
-import { AdminGuard, TeacherGuard, StudentGuard, PermissionGuard, RoleBadge } from "@/components/auth/enhanced-role-guard";
+import { AdminGuard, UserGuard, UserOrAdminGuard, PermissionGuard, RoleBadge } from "@/components/auth/enhanced-role-guard";
 import { UserRole, Permission } from "@/types/auth";
 import { getRolePermissions } from "@/lib/auth/permissions";
 import Link from 'next/link';
@@ -104,12 +104,12 @@ export default function TestEnhancedAuth() {
             </AdminGuard>
           </div>
 
-          {/* Teacher Section */}
+          {/* User Section */}
           <div className="border border-green-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-green-800 mb-2">👩‍🏫 Teacher Section</h3>
-            <TeacherGuard fallback={<p className="text-green-600 italic">❌ Access denied - Teacher role required</p>}>
+            <h3 className="text-lg font-semibold text-green-800 mb-2">👤 User Section</h3>
+            <UserGuard fallback={<p className="text-green-600 italic">❌ Access denied - User role required</p>}>
               <div className="bg-green-50 p-3 rounded border border-green-200">
-                <p className="text-green-800">✅ Welcome Teacher! You can manage courses.</p>
+                <p className="text-green-800">✅ Welcome User! You can manage your content.</p>
                 <div className="mt-2 space-x-2">
                   <button className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600">
                     Create Course
@@ -119,25 +119,25 @@ export default function TestEnhancedAuth() {
                   </button>
                 </div>
               </div>
-            </TeacherGuard>
+            </UserGuard>
           </div>
 
-          {/* Student Section */}
+          {/* User or Admin Section */}
           <div className="border border-blue-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-blue-800 mb-2">👨‍🎓 Student Section</h3>
-            <StudentGuard fallback={<p className="text-blue-600 italic">❌ Access denied - Student role required</p>}>
+            <h3 className="text-lg font-semibold text-blue-800 mb-2">👥 User or Admin Section</h3>
+            <UserOrAdminGuard fallback={<p className="text-blue-600 italic">❌ Access denied - User or Admin role required</p>}>
               <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                <p className="text-blue-800">✅ Welcome Student! You can access learning content.</p>
+                <p className="text-blue-800">✅ Welcome! You have access to this content.</p>
                 <div className="mt-2 space-x-2">
                   <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-                    My Courses
+                    View Content
                   </button>
                   <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-                    My Progress
+                    Manage Resources
                   </button>
                 </div>
               </div>
-            </StudentGuard>
+            </UserOrAdminGuard>
           </div>
 
           {/* Permission-based Section */}

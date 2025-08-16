@@ -220,7 +220,7 @@ export const WhatYouWillLearnForm = ({
       }
       
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Save error:", error);
       toast.error("Something went wrong");
       // Revert the state
@@ -251,7 +251,7 @@ export const WhatYouWillLearnForm = ({
       toast.success("Learning objective deleted");
       remove(index);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Delete error:", error);
       toast.error("Something went wrong");
     } finally {
@@ -296,7 +296,7 @@ export const WhatYouWillLearnForm = ({
           isNew: false,
           isSaving: false
         });
-      } catch (error) {
+      } catch (error: any) {
         logger.error("Add suggestion error:", error);
         toast.error("Something went wrong");
         // Remove if failed
@@ -326,7 +326,7 @@ export const WhatYouWillLearnForm = ({
       
       toast.success("Learning objectives reordered");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Reorder error:", error);
       toast.error("Failed to reorder objectives");
     } finally {

@@ -150,12 +150,12 @@ export interface ContentMetadata {
   readingLevel: ReadingLevel;
   culturalContext: string[];
   domainSpecific: boolean;
-  updateFrequency: UpdateFrequency;
+  updateFrequency: ContentUpdateFrequency;
   versionControl: VersionInfo;
 }
 
 export type ReadingLevel = 'elementary' | 'middle' | 'high_school' | 'college' | 'graduate';
-export type UpdateFrequency = 'static' | 'quarterly' | 'monthly' | 'weekly' | 'dynamic';
+export type ContentUpdateFrequency = 'static' | 'quarterly' | 'monthly' | 'weekly' | 'dynamic';
 
 export interface VersionInfo {
   version: string;
@@ -1277,6 +1277,8 @@ export interface FallbackStrategy {
 export type FallbackType = 'retry' | 'skip' | 'alternative' | 'manual' | 'abort';
 export type FallbackAction = 'continue' | 'repeat' | 'redirect' | 'pause' | 'exit';
 
+export type AdaptationType = 'content' | 'difficulty' | 'pacing' | 'modality' | 'scaffolding' | 'assessment';
+
 export interface SegmentAdaptation {
   id: string;
   type: AdaptationType;
@@ -1359,6 +1361,8 @@ export interface AlertEscalation {
   levels: EscalationLevel[];
   termination: EscalationTermination;
 }
+
+export type EscalationAction = 'notify' | 'escalate' | 'pause' | 'rollback' | 'terminate';
 
 export interface EscalationLevel {
   threshold: number;
@@ -1696,6 +1700,8 @@ export interface ActionEffect {
   duration: number; // milliseconds
   reversible: boolean;
 }
+
+export type ChangeType = 'increase' | 'decrease' | 'modify' | 'replace' | 'toggle';
 
 export interface EffectChange {
   type: ChangeType;
@@ -2037,6 +2043,13 @@ export interface ErrorPattern {
   remediation: string;
 }
 
+export interface OptimizationAnalytics {
+  opportunities: OptimizationOpportunity[];
+  implemented: OptimizationImplemented[];
+  effectiveness: OptimizationEffectiveness;
+  recommendations: OptimizationRecommendation[];
+}
+
 export interface EfficiencyAnalytics {
   timeToCompletion: TimeAnalytics;
   resourceUtilization: ResourceAnalytics;
@@ -2165,6 +2178,8 @@ export interface LoadOptimization {
   recommendations: OptimizationRecommendation[];
 }
 
+export type ImplementationEffort = 'minimal' | 'low' | 'medium' | 'high' | 'extensive';
+
 export interface OptimizationOpportunity {
   type: OptimizationType;
   potential: number; // 0-1
@@ -2196,6 +2211,22 @@ export interface OptimizationRecommendation {
   priority: number; // 0-1
   effort: ImplementationEffort;
   impact: number; // 0-1
+}
+
+export interface AdaptationAnalytics {
+  frequency: number;
+  effectiveness: number; // 0-1
+  types: AdaptationType[];
+  triggers: AdaptationTriggerAnalytics[];
+  outcomes: AdaptationOutcomeAnalytics;
+}
+
+export interface PredictionAnalytics {
+  accuracy: number; // 0-1
+  confidence: number; // 0-1
+  horizon: number; // days
+  factors: string[];
+  reliability: number; // 0-1
 }
 
 export interface ProgressionAnalytics {
@@ -2547,6 +2578,8 @@ export interface AdaptationOutcomeAnalytics {
   satisfaction: number; // 0-1
   sideEffects: string[];
 }
+
+export type RecommendationType = 'content' | 'pacing' | 'difficulty' | 'scaffolding' | 'assessment' | 'sequence' | 'engagement';
 
 export interface AnalyticsRecommendation {
   id: string;

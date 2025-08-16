@@ -1,3 +1,5 @@
+"use server";
+
 import { db } from "@/lib/db";
 
 export const getProgress = async (
@@ -27,11 +29,13 @@ export const getProgress = async (
       }
     });
 
-    const progressPercentage = (validCompletedChapters / publishedChapterIds.length) * 100;
+    const progressPercentage = publishedChapterIds.length > 0 
+      ? (validCompletedChapters / publishedChapterIds.length) * 100
+      : 0;
 
     return progressPercentage;
-  } catch (error) {
-
+  } catch (error: any) {
+    console.error('[GET_PROGRESS_ERROR]', error);
     return 0;
   }
 }

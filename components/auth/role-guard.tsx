@@ -40,25 +40,25 @@ export function RoleGuard({
   return <>{children}</>;
 }
 
-export function StudentGuard({ children }: { children: React.ReactNode }) {
+export function UserGuard({ children }: { children: React.ReactNode }) {
   return (
-    <RoleGuard allowedRoles={UserRole.STUDENT}>
+    <RoleGuard allowedRoles={UserRole.USER}>
       {children}
     </RoleGuard>
   );
 }
 
-export function TeacherGuard({ children }: { children: React.ReactNode }) {
+export function AdminGuard({ children }: { children: React.ReactNode }) {
   return (
-    <RoleGuard allowedRoles={UserRole.TEACHER}>
+    <RoleGuard allowedRoles={UserRole.ADMIN}>
       {children}
     </RoleGuard>
   );
 }
 
-export function TeacherOrAdminGuard({ children }: { children: React.ReactNode }) {
+export function UserOrAdminGuard({ children }: { children: React.ReactNode }) {
   return (
-    <RoleGuard allowedRoles={[UserRole.TEACHER, UserRole.ADMIN]}>
+    <RoleGuard allowedRoles={[UserRole.USER, UserRole.ADMIN]}>
       {children}
     </RoleGuard>
   );

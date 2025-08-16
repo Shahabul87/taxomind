@@ -35,13 +35,12 @@ export function initializeTracing() {
     ],
   });
 
-  sdk.start()
-    .then(() => {
-
-    })
-    .catch((error) => {
-      logger.error('Error initializing OpenTelemetry:', error);
-    });
+  try {
+    sdk.start();
+    logger.info('OpenTelemetry initialized successfully');
+  } catch (error: any) {
+    logger.error('Error initializing OpenTelemetry:', error);
+  }
 
   // Graceful shutdown
   process.on('SIGTERM', () => {

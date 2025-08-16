@@ -1,3 +1,5 @@
+"use server";
+
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
@@ -16,6 +18,10 @@ export type SimplePost = {
   user?: {
     name: string | null;
   };
+};
+
+export const getSimplePosts = async (params?: any): Promise<SimplePost[]> => {
+  return getSimplePostsForBlog();
 };
 
 export const getSimplePostsForBlog = async (): Promise<SimplePost[]> => {
@@ -63,7 +69,7 @@ export const getSimplePostsForBlog = async (): Promise<SimplePost[]> => {
 
     return transformedPosts;
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error("💥 [SIMPLE_POSTS] Error fetching posts:", error);
     return [];
   }

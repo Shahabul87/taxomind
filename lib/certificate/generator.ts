@@ -5,7 +5,9 @@ import html2canvas from 'html2canvas';
 export enum CertificateType {
   COURSE_COMPLETION = "COURSE_COMPLETION",
   ACHIEVEMENT = "ACHIEVEMENT",
-  PARTICIPATION = "PARTICIPATION"
+  PARTICIPATION = "PARTICIPATION",
+  SKILL_MASTERY = "SKILL_MASTERY",
+  EXCELLENCE = "EXCELLENCE"
 }
 
 export interface CertificateData {

@@ -76,7 +76,7 @@ export const MyLearningPaths = ({ userId }: MyLearningPathsProps) => {
       setLoading(true);
       const response = await axios.get("/api/learning-paths/enrollments");
       setEnrollments(response.data.enrollments || []);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to fetch enrollments:", error);
       toast.error("Failed to load learning paths");
     } finally {
@@ -91,7 +91,7 @@ export const MyLearningPaths = ({ userId }: MyLearningPathsProps) => {
       });
       toast.success(`Path ${status.toLowerCase()}`);
       fetchEnrollments();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to update enrollment status:", error);
       toast.error("Failed to update status");
     }

@@ -6,30 +6,31 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import {
-  IconHome,
-  IconBook,
-  IconUser,
-  IconSettings,
-  IconChartBar,
-  IconMenu2,
-  IconX,
-  IconSearch,
-  IconBell,
-  IconMessage,
-  IconHeart,
-  IconBookmark,
-  IconLogout,
-  IconChevronRight,
-  IconChevronDown,
-  IconDashboard,
-  IconUsers,
-  IconNews,
-  IconBrain,
-  IconLibrary,
-  IconHelpCircle,
-  IconMessageCircle,
-  IconCalendar
-} from '@tabler/icons-react';
+  Home,
+  BookOpen,
+  User,
+  Settings,
+  BarChart3,
+  Menu,
+  X,
+  Search,
+  Bell,
+  MessageSquare,
+  Heart,
+  Bookmark,
+  LogOut,
+  ChevronRight,
+  ChevronDown,
+  LayoutDashboard,
+  Users,
+  Newspaper,
+  Brain,
+  Library,
+  HelpCircle,
+  MessageCircle,
+  Calendar,
+  Plus
+} from 'lucide-react';
 
 interface NavItem {
   id: string;
@@ -63,80 +64,80 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
       {
         id: 'dashboard',
         label: 'Dashboard',
-        icon: <IconDashboard className="w-5 h-5" />,
+        icon: <LayoutDashboard className="w-5 h-5" />,
         href: user?.role === 'ADMIN' ? '/dashboard/admin' : '/dashboard/user'
       },
       {
         id: 'courses',
         label: 'Courses',
-        icon: <IconBook className="w-5 h-5" />,
+        icon: <BookOpen className="w-5 h-5" />,
         submenu: [
-          { id: 'my-courses', label: 'My Courses', icon: <IconBook className="w-4 h-4" />, href: '/my-courses' },
-          { id: 'all-courses', label: 'All Courses', icon: <IconSearch className="w-4 h-4" />, href: '/teacher/courses' },
-          { id: 'create-course', label: 'Create Course', icon: <IconPlus className="w-4 h-4" />, href: '/teacher/create', roles: ['TEACHER', 'ADMIN'] }
+          { id: 'my-courses', label: 'My Courses', icon: <BookOpen className="w-4 h-4" />, href: '/my-courses' },
+          { id: 'all-courses', label: 'All Courses', icon: <Search className="w-4 h-4" />, href: '/teacher/courses' },
+          { id: 'create-course', label: 'Create Course', icon: <Plus className="w-4 h-4" />, href: '/teacher/create', roles: ['USER', 'ADMIN'] }
         ]
       },
       {
         id: 'posts',
         label: 'Posts',
-        icon: <IconNews className="w-5 h-5" />,
+        icon: <Newspaper className="w-5 h-5" />,
         submenu: [
-          { id: 'my-posts', label: 'My Posts', icon: <IconNews className="w-4 h-4" />, href: '/post/all-posts' },
-          { id: 'browse-posts', label: 'Browse Posts', icon: <IconSearch className="w-4 h-4" />, href: '/post' },
-          { id: 'create-post', label: 'Create Post', icon: <IconPlus className="w-4 h-4" />, href: '/post/create-post' }
+          { id: 'my-posts', label: 'My Posts', icon: <Newspaper className="w-4 h-4" />, href: '/post/all-posts' },
+          { id: 'browse-posts', label: 'Browse Posts', icon: <Search className="w-4 h-4" />, href: '/post' },
+          { id: 'create-post', label: 'Create Post', icon: <Plus className="w-4 h-4" />, href: '/post/create-post' }
         ]
       },
       {
         id: 'analytics',
         label: 'Analytics',
-        icon: <IconChartBar className="w-5 h-5" />,
+        icon: <BarChart3 className="w-5 h-5" />,
         href: user?.role === 'ADMIN' ? '/analytics/admin' : '/analytics/student'
       },
       {
         id: 'groups',
         label: 'Groups',
-        icon: <IconUsers className="w-5 h-5" />,
+        icon: <Users className="w-5 h-5" />,
         submenu: [
-          { id: 'my-groups', label: 'My Groups', icon: <IconUsers className="w-4 h-4" />, href: '/groups/my-groups' },
-          { id: 'browse-groups', label: 'Browse Groups', icon: <IconSearch className="w-4 h-4" />, href: '/groups' },
-          { id: 'create-group', label: 'Create Group', icon: <IconPlus className="w-4 h-4" />, href: '/groups/create' }
+          { id: 'my-groups', label: 'My Groups', icon: <Users className="w-4 h-4" />, href: '/groups/my-groups' },
+          { id: 'browse-groups', label: 'Browse Groups', icon: <Search className="w-4 h-4" />, href: '/groups' },
+          { id: 'create-group', label: 'Create Group', icon: <Plus className="w-4 h-4" />, href: '/groups/create' }
         ]
       },
       {
         id: 'ai-tutor',
         label: 'AI Tutor',
-        icon: <IconBrain className="w-5 h-5" />,
+        icon: <Brain className="w-5 h-5" />,
         href: '/ai-tutor'
       },
       {
         id: 'resources',
         label: 'Resources',
-        icon: <IconLibrary className="w-5 h-5" />,
+        icon: <Library className="w-5 h-5" />,
         href: '/resources'
       },
       {
         id: 'messages',
         label: 'Messages',
-        icon: <IconMessageCircle className="w-5 h-5" />,
+        icon: <MessageCircle className="w-5 h-5" />,
         href: '/messages',
         badge: 2
       },
       {
         id: 'profile',
         label: 'Profile',
-        icon: <IconUser className="w-5 h-5" />,
+        icon: <User className="w-5 h-5" />,
         href: '/profile'
       },
       {
         id: 'settings',
         label: 'Settings',
-        icon: <IconSettings className="w-5 h-5" />,
+        icon: <Settings className="w-5 h-5" />,
         href: '/settings'
       },
       {
         id: 'support',
         label: 'Support',
-        icon: <IconHelpCircle className="w-5 h-5" />,
+        icon: <HelpCircle className="w-5 h-5" />,
         href: '/support'
       }
     ];
@@ -217,7 +218,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
             className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors"
             aria-label="Open menu"
           >
-            <IconMenu2 className="w-6 h-6 text-slate-300" />
+            <Menu className="w-6 h-6 text-slate-300" />
           </button>
 
           {/* Logo */}
@@ -234,7 +235,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
               className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors relative"
               aria-label="Notifications"
             >
-              <IconBell className="w-5 h-5 text-slate-300" />
+              <Bell className="w-5 h-5 text-slate-300" />
               {notifications > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {notifications}
@@ -245,7 +246,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
               className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors"
               aria-label="Search"
             >
-              <IconSearch className="w-5 h-5 text-slate-300" />
+              <Search className="w-5 h-5 text-slate-300" />
             </button>
           </div>
         </div>
@@ -293,7 +294,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
                   className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors"
                   aria-label="Close menu"
                 >
-                  <IconX className="w-5 h-5 text-slate-300" />
+                  <X className="w-5 h-5 text-slate-300" />
                 </button>
               </div>
 
@@ -318,7 +319,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
               {/* Search */}
               <div className="p-4 border-b border-slate-800">
                 <div className="relative">
-                  <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search..."
@@ -355,7 +356,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
                           animate={{ rotate: expandedItems.includes(item.id) ? 180 : 0 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <IconChevronDown className="w-4 h-4" />
+                          <ChevronDown className="w-4 h-4" />
                         </motion.div>
                       )}
                     </button>
@@ -401,7 +402,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
                   }}
                   className="w-full flex items-center space-x-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                 >
-                  <IconLogout className="w-5 h-5" />
+                  <LogOut className="w-5 h-5" />
                   <span>Sign Out</span>
                 </button>
               </div>
@@ -414,11 +415,11 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800">
         <div className="flex items-center justify-around py-2">
           {[
-            { icon: <IconHome className="w-5 h-5" />, label: 'Home', href: '/' },
-            { icon: <IconBook className="w-5 h-5" />, label: 'Courses', href: '/my-courses' },
-            { icon: <IconSearch className="w-5 h-5" />, label: 'Search', href: '/search' },
-            { icon: <IconMessage className="w-5 h-5" />, label: 'Messages', href: '/messages', badge: 2 },
-            { icon: <IconUser className="w-5 h-5" />, label: 'Profile', href: '/profile' }
+            { icon: <Home className="w-5 h-5" />, label: 'Home', href: '/' },
+            { icon: <BookOpen className="w-5 h-5" />, label: 'Courses', href: '/my-courses' },
+            { icon: <Search className="w-5 h-5" />, label: 'Search', href: '/search' },
+            { icon: <MessageSquare className="w-5 h-5" />, label: 'Messages', href: '/messages', badge: 2 },
+            { icon: <User className="w-5 h-5" />, label: 'Profile', href: '/profile' }
           ].map((item, index) => (
             <Link
               key={index}
@@ -552,18 +553,10 @@ export function FloatingActionMenu({
           animate={{ rotate: isOpen ? 45 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <IconPlus className="w-6 h-6" />
+          <Plus className="w-6 h-6" />
         </motion.div>
       </motion.button>
     </div>
   );
 }
 
-// Plus icon component (since it's not imported)
-function IconPlus({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-    </svg>
-  );
-}

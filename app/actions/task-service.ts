@@ -51,7 +51,7 @@ export const TaskService = {
     try {
       const response = await axios.get('/api/tasks');
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching tasks:', error);
       throw error;
     }
@@ -62,7 +62,7 @@ export const TaskService = {
     try {
       const response = await axios.post('/api/tasks', taskData);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating task:', error);
       throw error;
     }
@@ -73,7 +73,7 @@ export const TaskService = {
     try {
       const response = await axios.patch('/api/tasks', taskData);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error updating task:', error);
       throw error;
     }
@@ -84,7 +84,7 @@ export const TaskService = {
     try {
       const response = await axios.patch('/api/tasks', { id, completed });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error toggling task completion:', error);
       throw error;
     }
@@ -94,7 +94,7 @@ export const TaskService = {
   deleteTask: async (id: string): Promise<void> => {
     try {
       await axios.delete(`/api/tasks?taskId=${id}`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error deleting task:', error);
       throw error;
     }
@@ -112,7 +112,7 @@ export const TaskService = {
         const dueDate = new Date(task.dueDate);
         return !task.completed && dueDate >= now && dueDate <= future;
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching upcoming tasks:', error);
       throw error;
     }
@@ -128,7 +128,7 @@ export const TaskService = {
         const dueDate = new Date(task.dueDate);
         return !task.completed && dueDate < now;
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching overdue tasks:', error);
       throw error;
     }
@@ -147,7 +147,7 @@ export const TaskService = {
           dueDate.getMonth() === today.getMonth() &&
           dueDate.getFullYear() === today.getFullYear();
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching tasks due today:', error);
       throw error;
     }

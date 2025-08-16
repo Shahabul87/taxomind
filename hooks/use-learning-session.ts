@@ -104,7 +104,7 @@ export function useLearningSession(): LearningSessionHook {
       if (!response.data.success) {
         logger.error('Failed to update session progress');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update session progress:', error);
     }
   }, [sessionId, engagementScore, interactionCount, pauseCount, seekCount, strugglingIndicators]);
@@ -122,7 +122,7 @@ export function useLearningSession(): LearningSessionHook {
           seekCount,
           strugglingIndicators
         });
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to send periodic update:', error);
       }
     }, 60000); // Update every minute
@@ -169,7 +169,7 @@ export function useLearningSession(): LearningSessionHook {
         setStrugglingIndicators([]);
 
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to start learning session:', error);
     }
   }, []);
@@ -212,7 +212,7 @@ export function useLearningSession(): LearningSessionHook {
         setIsTracking(false);
 
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to end learning session:', error);
     }
   }, [sessionId, engagementScore, interactionCount, pauseCount, seekCount, strugglingIndicators]);

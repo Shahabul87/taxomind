@@ -314,7 +314,7 @@ function generateGoalRecommendations(
 }
 
 // Helper functions
-function calculateCourseCompletionRate(Course: any): number {
+function calculateCourseCompletionRate(course: any): number {
   if (!course.chapters) return 0;
   
   const totalSections = course.chapters.reduce(

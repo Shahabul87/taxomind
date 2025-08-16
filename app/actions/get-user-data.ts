@@ -37,7 +37,7 @@ export const getUserData = async (userId: string) => {
     });
 
     return userData;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_USER_DATA_ERROR]", error);
     return null;
   }

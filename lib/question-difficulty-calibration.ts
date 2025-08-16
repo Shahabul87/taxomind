@@ -1,5 +1,5 @@
 /**
- * Question QuestionDifficulty Auto-Calibration System
+ * Question Difficulty Auto-Calibration System
  * 
  * This module automatically calibrates question difficulty based on student
  * performance data, ensuring optimal challenge levels within each Bloom's taxonomy level.
@@ -514,9 +514,9 @@ export class QuestionQuestionDifficultyCalibrator {
     
     const thresholds = baseThresholds[bloomsLevel];
     
-    if (estimatedQuestionDifficulty <= thresholds.easy) return 'easy';
-    if (estimatedQuestionDifficulty <= thresholds.medium) return 'medium';
-    return 'hard';
+    if (estimatedQuestionDifficulty <= thresholds.easy) return 'EASY';
+    if (estimatedQuestionDifficulty <= thresholds.medium) return 'MEDIUM';
+    return 'HARD';
   }
 
   private calculateCalibrationConfidence(data: QuestionCalibrationData, modelResult: any): number {
@@ -533,7 +533,7 @@ export class QuestionQuestionDifficultyCalibrator {
     metrics: any
   ): CalibrationImpact {
     
-    const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
+    const difficultyOrder: Record<QuestionDifficulty, number> = { EASY: 1, MEDIUM: 2, HARD: 3 };
     const change = difficultyOrder[newQuestionDifficulty] - difficultyOrder[currentQuestionDifficulty];
     
     // Estimate impact based on difficulty change
@@ -821,7 +821,7 @@ export class QuestionQuestionDifficultyCalibrator {
       reason: result.calibrationReason,
       confidence: result.calibrationConfidence,
       dataPointsUsed: 0, // Would be calculated from actual data
-      calibrationMethod: 'ensemble',
+      calibrationMethod: 'ml_ensemble',
       performanceChange: result.expectedImpact.overallEffectivenessChange
     };
     
@@ -974,15 +974,15 @@ export class QuestionQuestionDifficultyCalibrator {
     let estimatedQuestionDifficulty = baseValues[bloomsLevel];
     
     // Adjust for question type
-    const typeAdjustments = {
+    const typeAdjustments: Partial<Record<QuestionType, number>> = {
       MULTIPLE_CHOICE: -0.1,
       TRUE_FALSE: -0.15,
       SHORT_ANSWER: 0.0,
       ESSAY: 0.1,
-      FILL_IN_THE_BLANK: -0.05
+      FILL_IN_BLANK: -0.05
     };
     
-    estimatedQuestionDifficulty += typeAdjustments[questionType] || 0;
+    estimatedQuestionDifficulty += typeAdjustments[questionType] ?? 0;
     
     // Adjust for cognitive load
     estimatedQuestionDifficulty += (cognitiveLoad - 3) * 0.05;

@@ -601,7 +601,7 @@ export class QueueDashboard {
         const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
         await this.redis.zremrangebyscore('queue_dashboard:performance_history', 0, oneDayAgo);
         
-      } catch (error) {
+      } catch (error: any) {
         logger.error('[QUEUE_DASHBOARD] Failed to collect metrics:', error);
       }
     }, 60000); // Collect every minute

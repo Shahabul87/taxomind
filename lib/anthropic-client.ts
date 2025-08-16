@@ -26,7 +26,7 @@ export interface CourseGenerationRequest {
 }
 
 export interface AIGeneratedBlueprint {
-  Course: {
+  course: {
     title: string;
     description: string;
     subtitle: string;
@@ -98,14 +98,14 @@ export async function generateCourseBlueprint(
 ): Promise<AIGeneratedBlueprint> {
   try {
     // First, try the enhanced intelligent generation
-    const enhancedRequirements = {
+    const enhancedRequirements: EnhancedContentRequest = {
       ...requirements,
       // Infer learning methodology from course intent
       learningMethodology: inferLearningMethodology(requirements),
       // Enhance with industry context
       industryContext: extractIndustryContext(requirements),
       // Determine assessment style from preferences
-      assessmentStyle: requirements.includeAssessments ? 'mixed' : 'milestone' as const
+      assessmentStyle: (requirements.includeAssessments ? 'mixed' : 'milestone') as EnhancedContentRequest['assessmentStyle']
     };
 
     try {
@@ -114,15 +114,15 @@ export async function generateCourseBlueprint(
       
       // Transform to the expected format
       const transformedBlueprint: AIGeneratedBlueprint = {
-        Course: {
-          title: intelligentBlueprint.Course.title,
-          description: intelligentBlueprint.Course.description,
-          subtitle: intelligentBlueprint.Course.subtitle,
-          learningOutcomes: intelligentBlueprint.Course.learningOutcomes,
-          prerequisites: intelligentBlueprint.Course.prerequisites,
-          targetAudience: intelligentBlueprint.Course.targetAudience,
-          estimatedDuration: intelligentBlueprint.Course.estimatedDuration,
-          difficulty: intelligentBlueprint.Course.difficulty
+        course: {
+          title: intelligentBlueprint.course.title,
+          description: intelligentBlueprint.course.description,
+          subtitle: intelligentBlueprint.course.subtitle,
+          learningOutcomes: intelligentBlueprint.course.learningOutcomes,
+          prerequisites: intelligentBlueprint.course.prerequisites,
+          targetAudience: intelligentBlueprint.course.targetAudience,
+          estimatedDuration: intelligentBlueprint.course.estimatedDuration,
+          difficulty: intelligentBlueprint.course.difficulty
         },
         chapters: intelligentBlueprint.chapters.map(chapter => ({
           title: chapter.title,

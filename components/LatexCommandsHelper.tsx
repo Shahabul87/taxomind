@@ -18,7 +18,7 @@ import {
   Calculator,
   Sigma,
   Infinity,
-  Function,
+  FunctionSquare as Function,
   Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -214,7 +214,7 @@ export const LatexCommandsHelper: React.FC<LatexCommandsHelperProps> = ({
     try {
       await navigator.clipboard.writeText(command);
       toast.success(`Copied: ${command}`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to copy command:", error);
       toast.error("Failed to copy command");
     }

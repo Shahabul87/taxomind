@@ -64,7 +64,7 @@ const safeFormatDate = (date: Date | string | null | undefined, formatStr: strin
   
   try {
     return format(dateObj, formatStr);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error formatting date:', error);
     return 'Date error';
   }
@@ -137,7 +137,7 @@ export const BillingContent = ({ userId }: { userId: string }) => {
       //console.log("Processed bills:", processedBills);
       
       setBills(processedBills);
-    } catch (error) {
+    } catch (error: any) {
       if (axios.isAxiosError(error)) {
         logger.error('Error fetching bills:', error.response?.data);
         toast.error(error.response?.data || "Failed to fetch bills");

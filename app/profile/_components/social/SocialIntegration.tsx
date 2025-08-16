@@ -72,7 +72,7 @@ export function SocialIntegration() {
         title: "Connected successfully",
         description: `Your ${platformId.replace('-social', '')} account has been connected.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to connect:", error);
       toast({
         title: "Connection failed",
@@ -99,7 +99,7 @@ export function SocialIntegration() {
         title: "Disconnected successfully",
         description: `Your ${platformId} account has been disconnected.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to disconnect:", error);
       toast({
         title: "Disconnection failed",

@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  IconBrandX,
-  IconBrandFacebook,
-  IconBrandLinkedin,
-  IconBrandWhatsapp,
-  IconBrandInstagram,
-  IconLink,
-} from "@tabler/icons-react";
+  Twitter,
+  Facebook,
+  Linkedin,
+  MessageCircle,
+  Instagram,
+  Link,
+} from "lucide-react";
 
 interface SocialShareProps {
   courseTitle: string;
@@ -18,7 +18,7 @@ interface SocialShareProps {
 const socialIcons = [
   {
     name: "Twitter",
-    icon: IconBrandX,
+    icon: Twitter,
     color: "hover:bg-black",
     textColor: "group-hover:text-white",
     getUrl: (url: string, title: string) =>
@@ -26,7 +26,7 @@ const socialIcons = [
   },
   {
     name: "Facebook",
-    icon: IconBrandFacebook,
+    icon: Facebook,
     color: "hover:bg-blue-600",
     textColor: "group-hover:text-white",
     getUrl: (url: string) =>
@@ -34,7 +34,7 @@ const socialIcons = [
   },
   {
     name: "LinkedIn",
-    icon: IconBrandLinkedin,
+    icon: Linkedin,
     color: "hover:bg-blue-700",
     textColor: "group-hover:text-white",
     getUrl: (url: string) =>
@@ -42,7 +42,7 @@ const socialIcons = [
   },
   {
     name: "WhatsApp",
-    icon: IconBrandWhatsapp,
+    icon: MessageCircle,
     color: "hover:bg-green-500",
     textColor: "group-hover:text-white",
     getUrl: (url: string, title: string) =>
@@ -50,7 +50,7 @@ const socialIcons = [
   },
   {
     name: "Instagram",
-    icon: IconBrandInstagram,
+    icon: Instagram,
     color: "hover:bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-500",
     textColor: "group-hover:text-white",
     getUrl: () => "https://www.instagram.com/",
@@ -100,7 +100,7 @@ export const CourseSocialMediaShare: React.FC<SocialShareProps> = ({ courseTitle
             >
               <social.icon
                 className={`w-5 h-5 text-gray-600 transition-colors duration-300 ${social.textColor}`}
-                stroke={1.5}
+                strokeWidth={1.5}
               />
             </a>
             <AnimatePresence>
@@ -132,9 +132,9 @@ export const CourseSocialMediaShare: React.FC<SocialShareProps> = ({ courseTitle
             transition-all duration-300 hover:shadow-lg hover:shadow-gray-800/20"
           aria-label="Copy Link"
         >
-          <IconLink
+          <Link
             className="w-5 h-5 text-gray-600 group-hover:text-gray-900 transition-colors duration-300"
-            stroke={1.5}
+            strokeWidth={1.5}
           />
           <AnimatePresence>
             {hoveredIcon === 'copy' && (

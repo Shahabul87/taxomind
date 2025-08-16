@@ -136,7 +136,7 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
       } else {
         toast.success('Course analysis completed successfully!');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Analysis error:', error);
       toast.error('Failed to analyze course depth');
     } finally {

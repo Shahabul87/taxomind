@@ -78,7 +78,7 @@ export function ProfileMetadataExtractor({
         toast.warning(`Failed to extract metadata from ${errorCount} profile${errorCount > 1 ? 's' : ''}`);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Metadata extraction error:', error);
       toast.error("Failed to extract profile metadata");
     } finally {

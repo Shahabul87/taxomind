@@ -162,7 +162,7 @@ export function AnimatedHeader({ userId, username, avatarUrl, joinDate, profileL
               [platform]: 'Using demo data. Connect your account for real metrics.'
             }));
           }
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`Error setting up data for ${platform}:`, error);
           // Always use fallback data on any error
           setPlatformData(prev => ({

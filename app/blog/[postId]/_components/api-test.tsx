@@ -118,7 +118,7 @@ export default function ApiTest() {
         const nestedResponse = await axios.post('/api/comment-reaction', nestedPayload);
 
         toast.success('Nested reply reaction API test successful');
-      } catch (nestedError) {
+      } catch (nestedError: any) {
         logger.error('Nested reply reaction API test failed:', nestedError);
         toast.error(`Nested reply test failed: ${nestedError.response?.status || 'Unknown error'}`);
       }

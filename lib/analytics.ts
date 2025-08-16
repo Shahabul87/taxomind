@@ -198,7 +198,7 @@ export async function getEnrollmentAnalytics(days: number = 30) {
             price: true
           }
         },
-        user: {
+        User: {
           select: {
             name: true,
             email: true
@@ -231,35 +231,35 @@ export async function getEnrollmentAnalytics(days: number = 30) {
 }
 
 // Helper functions
-function groupEnrollmentsByDay(Enrollment: any[]) {
-  const grouped = enrollments.reduce((acc, enrollment) => {
-    const date = enrollment.createdAt.toISOString().split('T')[0];
+function groupEnrollmentsByDay(enrollments: any[]) {
+  const grouped = enrollments.reduce((acc: Record<string, number>, enrollment: any) => {
+    const date = new Date(enrollment.createdAt).toISOString().split('T')[0];
     acc[date] = (acc[date] || 0) + 1;
     return acc;
-  }, {});
+  }, {} as Record<string, number>);
 
   return Object.entries(grouped).map(([date, count]) => ({
     date,
-    Enrollment: count
+    enrollments: count
   }));
 }
 
-function getTopCourses(Enrollment: any[]) {
-  const courseStats = enrollments.reduce((acc, enrollment) => {
-    const courseTitle = enrollment.Course.title;
+function getTopCourses(enrollments: any[]) {
+  const courseStats = enrollments.reduce((acc: Record<string, { title: string; enrollments: number; revenue: number }>, enrollment: any) => {
+    const courseTitle = enrollment.Course?.title || 'Unknown Course';
     if (!acc[courseTitle]) {
       acc[courseTitle] = {
         title: courseTitle,
-        Enrollment: 0,
+        enrollments: 0,
         revenue: 0
       };
     }
-    acc[courseTitle].Enrollment += 1;
-    acc[courseTitle].revenue += enrollment.Course.price || 0;
+    acc[courseTitle].enrollments += 1;
+    acc[courseTitle].revenue += enrollment.Course?.price || 0;
     return acc;
-  }, {});
+  }, {} as Record<string, { title: string; enrollments: number; revenue: number }>);
 
   return Object.values(courseStats)
-    .sort((a: any, b: any) => b.Enrollment - a.Enrollment)
+    .sort((a, b) => b.enrollments - a.enrollments)
     .slice(0, 10);
 } 

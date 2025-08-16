@@ -1,0 +1,322 @@
+import Anthropic from '@anthropic-ai/sdk';
+import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
+import { withAuth, withAdminAuth, withOwnership, withPublicAPI } from '@/lib/api/with-api-auth';
+import { 
+  ChapterGenerationRequestSchema, 
+  ChapterGenerationResponseSchema,
+  type ChapterGenerationResponse,
+  CourseDifficulty
+} from '@/lib/ai-course-types';
+import * as z from 'zod';
+
+// Force Node.js runtime for better compatibility
+export const runtime = 'nodejs';
+
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+});
+
+// Bulk chapter generation request schema
+const BulkChapterGenerationRequestSchema = z.object({
+  courseId: z.string().min(1, "Course ID is required"),
+  chapterCount: z.number().min(2).max(20),
+  difficulty: z.nativeEnum(CourseDifficulty),
+  targetDuration: z.string().min(1, "Target duration is required"),
+  focusAreas: z.array(z.string()).default([]),
+  includeKeywords: z.string().optional(),
+  additionalInstructions: z.string().optional()
+});
+
+type BulkChapterGenerationRequest = z.infer<typeof BulkChapterGenerationRequestSchema>;
+
+const BULK_CHAPTER_SYSTEM_PROMPT = `You are an expert curriculum designer specializing in creating comprehensive course structures. You excel at breaking down complex topics into logical, progressive chapter sequences that build upon each other systematically.
+
+Your expertise includes:
+- Creating logical learning progressions that scaffold knowledge effectively
+- Designing chapter sequences that maintain engagement and momentum
+- Balancing different learning objectives across multiple chapters
+- Ensuring each chapter contributes to overall course goals
+- Creating realistic time estimates and difficulty progressions
+
+You MUST respond with a valid JSON array containing chapter objects that match the expected schema. Do not include any text outside the JSON array.`;
+
+function buildBulkChapterPrompt(courseData: any, request: BulkChapterGenerationRequest): string {
+  const focusAreasText = request.focusAreas.length > 0 
+    ? `\n**Focus Areas**: ${request.focusAreas.join(", ")}`
+    : '';
+  
+  const keywordsText = request.includeKeywords 
+    ? `\n**Keywords to Include**: ${request.includeKeywords}`
+    : '';
+  
+  const additionalText = request.additionalInstructions 
+    ? `\n**Additional Instructions**: ${request.additionalInstructions}`
+    : '';
+
+  return `Create a comprehensive ${request.chapterCount}-chapter course structure for the following course:
+
+**Course Title**: ${courseData.title}
+**Course Description**: ${courseData.description}
+**Course Learning Objectives**: 
+${courseData.whatYouWillLearn?.map((obj: string, idx: number) => `${idx + 1}. ${obj}`).join('\n') || 'General course learning objectives'}
+**Difficulty Level**: ${request.difficulty}
+**Target Duration per Chapter**: ${request.targetDuration}${focusAreasText}${keywordsText}${additionalText}
+
+Design ${request.chapterCount} chapters that:
+
+1. **Follow Logical Progression**:
+   - Start with foundational concepts
+   - Build complexity gradually
+   - Create clear dependencies between chapters
+   - Culminate in advanced applications or synthesis
+
+2. **Maintain Learning Momentum**:
+   - Each chapter should feel achievable yet challenging
+   - Include variety in content types and activities
+   - Build on previous learning while introducing new concepts
+   - Create clear milestones and achievements
+
+3. **Cover Complete Learning Arc**:
+   - Introduction and motivation (early chapters)
+   - Core concept development (middle chapters)
+   - Application and mastery (later chapters)
+   - Integration and assessment (final chapters)
+
+4. **Chapter Structure Guidelines**:
+   - Each chapter should have 4-7 sections
+   - Include variety in content types (video, article, exercise, assessment)
+   - Provide realistic time estimates
+   - Create specific, measurable learning outcomes
+   - Include prerequisite information
+
+**Difficulty Calibration for ${request.difficulty}**:
+${request.difficulty === CourseDifficulty.BEGINNER 
+  ? '- Focus on foundational concepts with extensive examples\n- Provide guided practice and step-by-step instructions\n- Use clear, accessible language\n- Include more supportive content and scaffolding'
+  : request.difficulty === CourseDifficulty.INTERMEDIATE 
+  ? '- Build on established foundations with deeper exploration\n- Include more complex problem-solving scenarios\n- Balance guided and independent practice\n- Introduce advanced concepts with proper context'
+  : '- Assume strong foundational knowledge\n- Focus on advanced applications and edge cases\n- Include challenging, open-ended problems\n- Emphasize critical thinking and original analysis'
+}
+
+**Content Distribution Guidelines**:
+- **Videos**: 20-30% (demonstrations, explanations, introductions)
+- **Articles**: 30-40% (detailed content, references, deep dives)
+- **Exercises**: 25-35% (hands-on practice, skill building)
+- **Assessments**: 10-15% (knowledge validation, progress tracking)
+
+Respond with a JSON array of exactly ${request.chapterCount} chapter objects, each matching this structure:
+{
+  "title": "string",
+  "description": "string",
+  "learningOutcomes": ["string"],
+  "prerequisites": "string",
+  "estimatedTime": "string",
+  "difficulty": "string",
+  "sections": [
+    {
+      "title": "string",
+      "description": "string",
+      "type": "video|article|blog|exercise|assessment",
+      "estimatedTime": "string",
+      "learningObjectives": ["string"],
+      "keyPoints": ["string"]
+    }
+  ],
+  "assessmentSuggestions": [
+    {
+      "type": "string",
+      "description": "string",
+      "estimatedTime": "string"
+    }
+  ]
+}`;
+}
+
+// Generate mock chapters for fallback
+function generateMockChapters(courseData: any, request: BulkChapterGenerationRequest): ChapterGenerationResponse[] {
+  const chapters: ChapterGenerationResponse[] = [];
+  
+  for (let i = 1; i <= request.chapterCount; i++) {
+    const isIntro = i <= 2;
+    const isAdvanced = i > request.chapterCount * 0.7;
+    
+    chapters.push({
+      title: `Chapter ${i}: ${isIntro ? 'Introduction to' : isAdvanced ? 'Advanced' : 'Understanding'} ${courseData.title || 'Course Content'}`,
+      description: `This chapter ${isIntro ? 'introduces fundamental concepts' : isAdvanced ? 'covers advanced topics' : 'explores core principles'} related to ${courseData.title || 'the course subject'}. Students will develop practical skills and theoretical understanding.`,
+      learningOutcomes: [
+        `Understand key concepts introduced in chapter ${i}`,
+        `Apply learned principles to practical scenarios`,
+        `Demonstrate proficiency through hands-on exercises`,
+        `Analyze real-world examples and case studies`
+      ],
+      prerequisites: i > 1 ? `Completion of chapters 1-${i-1}` : 'Basic course prerequisites',
+      estimatedTime: request.targetDuration,
+      difficulty: request.difficulty,
+      sections: [
+        {
+          title: `Chapter ${i} Introduction`,
+          description: 'Overview and learning objectives for this chapter',
+          type: 'video' as any,
+          estimatedTime: '20 minutes',
+          learningObjectives: ['Understand chapter structure and goals'],
+          keyPoints: ['Chapter overview', 'Key concepts preview', 'Learning objectives']
+        },
+        {
+          title: 'Core Concepts',
+          description: 'Detailed exploration of fundamental principles',
+          type: 'article' as any,
+          estimatedTime: '1.5 hours',
+          learningObjectives: ['Master fundamental concepts', 'Understand key relationships'],
+          keyPoints: ['Theoretical foundations', 'Key terminology', 'Conceptual frameworks']
+        },
+        {
+          title: 'Practical Application',
+          description: 'Hands-on exercises and real-world examples',
+          type: 'exercise' as any,
+          estimatedTime: '1 hour',
+          learningObjectives: ['Apply concepts practically', 'Solve real problems'],
+          keyPoints: ['Guided practice', 'Problem-solving techniques', 'Best practices']
+        },
+        {
+          title: 'Knowledge Assessment',
+          description: 'Validate understanding and track progress',
+          type: 'assessment' as any,
+          estimatedTime: '30 minutes',
+          learningObjectives: ['Demonstrate mastery', 'Identify learning gaps'],
+          keyPoints: ['Knowledge validation', 'Progress tracking', 'Feedback']
+        }
+      ],
+      assessmentSuggestions: [
+        {
+          type: 'Quiz',
+          description: 'Multiple choice questions on key concepts',
+          estimatedTime: '15 minutes'
+        },
+        {
+          type: 'Exercise',
+          description: 'Practical application of learned skillexport const POST = withAuth(async (request, context) => {'
+  // Check authentication
+    
+
+    // Parse and validate request body
+    const body = await request.json();
+    const parseResult = BulkChapterGenerationRequestSchema.safeParse(body);
+    
+      return NextResponse.json(
+          error: 'Invalid request format', 
+          details: parseResult.error.errors 
+      );
+
+    const bulkRequest = parseResult.data;
+
+    // Fetch course data to validate ownership and get context
+        id: bulkRequest.courseId,
+        userId: context.user.id
+        chapters: true
+
+      return NextResponse.json(
+      );
+
+    // Check if ANTHROPIC_API_KEY is configured
+      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
+      const mockChapters = generateMockChapters(course, bulkRequest);
+
+    // Generate chapters using Anthropic Claude
+      const prompt = buildBulkChapterPrompt(course, bulkRequest);
+      
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 8000,
+        temperature: 0.7,
+        system: BULK_CHAPTER_SYSTEM_PROMPT,
+        messages: [
+            role: 'user',
+            content: prompt
+}, {
+  rateLimit: { requests: 30, window: 60000 },
+  auditLog: false
+});
+        ],
+      });
+
+      // Extract and parse the response
+      const responseText = completion.content[0]?.type === 'text' 
+        ? completion.content[0].text 
+        : '';
+
+      if (!responseText) {
+        throw new Error('Empty response from AI model');
+      }
+
+      // Parse JSON response
+      let aiResponse;
+      try {
+        // Clean the response to extract just the JSON array
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        const jsonString = jsonMatch ? jsonMatch[0] : responseText;
+        aiResponse = JSON.parse(jsonString);
+      } catch (parseError) {
+        logger.error('Failed to parse AI response as JSON:', parseError);
+        throw new Error('Invalid JSON response from AI model');
+      }
+
+      // Validate each chapter in the response
+      const validatedChapters: ChapterGenerationResponse[] = [];
+      
+      if (Array.isArray(aiResponse)) {
+        for (const chapter of aiResponse) {
+          const validationResult = ChapterGenerationResponseSchema.safeParse(chapter);
+          if (validationResult.success) {
+            validatedChapters.push(validationResult.data);
+          } else {
+            logger.warn('Chapter validation failed:', validationResult.error);
+          }
+        }
+      }
+
+      // If we don't have enough valid chapters, fall back to mock'
+      if (validatedChapters.length < bulkRequest.chapterCount) {
+        logger.warn('Insufficient valid chapters from AI, using mock response');
+        const mockChapters = generateMockChapters(course, bulkRequest);
+        return NextResponse.json({ 
+          success: true, 
+          data: mockChapters,
+          warning: 'AI response incomplete, using template response'
+        });
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        data: validatedChapters.slice(0, bulkRequest.chapterCount),
+        metadata: {
+          tokensUsed: completion.usage?.input_tokens || 0,
+          model: 'claude-3-5-sonnet-20241022',
+          generatedAt: new Date().toISOString()
+        }
+      });
+
+    } catch (apiError: any) {
+      logger.error('Anthropic API error:', apiError);
+      
+      // Fall back to mock response for API errors
+      const mockChapters = generateMockChapters(course, bulkRequest);
+      return NextResponse.json({ 
+        success: true, 
+        data: mockChapters,
+        warning: 'AI service temporarily unavailable, using template response'
+      });
+    }
+
+  } catch (error: any) {
+    logger.error('Bulk chapter generator error:', error);
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+      },
+      { status: 500 }
+    );
+  }
+}

@@ -78,7 +78,7 @@ export const PostchapterDescriptionForm = ({
       toast.success("Chapter description updated");
       toggleEdit();
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsLoading(false);

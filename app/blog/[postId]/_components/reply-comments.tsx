@@ -73,7 +73,7 @@ export const ReplyComment = ({
       toast.success("Reply added");
       onSave(); // Call onSave to close the reply box
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       if (axios.isAxiosError(error)) {
         logger.error("Error adding reply:", error.response?.data || error.message);
       } else {

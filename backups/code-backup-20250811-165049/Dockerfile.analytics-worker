@@ -1,0 +1,46 @@
+# Dockerfile for Analytics Worker Service
+
+FROM node:18-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    libc6-compat \
+    python3 \
+    py3-pip
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install Node.js dependencies
+RUN npm ci --only=production
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Install Python analytics libraries
+RUN pip3 install \
+    pandas==2.0.3 \
+    numpy==1.24.3 \
+    scipy==1.11.1
+
+# Copy worker files
+COPY workers/ ./workers/
+COPY lib/ ./lib/
+
+# Create directories
+RUN mkdir -p /app/logs /app/temp /app/analytics-cache
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV WORKER_TYPE=analytics
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD node workers/health-check.js || exit 1
+
+# Start analytics worker
+CMD ["node", "workers/analytics-worker.js"]

@@ -39,7 +39,7 @@ export const fetchActivities = async (
     }
     
     return await response.json();
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error fetching activities:', error);
     throw error;
   }
@@ -63,7 +63,7 @@ export const createActivity = async (activity: Omit<ActivityItem, 'id' | 'create
     }
     
     return await response.json();
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error creating activity:', error);
     throw error;
   }
@@ -87,7 +87,7 @@ export const updateActivity = async (id: string, activity: Partial<ActivityItem>
     }
     
     return await response.json();
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error updating activity:', error);
     throw error;
   }
@@ -105,7 +105,7 @@ export const deleteActivity = async (id: string): Promise<void> => {
     if (!response.ok) {
       throw new Error('Failed to delete activity');
     }
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error deleting activity:', error);
     throw error;
   }

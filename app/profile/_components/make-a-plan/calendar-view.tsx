@@ -46,7 +46,6 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -187,7 +186,6 @@ const formatEventDetails = (event: CalendarEvent): React.ReactNode => {
 };
 
 export function CalendarView({ userId }: CalendarViewProps) {
-  const { theme } = useTheme();
   const isMobile = useMediaQuery("(max-width: 768px)");
   
   // State
@@ -259,7 +257,7 @@ export function CalendarView({ userId }: CalendarViewProps) {
       } else {
 }
       setEvents(fetchedEvents);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to fetch events:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to load calendar events";
       toast.error(errorMessage);
@@ -321,7 +319,7 @@ export function CalendarView({ userId }: CalendarViewProps) {
       await deleteCalendarEvent(eventId);
       toast.success("Event deleted successfully");
       fetchEvents();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error deleting event:", error);
       toast.error("Failed to delete event. Please try again.");
     }

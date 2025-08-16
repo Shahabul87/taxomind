@@ -91,7 +91,7 @@ export function TemplateGallery({
       setLoading(true);
       const allTemplates = await templateEngine.listTemplates();
       setTemplates(allTemplates);
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to load templates');
       logger.error(error);
     } finally {
@@ -111,14 +111,13 @@ export function TemplateGallery({
 
   const handleDuplicateTemplate = async (template: Template) => {
     try {
-      const duplicated = await templateEngine.createTemplate({
+          const duplicated = await templateEngine.createTemplate({
         ...template,
-        name: `${template.name} (Copy)`,
-        metadata: undefined // Will be auto-generated
-      });
+        name: `${template.name} (Copy)`
+      } as any);
       setTemplates(prev => [duplicated, ...prev]);
       toast.success('Template duplicated');
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to duplicate template');
       logger.error(error);
     }
@@ -129,7 +128,7 @@ export function TemplateGallery({
       await templateEngine.deleteTemplate(templateId);
       setTemplates(prev => prev.filter(t => t.id !== templateId));
       toast.success('Template deleted');
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to delete template');
       logger.error(error);
     }
@@ -145,7 +144,7 @@ export function TemplateGallery({
         toast.success('Template ready for use');
         onSelectTemplate?.(template);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to use template');
       logger.error(error);
     }

@@ -490,7 +490,7 @@ export const MyPostsDashboard = ({
                     <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-800/80">
                       <h3 className="text-lg font-medium text-white mb-4">Popular Topics</h3>
                       <div className="flex flex-wrap gap-2">
-                        {analytics.popularCategories.map((category, index) => {
+                        {analytics.popularCategories.map((category: any, index: number) => {
                           // Use different colors for different categories
                           const colors = [
                             { bg: "bg-emerald-900/30", text: "text-emerald-400", accent: "text-emerald-500/80" },

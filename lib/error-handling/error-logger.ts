@@ -226,15 +226,15 @@ export class ErrorLogger {
 
       const metrics = {
         totalErrors: errors.length,
-        errorsByType: errors.reduce((acc, error) => {
+        errorsByType: errors.reduce((acc: Record<string, number>, error: any) => {
           acc[error.errorType] = (acc[error.errorType] || 0) + 1;
           return acc;
         }, {} as Record<string, number>),
-        errorsBySeverity: errors.reduce((acc, error) => {
+        errorsBySeverity: errors.reduce((acc: Record<string, number>, error: any) => {
           acc[error.severity] = (acc[error.severity] || 0) + 1;
           return acc;
         }, {} as Record<string, number>),
-        errorsByComponent: errors.reduce((acc, error) => {
+        errorsByComponent: errors.reduce((acc: Record<string, number>, error: any) => {
           const component = error.component || 'unknown';
           acc[component] = (acc[component] || 0) + 1;
           return acc;

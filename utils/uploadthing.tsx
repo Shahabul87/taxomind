@@ -39,7 +39,7 @@ export const UploadButton: React.FC<UploadButtonProps> = ({
       } else {
         onUploadError?.(new Error("Upload failed"));
       }
-    } catch (error) {
+    } catch (error: any) {
       onUploadError?.(error instanceof Error ? error : new Error("Upload failed"));
       console.error(error);
     }

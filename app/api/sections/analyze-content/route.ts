@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { withAdminAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
-import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
@@ -28,38 +28,32 @@ interface AIContentSuggestion {
   tags: string[];
 }
 
-export async function POST(req: Request) {
+export const POST = withAdminAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-
-    // Get current user
-    const user = await currentUser();
-    
-    if (!user?.id) {
-
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-    
     // Check user role
     const dbUser = await db.user.findUnique({
-      where: { id: user.id },
+      where: { id: context.user.id },
       select: { id: true, email: true, role: true }
     });
     
     const userRole = dbUser?.role;
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
     
-    const body = await req.json();
+    const body = await request.json();
     const { sectionId, chapterId, courseId, sectionData, context } = body;
 
     // Verify section ownership through course
     const course = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: user.id,
+        userId: context.user.id,
       },
       include: {
         chapters: {
@@ -89,7 +83,7 @@ export async function POST(req: Request) {
     const analysis = await analyzeSectionContent(section, context);
     const suggestions = await generateContentSuggestions(section, context);
 
-    return NextResponse.json({
+    return createSuccessResponse({
       analysis,
       suggestions
     });
@@ -102,12 +96,11 @@ export async function POST(req: Request) {
       logger.error("[SECTION_ANALYSIS] Error stack:", error.stack);
     }
     
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return createErrorResponse(ApiError.internal("Internal Server Error"));
   }
-}
+});
 
 async function analyzeSectionContent(section: any, context: any): Promise<ContentAnalysis> {
-
   // Analyze current content
   const contentItems = [
     ...(section.videos || []),
@@ -159,7 +152,6 @@ async function analyzeSectionContent(section: any, context: any): Promise<Conten
 }
 
 async function generateContentSuggestions(section: any, context: any): Promise<AIContentSuggestion[]> {
-
   const suggestions: AIContentSuggestion[] = [];
   const currentBloomsLevel = inferBloomsLevel(section.title, section.description || '');
   

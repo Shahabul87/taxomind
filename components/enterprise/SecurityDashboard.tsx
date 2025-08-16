@@ -74,7 +74,7 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
         setEvents(data.data.events);
         setSummary(data.data.summary);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching security data:', error);
     } finally {
       setIsLoading(false);

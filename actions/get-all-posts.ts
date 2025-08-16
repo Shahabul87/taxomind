@@ -1,3 +1,5 @@
+"use server";
+
 import { enterpriseDataAPI } from "@/lib/data-fetching/enterprise-data-api";
 import { logger } from '@/lib/logger';
 
@@ -16,6 +18,10 @@ type PostForHomepage = {
     name: string | null;
   };
   views?: number;
+};
+
+export const getAllPosts = async (): Promise<PostForHomepage[]> => {
+  return getPostsForHomepage();
 };
 
 export const getPostsForHomepage = async (): Promise<PostForHomepage[]> => {
@@ -52,7 +58,7 @@ export const getPostsForHomepage = async (): Promise<PostForHomepage[]> => {
 
     return formattedPosts;
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error("💥 [GET_POSTS] CRITICAL ERROR fetching posts:");
     logger.error("Error details:", error);
     logger.error("Error message:", error instanceof Error ? error.message : "Unknown error");
@@ -96,7 +102,7 @@ export const getPostsByCategory = async (category: string): Promise<PostForHomep
     }));
 
     return formattedPosts;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_POSTS_BY_CATEGORY] Error:", error);
     return [];
   }

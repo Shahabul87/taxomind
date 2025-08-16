@@ -46,7 +46,7 @@ export const ReactionButton = ({
 }: ReactionButtonProps) => {
   const { data: session, status: sessionStatus } = useSession();
   const isSessionLoading = sessionStatus === 'loading';
-  const hasSessionError = sessionStatus === 'error';
+  const hasSessionError = false; // Session doesn't have error state
   const [showReactions, setShowReactions] = useState(false);
   const [hoveredReaction, setHoveredReaction] = useState<string | null>(null);
   const [localReactions, setLocalReactions] = useState<ReactionType[]>(initialReactions || []);
@@ -81,7 +81,7 @@ export const ReactionButton = ({
       });
       clearTimeout(id);
       return response;
-    } catch (error) {
+    } catch (error: any) {
       clearTimeout(id);
       throw error;
     }
@@ -120,10 +120,10 @@ export const ReactionButton = ({
         updatedReactions.push({
           id: `temp-${Date.now()}`, // Temporary ID
           type,
-          userId: session.user.id,
+          userId: session.user?.id || '',
           user: {
-            id: session.user.id,
-            name: session.user.name
+            id: session.user?.id || '',
+            name: session.user?.name || null
           }
         });
       }
@@ -162,7 +162,7 @@ export const ReactionButton = ({
         } else {
           logger.warn("API response did not contain reactions array:", response.data);
         }
-      } catch (axiosError) {
+      } catch (axiosError: any) {
         logger.error("Axios error:", axiosError);
         
         if (axiosError.response) {
@@ -176,7 +176,7 @@ export const ReactionButton = ({
       }
       
       setShowReactions(false);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Reaction error:", error);
       // Revert to initial state on error
       setLocalReactions(initialReactions);

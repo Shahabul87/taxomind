@@ -1,0 +1,77 @@
+/* Global editor styles */
+
+/* Editor basics */
+.explanation-editor .ql-editor {
+  min-height: 200px;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.dark .explanation-editor .ql-editor {
+  color: #e5e7eb;
+}
+
+/* Quill editor styles */
+.explanation-editor .ql-toolbar {
+  border-color: #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.dark .explanation-editor .ql-toolbar {
+  border-color: #374151;
+  background-color: #1f2937;
+}
+
+.explanation-editor .ql-container {
+  border-color: #e5e7eb;
+  background-color: #ffffff;
+}
+
+.dark .explanation-editor .ql-container {
+  border-color: #374151;
+  background-color: #111827;
+}
+
+/* Prose Mirror styles */
+.ProseMirror {
+  outline: none;
+  min-height: 200px;
+}
+
+.ProseMirror p {
+  margin: 0.5em 0;
+}
+
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+  font-weight: bold;
+  margin: 1em 0 0.5em;
+}
+
+.ProseMirror h1 {
+  font-size: 1.5em;
+}
+
+.ProseMirror h2 {
+  font-size: 1.25em;
+}
+
+.ProseMirror h3 {
+  font-size: 1.1em;
+}
+
+.ProseMirror ul, .ProseMirror ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.ProseMirror code {
+  background-color: rgba(97, 97, 97, 0.1);
+  border-radius: 0.25em;
+  padding: 0.25em;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.dark .ProseMirror code {
+  background-color: rgba(255, 255, 255, 0.1);
+} 

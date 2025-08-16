@@ -34,7 +34,7 @@ import {
   Bell,
   Calendar,
   Layers,
-  CloudUpload,
+  Upload,
   BarChart4,
   Eye,
   Puzzle,
@@ -42,7 +42,7 @@ import {
   Heart,
   Play,
   ChevronRight,
-  Progress
+  Loader
 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
@@ -220,8 +220,7 @@ const featureVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
-    transition: { duration: 0.5, ease: [0.25, 0.25, 0, 1] }
+    scale: 1
   }
 };
 

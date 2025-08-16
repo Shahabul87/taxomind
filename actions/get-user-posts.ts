@@ -67,7 +67,7 @@ export async function getUserPublishedPosts() {
       posts: formattedPosts,
       error: null
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_PUBLISHED_POSTS_ERROR]", error);
     return { 
       posts: [], 
@@ -119,7 +119,7 @@ export async function getUserDraftPosts() {
       posts: formattedPosts,
       error: null
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_DRAFT_POSTS_ERROR]", error);
     return { 
       posts: [], 
@@ -220,8 +220,8 @@ export async function getUserPostsAnalytics() {
     }, {} as Record<string, number>);
     
     const popularCategories = Object.entries(tagCount)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
+      .map(([name, count]) => ({ name, count: Number(count) }))
+      .sort((a, b) => Number(b.count) - Number(a.count))
       .slice(0, 5);
     
     // Compile analytics data
@@ -241,11 +241,16 @@ export async function getUserPostsAnalytics() {
       analytics, 
       error: null 
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_POSTS_ANALYTICS_ERROR]", error);
     return { 
       analytics: null, 
       error: "Failed to fetch posts analytics" 
     };
   }
-} 
+}
+
+/**
+ * Legacy function name for backward compatibility
+ */
+export const getUserPosts = getUserPublishedPosts; 

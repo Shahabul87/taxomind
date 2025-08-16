@@ -137,7 +137,7 @@ export class EventTracker {
 
       if (this.config.debug) {
 }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[Analytics] Failed to send events:', error);
       this.retryQueue.push(...events);
       this.scheduleRetry();

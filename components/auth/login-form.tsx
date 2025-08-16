@@ -7,8 +7,8 @@ import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import Image from "next/image";
-import { FcGoogle } from "react-icons/fc";
-import { FaGithub, FaFacebook, FaTwitter, FaEye, FaEyeSlash, FaEnvelope } from "react-icons/fa";
+import { Github, Facebook, Twitter, Eye, EyeOff, Mail } from "lucide-react";
+import { GoogleIcon } from "@/components/icons/custom-icons";
 import { toast } from "react-hot-toast";
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
@@ -85,7 +85,7 @@ export const LoginForm = () => {
             setError("Something went wrong");
           });
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Form submission error:", error);
       setError("An unexpected error occurred");
     }
@@ -108,7 +108,7 @@ export const LoginForm = () => {
     visible: { 
       y: 0, 
       opacity: 1,
-      transition: { type: "spring", stiffness: 100 }
+      transition: { type: "spring" as const, stiffness: 100 }
     }
   };
   
@@ -116,7 +116,7 @@ export const LoginForm = () => {
     hover: { 
       scale: 1.03,
       boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
-      transition: { type: "spring", stiffness: 400 }
+      transition: { type: "spring" as const, stiffness: 400 }
     },
     tap: { scale: 0.97 }
   };
@@ -208,7 +208,7 @@ export const LoginForm = () => {
                               </FormControl>
                               <div className={`absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 transition-all duration-300 
                                 ${field.value || focusedField === 'email' ? 'opacity-0 -translate-x-2' : 'opacity-100'}`}>
-                                <FaEnvelope className="w-5 h-5" />
+                                <Mail className="w-5 h-5" />
                               </div>
                               <div className={`absolute top-0 left-0 h-full w-2 rounded-l-xl transition-all duration-300 ${field.value ? 'bg-gradient-to-b from-cyan-400 to-purple-400' : 'bg-transparent'}`}></div>
                             </div>
@@ -253,7 +253,7 @@ export const LoginForm = () => {
                                 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors focus:outline-none"
                                 onClick={() => setShowPassword(!showPassword)}
                               >
-                                {showPassword ? <FaEyeSlash className="w-5 h-5" /> : <FaEye className="w-5 h-5" />}
+                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                               </button>
                               <div className={`absolute top-0 left-0 h-full w-2 rounded-l-xl transition-all duration-300 ${field.value ? 'bg-gradient-to-b from-cyan-400 to-purple-400' : 'bg-transparent'}`}></div>
                             </div>
@@ -322,7 +322,7 @@ export const LoginForm = () => {
                 <div className="mr-auto"></div>
                 <div className="flex items-center mx-auto">
                   <div className="flex items-center justify-center bg-white rounded-full w-8 h-8 mr-3 shadow-sm">
-                    <FcGoogle className="h-5 w-5" />
+                    <GoogleIcon className="h-5 w-5" />
                   </div>
                   <span className="text-gray-800 dark:text-gray-200 font-medium">Sign in with Google</span>
                 </div>
@@ -340,7 +340,7 @@ export const LoginForm = () => {
                 <div className="mr-auto"></div>
                 <div className="flex items-center mx-auto">
                   <div className="flex items-center justify-center bg-black rounded-full w-8 h-8 mr-3 shadow-sm">
-                    <FaGithub className="h-5 w-5 text-white" />
+                    <Github className="h-5 w-5 text-white" />
                   </div>
                   <span className="text-gray-800 dark:text-gray-200 font-medium">Sign in with GitHub</span>
                 </div>
@@ -358,7 +358,7 @@ export const LoginForm = () => {
                 <div className="mr-auto"></div>
                 <div className="flex items-center mx-auto">
                   <div className="flex items-center justify-center bg-[#1877F2] rounded-full w-8 h-8 mr-3 shadow-sm">
-                    <FaFacebook className="h-5 w-5 text-white" />
+                    <Facebook className="h-5 w-5 text-white" />
                   </div>
                   <span className="text-gray-800 dark:text-gray-200 font-medium">Sign in with Facebook</span>
                 </div>
@@ -376,7 +376,7 @@ export const LoginForm = () => {
                 <div className="mr-auto"></div>
                 <div className="flex items-center mx-auto">
                   <div className="flex items-center justify-center bg-[#1DA1F2] rounded-full w-8 h-8 mr-3 shadow-sm">
-                    <FaTwitter className="h-5 w-5 text-white" />
+                    <Twitter className="h-5 w-5 text-white" />
                   </div>
                   <span className="text-gray-800 dark:text-gray-200 font-medium">Sign in with Twitter</span>
                 </div>

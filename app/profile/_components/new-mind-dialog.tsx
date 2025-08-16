@@ -74,7 +74,7 @@ export const NewMindDialog = ({ open, onClose, userId }: NewMindDialogProps) => 
       setCategory("");
       setVisibility("private");
       setTags([]);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to create mind map:", error);
     } finally {
       setIsSubmitting(false);

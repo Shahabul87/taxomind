@@ -38,7 +38,7 @@ export function StudentDashboard({ userId, courseId }: StudentDashboardProps) {
       const progressData = await progressResponse.json();
       setDashboardData(progressData.data);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching dashboard data:', error);
       toast({
         title: 'Error',

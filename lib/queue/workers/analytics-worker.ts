@@ -237,7 +237,7 @@ export class AnalyticsWorker {
 
       return jobResult;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[ANALYTICS_WORKER] User activity processing failed:`, error);
       
       const jobResult: AnalyticsJobResult = {
@@ -303,7 +303,7 @@ export class AnalyticsWorker {
 
       return jobResult;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[ANALYTICS_WORKER] Course analytics failed for ${courseId}:`, error);
       
       const jobResult: AnalyticsJobResult = {
@@ -373,7 +373,7 @@ export class AnalyticsWorker {
 
       return jobResult;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[ANALYTICS_WORKER] Learning insights failed for user ${userId}:`, error);
       
       const jobResult: AnalyticsJobResult = {
@@ -437,7 +437,7 @@ export class AnalyticsWorker {
         processingTime: Date.now() - job.timestamp,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[ANALYTICS_WORKER] Progress update failed for user ${userId}:`, error);
       throw error;
     }
@@ -495,7 +495,7 @@ export class AnalyticsWorker {
         processingTime: Date.now() - job.timestamp,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[ANALYTICS_WORKER] Platform metrics aggregation failed:`, error);
       throw error;
     }

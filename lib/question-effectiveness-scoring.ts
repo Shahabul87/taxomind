@@ -429,10 +429,10 @@ export class QuestionEffectivenessScorer {
       const actualQuestionDifficulty = 1 - (data.correctAnswers / data.totalAttempts);
       let recommendedQuestionDifficulty: QuestionDifficulty = data.difficulty;
       
-      if (actualQuestionDifficulty < 0.3 && data.difficulty !== 'easy') {
-        recommendedQuestionDifficulty = data.difficulty === 'hard' ? 'medium' : 'easy';
-      } else if (actualQuestionDifficulty > 0.7 && data.difficulty !== 'hard') {
-        recommendedQuestionDifficulty = data.difficulty === 'easy' ? 'medium' : 'hard';
+      if (actualQuestionDifficulty < 0.3 && data.difficulty !== 'EASY') {
+        recommendedQuestionDifficulty = data.difficulty === 'HARD' ? 'MEDIUM' : 'EASY';
+      } else if (actualQuestionDifficulty > 0.7 && data.difficulty !== 'HARD') {
+        recommendedQuestionDifficulty = data.difficulty === 'EASY' ? 'MEDIUM' : 'HARD';
       }
       
       if (recommendedQuestionDifficulty !== data.difficulty) {
@@ -548,10 +548,10 @@ export class QuestionEffectivenessScorer {
       CREATE: 0.3
     };
     
-    const difficultyBase = {
-      easy: 0.8,
-      medium: 0.6,
-      hard: 0.4
+    const difficultyBase: Record<QuestionDifficulty, number> = {
+      EASY: 0.8,
+      MEDIUM: 0.6,
+      HARD: 0.4
     };
     
     return difficultyBase[difficulty] * bloomsMultiplier[bloomsLevel];
@@ -564,9 +564,9 @@ export class QuestionEffectivenessScorer {
   }
 
   private calculateSuccessVariance(performances: StudentPerformance[]): number {
-    const successRates = performances.map(p => p.isCorrect ? 1 : 0);
-    const mean = successRates.reduce((sum, rate) => sum + rate, 0) / successRates.length;
-    const variance = successRates.reduce((sum, rate) => sum + Math.pow(rate - mean, 2), 0) / successRates.length;
+    const successRates: number[] = performances.map(p => (p.isCorrect ? 1 : 0));
+    const mean = successRates.reduce((sum: number, rate: number) => sum + rate, 0) / successRates.length;
+    const variance = successRates.reduce((sum: number, rate: number) => sum + Math.pow(rate - mean, 2), 0) / successRates.length;
     return variance;
   }
 

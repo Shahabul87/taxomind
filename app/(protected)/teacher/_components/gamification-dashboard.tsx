@@ -88,7 +88,7 @@ export function GamificationDashboard({
       setChallenges(challengesData.challenges || []);
       setLeaderboard(leaderboardData.leaderboard || []);
       setUserStats(leaderboardData.userRank || {});
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching gamification data:', error);
       toast.error('Failed to load gamification data');
     } finally {
@@ -118,7 +118,7 @@ export function GamificationDashboard({
         toast.success('Challenge started successfully!');
         fetchGamificationData();
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error starting challenge:', error);
       toast.error('Failed to start challenge');
     }
@@ -145,7 +145,7 @@ export function GamificationDashboard({
         const data = await response.json();
         setMotivationMessage(data.motivation);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting motivation:', error);
       toast.error('Failed to get motivation');
     }

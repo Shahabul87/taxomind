@@ -148,7 +148,7 @@ export function SAMContextualChat({
         } else {
           throw new Error('Failed to get SAM response');
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error sending message to SAM:', error);
         
         // Fallback contextual response

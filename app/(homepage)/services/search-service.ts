@@ -192,7 +192,7 @@ export class SearchService {
           
           throw fetchError;
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error("💥 Search service error:", error);
         
         // Last retry failed, return empty results

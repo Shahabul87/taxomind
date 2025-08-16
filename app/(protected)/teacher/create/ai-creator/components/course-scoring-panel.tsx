@@ -163,7 +163,7 @@ export function CourseScoringPanel({ formData, onUpdateFormData, className }: Co
         setTitleSuggestions(suggestions);
         setShowTitleSuggestions(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating title suggestions:', error);
       toast.error('Failed to generate title suggestions');
     } finally {
@@ -345,7 +345,7 @@ Make each overview unique, highlighting different aspects and benefits of the co
       } else {
         toast.error('Failed to generate overview suggestions. Please try again.');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating overview suggestions:', error);
       toast.error('Failed to generate overview suggestions');
     } finally {

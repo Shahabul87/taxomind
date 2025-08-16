@@ -118,7 +118,7 @@ class DatabaseConnectionManager {
 
       console.log(`✅ [ENTERPRISE DB] Connected to: ${currentDB} (${this.config.environment})`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('❌ [ENTERPRISE DB] Connection validation failed:', error);
       
       // In development, don't fail the build - just warn
@@ -194,7 +194,7 @@ class EnterpriseTransactionManager {
           timeout: config.transactionTimeout,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`❌ [ENTERPRISE DB] Operation failed: ${context.description}`, error);
       
       // Log failure
@@ -359,7 +359,7 @@ export class EnterpriseDB {
         },
         timestamp: new Date(),
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'error',
         error: error instanceof Error ? error.message : 'Unknown error',

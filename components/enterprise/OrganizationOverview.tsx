@@ -74,7 +74,7 @@ export function OrganizationOverview({ className }: OrganizationOverviewProps) {
           totalPages: data.pagination.totalPages,
         }));
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching organizations:', error);
     } finally {
       setIsLoading(false);

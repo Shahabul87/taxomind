@@ -1,35 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
 import { logger } from '@/lib/logger';
 
-export async function POST(
-  req: NextRequest,
-  props: { params: Promise<{ postId: string; commentId: string }> }
-) {
+export const POST = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-    const user = await currentUser();
-    if (!user || !user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
-    // Check rate limiting
-    const rateLimitResult = await isRateLimited(user.id, 'reply');
+    const rateLimitResult = await isRateLimited(context.user.id, 'reply');
     if (rateLimitResult.limited) {
 
-      return NextResponse.json({ 
+      return createSuccessResponse({ 
         error: getRateLimitMessage('reply', rateLimitResult.reset),
         rateLimitInfo: rateLimitResult
       }, { status: 429 });
     }
 
-    const { content, parentReplyId } = await req.json();
+    const { content, parentReplyId } = await request.json();
     const params = await props.params;
     const { postId, commentId } = params;
 
     if (!content) {
-      return NextResponse.json({ error: "Content is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Content is required" }, { status: 400 });
     }
 
     // Check if comment exists
@@ -42,7 +38,7 @@ export async function POST(
 
     if (!comment) {
 
-      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Comment not found" }, { status: 404 });
     }
 
     // If parentReplyId is provided, ensure it exists and belongs to this comment
@@ -60,7 +56,7 @@ export async function POST(
 
       if (!parentReply) {
 
-        return NextResponse.json({ error: "Parent reply not found" }, { status: 404 });
+        return createSuccessResponse({ error: "Parent reply not found" }, { status: 404 });
       }
 
       // Check nesting depth to prevent excessive depth
@@ -73,7 +69,7 @@ export async function POST(
         
         // If we've gone too deep, prevent excessive nesting
         if (replyDepth > 10) { // Hard limit on server side for safety
-          return NextResponse.json({ 
+          return createSuccessResponse({ 
             error: "Maximum reply nesting depth exceeded" 
           }, { status: 400 });
         }
@@ -93,7 +89,7 @@ export async function POST(
     const reply = await db.reply.create({
       data: {
         content,
-        userId: user.id,
+        userId: context.user.id,
         postId,
         commentId,
         parentReplyId: parentReplyId || null, // Include parentReplyId if provided
@@ -119,19 +115,20 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(reply);
+    return createSuccessResponse(reply);
   } catch (error) {
     logger.error("[COMMENT_REPLY_POST] Error:", error);
-    return NextResponse.json({ 
+    return createSuccessResponse({ 
       error: error instanceof Error ? error.message : "Internal server error" 
     }, { status: 500 });
   }
-}
+});
 
-export async function GET(
-  req: Request,
-  props: { params: Promise<{ postId: string; commentId: string }> }
-) {
+export const GET = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
     const params = await props.params;
     const { commentId } = params;
@@ -164,10 +161,10 @@ export async function GET(
       },
     });
 
-    return NextResponse.json(replies);
+    return createSuccessResponse(replies);
   } catch (error) {
     logger.error("[REPLIES_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return createErrorResponse(ApiError.internal("Internal Error"));
   }
-}
+});
 

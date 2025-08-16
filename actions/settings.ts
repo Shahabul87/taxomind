@@ -9,6 +9,7 @@ import { currentUser } from "@/lib/auth";
 import { generateVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/mail";
 import { hashPassword, verifyPassword } from "@/lib/passwordUtils";
+import { authAuditHelpers } from "@/lib/audit/auth-audit";
 
 export const settings = async (
   values: z.infer<typeof SettingsSchema>
@@ -57,6 +58,13 @@ export const settings = async (
     );
 
     if (!passwordsMatch) {
+      // Log failed password change attempt
+      await authAuditHelpers.logSuspiciousActivity(
+        user.id, 
+        user.email, 
+        'PASSWORD_CHANGE_FAILED', 
+        'Incorrect current password provided'
+      );
       return { error: "Incorrect password!" };
     }
 
@@ -68,9 +76,25 @@ export const settings = async (
   const updatedUser = await db.user.update({
     where: { id: dbUser.id },
     data: {
-      ...values,
+      name: values.name,
+      email: values.email,
+      password: values.password,
+      isTwoFactorEnabled: values.isTwoFactorEnabled,
     }
   });
+
+  // Log setting changes
+  if (values.password) {
+    await authAuditHelpers.logPasswordChanged(user.id!, user.email!, 'settings');
+  }
+  
+  if (values.isTwoFactorEnabled !== undefined && values.isTwoFactorEnabled !== dbUser.isTwoFactorEnabled) {
+    if (values.isTwoFactorEnabled) {
+      await authAuditHelpers.logTwoFactorEnabled(user.id!, user.email!);
+    } else {
+      await authAuditHelpers.logTwoFactorDisabled(user.id!, user.email!);
+    }
+  }
 
   return { success: "Settings Updated!" }
 }

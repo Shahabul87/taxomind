@@ -257,7 +257,7 @@ export class EmotionDetector {
   ): Promise<EmotionPatternResult> {
 
     // Get historical emotion data
-    const emotionHistory = await this.getEmotionHistory(studentId, timeRange);
+    const emotionHistory = this.detectionHistory.get(studentId) || [];
 
     // Detect temporal patterns
     const temporalPatterns = await this.detectTemporalPatterns(emotionHistory);
@@ -477,10 +477,10 @@ export class EmotionDetector {
     const day = now.getDay();
 
     return {
-      timeOfDay: this.getTimeOfDay(hour),
-      dayOfWeek: this.getDayOfWeek(day),
+      timeOfDay: this.getTimeOfDay(hour) as any,
+      dayOfWeek: this.getDayOfWeek(day) as any,
       seasonalContext: {
-        season: this.getCurrentSeason(),
+        season: this.getCurrentSeason() as any,
         weather: {
           type: 'sunny',
           intensity: 'mild',
@@ -706,7 +706,7 @@ export class EmotionDetector {
 
     switch (inputData.source) {
       case 'text_analysis':
-        emotionScores.push(...await this.analyzeTextEmotions(inputData.data.text, context));
+        emotionScores.push(...await this.analyzeTextEmotions(inputData.data.text || '', context));
         break;
       case 'behavioral_patterns':
         emotionScores.push(...await this.analyzeBehavioralEmotions(inputData.data.behavioral, context));
@@ -722,7 +722,7 @@ export class EmotionDetector {
         break;
       case 'hybrid':
         // Combine multiple sources
-        for (const sourceData of inputData.data.hybrid) {
+        for (const sourceData of inputData.data.hybrid || []) {
           const sourceScores = await this.analyzeEmotionalSignals({ ...inputData, source: sourceData.source, data: sourceData.data }, context);
           emotionScores.push(...sourceScores);
         }
@@ -864,7 +864,7 @@ export class EmotionDetector {
       trend: 'stable',
       triggers: [{
         type: selfReport.trigger || 'self_reflection',
-        source: 'self_report',
+        source: 'self_report' as TriggerSource,
         intensity: selfReport.intensity || 0.7,
         duration: 0,
         context: 'self-reported emotion'
@@ -1492,6 +1492,20 @@ export class EmotionDetector {
   private async updateRealTimeCache(studentId: string, detection: any): Promise<void> {
     // Update real-time emotion cache
   }
+
+  // Pattern detection methods
+  private async detectTemporalPatterns(history: EmotionDetectionResult[]): Promise<any[]> { return []; }
+  private async detectContextualPatterns(history: EmotionDetectionResult[]): Promise<any[]> { return []; }
+  private async detectTriggerPatterns(history: EmotionDetectionResult[]): Promise<any[]> { return []; }
+  private async detectRecoveryPatterns(history: EmotionDetectionResult[]): Promise<any[]> { return []; }
+  private async generatePatternInsights(...patterns: any[][]): Promise<any[]> { return []; }
+  private async generatePatternRecommendations(insights: any[]): Promise<any[]> { return []; }
+  
+  // Intervention methods
+  private async assessEmotionalState(result: EmotionDetectionResult, profile: StudentEmotionProfile): Promise<any> { return {}; }
+  private async identifyInterventionNeeds(assessment: any): Promise<any> { return {}; }
+  private async generateInterventionRecommendations(needs: any, profile: StudentEmotionProfile, context: EmotionContext): Promise<InterventionRecommendation[]> { return []; }
+  private async rankRecommendations(recommendations: InterventionRecommendation[], profile: StudentEmotionProfile): Promise<InterventionRecommendation[]> { return recommendations; }
 
   // Additional method stubs...
   private async preprocessText(text: string): Promise<string> { return text.toLowerCase(); }

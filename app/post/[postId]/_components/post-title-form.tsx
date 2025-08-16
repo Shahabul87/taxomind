@@ -53,7 +53,7 @@ export const PostTitleForm = ({
       toast.success("Post updated");
       setIsEditing(false);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error updating post:", error);
       toast.error("Something went wrong");
     }

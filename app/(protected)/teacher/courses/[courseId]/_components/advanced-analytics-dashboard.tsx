@@ -156,7 +156,7 @@ export const AdvancedAnalyticsDashboard = ({
       setContentAnalytics(data.contentAnalytics);
       
       toast.success("Analytics data updated");
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error loading analytics:', error);
       toast.error('Failed to load analytics data');
       
@@ -239,7 +239,7 @@ export const AdvancedAnalyticsDashboard = ({
       a.click();
       
       toast.success("Analytics report downloaded");
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating report:', error);
       toast.error('Failed to generate report');
     }

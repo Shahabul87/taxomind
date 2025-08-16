@@ -213,14 +213,14 @@ async function calculateContentInsights(
   const suggestionAcceptanceRate = suggestionsGiven > 0 ? (suggestionsApplied / suggestionsGiven) * 100 : 0;
 
   // Get content completion data
-  const completedContent = await db.Course.count({
+  const completedContent = await db.course.count({
     where: {
       userId,
       isPublished: true,
       ...(courseId && { id: courseId }),
     },
   });
-  const totalContent = await db.Course.count({
+  const totalContent = await db.course.count({
     where: {
       userId,
       ...(courseId && { id: courseId }),
@@ -229,7 +229,7 @@ async function calculateContentInsights(
   const contentCompletionRate = totalContent > 0 ? (completedContent / totalContent) * 100 : 0;
 
   // Calculate average time to complete (in hours)
-  const completedCourses = await db.Course.findMany({
+  const completedCourses = await db.course.findMany({
     where: {
       userId,
       isPublished: true,

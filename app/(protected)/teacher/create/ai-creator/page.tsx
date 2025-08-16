@@ -127,7 +127,7 @@ export default function AICreatorPage() {
         setShowCompleteGenerationModal(false);
       }, 2000);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Complete generation failed:', error);
       // Modal stays open to show error
     }
@@ -253,7 +253,7 @@ etc.`,
                 const errorText = await chapterResponse.text();
                 logger.error(`Failed to create chapter "${title}": ${chapterResponse.status} - ${errorText}`);
               }
-            } catch (error) {
+            } catch (error: any) {
               logger.error(`Error creating chapter: ${title}`, error);
             }
             return null;
@@ -288,7 +288,7 @@ etc.`,
       // Redirect to course editing page (skip blueprint stage)
       router.push(`/teacher/courses/${course.id}`);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating course:', error);
       toast.error('Failed to create course. Please try again.');
     } finally {

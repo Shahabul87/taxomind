@@ -79,7 +79,7 @@ export function SAMConversationHistory({
           const data = await response.json();
           setConversations(data.data);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error loading conversations:', error);
       } finally {
         setIsLoading(false);
@@ -104,7 +104,7 @@ export function SAMConversationHistory({
           const data = await response.json();
           setMessages(data.data);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error loading messages:', error);
       }
     };

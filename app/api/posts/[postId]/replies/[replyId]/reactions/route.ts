@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 // Helper function for safer error responses
 const createErrorResponse = (message: string, status = 500) => {
   logger.error(`[REPLY_REACTIONS_POST] Error: ${message}`);
-  return NextResponse.json(
+  return createSuccessResponse(
     { error: message },
     { status }
   );
@@ -156,7 +156,7 @@ export async function POST(
       return updatedReply;
     });
 
-    return NextResponse.json(result);
+    return createSuccessResponse(result);
   } catch (error) {
     logger.error("[REPLY_REACTIONS_POST] Error:", error);
     

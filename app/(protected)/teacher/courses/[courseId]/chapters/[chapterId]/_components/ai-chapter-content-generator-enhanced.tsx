@@ -296,7 +296,7 @@ export const AIChapterContentGeneratorEnhanced = ({
       } else {
         throw new Error("Failed to generate content");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Content generation error:", error);
       toast.error("Failed to generate content. Using demo content.");
       // Use demo content as fallback

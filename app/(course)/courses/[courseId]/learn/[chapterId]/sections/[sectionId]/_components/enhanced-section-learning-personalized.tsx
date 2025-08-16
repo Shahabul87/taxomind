@@ -199,7 +199,7 @@ export const EnhancedSectionLearningPersonalized = ({
           setLearningPreferences(prev => ({ ...prev, ...response.data.data.preferences }));
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to load personalization data:", error);
       // Use demo data as fallback
       setPersonalizationInsights(getDemoInsights());
@@ -238,7 +238,7 @@ export const EnhancedSectionLearningPersonalized = ({
         // Refresh the page or update state to reflect completion
         window.location.reload();
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error marking section complete:', error);
     }
   }, [courseId, chapterId, sectionId]);
@@ -284,7 +284,7 @@ export const EnhancedSectionLearningPersonalized = ({
         }
       });
       toast.success("Learning preferences updated!");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to update preferences:", error);
       toast.error("Failed to update preferences");
     }
@@ -311,7 +311,7 @@ export const EnhancedSectionLearningPersonalized = ({
       // Reload insights after feedback
       setTimeout(() => loadPersonalizationData(), 1000);
       toast.success("Thanks for your feedback! Content will adapt accordingly.");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to submit feedback:", error);
       toast.error("Failed to submit feedback");
     }

@@ -58,7 +58,7 @@ export const DiscussionForm = ({ groupId, onSuccess }: DiscussionFormProps) => {
       router.refresh();
       onSuccess?.();
       toast.success("Discussion created successfully");
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsSubmitting(false);

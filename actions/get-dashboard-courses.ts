@@ -1,3 +1,5 @@
+"use server";
+
 import { Category, Chapter, Course } from "@prisma/client";
 
 import { db } from "@/lib/db";
@@ -77,8 +79,8 @@ async function fetchDashboardCoursesFromDatabase(userId: string): Promise<Dashbo
       completedCourses,
       coursesInProgress,
     }
-  } catch (error) {
-
+  } catch (error: any) {
+    console.error('[GET_DASHBOARD_COURSES_ERROR]', error);
     return {
       completedCourses: [],
       coursesInProgress: [],

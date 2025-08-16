@@ -49,7 +49,7 @@ export const ContactForm = ({ userId }: ContactFormProps) => {
       });
       toast.success("Support ticket submitted successfully");
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to submit support ticket");
     } finally {
       setIsSubmitting(false);

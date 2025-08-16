@@ -133,7 +133,7 @@ export async function getAdminDashboardData() {
       recentUsers,
       additionalStats
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[ADMIN_DASHBOARD_ACTION_ERROR]", error);
     throw error;
   }

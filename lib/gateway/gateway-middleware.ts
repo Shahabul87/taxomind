@@ -44,7 +44,7 @@ export function logRequest(request: NextRequest, requestId: string): void {
     url: request.url,
     userAgent: request.headers.get('user-agent') || undefined,
     userId: request.headers.get('x-user-id') || undefined,
-    ip: request.headers.get('x-forwarded-for') || request.ip || 'unknown',
+    ip: request.headers.get('x-forwarded-for') || 'unknown',
     timestamp: new Date().toISOString(),
     headers: Object.fromEntries(request.headers.entries()),
   };
@@ -304,25 +304,21 @@ export class ResponseTransformer {
     limit: number,
     total: number
   ): (response: NextResponse) => NextResponse {
-    return async (response: NextResponse): Promise<NextResponse> => {
-      const data = await response.json();
+    return (response: NextResponse): NextResponse => {
       const totalPages = Math.ceil(total / limit);
       
-      const enhancedData = {
-        ...data,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1,
-        },
-      };
+      // Add pagination headers instead of modifying body
+      const headers = new Headers(response.headers);
+      headers.set('X-Pagination-Page', page.toString());
+      headers.set('X-Pagination-Limit', limit.toString());
+      headers.set('X-Pagination-Total', total.toString());
+      headers.set('X-Pagination-Total-Pages', totalPages.toString());
+      headers.set('X-Pagination-Has-Next', (page < totalPages).toString());
+      headers.set('X-Pagination-Has-Prev', (page > 1).toString());
       
-      return NextResponse.json(enhancedData, {
+      return NextResponse.json(response.body, {
         status: response.status,
-        headers: response.headers,
+        headers,
       });
     };
   }

@@ -130,7 +130,7 @@ export function ContactForm({ courseId }: { courseId?: string }) {
       // Form submission logic
       await submitForm();
       trackFormSubmit(true);
-    } catch (error) {
+    } catch (error: any) {
       trackFormSubmit(false, undefined, error.message);
     }
   };

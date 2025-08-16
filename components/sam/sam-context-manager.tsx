@@ -164,7 +164,7 @@ export function useContextAwareSAM() {
       if (matchedPattern.dataFetcher) {
         try {
           entityData = await matchedPattern.dataFetcher(params);
-        } catch (error) {
+        } catch (error: any) {
           logger.warn('SAM Context: Failed to fetch entity data:', error);
         }
       }
@@ -179,7 +179,7 @@ export function useContextAwareSAM() {
       };
 
       return context;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('SAM Context: Error fetching context data:', error);
       return {
         url,

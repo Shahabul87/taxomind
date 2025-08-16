@@ -247,7 +247,7 @@ export function RealTimeCollaboration({
       // Initialize WebSocket connection
       connectWebSocket();
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error initializing collaboration:', error);
       toast.error('Failed to initialize collaboration session');
     } finally {
@@ -298,7 +298,7 @@ export function RealTimeCollaboration({
         sessionId: currentSession?.id,
         message
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error sending message:', error);
     }
   }, [newMessage, userId, userName, userAvatar, currentSession?.id]);
@@ -326,7 +326,7 @@ export function RealTimeCollaboration({
       ));
       
       addSystemMessage(`${userName} ${!isVideoEnabled ? 'enabled' : 'disabled'} video`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error toggling video:', error);
       toast.error('Failed to access camera');
     }
@@ -343,7 +343,7 @@ export function RealTimeCollaboration({
       ));
       
       addSystemMessage(`${userName} ${!isAudioEnabled ? 'unmuted' : 'muted'} microphone`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error toggling audio:', error);
       toast.error('Failed to access microphone');
     }
@@ -364,7 +364,7 @@ export function RealTimeCollaboration({
       setParticipants(prev => prev.map(p => 
         p.id === userId ? { ...p, isScreenSharing: !isScreenSharing } : p
       ));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error toggling screen share:', error);
       toast.error('Failed to start screen sharing');
     }
@@ -390,7 +390,7 @@ export function RealTimeCollaboration({
         sessionId: currentSession?.id,
         room: newRoom
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating breakout room:', error);
     }
   }, [breakoutRooms.length, currentSession?.id, addSystemMessage]);

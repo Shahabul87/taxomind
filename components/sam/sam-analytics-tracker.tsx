@@ -48,7 +48,7 @@ export function SAMAnalyticsTracker({
       sessionIdRef.current = uuidv4();
       sessionStartRef.current = new Date();
       interactionCountRef.current = 0;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error recording analytics session:', error);
     }
   }, [session?.user?.id, courseId, chapterId, sectionId]);

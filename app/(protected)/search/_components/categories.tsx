@@ -3,15 +3,15 @@ import { motion} from "framer-motion";
 
 import { Category } from "@prisma/client";
 import {
-  FcEngineering,
-  FcFilmReel,
-  FcMultipleDevices,
-  FcMusic,
-  FcOldTimeCamera,
-  FcSalesPerformance,
-  FcSportsMode
-} from "react-icons/fc";
-import { IconType } from "react-icons";
+  MusicIcon,
+  CameraIcon,
+  FitnessIcon,
+  ChartIcon,
+  ComputerIcon,
+  FilmIcon,
+  EngineeringIcon
+} from "@/components/icons/custom-icons";
+import { LucideIcon } from "lucide-react";
 
 import { CategoryItem } from "./category-item";
 
@@ -19,14 +19,14 @@ interface CategoriesProps {
   items: Category[];
 }
 
-const iconMap: Record<Category["name"], IconType> = {
-  "Music": FcMusic,
-  "Photography": FcOldTimeCamera,
-  "Fitness": FcSportsMode,
-  "Accounting": FcSalesPerformance,
-  "Computer Science": FcMultipleDevices,
-  "Filming": FcFilmReel,
-  "Engineering": FcEngineering,
+const iconMap: Record<Category["name"], React.FC<{ className?: string }>> = {
+  "Music": MusicIcon,
+  "Photography": CameraIcon,
+  "Fitness": FitnessIcon,
+  "Accounting": ChartIcon,
+  "Computer Science": ComputerIcon,
+  "Filming": FilmIcon,
+  "Engineering": EngineeringIcon,
 };
 
 export const Categories = ({ items, }: CategoriesProps) => {

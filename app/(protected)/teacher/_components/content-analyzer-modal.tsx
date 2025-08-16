@@ -104,7 +104,7 @@ export function ContentAnalyzerModal({
       } else {
         throw new Error('Analysis failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Analysis error:', error);
       toast.error('Failed to analyze content. Please try again.');
     } finally {

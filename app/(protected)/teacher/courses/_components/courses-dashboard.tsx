@@ -36,7 +36,7 @@ export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
     completeOnboarding,
     skipOnboarding
   } = useIntelligentOnboarding({
-    userRole: "TEACHER",
+    userRole: "USER",
     autoStart: !showTour // Don't auto-start if tour is active
   });
 
@@ -50,7 +50,8 @@ export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
       {showTour && <GuidedTour config={aiCourseCreationTour} />}
       
       <IntelligentOnboarding
-        userRole="TEACHER"
+        userRole="USER"
+        isTeacher={true}
         isVisible={isOnboardingVisible}
         onComplete={completeOnboarding}
         onSkip={skipOnboarding}

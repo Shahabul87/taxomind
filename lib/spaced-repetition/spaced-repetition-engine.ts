@@ -67,6 +67,7 @@ export class SpacedRepetitionEngine {
     const memoryStrength = await this.calculateMemoryStrength(
       studentId,
       contentId,
+      courseId,
       performance,
       currentState
     );
@@ -146,7 +147,7 @@ export class SpacedRepetitionEngine {
     // Store result and update caches
     await this.storeRepetitionResult(result);
     await this.updateStudentProfile(studentId, result);
-    await this.updateForgettingCurve(studentId, contentId, result);
+    await this.persistForgettingCurveResult(studentId, contentId, result);
 
     return result;
   }
@@ -397,6 +398,7 @@ export class SpacedRepetitionEngine {
   private async calculateMemoryStrength(
     studentId: string,
     contentId: string,
+    courseId: string,
     performance: ReviewPerformance,
     currentState: RepetitionState
   ): Promise<MemoryStrength> {
@@ -784,8 +786,12 @@ export class SpacedRepetitionEngine {
                                   (performance.correct ? 1 : 0.3);
 
     // Synaptic stability based on consistent performance
-    const consistency = history.length > 1 ? 
-      1 - (history.map(p => p.correct ? 1 : 0).reduce((a, b) => Math.abs(a - b), 0) / history.length) : 0.5;
+    const consistency = history.length > 1 ? (() => {
+      const correctness: number[] = history.map(p => (p.correct ? 1 : 0));
+      const mean = correctness.reduce((sum: number, v: number) => sum + v, 0) / correctness.length;
+      const variance = correctness.reduce((sum: number, v: number) => sum + Math.pow(v - mean, 2), 0) / correctness.length;
+      return 1 - variance; // higher when performance is consistent
+    })() : 0.5;
     const synapticStability = consolidationStrength * consistency;
 
     // Interference resistance based on ease factor and mastery
@@ -892,7 +898,16 @@ export class SpacedRepetitionEngine {
       stability: 0.5,
       retrievability: 0.7,
       difficulty: 0.5,
-      lastPerformance: null,
+      lastPerformance: {
+        correct: false,
+        responseTime: 0,
+        confidence: 0,
+        difficulty: 1,
+        quality: 0,
+        mistakes: [],
+        hints: 0,
+        attempts: 0
+      },
       streakCount: 0,
       masteryLevel: 'novice'
     };
@@ -907,7 +922,7 @@ export class SpacedRepetitionEngine {
 }
   private async updateStudentProfile(studentId: string, result: SpacedRepetitionResult): Promise<void> {
 }
-  private async updateForgettingCurve(studentId: string, contentId: string, result: SpacedRepetitionResult): Promise<void> {
+  private async persistForgettingCurveResult(studentId: string, contentId: string, result: SpacedRepetitionResult): Promise<void> {
 }
   private async getStudentProfile(studentId: string): Promise<StudentRepetitionProfile> {
     // Would fetch comprehensive student profile

@@ -99,18 +99,18 @@ export class PrerequisiteAnalyzer {
     // Check completion status
     const completion = await db.sAMInteraction.findFirst({
       where: {
-        studentId,
+        userId: studentId,
         sectionId: sourceContentId,
-        eventName: 'section_complete'
+        interactionType: 'CONTENT_GENERATE'
       },
-      orderBy: { timestamp: 'desc' }
+      orderBy: { createdAt: 'desc' }
     });
 
     if (completion) {
       evidence.push({
         type: 'completion_record',
         value: true,
-        timestamp: completion.timestamp,
+        timestamp: completion.createdAt,
         weight: 1.0,
         source: 'database'
       });
@@ -119,24 +119,24 @@ export class PrerequisiteAnalyzer {
     // Check quiz scores
     const quizResults = await db.sAMInteraction.findMany({
       where: {
-        studentId,
+        userId: studentId,
         sectionId: sourceContentId,
-        eventName: 'quiz_complete'
+        interactionType: 'FORM_SUBMIT'
       },
-      orderBy: { timestamp: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 5
     });
 
     if (quizResults.length > 0) {
       const avgScore = quizResults.reduce((sum, result) => {
-        const score = result.data ? (result.data as any).score || 0 : 0;
+        const score = result.context ? (result.context as any).score || 0 : 0;
         return sum + score;
       }, 0) / quizResults.length;
 
       evidence.push({
         type: 'quiz_score',
         value: avgScore,
-        timestamp: quizResults[0].timestamp,
+        timestamp: quizResults[0].createdAt,
         weight: 0.8,
         source: 'database'
       });
@@ -169,9 +169,9 @@ export class PrerequisiteAnalyzer {
     // Check for help requests
     const helpRequests = await db.sAMInteraction.count({
       where: {
-        studentId,
+        userId: studentId,
         sectionId: sourceContentId,
-        eventName: 'help_request'
+        interactionType: 'CHAT_MESSAGE'
       }
     });
 
@@ -417,7 +417,7 @@ export class PrerequisiteAnalyzer {
 
     // Get all content for the course
     const sections = await db.section.findMany({
-      where: { courseId },
+      where: { chapter: { courseId } },
       include: { chapter: true },
       orderBy: { position: 'asc' }
     });
@@ -433,7 +433,7 @@ export class PrerequisiteAnalyzer {
         contentId: section.id,
         type: 'lesson',
         title: section.title,
-        description: section.description,
+        description: section.title, // Section model doesn't have description field
         metadata: {
           difficulty: this.inferQuestionDifficulty(section),
           estimatedTime: section.duration || 30,
@@ -605,7 +605,7 @@ export class PrerequisiteAnalyzer {
     const orphans = this.findOrphanedContent(graph);
     orphans.forEach(contentId => {
       warnings.push({
-        type: 'orphaned_content',
+        type: 'weak_prerequisite',
         contentId,
         message: 'Content has no prerequisites or dependents',
         recommendation: 'Consider adding prerequisite relationships'
@@ -654,7 +654,7 @@ export class PrerequisiteAnalyzer {
     // For now, create sample rules based on content position
     // In real implementation, this would come from database
     const sections = await db.section.findMany({
-      where: { courseId },
+      where: { chapter: { courseId } },
       orderBy: { position: 'asc' }
     });
 
@@ -862,15 +862,15 @@ export class PrerequisiteAnalyzer {
   // Placeholder helper methods - would be implemented with actual data
   private async calculateTimeSpent(studentId: string, contentId: string): Promise<number> {
     const interactions = await db.sAMInteraction.findMany({
-      where: { studentId, sectionId: contentId },
-      orderBy: { timestamp: 'asc' }
+      where: { userId: studentId, sectionId: contentId },
+      orderBy: { createdAt: 'asc' }
     });
     
     // Simple time calculation - would be more sophisticated in real implementation
     if (interactions.length < 2) return 0;
     
-    const start = new Date(interactions[0].timestamp);
-    const end = new Date(interactions[interactions.length - 1].timestamp);
+    const start = new Date(interactions[0].createdAt);
+    const end = new Date(interactions[interactions.length - 1].createdAt);
     return Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60)); // minutes
   }
 
@@ -933,9 +933,9 @@ export class PrerequisiteAnalyzer {
   private async getStudentProgress(studentId: string, courseId: string): Promise<any> {
     const completedSections = await db.sAMInteraction.findMany({
       where: {
-        studentId,
+        userId: studentId,
         courseId,
-        eventName: 'section_complete'
+        interactionType: 'CONTENT_GENERATE'
       },
       distinct: ['sectionId']
     });

@@ -365,7 +365,7 @@ export class HealthMonitor {
       await Promise.race([checkPromise, timeoutPromise]);
       result = await checkPromise;
 
-    } catch (error) {
+    } catch (error: any) {
       const duration = Date.now() - startTime;
       result = {
         status: 'unhealthy',
@@ -373,6 +373,7 @@ export class HealthMonitor {
         duration,
         timestamp: new Date(),
         details: {
+        
           error: (error as Error).name,
           stack: (error as Error).stack,
         },
@@ -558,7 +559,7 @@ export class HealthMonitor {
           lastError = `HTTP ${response.status}: ${response.statusText}`;
         }
 
-      } catch (error) {
+      } catch (error: any) {
         const responseTime = Date.now() - startTime;
         lastError = error instanceof Error ? error.message : 'Unknown error';
         
@@ -724,20 +725,26 @@ export class HealthMonitor {
     const key = `health_check:${checkName}:history`;
     const since = Date.now() - (hours * 60 * 60 * 1000);
     
-    const results = await this.redis.zrangebyscore(
-      key,
-      since,
-      '+inf',
-      'WITHSCORES'
-    );
+    // Fallback: retrieve all then filter by score using zscore
+    const members = await this.redis.zrange(key, 0, -1);
+    const entries: Array<{ member: string; score: number }> = [];
+    for (const m of members as string[]) {
+      const scoreStr = await this.redis.zscore(key, m);
+      const score = scoreStr !== null ? Number(scoreStr) : 0;
+      if (score >= since) {
+        entries.push({ member: m, score });
+      }
+    }
+    // Sort ascending by score
+    entries.sort((a, b) => a.score - b.score);
 
     const history: HealthCheckResult[] = [];
-    for (let i = 0; i < results.length; i += 2) {
+    for (const item of entries) {
       try {
-        const result = JSON.parse(results[i] as string);
-        result.timestamp = new Date(parseInt(results[i + 1] as string));
+        const result = JSON.parse(item.member) as HealthCheckResult;
+        result.timestamp = new Date(item.score);
         history.push(result);
-      } catch (error) {
+      } catch (error: any) {
         logger.warn(`[HEALTH_MONITOR] Failed to parse history entry:`, error);
       }
     }
@@ -777,7 +784,7 @@ export class HealthMonitor {
           connectionPool: 'active',
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'unhealthy',
         message: `Database connection failed: ${(error as Error).message}`,
@@ -792,7 +799,6 @@ export class HealthMonitor {
     
     try {
       await this.redis.ping();
-      const info = await this.redis.info('memory');
       const duration = Date.now() - startTime;
       
       return {
@@ -802,10 +808,9 @@ export class HealthMonitor {
         timestamp: new Date(),
         details: {
           ping: 'PONG',
-          memory: info,
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'unhealthy',
         message: `Redis connection failed: ${(error as Error).message}`,
@@ -846,7 +851,7 @@ export class HealthMonitor {
           timestamp: new Date(),
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'warning', // Not critical for our app
         message: `External API check failed: ${(error as Error).message}`,
@@ -879,7 +884,7 @@ export class HealthMonitor {
           testPath: testFile,
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'unhealthy',
         message: `File system check failed: ${(error as Error).message}`,
@@ -923,7 +928,7 @@ export class HealthMonitor {
           systemUsedPercent: Math.round(usedPercent),
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'warning',
         message: `Memory check failed: ${(error as Error).message}`,
@@ -972,7 +977,7 @@ export class HealthMonitor {
           stats,
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'warning',
         message: `Circuit breaker check failed: ${(error as Error).message}`,
@@ -993,14 +998,14 @@ export class HealthMonitor {
       const key = `health_check:${checkName}:history`;
       const score = result.timestamp.getTime();
       
-      await this.redis.zadd(key, score, JSON.stringify(result));
+      await this.redis.zadd(key, { score, member: JSON.stringify(result) });
       
       // Keep only last 1000 entries
       await this.redis.zremrangebyrank(key, 0, -1001);
       
       // Set expiration
       await this.redis.expire(key, 7 * 24 * 60 * 60); // 7 days
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[HEALTH_MONITOR] Failed to store health check result:`, error);
     }
   }
@@ -1061,7 +1066,7 @@ export class HealthMonitor {
       // Trim history to last 100 entries
       await this.redis.ltrim(`health_history:${serviceName}`, 0, 99);
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[HEALTH_MONITOR] Failed to persist health data for ${serviceName}:`, error);
     }
   }
@@ -1073,7 +1078,7 @@ export class HealthMonitor {
     for (const callback of this.notificationCallbacks) {
       try {
         callback(serviceName, status);
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`[HEALTH_MONITOR] Notification callback failed for ${serviceName}:`, error);
       }
     }
@@ -1148,7 +1153,7 @@ export class HealthMonitor {
       
       console.log('[SYSTEM_ALERT]', JSON.stringify(alertData, null, 2));
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[HEALTH_MONITOR] Failed to send system alert:`, error);
     }
   }
@@ -1160,7 +1165,7 @@ export class HealthMonitor {
     return {
       uptime: Date.now() - this.startTime,
       healthChecks: {
-        total: this.checks.size,
+        total: this.systemChecks.size + this.serviceChecks.size,
         active: this.intervals.size,
       },
       alerts: {
@@ -1263,7 +1268,7 @@ export class HealthMonitor {
     try {
       const history = await this.redis.lrange(`health_history:${serviceName}`, 0, limit - 1);
       return history.map(entry => JSON.parse(entry as string));
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[HEALTH_MONITOR] Failed to get history for ${serviceName}:`, error);
       return [];
     }

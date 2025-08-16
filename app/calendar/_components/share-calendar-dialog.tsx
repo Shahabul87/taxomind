@@ -30,7 +30,7 @@ export const ShareCalendarDialog = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast.success("Link copied to clipboard");
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to copy link");
     }
   };
@@ -43,7 +43,7 @@ export const ShareCalendarDialog = ({
         body: JSON.stringify({ isPublic }),
       });
       toast.success("Calendar sharing settings updated");
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to update sharing settings");
     }
   };

@@ -18,7 +18,7 @@ export default async function FavoriteVideosPage() {
     redirect("/auth/login");
   }
   
-  const favoriteVideos = userData.favoriteVideos || [];
+  const favoriteVideos = userData.FavoriteVideo || [];
   
   // Group videos by category or platform
   const groupedVideos = favoriteVideos.reduce((acc: any, video: any) => {

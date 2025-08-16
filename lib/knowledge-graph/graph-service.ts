@@ -425,10 +425,14 @@ export class KnowledgeGraphService {
     const studentProgress = await this.getStudentProgress(studentId, courseId);
     const graph = await this.getKnowledgeGraph(courseId);
     
-    const gaps = [];
+    const gaps: Array<{
+      nodeId: string;
+      missingPrerequisites: string[];
+      severity: 'high' | 'medium';
+    }> = [];
     
     // Find nodes student is trying to access without prerequisites
-    studentProgress.strugglingNodes.forEach(nodeId => {
+    studentProgress.strugglingNodes.forEach((nodeId: string) => {
       const prerequisites = this.findPrerequisites(graph, nodeId);
       const missingPrerequisites = prerequisites.filter(
         prereqId => !studentProgress.completedNodes.includes(prereqId)
@@ -454,7 +458,7 @@ export class KnowledgeGraphService {
     const graph = await this.getKnowledgeGraph(courseId);
     const studentProgress = await this.getStudentProgress(studentId, courseId);
     
-    const recommendations = [];
+    const recommendations: KnowledgeNode[] = [];
     
     // Find nodes where all prerequisites are met
     graph.nodes.forEach(node => {
@@ -473,8 +477,8 @@ export class KnowledgeGraphService {
     // Sort by difficulty and student performance
     return recommendations
       .sort((a, b) => {
-        const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3, 'expert': 4 };
-        return difficultyOrder[a.metadata.difficulty] - difficultyOrder[b.metadata.difficulty];
+        const difficultyOrder: Record<string, number> = { 'beginner': 1, 'intermediate': 2, 'advanced': 3, 'expert': 4 };
+        return (difficultyOrder[a.metadata.difficulty] || 1) - (difficultyOrder[b.metadata.difficulty] || 1);
       })
       .slice(0, 5);
   }
@@ -501,7 +505,7 @@ export class KnowledgeGraphService {
       .map(nextNodeId => graph.nodes.get(nextNodeId)?.metadata.difficulty)
       .filter(Boolean);
     
-    return [...new Set(difficulties)];
+    return [...new Set(difficulties)] as string[];
   }
 
   private findOptimalQuestionDifficultyPath(graph: KnowledgeGraph, startNodeId: string): string[] {
@@ -549,9 +553,9 @@ export class KnowledgeGraphService {
   private async getStudentCompletedNodes(studentId: string, courseId: string): Promise<string[]> {
     const completedSections = await db.sAMInteraction.findMany({
       where: {
-        studentId,
+        userId: studentId,
         courseId,
-        eventName: 'section_complete'
+        interactionType: 'NAVIGATION' // Using available enum value
       },
       distinct: ['sectionId']
     });
@@ -564,13 +568,13 @@ export class KnowledgeGraphService {
   private async getStudentLearningData(studentId: string, courseId: string): Promise<any> {
     const [interactions, metrics, flags] = await Promise.all([
       db.sAMInteraction.findMany({
-        where: { studentId, courseId },
-        orderBy: { timestamp: 'desc' },
+        where: { userId: studentId, courseId },
+        orderBy: { createdAt: 'desc' },
         take: 100
       }),
       db.learning_metrics.findMany({
-        where: { studentId, courseId },
-        orderBy: { date: 'desc' },
+        where: { userId: studentId, courseId },
+        orderBy: { createdAt: 'desc' },
         take: 7 // Last 7 days
       }),
       db.contentFlag.findMany({
@@ -588,7 +592,7 @@ export class KnowledgeGraphService {
       interactions,
       metrics,
       strugglingContent: flags.map(f => f.contentId),
-      averageEngagement: metrics.reduce((sum, m) => sum + m.engagementScore, 0) / metrics.length || 0,
+      averageEngagement: metrics.reduce((sum, m) => sum + m.averageEngagementScore, 0) / metrics.length || 0,
       learningVelocity: this.calculateLearningVelocity(interactions)
     };
   }
@@ -615,8 +619,8 @@ export class KnowledgeGraphService {
   private calculateLearningVelocity(interactions: any[]): number {
     if (interactions.length < 2) return 0;
     
-    const timeSpan = new Date(interactions[0].timestamp).getTime() - 
-                    new Date(interactions[interactions.length - 1].timestamp).getTime();
+    const timeSpan = new Date(interactions[0].createdAt).getTime() - 
+                    new Date(interactions[interactions.length - 1].createdAt).getTime();
     const days = timeSpan / (1000 * 60 * 60 * 24);
     
     return days > 0 ? interactions.length / days : 0;

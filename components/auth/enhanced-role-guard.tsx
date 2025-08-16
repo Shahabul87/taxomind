@@ -13,6 +13,12 @@ interface RoleGuardProps {
   redirect?: boolean;
 }
 
+const mapPrismaRole = (role: any): UserRole | null => {
+  if (!role) return null;
+  const str = String(role).toUpperCase();
+  return str === 'ADMIN' ? UserRole.ADMIN : str === 'USER' ? UserRole.USER : null;
+};
+
 export const RoleGuard = ({ 
   children, 
   allowedRoles, 
@@ -21,7 +27,7 @@ export const RoleGuard = ({
   fallback = null,
   redirect = false 
 }: RoleGuardProps) => {
-  const currentRole = useCurrentRole();
+  const currentRole = mapPrismaRole(useCurrentRole());
   
   // Always call hooks at the top level
   const hasAllPermissions = useHasAllPermissions(requiredPermissions || []);
@@ -55,14 +61,14 @@ export const AdminGuard = ({ children, fallback }: { children: ReactNode; fallba
   </RoleGuard>
 );
 
-export const TeacherGuard = ({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) => (
-  <RoleGuard allowedRoles={[UserRole.TEACHER, UserRole.ADMIN]} fallback={fallback}>
+export const UserGuard = ({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) => (
+  <RoleGuard allowedRoles={[UserRole.USER]} fallback={fallback}>
     {children}
   </RoleGuard>
 );
 
-export const StudentGuard = ({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) => (
-  <RoleGuard allowedRoles={[UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN]} fallback={fallback}>
+export const UserOrAdminGuard = ({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) => (
+  <RoleGuard allowedRoles={[UserRole.USER, UserRole.ADMIN]} fallback={fallback}>
     {children}
   </RoleGuard>
 );
@@ -87,9 +93,7 @@ export const RoleBadge = ({ role }: { role: UserRole }) => {
     switch (role) {
       case UserRole.ADMIN:
         return "bg-red-100 text-red-800 border-red-200";
-      case UserRole.TEACHER:
-        return "bg-green-100 text-green-800 border-green-200";
-      case UserRole.STUDENT:
+      case UserRole.USER:
         return "bg-blue-100 text-blue-800 border-blue-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
@@ -100,10 +104,8 @@ export const RoleBadge = ({ role }: { role: UserRole }) => {
     switch (role) {
       case UserRole.ADMIN:
         return "Admin";
-      case UserRole.TEACHER:
-        return "Teacher";
-      case UserRole.STUDENT:
-        return "Student";
+      case UserRole.USER:
+        return "User";
       default:
         return "Unknown";
     }

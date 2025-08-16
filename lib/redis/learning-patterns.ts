@@ -68,12 +68,11 @@ export class LearningPatternDetector {
           JSON.stringify(currentSession)
         );
       } catch (error: any) {
-        logger.warn('Failed to parse learning session data for user:', userId, error);
+        logger.warn(`Failed to parse learning session data for user: ${userId}`, error);
         // Clear corrupted session and create new one
         await redis.del(sessionKey);
         const newSession: StudySession = {
-          userId,
-          startTime: new Date(),
+          startTime: Date.now(),
           interactions: 1,
           coursesVisited: event.courseId ? [event.courseId] : [],
         };
@@ -102,17 +101,17 @@ export class LearningPatternDetector {
     const key = `patterns:${userId}:content_prefs`;
     const prefs = await redis.hgetall(key) || {};
     
-    const total = Object.values(prefs).reduce((sum, val) => sum + parseInt(val as string), 0);
+    const total = Object.values(prefs).reduce((sum: number, val) => sum + parseInt(String(val)), 0);
     
     if (total === 0) {
       return { video: 25, text: 25, interactive: 25, quiz: 25 };
     }
     
     return {
-      video: Math.round((parseInt(prefs.video || '0') / total) * 100),
-      text: Math.round((parseInt(prefs.text || '0') / total) * 100),
-      interactive: Math.round((parseInt(prefs.interactive || '0') / total) * 100),
-      quiz: Math.round((parseInt(prefs.quiz || '0') / total) * 100)
+      video: Math.round((parseInt(String(prefs.video || '0')) / total) * 100),
+      text: Math.round((parseInt(String(prefs.text || '0')) / total) * 100),
+      interactive: Math.round((parseInt(String(prefs.interactive || '0')) / total) * 100),
+      quiz: Math.round((parseInt(String(prefs.quiz || '0')) / total) * 100)
     };
   }
 
@@ -124,12 +123,29 @@ export class LearningPatternDetector {
     if (!redis) return [];
 
     const key = `struggles:${userId}:${courseId}`;
-    const struggles = await redis.zrange(key, 0, -1, { rev: true, withScores: true });
+    // Get all members with scores in reverse order
+    const struggles = await redis.zrange(key, 0, -1) || [];
+    const strugglesWithScores: string[] = [];
     
-    // Topics with high struggle scores
-    return struggles
-      ?.filter((item: any) => item.score > 5)
-      .map((item: any) => item.value) || [];
+    // Get scores for each member
+    for (const member of struggles) {
+      const memberStr = String(member);
+      const score = await redis.zscore(key, memberStr);
+      if (score !== null) {
+        strugglesWithScores.push(memberStr);
+        strugglesWithScores.push(score.toString());
+      }
+    }
+    
+    // Topics with high struggle scores (strugglesWithScores is array of [member, score, member, score, ...])
+    const topics: string[] = [];
+    for (let i = 0; i < strugglesWithScores.length; i += 2) {
+      const score = parseFloat(strugglesWithScores[i + 1]);
+      if (score > 5) {
+        topics.push(strugglesWithScores[i]);
+      }
+    }
+    return topics;
   }
 
   // Track topic struggles
@@ -172,14 +188,14 @@ export class LearningPatternDetector {
     const key = `velocity:${userId}:${courseId}`;
     const progressData = await redis.hgetall(key) || {};
     
-    const sectionsCompleted = parseInt(progressData.sectionsCompleted || '0');
-    const timeSpent = parseInt(progressData.timeSpent || '1');
+    const sectionsCompleted = parseInt(String(progressData.sectionsCompleted || '0'));
+    const timeSpent = parseInt(String(progressData.timeSpent || '1'));
     
     // Sections per hour
     const velocity = (sectionsCompleted / (timeSpent / 3600)) || 0;
     
     // Store velocity
-    await redis.hset(REDIS_KEYS.LEARNING_VELOCITY(userId), courseId, velocity);
+    await redis.hset(REDIS_KEYS.LEARNING_VELOCITY(userId), { [courseId]: velocity.toString() });
     
     return Math.round(velocity * 100) / 100;
   }
@@ -194,9 +210,9 @@ export class LearningPatternDetector {
     const patterns = await redis.hgetall(`patterns:${userId}:interactions`) || {};
     
     const scores = {
-      visual: parseInt(patterns.video_watch || '0') + parseInt(patterns.image_view || '0'),
-      auditory: parseInt(patterns.audio_play || '0') + parseInt(patterns.video_audio || '0'),
-      kinesthetic: parseInt(patterns.code_interact || '0') + parseInt(patterns.quiz_complete || '0')
+      visual: parseInt(String(patterns.video_watch || '0')) + parseInt(String(patterns.image_view || '0')),
+      auditory: parseInt(String(patterns.audio_play || '0')) + parseInt(String(patterns.video_audio || '0')),
+      kinesthetic: parseInt(String(patterns.code_interact || '0')) + parseInt(String(patterns.quiz_complete || '0'))
     };
     
     const total = Object.values(scores).reduce((sum, val) => sum + val, 0);
@@ -240,9 +256,10 @@ export class LearningPatternDetector {
       optimalStudyHours: optimalHours,
       contentPreferences: contentPrefs,
       learningStyle: learningStyle,
-      averageVelocity: Object.values(velocity)
-        .reduce((sum, val) => sum + parseFloat(val as string), 0) / 
-        Object.keys(velocity).length || 0,
+      averageVelocity: Object.keys(velocity).length > 0 ? 
+        Object.values(velocity as Record<string, string>)
+          .reduce((sum: number, val) => sum + parseFloat(String(val)), 0) / 
+          Object.keys(velocity).length : 0,
       lastUpdated: new Date()
     };
   }

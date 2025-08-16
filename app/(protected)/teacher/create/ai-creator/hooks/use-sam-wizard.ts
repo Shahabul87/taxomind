@@ -77,7 +77,7 @@ export function useSamWizard() {
           toast.success("Draft restored from auto-save");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error loading saved draft:', error);
     }
   }, []);
@@ -130,7 +130,7 @@ export function useSamWizard() {
           } else {
             throw new Error(`Sam suggestion failed: ${response.status}`);
           }
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Error getting Sam suggestion:', error);
           setSamSuggestion({
             message: "I'm having trouble right now. Please try again in a moment.",
@@ -193,7 +193,7 @@ export function useSamWizard() {
           } else {
             throw new Error(`Sam validation failed: ${response.status}`);
           }
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Error validating form:', error);
         } finally {
           setIsValidating(false);
@@ -295,7 +295,7 @@ export function useSamWizard() {
       
       // Navigate to course editing page
       router.push(`/teacher/courses/${course.id}`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating course from blueprint:', error);
       toast.error('Failed to create course. Please try again.');
     }

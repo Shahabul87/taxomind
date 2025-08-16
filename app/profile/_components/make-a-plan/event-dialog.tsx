@@ -134,7 +134,7 @@ export function EventDialog({
           
           setShowRecurring(false);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error("Error setting up event form:", error);
         toast.error("There was a problem loading the event form");
         onOpenChange(false);
@@ -186,7 +186,7 @@ export function EventDialog({
       toast.success("Event deleted successfully");
       onSave();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error deleting event:", error);
       toast.error("Failed to delete event. Please try again.");
     }
@@ -293,7 +293,7 @@ export function EventDialog({
           }
           
           toast.success("Event updated successfully");
-        } catch (error) {
+        } catch (error: any) {
           logger.error("Error updating event:", error);
           toast.error("Failed to update event. Please try again.");
           throw error;
@@ -307,7 +307,7 @@ export function EventDialog({
       // Close dialog and refresh events
       onOpenChange(false);
       onSave();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error saving event:", error);
       toast.error("Failed to save event. Please try again.");
     } finally {

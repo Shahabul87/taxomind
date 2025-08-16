@@ -183,7 +183,7 @@ export const EnhancedCourseInputSection = () => {
       };
 
       await generateCoursePlan(courseRequest);
-    } catch (error) {
+    } catch (error: any) {
       // Error handling is done in the hook
     }
   };

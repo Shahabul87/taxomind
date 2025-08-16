@@ -36,8 +36,10 @@ interface PerformanceMetrics {
   timestamp: number;
 }
 
+type MetricKey = keyof PerformanceBudget['limits'];
+
 interface BudgetViolation {
-  metric: string;
+  metric: MetricKey;
   actual: number;
   limit: number;
   severity: 'warning' | 'error';
@@ -88,7 +90,7 @@ const PERFORMANCE_BUDGETS: Record<string, PerformanceBudget> = {
       ttfb: 800, // 800ms
     },
   },
-  Course: {
+  course: {
     name: 'Course Learning',
     limits: {
       bundleSize: 1200 * 1024, // 1.2MB
@@ -261,7 +263,7 @@ class PerformanceBudgetMonitor {
     });
   }
 
-  private recordMetric(metric: keyof PerformanceMetrics, value: number) {
+  private recordMetric(metric: MetricKey, value: number) {
     const routeType = this.detectRouteType();
     const budget = PERFORMANCE_BUDGETS[routeType];
     
@@ -316,10 +318,10 @@ class PerformanceBudgetMonitor {
     }
   }
 
-  private storeMetric(metric: keyof PerformanceMetrics, value: number) {
+  private storeMetric(metric: MetricKey, value: number) {
     const existingMetric = this.metrics.find(m => m.timestamp === Date.now());
     if (existingMetric) {
-      existingMetric[metric] = value;
+      existingMetric[metric] = value as any;
     } else {
       this.metrics.push({
         bundleSize: 0,
@@ -330,8 +332,8 @@ class PerformanceBudgetMonitor {
         cls: 0,
         ttfb: 0,
         timestamp: Date.now(),
-        [metric]: value,
-      });
+        [metric]: value as any,
+      } as PerformanceMetrics);
     }
   }
 

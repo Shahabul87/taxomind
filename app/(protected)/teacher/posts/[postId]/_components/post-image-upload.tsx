@@ -109,7 +109,7 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
       } else {
         toast.error("Failed to upload files.");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error during submission:", error);
       toast.error("Something went wrong during the submission process.");
     } finally {

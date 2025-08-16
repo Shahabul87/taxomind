@@ -29,7 +29,12 @@ import { promisify } from 'util';
  */
 
 const randomBytes = promisify(crypto.randomBytes);
-const scrypt = promisify(crypto.scrypt);
+const scryptAsync = promisify(crypto.scrypt) as (
+  password: string | Buffer,
+  salt: string | Buffer,
+  keylen: number,
+  options?: crypto.ScryptOptions
+) => Promise<Buffer>;
 
 export interface KeyPair {
   publicKey: string;
@@ -203,7 +208,7 @@ export class CryptoUtils {
     keyLength: number = 32,
     options: crypto.ScryptOptions = { N: 16384, r: 8, p: 1 }
   ): Promise<Buffer> {
-    return scrypt(password, salt, keyLength, options) as Promise<Buffer>;
+    return scryptAsync(password, salt, keyLength, options);
   }
 
   /**
@@ -276,7 +281,7 @@ export class CryptoUtils {
       verify.end();
       
       return verify.verify(publicKey, digitalSignature.signature, 'hex');
-    } catch (error) {
+    } catch (error: any) {
       return false;
     }
   }
@@ -313,7 +318,7 @@ export class CryptoUtils {
       const isValid = expires.getTime() > Date.now();
       
       return { userId, expires, isValid };
-    } catch (error) {
+    } catch (error: any) {
       return null;
     }
   }
@@ -371,7 +376,7 @@ export class CryptoUtils {
       }
       
       return { valid: true, payload };
-    } catch (error) {
+    } catch (error: any) {
       return { valid: false, error: error.message };
     }
   }
@@ -412,7 +417,7 @@ export class CryptoUtils {
         const expectedChecksum = this.createHash(randomPart).substring(0, 8);
         return this.timingSafeEqual(checksum, expectedChecksum);
       }
-    } catch (error) {
+    } catch (error: any) {
       return false;
     }
   }

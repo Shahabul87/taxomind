@@ -434,7 +434,7 @@ export class NotificationSubscriber {
         },
         priority: 'medium',
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send welcome email:', error);
     }
   }
@@ -453,7 +453,7 @@ export class NotificationSubscriber {
         },
         priority: 'high',
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send course published email:', error);
     }
   }
@@ -478,7 +478,7 @@ export class NotificationSubscriber {
         },
         priority: 'high',
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send completion email:', error);
     }
   }
@@ -498,7 +498,7 @@ export class NotificationSubscriber {
         },
         priority: 'high',
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send certificate email:', error);
     }
   }
@@ -533,7 +533,7 @@ export class NotificationSubscriber {
         },
         priority: 'medium',
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send assessment results email:', error);
     }
   }
@@ -561,7 +561,7 @@ export class NotificationSubscriber {
         },
         priority: 'medium',
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send encouragement email:', error);
     }
   }
@@ -569,7 +569,7 @@ export class NotificationSubscriber {
   private async sendPushNotification(data: PushNotificationData): Promise<void> {
     try {
       await this.notificationService.sendPushNotification(data);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[NOTIFICATION_SUBSCRIBER] Failed to send push notification:', error);
     }
   }
@@ -577,7 +577,7 @@ export class NotificationSubscriber {
   private async createInAppNotification(data: InAppNotificationData): Promise<void> {
     try {
       await this.notificationService.createInAppNotification(data);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[NOTIFICATION_SUBSCRIBER] Failed to create in-app notification:', error);
     }
   }

@@ -22,7 +22,7 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
     return redirect("/");
   }
 
-  const content = transformPostChapters(post.postchapter);
+  const content = transformPostChapters(post.PostChapterSection);
   const formattedDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -41,7 +41,7 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
               <PostHeaderDetails
                 title={post.title}
                 category={post.category}
-                authorName={post.user?.name}
+                authorName={post.User?.name}
                 createdAt={post.createdAt}
                 updatedAt={post.updatedAt}
               />

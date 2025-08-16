@@ -41,7 +41,7 @@ const MathEditPage = (props: MathEditPageProps) => {
           `/api/courses/${params.courseId}/chapters/${params.chapterId}/sections/${params.sectionId}/math-equations/${params.mathId}`
         );
         setMathData(response.data);
-      } catch (error) {
+      } catch (error: any) {
         toast.error("Failed to load math explanation");
       } finally {
         setIsLoading(false);
@@ -61,7 +61,7 @@ const MathEditPage = (props: MathEditPageProps) => {
       toast.success("Math explanation updated");
       router.push(`/teacher/courses/${params.courseId}/chapters/${params.chapterId}/section/${params.sectionId}`);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsSubmitting(false);

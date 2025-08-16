@@ -147,7 +147,7 @@ export const AIChapterContentGenerator = ({
       setStep(2);
       
       toast.success("Chapter content generated successfully!");
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating chapter content:', error);
       toast.error(`Failed to generate content: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
@@ -210,7 +210,7 @@ export const AIChapterContentGenerator = ({
       // Refresh the page to show new content
       window.location.reload();
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error applying content:', error);
       toast.error(`Failed to apply content: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {

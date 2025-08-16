@@ -21,7 +21,7 @@ export const AddTabModal = ({ isOpen, onClose, userId }: AddTabModalProps) => {
       if (response.ok) {
         onClose();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding tab:', error);
     }
   };

@@ -88,7 +88,7 @@ export const ProfileImageUpload = ({
       onImageUpdate?.(uploadData.secure_url);
       toast.success("Profile image updated!");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error(error);
       toast.error("Something went wrong");
     } finally {

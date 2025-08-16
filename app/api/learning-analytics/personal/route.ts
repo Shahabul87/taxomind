@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
@@ -77,19 +77,18 @@ interface LearningAnalytics {
 }
 
 // POST endpoint for personal learning analytics
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-    const user = await currentUser();
-    if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
     // Parse and validate request
-    const body = await req.json();
+    const body = await request.json();
     const parseResult = PersonalAnalyticsRequestSchema.safeParse(body);
     
     if (!parseResult.success) {
-      return NextResponse.json(
+      return createSuccessResponse(
         { error: 'Invalid request format', details: parseResult.error.errors },
         { status: 400 }
       );
@@ -101,13 +100,13 @@ export async function POST(req: NextRequest) {
     const timeFilter = getTimeFilter(timeframe);
 
     // Generate personal analytics
-    const analytics = await generatePersonalAnalytics(user.id, timeFilter);
+    const analytics = await generatePersonalAnalytics(context.user.id, timeFilter);
 
-    return NextResponse.json({
+    return createSuccessResponse({
       success: true,
       analytics,
       metadata: {
-        userId: user.id,
+        userId: context.user.id,
         timeframe,
         generatedAt: new Date().toISOString()
       }
@@ -115,7 +114,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     logger.error('Personal analytics error:', error);
-    return NextResponse.json(
+    return createSuccessResponse(
       { 
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
@@ -123,7 +122,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 function getTimeFilter(timeframe: string): Date {
   const now = new Date();

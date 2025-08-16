@@ -81,7 +81,7 @@ export const ExamCreationForm = ({
             `/api/courses/${courseId}/chapters/${chapterId}`
           );
           chapterTitle = chapterResponse.data.title || "";
-        } catch (error) {
+        } catch (error: any) {
           logger.warn("Failed to fetch chapter title:", error);
         }
 
@@ -90,7 +90,7 @@ export const ExamCreationForm = ({
         try {
           const courseResponse = await axios.get(`/api/courses/${courseId}`);
           courseTitle = courseResponse.data.title || "";
-        } catch (error) {
+        } catch (error: any) {
           logger.warn("Failed to fetch course title:", error);
         }
 
@@ -111,7 +111,7 @@ export const ExamCreationForm = ({
         if (examsResponse.data.success) {
           dispatch({ type: "SET_EXISTING_EXAMS", payload: examsResponse.data.exams });
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error("Failed to fetch data:", error);
       } finally {
         dispatch({ type: "SET_LOADING_EXAMS", payload: false });

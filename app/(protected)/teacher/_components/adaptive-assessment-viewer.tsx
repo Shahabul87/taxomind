@@ -154,7 +154,7 @@ export function AdaptiveAssessmentViewer({
       } else {
         throw new Error('Failed to generate question');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating question:', error);
       toast.error('Failed to generate next question');
     } finally {
@@ -167,7 +167,7 @@ export function AdaptiveAssessmentViewer({
     try {
       // Start with the first adaptive question
       await generateNextQuestion();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error initializing assessment:', error);
       toast.error('Failed to initialize assessment');
     } finally {
@@ -201,7 +201,7 @@ export function AdaptiveAssessmentViewer({
         const data = await response.json();
         return data.result.isCorrect;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error checking answer:', error);
     }
     
@@ -286,7 +286,7 @@ export function AdaptiveAssessmentViewer({
           setIsComplete(true);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error submitting answer:', error);
       toast.error('Failed to submit answer');
     } finally {

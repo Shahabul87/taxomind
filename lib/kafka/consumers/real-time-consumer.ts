@@ -20,7 +20,7 @@ export function initializeSocketIO(server: any): void {
 
     // Join course-specific rooms
     socket.on('join_course', (courseId: string) => {
-      socket.join(`Course:${courseId}`);
+      socket.join(`course:${courseId}`);
 
     });
 
@@ -80,7 +80,7 @@ async function broadcastMetricUpdate(
   
   // Broadcast to course room
   if (metadata.courseId) {
-    io.to(`Course:${metadata.courseId}`).emit('metrics_update', {
+    io.to(`course:${metadata.courseId}`).emit('metrics_update', {
       courseId: metadata.courseId,
       metrics,
       timestamp: new Date()
@@ -113,7 +113,7 @@ async function broadcastStudentActivity(
   
   // Broadcast to course room
   if (metadata.courseId) {
-    io.to(`Course:${metadata.courseId}`).emit('student_activity', {
+    io.to(`course:${metadata.courseId}`).emit('student_activity', {
       courseId: metadata.courseId,
       activity,
       timestamp: new Date()
@@ -140,7 +140,7 @@ async function broadcastAlert(
   
   // Broadcast to relevant rooms
   if (metadata.courseId) {
-    io.to(`Course:${metadata.courseId}`).emit('new_alert', alert);
+    io.to(`course:${metadata.courseId}`).emit('new_alert', alert);
   } else {
     io.to('admin').emit('new_alert', alert);
   }

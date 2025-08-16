@@ -47,10 +47,11 @@ export const iconUtils = {
   BarChart: () => import('lucide-react').then(mod => ({ default: mod.BarChart })),
   
   // React Icons
-  FiCheck: () => import('react-icons/fi').then(mod => ({ default: mod.FiCheck })),
-  FiX: () => import('react-icons/fi').then(mod => ({ default: mod.FiX })),
-  FiLoader: () => import('react-icons/fi').then(mod => ({ default: mod.FiLoader })),
-  FiAlert: () => import('react-icons/fi').then(mod => ({ default: mod.FiAlert })),
+  // Map popular Feather icon aliases to lucide-react to avoid extra dependency
+  FiCheck: () => import('lucide-react').then(mod => ({ default: mod.Check })),
+  FiX: () => import('lucide-react').then(mod => ({ default: mod.X })),
+  FiLoader: () => import('lucide-react').then(mod => ({ default: mod.Loader })),
+  FiAlert: () => import('lucide-react').then(mod => ({ default: mod.AlertTriangle })),
 };
 
 // Chart.js - optimized imports

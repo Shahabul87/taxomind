@@ -2,47 +2,46 @@ import { UserRole } from "@prisma/client";
 import { db } from "@/lib/db";
 import { currentUser, currentRole } from "@/lib/auth";
 
-export const ROLE_PERMISSIONS = {
-  [UserRole.STUDENT]: [
-    "Course:view",
-    "Course:enroll",
+export const ROLE_PERMISSIONS: Record<UserRole, readonly string[]> = {
+  [UserRole.USER]: [
+    "course:view",
+    "course:enroll",
+    "course:create",
+    "course:edit_own",
+    "course:delete_own",
     "exam:take",
-    "progress:view_own",
-    "analytics:view_own"
-  ],
-  [UserRole.TEACHER]: [
-    "Course:view",
-    "Course:create",
-    "Course:edit_own",
-    "Course:delete_own",
     "exam:create",
     "exam:edit_own",
-    "exam:grade",
-    "student:view_progress",
+    "progress:view_own",
+    "analytics:view_own",
     "analytics:view_students",
     "analytics:view_courses"
   ],
   [UserRole.ADMIN]: [
-    "Course:view",
-    "Course:create",
-    "Course:edit_any",
-    "Course:delete_any",
+    "course:view",
+    "course:create",
+    "course:edit_any",
+    "course:delete_any",
     "user:view_all",
     "user:edit_roles",
     "user:delete",
     "analytics:view_all",
     "system:manage",
-    "role:assign"
+    "role:assign",
+    "exam:create",
+    "exam:edit_any",
+    "exam:grade",
+    "student:view_progress"
   ]
-} as const;
+};
 
-export type Permission = typeof ROLE_PERMISSIONS[UserRole][number];
+export type Permission = (typeof ROLE_PERMISSIONS)[UserRole][number];
 
 export async function hasPermission(permission: Permission): Promise<boolean> {
   const role = await currentRole();
   if (!role) return false;
   
-  return ROLE_PERMISSIONS[role].includes(permission);
+  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
 }
 
 export async function requirePermission(permission: Permission): Promise<void> {
@@ -116,7 +115,7 @@ export async function canModifyUser(targetUserId: string): Promise<boolean> {
 }
 
 export function getRoleHierarchy(): UserRole[] {
-  return [UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN];
+  return [UserRole.USER, UserRole.ADMIN];
 }
 
 export function canAssignRole(currentRole: UserRole, targetRole: UserRole): boolean {

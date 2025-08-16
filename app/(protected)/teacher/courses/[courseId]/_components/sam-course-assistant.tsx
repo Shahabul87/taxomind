@@ -280,7 +280,7 @@ export function SamCourseAssistant({
       
       setMessages(prev => [...prev, samMessage]);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error sending message to SAM:', error);
       toast.error('Failed to get response from SAM');
       

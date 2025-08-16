@@ -165,6 +165,7 @@ Key improvements include:
 - Energy efficiency improved by 80% compared to GPT-4
 
 The model has been trained on a diverse dataset with enhanced safety measures and alignment techniques. Early testers report breakthrough applications in scientific research, education, and creative industries.`,
+        articleUrl: 'https://openai.com/blog',
         category: 'breakthrough',
         tags: ['GPT-5', 'OpenAI', 'LLM', 'Multimodal AI', 'AGI'],
         source: {
@@ -216,6 +217,7 @@ Technical achievements:
 - Compatible with multiple quantum hardware platforms
 
 This breakthrough addresses one of the fundamental challenges in quantum computing and could accelerate the timeline for practical quantum applications by 5-10 years.`,
+        articleUrl: 'https://nature.com',
         category: 'research',
         tags: ['Quantum Computing', 'DeepMind', 'Error Correction', 'Machine Learning'],
         source: {
@@ -261,6 +263,7 @@ Key provisions:
 - Industry partnerships for practical experience
 
 The act has been praised by educators and tech leaders as a model for global AI education policy.`,
+        articleUrl: 'https://ec.europa.eu',
         category: 'policy',
         tags: ['AI Education', 'EU Policy', 'Digital Literacy', 'Education Reform'],
         source: {
@@ -384,8 +387,9 @@ The act has been praised by educators and tech leaders as a model for global AI 
           filter.tags!.some(tag => a.tags.includes(tag))
         );
       }
-      if (filter.minRelevance) {
-        articles = articles.filter(a => a.relevanceScore >= filter.minRelevance);
+      if (typeof filter.minRelevance === 'number') {
+        const min = filter.minRelevance;
+        articles = articles.filter(a => a.relevanceScore >= min);
       }
       if (filter.technicalDepth) {
         articles = articles.filter(a => a.technicalDepth === filter.technicalDepth);
@@ -579,7 +583,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
       await db.sAMInteraction.create({
         data: {
           userId,
-          interactionType: 'CONTENT_GENERATED',
+          interactionType: 'CONTENT_GENERATE',
           context: {
             engine: 'news',
             action: 'create_alert',
@@ -587,10 +591,9 @@ The act has been praised by educators and tech leaders as a model for global AI 
             keywords,
             categories
           },
-          result: { success: true }
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating news alert:', error);
     }
 
@@ -722,7 +725,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
       await db.sAMInteraction.create({
         data: {
           userId,
-          interactionType: 'CONTENT_GENERATED',
+          interactionType: 'CONTENT_GENERATE',
           context: {
             engine: 'news',
             action: 'read_article',
@@ -730,10 +733,9 @@ The act has been praised by educators and tech leaders as a model for global AI 
             readingTime,
             completed
           },
-          result: { success: true }
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error recording news reading:', error);
     }
   }
@@ -817,7 +819,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
             url: 'https://deepmind.google/gemini-2.jpg',
             caption: 'Gemini 2.0 multimodal architecture',
             credit: 'Google DeepMind'
-          }]
+          }],
+          citations: []
         },
         {
           articleId: `rt-${Date.now()}-2`,
@@ -848,7 +851,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 90,
-          technicalDepth: 'expert'
+          technicalDepth: 'expert',
+          citations: []
         },
         {
           articleId: `rt-${Date.now()}-3`,
@@ -879,7 +883,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 82,
-          technicalDepth: 'advanced'
+          technicalDepth: 'advanced',
+          citations: []
         },
         
         // HOT NEWS (2-4 hours old)
@@ -912,7 +917,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 78,
-          technicalDepth: 'intermediate'
+          technicalDepth: 'intermediate',
+          citations: []
         },
         
         {
@@ -944,7 +950,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 85,
-          technicalDepth: 'expert'
+          technicalDepth: 'expert',
+          citations: []
         },
         
         // RISING NEWS (4-8 hours old)
@@ -977,7 +984,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 76,
-          technicalDepth: 'intermediate'
+          technicalDepth: 'intermediate',
+          citations: []
         },
         
         {
@@ -1009,7 +1017,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 88,
-          technicalDepth: 'advanced'
+          technicalDepth: 'advanced',
+          citations: []
         },
         
         // INDUSTRY NEWS (6-12 hours old)
@@ -1042,7 +1051,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 72,
-          technicalDepth: 'beginner'
+          technicalDepth: 'beginner',
+          citations: []
         },
         
         {
@@ -1074,7 +1084,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 79,
-          technicalDepth: 'intermediate'
+          technicalDepth: 'intermediate',
+          citations: []
         },
         
         // EDUCATIONAL & POLICY NEWS (10-16 hours old)
@@ -1107,7 +1118,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 98,
-          technicalDepth: 'beginner'
+          technicalDepth: 'beginner',
+          citations: []
         },
         
         {
@@ -1139,7 +1151,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 81,
-          technicalDepth: 'advanced'
+          technicalDepth: 'advanced',
+          citations: []
         },
         
         // RECENT BUT IMPORTANT (16-24 hours old)
@@ -1172,7 +1185,8 @@ The act has been praised by educators and tech leaders as a model for global AI 
           ],
           relatedArticles: [],
           educationalValue: 74,
-          technicalDepth: 'intermediate'
+          technicalDepth: 'intermediate',
+          citations: []
         }
       ];
 
@@ -1188,7 +1202,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
       }
 
       return fetchedArticles;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching real-time news:', error);
       // Return existing cached news as fallback
       return Array.from(this.newsDatabase.values())

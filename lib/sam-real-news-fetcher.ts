@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Parser from 'rss-parser';
 import * as cheerio from 'cheerio';
-import { NewsArticle } from './sam-news-engine';
+import { NewsArticle, NewsCategory } from './sam-news-engine';
 import { logger } from '@/lib/logger';
 
 interface NewsSource {
@@ -190,7 +190,7 @@ export class SAMRealNewsFetcher {
         educationalValue: 75,
         technicalDepth: 'intermediate' as const
       })) || [];
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Google Custom Search error:', error);
       return [];
     }
@@ -256,7 +256,7 @@ export class SAMRealNewsFetcher {
           educationalValue: 80,
           technicalDepth: 'intermediate' as const
         }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Hacker News search error:', error);
       return [];
     }
@@ -278,7 +278,7 @@ export class SAMRealNewsFetcher {
         summary: this.extractSummary(item.contentSnippet || ''),
         content: item.contentSnippet || '',
         articleUrl: item.link || '',
-        category: this.categorizeArticle(item.title || ''),
+        category: this.categorizeArticle(item.title || '') as NewsCategory,
         tags: ['AI', 'Technology', 'News'],
         source: {
           name: this.extractSourceFromGoogleNews(item.title || ''),
@@ -296,9 +296,10 @@ export class SAMRealNewsFetcher {
         keyTakeaways: [],
         relatedArticles: [],
         educationalValue: 70,
-        technicalDepth: 'intermediate' as const
+        technicalDepth: 'intermediate' as const,
+        citations: []
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Google News scraping error:', error);
       return [];
     }
@@ -320,7 +321,7 @@ export class SAMRealNewsFetcher {
             summary: this.extractSummary(item.content || item.contentSnippet || item['content:encoded'] || ''),
             content: item.content || item.contentSnippet || item['content:encoded'] || '',
             articleUrl: item.link || '',
-            category: this.categorizeArticle(item.title || ''),
+            category: this.categorizeArticle(item.title || '') as NewsCategory,
             tags: this.extractTags(item.categories || []),
             source: {
               name: feed.title || 'Unknown Source',
@@ -339,13 +340,14 @@ export class SAMRealNewsFetcher {
             relatedArticles: [],
             educationalValue: 70,
             technicalDepth: 'intermediate' as const,
-            images: this.extractImages(item)
+            images: this.extractImages(item),
+            citations: []
           });
         }
       });
       
       return articles;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Error fetching RSS feed from ${sourceUrl}:`, error);
       return [];
     }
@@ -389,27 +391,20 @@ export class SAMRealNewsFetcher {
     }
     
     // Try to fetch from APIs in parallel (with individual error handling)
-    const apiPromises = [
-      this.fetchFromNewsAPI().catch(err => {
-
-        return [];
+    const apiPromises: Promise<NewsArticle[]>[] = [
+      // News API/Bing not implemented in this fetcher; only use HN and Google News here
+      this.searchHackerNews('artificial intelligence').catch((err: any) => {
+        logger.error('HN search failed:', err);
+        return [] as NewsArticle[];
       }),
-      this.fetchFromBingNews().catch(err => {
-
-        return [];
-      }),
-      this.searchHackerNews('artificial intelligence').catch(err => {
-
-        return [];
-      }),
-      this.scrapeGoogleNews('artificial intelligence latest news').catch(err => {
-
-        return [];
+      this.scrapeGoogleNews('artificial intelligence latest news').catch((err: any) => {
+        logger.error('Google News scrape failed:', err);
+        return [] as NewsArticle[];
       })
     ];
     
     const apiResults = await Promise.all(apiPromises);
-    apiResults.forEach(articles => {
+    apiResults.forEach((articles: NewsArticle[]) => {
       if (articles && articles.length > 0) {
         allArticles.push(...articles);
       }

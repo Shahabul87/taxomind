@@ -272,7 +272,7 @@ export const StudentProgressPredictor = ({
       setModelInfo(data.modelInfo);
       
       toast.success("Predictions updated");
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error loading predictions:', error);
       toast.error('Failed to load predictions');
       

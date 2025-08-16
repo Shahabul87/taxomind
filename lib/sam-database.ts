@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { SAMBadgeType, SAMMessageType, SAMInteractionType, BadgeLevel } from '@prisma/client';
+import { SAMBadgeType, SAMMessageType, SAMInteractionType, BadgeLevel, SAMStreakType, SAMPointsCategory, SAMLearningStyle } from '@prisma/client';
 import { logger } from '@/lib/logger';
 
 // SAM Conversation Management
@@ -13,10 +13,10 @@ export async function createSAMConversation(userId: string, options?: {
     return await db.sAMConversation.create({
       data: {
         userId,
+        sessionId: `${userId}-${Date.now()}`,
         courseId: options?.courseId,
         chapterId: options?.chapterId,
         sectionId: options?.sectionId,
-        title: options?.title || 'SAM Conversation',
         isActive: true,
       },
       include: {
@@ -53,7 +53,6 @@ export async function getSAMConversations(userId: string, options?: {
           select: { messages: true }
         }
       },
-      orderBy: { updatedAt: 'desc' },
       take: options?.limit || 20,
     });
   } catch (error: any) {
@@ -72,17 +71,10 @@ export async function addSAMMessage(conversationId: string, data: {
     const message = await db.sAMMessage.create({
       data: {
         conversationId,
-        role: data.role,
+        messageType: data.role,
         content: data.content,
         metadata: data.metadata,
-        parentMessageId: data.parentMessageId,
       },
-    });
-
-    // Update conversation updatedAt
-    await db.sAMConversation.update({
-      where: { id: conversationId },
-      data: { updatedAt: new Date() }
     });
 
     return message;
@@ -101,7 +93,6 @@ export async function recordSAMInteraction(data: {
   courseId?: string;
   chapterId?: string;
   sectionId?: string;
-  conversationId?: string;
 }) {
   try {
     return await db.sAMInteraction.create({
@@ -109,11 +100,9 @@ export async function recordSAMInteraction(data: {
         userId: data.userId,
         interactionType: data.interactionType,
         context: data.context,
-        result: data.result,
         courseId: data.courseId,
         chapterId: data.chapterId,
         sectionId: data.sectionId,
-        conversationId: data.conversationId,
       },
     });
   } catch (error: any) {
@@ -138,7 +127,7 @@ export async function awardSAMPoints(userId: string, data: {
         userId,
         points: data.points,
         reason: data.reason,
-        source: data.source,
+        category: SAMPointsCategory.ACHIEVEMENT_UNLOCK,
         courseId: data.courseId,
         chapterId: data.chapterId,
         sectionId: data.sectionId,
@@ -172,7 +161,6 @@ export async function getSAMPoints(userId: string, options?: {
         userId,
         courseId: options?.courseId,
       },
-      orderBy: { createdAt: 'desc' },
       take: options?.limit || 50,
     });
   } catch (error: any) {
@@ -210,12 +198,11 @@ export async function unlockSAMBadge(userId: string, data: {
       data: {
         userId,
         badgeType: data.badgeType,
-        level: data.level,
+        badgeId: data.description,
+        name: data.description,
         description: data.description,
-        requirements: data.requirements,
+        level: data.level,
         courseId: data.courseId,
-        chapterId: data.chapterId,
-        unlockedAt: new Date(),
       },
     });
   } catch (error: any) {
@@ -235,7 +222,6 @@ export async function getSAMBadges(userId: string, options?: {
         courseId: options?.courseId,
         badgeType: options?.badgeType,
       },
-      orderBy: { unlockedAt: 'desc' },
     });
   } catch (error: any) {
     logger.error('Error getting SAM badges:', error);
@@ -245,7 +231,7 @@ export async function getSAMBadges(userId: string, options?: {
 
 // SAM Streaks Management
 export async function updateSAMStreak(userId: string, data: {
-  streakType: string;
+  streakType: SAMStreakType;
   currentStreak: number;
   longestStreak: number;
   courseId?: string;
@@ -253,16 +239,13 @@ export async function updateSAMStreak(userId: string, data: {
   try {
     return await db.sAMStreak.upsert({
       where: {
-        userId_streakType_courseId: {
-          userId,
-          streakType: data.streakType,
-          courseId: data.courseId || '',
-        }
+        userId,
       },
       update: {
         currentStreak: data.currentStreak,
         longestStreak: Math.max(data.longestStreak, data.currentStreak),
         lastActivityDate: new Date(),
+        streakType: data.streakType,
       },
       create: {
         userId,
@@ -270,7 +253,6 @@ export async function updateSAMStreak(userId: string, data: {
         currentStreak: data.currentStreak,
         longestStreak: data.currentStreak,
         lastActivityDate: new Date(),
-        courseId: data.courseId,
       },
     });
   } catch (error: any) {
@@ -281,13 +263,12 @@ export async function updateSAMStreak(userId: string, data: {
 
 export async function getSAMStreaks(userId: string, options?: {
   courseId?: string;
-  streakType?: string;
+  streakType?: SAMStreakType;
 }) {
   try {
     return await db.sAMStreak.findMany({
       where: {
         userId,
-        courseId: options?.courseId,
         streakType: options?.streakType,
       },
       orderBy: { lastActivityDate: 'desc' },
@@ -300,33 +281,25 @@ export async function getSAMStreaks(userId: string, options?: {
 
 // SAM Learning Profile
 export async function updateSAMLearningProfile(userId: string, data: {
-  learningStyle?: string;
-  preferredQuestionDifficulty?: string;
+  learningStyle?: SAMLearningStyle;
   interactionPreferences?: any;
   adaptiveSettings?: any;
-  courseId?: string;
 }) {
   try {
     return await db.sAMLearningProfile.upsert({
       where: {
-        userId_courseId: {
-          userId,
-          courseId: data.courseId || '',
-        }
+        userId,
       },
       update: {
         learningStyle: data.learningStyle,
-        preferredQuestionDifficulty: data.preferredQuestionDifficulty,
-        interactionPreferences: data.interactionPreferences,
-        adaptiveSettings: data.adaptiveSettings,
+        preferences: data.interactionPreferences as any,
+        adaptationHistory: data.adaptiveSettings ? [data.adaptiveSettings] as any : undefined,
       },
       create: {
         userId,
-        learningStyle: data.learningStyle || 'adaptive',
-        preferredQuestionDifficulty: data.preferredQuestionDifficulty || 'medium',
-        interactionPreferences: data.interactionPreferences || {},
-        adaptiveSettings: data.adaptiveSettings || {},
-        courseId: data.courseId,
+        learningStyle: (data.learningStyle as SAMLearningStyle) || 'MIXED',
+        preferences: data.interactionPreferences || {},
+        adaptationHistory: data.adaptiveSettings ? [data.adaptiveSettings] as any : [],
       },
     });
   } catch (error: any) {
@@ -340,7 +313,6 @@ export async function getSAMLearningProfile(userId: string, courseId?: string) {
     return await db.sAMLearningProfile.findFirst({
       where: {
         userId,
-        courseId: courseId || '',
       },
     });
   } catch (error: any) {
@@ -352,7 +324,6 @@ export async function getSAMLearningProfile(userId: string, courseId?: string) {
 // SAM Analytics
 export async function recordSAMAnalytics(data: {
   userId: string;
-  sessionId: string;
   interactionCount: number;
   responseTime: number;
   satisfactionScore?: number;
@@ -365,14 +336,16 @@ export async function recordSAMAnalytics(data: {
     return await db.sAMAnalytics.create({
       data: {
         userId: data.userId,
-        sessionId: data.sessionId,
-        interactionCount: data.interactionCount,
-        responseTime: data.responseTime,
-        satisfactionScore: data.satisfactionScore,
-        completionRate: data.completionRate,
+        metricType: 'INTERACTION_COUNT',
+        metricValue: data.interactionCount,
+        context: {
+          responseTime: data.responseTime,
+          satisfactionScore: data.satisfactionScore,
+          completionRate: data.completionRate,
+          chapterId: data.chapterId,
+          sectionId: data.sectionId,
+        },
         courseId: data.courseId,
-        chapterId: data.chapterId,
-        sectionId: data.sectionId,
       },
     });
   } catch (error: any) {
@@ -406,7 +379,6 @@ export async function getSAMAnalytics(userId: string, options?: {
 
     return await db.sAMAnalytics.findMany({
       where: whereClause,
-      orderBy: { createdAt: 'desc' },
       take: options?.limit || 100,
     });
   } catch (error: any) {

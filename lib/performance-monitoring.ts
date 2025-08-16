@@ -77,7 +77,7 @@ export const performanceMonitoring = {
         })
 
         return result
-      } catch (error) {
+      } catch (error: any) {
         const duration = Date.now() - startTime
         span.recordException(error as Error)
         span.setAttributes({
@@ -140,7 +140,7 @@ export const performanceMonitoring = {
         })
 
         return result
-      } catch (error) {
+      } catch (error: any) {
         const duration = Date.now() - startTime
         span.recordException(error as Error)
         span.setAttributes({

@@ -119,7 +119,7 @@ export function ProfileHeader({ userId, username, avatarUrl, joinDate, profileLi
       form.reset();
       setIsConnectModalOpen(false);
       router.refresh(); // Refresh the page to show the new link
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error connecting platform:", error);
       toast.error("Failed to connect account. Please try again.");
     } finally {
@@ -153,7 +153,7 @@ export function ProfileHeader({ userId, username, avatarUrl, joinDate, profileLi
           
           // Additionally simulate opening the platform in a new tab
           window.open(`https://www.${basePlatformId}.com/`, '_blank');
-        } catch (error) {
+        } catch (error: any) {
           logger.error("Error connecting platform:", error);
           toast.error(`Failed to connect to ${platform.name}. Please try again.`);
         } finally {
@@ -161,7 +161,7 @@ export function ProfileHeader({ userId, username, avatarUrl, joinDate, profileLi
           setConnectingPlatform(null);
         }
       }, 1500); // Add a delay to simulate an API call
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error connecting platform:", error);
       toast.error(`Failed to connect to ${platform.name}. Please try again.`);
       setIsSubmitting(false);

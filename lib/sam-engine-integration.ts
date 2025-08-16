@@ -225,7 +225,7 @@ export class SAMEngineIntegration {
     const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
 
     // Find the lowest scoring level
-    let lowestLevel = null;
+    let lowestLevel: string | null = null;
     let lowestScore = 100;
 
     levels.forEach(level => {
@@ -237,7 +237,8 @@ export class SAMEngineIntegration {
     });
 
     if (lowestLevel && lowestScore < 60) {
-      steps.push(`Focus on improving ${lowestLevel.toLowerCase()} skills`);
+      const lvl = String(lowestLevel).toLowerCase();
+      steps.push(`Focus on improving ${lvl} skills`);
     }
 
     weakAreas.forEach(area => {
@@ -758,17 +759,10 @@ export class SAMEngineIntegration {
         data: {
           userId: context.userId,
           courseId: context.courseId,
-          interactionType: 'CONTENT_GENERATED',
+          interactionType: 'CONTENT_GENERATE' as any,
           context: {
             type: 'INTEGRATED_ANALYSIS',
             engines: ['market', 'blooms', 'exam', 'guide'],
-          },
-          result: {
-            recommendationCount: analysis.integratedRecommendations.length,
-            criticalActions: analysis.integratedRecommendations.filter(
-              (r: any) => r.priority === 'critical'
-            ).length,
-            timestamp: new Date(),
           },
         },
       });
@@ -810,14 +804,14 @@ export class SAMEngineIntegration {
       select: { role: true },
     });
     
-    return user?.role || 'USER';
+    return user?.role === 'ADMIN' ? 'ADMIN' : 'USER';
   }
 
   // New engine integration methods
   private async getTrendsForCourse(courseId: string): Promise<any> {
     try {
       // Get course details to determine relevant trends
-      const course = await db.Course.findUnique({
+      const course = await db.course.findUnique({
         where: { id: courseId },
         select: { 
           title: true, 
@@ -843,7 +837,7 @@ export class SAMEngineIntegration {
         trendingNow: await this.trendsEngine.getTrendingNow()
       };
     } catch (error: any) {
-      logger.error('Error getting trends for Course:', error);
+      logger.error('Error getting trends for course:', error);
       return null;
     }
   }
@@ -851,7 +845,7 @@ export class SAMEngineIntegration {
   private async getRelevantNews(courseId: string): Promise<any> {
     try {
       // Get course details
-      const course = await db.Course.findUnique({
+      const course = await db.course.findUnique({
         where: { id: courseId },
         select: { 
           title: true, 
@@ -880,7 +874,7 @@ export class SAMEngineIntegration {
         trendingTopics: await this.newsEngine.getTrendingTopics()
       };
     } catch (error: any) {
-      logger.error('Error getting news for Course:', error);
+      logger.error('Error getting news for course:', error);
       return null;
     }
   }
@@ -888,7 +882,7 @@ export class SAMEngineIntegration {
   private async getRelatedResearch(courseId: string): Promise<any> {
     try {
       // Get course details
-      const course = await db.Course.findUnique({
+      const course = await db.course.findUnique({
         where: { id: courseId },
         select: { 
           title: true, 
@@ -923,7 +917,7 @@ export class SAMEngineIntegration {
         researchTrends: trends.slice(0, 3)
       };
     } catch (error: any) {
-      logger.error('Error getting research for Course:', error);
+      logger.error('Error getting research for course:', error);
       return null;
     }
   }

@@ -216,7 +216,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
           },
           achievements: [] // Will be populated from achievements system
         }));
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error loading gamification data:', error);
       }
     };
@@ -333,7 +333,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
         setLearningStyle(detectedStyle);
         return detectedStyle;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error detecting learning style:', error);
     }
     
@@ -400,7 +400,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
           sectionId: learningContext.currentSection?.id,
         }),
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error awarding points:', error);
     }
   }, [user?.id, learningContext, gamificationState.points]);
@@ -478,7 +478,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
             sectionId: learningContext.currentSection?.id,
           }),
         });
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error unlocking badge:', error);
       }
     }
@@ -538,7 +538,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
           streaks: newStreaks,
         };
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error updating streak:', error);
     }
   }, [user?.id, learningContext]);
@@ -717,7 +717,7 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
       
       if (result.levelUp) {
 }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error tracking interaction with achievement engine:', error);
       
       // Fallback to basic interaction recording

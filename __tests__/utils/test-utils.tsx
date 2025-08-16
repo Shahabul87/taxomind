@@ -1,7 +1,6 @@
 import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { SessionProvider } from 'next-auth/react'
-import { ThemeProvider } from 'next-themes'
 import { Toaster } from 'sonner'
 import { Session } from 'next-auth'
 
@@ -11,7 +10,7 @@ export const mockSession: Session = {
     id: 'test-user-id',
     name: 'Test User',
     email: 'test@example.com',
-    role: 'STUDENT',
+    role: 'USER',
     image: null,
     isTwoFactorEnabled: false,
     isOAuth: false,
@@ -37,7 +36,7 @@ export const mockTeacherSession: Session = {
     id: 'teacher-user-id',
     name: 'Teacher User',
     email: 'teacher@example.com',
-    role: 'TEACHER',
+    role: 'USER', isTeacher: true,
     image: null,
     isTwoFactorEnabled: false,
     isOAuth: false,
@@ -57,15 +56,8 @@ const AllProviders: React.FC<AllProvidersProps> = ({
 }) => {
   return (
     <SessionProvider session={session}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        {children}
-        <Toaster />
-      </ThemeProvider>
+      {children}
+      <Toaster />
     </SessionProvider>
   )
 }
@@ -138,7 +130,7 @@ export const mockUser = {
   name: 'Test User',
   email: 'test@example.com',
   image: null,
-  role: 'STUDENT' as const,
+  role: 'USER' as const,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
 }

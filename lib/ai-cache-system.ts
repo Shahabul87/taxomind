@@ -92,7 +92,7 @@ export class IntelligentAICache {
             this.cache.set(key, entry as CacheEntry);
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.warn('Failed to load cache from storage:', error);
       }
     }
@@ -137,7 +137,7 @@ export class IntelligentAICache {
       try {
         const data = Object.fromEntries(this.cache.entries());
         localStorage.setItem('ai-cache-data', JSON.stringify(data));
-      } catch (error) {
+      } catch (error: any) {
         logger.warn('Failed to persist cache to storage:', error);
       }
     }

@@ -41,6 +41,9 @@ import {
 // Enterprise Intelligence Dashboard
 import { EnterpriseIntelligenceDashboard } from "@/components/admin/enterprise-intelligence-dashboard";
 
+// MFA Status
+import { MFAStatusAlert } from "./mfa-status-alert";
+
 export function ClientAdminDashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +53,7 @@ export function ClientAdminDashboard() {
       try {
         const result = await getAdminDashboardData();
         setData(result);
-      } catch (error) {
+      } catch (error: any) {
         logger.error("Error fetching admin data:", error);
       } finally {
         setLoading(false);
@@ -129,13 +132,13 @@ export function ClientAdminDashboard() {
     
     // Format data for charts
     const authProvidersData = [
-      { name: "Email/Password", value: usersStats.totalUsers - authProviders.reduce((sum, p) => sum + p._count.provider, 0) },
-      ...authProviders.map(p => ({ name: p.provider, value: p._count.provider }))
+      { name: "Email/Password", value: usersStats.totalUsers - authProviders.reduce((sum: number, p: any) => sum + p._count.provider, 0) },
+      ...authProviders.map((p: any) => ({ name: p.provider, value: p._count.provider }))
     ];
     
     const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f472b6', '#f59e0b'];
     
-    const formatUserGrowth = userGrowth.map(entry => ({
+    const formatUserGrowth = userGrowth.map((entry: any) => ({
       month: `${entry.month}/${entry.year}`,
       users: entry.count
     }));
@@ -149,6 +152,9 @@ export function ClientAdminDashboard() {
           Overview of your platform&apos;s statistics and performance.
         </p>
       </div>
+      
+      {/* MFA Status Alert */}
+      <MFAStatusAlert />
       
       {/* Main stats cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -176,7 +182,7 @@ export function ClientAdminDashboard() {
                   </div>
                 ) : data ? (
                   <ClientAreaChart 
-                    data={data.userGrowth.map(entry => ({
+                    data={data.userGrowth.map((entry: any) => ({
                       month: `${entry.month}/${entry.year}`,
                       users: entry.count
                     }))} 
@@ -202,8 +208,8 @@ export function ClientAdminDashboard() {
                 ) : data ? (
                   <ClientPieChart 
                     data={[
-                      { name: "Email/Password", value: data.usersStats.totalUsers - data.authProviders.reduce((sum, p) => sum + p._count.provider, 0) },
-                      ...data.authProviders.map(p => ({ name: p.provider, value: p._count.provider }))
+                      { name: "Email/Password", value: data.usersStats.totalUsers - data.authProviders.reduce((sum: number, p: any) => sum + p._count.provider, 0) },
+                      ...data.authProviders.map((p: any) => ({ name: p.provider, value: p._count.provider }))
                     ]} 
                     colors={['#8b5cf6', '#3b82f6', '#10b981', '#f472b6', '#f59e0b']} 
                   />
@@ -245,7 +251,7 @@ export function ClientAdminDashboard() {
                       </td>
                     </tr>
                   ) : data?.recentUsers ? (
-                    data.recentUsers.map((user) => (
+                    data.recentUsers.map((user: any) => (
                       <tr key={user.id} className="border-b hover:bg-muted/50">
                         <td className="py-3">
                           <div className="flex items-center gap-3">

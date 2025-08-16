@@ -129,7 +129,7 @@ export const CognitiveAnalyticsDashboard = ({
       // Mock data for demonstration - in real implementation, this would fetch from API
       const mockAnalytics = await generateMockAnalyticsData();
       setAnalyticsData(mockAnalytics);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to load analytics data:', error);
     } finally {
       setIsLoading(false);

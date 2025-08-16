@@ -94,7 +94,7 @@ export function SAMEnginePoweredChat({
         setActiveEngines(engines);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error sending message:', error);
       toast({
         title: 'Error',

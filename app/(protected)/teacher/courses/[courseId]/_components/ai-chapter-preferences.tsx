@@ -89,7 +89,7 @@ export const AIChapterPreferencesDialog = ({
       await onGenerate(finalPreferences);
       // Only close modal on successful completion
       setOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Chapter generation failed:', error);
       // Keep modal open on error to allow retry
       // The error will be handled by the parent component

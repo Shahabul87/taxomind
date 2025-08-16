@@ -99,7 +99,7 @@ export const NewEventDialog = ({
         onClose();
         form.reset();
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error instanceof Error ? error.message : "Something went wrong");
       logger.error("Create event error:", error);
     } finally {

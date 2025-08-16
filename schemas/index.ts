@@ -42,7 +42,7 @@ export const SettingsSchema = z.object({
   email: z.optional(z.string().email()),
   password: z.optional(z.string().min(1)),
   newPassword: z.optional(passwordValidation),
-  role: z.enum(["ADMIN", "USER", "STUDENT", "TEACHER"]), // Include all roles that exist in Prisma schema
+  role: z.enum(["ADMIN", "USER"]), // All roles for compatibility
   isTwoFactorEnabled: z.optional(z.boolean())
 });
 
@@ -74,6 +74,25 @@ export const RegisterSchema = z.object({
   password: passwordValidation,
   name: z.string().min(1, {
     message: "Name is required",
+  }),
+});
+
+export const RegisterTeacherSchema = z.object({
+  email: z.string().email({
+    message: "Email is required",
+  }),
+  password: passwordValidation,
+  name: z.string().min(1, {
+    message: "Name is required",
+  }),
+  qualifications: z.string().min(10, {
+    message: "Please provide your qualifications (minimum 10 characters)",
+  }),
+  experience: z.string().min(10, {
+    message: "Please describe your experience (minimum 10 characters)",
+  }),
+  subjects: z.string().min(5, {
+    message: "Please list subjects you want to teach",
   }),
 });
 

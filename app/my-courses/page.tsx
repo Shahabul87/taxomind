@@ -41,7 +41,7 @@ async function MyCoursesContent() {
         user={session.user}
       />
     );
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[MY_COURSES_PAGE_ERROR]", error);
     return (
       <MyCoursesError 

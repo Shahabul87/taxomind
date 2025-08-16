@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
@@ -12,7 +12,7 @@ export async function POST(
   try {
     const user = await currentUser();
     if (!user || !user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createSuccessResponse({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { content } = await req.json();
@@ -20,7 +20,7 @@ export async function POST(
     const { postId, commentId, replyId } = params;
 
     if (!content) {
-      return NextResponse.json({ error: "Content is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Content is required" }, { status: 400 });
     }
 
     // Check if the parent comment exists
@@ -32,7 +32,7 @@ export async function POST(
     });
 
     if (!comment) {
-      return NextResponse.json({ error: "Parent comment not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Parent comment not found" }, { status: 404 });
     }
 
     // Check if the parent reply exists and belongs to the comment
@@ -45,7 +45,7 @@ export async function POST(
     });
 
     if (!parentReply) {
-      return NextResponse.json({ error: "Parent reply not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Parent reply not found" }, { status: 404 });
     }
 
     // Create new reply with parentReplyId set
@@ -80,9 +80,9 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(newReply);
+    return createSuccessResponse(newReply);
   } catch (error) {
     logger.error("[REPLY_TO_REPLY_POST]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return createSuccessResponse({ error: "Internal server error" }, { status: 500 });
   }
 } 

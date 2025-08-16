@@ -311,7 +311,7 @@ export const withAsyncErrorBoundary = <T extends any[], R>(
   return async (...args: T): Promise<R | null> => {
     try {
       return await asyncFn(...args);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Async error in ${context || 'function'}:`, error);
       
       // Send to monitoring

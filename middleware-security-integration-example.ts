@@ -253,7 +253,7 @@ export default auth(async (req: NextRequest & { auth?: any }) => {
     const response = NextResponse.next();
     return securityHeaders.apply(response);
 
-  } catch (error) {
+  } catch (error: any) {
     // Log middleware errors
     console.error('[MIDDLEWARE ERROR]', {
       pathname,

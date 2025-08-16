@@ -1,6 +1,6 @@
 import axios from 'axios';
 import Parser from 'rss-parser';
-import { NewsArticle } from './sam-news-engine';
+import { NewsArticle, NewsCategory } from './sam-news-engine';
 import { logger } from '@/lib/logger';
 
 interface NewsSource {
@@ -98,13 +98,14 @@ export class SAMNewsFetcher {
               url: item['media:thumbnail']['$'].url,
               caption: item.title || '',
               credit: ''
-            }] : undefined
+            }] : undefined,
+            citations: []
           });
         }
       });
       
       return articles;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Error fetching RSS feed from ${sourceUrl}:`, error);
       return [];
     }
@@ -161,7 +162,7 @@ export class SAMNewsFetcher {
           credit: article.source.name
         }] : undefined
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching from NewsAPI:', error);
       return [];
     }
@@ -220,7 +221,7 @@ export class SAMNewsFetcher {
           credit: article.provider[0]?.name
         }] : undefined
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching from Bing News:', error);
       return [];
     }
@@ -267,7 +268,7 @@ export class SAMNewsFetcher {
     return text.substring(0, 200) + (text.length > 200 ? '...' : '');
   }
 
-  private categorizeArticle(title: string): string {
+  private categorizeArticle(title: string): NewsCategory {
     const titleLower = title.toLowerCase();
     
     if (titleLower.includes('breakthrough') || titleLower.includes('announces')) {

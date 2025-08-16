@@ -943,11 +943,11 @@ export class CognitiveAssessmentReporter {
       assessmentReliability: 0.85,
       assessmentValidity: 0.82,
       discriminationIndex: 0.78,
-      difficultyDistribution: {
-        easy: 0.3,
-        medium: 0.5,
-        hard: 0.2
-      }
+        difficultyDistribution: {
+          [QuestionDifficulty.EASY]: 0.3,
+          [QuestionDifficulty.MEDIUM]: 0.5,
+          [QuestionDifficulty.HARD]: 0.2
+        }
     };
   }
 

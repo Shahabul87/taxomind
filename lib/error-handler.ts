@@ -68,7 +68,7 @@ export class AIErrorHandler {
     fallbackStrategies: FallbackStrategy[] = []
   ): Promise<ErrorHandlingResult> {
     const finalConfig = { ...this.defaultRetryConfig, ...config };
-    let lastError: Error;
+    let lastError: Error | undefined;
     let retryCount = 0;
 
     // Main retry loop
@@ -86,7 +86,7 @@ export class AIErrorHandler {
           data: result,
           retryCount: attempt
         };
-      } catch (error) {
+      } catch (error: any) {
         lastError = error as Error;
         retryCount = attempt;
         
@@ -136,11 +136,12 @@ export class AIErrorHandler {
     }
 
     // All strategies failed
-    this.logError(context, lastError, 'critical', false);
+    const finalError = lastError ?? new Error('Operation failed');
+    this.logError(context, finalError, 'critical', false);
     
     return {
       success: false,
-      error: lastError,
+      error: finalError,
       retryCount
     };
   }

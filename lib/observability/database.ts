@@ -59,7 +59,7 @@ export class ObservablePrismaClient {
         });
 
         return result;
-      } catch (error) {
+      } catch (error: any) {
         const duration = (Date.now() - startTime) / 1000;
         
         // Record error metrics
@@ -90,7 +90,7 @@ export class ObservablePrismaClient {
     });
   }
 
-  // Proxy all Prisma client methods
+  // Proxy all Prisma client methods - only include models that exist in schema
   get user() { return this.client.user; }
   get course() { return this.client.course; }
   get chapter() { return this.client.chapter; }
@@ -99,43 +99,35 @@ export class ObservablePrismaClient {
   get purchase() { return this.client.purchase; }
   get category() { return this.client.category; }
   get attachment() { return this.client.attachment; }
-  get userProgress() { return this.client.userProgress; }
-  get muxData() { return this.client.muxData; }
   get stripeCustomer() { return this.client.stripeCustomer; }
   get bill() { return this.client.bill; }
-  get payment() { return this.client.payment; }
-  get audit() { return this.client.audit; }
-  get news() { return this.client.news; }
-  get aiTutor() { return this.client.aiTutor; }
-  get aiTutorSession() { return this.client.aiTutorSession; }
-  get aiTutorMessage() { return this.client.aiTutorMessage; }
-  get performanceMetrics() { return this.client.performanceMetrics; }
-  get reviewRating() { return this.client.reviewRating; }
-  get badge() { return this.client.badge; }
-  get achievement() { return this.client.achievement; }
-  get learningPath() { return this.client.learningPath; }
-  get learningPathCourse() { return this.client.learningPathCourse; }
-  get userLearningPath() { return this.client.userLearningPath; }
-  get certificate() { return this.client.certificate; }
-  get quiz() { return this.client.quiz; }
   get question() { return this.client.question; }
   get answer() { return this.client.answer; }
   get userAnswer() { return this.client.userAnswer; }
-  get userQuizResult() { return this.client.userQuizResult; }
-  get forum() { return this.client.forum; }
-  get forumPost() { return this.client.forumPost; }
-  get forumReply() { return this.client.forumReply; }
   get note() { return this.client.note; }
-  get reminder() { return this.client.reminder; }
   get notification() { return this.client.notification; }
-  get activityLog() { return this.client.activityLog; }
-  get courseViewHistory() { return this.client.courseViewHistory; }
-  get searchHistory() { return this.client.searchHistory; }
-  get bookmark() { return this.client.bookmark; }
-  get courseFavorite() { return this.client.courseFavorite; }
-  get userPreference() { return this.client.userPreference; }
-  get courseCompletionCertificate() { return this.client.courseCompletionCertificate; }
-  get samAI() { return this.client.samAI; }
+  get activity() { return this.client.activity; }
+  get userAIPreferences() { return this.client.userAIPreferences; }
+  get learningPath() { return this.client.learningPath; }
+  get pathEnrollment() { return this.client.pathEnrollment; }
+  get courseReview() { return this.client.courseReview; }
+  get blog() { return this.client.blog; }
+  get article() { return this.client.article; }
+  get post() { return this.client.post; }
+  get comment() { return this.client.comment; }
+  get reply() { return this.client.reply; }
+  get group() { return this.client.group; }
+  get exam() { return this.client.exam; }
+  get userExamAttempt() { return this.client.userExamAttempt; }
+  get examAnalytics() { return this.client.examAnalytics; }
+  get performance_metrics() { return this.client.performance_metrics; }
+  get learning_metrics() { return this.client.learning_metrics; }
+  get learning_sessions() { return this.client.learning_sessions; }
+  get aIGeneratedContent() { return this.client.aIGeneratedContent; }
+  get aIContentGeneration() { return this.client.aIContentGeneration; }
+  get aIUsageMetrics() { return this.client.aIUsageMetrics; }
+  get userAnalytics() { return this.client.userAnalytics; }
+  get sAMInteraction() { return this.client.sAMInteraction; }
 
   // Proxy utility methods
   get $connect() { return this.client.$connect.bind(this.client); }
@@ -168,7 +160,7 @@ export async function withDatabaseTransaction<T>(
     });
     
     return result;
-  } catch (error) {
+  } catch (error: any) {
     span.recordException(error as Error);
     span.setAttributes({
       'db.transaction.success': false,

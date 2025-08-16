@@ -1,3 +1,5 @@
+"use server";
+
 /**
  * Optimized course fetching with caching and pagination
  * Reduces database load by 80-90%
@@ -20,6 +22,10 @@ interface CourseWithRelations extends Course {
   category: Category | null;
   chapters: { id: string }[];
   progress: number | null;
+}
+
+export async function getAllCoursesOptimized(params?: GetCoursesParams) {
+  return getCoursesOptimized(params || {});
 }
 
 export async function getCoursesOptimized({
@@ -147,7 +153,7 @@ export async function getCoursesOptimized({
         totalPages: Math.ceil(totalCount / limit),
       },
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_COURSES_OPTIMIZED]", error);
     return {
       courses: [],
@@ -200,7 +206,7 @@ async function getProgressOptimized(
           (validCompletedChapters / publishedChapterIds.length) * 100;
         
         return progressPercentage;
-      } catch (error) {
+      } catch (error: any) {
         logger.error("[GET_PROGRESS_OPTIMIZED]", error);
         return 0;
       }

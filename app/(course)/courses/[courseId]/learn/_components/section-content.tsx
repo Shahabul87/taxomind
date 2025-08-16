@@ -66,7 +66,7 @@ export const SectionContent = ({
     try {
       // Show loading state if needed
       router.push(path);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Navigation failed:", error);
       // Fallback to window.location
       window.location.href = path;

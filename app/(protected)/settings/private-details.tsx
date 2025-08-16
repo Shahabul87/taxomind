@@ -39,6 +39,7 @@ import { UserRole } from "@prisma/client";
 import { Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 
 
@@ -57,7 +58,7 @@ export const PrivateDetailsSettingsPage = () => {
       newPassword: undefined,
       name: user?.name || undefined,
       email: user?.email || undefined,
-      role: user?.role || undefined,
+      role: (user?.role === 'ADMIN' || user?.role === 'USER') ? user.role : 'USER',
       isTwoFactorEnabled: user?.isTwoFactorEnabled || undefined,
     }
   });
@@ -277,47 +278,37 @@ export const PrivateDetailsSettingsPage = () => {
                   <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Account Preferences</h3>
                   <div className="grid gap-6 sm:grid-cols-2">
                     {/* Only show Role selection for admin users */}
-                    {user?.role === "ADMIN" && (
-                      <FormField
-                        control={form.control}
-                        name="role"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-slate-700 dark:text-slate-300">Account Role</FormLabel>
-                            <Select
-                              disabled={isPending}
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger className={cn(
-                                  "bg-white/50 dark:bg-slate-900/50",
-                                  "backdrop-blur-sm",
-                                  "border-slate-200/50 dark:border-slate-700/50",
-                                  "text-slate-900 dark:text-slate-100",
-                                  "focus:bg-white/70 dark:focus:bg-slate-900/70",
-                                  "transition-all duration-300"
-                                )}>
-                                  <SelectValue placeholder="Select a role" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50">
-                                {Object.values(UserRole).map((role) => (
-                                  <SelectItem 
-                                    key={role} 
-                                    value={role}
-                                    className="text-slate-900 dark:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/80"
-                                  >
-                                    {role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
+                    {/* Role Display - Only editable by admins */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Account Role</label>
+                      <div className={cn(
+                        "flex items-center justify-between p-3 rounded-lg",
+                        "bg-white/50 dark:bg-slate-900/50",
+                        "border border-slate-200/50 dark:border-slate-700/50"
+                      )}>
+                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {user?.role?.charAt(0).toUpperCase()}{user?.role?.slice(1).toLowerCase()}
+                        </span>
+                        {user?.role !== "ADMIN" && !user?.isTeacher && (
+                          <Link 
+                            href="/auth/register-teacher" 
+                            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            Apply to become an instructor →
+                          </Link>
                         )}
-                      />
-                    )}
+                      </div>
+                      {user?.role === "ADMIN" && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          As an admin, you can manage user roles in the admin panel.
+                        </p>
+                      )}
+                      {user?.isTeacher === true && (
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          ✓ Verified instructor account
+                        </p>
+                      )}
+                    </div>
 
                     {/* 2FA toggle remains visible for all non-OAuth users */}
                     {user?.isOAuth === false && (

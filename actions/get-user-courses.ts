@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger';
 /**
  * Fetches courses created by the current user
  */
-export async function getUserCreatedCourses() {
+export async function getUserCreatedCourses(userId?: string) {
   try {
     const session = await auth();
     
@@ -69,7 +69,7 @@ export async function getUserCreatedCourses() {
           totalSections,
           totalEnrolled
         };
-      } catch (error) {
+      } catch (error: any) {
         logger.warn("Error processing course stats:", error);
         return {
           ...course,
@@ -86,7 +86,7 @@ export async function getUserCreatedCourses() {
       courses: coursesWithStats,
       error: null
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_CREATED_COURSES_ERROR]", error);
     return { 
       courses: [], 
@@ -175,7 +175,7 @@ export async function getUserEnrolledCourses() {
           completionPercentage,
           instructor: course.user || { name: "Unknown", image: null }
         };
-      } catch (error) {
+      } catch (error: any) {
         logger.warn("Error processing enrollment:", error);
         // Return a safe fallback object
         return {
@@ -203,11 +203,16 @@ export async function getUserEnrolledCourses() {
       courses: enrolledCourses,
       error: null 
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_ENROLLED_COURSES_ERROR]", error);
     return { 
       courses: [], 
       error: "Failed to fetch enrolled courses" 
     };
   }
-} 
+}
+
+/**
+ * Legacy function name for backward compatibility
+ */
+export const getUserCourses = getUserCreatedCourses; 

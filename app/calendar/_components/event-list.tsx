@@ -39,7 +39,7 @@ export const EventList = ({ userId, selectedDate }: EventListProps) => {
           const data = await response.json();
           setEvents(data);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error("Failed to fetch events:", error);
       } finally {
         setIsLoading(false);

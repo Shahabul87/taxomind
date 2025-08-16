@@ -74,7 +74,7 @@ export const PostchapterTitleForm = ({
       setFormState({ success: true, message: "Title updated" });
       setIsEditing(false);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       setFormState({ error: true, message: "Something went wrong" });
     } finally {
       setIsLoading(false);

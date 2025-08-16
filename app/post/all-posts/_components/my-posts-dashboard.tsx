@@ -113,7 +113,7 @@ export const MyPostsDashboard = ({ posts, categories, stats, user }: MyPostsDash
       
       toast.success("Post deleted successfully");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error deleting post");
       logger.error(error);
     } finally {

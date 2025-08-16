@@ -52,7 +52,7 @@ export const WorkflowInstanceSchema = z.object({
   data: z.record(z.any()),
   history: z.array(z.object({
     stepId: z.string(),
-    action: z.enum(['submit', 'approve', 'reject', 'comment', 'escalate', 'auto_approve']),
+    action: z.enum(['submit', 'approve', 'reject', 'comment', 'escalate', 'auto_approve', 'request_changes']),
     userId: z.string(),
     timestamp: z.date(),
     comment: z.string().optional(),
@@ -640,7 +640,9 @@ export class WorkflowEngine {
           autoApproveAfter: 48,
           escalationAfter: 24,
           escalationTo: ['content_manager'],
-          requiredActions: ['approve', 'reject', 'comment']
+          requiredActions: ['approve', 'reject', 'comment'],
+          parallel: false,
+          optional: false
         },
         {
           id: 'technical_review',
@@ -651,7 +653,9 @@ export class WorkflowEngine {
           assigneeIds: ['technical_reviewer'],
           autoApproveAfter: 24,
           escalationAfter: 12,
-          escalationTo: ['technical_lead']
+          escalationTo: ['technical_lead'],
+          parallel: false,
+          optional: false
         },
         {
           id: 'final_approval',
@@ -661,7 +665,9 @@ export class WorkflowEngine {
           assigneeType: 'role',
           assigneeIds: ['course_manager'],
           escalationAfter: 8,
-          escalationTo: ['director']
+          escalationTo: ['director'],
+          parallel: false,
+          optional: false
         }
       ],
       isActive: true,
@@ -685,7 +691,9 @@ export class WorkflowEngine {
           assigneeIds: ['quiz_reviewer'],
           autoApproveAfter: 24,
           escalationAfter: 12,
-          escalationTo: ['content_manager']
+          escalationTo: ['content_manager'],
+          parallel: false,
+          optional: false
         },
         {
           id: 'manager_approval',
@@ -695,7 +703,9 @@ export class WorkflowEngine {
           assigneeType: 'role',
           assigneeIds: ['quiz_manager'],
           escalationAfter: 4,
-          escalationTo: ['director']
+          escalationTo: ['director'],
+          parallel: false,
+          optional: false
         }
       ],
       isActive: true,

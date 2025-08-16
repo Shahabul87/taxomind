@@ -78,7 +78,7 @@ export const PostChaptersForm = ({
       toast.success("Chapter created");
       setIsCreating(false);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     }
   }, [postId, router]);
@@ -96,7 +96,7 @@ export const PostChaptersForm = ({
       
       toast.success("Chapters reordered");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsUpdating(false);
@@ -112,7 +112,7 @@ export const PostChaptersForm = ({
       await axios.delete(`/api/posts/${postId}/postchapters/${postchapterId}`);
       toast.success("Chapter deleted");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     }
   }, [postId, router]);

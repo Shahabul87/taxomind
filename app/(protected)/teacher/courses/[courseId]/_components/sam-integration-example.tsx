@@ -112,7 +112,7 @@ export function SamIntegration({
       }
       
       toast.success("Learning objectives updated!");
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update objectives:', error);
       toast.error('Failed to update learning objectives');
     }
@@ -157,7 +157,7 @@ export function SamIntegration({
           // Create next chapter after a short delay
           setTimeout(createNextChapter, 1000);
           
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Failed to create chapter:', error);
           toast.error(`Failed to create chapter: ${chapter.title}`);
         }
@@ -166,7 +166,7 @@ export function SamIntegration({
       // Start creating chapters
       createNextChapter();
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to process chapters:', error);
       toast.error('Failed to process chapters');
     }
@@ -180,7 +180,7 @@ export function SamIntegration({
       }
       toast.success(`${chapterIds.length} chapters deleted!`);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to delete chapters:', error);
       toast.error('Failed to delete chapters');
     }

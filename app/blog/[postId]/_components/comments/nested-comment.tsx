@@ -107,11 +107,6 @@ export const NestedComment = ({
           </p>
 
           <div className="flex items-center gap-4 text-sm">
-            {console.log("Passing to ReactionButton:", {
-              postId: localComment.postId,
-              commentId: localComment.id,
-              reactions: localComment.reactions
-            })}
             <ReactionButton
               postId={localComment.postId}
               commentId={localComment.id}

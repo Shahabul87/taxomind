@@ -107,7 +107,7 @@ export function TemplateMarketplace({
       } else {
         toast.error(data.error || "Failed to fetch templates");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to fetch templates");
     } finally {
       setIsLoading(false);
@@ -173,7 +173,7 @@ export function TemplateMarketplace({
         setContentTypes(data.contentTypes);
         setPopularTags(data.popularTags);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to fetch categories");
     }
   };

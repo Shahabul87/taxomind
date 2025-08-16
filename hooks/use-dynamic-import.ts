@@ -31,7 +31,7 @@ export function useDynamicImport<T = any>(
         loading: false,
         error: null,
       });
-    } catch (error) {
+    } catch (error: any) {
       const err = error instanceof Error ? error : new Error('Import failed');
       setState({
         component: null,
@@ -132,7 +132,7 @@ export function useProgressiveImport<T extends Record<string, any>>(
       
       const loadedCount = Object.keys(components).length + 1;
       options.onProgress?.(loadedCount, imports.length);
-    } catch (error) {
+    } catch (error: any) {
       const err = error instanceof Error ? error : new Error('Import failed');
       setErrors(prev => ({ ...prev, [key]: err }));
       setLoading(prev => ({ ...prev, [key]: false }));

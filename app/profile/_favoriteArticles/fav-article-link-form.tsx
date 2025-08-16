@@ -198,7 +198,7 @@ export const FavoriteArticleLinkForm = ({
       }
       
       toast.success("Article details fetched");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching article metadata:", error);
       toast.error("Couldn't fetch article details. Please enter them manually.");
     } finally {
@@ -331,7 +331,7 @@ export const FavoriteArticleLinkForm = ({
             } else {
               toast.error("Couldn't find article details. Please enter them manually.", { id: "fetching-metadata" });
             }
-          } catch (error) {
+          } catch (error: any) {
             logger.error("Error fetching metadata:", error);
             toast.error("Couldn't fetch article details. Please enter them manually.", { id: "fetching-metadata" });
           }

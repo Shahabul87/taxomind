@@ -349,7 +349,7 @@ class AnalyticsTracker {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(event)
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to send analytics event:', error);
       // Don't throw - analytics should never break the app
     }
@@ -367,7 +367,7 @@ class AnalyticsTracker {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ events: eventsToSend })
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to flush analytics events:', error);
       // Put events back in queue for retry
       this.events.unshift(...eventsToSend);

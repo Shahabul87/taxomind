@@ -1,0 +1,51 @@
+.mathForm {
+  position: relative;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.editorTab {
+  background-color: rgba(219, 39, 119, 0.1);
+}
+
+.previewTab {
+  background-color: rgba(147, 51, 234, 0.1);
+}
+
+.mathPreview {
+  min-height: 20rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+}
+
+/* Dark mode styles */
+:global(.dark) .mathPreview {
+  background-color: rgba(31, 41, 55, 0.8);
+  border-color: rgba(75, 85, 99, 1);
+}
+
+.templateCard {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  border: 1px solid rgba(219, 39, 119, 0.2);
+}
+
+.templateCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(219, 39, 119, 0.1), 0 2px 4px -1px rgba(219, 39, 119, 0.06);
+  border-color: rgba(219, 39, 119, 0.4);
+}
+
+.errorMessage {
+  display: flex;
+  align-items: center;
+  color: rgb(239, 68, 68);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+} 

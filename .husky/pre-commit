@@ -1,18 +1,25 @@
 #!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
 
-# Run lint-staged for code quality checks
-npx lint-staged
-
-# Run build to catch any TypeScript errors
-echo "🔍 Checking TypeScript..."
-npx tsc --noEmit
-
-# Check for console.log statements
-echo "🔎 Checking for console.log statements..."
-if grep -r "console\.log" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=coverage . 2>/dev/null; then
-  echo "❌ Error: Found console.log statements. Please remove them before committing."
-  echo "💡 Tip: Use proper logging utilities or remove debug statements."
+# Run linting
+echo "🔍 Running ESLint..."
+npm run lint || {
+  echo "❌ ESLint failed. Please fix errors before committing."
   exit 1
-fi
+}
 
-echo "✅ All pre-commit checks passed!"
+# Run TypeScript checking
+echo "🔍 Running TypeScript check..."
+npm run typecheck || {
+  echo "❌ TypeScript check failed. Please fix errors before committing."
+  exit 1
+}
+
+# Run tests for changed files
+echo "🧪 Running tests..."
+npm test -- --bail --findRelatedTests || {
+  echo "❌ Tests failed. Please fix failing tests before committing."
+  exit 1
+}
+
+echo "✅ Pre-commit checks passed!"

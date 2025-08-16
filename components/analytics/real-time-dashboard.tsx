@@ -180,7 +180,7 @@ export function RealTimeDashboard({
       }
       setMetrics([...metricsHistory.current]);
       setIsConnected(true);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch current metrics:', error);
       setIsConnected(false);
     }
@@ -196,7 +196,7 @@ export function RealTimeDashboard({
       
       const data = await response.json();
       setStudentActivities(data.activities || []);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch student activities:', error);
     }
   }, [courseId, selectedTimeRange]);
@@ -211,7 +211,7 @@ export function RealTimeDashboard({
       
       const data = await response.json();
       setAlerts(data.alerts || []);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch content alerts:', error);
     }
   }, [courseId]);
@@ -224,7 +224,7 @@ export function RealTimeDashboard({
         fetchStudentActivities(),
         fetchContentAlerts()
       ]);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch initial data:', error);
       setIsConnected(false);
     } finally {
@@ -257,7 +257,7 @@ export function RealTimeDashboard({
       setAlerts(alerts.map(alert => 
         alert.id === alertId ? { ...alert, resolved: true } : alert
       ));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to resolve alert:', error);
     }
   };

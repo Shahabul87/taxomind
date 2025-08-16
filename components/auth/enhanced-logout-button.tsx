@@ -29,7 +29,7 @@ export const EnhancedLogoutButton = ({
         redirect: true 
       });
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Logout failed:", error);
       // Fallback: manual redirect
       router.push(redirectTo);
@@ -60,7 +60,7 @@ export const useLogout = () => {
         callbackUrl: redirectTo,
         redirect: true 
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Logout failed:", error);
       // Fallback
       window.location.href = redirectTo;

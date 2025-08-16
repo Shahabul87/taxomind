@@ -62,6 +62,7 @@ export const publicRoutes = [
 export const authRoutes: string[] = [
   "/auth/login",
   "/auth/register",
+  "/auth/register-teacher",
   "/auth/error",
   "/auth/reset",
   "/auth/new-password",
@@ -82,6 +83,9 @@ export const adminRoutes: string[] = [
   "/dashboard/admin",
   "/admin",
   "/admin/dashboard",
+  "/admin/mfa-setup",
+  "/admin/mfa-warning",
+  "/admin/mfa-status",
 ];
 
 /**
@@ -122,8 +126,13 @@ export const protectedRoutes: string[] = [
  * @returns {string} The redirect path
  */
 const getDefaultRedirect = (role?: string): string => {
-  if (role === "ADMIN") return "/dashboard/admin";
-  return "/dashboard/user";
+  switch (role) {
+    case "ADMIN":
+      return "/dashboard/admin";
+    case "USER":
+    default:
+      return "/dashboard";
+  }
 };
 
 /**
@@ -131,7 +140,7 @@ const getDefaultRedirect = (role?: string): string => {
  * Now using the getDefaultRedirect function
  * @type {string}
  */
-export const DEFAULT_LOGIN_REDIRECT = "/dashboard/user";
+export const DEFAULT_LOGIN_REDIRECT = "/dashboard";
 
 /**
  * Get redirect URL based on role

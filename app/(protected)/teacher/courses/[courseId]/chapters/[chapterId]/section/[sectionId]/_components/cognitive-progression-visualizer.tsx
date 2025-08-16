@@ -275,7 +275,7 @@ export const CognitiveProgressionVisualizer = ({
       setMilestones(mockData.milestones);
       setTrends(mockData.trends);
       setPredictions(mockData.predictions);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to load progression data:', error);
     } finally {
       setIsLoading(false);

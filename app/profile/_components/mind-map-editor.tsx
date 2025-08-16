@@ -136,7 +136,7 @@ export const MindMapEditor = ({ mind, onClose, onSave }: MindMapEditorProps) => 
     try {
       await onSave({ nodes, edges });
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to save mind map:', error);
     } finally {
       setIsSubmitting(false);

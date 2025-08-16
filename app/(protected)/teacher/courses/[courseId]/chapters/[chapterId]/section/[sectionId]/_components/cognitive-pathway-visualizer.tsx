@@ -194,7 +194,7 @@ export const CognitivePathwayVisualizer = ({
       }
       setPrerequisiteStatuses(statuses);
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to analyze pathway:', error);
     } finally {
       setIsAnalyzing(false);

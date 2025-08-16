@@ -119,7 +119,7 @@ setup.describe('Authentication Setup', () => {
         expect(authData).toHaveProperty('cookies');
         expect(authData).toHaveProperty('origins');
         
-      } catch (error) {
+      } catch (error: any) {
         console.error(`❌ Authentication file missing or invalid: ${file}`, error);
         throw error;
       }

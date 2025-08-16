@@ -223,7 +223,7 @@ export const FinancialIntelligenceDashboard = ({ organizationId, className }: Fi
         setFinancialData(getDemoFinancialData());
         toast.info("Using demo financial data");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to load financial data:", error);
       // Use demo data as fallback
       setFinancialData(getDemoFinancialData());

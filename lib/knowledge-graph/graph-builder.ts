@@ -39,8 +39,8 @@ export class KnowledgeGraphBuilder {
   // Build knowledge graph from course structure
   async buildFromCourseStructure(courseId: string): Promise<KnowledgeGraph> {
 
-    // Get course data
-    const course = await db.Course.findUnique({
+    // Get course data with proper include
+    const course = await db.course.findUnique({
       where: { id: courseId },
       include: {
         chapters: {
@@ -48,17 +48,15 @@ export class KnowledgeGraphBuilder {
             sections: {
               include: {
                 videos: true,
-                attachments: true,
-                quiz: {
+                exams: {
                   include: {
-                    questions: true
+                    ExamQuestion: true
                   }
                 }
               }
             }
           }
-        },
-        assignments: true
+        }
       }
     });
 
@@ -108,9 +106,9 @@ export class KnowledgeGraphBuilder {
           this.addEdge(this.createEdge(videoNode.id, sectionNode.id, 'part_of', 1.0, 'curriculum_design'));
         }
 
-        // Process quiz
-        if (section.quiz) {
-          const quizNode = this.createQuizNode(section.quiz, section);
+        // Process exams (quizzes)
+        for (const exam of section.exams || []) {
+          const quizNode = this.createQuizNode(exam, section);
           this.addNode(quizNode);
           
           // Link quiz to section
@@ -122,14 +120,7 @@ export class KnowledgeGraphBuilder {
       }
     }
 
-    // Process assignments
-    for (const assignment of course.assignments) {
-      const assignmentNode = this.createAssignmentNode(assignment, course);
-      this.addNode(assignmentNode);
-      
-      // Link assignment to course
-      this.addEdge(this.createEdge(assignmentNode.id, courseNode.id, 'part_of', 1.0, 'curriculum_design'));
-    }
+    // Note: Assignments would be processed here if they existed in the course model
 
     // Analyze content and create conceptual relationships
     await this.analyzeContentRelationships(courseId);
@@ -144,7 +135,7 @@ export class KnowledgeGraphBuilder {
   }
 
   // Create course node
-  private createCourseNode(Course: any): KnowledgeNode {
+  private createCourseNode(course: any): KnowledgeNode {
     return {
       id: this.generateNodeId('course', course.id),
       type: 'course',
@@ -173,7 +164,7 @@ export class KnowledgeGraphBuilder {
   }
 
   // Create chapter node
-  private createChapterNode(chapter: any, Course: any): KnowledgeNode {
+  private createChapterNode(chapter: any, course: any): KnowledgeNode {
     return {
       id: this.generateNodeId('topic', chapter.id),
       type: 'topic',
@@ -220,7 +211,7 @@ export class KnowledgeGraphBuilder {
         position: section.position,
         chapterId: chapter.id,
         videoCount: section.videos?.length || 0,
-        hasQuiz: !!section.quiz,
+        hasExams: section.exams?.length > 0,
         isFree: section.isFree
       },
       createdAt: section.createdAt,
@@ -257,15 +248,15 @@ export class KnowledgeGraphBuilder {
   }
 
   // Create quiz node
-  private createQuizNode(quiz: any, section: any): KnowledgeNode {
+  private createQuizNode(exam: any, section: any): KnowledgeNode {
     return {
-      id: this.generateNodeId('quiz', quiz.id),
+      id: this.generateNodeId('quiz', exam.id),
       type: 'quiz',
       title: `${section.title} - Quiz`,
       description: 'Assessment for ' + section.title,
       metadata: {
-        difficulty: this.inferQuizQuestionDifficulty(quiz),
-        estimatedTime: this.estimateQuizTime(quiz),
+        difficulty: this.inferQuizQuestionDifficulty(exam),
+        estimatedTime: this.estimateQuizTime(exam),
         bloomsLevel: 'apply',
         cognitiveLoad: 'medium',
         prerequisites: [this.generateNodeId('lesson', section.id)],
@@ -274,18 +265,18 @@ export class KnowledgeGraphBuilder {
         learningObjectives: ['Assess understanding of ' + section.title]
       },
       attributes: {
-        questionCount: quiz.questions?.length || 0,
+        questionCount: exam.ExamQuestion?.length || 0,
         sectionId: section.id,
-        timeLimit: quiz.timeLimit,
-        passingScore: quiz.passingScore
+        timeLimit: exam.timeLimit,
+        passingScore: exam.passingScore
       },
-      createdAt: quiz.createdAt,
-      updatedAt: quiz.updatedAt
+      createdAt: exam.createdAt,
+      updatedAt: exam.updatedAt
     };
   }
 
   // Create assignment node
-  private createAssignmentNode(assignment: any, Course: any): KnowledgeNode {
+  private createAssignmentNode(assignment: any, course: any): KnowledgeNode {
     return {
       id: this.generateNodeId('assignment', assignment.id),
       type: 'assignment',
@@ -359,21 +350,21 @@ export class KnowledgeGraphBuilder {
     const interactions = await db.sAMInteraction.findMany({
       where: { courseId },
       select: {
-        studentId: true,
+        userId: true,
         sectionId: true,
-        eventName: true,
-        timestamp: true,
-        metadata: true
+        interactionType: true,
+        createdAt: true,
+        context: true
       }
     });
 
     // Group interactions by student
     const studentInteractions = new Map<string, any[]>();
     interactions.forEach(interaction => {
-      if (!studentInteractions.has(interaction.studentId)) {
-        studentInteractions.set(interaction.studentId, []);
+      if (!studentInteractions.has(interaction.userId)) {
+        studentInteractions.set(interaction.userId, []);
       }
-      studentInteractions.get(interaction.studentId)!.push(interaction);
+      studentInteractions.get(interaction.userId)!.push(interaction);
     });
 
     // Analyze sequential patterns
@@ -388,7 +379,7 @@ export class KnowledgeGraphBuilder {
   // Analyze sequential learning patterns
   private analyzeSequentialPatterns(interactions: any[]): void {
     // Sort interactions by timestamp
-    interactions.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    interactions.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     // Find sequences where students consistently move from one section to another
     for (let i = 0; i < interactions.length - 1; i++) {
@@ -433,11 +424,15 @@ export class KnowledgeGraphBuilder {
       const nodeId = this.generateNodeId('lesson', flag.contentId);
       const node = this.graph.nodes.get(nodeId);
       
-      if (node && flag.count >= 5) {
-        // Increase difficulty based on struggle count
-        const difficultyMultiplier = Math.min(2.0, 1 + (flag.count / 20));
-        node.metadata.difficulty = this.adjustQuestionDifficulty(node.metadata.difficulty, difficultyMultiplier);
-        node.metadata.cognitiveLoad = flag.count >= 10 ? 'high' : 'medium';
+      if (node) {
+        // Extract count from metadata if it exists
+        const flagCount = (flag.metadata as any)?.count || 1;
+        if (flagCount >= 5) {
+          // Increase difficulty based on struggle count
+          const difficultyMultiplier = Math.min(2.0, 1 + (flagCount / 20));
+          node.metadata.difficulty = this.adjustQuestionDifficulty(node.metadata.difficulty, difficultyMultiplier);
+          node.metadata.cognitiveLoad = flagCount >= 10 ? 'high' : 'medium';
+        }
       }
     });
   }
@@ -529,24 +524,24 @@ export class KnowledgeGraphBuilder {
   private inferSectionQuestionDifficulty(section: any): QuestionDifficultyLevel {
     // Infer difficulty based on section content
     const videoCount = section.videos?.length || 0;
-    const hasQuiz = !!section.quiz;
+    const hasExams = section.exams?.length > 0;
     
-    if (videoCount > 5 || hasQuiz) return 'intermediate';
+    if (videoCount > 5 || hasExams) return 'intermediate';
     if (videoCount > 2) return 'beginner';
     return 'beginner';
   }
 
   private inferBloomsLevel(section: any): BloomsLevel {
-    const hasQuiz = !!section.quiz;
+    const hasExams = section.exams?.length > 0;
     const videoCount = section.videos?.length || 0;
     
-    if (hasQuiz) return 'apply';
+    if (hasExams) return 'apply';
     if (videoCount > 3) return 'understand';
     return 'remember';
   }
 
   private inferCognitiveLoad(section: any): CognitiveLoad {
-    const complexity = (section.videos?.length || 0) + (section.quiz ? 2 : 0);
+    const complexity = (section.videos?.length || 0) + (section.exams?.length || 0) * 2;
     
     if (complexity > 5) return 'high';
     if (complexity > 2) return 'medium';
@@ -561,8 +556,8 @@ export class KnowledgeGraphBuilder {
     return 'beginner';
   }
 
-  private inferQuizQuestionDifficulty(quiz: any): QuestionDifficultyLevel {
-    const questionCount = quiz.questions?.length || 0;
+  private inferQuizQuestionDifficulty(exam: any): QuestionDifficultyLevel {
+    const questionCount = exam.ExamQuestion?.length || 0;
     
     if (questionCount > 10) return 'advanced';
     if (questionCount > 5) return 'intermediate';
@@ -580,7 +575,7 @@ export class KnowledgeGraphBuilder {
   }
 
   // Time estimation methods
-  private estimateCourseTime(Course: any): number {
+  private estimateCourseTime(course: any): number {
     // Estimate based on content volume
     return 480; // Default 8 hours for a course
   }
@@ -592,13 +587,13 @@ export class KnowledgeGraphBuilder {
 
   private estimateSectionTime(section: any): number {
     const videoCount = section.videos?.length || 0;
-    const hasQuiz = !!section.quiz;
+    const examCount = section.exams?.length || 0;
     
-    return videoCount * 10 + (hasQuiz ? 15 : 0); // 10 min per video + 15 min for quiz
+    return videoCount * 10 + examCount * 15; // 10 min per video + 15 min per exam
   }
 
-  private estimateQuizTime(quiz: any): number {
-    const questionCount = quiz.questions?.length || 0;
+  private estimateQuizTime(exam: any): number {
+    const questionCount = exam.ExamQuestion?.length || 0;
     return questionCount * 2; // 2 minutes per question
   }
 
@@ -640,7 +635,7 @@ export class KnowledgeGraphBuilder {
     const tags = [];
     
     if (section.videos?.length > 0) tags.push('video');
-    if (section.quiz) tags.push('assessment');
+    if (section.exams?.length > 0) tags.push('assessment');
     if (section.isFree) tags.push('free');
     
     return tags;

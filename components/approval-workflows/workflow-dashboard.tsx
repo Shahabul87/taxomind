@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,6 @@ import {
 } from 'recharts';
 import { 
   WorkflowInstance, 
-  Workflow, 
   workflowEngine 
 } from '@/lib/approval-workflows/workflow-engine';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -44,7 +43,7 @@ export function WorkflowDashboard({
 }: WorkflowDashboardProps) {
   const { user } = useAuth();
   const [instances, setInstances] = useState<WorkflowInstance[]>([]);
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [workflows, setWorkflows] = useState<any[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<WorkflowInstance | null>(null);
   const [showInstanceDialog, setShowInstanceDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
@@ -76,10 +75,10 @@ export function WorkflowDashboard({
         workflowEngine.getWorkflowAnalytics()
       ]);
 
-      setWorkflows(workflowList);
-      setInstances(instanceList);
+      setWorkflows(workflowList as any);
+      setInstances(instanceList as WorkflowInstance[]);
       setAnalytics(analyticsData);
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to load workflow data');
       logger.error(error);
     } finally {
@@ -134,7 +133,7 @@ export function WorkflowDashboard({
       setPendingAction(null);
       setActionComment('');
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to submit action');
       logger.error(error);
     }
@@ -166,7 +165,7 @@ export function WorkflowDashboard({
   // Render instance card
   const renderInstanceCard = (instance: WorkflowInstance) => {
     const workflow = workflows.find(w => w.id === instance.workflowId);
-    const currentStep = workflow?.steps.find(s => s.id === instance.currentStepId);
+    const currentStep = workflow?.steps.find((s: any) => s.id === instance.currentStepId);
     const isAssignedToUser = currentStep && user && 
       workflowEngine['isUserAssignee'](user.id, currentStep);
 
@@ -301,7 +300,7 @@ export function WorkflowDashboard({
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 />
                 <Tooltip />
               </PieChart>

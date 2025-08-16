@@ -279,7 +279,7 @@ export const usePresetApplication = () => {
 
       return { courseId, success: true };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error applying preset:', error);
       setError(error instanceof Error ? error.message : 'An unknown error occurred');
       return { courseId: '', success: false };
@@ -389,7 +389,7 @@ export const usePresetApplication = () => {
 
       return null;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating custom preset:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate custom preset');
       return null;

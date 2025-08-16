@@ -84,7 +84,7 @@ export class JobMarketEngine {
     );
 
     // Analyze market trends
-    const marketTrends = await this.analyzeMarketTrends(
+    const marketTrends = await this.analyzeJobMarketTrends(
       skillAnalysis.assessedSkills,
       timeHorizon,
       includeProjections
@@ -164,9 +164,9 @@ export class JobMarketEngine {
       skillCategorization,
       emergingSkills,
       transferableSkills,
-      technicalSkills,
-      softSkills,
-      industrySpecificSkills,
+      technicalSkills: technicalSkills as any,
+      softSkills: softSkills as any,
+      industrySpecificSkills: industrySpecificSkills as any,
       certifications,
       portfolioAssets
     };
@@ -357,7 +357,7 @@ export class JobMarketEngine {
     });
   }
 
-  async analyzeMarketTrends(
+  async analyzeJobMarketTrends(
     skills: AssessedSkill[],
     timeHorizon: number,
     includeProjections: boolean
@@ -370,7 +370,7 @@ export class JobMarketEngine {
     trends.push(...techTrends);
 
     // Market trends
-    const marketTrends = await this.analyzeMarketTrends(skills, timeHorizon);
+    const marketTrends = await this.analyzeGeneralMarketTrends(skills, timeHorizon);
     trends.push(...marketTrends);
 
     // Economic trends
@@ -662,7 +662,7 @@ export class JobMarketEngine {
       milestones,
       timeline,
       requiredSkills,
-      experienceLevel: role.level,
+      experienceLevel: 'mid_level' as ExperienceLevel,
       salaryProgression,
       educationRequirements: [],
       certificationPath: [],
@@ -756,7 +756,7 @@ export class JobMarketEngine {
 
   private getUrgencyWeight(urgency: any): number {
     const weights = { immediate: 5, urgent: 4, moderate: 3, low: 2, future: 1 };
-    return weights[urgency] || 3;
+    return (weights as any)[urgency] || 3;
   }
 
   private getDemandWeight(demand: MarketDemandLevel): number {
@@ -943,7 +943,7 @@ export class JobMarketEngine {
   private async generateEducationRecommendations(gaps: SkillGap[], pathways: CareerPathway[]): Promise<CareerRecommendation[]> { return []; }
   private async generatePortfolioRecommendations(analysis: SkillAnalysis, pathways: CareerPathway[]): Promise<CareerRecommendation[]> { return []; }
   private async analyzeTechnologyTrends(skills: AssessedSkill[], horizon: number): Promise<MarketTrend[]> { return []; }
-  private async analyzeMarketTrends(skills: AssessedSkill[], horizon: number): Promise<MarketTrend[]> { return []; }
+  private async analyzeGeneralMarketTrends(skills: AssessedSkill[], horizon: number): Promise<MarketTrend[]> { return []; }
   private async analyzeEconomicTrends(horizon: number): Promise<MarketTrend[]> { return []; }
   private async analyzeSocialTrends(horizon: number): Promise<MarketTrend[]> { return []; }
   private async generateTrendProjections(trends: MarketTrend[], horizon: number): Promise<MarketTrend[]> { return []; }

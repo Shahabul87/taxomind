@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useSession } from "next-auth/react";
-import { Post, Comment, ReactionType } from "@prisma/client";
+import { Post, Comment } from "@prisma/client";
 import Image from "next/image";
 import { logger } from '@/lib/logger';
 import {
@@ -231,7 +231,7 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
       setComments((prev) => [newCommentData, ...prev]);
       setNewComment("");
       toast.success("Comment added successfully!");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error creating comment:", error);
       toast.error("Failed to add comment");
     } finally {
@@ -265,7 +265,7 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
       }));
 
       toast.success("Reply added successfully!");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error creating reply:", error);
       toast.error("Failed to add reply");
     }
@@ -291,7 +291,7 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
         }
         return comment;
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error adding reaction:", error);
       toast.error("Failed to add reaction");
     }
@@ -317,15 +317,22 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
 
       {/* Comments list */}
       <div className="space-y-6">
-        {comments.map((comment) => (
-          <NestedComment
-            key={comment.id}
-            comment={comment}
-            currentUserId={session?.user?.id}
-            onReply={handleReply}
-            onReact={handleReaction}
-          />
-        ))}
+        {comments.map((comment) => {
+          const commentWithPostId = {
+            ...comment,
+            postId,
+            replies: comment.replies?.map(reply => ({...reply, postId})) || []
+          };
+          return (
+            <NestedComment
+              key={comment.id}
+              comment={commentWithPostId}
+              currentUserId={session?.user?.id}
+              onReply={handleReply}
+              onReact={handleReaction}
+            />
+          );
+        })}
       </div>
     </div>
   );

@@ -1,0 +1,501 @@
+  '/grid-pattern.svg',
+    regex: '^/api/courses/([^/]+?)/chapters/reorder(?:/)?$',
+  '/image1.webp',
+    routeKeys: { nxtPcourseId: 'nxtPcourseId' },
+  '/logo.svg',
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/reorder(?:/)?$',
+  '/next.svg',
+    match: [Function (anonymous)]
+  '/notification-worker.js',
+  '/path-to-your-image.webp',
+  '/placeholder-math-image.svg',
+  '/prisma/schema.prisma',
+  '/pure-test.html',
+  },
+  '/sw.js',
+  {
+  '/test-css.html',
+    page: '/api/courses/[courseId]/chapters/[chapterId]',
+  '/test-page-status.html',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)(?:/)?$',
+  '/vercel.svg'
+}
+2025-07-11T08:56:00.165Z next:router-server:filesystem nextStaticFolderItems Set(635) {
+    routeKeys: { nxtPcourseId: 'nxtPcourseId', nxtPchapterId: 'nxtPchapterId' },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)(?:/)?$',
+    match: [Function (anonymous)]
+  '/_next/static/M1o7Qu3UdoOYhp0glCNKB/_buildManifest.js',
+  '/_next/static/M1o7Qu3UdoOYhp0glCNKB/_ssgManifest.js',
+  '/_next/static/chunks/0e5ce63c-71a19382bad3b808.js',
+  '/_next/static/chunks/10574.1a223a8b3423bcec.js',
+  '/_next/static/chunks/11597-e7d9f190b989fe9b.js',
+  '/_next/static/chunks/13085-6f1ddb52a7bac2a4.js',
+  '/_next/static/chunks/13681-2d24d1ca4971d05c.js',
+  '/_next/static/chunks/15500-434e03a7e3c90000.js',
+  '/_next/static/chunks/16244-96c668a1f6b8bb35.js',
+  '/_next/static/chunks/2024-459d4b77070e78ed.js',
+  '/_next/static/chunks/21674-9e35cba0d9c61186.js',
+  '/_next/static/chunks/23464-4fadbd558549d343.js',
+  '/_next/static/chunks/24532-46f04e23bd08ca71.js',
+  '/_next/static/chunks/25642-81d3746664958436.js',
+  '/_next/static/chunks/27359-dd9a5529da632b3d.js',
+  '/_next/static/chunks/27996-7144faae56027e63.js',
+  '/_next/static/chunks/31530-bd3cff1b006e8c7c.js',
+  '/_next/static/chunks/31684-9ddc816f7abb50ab.js',
+  '/_next/static/chunks/2802-66c8578962c94f30.js',
+  '/_next/static/chunks/31992-ad4c2f74ae9e3bb5.js',
+  '/_next/static/chunks/29663-8194eed7954d968b.js',
+  '/_next/static/chunks/32485-31b0770ca530a3a9.js',
+  '/_next/static/chunks/32687-805062a9f9f2e1af.js',
+  '/_next/static/chunks/29855-333460a95548f01b.js',
+  '/_next/static/chunks/33063-7fbd2c78f57f7ca0.js',
+  '/_next/static/chunks/35968-67e70b26a507d0f6.js',
+  '/_next/static/chunks/31087-e2aaa4ffc6bd38a7.js',
+  '/_next/static/chunks/36062-f41161eb447311d1.js',
+  '/_next/static/chunks/36114-446b50ea1ad3287f.js',
+  '/_next/static/chunks/36504-0af91c7c45870e22.js',
+  '/_next/static/chunks/36622-3541fd61c4cfdad8.js',
+  '/_next/static/chunks/37215-e7de68b557e19df1.js',
+  '/_next/static/chunks/37612-6d64c9d492624c9e.js',
+  '/_next/static/chunks/37949-1a3a495f3f1216f0.js',
+  '/_next/static/chunks/39159-f1f4e9849f4d4b84.js',
+  '/_next/static/chunks/39658-e3a61290a161aa07.js',
+  '/_next/static/chunks/39797-3014ada0b79cfb29.js',
+  '/_next/static/chunks/41081-ac3ca274c4ee7f08.js',
+  '/_next/static/chunks/41159-d6da0bb77e3d6574.js',
+  '/_next/static/chunks/42685-627cc505b83446f7.js',
+  '/_next/static/chunks/44134-a94042608494e6d6.js',
+  },
+  '/_next/static/chunks/4538-3dd1f3ff993ab424.js',
+  '/_next/static/chunks/4548-eea3d4d1e98da588.js',
+  '/_next/static/chunks/46671-85713af5c9bca72e.js',
+  '/_next/static/chunks/477-6941f3c112f74b2a.js',
+  '/_next/static/chunks/479ba886-0aee6b4a20dfc61c.js',
+  '/_next/static/chunks/48597-a240d3e009cd4f80.js',
+  '/_next/static/chunks/48935-5585f579a67b0d21.js',
+  '/_next/static/chunks/4bd1b696-db9b93fb32606530.js',
+  '/_next/static/chunks/50394-dd2f90e199c4212d.js',
+  '/_next/static/chunks/51528-213925b1a18fb696.js',
+  '/_next/static/chunks/52907-c3c07a8bcae2da54.js',
+  {
+  '/_next/static/chunks/53350-41f21e08dc82cf11.js',
+  '/_next/static/chunks/54346-b9b9062ea391faa0.js',
+    page: '/api/courses/[courseId]/chapters/[chapterId]/publish',
+  '/_next/static/chunks/54384-b1a944307dcd728f.js',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/publish(?:/)?$',
+  '/_next/static/chunks/54681-a12e1189d62de664.js',
+    routeKeys: { nxtPcourseId: 'nxtPcourseId', nxtPchapterId: 'nxtPchapterId' },
+  '/_next/static/chunks/54a60aa6-a3d66d0978adb33b.js',
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/publish(?:/)?$',
+  '/_next/static/chunks/56671-cb49c47d3f20c39a.js',
+    match: [Function (anonymous)]
+  '/_next/static/chunks/56770-1a8f8cd2f7fa8fac.js',
+  },
+  '/_next/static/chunks/57112-8eaeec5146e6b6dc.js',
+  {
+  '/_next/static/chunks/57599.c2a518fe8d041a98.js',
+  '/_next/static/chunks/58436-63e5bb2dc346c7ee.js',
+  '/_next/static/chunks/59059-a3b7d27699c8bf20.js',
+    page: '/api/courses/[courseId]/chapters/[chapterId]/section',
+  '/_next/static/chunks/59813-d8e8b11a78d6a57c.js',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/section(?:/)?$',
+  '/_next/static/chunks/61304.d8e1dd0864c7c055.js',
+  '/_next/static/chunks/61486-09e3f8cc68dedacd.js',
+    routeKeys: { nxtPcourseId: 'nxtPcourseId', nxtPchapterId: 'nxtPchapterId' },
+  '/_next/static/chunks/61975-cb706d0f28585295.js',
+  '/_next/static/chunks/62720-32fcb07ecfad8123.js',
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/section(?:/)?$',
+  '/_next/static/chunks/63167-9d62884c0bfdfc2e.js',
+    match: [Function (anonymous)]
+  '/_next/static/chunks/63810-5e7c3a27917d768d.js',
+  },
+  '/_next/static/chunks/63989-d4cf72fc951f29ee.js',
+  {
+  '/_next/static/chunks/64721-21ac53bdce3c47ca.js',
+    page: '/api/courses/[courseId]/chapters/[chapterId]/section/[sectionId]',
+  '/_next/static/chunks/6491-b41faffc93e034c9.js',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/section/([^/]+?)(?:/)?$',
+  '/_next/static/chunks/65049-b83d76b297446f0e.js',
+    routeKeys: {
+  '/_next/static/chunks/65803-7e8a350288575512.js',
+      nxtPcourseId: 'nxtPcourseId',
+  '/_next/static/chunks/68383-5a7f688f2e0a1ff8.js',
+  '/_next/static/chunks/68593-47a2a51903bbedcb.js',
+      nxtPchapterId: 'nxtPchapterId',
+  '/_next/static/chunks/68663-f584371d5911124f.js',
+      nxtPsectionId: 'nxtPsectionId'
+    },
+  '/_next/static/chunks/6874-d71d0e9e14f5c7de.js',
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/section/(?<nxtPsectionId>[^/]+?)(?:/)?$',
+  '/_next/static/chunks/69013-f81f2f98c3e3694c.js',
+    match: [Function (anonymous)]
+  '/_next/static/chunks/69792-1fbaf168b197b8c4.js',
+  },
+  '/_next/static/chunks/70e0d97a-57c1019256ab214c.js',
+  '/_next/static/chunks/71267-3f5405bd2b4af40b.js',
+  {
+  '/_next/static/chunks/71316-0e2250b5713d307f.js',
+    page: '/api/courses/[courseId]/chapters/[chapterId]/section/[sectionId]/blog',
+  '/_next/static/chunks/72657-1a47544bf962f9c5.js',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/section/([^/]+?)/blog(?:/)?$',
+    routeKeys: {
+  '/_next/static/chunks/726d2f10-063a965bb3b896b2.js',
+      nxtPcourseId: 'nxtPcourseId',
+  '/_next/static/chunks/73918-62f14e111ae109ca.js',
+  '/_next/static/chunks/74845-336b4d8bc43a073c.js',
+      nxtPchapterId: 'nxtPchapterId',
+  '/_next/static/chunks/77497-6983342c2c7a111b.js',
+      nxtPsectionId: 'nxtPsectionId'
+  '/_next/static/chunks/77808-1f03c3d56156d511.js',
+    },
+  '/_next/static/chunks/78258-2f217eb6178326f6.js',
+  '/_next/static/chunks/78919-e623aecc9fde194d.js',
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/section/(?<nxtPsectionId>[^/]+?)/blog(?:/)?$',
+  '/_next/static/chunks/79065-8a18f3bc6d823fa1.js',
+    match: [Function (anonymous)]
+  '/_next/static/chunks/83470-79f939d2910ffb46.js',
+  '/_next/static/chunks/8473-5e8819bdee3ab971.js',
+  },
+  '/_next/static/chunks/84809-905ebb338e42a29e.js',
+  {
+  '/_next/static/chunks/86123-34f73f18f04e235b.js',
+    page: '/api/courses/[courseId]/chapters/[chapterId]/section/[sectionId]/publish',
+  '/_next/static/chunks/86228-54445490021f4d24.js',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/section/([^/]+?)/publish(?:/)?$',
+    routeKeys: {
+  '/_next/static/chunks/87890-1ed5adae015e11df.js',
+  '/_next/static/chunks/87948-a29f66411455e109.js',
+      nxtPcourseId: 'nxtPcourseId',
+  '/_next/static/chunks/89613-c78dd091e6af6591.js',
+  '/_next/static/chunks/8e1d74a4-46ebcb6e41c3e9fd.js',
+  '/_next/static/chunks/90221-4f5210d69318f5e5.js',
+  '/_next/static/chunks/90623-4430bc9cc9c72760.js',
+  '/_next/static/chunks/91262-d3c7d82e6f38890c.js',
+  '/_next/static/chunks/91502-8817884cf1769d54.js',
+  '/_next/static/chunks/92437-d29c78afa340e22a.js',
+  '/_next/static/chunks/93504-89513a302ed31f06.js',
+  '/_next/static/chunks/94077-5f8899c8136d934c.js',
+  '/_next/static/chunks/96848-bce1c575ba967108.js',
+  '/_next/static/chunks/97559-f759b5fc22d7ea4d.js',
+  '/_next/static/chunks/9791-0f89f507c439fa97.js',
+  '/_next/static/chunks/98060-dedc34319bdc766f.js',
+  '/_next/static/chunks/98145-927227d6bc10a5b9.js',
+  '/_next/static/chunks/98294-b4010b00ad43ba14.js',
+  '/_next/static/chunks/a8abe812-d4060465fe3f4c83.js',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/section/(?<nxtPsectionId>[^/]+?)/publish(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/section/[sectionId]/unpublish',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/section/([^/]+?)/unpublish(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/section/(?<nxtPsectionId>[^/]+?)/unpublish(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/section/[sectionId]/video',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/section/([^/]+?)/video(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/section/(?<nxtPsectionId>[^/]+?)/video(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections(?:/)?$',
+    routeKeys: { nxtPcourseId: 'nxtPcourseId', nxtPchapterId: 'nxtPchapterId' },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/reorder',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/reorder(?:/)?$',
+    routeKeys: { nxtPcourseId: 'nxtPcourseId', nxtPchapterId: 'nxtPchapterId' },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/reorder(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/blogs',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/blogs(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/blogs(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/code-explanations',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/code\\-explanations(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/code\\-explanations(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/code-explanations/[explanationId]',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/code\\-explanations/([^/]+?)(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId',
+      nxtPexplanationId: 'nxtPexplanationId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/code\\-explanations/(?<nxtPexplanationId>[^/]+?)(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/exams',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/exams(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/exams(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/exams/[examId]',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/exams/([^/]+?)(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId',
+      nxtPexamId: 'nxtPexamId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/exams/(?<nxtPexamId>[^/]+?)(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/exams/[examId]/publish',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/exams/([^/]+?)/publish(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId',
+      nxtPexamId: 'nxtPexamId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/exams/(?<nxtPexamId>[^/]+?)/publish(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/exams/[examId]/unpublish',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/exams/([^/]+?)/unpublish(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId',
+      nxtPexamId: 'nxtPexamId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/exams/(?<nxtPexamId>[^/]+?)/unpublish(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  {
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/explanations',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/explanations(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/explanations(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/exams',
+  '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/math-equations/image',
+  '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/publish',
+  {
+  '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/math-equations',
+  '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/unpublish',
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/explanations/[explanationId]',
+  '/api/courses/[courseId]/chapters/[chapterId]/sections/reorder',
+  '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/videos',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/explanations/([^/]+?)(?:/)?$',
+  '/api/courses/[courseId]/chapters/[chapterId]/unpublish',
+  '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+  '/api/courses/[courseId]/chapters/reorder',
+  '/api/courses/[courseId]/chapters/[chapterId]/sections',
+  '/api/courses/[courseId]/image',
+  '/api/courses/[courseId]/publish',
+  '/api/courses/[courseId]/chapters',
+      nxtPchapterId: 'nxtPchapterId',
+  '/api/courses/[courseId]/unpublish',
+      nxtPsectionId: 'nxtPsectionId',
+  '/api/courses/[courseId]/what-you-will-learn',
+  '/api/courses/[courseId]/what-you-will-learn/reorder',
+  '/api/courses/[courseId]/what-you-will-learn/[objectiveId]',
+      nxtPexplanationId: 'nxtPexplanationId'
+  '/api/courses/[courseId]',
+  '/api/courses/sections/[sectionId]/exams',
+    },
+  '/api/courses/sections/[sectionId]/exams/[examId]/attempts',
+  '/api/courses',
+  '/api/db-check',
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/explanations/(?<nxtPexplanationId>[^/]+?)(?:/)?$',
+  '/api/courses/sections/[sectionId]/exams/[examId]/attempts/[attemptId]/submit',
+    match: [Function (anonymous)]
+  '/api/debug-cookies',
+  '/api/debug-course-simple',
+  },
+  '/api/debug-course/[courseId]',
+  {
+  '/api/debug-course-update',
+  '/api/debug/auth-handlers',
+  '/api/debug/deployment',
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/math-equations',
+  '/api/debug-dynamic-routes',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/math\\-equations(?:/)?$',
+  '/api/deployment-test',
+  '/api/env-check',
+    routeKeys: {
+  '/api/creator-analytics/dashboard',
+      nxtPcourseId: 'nxtPcourseId',
+  '/api/error-management/alerts/[alertId]/acknowledge',
+      nxtPchapterId: 'nxtPchapterId',
+  '/api/error-management/alerts',
+      nxtPsectionId: 'nxtPsectionId'
+  '/api/error-management/metrics',
+    },
+  '/api/error-management/errors',
+  '/api/learning-analytics/personal',
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/math\\-equations(?:/)?$',
+  '/api/posts',
+  '/api/profile/image',
+    match: [Function (anonymous)]
+  '/api/production-test',
+  },
+  '/api/register',
+  '/api/search/mock',
+  {
+  '/api/simple-test',
+  '/api/search',
+    page: '/api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/math-equations/image',
+  '/api/test-course-delete/[courseId]',
+    regex: '^/api/courses/([^/]+?)/chapters/([^/]+?)/sections/([^/]+?)/math\\-equations/image(?:/)?$',
+    routeKeys: {
+      nxtPcourseId: 'nxtPcourseId',
+      nxtPchapterId: 'nxtPchapterId',
+      nxtPsectionId: 'nxtPsectionId'
+    },
+    namedRegex: '^/api/courses/(?<nxtPcourseId>[^/]+?)/chapters/(?<nxtPchapterId>[^/]+?)/sections/(?<nxtPsectionId>[^/]+?)/math\\-equations/image(?:/)?$',
+    match: [Function (anonymous)]
+  },
+  '/dashboard/user/favoritearticles',
+prisma:client checkPlatformCaching:postinstall false +1272ms
+prisma:client checkPlatformCaching:ciName undefined +0ms
+prisma:tryLoadEnv Environment variables not found at null +0ms
+prisma:tryLoadEnv Environment variables not found at undefined +0ms
+prisma:tryLoadEnv No Environment variables loaded +0ms
+prisma:client dirname /app/node_modules/.prisma/client +0ms
+prisma:client relativePath ../../../prisma +0ms
+prisma:client cwd /app/prisma +0ms
+prisma:client clientVersion 6.11.1 +0ms
+prisma:client:libraryEngine internalSetup +1ms
+prisma:get-platform Found distro info:
+{
+  "targetDistro": "debian",
+  "familyDistro": "debian",
+  "originalDistro": "ubuntu"
+} +1350ms
+prisma:get-platform Trying platform-specific paths for "debian" (and "ubuntu") +0ms
+prisma:get-platform Found distro info:
+{
+  "targetDistro": "debian",
+  "familyDistro": "debian",
+  "originalDistro": "ubuntu"
+} +2ms
+prisma:get-platform Trying platform-specific paths for "debian" (and "ubuntu") +0ms
+prisma:get-platform Found distro info:
+{
+  "targetDistro": "debian",
+  "familyDistro": "debian",
+  "originalDistro": "ubuntu"
+} +0ms
+prisma:get-platform Trying platform-specific paths for "debian" (and "ubuntu") +0ms
+prisma:get-platform Found libssl.so file using platform-specific paths: libssl.so.3 +12ms
+prisma:get-platform The parsed libssl version is: 3.0.x +34ms
+prisma:client:engines:resolveEnginePath enginePath /app/node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node +1ms
+prisma:get-platform Found libssl.so file using platform-specific paths: libssl.so.3 +21ms
+prisma:get-platform The parsed libssl version is: 3.0.x +1ms
+prisma:client:engines:resolveEnginePath enginePath /app/node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node +0ms
+prisma:get-platform Found libssl.so file using platform-specific paths: libssl.so.3 +15ms
+prisma:get-platform The parsed libssl version is: 3.0.x +0ms
+prisma:client:engines:resolveEnginePath enginePath /app/node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node +0ms
+prisma:client checkPlatformCaching:postinstall false +543ms
+prisma:client checkPlatformCaching:ciName undefined +0ms
+prisma:tryLoadEnv Environment variables not found at null +0ms
+prisma:tryLoadEnv Environment variables not found at undefined +0ms
+prisma:tryLoadEnv No Environment variables loaded +0ms
+prisma:client dirname /app/node_modules/.prisma/client +0ms
+prisma:client relativePath ../../../prisma +0ms
+prisma:client cwd /app/prisma +0ms
+prisma:client clientVersion 6.11.1 +1ms
+prisma:client:libraryEngine internalSetup +0ms
+prisma:client:engines:resolveEnginePath enginePath /app/node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node +0ms
+=== Environment Variables Check ===
+Present: [
+  'AUTH_SECRET',
+  'NEXTAUTH_URL',
+  'DATABASE_URL',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GITHUB_CLIENT_ID',
+  'GITHUB_CLIENT_SECRET',
+  'RESEND_API_KEY',
+  'NEXT_PUBLIC_APP_URL'
+]
+Missing: []
+✅ All environment variables are present
+prisma:client checkPlatformCaching:postinstall false +578ms
+prisma:client checkPlatformCaching:ciName undefined +1ms
+prisma:tryLoadEnv Environment variables not found at null +0ms
+prisma:tryLoadEnv Environment variables not found at undefined +0ms
+prisma:tryLoadEnv No Environment variables loaded +0ms
+prisma:client dirname /app/node_modules/.prisma/client +0ms
+prisma:client relativePath ../../../prisma +0ms
+prisma:client cwd /app/prisma +0ms
+prisma:client clientVersion 6.11.1 +0ms
+prisma:client:libraryEngine internalSetup +0ms
+=== Environment Variables Check ===
+Present: [
+  'AUTH_SECRET',
+  'NEXTAUTH_URL',
+  'DATABASE_URL',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GITHUB_CLIENT_ID',
+  'GITHUB_CLIENT_SECRET',
+  'RESEND_API_KEY',
+  'NEXT_PUBLIC_APP_URL'
+]
+Missing: []
+✅ All environment variables are present
+prisma:client:engines:resolveEnginePath enginePath /app/node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node +2ms

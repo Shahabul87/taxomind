@@ -35,9 +35,10 @@ export class RetryPattern {
       try {
         const result = await fn();
         if (attempt > 1) {
-}
+          // Successful retry
+        }
         return result;
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
         
         logger.warn(`[RETRY] Attempt ${attempt} failed:`, error.message);
@@ -155,9 +156,9 @@ export class TimeoutPattern {
    * Execute function with timeout
    */
   async execute<T>(fn: () => Promise<T>): Promise<T> {
-    return Promise.race([
+    return Promise.race<T>([
       fn(),
-      this.createTimeoutPromise(),
+      this.createTimeoutPromise<T>(),
     ]);
   }
 
@@ -212,15 +213,16 @@ export class FallbackPattern<T> {
     try {
       return await primary();
     } catch (primaryError) {
-      logger.warn('[FALLBACK] Primary function failed, trying fallbacks:', primaryError.message);
+      const primaryMsg = (primaryError as Error)?.message;
+      logger.warn(`[FALLBACK] Primary function failed, trying fallbacks: ${primaryMsg}`);
       
       for (let i = 0; i < this.fallbacks.length; i++) {
         try {
           const result = await Promise.resolve(this.fallbacks[i]());
-
           return result;
         } catch (fallbackError) {
-          logger.warn(`[FALLBACK] Fallback ${i + 1} failed:`, fallbackError.message);
+          const fallbackMsg = (fallbackError as Error)?.message;
+          logger.warn(`[FALLBACK] Fallback ${i + 1} failed: ${fallbackMsg}`);
           
           // If this is the last fallback, throw the original primary error
           if (i === this.fallbacks.length - 1) {
@@ -529,10 +531,13 @@ export class ResilienceComposer<T> {
    * Execute with all configured patterns
    */
   async execute(fn: () => Promise<T>): Promise<T> {
-    return this.patterns.reduce(
-      (composedFn, pattern) => () => pattern(composedFn),
-      fn
-    )();
+    let composed: () => Promise<T> = fn;
+    for (let i = this.patterns.length - 1; i >= 0; i--) {
+      const pattern = this.patterns[i];
+      const prev = composed;
+      composed = () => pattern(prev);
+    }
+    return composed();
   }
 
   /**

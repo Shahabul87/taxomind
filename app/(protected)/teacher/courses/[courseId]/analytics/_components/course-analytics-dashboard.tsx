@@ -190,7 +190,7 @@ export const CourseAnalyticsDashboard = ({
       if (isPredictiveAnalyticsUnlocked) {
         recordFeatureUsage('predictive-analytics', 1);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching analytics:', error);
       toast.error('Failed to load analytics data');
     } finally {

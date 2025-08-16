@@ -410,7 +410,7 @@ export class SAMCourseArchitect {
     );
     
     // Generate content recommendations
-    const contentRecommendations = await this.generateContentRecommendations(
+    const contentRecommendations = await this.generateContentRecs(
       courseStructure, 
       request, 
       instructorAnalysis
@@ -484,6 +484,69 @@ export class SAMCourseArchitect {
       recommendedApproaches: this.getRecommendedApproaches(profile),
       personalizedSuggestions: await this.generatePersonalizedSuggestions(profile)
     };
+  }
+
+  private static getRecommendedApproaches(profile: InstructorProfile): TeachingMethodology[] {
+    if (profile.preferredMethodologies?.length) return profile.preferredMethodologies;
+    return [
+      { type: 'collaborative', effectiveness: 0.8, preferredSubjects: [] },
+      { type: 'experiential', effectiveness: 0.75, preferredSubjects: [] },
+    ];
+  }
+
+  private static async generatePersonalizedSuggestions(profile: InstructorProfile): Promise<PersonalizedSuggestion[]> {
+    const suggestions: PersonalizedSuggestion[] = [];
+    if (profile.successPatterns?.length) {
+      suggestions.push({
+        category: 'pedagogical',
+        suggestion: 'Leverage prior successful patterns early in the course',
+        rationale: 'Build on demonstrated strengths to boost early engagement',
+        confidence: 0.8,
+      });
+    }
+    suggestions.push({
+      category: 'engagement',
+      suggestion: 'Introduce weekly interactive checkpoints',
+      rationale: 'Frequent formative checks correlate with better outcomes',
+      confidence: 0.7,
+    });
+    return suggestions;
+  }
+
+  private static async generateContentRecs(
+    courseStructure: CourseModule[], 
+    request: CourseArchitectureRequest, 
+    instructorAnalysis: InstructorAnalysis | null
+  ): Promise<ContentRecommendation[]> {
+    const recs: ContentRecommendation[] = [];
+    const threshold = 10;
+    courseStructure.forEach((m) => {
+      if ((m.bloomDistribution.create || 0) < threshold) {
+        recs.push({
+          type: 'interactive',
+          title: `Project for ${m.title}`,
+          description: 'Add a small project to promote creation-level thinking',
+          purpose: 'Higher-order cognition',
+          bloomLevel: 'create',
+          estimatedDuration: '2h',
+          productionComplexity: 'medium',
+          engagementPotential: 0.85,
+          learningEffectiveness: 0.8,
+        });
+      }
+    });
+    recs.push({
+      type: 'video',
+      title: 'Concept Overviews',
+      description: 'Short videos to prime understanding before activities',
+      purpose: 'Advance organizers',
+      bloomLevel: 'understand',
+      estimatedDuration: '10m',
+      productionComplexity: 'low',
+      engagementPotential: 0.7,
+      learningEffectiveness: 0.7,
+    });
+    return recs;
   }
   
   /**
@@ -567,6 +630,299 @@ export class SAMCourseArchitect {
   }
   
   // Additional helper methods will be implemented...
+
+  private static async generateSingleObjective(
+    request: CourseArchitectureRequest,
+    level: BloomTaxonomyLevel
+  ): Promise<LearningObjective> {
+    const id = `obj_${level}_${Math.random().toString(36).slice(2, 8)}`;
+    const verbs: Record<BloomTaxonomyLevel, string[]> = {
+      remember: ['list', 'define', 'identify'],
+      understand: ['describe', 'explain', 'summarize'],
+      apply: ['apply', 'use', 'demonstrate'],
+      analyze: ['analyze', 'compare', 'differentiate'],
+      evaluate: ['evaluate', 'justify', 'critique'],
+      create: ['create', 'design', 'develop'],
+    };
+    const verb = verbs[level][Math.floor(Math.random() * verbs[level].length)];
+    return {
+      id,
+      objective: `${verb} key concepts of ${request.title}`,
+      bloomLevel: level,
+      priority: 'primary',
+      prerequisites: [],
+      assessmentMethods: ['quiz'],
+      realWorldApplication: `Demonstrate ${verb} in real scenarios`,
+      cognitiveLoad: 1,
+    };
+  }
+
+  private static async designSingleModule(
+    index: number,
+    request: CourseArchitectureRequest,
+    objectives: LearningObjective[],
+    instructorAnalysis: InstructorAnalysis | null
+  ): Promise<CourseModule> {
+    const id = `module_${index + 1}`;
+    const selectedObjectives = objectives
+      .slice(index * 2, index * 2 + 2)
+      .map(o => o.id);
+    const bloomDistribution: Record<BloomTaxonomyLevel, number> = {
+      remember: 0,
+      understand: 0,
+      apply: 0,
+      analyze: 0,
+      evaluate: 0,
+      create: 0,
+    };
+    selectedObjectives.forEach(objId => {
+      const obj = objectives.find(o => o.id === objId);
+      if (obj) bloomDistribution[obj.bloomLevel] += 20;
+    });
+    return {
+      id,
+      title: `${request.title} - Module ${index + 1}`,
+      description: request.overview,
+      duration: '1-2 hours',
+      learningObjectives: selectedObjectives,
+      bloomDistribution,
+      contentTypes: {
+        video: 30,
+        text: 30,
+        interactive: 20,
+        audio: 10,
+        practical: 10,
+      },
+      assessments: [
+        {
+          type: 'formative',
+          title: 'Knowledge Check',
+          description: 'Quick check to reinforce learning',
+          bloomLevels: ['remember', 'understand'],
+          estimatedTime: '10m',
+        },
+      ],
+      prerequisites: [],
+      cognitiveLoad: 1,
+      engagementTactics: instructorAnalysis?.recommendedApproaches?.map(a => a.type) || [],
+      pedagogicalRationale: 'Structured to scaffold learning and manage cognitive load',
+    };
+  }
+
+  private static async designFormativeAssessments(
+    objectives: LearningObjective[]
+  ): Promise<FormativeAssessment[]> {
+    return [
+      {
+        frequency: 'weekly',
+        types: ['quiz', 'reflection'],
+        purpose: 'Reinforce learning and provide feedback',
+        bloomFocus: objectives.slice(0, 3).map(o => o.bloomLevel),
+      },
+    ];
+  }
+
+  private static async designSummativeAssessments(
+    objectives: LearningObjective[],
+    modules: CourseModule[]
+  ): Promise<SummativeAssessment[]> {
+    const coverage: Record<BloomTaxonomyLevel, number> = {
+      remember: 10,
+      understand: 20,
+      apply: 25,
+      analyze: 20,
+      evaluate: 15,
+      create: 10,
+    };
+    return [
+      {
+        modulePosition: Math.max(1, Math.floor(modules.length / 2)),
+        type: 'midterm',
+        weight: 40,
+        bloomCoverage: coverage,
+      },
+      {
+        modulePosition: modules.length,
+        type: 'final',
+        weight: 60,
+        bloomCoverage: coverage,
+      },
+    ];
+  }
+
+  private static async designPeerActivities(
+    objectives: LearningObjective[]
+  ): Promise<PeerActivity[]> {
+    return [
+      {
+        type: 'discussion',
+        groupSize: 4,
+        duration: '30m',
+        learningOutcomes: objectives.slice(0, 2).map(o => o.objective),
+      },
+    ];
+  }
+
+  private static async designReflectionActivities(
+    modules: CourseModule[]
+  ): Promise<ReflectionActivity[]> {
+    return [
+      {
+        trigger: 'end_of_module',
+        questions: ['What did you learn?', 'What will you apply?'],
+        format: 'short-answer',
+        frequency: 'per-module',
+      },
+    ];
+  }
+
+  private static async designRetentionCheckpoints(
+    modules: CourseModule[]
+  ): Promise<RetentionCheckpoint[]> {
+    return modules.map((m, idx) => ({
+      modulePosition: idx + 1,
+      contentReview: ['key concepts', 'practice quiz'],
+      testingMethod: 'quiz',
+      reinforcementStrategy: 'spaced-repetition',
+    }));
+  }
+
+  private static async planQuestionDifficultyProgression(
+    modules: CourseModule[]
+  ): Promise<QuestionDifficultyProgression> {
+    return {
+      curve: 'stepped',
+      cognitiveLoadByModule: modules.map((_, i) => Math.min(5, 1 + Math.floor(i / 2))),
+      difficultySpikes: [
+        { modulePosition: Math.max(2, Math.ceil(modules.length / 3)), severity: 2, reason: 'mid-course check', mitigationStrategy: 'additional practice' },
+      ],
+      scaffoldingStrategies: modules.map((_, i) => ({
+        position: i + 1,
+        technique: 'guided-practice',
+        description: 'Progressively reduce scaffolds',
+        effectiveness: 0.8,
+      })),
+    };
+  }
+
+  private static async planCognitiveLoad(
+    modules: CourseModule[]
+  ): Promise<CognitiveLoadPlan> {
+    return {
+      maxLoadPerModule: 5,
+      loadDistribution: modules.map((_, i) => Math.min(5, 2 + Math.floor(i / 3))),
+      intrinsicLoad: {
+        conceptComplexity: modules.map(() => 2),
+        prerequisiteLoad: modules.map(() => 1),
+        interactionEffects: [],
+      },
+      extraneousLoad: {
+        unnecessaryElements: [],
+        designOptimizations: ['segmenting', 'signaling'],
+        cognitiveOffloading: ['summaries', 'checklists'],
+      },
+      germaneLoad: {
+        schemaConstruction: ['worked examples'],
+        automationOpportunities: ['practice sets'],
+        transferPreparation: ['case studies'],
+      },
+    };
+  }
+
+  private static async designEngagementStrategy(
+    request: CourseArchitectureRequest,
+    modules: CourseModule[],
+    instructorAnalysis: InstructorAnalysis | null
+  ): Promise<EngagementStrategy> {
+    return {
+      overallApproach: 'active-learning',
+      moduleSpecificTactics: modules.map(m => ({
+        moduleId: m.id,
+        tactics: ['discussion', 'quiz'],
+        rationale: 'Increase participation and retrieval practice',
+        expectedOutcome: 'higher engagement',
+      })),
+      motivationalElements: [
+        { type: 'achievement', implementation: 'badges', timing: 'per-module', targetAudience: request.targetAudience },
+      ],
+      interactionPatterns: [
+        { frequency: 'weekly', types: ['discussion', 'q&a'], purpose: 'community building', bloomAlignment: ['understand', 'analyze'] },
+      ],
+      personalizedElements: [
+        { aspect: 'pace', adaptationMethod: 'self-paced modules', triggers: ['low engagement'], outcomes: ['improved retention'] },
+      ],
+    };
+  }
+
+  private static async predictCourseSuccess(
+    request: CourseArchitectureRequest,
+    modules: CourseModule[],
+    assessment: AssessmentStrategy
+  ): Promise<SuccessPrediction> {
+    const completionRateForecast = Math.min(95, 60 + modules.length);
+    const satisfactionPrediction = 80;
+    const learningOutcomeProbability = 75;
+    const engagementSustainability = 70;
+    const retentionLikelihood = 65;
+    return {
+      completionRateForecast,
+      satisfactionPrediction,
+      learningOutcomeProbability,
+      engagementSustainability,
+      retentionLikelihood,
+      realWorldApplicationSuccess: 70,
+      confidenceInterval: { lower: 0.6, upper: 0.9, confidence: 0.8 },
+    };
+  }
+
+  private static async analyzeMarketViability(
+    request: CourseArchitectureRequest
+  ): Promise<MarketAnalysis> {
+    const demand: MarketAnalysis['demandLevel'] = request.category ? 'high' : 'medium';
+    const competitionLevel: MarketAnalysis['competitionLevel'] = 'medium';
+    const marketTiming: MarketAnalysis['marketTiming'] = 'optimal';
+    return {
+      demandLevel: demand,
+      competitionLevel,
+      marketTiming,
+      revenueProjection: { month1: 1000, month6: 8000, year1: 20000, year2: 45000, confidence: 0.7 },
+      targetAudienceSize: 5000,
+      pricingRecommendation: { optimalPrice: 99, priceRange: { minimum: 49, maximum: 199 }, valueJustification: ['comprehensive content'], competitivePricing: [79, 99, 129] },
+    };
+  }
+
+  private static async generateOptimizationRecommendations(
+    request: CourseArchitectureRequest,
+    modules: CourseModule[],
+    predictions: SuccessPrediction
+  ): Promise<OptimizationRecommendation[]> {
+    const recs: OptimizationRecommendation[] = [];
+    if (predictions.completionRateForecast < 70) {
+      recs.push({
+        category: 'engagement',
+        priority: 'high',
+        recommendation: 'Add weekly live sessions',
+        rationale: 'Improve motivation and accountability',
+        expectedImpact: { learningEffectiveness: 10, studentSatisfaction: 15, completionRate: 12, marketSuccess: 5 },
+        implementationComplexity: 'moderate',
+        timeToImplement: '2-3 weeks',
+      });
+    }
+    return recs;
+  }
+
+  private static async calculateQualityScores(
+    request: CourseArchitectureRequest,
+    objectives: LearningObjective[],
+    modules: CourseModule[],
+    assessment: AssessmentStrategy
+  ): Promise<{ pedagogical: number; market: number; studentSuccess: number; instructorFit: number }> {
+    const pedagogical = Math.min(100, 60 + Math.floor(objectives.length / 2));
+    const market = 70;
+    const studentSuccess = 65;
+    const instructorFit = 75;
+    return { pedagogical, market, studentSuccess, instructorFit };
+  }
   
   private static getOptimalBloomDistribution(difficulty: string): Record<BloomTaxonomyLevel, number> {
     // Research-based optimal distributions for different difficulty levels

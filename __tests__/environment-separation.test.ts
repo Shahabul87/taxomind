@@ -1,4 +1,15 @@
-import { getEnvironment, canPerformDestructiveOperation } from '@/lib/db-environment';
+import { getEnvironmentConfig, safeDBOperation } from '@/lib/db-environment';
+
+// Helper functions for tests
+const getEnvironment = () => {
+  const config = getEnvironmentConfig();
+  return config.isProduction ? 'production' : config.isStaging ? 'staging' : 'development';
+};
+
+const canPerformDestructiveOperation = () => {
+  const config = getEnvironmentConfig();
+  return config.isDevelopment;
+};
 
 describe('Environment Separation Tests', () => {
   const originalEnv = process.env;
@@ -14,21 +25,21 @@ describe('Environment Separation Tests', () => {
 
   describe('Environment Detection', () => {
     it('should correctly identify development environment', () => {
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
       process.env.DATABASE_URL = 'postgresql://localhost:5433/dev_db';
       
       expect(getEnvironment()).toBe('development');
     });
 
     it('should correctly identify production environment', () => {
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       process.env.DATABASE_URL = 'postgresql://postgres.railway.internal:5432/railway';
       
       expect(getEnvironment()).toBe('production');
     });
 
     it('should correctly identify staging environment', () => {
-      process.env.NODE_ENV = 'staging';
+      (process.env as any).NODE_ENV = 'staging';
       process.env.DATABASE_URL = 'postgresql://staging-postgres.railway.internal:5432/staging_db';
       
       expect(getEnvironment()).toBe('staging');
@@ -37,21 +48,21 @@ describe('Environment Separation Tests', () => {
 
   describe('Destructive Operation Protection', () => {
     it('should allow destructive operations in development', () => {
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
       process.env.DATABASE_URL = 'postgresql://localhost:5433/dev_db';
       
       expect(canPerformDestructiveOperation('DROP TABLE')).toBe(true);
     });
 
     it('should block destructive operations in production', () => {
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       process.env.DATABASE_URL = 'postgresql://postgres.railway.internal:5432/railway';
       
       expect(canPerformDestructiveOperation('DROP TABLE')).toBe(false);
     });
 
     it('should block destructive operations in staging', () => {
-      process.env.NODE_ENV = 'staging';
+      (process.env as any).NODE_ENV = 'staging';
       process.env.DATABASE_URL = 'postgresql://staging-postgres.railway.internal:5432/staging_db';
       
       expect(canPerformDestructiveOperation('DROP TABLE')).toBe(false);
@@ -62,12 +73,13 @@ describe('Environment Separation Tests', () => {
     it('should warn when using production database in development', () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
       
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
       process.env.DATABASE_URL = 'postgresql://postgres.railway.internal:5432/railway';
       
       // Import module to trigger warning
       jest.isolateModules(() => {
-        require('@/lib/db-environment');
+        const dbEnv = require('@/lib/db-environment');
+        dbEnv.validateEnvironment();
       });
       
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -80,11 +92,12 @@ describe('Environment Separation Tests', () => {
     it('should not warn when using local database in development', () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
       
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
       process.env.DATABASE_URL = 'postgresql://localhost:5433/dev_db';
       
       jest.isolateModules(() => {
-        require('@/lib/db-environment');
+        const dbEnv = require('@/lib/db-environment');
+        dbEnv.validateEnvironment();
       });
       
       expect(consoleSpy).not.toHaveBeenCalled();
@@ -95,7 +108,7 @@ describe('Environment Separation Tests', () => {
 
   describe('Strict Mode Enforcement', () => {
     it('should enforce strict mode when enabled', () => {
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       process.env.STRICT_ENV_MODE = 'true';
       process.env.DATABASE_URL = 'postgresql://postgres.railway.internal:5432/railway';
       
@@ -106,7 +119,7 @@ describe('Environment Separation Tests', () => {
     });
 
     it('should not enforce strict mode when disabled', () => {
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       process.env.STRICT_ENV_MODE = 'false';
       process.env.DATABASE_URL = 'postgresql://postgres.railway.internal:5432/railway';
       

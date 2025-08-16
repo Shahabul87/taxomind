@@ -88,7 +88,7 @@ export async function getCourse(courseId: string): Promise<{
       course
     };
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_COURSE]", error);
     return {
       course: null,

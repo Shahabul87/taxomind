@@ -65,7 +65,7 @@ export function WorkflowTemplates() {
       } else {
         toast.error(data.error || 'Failed to fetch templates');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to fetch templates');
     } finally {
       setIsLoading(false);
@@ -91,7 +91,7 @@ export function WorkflowTemplates() {
       } else {
         toast.error(data.error || 'Failed to create template');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to create template');
     }
   };
@@ -232,7 +232,7 @@ function CreateTemplateForm({ onSubmit }: { onSubmit: (data: any) => void }) {
       order: 0,
       isRequired: true,
       isParallel: false,
-      requiredRoles: ['TEACHER'],
+      requiredRoles: ['USER'],
       minApprovals: 1,
       timeLimit: 24,
       escalationAfter: 48,
@@ -254,7 +254,7 @@ function CreateTemplateForm({ onSubmit }: { onSubmit: (data: any) => void }) {
         order: formData.stages.length,
         isRequired: true,
         isParallel: false,
-        requiredRoles: ['TEACHER'],
+        requiredRoles: ['USER'],
         minApprovals: 1,
         timeLimit: 24,
         escalationAfter: 48,

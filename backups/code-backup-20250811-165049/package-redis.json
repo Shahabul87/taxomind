@@ -1,0 +1,11 @@
+{
+  "description": "Add these dependencies to your package.json",
+  "dependencies": {
+    "@upstash/redis": "^1.28.0",
+    "ioredis": "^5.3.2"
+  },
+  "devDependencies": {
+    "@types/ioredis": "^5.0.0"
+  },
+  "installCommand": "npm install @upstash/redis ioredis && npm install -D @types/ioredis"
+}

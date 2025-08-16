@@ -101,7 +101,10 @@ export class RealTimeCacheManager extends EventEmitter {
     try {
       const eventKey = `event:${event.id}`;
       
-      await cacheManager.set(eventKey, event, REALTIME_CACHE_CONFIG.EVENTS);
+      await cacheManager.set(eventKey, event, {
+        ...REALTIME_CACHE_CONFIG.EVENTS,
+        tags: [...REALTIME_CACHE_CONFIG.EVENTS.tags]
+      });
       
       // Add to event stream
       await this.addToEventStream(event);
@@ -124,19 +127,26 @@ export class RealTimeCacheManager extends EventEmitter {
     }
   ): Promise<RealTimeEvent[]> {
     try {
+      if (!redis) return [];
       const streamKey = 'events:stream';
       const since = filters?.since || (Date.now() - 60000); // Last minute
       
-      const events = await redis.zrangebyscore(
-        streamKey,
-        since,
-        Date.now(),
-        { limit: { offset: 0, count: limit }, withScores: true }
-      );
+      // Fallback: fetch all then filter by score using zscore
+      const members = await redis.zrange(streamKey, 0, -1) || [];
+      const items: Array<{ member: string; score: number }> = [];
+      for (const m of members) {
+        const scoreStr = await redis.zscore(streamKey, String(m));
+        const score = scoreStr !== null ? Number(scoreStr) : 0;
+        if (score >= since && score <= Date.now()) {
+          items.push({ member: String(m), score });
+        }
+      }
+      // Apply limit and parse
+      items.sort((a, b) => a.score - b.score);
+      const limited = items.slice(-limit);
       
       const parsedEvents: RealTimeEvent[] = [];
-      
-      for (const item of events) {
+      for (const item of limited) {
         try {
           const event = JSON.parse(item.member);
           
@@ -163,7 +173,10 @@ export class RealTimeCacheManager extends EventEmitter {
     try {
       const sessionKey = `session:${session.sessionId}`;
       
-      await cacheManager.set(sessionKey, session, REALTIME_CACHE_CONFIG.SESSIONS);
+      await cacheManager.set(sessionKey, session, {
+        ...REALTIME_CACHE_CONFIG.SESSIONS,
+        tags: [...REALTIME_CACHE_CONFIG.SESSIONS.tags]
+      });
       
       // Update user's active session
       await this.updateUserActiveSession(session.userId, session.sessionId);
@@ -185,7 +198,10 @@ export class RealTimeCacheManager extends EventEmitter {
     try {
       const sessionKey = `session:${sessionId}`;
       
-      return await cacheManager.get<LiveSession>(sessionKey, REALTIME_CACHE_CONFIG.SESSIONS);
+      return await cacheManager.get<LiveSession>(sessionKey, {
+        ...REALTIME_CACHE_CONFIG.SESSIONS,
+        tags: [...REALTIME_CACHE_CONFIG.SESSIONS.tags]
+      });
     } catch (error: any) {
       logger.error('Error getting live session:', error);
       return null;
@@ -195,6 +211,7 @@ export class RealTimeCacheManager extends EventEmitter {
   // Get user's active sessions
   async getUserActiveSessions(userId: string): Promise<LiveSession[]> {
     try {
+      if (!redis) return [];
       const userSessionsKey = `user:${userId}:sessions`;
       const sessionIds = await redis.smembers(userSessionsKey) || [];
       
@@ -221,7 +238,8 @@ export class RealTimeCacheManager extends EventEmitter {
     total: number;
   }> {
     try {
-      const courseKey = `Course:${courseId}:participants`;
+      if (!redis) return { online: [], idle: [], total: 0 };
+      const courseKey = `course:${courseId}:participants`;
       const participants = await redis.hgetall(courseKey) || {};
       
       const online: string[] = [];
@@ -251,7 +269,10 @@ export class RealTimeCacheManager extends EventEmitter {
     try {
       const notificationKey = `notification:${notification.id}`;
       
-      await cacheManager.set(notificationKey, notification, REALTIME_CACHE_CONFIG.NOTIFICATIONS);
+      await cacheManager.set(notificationKey, notification, {
+        ...REALTIME_CACHE_CONFIG.NOTIFICATIONS,
+        tags: [...REALTIME_CACHE_CONFIG.NOTIFICATIONS.tags]
+      });
       
       // Add to user's notification list
       await this.addToUserNotifications(notification.userId, notification.id);
@@ -270,16 +291,26 @@ export class RealTimeCacheManager extends EventEmitter {
     unreadOnly: boolean = false
   ): Promise<RealTimeNotification[]> {
     try {
+      if (!redis) return [];
       const userNotificationsKey = `user:${userId}:notifications`;
-      const notificationIds = await redis.zrevrange(userNotificationsKey, 0, limit - 1);
+      // Fallback: get all and slice top N by score
+      const members = await redis.zrange(userNotificationsKey, 0, -1) || [];
+      const items: Array<{ id: string; score: number }> = [];
+      for (const m of members) {
+        const scoreStr = await redis.zscore(userNotificationsKey, String(m));
+        const score = scoreStr !== null ? Number(scoreStr) : 0;
+        items.push({ id: String(m), score });
+      }
+      items.sort((a, b) => b.score - a.score);
+      const ids = items.slice(0, limit).map(i => i.id);
       
       const notifications: RealTimeNotification[] = [];
       
-      for (const notificationId of notificationIds) {
+      for (const notificationId of ids) {
         const notificationKey = `notification:${notificationId}`;
         const notification = await cacheManager.get<RealTimeNotification>(
           notificationKey,
-          REALTIME_CACHE_CONFIG.NOTIFICATIONS
+          { ...REALTIME_CACHE_CONFIG.NOTIFICATIONS, tags: [...REALTIME_CACHE_CONFIG.NOTIFICATIONS.tags] }
         );
         
         if (notification) {
@@ -301,12 +332,15 @@ export class RealTimeCacheManager extends EventEmitter {
       const notificationKey = `notification:${notificationId}`;
       const notification = await cacheManager.get<RealTimeNotification>(
         notificationKey,
-        REALTIME_CACHE_CONFIG.NOTIFICATIONS
+        { ...REALTIME_CACHE_CONFIG.NOTIFICATIONS, tags: [...REALTIME_CACHE_CONFIG.NOTIFICATIONS.tags] }
       );
       
       if (notification) {
         notification.read = true;
-        await cacheManager.set(notificationKey, notification, REALTIME_CACHE_CONFIG.NOTIFICATIONS);
+        await cacheManager.set(notificationKey, notification, {
+          ...REALTIME_CACHE_CONFIG.NOTIFICATIONS,
+          tags: [...REALTIME_CACHE_CONFIG.NOTIFICATIONS.tags]
+        });
         
         // Emit read event
         this.emit('notificationRead', notification);
@@ -321,7 +355,10 @@ export class RealTimeCacheManager extends EventEmitter {
     try {
       const messageKey = `chat:message:${message.id}`;
       
-      await cacheManager.set(messageKey, message, REALTIME_CACHE_CONFIG.CHAT_MESSAGES);
+      await cacheManager.set(messageKey, message, {
+        ...REALTIME_CACHE_CONFIG.CHAT_MESSAGES,
+        tags: [...REALTIME_CACHE_CONFIG.CHAT_MESSAGES.tags]
+      });
       
       // Add to chat message stream
       await this.addToChatStream(message.chatId, message);
@@ -340,19 +377,25 @@ export class RealTimeCacheManager extends EventEmitter {
     before?: number
   ): Promise<LiveChatMessage[]> {
     try {
+      if (!redis) return [];
       const chatStreamKey = `chat:${chatId}:stream`;
       const maxScore = before || Date.now();
       
-      const messages = await redis.zrevrangebyscore(
-        chatStreamKey,
-        maxScore,
-        0,
-        { limit: { offset: 0, count: limit }, withScores: true }
-      );
+      // Fallback: get all and filter by score
+      const members = await redis.zrange(chatStreamKey, 0, -1) || [];
+      const items: Array<{ member: string; score: number }> = [];
+      for (const m of members) {
+        const scoreStr = await redis.zscore(chatStreamKey, String(m));
+        const score = scoreStr !== null ? Number(scoreStr) : 0;
+        if (score <= maxScore) {
+          items.push({ member: String(m), score });
+        }
+      }
+      items.sort((a, b) => b.score - a.score);
+      const limited = items.slice(0, limit);
       
       const parsedMessages: LiveChatMessage[] = [];
-      
-      for (const item of messages) {
+      for (const item of limited) {
         try {
           const message = JSON.parse(item.member);
           parsedMessages.push(message);
@@ -381,11 +424,13 @@ export class RealTimeCacheManager extends EventEmitter {
         userId,
         status,
         lastSeen: Date.now(),
-        metadata: metadata || {
-}
+        metadata: metadata || {}
       };
       
-      await cacheManager.set(presenceKey, presenceData, REALTIME_CACHE_CONFIG.PRESENCE);
+      await cacheManager.set(presenceKey, presenceData, {
+        ...REALTIME_CACHE_CONFIG.PRESENCE,
+        tags: [...REALTIME_CACHE_CONFIG.PRESENCE.tags]
+      });
       
       // Update global presence list
       await this.updateGlobalPresence(userId, status);
@@ -410,7 +455,7 @@ export class RealTimeCacheManager extends EventEmitter {
         status: string;
         lastSeen: number;
         metadata?: Record<string, any>;
-      }>(presenceKey, REALTIME_CACHE_CONFIG.PRESENCE);
+      }>(presenceKey, { ...REALTIME_CACHE_CONFIG.PRESENCE, tags: [...REALTIME_CACHE_CONFIG.PRESENCE.tags] });
     } catch (error: any) {
       logger.error('Error getting user presence:', error);
       return null;
@@ -420,6 +465,7 @@ export class RealTimeCacheManager extends EventEmitter {
   // Get online users
   async getOnlineUsers(): Promise<string[]> {
     try {
+      if (!redis) return [];
       const onlineUsersKey = 'presence:online';
       return await redis.smembers(onlineUsersKey) || [];
     } catch (error: any) {
@@ -430,18 +476,17 @@ export class RealTimeCacheManager extends EventEmitter {
 
   // Private helper methods
   private async addToEventStream(event: RealTimeEvent): Promise<void> {
+    if (!redis) return;
     const streamKey = 'events:stream';
     
-    await redis.zadd(streamKey, {
-      score: event.timestamp,
-      member: JSON.stringify(event)
-    });
+    await redis.zadd(streamKey, event.timestamp, JSON.stringify(event));
     
     // Keep only last 1000 events
     await redis.zremrangebyrank(streamKey, 0, -1001);
   }
 
   private async updateUserActiveSession(userId: string, sessionId: string): Promise<void> {
+    if (!redis) return;
     const userSessionsKey = `user:${userId}:sessions`;
     
     await redis.sadd(userSessionsKey, sessionId);
@@ -453,42 +498,40 @@ export class RealTimeCacheManager extends EventEmitter {
     userId: string,
     status: string
   ): Promise<void> {
-    const courseKey = `Course:${courseId}:participants`;
+    if (!redis) return;
+    const courseKey = `course:${courseId}:participants`;
     
     if (status === 'offline') {
       await redis.hdel(courseKey, userId);
     } else {
-      await redis.hset(courseKey, userId, status);
+      await redis.hset(courseKey, { [userId]: status });
     }
     
     await redis.expire(courseKey, 300); // 5 minutes
   }
 
   private async addToUserNotifications(userId: string, notificationId: string): Promise<void> {
+    if (!redis) return;
     const userNotificationsKey = `user:${userId}:notifications`;
     
-    await redis.zadd(userNotificationsKey, {
-      score: Date.now(),
-      member: notificationId
-    });
+    await redis.zadd(userNotificationsKey, Date.now(), notificationId);
     
     // Keep only last 100 notifications
     await redis.zremrangebyrank(userNotificationsKey, 0, -101);
   }
 
   private async addToChatStream(chatId: string, message: LiveChatMessage): Promise<void> {
+    if (!redis) return;
     const chatStreamKey = `chat:${chatId}:stream`;
     
-    await redis.zadd(chatStreamKey, {
-      score: message.timestamp,
-      member: JSON.stringify(message)
-    });
+    await redis.zadd(chatStreamKey, message.timestamp, JSON.stringify(message));
     
     // Keep only last 1000 messages
     await redis.zremrangebyrank(chatStreamKey, 0, -1001);
   }
 
   private async updateGlobalPresence(userId: string, status: string): Promise<void> {
+    if (!redis) return;
     const onlineUsersKey = 'presence:online';
     
     if (status === 'online') {
@@ -511,6 +554,7 @@ export class RealTimeCacheManager extends EventEmitter {
   }
 
   private async performHeartbeat(): Promise<void> {
+    if (!redis) return;
     // Update system heartbeat
     await redis.set('system:heartbeat', Date.now(), 'EX', 60);
     
@@ -519,6 +563,7 @@ export class RealTimeCacheManager extends EventEmitter {
   }
 
   private async cleanupStaleSessions(): Promise<void> {
+    if (!redis) return;
     const activeSessionsKey = REDIS_KEYS.ACTIVE_SESSIONS;
     const sessionIds = await redis.smembers(activeSessionsKey) || [];
     const now = Date.now();
@@ -555,6 +600,7 @@ export class RealTimeCacheManager extends EventEmitter {
   }
 
   private async performCleanup(): Promise<void> {
+    if (!redis) return;
     // Clean up expired events
     const streamKey = 'events:stream';
     const expiredThreshold = Date.now() - (60 * 60 * 1000); // 1 hour ago
@@ -567,7 +613,7 @@ export class RealTimeCacheManager extends EventEmitter {
     for (const key of notificationKeys) {
       const notification = await cacheManager.get<RealTimeNotification>(
         key,
-        REALTIME_CACHE_CONFIG.NOTIFICATIONS
+        { ...REALTIME_CACHE_CONFIG.NOTIFICATIONS, tags: [...REALTIME_CACHE_CONFIG.NOTIFICATIONS.tags] }
       );
       
       if (notification?.expiresAt && Date.now() > notification.expiresAt) {

@@ -19,11 +19,11 @@ export class RealTimeMetrics {
       // Increment counters
       await redis.hincrby(key, 'totalEvents', 1);
       await redis.hincrby(key, event.eventType, 1);
-      await redis.hset(key, 'lastActiveAt', Date.now());
+      await redis.hset(key, { lastActiveAt: Date.now() });
       
       // Update engagement score
       const engagementScore = await this.calculateEngagementScore(userId, courseId, event);
-      await redis.hset(key, 'engagementScore', engagementScore);
+      await redis.hset(key, { engagementScore });
       
       // Set expiry
       await redis.expire(key, REDIS_TTL.METRICS);
@@ -33,7 +33,7 @@ export class RealTimeMetrics {
       
       // Update real-time leaderboard
       await this.updateLeaderboard(userId, courseId, engagementScore);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update real-time metrics:', error);
     }
   }
@@ -55,20 +55,20 @@ export class RealTimeMetrics {
     };
 
     const key = REDIS_KEYS.STUDENT_METRICS(userId, courseId);
-    const metrics = await redis?.hgetall(key) || {};
+    const metrics = (await redis?.hgetall(key)) as Record<string, string> || {};
     
     let score = 0;
     let totalWeight = 0;
     
     // Calculate weighted score
     Object.entries(weights).forEach(([eventType, weight]) => {
-      const count = parseInt(metrics[eventType] || '0');
+      const count = parseInt(String(metrics[eventType] || '0'));
       score += count * weight;
       totalWeight += count;
     });
     
     // Consider recency
-    const lastActive = parseInt(metrics.lastActiveAt || '0');
+    const lastActive = parseInt(String(metrics.lastActiveAt || '0'));
     const recencyBonus = this.calculateRecencyBonus(lastActive);
     
     // Normalize to 0-100 scale
@@ -130,13 +130,15 @@ export class RealTimeMetrics {
     // Course-specific leaderboard
     await redis.zadd(
       REDIS_KEYS.COURSE_LEADERBOARD(courseId),
-      { score, member: userId }
+      score,
+      userId
     );
     
     // Global leaderboard
     await redis.zadd(
       REDIS_KEYS.GLOBAL_LEADERBOARD,
-      { score, member: userId }
+      score,
+      userId
     );
   }
 
@@ -148,20 +150,20 @@ export class RealTimeMetrics {
     if (!redis) return null;
 
     const key = REDIS_KEYS.STUDENT_METRICS(userId, courseId);
-    const data = await redis.hgetall(key);
+    const data = (await redis.hgetall(key)) as Record<string, string>;
     
     if (!data || Object.keys(data).length === 0) {
       return null;
     }
 
     return {
-      totalTimeSpent: parseInt(data.totalTimeSpent || '0'),
-      totalInteractions: parseInt(data.totalEvents || '0'),
-      lastActiveAt: new Date(parseInt(data.lastActiveAt || '0')),
-      engagementScore: parseFloat(data.engagementScore || '0'),
-      completionRate: parseFloat(data.completionRate || '0'),
-      averageSessionDuration: parseInt(data.avgSessionDuration || '0'),
-      returnFrequency: parseInt(data.returnFrequency || '0')
+      totalTimeSpent: parseInt(String(data.totalTimeSpent || '0')),
+      totalInteractions: parseInt(String(data.totalEvents || '0')),
+      lastActiveAt: new Date(parseInt(String(data.lastActiveAt || '0'))),
+      engagementScore: parseFloat(String(data.engagementScore || '0')),
+      completionRate: parseFloat(String(data.completionRate || '0')),
+      averageSessionDuration: parseInt(String(data.avgSessionDuration || '0')),
+      returnFrequency: parseInt(String(data.returnFrequency || '0'))
     };
   }
 
@@ -170,7 +172,7 @@ export class RealTimeMetrics {
     if (!redis) return null;
 
     const metricsKey = REDIS_KEYS.COURSE_METRICS(courseId);
-    const metrics = await redis.hgetall(metricsKey);
+    const metrics = (await redis.hgetall(metricsKey)) as Record<string, string>;
     
     // Get unique student count
     const studentCount = await redis.scard(`${metricsKey}:students`);
@@ -180,33 +182,37 @@ export class RealTimeMetrics {
     const topStruggles = Object.entries(strugglePoints || {})
       .map(([key, count]) => {
         const [videoId, timestamp] = key.split(':');
-        return { videoId, timestamp: parseInt(timestamp), count: parseInt(count as string) };
+        return { videoId, timestamp: parseInt(timestamp), count: parseInt(String(count)) };
       })
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
     
-    // Get leaderboard
-    const leaderboard = await redis.zrange(
-      REDIS_KEYS.COURSE_LEADERBOARD(courseId),
-      0,
-      9,
-      { rev: true, withScores: true }
+    // Get leaderboard: fetch all members then zscore and sort desc, take top 10
+    const leaderboardKey = REDIS_KEYS.COURSE_LEADERBOARD(courseId);
+    const members = await redis.zrange(leaderboardKey, 0, -1) || [];
+    const client = redis!;
+    const leaderboardEntries = await Promise.all(
+      members.map(async (m) => {
+        const userId = String(m);
+        const scoreStr = await client.zscore(leaderboardKey, userId);
+        const score = scoreStr !== null ? Number(scoreStr) : 0;
+        return { userId, score };
+      })
     );
+    leaderboardEntries.sort((a, b) => b.score - a.score);
+    const leaderboard = leaderboardEntries.slice(0, 10);
     
     return {
-      totalInteractions: parseInt(metrics?.totalInteractions || '0'),
+      totalInteractions: parseInt(String(metrics?.totalInteractions || '0')),
       uniqueStudents: studentCount,
       eventBreakdown: {
-        clicks: parseInt(metrics?.['event:click'] || '0'),
-        views: parseInt(metrics?.['event:view'] || '0'),
-        videos: parseInt(metrics?.['event:video'] || '0'),
-        quizzes: parseInt(metrics?.['event:quiz'] || '0'),
+        clicks: parseInt(String(metrics?.['event:click'] || '0')),
+        views: parseInt(String(metrics?.['event:view'] || '0')),
+        videos: parseInt(String(metrics?.['event:video'] || '0')),
+        quizzes: parseInt(String(metrics?.['event:quiz'] || '0')),
       },
       topStruggles,
-      leaderboard: leaderboard?.map((item: any) => ({
-        userId: item.value,
-        score: item.score
-      })) || []
+      leaderboard
     };
   }
 
@@ -223,7 +229,7 @@ export class RealTimeMetrics {
     
     await redis.hset(
       REDIS_KEYS.SESSION_DATA(sessionId),
-      sessionData
+      sessionData as any
     );
     
     await redis.sadd(REDIS_KEYS.ACTIVE_SESSIONS, sessionId);

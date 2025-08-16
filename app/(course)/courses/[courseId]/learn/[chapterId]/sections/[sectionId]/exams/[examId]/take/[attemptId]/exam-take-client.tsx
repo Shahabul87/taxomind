@@ -94,7 +94,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
           setAnswers(existingAnswers);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching attempt:", error);
     } finally {
       setLoading(false);
@@ -168,7 +168,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
           `/courses/${params.courseId}/learn/${params.chapterId}/sections/${params.sectionId}/exams/${params.examId}/results/${params.attemptId}`
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error submitting exam:", error);
     } finally {
       setSubmitting(false);

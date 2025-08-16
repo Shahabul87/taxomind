@@ -69,7 +69,7 @@ export const MyCoursesDashboard = ({
         }
         
         return true;
-      } catch (error) {
+      } catch (error: any) {
         logger.warn("Error filtering enrolled course:", error);
         return false;
       }
@@ -92,7 +92,7 @@ export const MyCoursesDashboard = ({
           return (b?.averageRating || 0) - (a?.averageRating || 0);
         }
         return 0;
-      } catch (error) {
+      } catch (error: any) {
         logger.warn("Error sorting enrolled courses:", error);
         return 0;
       }
@@ -114,7 +114,7 @@ export const MyCoursesDashboard = ({
         }
         
         return true;
-      } catch (error) {
+      } catch (error: any) {
         logger.warn("Error filtering created course:", error);
         return false;
       }
@@ -137,7 +137,7 @@ export const MyCoursesDashboard = ({
           return (b?.averageRating || 0) - (a?.averageRating || 0);
         }
         return 0;
-      } catch (error) {
+      } catch (error: any) {
         logger.warn("Error sorting created courses:", error);
         return 0;
       }

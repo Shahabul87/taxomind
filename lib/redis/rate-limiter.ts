@@ -32,14 +32,15 @@ export class RateLimiter {
       await redis.zremrangebyscore(key, 0, windowStart);
 
       // Count requests in current window
-      const count = await redis.zcard(key) || 0;
+      const count = (await redis.zcard(key)) || 0;
 
       if (count >= maxRequests) {
         // Get oldest entry to determine reset time
-        const oldest = await redis.zrange(key, 0, 0, { withScores: true });
-        const resetAt = oldest?.[0]?.score 
-          ? new Date(oldest[0].score + window)
-          : new Date(now + window);
+        const oldestMembers = await redis.zrange(key, 0, 0);
+        const oldestMember = oldestMembers?.[0];
+        const oldestScoreStr = oldestMember ? await redis.zscore(key, String(oldestMember)) : null;
+        const oldestScore = oldestScoreStr !== null ? Number(oldestScoreStr) : null;
+        const resetAt = oldestScore !== null ? new Date(oldestScore + window) : new Date(now + window);
 
         return {
           allowed: false,
@@ -49,7 +50,7 @@ export class RateLimiter {
       }
 
       // Add current request
-      await redis.zadd(key, { score: now, member: `${now}-${Math.random()}` });
+      await redis.zadd(key, now, `${now}-${Math.random()}`);
       await redis.expire(key, windowSeconds);
 
       return {
@@ -57,7 +58,7 @@ export class RateLimiter {
         remaining: maxRequests - count - 1,
         resetAt: new Date(now + window)
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Rate limit check error:', error);
       // On error, allow the request
       return { allowed: true, remaining: maxRequests, resetAt: new Date() };

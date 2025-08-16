@@ -267,6 +267,7 @@ export interface QueueConfig {
   };
   defaultJobOptions?: JobsOptions;
   priority?: 'high' | 'medium' | 'low';
+  processorTimeout?: number;
 }
 
 /**
@@ -281,6 +282,12 @@ export interface QueueMetrics {
   delayed: number;
   avgProcessingTime: number;
   lastJobTime: Date | null;
+  throughputPerMinute: number;
+  errorRate: number;
+  peakActiveJobs: number;
+  totalRetries: number;
+  lastMetricsCollection?: number;
+  lastProcessedCount?: number;
 }
 
 /**
@@ -572,7 +579,7 @@ export class JobFactory {
       },
       options: {
         ...JOB_PRESETS.CLEANUP_BACKGROUND,
-        repeat: { cron: '0 2 * * *' }, // Run daily at 2 AM
+        repeat: { pattern: '0 2 * * *' }, // Run daily at 2 AM
         jobId: 'cleanup-temp-files-daily',
       },
     };

@@ -29,7 +29,7 @@ export const hashPassword = async (password: string): Promise<string> => {
     
     // Format: noble:salt:hash (both base64 encoded)
     return `noble:${encodeBase64(salt)}:${encodeBase64(hash)}`;
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Password hashing failed:', error);
     throw new Error('Password hashing failed');
   }
@@ -56,7 +56,7 @@ export const verifyPassword = async (plainPassword: string, hashedPassword: stri
     } catch {
       return verifyBcryptHash(plainPassword, hashedPassword);
     }
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Password verification failed:', error);
     return false;
   }
@@ -90,7 +90,7 @@ const verifyNobleHash = (plainPassword: string, hashedPassword: string): boolean
     }
     
     return result === 0;
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Noble hash verification failed:', error);
     return false;
   }
@@ -126,11 +126,11 @@ const verifyBcryptHash = async (plainPassword: string, hashedPassword: string): 
       // This is a temporary measure - users should migrate their passwords
       logger.warn(
         'Legacy password detected. Please reset your password to use the new secure format.',
-        'Hash format:', hashedPassword.substring(0, 10) + '...'
+        { hashPreview: hashedPassword.substring(0, 10) + '...' }
       );
       return false;
     }
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Bcrypt verification failed:', error);
     return false;
   }

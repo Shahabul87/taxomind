@@ -27,7 +27,7 @@ export const EventActions = ({ eventId, onEdit, onDelete }: EventActionsProps) =
       } else {
         throw new Error("Failed to delete event");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     }
   };

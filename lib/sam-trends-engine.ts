@@ -278,8 +278,9 @@ export class SAMTrendsEngine {
       if (filter.impact) {
         trends = trends.filter(t => t.impact === filter.impact);
       }
-      if (filter.minRelevance) {
-        trends = trends.filter(t => t.relevance >= filter.minRelevance);
+      if (typeof filter.minRelevance === 'number') {
+        const min = filter.minRelevance;
+        trends = trends.filter(t => t.relevance >= min);
       }
     }
 
@@ -630,19 +631,16 @@ export class SAMTrendsEngine {
       await db.sAMInteraction.create({
         data: {
           userId,
-          interactionType: 'CONTENT_GENERATED',
+          interactionType: 'CONTENT_GENERATE' as any,
           context: {
             engine: 'trends',
             trendId,
             action: interactionType,
             timestamp: new Date()
-          },
-          result: {
-            success: true
           }
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error recording trend interaction:', error);
     }
   }

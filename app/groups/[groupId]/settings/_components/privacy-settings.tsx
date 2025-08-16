@@ -67,7 +67,7 @@ export function PrivacySettings({ group, currentUser, isCreator }: PrivacySettin
       }
 
       toast.success("Privacy settings updated successfully");
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
       logger.error(error);
     } finally {

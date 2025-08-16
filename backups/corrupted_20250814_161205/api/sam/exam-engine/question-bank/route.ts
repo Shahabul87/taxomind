@@ -1,0 +1,353 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@/lib/auth';
+import { AdvancedExamEngine } from '@/lib/sam-exam-engine';
+import { db } from '@/lib/db';
+import { QuestionType, BloomsLevel, QuestionDifficulty } from '@prisma/client';
+import { logger } from '@/lib/logger';
+import { withAuth } from '@/lib/api/with-api-auth';
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await currentUser();
+    
+    if (!user || !user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { 
+      courseId,
+      subject,
+      topic,
+      questions,
+    } = await request.json();
+
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      return NextResponse.json(
+        { error: 'Questions array is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check course access if courseId provided
+    if (courseId) {
+      const course = await db.course.findUnique({
+        where: { id: courseId },
+        select: { userId: true },
+      });
+
+      if (!course) {
+        return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+      }
+
+      if (course.userId !== user.id && user.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      }
+    }
+
+    // Save questions to question bank
+    const engine = new AdvancedExamEngine();
+    await engine.saveToQuestionBank(questions, courseId, subject, topic);
+
+    return NextResponse.json({
+      success: true,
+      message: `${questions.length} questions added to question bank`,
+      data: {
+        count: questions.length,
+        courseId,
+        subject,
+        topic,
+      },
+    });
+
+  } catch (error: any) {
+    logger.error('Add to question bank error:', error);
+    return NextResponse.json(
+      { error: 'Failed to add questions to bank' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const user = await currentUser();
+    
+    if (!user || !user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const courseId = searchParams.get('courseId');
+    const subject = searchParams.get('subject');
+    const topic = searchParams.get('topic');
+    const bloomsLevel = searchParams.get('bloomsLevel') as BloomsLevel | null;
+    const difficulty = searchParams.get('difficulty') as QuestionDifficulty | null;
+    const questionType = searchParams.get('questionType') as QuestionType | null;
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    // Build query
+    const where: any = {};
+    
+    if (courseId) {
+      // Check course access
+      const course = await db.course.findUnique({
+        where: { id: courseId },
+        select: { userId: true, organizationId: true },
+      });
+
+      if (!course) {
+        return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+      }
+
+      const hasAccess = course.userId === user.id || 
+        (course.organizationId && await checkOrganizationAccess(user.id, course.organizationId));
+
+      if (!hasAccess && user.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      }
+
+      where.courseId = courseId;
+    }
+    
+    if (subject) where.subject = subject;
+    if (topic) where.topic = topic;
+    if (bloomsLevel) where.bloomsLevel = bloomsLevel;
+    if (difficulty) where.difficulty = difficulty;
+    if (questionType) where.questionType = questionType;
+
+    // Get questions
+    const questions = await db.questionBank.findMany({
+      where,
+      skip: offset,
+      take: limit,
+      orderBy: [
+        { usageCount: 'asc' },
+        { createdAt: 'desc' },
+      ],
+    });
+
+    // Get total count
+    const totalCount = await db.questionBank.count({ where });
+
+    // Get aggregated statistics
+    const stats = await getQuestionBankStats(where);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        questions: questions.map(q => ({
+          id: q.id,
+          question: q.question,
+          questionType: q.questionType,
+          bloomsLevel: q.bloomsLevel,
+          difficulty: q.difficulty,
+          subject: q.subject,
+          topic: q.topic,
+          subtopic: q.subtopic,
+          tags: q.tags,
+          usageCount: q.usageCount,
+          avgTimeSpent: q.avgTimeSpent,
+        })),
+        pagination: {
+          total: totalCount,
+          limit,
+          offset,
+          hasMore: offset + limit < totalCount,
+        },
+        stats,
+      },
+    });
+
+  } catch (error: any) {
+    logger.error('Get question bank error:', error);
+    return NextResponse.json(
+      { error: 'Failed to get question bank' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const user = await currentUser();
+    
+    if (!user || !user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { 
+      questionId,
+      updates,
+    } = await request.json();
+
+    if (!questionId) {
+      return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
+    }
+
+    // Get question to check access
+    const question = await db.questionBank.findUnique({
+      where: { id: questionId },
+      include: {
+        course: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    if (!question) {
+      return NextResponse.json({ error: 'Question not found' }, { status: 404 });
+    }
+
+    // Check access
+    if (question.courseId && question.course?.userId !== user.id && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Update question
+    const updatedQuestion = await db.questionBank.update({
+      where: { id: questionId },
+      data: updates,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: updatedQuestion,
+    });
+
+  } catch (error: any) {
+    logger.error('Update question error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update question' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await currentUser();
+    
+    if (!user || !user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const questionId = searchParams.get('id');
+
+    if (!questionId) {
+      return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
+    }
+
+    // Get question to check access
+    const question = await db.questionBank.findUnique({
+      where: { id: questionId },
+      include: {
+        course: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    if (!question) {
+      return NextResponse.json({ error: 'Question not found' }, { status: 404 });
+    }
+
+    // Check access
+    if (question.courseId && question.course?.userId !== user.id && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Delete question
+    await db.questionBank.delete({
+      where: { id: questionId },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Question deleted successfully',
+    });
+
+  } catch (error: any) {
+    logger.error('Delete question error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete question' },
+      { status: 500 }
+    );
+  }
+}
+
+async function checkOrganizationAccess(userId: string, organizationId: string): Promise<boolean> {
+  const membership = await db.organizationUser.findFirst({
+    where: {
+      userId,
+      organizationId,
+      role: { in: ['OWNER', 'ADMIN', 'MEMBER'] },
+    },
+  });
+  
+  return !!membership;
+}
+
+async function getQuestionBankStats(where: any): Promise<any> {
+  const questions = await db.questionBank.findMany({
+    where,
+    select: {
+      bloomsLevel: true,
+      difficulty: true,
+      questionType: true,
+      usageCount: true,
+    },
+  });
+
+  const stats = {
+    bloomsDistribution: {} as Record<BloomsLevel, number>,
+    difficultyDistribution: {} as Record<QuestionDifficulty, number>,
+    typeDistribution: {} as Record<QuestionType, number>,
+    totalUsage: 0,
+    avgDifficulty: 0,
+  };
+
+  // Initialize distributions
+  const bloomsLevels: BloomsLevel[] = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
+  const difficulties: QuestionDifficulty[] = ['EASY', 'MEDIUM', 'HARD'];
+  const types: QuestionType[] = ['MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER', 'ESSAY', 'FILL_IN_BLANK'];
+
+  bloomsLevels.forEach(level => stats.bloomsDistribution[level] = 0);
+  difficulties.forEach(diff => stats.difficultyDistribution[diff] = 0);
+  types.forEach(type => stats.typeDistribution[type] = 0);
+
+  // Calculate distributions
+  questions.forEach(q => {
+    stats.bloomsDistribution[q.bloomsLevel]++;
+    stats.difficultyDistribution[q.difficulty]++;
+    stats.typeDistribution[q.questionType]++;
+    stats.totalUsage += q.usageCount;
+    // Convert difficulty enum to numeric value for average calculation
+    const difficultyValue = q.difficulty === 'EASY' ? 1 : q.difficulty === 'MEDIUM' ? 2 : 3;
+    stats.avgDifficulty += difficultyValue;
+  });
+
+  // Convert to percentages
+  const total = questions.length;
+  if (total > 0) {
+    Object.keys(stats.bloomsDistribution).forEach(key => {
+      stats.bloomsDistribution[key as BloomsLevel] = 
+        (stats.bloomsDistribution[key as BloomsLevel] / total) * 100;
+    });
+    
+    Object.keys(stats.difficultyDistribution).forEach(key => {
+      stats.difficultyDistribution[key as QuestionDifficulty] = 
+        (stats.difficultyDistribution[key as QuestionDifficulty] / total) * 100;
+    });
+    
+    Object.keys(stats.typeDistribution).forEach(key => {
+      stats.typeDistribution[key as QuestionType] = 
+        (stats.typeDistribution[key as QuestionType] / total) * 100;
+    });
+    
+    stats.avgDifficulty = stats.avgDifficulty / total;
+  }
+
+  return stats;
+}

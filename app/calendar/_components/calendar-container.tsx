@@ -69,7 +69,7 @@ export const CalendarContainer = ({
         logger.error("API response indicated failure:", data);
         throw new Error(data.error || "Failed to fetch events");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching events:", error);
       setError(error instanceof Error ? error.message : "Failed to load calendar events");
       handleCalendarError(error);
@@ -100,7 +100,7 @@ export const CalendarContainer = ({
 
       toast.success("Event moved successfully");
       fetchEvents();
-    } catch (error) {
+    } catch (error: any) {
       handleCalendarError(error);
     }
   };

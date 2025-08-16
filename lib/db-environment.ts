@@ -2,7 +2,11 @@ import { logger } from '@/lib/logger';
 
 // lib/db-environment.ts
 export const getEnvironmentConfig = () => {
-  const env = process.env.NODE_ENV;
+  const env = (process.env.APP_ENV ?? process.env.NODE_ENV ?? 'development') as
+    | 'development'
+    | 'production'
+    | 'test'
+    | 'staging';
   
   return {
     isDevelopment: env === 'development',
@@ -49,7 +53,9 @@ export const safeDBOperation = async <T>(
   }
   
   if (operationType === 'destructive' && config.isDevelopment) {
-}
+    logger.warn('⚠️  Performing destructive operation in development');
+  }
+  
   return await operation();
 };
 
@@ -57,7 +63,8 @@ export const safeDBOperation = async <T>(
 export const devLog = (message: string, data?: any) => {
   const config = getEnvironmentConfig();
   if (config.isDevelopment) {
-}
+    logger.debug(message, data);
+  }
 };
 
 // Environment validation
@@ -78,11 +85,36 @@ export const validateEnvironment = () => {
 
   // Warn if using production database in development
   if (config.isDevelopment && 
-      process.env.DATABASE_URL?.includes('railway.app')) {
-    logger.warn('⚠️  WARNING: Using production database in development!');
-    logger.warn('   Consider using local PostgreSQL for safety.');
+      (process.env.DATABASE_URL?.includes('railway') || 
+       process.env.DATABASE_URL?.includes('postgres.railway.internal'))) {
+    console.warn('WARNING: Using production database in development environment!');
+    console.warn('Consider using local PostgreSQL for safety.');
   }
 
   console.log(`✅ Database: ${process.env.DATABASE_URL?.includes('localhost') ? 'Local' : 'Remote'}`);
+};
 
+// Get database environment details
+export const getDbEnvironment = () => {
+  const config = getEnvironmentConfig();
+  const strictMode = process.env.STRICT_ENV_MODE === 'true';
+  
+  return {
+    ...config,
+    strictMode,
+    environment: config.isProduction ? 'production' : config.isStaging ? 'staging' : 'development',
+  };
+};
+
+// Check if destructive operation is allowed
+export const canPerformDestructiveOperation = (operation: string): boolean => {
+  const config = getEnvironmentConfig();
+  
+  if (config.isDevelopment) {
+    logger.debug(`Allowing destructive operation in development: ${operation}`);
+    return true;
+  }
+  
+  logger.warn(`Blocking destructive operation in ${config.isProduction ? 'production' : 'staging'}: ${operation}`);
+  return false;
 };

@@ -1,11 +1,7 @@
 "use client";
 
-import { FaUser } from "react-icons/fa";
+import { User, ShieldCheck, Settings, Server, Home } from "lucide-react";
 import { ExitIcon } from "@radix-ui/react-icons"
-import { RiAdminFill } from "react-icons/ri";
-import { CiSettings } from "react-icons/ci";
-import { CiServer } from "react-icons/ci";
-import { FaHome } from "react-icons/fa";
 import Link from "next/link";
 
 import {
@@ -33,7 +29,7 @@ export const UserButton = () => {
         <Avatar>
           <AvatarImage src={user?.image || ""} />
           <AvatarFallback className="bg-slate-700">
-            <FaUser className="text-white" />
+            <User className="text-white" />
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
@@ -41,25 +37,25 @@ export const UserButton = () => {
        
         <DropdownMenuItem>
         <Link href="/settings" className="flex flex-row">
-            <CiSettings className="h-4 w-4 mr-2" />
+            <Settings className="h-4 w-4 mr-2" />
             Settings
           </Link> 
         </DropdownMenuItem>
         <DropdownMenuItem>
         <Link href="/admin" className="flex flex-row">
-            <RiAdminFill className="h-4 w-4 mr-2" />
+            <ShieldCheck className="h-4 w-4 mr-2" />
             Admin
           </Link> 
         </DropdownMenuItem>
         <DropdownMenuItem>
         <Link href="/server" className="flex flex-row">
-            <CiServer className="h-4 w-4 mr-2" />
+            <Server className="h-4 w-4 mr-2" />
             Server
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem>
         <Link href="/client" className="flex flex-row">
-            <FaHome className="h-4 w-4 mr-2" />
+            <Home className="h-4 w-4 mr-2" />
             Client
           </Link>
         </DropdownMenuItem>

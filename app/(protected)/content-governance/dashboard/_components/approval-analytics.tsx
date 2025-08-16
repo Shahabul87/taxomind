@@ -38,7 +38,7 @@ export function ApprovalAnalytics() {
       } else {
         toast.error(data.error || 'Failed to fetch analytics');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to fetch analytics');
     } finally {
       setIsLoading(false);

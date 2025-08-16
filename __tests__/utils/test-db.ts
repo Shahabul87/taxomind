@@ -34,7 +34,7 @@ export class TestDatabase {
     try {
       await this.prisma.$connect();
       console.log(`Test DB connected: ${this.testId}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to connect to test database:', error);
       throw error;
     }
@@ -47,7 +47,7 @@ export class TestDatabase {
     try {
       await this.prisma.$disconnect();
       console.log(`Test DB disconnected: ${this.testId}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to disconnect from test database:', error);
       throw error;
     }
@@ -99,7 +99,7 @@ export class TestDatabase {
     for (const tableName of tableNames) {
       try {
         await this.prisma.$executeRawUnsafe(`TRUNCATE TABLE "${tableName}" CASCADE;`);
-      } catch (error) {
+      } catch (error: any) {
         // Some tables might not exist, continue cleanup
         console.warn(`Warning: Could not truncate table ${tableName}`);
       }
@@ -119,7 +119,7 @@ export class TestDatabase {
           DATABASE_URL: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.warn('Database reset failed, attempting cleanup instead');
       await this.cleanup();
     }
@@ -355,55 +355,158 @@ export const createMockDatabase = () => ({
   user: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
     upsert: jest.fn(),
+    count: jest.fn(),
+    groupBy: jest.fn(),
   },
   course: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
     upsert: jest.fn(),
+    count: jest.fn(),
+    groupBy: jest.fn(),
   },
   chapter: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
     upsert: jest.fn(),
+    count: jest.fn(),
+  },
+  muxData: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  attachment: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
   },
   section: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
     upsert: jest.fn(),
+    count: jest.fn(),
   },
   enrollment: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
     upsert: jest.fn(),
+    count: jest.fn(),
   },
   purchase: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
     upsert: jest.fn(),
+    count: jest.fn(),
+    groupBy: jest.fn(),
   },
   category: {
     findMany: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+  },
+  post: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    upsert: jest.fn(),
+    count: jest.fn(),
+    groupBy: jest.fn(),
+  },
+  userProgress: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    upsert: jest.fn(),
+    count: jest.fn(),
+  },
+  user_progress: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    upsert: jest.fn(),
+    count: jest.fn(),
+  },
+  passwordResetToken: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    upsert: jest.fn(),
+    count: jest.fn(),
+  },
+  verificationToken: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    upsert: jest.fn(),
+    count: jest.fn(),
+  },
+  twoFactorToken: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    upsert: jest.fn(),
+    count: jest.fn(),
+  },
+  twoFactorConfirmation: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    upsert: jest.fn(),
+    count: jest.fn(),
   },
   $transaction: jest.fn(),
   $connect: jest.fn(),
   $disconnect: jest.fn(),
+  $executeRaw: jest.fn(),
+  $queryRaw: jest.fn(),
 });
+
+// Export mock database for unit tests
+export const prismaMock = createMockDatabase();

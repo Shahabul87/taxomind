@@ -37,7 +37,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
       setIsDeleting(true);
       await deleteActivity(activity.id);
       onDelete(activity.id);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to delete activity:', error);
     } finally {
       setIsDeleting(false);
@@ -51,7 +51,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
       setIsCompleting(true);
       const updated = await completeActivity(activity.id);
       onStatusChange(activity.id, 'completed');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to complete activity:', error);
     } finally {
       setIsCompleting(false);

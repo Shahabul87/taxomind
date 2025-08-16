@@ -25,7 +25,7 @@ export function DangerSettings({ group, currentUser, isCreator }: DangerSettings
     try {
       // Implement your delete group logic here
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to delete group:", error);
     } finally {
       setIsDeleting(false);

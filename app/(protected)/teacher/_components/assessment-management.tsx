@@ -197,7 +197,7 @@ export function AssessmentManagement({
       ];
 
       setAssessments(mockAssessments);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching assessments:', error);
       toast.error('Failed to load assessments');
     } finally {
@@ -238,7 +238,7 @@ export function AssessmentManagement({
       };
 
       setStudentAnalytics(mockAnalytics);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching student analytics:', error);
     }
   }, []);
@@ -300,7 +300,7 @@ export function AssessmentManagement({
           allowReview: true
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating assessment:', error);
       toast.error('Failed to create assessment');
     } finally {
@@ -327,7 +327,7 @@ export function AssessmentManagement({
         toast.success('Rubric generated successfully!');
         // Handle rubric data
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating rubric:', error);
       toast.error('Failed to generate rubric');
     }
@@ -350,7 +350,7 @@ export function AssessmentManagement({
         toast.success('Response analysis completed!');
         // Handle analysis data
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing responses:', error);
       toast.error('Failed to analyze responses');
     }

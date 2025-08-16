@@ -232,7 +232,7 @@ export const SimplifiedAICourseAssistant = ({
           // Simulate other AI operations
           await new Promise(resolve => setTimeout(resolve, 2000));
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('AI generation error:', error);
       // Error handling is done in the individual components/hooks
     } finally {
@@ -269,7 +269,7 @@ export const SimplifiedAICourseAssistant = ({
       // Close preset selector on successful completion
       setShowPresetSelector(false);
       // You could show a success message or redirect here
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Preset application failed:', error);
       // Keep preset selector open on error to allow retry
     } finally {

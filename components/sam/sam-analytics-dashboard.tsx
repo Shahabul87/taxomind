@@ -116,7 +116,7 @@ export function SAMAnalyticsDashboard({ courseId }: SAMAnalyticsDashboardProps) 
           const data = await response.json();
           setAnalytics(data.data);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error loading analytics:', error);
       } finally {
         setIsLoading(false);

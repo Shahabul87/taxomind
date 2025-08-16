@@ -1,0 +1,366 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Anthropic } from '@anthropic-ai/sdk';
+import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
+import { withAuth, withAdminAuth, withOwnership, withPublicAPI } from '@/lib/api/wexport const POST = withAuth(async (request, context) => {'
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+}, {
+  rateLimit: { requests: 25, window: 60000 },
+  auditLog: false
+}););
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await currentUser();
+    
+    if (!user || !user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { 
+      message, 
+      context,
+      conversationHistory = []
+    } = await request.json();
+
+    const {
+      pageData,
+      learningContext,
+      gamificationState,
+      tutorPersonality,
+      emotion
+    } = context;
+
+    // Build context-aware system prompt
+    const systemPrompt = buildSystemPrompt(learningContext, tutorPersonality, pageData);
+    
+    // Build conversation history (exclude system message from messages array)
+    const messages = [
+      ...conversationHistory.slice(-5).map((msg: any) => ({
+        role: msg.type === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      })),
+      { role: 'user', content: message }
+    ];
+
+    // Call Anthropic API
+    const response = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 2000,
+      temperature: 0.7,
+      system: systemPrompt,
+      messages: messages as any
+    });
+
+    const aiResponse = response.content[0];
+    const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+    // Parse response for actions and suggestions
+    const parsedResponse = parseAIResponse(responseText, learningContext, pageData);
+
+    // Determine appropriate emotional tone
+    const responseEmotion = determineResponseEmotion(emotion, message, learningContext);
+
+    return NextResponse.json({
+      response: parsedResponse.content,
+      emotion: responseEmotion,
+      suggestions: parsedResponse.suggestions,
+      action: parsedResponse.action,
+      metadata: {
+        processingTime: Date.now(),
+        contextUsed: {
+          userRole: learningContext.userRole,
+          pageType: pageData.pageType,
+          emotionDetected: emotion
+        }
+      }
+    });
+
+  } catch (error: any) {
+    logger.error('SAM AI Tutor chat error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process request' },
+      { status: 500 }
+    );
+  }
+}
+
+function buildSystemPrompt(learningContext: any, tutorPersonality: any, pageData: any): string {
+  const basePrompt = `You are SAM (Smart Assistant Module), an advanced AI tutor and teaching assistant. You are intelligent, helpful, and adaptive to different learning styles and contexts.
+
+**Your Core Identity:**
+- You are encouraging, supportive, and patient
+- You adapt your teaching style to the user's needs'
+- You use pedagogical best practices
+- You maintain a ${tutorPersonality.tone} tone
+- You prefer ${tutorPersonality.teachingMethod} teaching methods
+- You respond in a ${tutorPersonality.responseStyle} style
+
+**Current Context:**
+- User Role: ${learningContext.userRole || 'unknown'}
+- Page Type: ${pageData.pageType || 'unknown'}
+- Current course: ${learningContext.currentCourse?.title || 'None'}
+- Current Chapter: ${learningContext.currentChapter?.title || 'None'}
+- Forms Available: ${pageData.forms?.length || 0}`;
+
+  if (learningContext.userRole === 'student') {
+    return `${basePrompt}
+
+**Your Role as Learning Tutor:**
+- Help students understand concepts through questioning
+- Provide personalized explanations
+- Generate practice problems and examples
+- Offer motivation and encouragement
+- Track learning progress and celebrate achievements
+- Use the Socratic method when appropriate
+- Adapt difficulty based on student responses
+
+**Guidelines:**
+- Ask guiding questions before giving direct answers
+- Encourage critical thinking
+- Provide examples and analogies
+- Break complex topics into smaller parts
+- Celebrate small wins and progress
+- Be patient with mistakes and confusion`;
+  } else if (learningContext.userRole === 'teacher') {
+    return `${basePrompt}
+
+**Your Role as Teaching Assistant & Course Creator:**
+- Help teachers create engaging content
+- Assist with course design and structure using Bloom's taxonomy'
+- Generate assessment materials and rubrics
+- Provide student insights and analytics
+- Help with administrative tasks
+- Suggest pedagogical improvements
+- Automate repetitive tasks
+- **COURSE CREATION EXPERTISE**: Create comprehensive courses with quality scoring, market analysis, and structured learning paths
+
+**Course Creation Capabilities:**
+- **Title Generation**: Create compelling, SEO-optimized course titles with market analysis
+- **Course Structure**: Design learning paths using Bloom's taxonomy (Remember → Understand → Apply → Analyze → Evaluate → Create)'
+- **Quality Scoring**: Evaluate course completeness, engagement, and pedagogical effectiveness
+- **Learning Objectives**: Create SMART goals aligned with educational standards
+- **Content Architecture**: Organize chapters, sections, and assessments logically
+- **Target Audience Analysis**: Define learner personas and prerequisites
+- **Market Research**: Analyze competitors and positioning strategies
+
+**Available Actions for Course Creation:**
+When users request course creation help, you can use these action commands:
+- [ACTION:GENERATE_TITLES|topic|audience|difficulty] - Generate course titles
+- [ACTION:CREATE_STRUCTURE|topic|chapters|level] - Design course architecture  
+- [ACTION:QUALITY_SCORE|course_data] - Evaluate course quality
+- [ACTION:LEARNING_OBJECTIVES|topic|bloom_levels] - Create learning goals
+- [ACTION:MARKET_ANALYSIS|topic|category] - Research market positioning
+
+**Guidelines:**
+- Focus on educational best practices and evidence-based teaching methods
+- Help with content creation and curation using pedagogical expertise
+- Provide actionable student insights and course improvement recommendations
+- Assist with form filling and data entry when needed
+- Offer creative teaching ideas and innovative learning approaches
+- **For course creation requests**: Guide users through a structured process, use quality scoring, and leverage market analysis
+- **Always use action commands** when users need specific course creation functionality`;
+  }
+
+  return basePrompt;
+}
+
+function parseAIResponse(response: string, learningContext: any, pageData: any): any {
+  // Extract action commands from response
+  const actionRegex = /\[ACTION:([^\]]+)\]/g;
+  const actions = [];
+  let cleanResponse = response;
+  
+  let match;
+  while ((match = actionRegex.exec(response)) !== null) {
+    const actionText = match[1];
+    actions.push(parseAction(actionText, learningContext, pageData));
+    cleanResponse = cleanResponse.replace(match[0], '');
+  }
+
+  // Extract suggestions
+  const suggestionRegex = /\[SUGGEST:([^\]]+)\]/g;
+  const suggestions = [];
+  
+  while ((match = suggestionRegex.exec(response)) !== null) {
+    suggestions.push(match[1]);
+    cleanResponse = cleanResponse.replace(match[0], '');
+  }
+
+  // Generate contextual suggestions if none provided
+  if (suggestions.length === 0) {
+    suggestions.push(...generateContextualSuggestions(learningContext, pageData));
+  }
+
+  return {
+    content: cleanResponse.trim(),
+    suggestions: suggestions.slice(0, 3),
+    action: actions.length > 0 ? actions[0] : null
+  };
+}
+
+function parseAction(actionText: string, learningContext: any, pageData: any): any {
+  const [type, ...params] = actionText.split('|');
+  
+  switch (type) {
+    case 'POPULATE_FORM':
+      return {
+        type: 'form_populate',
+        details: {
+          formId: params[0],
+          data: JSON.parse(params[1] || '{}')
+        }
+      };
+    
+    case 'AWARD_POINTS':
+      return {
+        type: 'gamification_action',
+        details: {
+          points: parseInt(params[0] || '10'),
+          reason: params[1] || 'Good interaction'
+        }
+      };
+    
+    case 'NAVIGATE':
+      return {
+        type: 'navigation',
+        details: {
+          url: params[0]
+        }
+      };
+
+    // COURSE CREATION ACTIONS
+    case 'GENERATE_TITLES':
+      return {
+        type: 'course_creation_action',
+        details: {
+          action: 'generate_titles',
+          topic: params[0],
+          audience: params[1],
+          difficulty: params[2],
+          apiEndpoint: '/api/sam/title-suggestions'
+        }
+      };
+
+    case 'CREATE_STRUCTURE':
+      return {
+        type: 'course_creation_action',
+        details: {
+          action: 'create_structure',
+          topic: params[0],
+          chapters: parseInt(params[1] || '5'),
+          level: params[2],
+          apiEndpoint: '/api/sam/generate-course-structure-complete'
+        }
+      };
+
+    case 'QUALITY_SCORE':
+      return {
+        type: 'course_creation_action',
+        details: {
+          action: 'quality_score',
+          courseData: params[0],
+          apiEndpoint: '/api/sam/validate'
+        }
+      };
+
+    case 'LEARNING_OBJECTIVES':
+      return {
+        type: 'course_creation_action',
+        details: {
+          action: 'learning_objectives',
+          topic: params[0],
+          bloomLevels: params[1]?.split(',') || ['UNDERSTAND', 'APPLY'],
+          apiEndpoint: '/api/sam/learning-objectives'
+        }
+      };
+
+    case 'MARKET_ANALYSIS':
+      return {
+        type: 'course_creation_action',
+        details: {
+          action: 'market_analysis',
+          topic: params[0],
+          category: params[1],
+          apiEndpoint: '/api/sam/course-market-analysis'
+        }
+      };
+    
+    default:
+      return null;
+  }
+}
+
+function generateContextualSuggestions(learningContext: any, pageData: any): string[] {
+  const suggestions = [];
+  
+  if (learningContext.userRole === 'student') {
+    suggestions.push(
+      "Can you explain this concept differently?",
+      "Give me some practice problems",
+      "How does this relate to real life?"
+    );
+  } else if (learningContext.userRole === 'teacher') {
+    suggestions.push(
+      "Create a new course with AI",
+      "Generate course title ideas",
+      "Design course structure",
+      "Generate learning objectives",
+      "Create assessment questions",
+      "Analyze course market potential",
+      "Generate course content",
+      "Analyze student performance"
+    );
+  }
+  
+  // Add page-specific suggestions
+  if (pageData.pageType === 'create' || pageData.pageType === 'edit') {
+    suggestions.push("Help me fill out this form");
+  }
+  
+  // Add course creation specific suggestions
+  if (pageData.pageType === 'course_creation' || pageData.title?.includes('create')) {
+    suggestions.push(
+      "Help me brainstorm course ideas",
+      "Generate compelling course titles",
+      "Create course structure using Bloom's taxonomy",'
+      "Analyze target audience needs"
+    );
+  }
+  
+  return suggestions.slice(0, 3); // Limit to 3 suggestions
+}
+
+function determineResponseEmotion(
+  userEmotion: string,
+  message: string,
+  learningContext: any
+): string {
+  // Respond appropriately to detected emotions
+  switch (userEmotion) {
+    case 'frustrated':
+      return 'supportive';
+    case 'confused':
+      return 'thoughtful';
+    case 'confident':
+      return 'encouraging';
+    case 'bored':
+      return 'excited';
+    case 'engaged':
+      return 'encouraging';
+    default:
+      return 'supportive';
+  }
+}
+
+// Helper function to detect if response should include actions
+function shouldIncludeActions(message: string, learningContext: any): boolean {
+  const actionKeywords = [
+    'fill', 'populate', 'create', 'generate', 'help me with',
+    'can you', 'please', 'make', 'write', 'build'
+  ];
+  
+  return actionKeywords.some(keyword => 
+    message.toLowerCase().includes(keyword)
+  );
+}

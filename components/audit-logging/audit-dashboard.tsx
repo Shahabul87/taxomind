@@ -16,13 +16,13 @@ import { logger } from '@/lib/logger';
 import { 
   Shield, AlertTriangle, Eye, Download, Search, Filter,
   Calendar as CalendarIcon, Clock, User, Activity, Database,
-  TrendingUp, BarChart3, PieChart, FileText, Settings,
+  TrendingUp, BarChart3, PieChart as PieChartIcon, FileText, Settings,
   RefreshCw, ExternalLink, ChevronRight, Info, CheckCircle,
   XCircle, AlertCircle, Zap, Users, Lock, Globe
 } from 'lucide-react';
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart as RechartsPie, Cell, AreaChart, Area
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 import { 
   AuditEvent, 
@@ -93,7 +93,7 @@ export function AuditDashboard({ className }: AuditDashboardProps) {
       const result = await auditSystem.query(queryParams);
       setEvents(result.events);
       setTotalPages(result.totalPages);
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to load audit data');
       logger.error(error);
     } finally {
@@ -108,7 +108,7 @@ export function AuditDashboard({ className }: AuditDashboardProps) {
         endOfDay(dateRange.to)
       );
       setMetrics(metricsData);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to load metrics:', error);
     }
   }, [dateRange]);
@@ -135,7 +135,7 @@ export function AuditDashboard({ className }: AuditDashboardProps) {
       // In a real implementation, this would download the report
       toast.success(`${type} compliance report generated`);
 
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to generate report');
       logger.error(error);
     }
@@ -492,22 +492,22 @@ export function AuditDashboard({ className }: AuditDashboardProps) {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <RechartsPie>
-                      <RechartsPie
+                    <PieChart>
+                      <Pie
                         data={Object.entries(metrics.eventsByCategory).map(([name, value]) => ({ name, value }))}
                         dataKey="value"
                         nameKey="name"
                         cx="50%"
                         cy="50%"
                         outerRadius={100}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       >
                         {Object.entries(metrics.eventsByCategory).map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
-                      </RechartsPie>
+                      </Pie>
                       <Tooltip />
-                    </RechartsPie>
+                    </PieChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>

@@ -1,21 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
-import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
 
-export async function PATCH(
-  req: Request,
-  props: { params: Promise<{ postId: string; commentId: string }> }
-) {
+export const PATCH = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   const params = await props.params;
   try {
-    const user = await currentUser();
-    if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
 
-    const { type } = await req.json();
+    const { type } = await request.json();
     const { commentId } = params;
 
     if (!type || !['like', 'love', 'laugh', 'angry'].includes(type)) {
@@ -27,7 +24,7 @@ export async function PATCH(
       select: { 
         id: true,
         reactions: {
-          where: { userId: user.id },
+          where: { userId: context.user.id },
           select: { id: true, type: true, userId: true }
         }
       }
@@ -38,7 +35,7 @@ export async function PATCH(
     }
 
     // Check if user already reacted
-    const existingReaction = comment.reactions.find(r => r.userId === user.id);
+    const existingReaction = comment.reactions.find(r => r.userId === context.user.id);
 
     if (existingReaction) {
       if (existingReaction.type === type) {
@@ -59,7 +56,7 @@ export async function PATCH(
         data: {
           id: randomUUID(),
           type,
-          userId: user.id,
+          userId: context.user.id,
           commentId,
           updatedAt: new Date(),
         }
@@ -91,9 +88,9 @@ export async function PATCH(
       }
     });
 
-    return NextResponse.json(updatedComment);
+    return createSuccessResponse(updatedComment);
   } catch (error) {
     logger.error("[COMMENT_REACTION]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return createErrorResponse(ApiError.internal("Internal Error"));
   }
-}
+});

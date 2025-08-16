@@ -158,7 +158,7 @@ export class AICacheManager {
       const result = await requestPromise;
       this.updateStats(false, Date.now() - startTime);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       this.updateStats(false, Date.now() - startTime);
       throw error;
     } finally {
@@ -203,7 +203,7 @@ export class AICacheManager {
       }
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       // Notify waiting subscribers of the error
       const deduplicationEntry = this.requestDeduplication.get(cacheKey);
       if (deduplicationEntry) {
@@ -286,7 +286,7 @@ export class AICacheManager {
           this.stats = { ...this.stats, ...stats };
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to load cache from storage:', error);
     }
   }
@@ -303,7 +303,7 @@ export class AICacheManager {
         
         localStorage.setItem('ai-cache', JSON.stringify(dataToStore));
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to save cache to storage:', error);
     }
   }

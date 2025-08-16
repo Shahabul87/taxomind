@@ -166,7 +166,7 @@ export class DatabaseRouter {
       },
       {
         name: 'analytics-queries',
-        condition: (ctx) => ctx.model === 'analytics' || ctx.operation?.includes('aggregate') || ctx.operation?.includes('count'),
+        condition: (ctx) => ctx.model === 'analytics' || (ctx.operation?.includes('aggregate') ?? false) || (ctx.operation?.includes('count') ?? false),
         target: 'replica',
         priority: 15,
         description: 'Analytics queries use replicas',
@@ -174,7 +174,7 @@ export class DatabaseRouter {
       },
       {
         name: 'reporting-queries',
-        condition: (ctx) => ctx.tags?.includes('reporting') || ctx.operation?.includes('report'),
+        condition: (ctx) => (ctx.tags?.includes('reporting') ?? false) || (ctx.operation?.includes('report') ?? false),
         target: 'replica',
         priority: 16,
         description: 'Reporting queries use replicas',
@@ -316,7 +316,7 @@ export class DatabaseRouter {
       this.recordQuerySuccess(context.preferredReplica || 'default');
       
       return result;
-    } catch (error) {
+    } catch (error: any) {
       const responseTime = Date.now() - startTime;
       
       // Update error metrics
@@ -440,7 +440,7 @@ export class DatabaseRouter {
     try {
       const redisTimestamp = await this.redis.get(`write_timestamp:${key}`);
       if (redisTimestamp) {
-        const writeTime = parseInt(redisTimestamp);
+        const writeTime = parseInt(redisTimestamp as string);
         const timeSinceWrite = Date.now() - writeTime;
         const consistencyWindow = 5000; // 5 seconds
         
@@ -450,7 +450,7 @@ export class DatabaseRouter {
           return true;
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('[DB_ROUTER] Failed to check distributed consistency:', error);
     }
     
@@ -606,7 +606,7 @@ export class DatabaseRouter {
       
       await this.redis.lpush('slow_queries', JSON.stringify(slowQueryData));
       await this.redis.ltrim('slow_queries', 0, 999); // Keep last 1000 entries
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('[DB_ROUTER] Failed to log slow query:', error);
     }
   }
@@ -641,7 +641,7 @@ export class DatabaseRouter {
     this.metricsCollectionInterval = setInterval(async () => {
       try {
         await this.collectAndPersistMetrics();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('[DB_ROUTER] Metrics collection failed:', error);
       }
     }, 60000); // Every minute
@@ -671,7 +671,7 @@ export class DatabaseRouter {
       
       await this.redis.setex('db_router_metrics', 300, JSON.stringify(metrics));
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[DB_ROUTER] Failed to persist metrics:', error);
     }
   }
@@ -859,7 +859,7 @@ export class DatabaseRouter {
     // Persist final metrics
     try {
       await this.collectAndPersistMetrics();
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('[DB_ROUTER] Failed to persist final metrics:', error);
     }
     
@@ -998,7 +998,6 @@ export class RoutedDatabaseOperations {
       (client) => (client as any)[model].aggregate(args),
       {
         model,
-        operation: 'aggregate',
         ...options,
       }
     );
@@ -1019,7 +1018,6 @@ export class RoutedDatabaseOperations {
       (client) => (client as any)[model].count(args),
       {
         model,
-        operation: 'count',
         ...options,
       }
     );

@@ -57,7 +57,7 @@ export default function JobMarketMappingInterface() {
 }
       });
       setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch job market data:', error);
       setIsLoading(false);
     }
@@ -83,7 +83,7 @@ export default function JobMarketMappingInterface() {
       if (result.success) {
         await fetchJobMarketData();
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to generate mapping:', error);
     }
     setIsGenerating(false);
@@ -96,7 +96,7 @@ export default function JobMarketMappingInterface() {
       if (result.success) {
         setJobMarketData(prev => prev ? { ...prev, salaryInsights: result.insights } : null);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get salary insights:', error);
     }
   };

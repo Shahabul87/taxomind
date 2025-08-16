@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { BloomsLevel, QuestionType, QuestionQuestionDifficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionDifficulty, Prisma } from '@prisma/client';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { logger } from '@/lib/logger';
 
@@ -32,7 +32,7 @@ export interface EnhancedQuestion {
   text: string;
   questionType: QuestionType;
   bloomsLevel: BloomsLevel;
-  difficulty: QuestionQuestionDifficulty;
+  difficulty: QuestionDifficulty;
   options?: string[];
   correctAnswer: any;
   explanation: string;
@@ -53,7 +53,7 @@ export interface ExamMetadata {
   totalPoints: number;
   estimatedDuration: number;
   bloomsDistribution: Record<BloomsLevel, number>;
-  difficultyDistribution: Record<QuestionQuestionDifficulty, number>;
+  difficultyDistribution: Record<QuestionDifficulty, number>;
   topicsCovered: string[];
   learningObjectives: string[];
 }
@@ -66,7 +66,7 @@ export interface BloomsComparison {
 }
 
 export interface AdaptiveSettings {
-  startingQuestionDifficulty: QuestionQuestionDifficulty;
+  startingQuestionDifficulty: QuestionDifficulty;
   adjustmentRules: AdaptiveRule[];
   performanceThresholds: PerformanceThreshold[];
   minQuestions: number;
@@ -293,7 +293,7 @@ export class AdvancedExamEngine {
       
       const bloomsCount = selected.filter(q => q.bloomsLevel === question.bloomsLevel).length;
       const targetBloomsCount = Math.ceil(
-        (config.bloomsDistribution[question.bloomsLevel] / 100) * config.totalQuestions
+        (config.bloomsDistribution[(question.bloomsLevel as BloomsLevel)] / 100) * config.totalQuestions
       );
       
       if (bloomsCount < targetBloomsCount) {
@@ -327,7 +327,7 @@ export class AdvancedExamEngine {
     };
   }
 
-  private calculatePoints(difficulty: QuestionQuestionDifficulty, bloomsLevel: BloomsLevel): number {
+  private calculatePoints(difficulty: QuestionDifficulty, bloomsLevel: BloomsLevel): number {
     const difficultyPoints = {
       EASY: 1,
       MEDIUM: 2,
@@ -343,7 +343,7 @@ export class AdvancedExamEngine {
       CREATE: 2.5,
     };
     
-    return Math.round(difficultyPoints[difficulty] * bloomsMultiplier[bloomsLevel]);
+    return Math.round(difficultyPoints[difficulty as keyof typeof difficultyPoints] * bloomsMultiplier[bloomsLevel]);
   }
 
   private mapBloomsToCognitiveProcess(level: BloomsLevel): string {
@@ -407,8 +407,8 @@ Generate ${count} questions following the distribution requirements.`;
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4000,
       temperature: 0.8,
+      system: systemPrompt,
       messages: [
-        { role: 'system', content: systemPrompt },
         { role: 'user', content: `Generate ${count} exam questions with the specified requirements.` }
       ],
     });
@@ -428,7 +428,7 @@ Generate ${count} questions following the distribution requirements.`;
     }
 
     if (courseId) {
-      const course = await db.Course.findUnique({
+      const course = await db.course.findUnique({
         where: { id: courseId },
         include: {
           chapters: {
@@ -447,7 +447,7 @@ Generate ${count} questions following the distribution requirements.`;
 
       if (course) {
         return `
-Course: ${course.title}
+course: ${course.title}
 Description: ${course.description || 'No description'}
 Chapters: ${course.chapters.map(ch => ch.title).join(', ')}
 Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', ')}
@@ -538,7 +538,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
     const type = line.toLowerCase();
     if (type.includes('choice')) return 'MULTIPLE_CHOICE';
     if (type.includes('true') || type.includes('false')) return 'TRUE_FALSE';
-    if (type.includes('fill')) return 'FILL_IN_THE_BLANK';
+    if (type.includes('fill')) return 'FILL_IN_BLANK';
     if (type.includes('short')) return 'SHORT_ANSWER';
     if (type.includes('essay')) return 'ESSAY';
     return 'MULTIPLE_CHOICE';
@@ -555,7 +555,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
     return 'UNDERSTAND';
   }
 
-  private parseQuestionDifficulty(line: string): QuestionQuestionDifficulty {
+  private parseQuestionDifficulty(line: string): QuestionDifficulty {
     const upper = line.toUpperCase();
     if (upper.includes('EASY')) return 'EASY';
     if (upper.includes('HARD')) return 'HARD';
@@ -806,7 +806,7 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
     };
   }
 
-  private determineStartingQuestionDifficulty(studentAnalysis: any): QuestionQuestionDifficulty {
+  private determineStartingQuestionDifficulty(studentAnalysis: any): QuestionDifficulty {
     if (!studentAnalysis) return 'MEDIUM';
     
     const overallLevel = studentAnalysis.overallLevel || 50;
@@ -990,10 +990,65 @@ Topics: ${course.chapters.flatMap(ch => ch.sections.map(s => s.title)).join(', '
         targetDistribution,
         actualDistribution,
         difficultyMatrix,
-        skillsAssessed,
-        coverageMap,
+        skillsAssessed: skillsAssessed as unknown as Prisma.InputJsonValue,
+        coverageMap: coverageMap as unknown as Prisma.InputJsonValue,
       },
     });
+  }
+
+  // Generate metadata for the created exam
+  private generateMetadata(
+    questions: EnhancedQuestion[],
+    config: ExamGenerationConfig
+  ): ExamMetadata {
+    const totalQuestions = questions.length;
+    const totalPoints = questions.reduce((sum, q) => sum + (q.points || 0), 0);
+    const estimatedDuration = questions.reduce((sum, q) => sum + (q.timeEstimate || 0), 0);
+
+    const bloomsDistribution: Record<BloomsLevel, number> = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0,
+    };
+    const difficultyDistribution: Record<QuestionDifficulty, number> = {
+      EASY: 0,
+      MEDIUM: 0,
+      HARD: 0,
+    };
+
+    const topics = new Set<string>();
+
+    questions.forEach((q) => {
+      bloomsDistribution[q.bloomsLevel]++;
+      difficultyDistribution[q.difficulty]++;
+      q.tags.forEach((t) => topics.add(t));
+    });
+
+    // Convert counts to percentages for Bloom's
+    const bloomsPercent: Record<BloomsLevel, number> = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0,
+    };
+    (Object.keys(bloomsDistribution) as BloomsLevel[]).forEach((lvl) => {
+      bloomsPercent[lvl] = totalQuestions > 0 ? (bloomsDistribution[lvl] / totalQuestions) * 100 : 0;
+    });
+
+    return {
+      totalQuestions,
+      totalPoints,
+      estimatedDuration,
+      bloomsDistribution: bloomsPercent,
+      difficultyDistribution,
+      topicsCovered: Array.from(topics),
+      learningObjectives: [],
+    };
   }
 
   private calculateActualDistribution(questions: EnhancedQuestion[]): Record<BloomsLevel, number> {

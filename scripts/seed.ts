@@ -1,7 +1,7 @@
 //discussed in 3:25:00 in video tutorial
 // shutdown app with cntrl+c and the write command node scripts/seed.ts
 
-const { PrismaClient } = require("@prisma/client");
+import { PrismaClient } from "@prisma/client";
 
 const database = new PrismaClient();
 
@@ -40,7 +40,7 @@ async function main() {
     });
 
     console.log("Success");
-  } catch (error) {
+  } catch (error: any) {
     console.log("Error seeding the database categories", error);
   } finally {
     await database.$disconnect();

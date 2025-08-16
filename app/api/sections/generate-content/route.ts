@@ -1,36 +1,30 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { withAdminAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
-import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-export async function POST(req: Request) {
+export const POST = withAdminAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-
-    // Get current user
-    const user = await currentUser();
-    
-    if (!user?.id) {
-
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-    
     // Check user role
     const dbUser = await db.user.findUnique({
-      where: { id: user.id },
+      where: { id: context.user.id },
       select: { id: true, email: true, role: true }
     });
     
     const userRole = dbUser?.role;
     
     if (userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-
       return new NextResponse(`Forbidden - Teachers only. Your role: ${userRole}`, { status: 403 });
     }
     
-    const body = await req.json();
+    const body = await request.json();
     const { 
       sectionId, 
       chapterId, 
@@ -45,7 +39,7 @@ export async function POST(req: Request) {
     const course = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: user.id,
+        userId: context.user.id,
       },
       include: {
         chapters: {
@@ -76,7 +70,7 @@ export async function POST(req: Request) {
       generatedContent = await generateContentByType(section, contentType, context);
     }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       content: generatedContent,
       contentType,
       enhancement,
@@ -91,12 +85,11 @@ export async function POST(req: Request) {
       logger.error("[SECTION_GENERATION] Error stack:", error.stack);
     }
     
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return createErrorResponse(ApiError.internal("Internal Server Error"));
   }
-}
+});
 
 async function generateContentByType(section: any, contentType: string, context: any): Promise<string> {
-
   switch (contentType) {
     case 'video':
       return await generateVideoContent(section, context);
@@ -299,7 +292,8 @@ class ${section.title.replace(/\s+/g, '')} {
   setup() {
     // Configuration logic here
     if (this.options.debug) {
-}
+      console.log('Debug mode enabled');
+    }
   }
 
   // Main processing method
@@ -665,7 +659,6 @@ By mastering ${section.title}, you'll be well-prepared to tackle the challenges 
 }
 
 async function generateEnhancementContent(section: any, enhancement: string, context: any): Promise<string> {
-
   switch (enhancement) {
     case 'clarity':
       return await generateClarityEnhancement(section, context);

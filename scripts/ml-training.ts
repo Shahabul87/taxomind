@@ -63,7 +63,7 @@ async function main() {
         process.exit(1);
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Training failed:', error);
     process.exit(1);
   }

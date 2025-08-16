@@ -51,44 +51,6 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
   // Get page from URL or default to 1
   const page = parseInt(searchParams.get('page') || '1');
   
-  // Add useEffect to handle session errors
-  useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (status === 'error') {
-      logger.error("Session fetch error detected");
-      setIsSessionError(true);
-    } else {
-      setIsSessionError(false);
-    }
-  }, [status]);
-
-  // Fetch comments when page or sort changes
-  useEffect(() => {
-    if (page !== pagination.page || initialComments.length === 0) {
-      fetchComments(page, sortBy);
-    }
-  }, [page, sortBy, fetchComments, pagination.page, initialComments.length]);
-
-  // Handle URL parameter changes (for browser back/forward navigation)
-  useEffect(() => {
-    // Get sort parameter from URL
-    const urlSortBy = searchParams.get('sortBy') as SortOption;
-    
-    // If sort parameter exists and is different from current, update it
-    if (urlSortBy && urlSortBy !== sortBy) {
-      setSortBy(urlSortBy);
-    }
-    
-    // Get page from URL
-    const urlPage = parseInt(searchParams.get('page') || '1');
-    
-    // Fetch comments if the page or sort has changed
-    if (urlPage !== pagination.page || (urlSortBy && urlSortBy !== sortBy)) {
-      fetchComments(urlPage, urlSortBy || sortBy);
-    }
-  }, [searchParams, sortBy, pagination.page, fetchComments]);
-
   const updateUrlWithPage = useCallback((newPage: number) => {
     // Create new URLSearchParams object
     const params = new URLSearchParams(searchParams.toString());
@@ -173,13 +135,48 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       if (window.location.search.indexOf(`page=${pageToFetch}`) === -1) {
         updateUrlWithPage(pageToFetch);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching comments:", error);
       toast.error("Failed to load comments");
     } finally {
       setIsLoading(false);
     }
   }, [postId, updateUrlWithPage]);
+
+  // Add useEffect to handle session errors
+  useEffect(() => {
+    if (status === 'loading') return;
+    
+    // Session doesn't have 'error' status, only 'loading', 'authenticated', 'unauthenticated'
+    // We can consider unauthenticated as a non-error state
+    setIsSessionError(false);
+  }, [status]);
+
+  // Fetch comments when page or sort changes
+  useEffect(() => {
+    if (page !== pagination.page || initialComments.length === 0) {
+      fetchComments(page, sortBy);
+    }
+  }, [page, sortBy, fetchComments, pagination.page, initialComments.length]);
+
+  // Handle URL parameter changes (for browser back/forward navigation)
+  useEffect(() => {
+    // Get sort parameter from URL
+    const urlSortBy = searchParams.get('sortBy') as SortOption;
+    
+    // If sort parameter exists and is different from current, update it
+    if (urlSortBy && urlSortBy !== sortBy) {
+      setSortBy(urlSortBy);
+    }
+    
+    // Get page from URL
+    const urlPage = parseInt(searchParams.get('page') || '1');
+    
+    // Fetch comments if the page or sort has changed
+    if (urlPage !== pagination.page || (urlSortBy && urlSortBy !== sortBy)) {
+      fetchComments(urlPage, urlSortBy || sortBy);
+    }
+  }, [searchParams, sortBy, pagination.page, fetchComments]);
 
   // Handle page change
   const handlePageChange = (newPage: number) => {
@@ -210,7 +207,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       fetchComments(1, sortBy);
       
       toast.success("Comment added");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error adding comment:", error);
       
       // Handle rate limit errors
@@ -259,7 +256,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       );
       
       toast.success("Reply added");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error adding reply:", error);
       toast.error("Failed to add reply");
     }
@@ -279,7 +276,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
     try {
       // Check if it's a top-level comment or a reply by looking at our current state
       const isTopLevelComment = comments.some(c => c.id === commentId);
-      let updatedComment;
+      let updatedComment: any;
       
       if (isTopLevelComment) {
         // It's a top-level comment - use the standard endpoint
@@ -401,7 +398,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       }
       
       toast.success("Comment updated");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error updating comment/reply:", error);
       
       // More detailed error messages
@@ -525,7 +522,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       }
       
       toast.success("Comment deleted");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error deleting comment/reply:", error);
       
       // More detailed error messages
@@ -554,7 +551,7 @@ export const CommentSection = ({ postId, initialComments = [] }: CommentSectionP
       // The API call is handled by the ReactionButton component, 
       // but we're providing this function for consistent interface
       return;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error reacting to comment:", error);
       toast.error("Failed to react to comment");
       throw error;

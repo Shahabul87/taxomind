@@ -272,7 +272,6 @@ export class SAMFinancialEngine {
       },
       include: {
         Course: true,
-        user: true,
       },
     });
 
@@ -284,7 +283,7 @@ export class SAMFinancialEngine {
         },
       },
       include: {
-        subscriptionPlan: true,
+        SubscriptionService: true,
       },
     });
 
@@ -337,14 +336,11 @@ export class SAMFinancialEngine {
     // Estimate costs based on usage and infrastructure
     const totalStudents = await db.user.count({
       where: {
-        metadata: {
-          path: ["organizationId"],
-          equals: organizationId,
-        },
+        email: { contains: `@${organizationId}.` },
       },
     });
 
-    const totalCourses = await db.Course.count();
+    const totalCourses = await db.course.count();
 
     // Cost estimates (these would typically come from actual expense tracking)
     const infrastructureCosts = totalStudents * 2.5; // $2.50 per student per month
@@ -456,7 +452,7 @@ export class SAMFinancialEngine {
     organizationId: string
   ): Promise<PricingAnalysis> {
     // Get current pricing data
-    const courses = await db.Course.findMany({
+    const courses = await db.course.findMany({
       include: {
         Purchase: true,
       },
@@ -490,27 +486,20 @@ export class SAMFinancialEngine {
     const subscriptions = await db.userSubscription.findMany({
       where: {
         OR: [
-          { status: "active" },
-          {
-            endDate: {
-              gte: dateRange.start,
-              lte: dateRange.end,
-            },
-          },
+          { isActive: true },
+          { endDate: { gte: dateRange.start, lte: dateRange.end } },
         ],
       },
       include: {
-        subscriptionPlan: true,
+        SubscriptionService: true,
       },
     });
 
-    const activeSubscribers = subscriptions.filter(
-      (s) => s.status === "active"
-    ).length;
+    const activeSubscribers = subscriptions.filter((s) => s.isActive).length;
 
     const monthlyRecurringRevenue = subscriptions
-      .filter((s) => s.status === "active")
-      .reduce((sum, s) => sum + (s.subscriptionPlan?.price || 0), 0);
+      .filter((s) => s.isActive)
+      .reduce((sum, s) => sum + (s.cost || 0), 0);
 
     const annualRecurringRevenue = monthlyRecurringRevenue * 12;
 
@@ -811,11 +800,11 @@ export class SAMFinancialEngine {
   // Helper methods
   private calculateTotalRevenue(purchases: any[], subscriptions: any[]): number {
     const purchaseRevenue = purchases.reduce(
-      (sum, p) => sum + (p.course?.price || 0),
+      (sum, p) => sum + (p.Course?.price || 0),
       0
     );
     const subscriptionRevenue = subscriptions.reduce(
-      (sum, s) => sum + (s.subscriptionPlan?.price || 0),
+      (sum, s) => sum + (s.cost || 0),
       0
     );
     return purchaseRevenue + subscriptionRevenue;
@@ -835,8 +824,8 @@ export class SAMFinancialEngine {
 
     // Categorize purchases
     purchases.forEach((p) => {
-      const category = p.course?.category?.name || "Uncategorized";
-      sources.set(category, (sources.get(category) || 0) + (p.course?.price || 0));
+      const category = (p.Course as any)?.category?.name || "Uncategorized";
+      sources.set(category, (sources.get(category) || 0) + (p.Course?.price || 0));
     });
 
     // Add subscription revenue
@@ -875,10 +864,7 @@ export class SAMFinancialEngine {
   ): Promise<number> {
     const activeUsers = await db.user.count({
       where: {
-        metadata: {
-          path: ["organizationId"],
-          equals: organizationId,
-        },
+        email: { contains: `@${organizationId}.` },
         Enrollment: {
           some: {},
         },
@@ -909,7 +895,7 @@ export class SAMFinancialEngine {
     organizationId: string,
     dateRange: { start: Date; end: Date }
   ): Promise<CourseProfitability[]> {
-    const courses = await db.Course.findMany({
+    const courses = await db.course.findMany({
       include: {
         Purchase: {
           where: {
@@ -965,10 +951,7 @@ export class SAMFinancialEngine {
   ): Promise<number> {
     return await db.user.count({
       where: {
-        metadata: {
-          path: ["organizationId"],
-          equals: organizationId,
-        },
+        email: { contains: `@${organizationId}.` },
         createdAt: {
           gte: dateRange.start,
           lte: dateRange.end,

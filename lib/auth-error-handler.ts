@@ -13,7 +13,7 @@ export const refreshSession = async () => {
   try {
     // Clear session and redirect to login
     await signOut({ redirect: true, callbackUrl: '/auth/login' });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error refreshing session:', error);
     // Force reload as fallback
     window.location.href = '/auth/login';

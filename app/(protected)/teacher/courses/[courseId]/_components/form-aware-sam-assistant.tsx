@@ -223,7 +223,7 @@ export function FormAwareSamAssistant({
         toast.success("Learning objectives updated!");
         router.refresh();
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update learning objectives:', error);
       toast.error('Failed to update learning objectives');
     }
@@ -282,7 +282,7 @@ export function FormAwareSamAssistant({
         toast.success(`${chapters.length} chapters created!`);
         router.refresh();
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update chapters:', error);
       toast.error('Failed to update chapters');
     }
@@ -304,7 +304,7 @@ export function FormAwareSamAssistant({
         toast.success("Title updated!");
         router.refresh();
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update title:', error);
       toast.error('Failed to update title');
     }
@@ -326,7 +326,7 @@ export function FormAwareSamAssistant({
         toast.success("Description updated!");
         router.refresh();
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update description:', error);
       toast.error('Failed to update description');
     }
@@ -345,7 +345,7 @@ export function FormAwareSamAssistant({
       
       toast.success(`${chapterIds.length} chapters deleted!`);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to delete chapters:', error);
       toast.error('Failed to delete chapters');
     }

@@ -77,7 +77,7 @@ export class MarketAnalysisEngine {
     includeRecommendations = true
   ): Promise<MarketAnalysisResponse> {
     // Get course data
-    const course = await db.Course.findUnique({
+    const course = await db.course.findUnique({
       where: { id: courseId },
       include: {
         category: true,
@@ -87,7 +87,7 @@ export class MarketAnalysisEngine {
           },
         },
         Purchase: true,
-        Enrollment: true,
+        enrollment: true,
         reviews: true,
       },
     });
@@ -120,7 +120,7 @@ export class MarketAnalysisEngine {
   }
 
   private async performAnalysis(
-    Course: any,
+    course: any,
     analysisType: string,
     includeRecommendations: boolean
   ): Promise<MarketAnalysisResponse> {
@@ -134,7 +134,7 @@ export class MarketAnalysisEngine {
 - Current Price: $${course.price || 0}
 - Chapters: ${course.chapters.length}
 - Total Sections: ${course.chapters.reduce((sum: number, ch: any) => sum + ch.sections.length, 0)}
-- Enrollments: ${course.Enrollment.length}
+- Enrollments: ${course.enrollment.length}
 - Purchases: ${course.Purchase.length}
 - Average Rating: ${this.calculateAverageRating(course.reviews)}
 
@@ -162,8 +162,7 @@ Focus on ${analysisType} analysis${includeRecommendations ? ' with detailed reco
       max_tokens: 4000,
       temperature: 0.7,
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: 'user', content: `${systemPrompt}\n\n${userPrompt}` }
       ],
     });
 
@@ -173,7 +172,7 @@ Focus on ${analysisType} analysis${includeRecommendations ? ' with detailed reco
     return this.parseAnalysisResponse(analysisText, course);
   }
 
-  private buildCourseContext(Course: any): string {
+  private buildCourseContext(course: any): string {
     const totalSections = course.chapters.reduce((sum: number, ch: any) => sum + ch.sections.length, 0);
     const avgRating = this.calculateAverageRating(course.reviews);
     
@@ -185,7 +184,7 @@ Course Information:
 - Price: $${course.price || 0}
 - Published: ${course.isPublished ? 'Yes' : 'No'}
 - Structure: ${course.chapters.length} chapters, ${totalSections} sections
-- Engagement: ${course.Enrollment.length} enrollments, ${course.Purchase.length} purchases
+- Engagement: ${course.enrollment.length} enrollments, ${course.Purchase.length} purchases
 - Rating: ${avgRating.toFixed(1)}/5 (${course.reviews.length} reviews)
 - Created: ${course.createdAt.toISOString()}
 - Last Updated: ${course.updatedAt.toISOString()}
@@ -204,7 +203,7 @@ ${this.extractTargetSkills(course)}
     return sum / reviews.length;
   }
 
-  private extractTargetSkills(Course: any): string {
+  private extractTargetSkills(course: any): string {
     // Extract skills from course content and structure
     const skills: string[] = [];
     
@@ -218,7 +217,7 @@ ${this.extractTargetSkills(course)}
     return skills.length > 0 ? skills.join(', ') : 'General Skills';
   }
 
-  private parseAnalysisResponse(analysisText: string, Course: any): MarketAnalysisResponse {
+  private parseAnalysisResponse(analysisText: string, course: any): MarketAnalysisResponse {
     try {
       // Try to parse as JSON first
       const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
@@ -309,7 +308,7 @@ ${this.extractTargetSkills(course)}
         name: 'Generic Competitor Course',
         price: 59.99,
         rating: 4.5,
-        Enrollment: 10000,
+        enrollments: 10000,
         strengths: ['Established brand', 'Large student base'],
         weaknesses: ['Less personalized', 'Outdated content'],
         features: ['Video lessons', 'Quizzes', 'Certificate'],
@@ -464,7 +463,7 @@ ${this.extractTargetSkills(course)}
       url: c.competitorUrl || undefined,
       price: c.price,
       rating: c.rating || undefined,
-      Enrollment: c.Enrollment || undefined,
+      enrollments: c.enrollments || undefined,
       strengths: c.strengths as string[],
       weaknesses: c.weaknesses as string[],
       features: c.features as string[],
@@ -482,7 +481,7 @@ ${this.extractTargetSkills(course)}
         competitorUrl: competitorData.url,
         price: competitorData.price || 0,
         rating: competitorData.rating,
-        Enrollment: competitorData.Enrollment,
+        enrollments: competitorData.enrollments,
         features: competitorData.features || [],
         strengths: competitorData.strengths || [],
         weaknesses: competitorData.weaknesses || [],

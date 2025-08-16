@@ -176,6 +176,8 @@ export class AuditSystem {
         environment: this.getEnvironment()
       },
       success: true,
+      sensitive: false,
+      pii_involved: false,
       metadata
     });
   }
@@ -202,6 +204,7 @@ export class AuditSystem {
       },
       success: true,
       sensitive: true,
+      pii_involved: false,
       metadata
     });
   }
@@ -258,6 +261,8 @@ export class AuditSystem {
         environment: this.getEnvironment()
       },
       success,
+      sensitive: false,
+      pii_involved: false,
       error_message: error,
       duration,
       metadata
@@ -285,6 +290,8 @@ export class AuditSystem {
         environment: this.getEnvironment()
       },
       success: true,
+      sensitive: false,
+      pii_involved: false,
       metadata
     });
   }

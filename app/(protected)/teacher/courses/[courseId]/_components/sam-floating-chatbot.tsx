@@ -310,7 +310,7 @@ export function SamFloatingChatbot({
         toast.success('Content generated with synchronization data!');
       }
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error sending message to SAM:', error);
       
       // Fallback error message

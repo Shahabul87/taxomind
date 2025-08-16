@@ -28,7 +28,7 @@ export const EnhancedCourseCreationPage = () => {
       // Redirect to the new course or courses list
       router.push("/teacher/courses");
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Course creation error:", error);
       toast.error("Failed to create course. Please try again.");
     } finally {

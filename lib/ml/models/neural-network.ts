@@ -11,7 +11,7 @@ interface NeuralNetworkWeights {
 }
 
 export class NeuralNetworkModel extends BaseMLModel {
-  private weights: NeuralNetworkWeights | null = null;
+  protected weights: NeuralNetworkWeights | null = null;
   private inputSize: number = 55; // Total features
   private hiddenLayers: number[];
   private outputSize: number = 1;

@@ -109,7 +109,7 @@ export const MindsContent = ({ userId }: { userId: string }) => {
 
       // Refresh the mind maps list
       // You can implement this by refetching the data or updating the local state
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error saving mind map:', error);
       // You might want to show a toast notification here
     }

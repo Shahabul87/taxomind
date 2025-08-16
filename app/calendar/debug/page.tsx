@@ -21,7 +21,7 @@ export default function CalendarDebugPage() {
         setDebugInfo(data);
       } catch (err) {
         setError("Failed to load debug information");
-        logger.error(err);
+        logger.error('Failed to load debug information:', err);
       } finally {
         setLoading(false);
       }

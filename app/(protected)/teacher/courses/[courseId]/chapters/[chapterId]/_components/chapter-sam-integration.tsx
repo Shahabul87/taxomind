@@ -108,7 +108,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
           toast.success('Chapter title updated!');
           router.refresh();
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to update chapter title:', error);
         toast.error('Failed to update chapter title');
       }
@@ -141,7 +141,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
           toast.success('Chapter description updated!');
           router.refresh();
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to update chapter description:', error);
         toast.error('Failed to update chapter description');
       }
@@ -174,7 +174,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
           toast.success('Learning outcomes updated!');
           router.refresh();
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to update learning outcomes:', error);
         toast.error('Failed to update learning outcomes');
       }
@@ -190,7 +190,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
         });
         toast.success('Section created successfully!');
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to create section:', error);
         toast.error('Failed to create section');
       }
@@ -217,7 +217,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
         
         toast.success('All sections created successfully!');
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to create sections:', error);
         toast.error('Failed to create sections');
       }
@@ -231,7 +231,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
         });
         toast.success(`Chapter access updated to ${isFree ? 'free' : 'paid'}!`);
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to update chapter access:', error);
         toast.error('Failed to update chapter access');
       }
@@ -243,7 +243,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
         await axios.patch(`/api/courses/${courseId}/chapters/${chapterId}/publish`);
         toast.success('Chapter published successfully!');
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to publish chapter:', error);
         toast.error('Failed to publish chapter');
       }
@@ -255,7 +255,7 @@ export function ChapterSamIntegration({ chapter, courseId, chapterId }: ChapterS
         await axios.patch(`/api/courses/${courseId}/chapters/${chapterId}/unpublish`);
         toast.success('Chapter unpublished successfully!');
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to unpublish chapter:', error);
         toast.error('Failed to unpublish chapter');
       }

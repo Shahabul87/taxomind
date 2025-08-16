@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
@@ -107,22 +107,21 @@ interface CourseAnalytics {
 }
 
 // POST endpoint for comprehensive course analytics
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-    const user = await currentUser();
-    if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
 
     // Parse and validate request
-    const body = await req.json();
+    const body = await request.json();
     const parseResult = CourseOverviewRequestSchema.safeParse(body);
     
     if (!parseResult.success) {
-      return NextResponse.json(
+      return createSuccessResponse(
         { error: 'Invalid request format', details: parseResult.error.errors },
-        { status: 400 }
-      );
+        { status: 400 });
     }
 
     const { courseId, timeframe, includeDetailed } = parseResult.data;
@@ -131,7 +130,7 @@ export async function POST(req: NextRequest) {
     const course = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: user.id
+        userId: context.user.id
       },
       include: {
         chapters: {
@@ -167,10 +166,9 @@ export async function POST(req: NextRequest) {
     });
 
     if (!course) {
-      return NextResponse.json(
+      return createSuccessResponse(
         { error: 'Course not found or access denied' },
-        { status: 404 }
-      );
+        { status: 404 });
     }
 
     // Calculate timeframe filter
@@ -179,7 +177,7 @@ export async function POST(req: NextRequest) {
     // Generate comprehensive analytics
     const analytics = await generateCourseAnalytics(course, timeFilter, includeDetailed);
 
-    return NextResponse.json({
+    return createSuccessResponse({
       success: true,
       analytics,
       metadata: {
@@ -193,7 +191,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     logger.error('Teacher analytics error:', error);
-    return NextResponse.json(
+    return createSuccessResponse(
       { 
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
@@ -201,7 +199,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 function getTimeFilter(timeframe: string): Date {
   const now = new Date();
@@ -254,7 +252,10 @@ async function generateCourseAnalytics(course: any, timeFilter: Date, includeDet
         missedExams: 0,
         bloomsPerformance: {},
         difficultyPerformance: {
-}
+          EASY: { correct: 0, total: 0 },
+          MEDIUM: { correct: 0, total: 0 },
+          HARD: { correct: 0, total: 0 }
+        }
       });
     }
 

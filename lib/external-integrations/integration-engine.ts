@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { logger } from '@/lib/logger';
+import { ErrorType } from '@/lib/error-handling/types';
 import {
   ExternalIntegration,
   IntegrationConfiguration,
@@ -28,7 +29,7 @@ import {
   SyncFrequency,
   SyncStatus,
   Operation,
-  ErrorType,
+
   TransformationType,
   ValidationRuleType,
   ConflictResolutionStrategy,
@@ -36,7 +37,8 @@ import {
   AuthProvider,
   AnalyticsProvider,
   ContentProvider,
-  CommunicationProvider
+  CommunicationProvider,
+  WebhookEventType
 } from './types';
 
 export class IntegrationEngine {
@@ -196,14 +198,14 @@ export class IntegrationEngine {
       // Update integration metadata
       await this.updateIntegrationMetadata(integration, result);
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Sync operation failed:', error);
       
       syncOperation.status = 'failed';
       syncOperation.endTime = new Date();
       syncOperation.errorLog.push({
         recordId: 'operation',
-        errorType: 'system_error',
+        errorType: 'runtime' as any,
         errorCode: 'SYNC_FAILED',
         errorMessage: error.message,
         timestamp: new Date(),
@@ -242,7 +244,7 @@ export class IntegrationEngine {
       id: `webhook_${integrationId}_${Date.now()}`,
       integrationId,
       providerId: integration.providerId,
-      eventType,
+      eventType: eventType as WebhookEventType,
       payload,
       timestamp: new Date(),
       signature: signature || '',
@@ -404,16 +406,16 @@ export class IntegrationEngine {
 
     switch (authConfig.method) {
       case 'oauth2':
-        return await this.refreshOAuth2Token(integration, authConfig as OAuth2Config);
+        return await this.refreshOAuth2Token(integration, authConfig as unknown as OAuth2Config);
       
       case 'api_key':
-        return await this.validateAPIKey(integration, authConfig as APIKeyConfig);
+        return await this.validateAPIKey(integration, authConfig as unknown as APIKeyConfig);
       
       case 'jwt':
-        return await this.generateJWTToken(integration, authConfig as JWTConfig);
+        return await this.generateJWTToken(integration, authConfig as unknown as JWTConfig);
       
       case 'basic_auth':
-        return await this.validateBasicAuth(integration, authConfig as BasicAuthConfig);
+        return await this.validateBasicAuth(integration, authConfig as unknown as BasicAuthConfig);
       
       default:
         throw new Error(`Unsupported authentication method: ${authConfig.method}`);
@@ -460,7 +462,7 @@ export class IntegrationEngine {
         tokenType: tokenData.token_type || 'Bearer'
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('OAuth2 token refresh failed:', error);
       throw error;
     }
@@ -482,8 +484,7 @@ export class IntegrationEngine {
 
       const response = await fetch(testEndpoint, {
         method: 'GET',
-        headers,
-        timeout: integration.configuration.timeout
+        headers
       });
 
       if (response.ok) {
@@ -496,7 +497,7 @@ export class IntegrationEngine {
         throw new Error(`API key validation failed: ${response.statusText}`);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('API key validation failed:', error);
       throw error;
     }
@@ -629,8 +630,7 @@ export class IntegrationEngine {
           'Authorization': `Bearer ${token.accessToken || token.apiKey}`,
           'Content-Type': 'application/json',
           'User-Agent': 'LMS-Integration/1.0'
-        },
-        timeout: integration.configuration.timeout
+        }
       });
 
       if (!response.ok) {
@@ -639,7 +639,7 @@ export class IntegrationEngine {
 
       return await response.json();
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Provider data fetch failed:', error);
       throw error;
     }
@@ -686,8 +686,7 @@ export class IntegrationEngine {
           'Content-Type': 'application/json',
           'User-Agent': 'LMS-Integration/1.0'
         },
-        body: JSON.stringify(data),
-        timeout: integration.configuration.timeout
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
@@ -696,7 +695,7 @@ export class IntegrationEngine {
 
       return await response.json();
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Outbound sync failed:', error);
       throw error;
     }
@@ -745,7 +744,7 @@ export class IntegrationEngine {
           value: transformedValue
         });
 
-      } catch (error) {
+      } catch (error: any) {
         results.push({
           sourceField: mapping.sourceField,
           targetField: mapping.targetField,
@@ -802,7 +801,7 @@ export class IntegrationEngine {
         
         processedCount++;
 
-      } catch (error) {
+      } catch (error: any) {
         errorCount++;
         skippedCount++;
         logger.error('Transformation failed:', error);

@@ -109,7 +109,7 @@ export default function ExamResultsClient({ params }: ExamResultsClientProps) {
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching results:", error);
     } finally {
       setLoading(false);

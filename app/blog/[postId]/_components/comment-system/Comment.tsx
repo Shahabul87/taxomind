@@ -86,7 +86,7 @@ export const Comment = ({
   const [showAllReplies, setShowAllReplies] = useState(false);
   
   const isSessionLoading = sessionStatus === 'loading';
-  const hasSessionError = sessionStatus === 'error';
+  const hasSessionError = false; // Session doesn't have error state, only 'loading', 'authenticated', 'unauthenticated'
   
   // Debug logging
   useEffect(() => {
@@ -311,7 +311,7 @@ export const Comment = ({
       }
       
       setIsReplying(false);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error replying:", error);
       
       // Provide more detailed error messages
@@ -391,7 +391,7 @@ export const Comment = ({
       
       setIsEditing(false);
       toast.success("Update successful");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error updating comment/reply:", error);
       if (axios.isAxiosError(error)) {
         logger.error(`Status: ${error.response?.status}, Message: ${JSON.stringify(error.response?.data)}`);
@@ -455,7 +455,7 @@ export const Comment = ({
         // This is a regular comment or top-level reply
         await onDelete(localComment.id);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error deleting comment/reply:", error);
       
       // If deletion fails, restore the comment in UI
@@ -622,7 +622,7 @@ export const Comment = ({
           )}
 
           {/* Replies */}
-          {hasReplies && visibleReplies.length > 0 && (
+          {hasReplies && visibleReplies && visibleReplies.length > 0 && (
             <div className="mt-2">
               {visibleReplies.map((reply) => (
                 <Comment

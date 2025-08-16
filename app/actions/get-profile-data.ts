@@ -58,7 +58,7 @@ export async function getProfileData() {
         where: { userId: session.user.id }
       });
       enhancedData.socialMediaAccounts = socialAccounts;
-    } catch (error) {
+    } catch (error: any) {
       logger.warn("[GET_PROFILE_DATA] Social media accounts not available:", error);
     }
 
@@ -74,7 +74,7 @@ export async function getProfileData() {
         }
       });
       enhancedData.contentCollections = contentCollections;
-    } catch (error) {
+    } catch (error: any) {
       logger.warn("[GET_PROFILE_DATA] Content collections not available:", error);
     }
 
@@ -90,7 +90,7 @@ export async function getProfileData() {
         take: 20
       });
       enhancedData.contentItems = contentItems;
-    } catch (error) {
+    } catch (error: any) {
       logger.warn("[GET_PROFILE_DATA] Content items not available:", error);
     }
 
@@ -102,7 +102,7 @@ export async function getProfileData() {
         }
       });
       enhancedData.userSubscriptions = userSubscriptions;
-    } catch (error) {
+    } catch (error: any) {
       logger.warn("[GET_PROFILE_DATA] User subscriptions not available:", error);
     }
 
@@ -114,7 +114,7 @@ export async function getProfileData() {
         }
       });
       enhancedData.goals = goals;
-    } catch (error) {
+    } catch (error: any) {
       logger.warn("[GET_PROFILE_DATA] Goals not available:", error);
     }
 
@@ -127,13 +127,13 @@ export async function getProfileData() {
         take: 50
       });
       enhancedData.userAnalytics = userAnalytics;
-    } catch (error) {
+    } catch (error: any) {
       logger.warn("[GET_PROFILE_DATA] User analytics not available:", error);
     }
 
     return { ...userData, ...enhancedData };
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_PROFILE_DATA] Error fetching profile data:", error);
     return null;
   }

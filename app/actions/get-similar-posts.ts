@@ -31,7 +31,7 @@ export async function getSimilarPosts(postId: string, category: string | null) {
     });
 
     return similarPosts;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error fetching similar posts:", error);
     return [];
   }

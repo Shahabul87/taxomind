@@ -56,7 +56,7 @@ export const PublicSettingsPage = () => {
       newPassword: undefined,
       name: user?.name || undefined,
       email: user?.email || undefined,
-      role: user?.role || undefined,
+      role: (user?.role === 'ADMIN' || user?.role === 'USER') ? user.role : 'USER',
       isTwoFactorEnabled: user?.isTwoFactorEnabled || undefined,
     }
   });

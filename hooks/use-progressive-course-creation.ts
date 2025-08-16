@@ -75,7 +75,7 @@ export const useProgressiveCourseCreation = (userId?: string) => {
             adaptInterface(patterns);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to initialize user patterns:', error);
       }
     };
@@ -280,7 +280,7 @@ export const useProgressiveCourseCreation = (userId?: string) => {
           body: JSON.stringify(patterns),
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to save user patterns:', error);
     }
   }, [userId]);

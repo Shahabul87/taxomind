@@ -32,7 +32,7 @@ export default function TestLogout() {
       } else {
         addLog("No success flag in result");
       }
-    } catch (error) {
+    } catch (error: any) {
       addLog(`Server action error: ${error}`);
       logger.error("Server action logout error:", error);
     } finally {
@@ -51,7 +51,7 @@ export default function TestLogout() {
       });
       
       addLog("Client-side logout completed");
-    } catch (error) {
+    } catch (error: any) {
       addLog(`Client-side error: ${error}`);
       logger.error("Client-side logout error:", error);
     } finally {

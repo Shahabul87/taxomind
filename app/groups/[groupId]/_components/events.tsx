@@ -103,7 +103,7 @@ export const Events = ({ group, currentUser, isGroupMember }: EventsProps) => {
       });
       
       setEvents(mockEvents);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching events:", error);
     } finally {
       setIsLoading(false);

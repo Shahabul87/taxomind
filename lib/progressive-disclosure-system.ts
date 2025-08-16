@@ -17,7 +17,7 @@ export interface ProgressiveFeature {
   };
   contextualTriggers?: {
     pageViews: string[];
-    userActions: string[];
+    userActions?: string[];
     dataThresholds?: {
       [key: string]: number;
     };
@@ -171,7 +171,7 @@ export class ProgressiveDisclosureSystem {
           lastActivity: Date.now()
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to load progressive disclosure state:', error);
       // Clear corrupted data
       try {
@@ -202,7 +202,7 @@ export class ProgressiveDisclosureSystem {
 
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.userState));
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to save progressive disclosure state:', error);
     }
   }

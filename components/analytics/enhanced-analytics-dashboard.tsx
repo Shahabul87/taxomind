@@ -35,7 +35,7 @@ import {
   ComposedChart,
   ScatterChart,
   Scatter,
-  TreeMap,
+  Treemap,
   FunnelChart,
   Funnel,
   LabelList
@@ -763,7 +763,7 @@ export function EnhancedAnalyticsDashboard({
                     size="sm"
                     onClick={() => setChartType('area')}
                   >
-                    <PieChartIcon className="w-4 h-4" />
+                    <BarChart3 className="w-4 h-4" />
                   </Button>
                 </div>
               </CardHeader>
@@ -1115,7 +1115,7 @@ export function EnhancedAnalyticsDashboard({
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <TreeMap
+                  <Treemap
                     data={data.contentAnalytics.contentEngagement}
                     dataKey="value"
                     ratio={4/3}

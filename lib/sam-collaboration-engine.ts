@@ -284,14 +284,17 @@ export class SAMCollaborationEngine {
           chapterId,
           initiatorId,
           sessionType: type,
-          startTime: session.startTime,
+          startedAt: session.startTime,
           participants: JSON.stringify(session.participants),
           isActive: true,
+          contentId: courseId,
+          contentType: "COURSE",
+          activeParticipants: JSON.stringify(session.participants),
         },
       });
 
       return session;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error starting collaboration session:", error);
       throw new Error("Failed to start collaboration session");
     }
@@ -357,7 +360,7 @@ export class SAMCollaborationEngine {
       }
 
       return session;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error joining collaboration session:", error);
       throw new Error("Failed to join collaboration session");
     }
@@ -428,7 +431,7 @@ export class SAMCollaborationEngine {
           insights: JSON.stringify(session.insights),
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error recording contribution:", error);
       throw new Error("Failed to record contribution");
     }
@@ -463,7 +466,7 @@ export class SAMCollaborationEngine {
         contentAnalytics,
         networkAnalytics,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error analyzing collaboration:", error);
       throw new Error("Failed to analyze collaboration");
     }
@@ -522,7 +525,7 @@ export class SAMCollaborationEngine {
         currentSessions: activeSessions.length,
         activeUsers: activeUsers.size,
         messagesPerMinute: recentMessages,
-        averageResponseTime: await this.calculateAverageResponseTime(activeSessions),
+        averageResponseTime: this.calculateAverageResponseTime(activeSessions),
         collaborationHotspots: hotspots.sort((a, b) => b.activity - a.activity).slice(0, 5),
       };
 
@@ -530,7 +533,7 @@ export class SAMCollaborationEngine {
       this.metricsCache.set(cacheKey, metrics);
 
       return metrics;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error getting real-time metrics:", error);
       throw new Error("Failed to get real-time metrics");
     }
@@ -560,7 +563,7 @@ export class SAMCollaborationEngine {
       await db.collaborationSession.update({
         where: { sessionId },
         data: {
-          endTime: session.endTime,
+          endedAt: session.endTime,
           duration,
           isActive: false,
           participants: JSON.stringify(session.participants),
@@ -586,7 +589,7 @@ export class SAMCollaborationEngine {
       this.activeSessions.delete(sessionId);
 
       return session;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error ending collaboration session:", error);
       throw new Error("Failed to end collaboration session");
     }
@@ -709,11 +712,11 @@ export class SAMCollaborationEngine {
     session.activities.forEach((activity) => {
       if (activity.content?.topic) {
         const topicName = activity.content.topic;
-        const existing = topics.get(topicName) || {
+        const existing: Topic = topics.get(topicName) || {
           name: topicName,
           frequency: 0,
           sentiment: 0,
-          contributors: [],
+          contributors: [] as string[],
         };
 
         existing.frequency++;
@@ -927,9 +930,9 @@ export class SAMCollaborationEngine {
     return creativityScore;
   }
 
-  private async calculateAverageResponseTime(
+  private calculateAverageResponseTime(
     sessions: CollaborationSession[]
-  ): Promise<number> {
+  ): number {
     let totalResponseTime = 0;
     let responseCount = 0;
 
@@ -976,8 +979,8 @@ export class SAMCollaborationEngine {
     return {
       sessionId: dbSession.sessionId,
       participants: JSON.parse(dbSession.participants as string),
-      startTime: dbSession.startTime,
-      endTime: dbSession.endTime || undefined,
+      startTime: dbSession.startedAt,
+      endTime: dbSession.endedAt || undefined,
       activities: JSON.parse(dbSession.activities as string),
       metrics: JSON.parse(dbSession.metrics as string),
       insights: JSON.parse(dbSession.insights as string),

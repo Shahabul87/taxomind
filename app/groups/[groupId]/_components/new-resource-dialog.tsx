@@ -73,7 +73,7 @@ export const NewResourceDialog = ({
       await axios.post(`/api/groups/${groupId}/resources`, values);
       toast.success("Resource shared successfully!");
       onSuccess?.();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsSubmitting(false);

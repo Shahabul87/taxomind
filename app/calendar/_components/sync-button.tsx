@@ -65,7 +65,7 @@ export const SyncButton = ({
       };
       
       toast.success(messages[action]);
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error instanceof Error ? error.message : "Failed to sync calendar");
     } finally {
       setIsSyncing(false);

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AiOutlineCheck } from 'react-icons/ai';
+import { Check } from 'lucide-react';
 import { Course } from '@prisma/client';
 import { cleanHtmlContent } from '../utils/html-utils';
 
@@ -45,7 +45,7 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
             >
               <div className="flex-shrink-0 mt-0.5">
                 <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                  <AiOutlineCheck className="text-emerald-600 dark:text-emerald-400 text-sm" />
+                  <Check className="text-emerald-600 dark:text-emerald-400 text-sm" />
                 </div>
               </div>
               <span className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
@@ -84,7 +84,7 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
                     >
                       <div className="flex-shrink-0 mt-0.5">
                         <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                          <AiOutlineCheck className="text-emerald-600 dark:text-emerald-400 text-sm" />
+                          <Check className="text-emerald-600 dark:text-emerald-400 text-sm" />
                         </div>
                       </div>
                       <span className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">

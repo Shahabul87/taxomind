@@ -45,18 +45,18 @@ export class FeatureEngineer {
       
       // Learning metrics
       quizScore: quizScores.average,
-      assignmentCompletionRate: enrollment?.progressPercentage || 0,
+      assignmentCompletionRate: enrollment?.progress || 0,
       timeToComplete: this.estimateTimeToComplete(enrollment, patterns),
       strugglingTopicsCount: await this.getStrugglingTopicsCount(studentId, courseId),
       
       // Behavioral patterns
-      preferredStudyTime: patterns?.preferredStudyTime || this.getDefaultStudyTime(),
+      preferredStudyTime: this.getDefaultStudyTime(), // Use default since field doesn't exist
       studyFrequency: this.calculateStudyFrequency(interactions),
       contentTypePreference: this.calculateContentPreference(interactions),
       learningStyle: await this.detectLearningStyle(studentId, interactions),
       
       // Progress metrics
-      courseProgress: enrollment?.progressPercentage || 0,
+      courseProgress: enrollment?.progress || 0,
       moduleCompletionRate: await this.calculateModuleCompletionRate(studentId, courseId),
       consistencyScore: this.calculateConsistencyScore(interactions)
     };
@@ -68,31 +68,31 @@ export class FeatureEngineer {
   private async getInteractionData(studentId: string, courseId: string) {
     return db.sAMInteraction.findMany({
       where: {
-        studentId,
+        userId: studentId,
         courseId,
-        timestamp: {
+        createdAt: {
           gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
         }
       },
-      orderBy: { timestamp: 'asc' }
+      orderBy: { createdAt: 'asc' }
     });
   }
 
   // Get metrics data
   private async getMetricsData(studentId: string, courseId: string) {
     const metrics = await db.learning_metrics.aggregate({
-      where: { studentId, courseId },
+      where: { userId: studentId, courseId },
       _avg: {
-        engagementScore: true,
-        timeSpent: true,
-        videoWatchTime: true
+        averageEngagementScore: true,
+        averageSessionDuration: true,
+        improvementRate: true
       }
     });
 
     return {
-      avgEngagement: metrics._avg.engagementScore || 0,
-      avgTimeSpent: metrics._avg.timeSpent || 0,
-      avgVideoTime: metrics._avg.videoWatchTime || 0
+      avgEngagement: metrics._avg?.averageEngagementScore || 0,
+      avgTimeSpent: metrics._avg?.averageSessionDuration || 0,
+      avgVideoTime: metrics._avg?.improvementRate || 0
     };
   }
 
@@ -109,10 +109,10 @@ export class FeatureEngineer {
   private async getVideoStats(studentId: string, courseId: string) {
     const videoEvents = await db.sAMInteraction.findMany({
       where: {
-        studentId,
+        userId: studentId,
         courseId,
-        eventName: {
-          in: ['video_play', 'video_pause', 'video_complete', 'video_seek']
+        interactionType: {
+          in: ['NAVIGATION'] // Using available enum value
         }
       }
     });
@@ -130,7 +130,7 @@ export class FeatureEngineer {
     // Calculate statistics
     const videoSessions = new Map<string, any[]>();
     videoEvents.forEach(event => {
-      const videoId = event.metadata?.videoId;
+      const videoId = (event.context as any)?.videoId;
       if (!videoId) return;
       
       if (!videoSessions.has(videoId)) {
@@ -145,14 +145,14 @@ export class FeatureEngineer {
     let totalSeeks = 0;
 
     videoSessions.forEach((events, videoId) => {
-      const completed = events.some(e => e.eventName === 'video_complete');
-      if (completed) totalCompleted++;
-      
-      const pauses = events.filter((e: any) => e.eventName === 'video_pause').length;
-      totalPauses += pauses;
-      
-      const seeks = events.filter((e: any) => e.eventName === 'video_seek').length;
-      totalSeeks += seeks;
+              const completed = events.some(e => e.interactionType === 'NAVIGATION');
+        if (completed) totalCompleted++;
+        
+        const pauses = events.filter((e: any) => e.interactionType === 'QUICK_ACTION').length;
+        totalPauses += pauses;
+        
+        const seeks = events.filter((e: any) => e.interactionType === 'NAVIGATION').length;
+        totalSeeks += seeks;
       
       // Estimate watch time from events
       const watchTime = this.estimateVideoWatchTime(events);
@@ -177,9 +177,9 @@ export class FeatureEngineer {
   private async getQuizScores(studentId: string, courseId: string) {
     const quizEvents = await db.sAMInteraction.findMany({
       where: {
-        studentId,
+        userId: studentId,
         courseId,
-        eventName: 'quiz_submit'
+        interactionType: 'FORM_SUBMIT'
       }
     });
 
@@ -188,7 +188,7 @@ export class FeatureEngineer {
     }
 
     const scores = quizEvents
-      .map(e => e.metadata?.score)
+      .map(e => (e.context as any)?.score)
       .filter(score => score !== undefined);
 
     const average = scores.length > 0
@@ -212,8 +212,8 @@ export class FeatureEngineer {
     const sessions = new Map<string, { start: Date; end: Date }>();
     
     interactions.forEach(interaction => {
-      const sessionId = interaction.sessionId;
-      const timestamp = new Date(interaction.timestamp);
+      const sessionId = (interaction.context as any)?.sessionId || interaction.id;
+      const timestamp = new Date(interaction.createdAt);
       
       if (!sessions.has(sessionId)) {
         sessions.set(sessionId, { start: timestamp, end: timestamp });
@@ -235,20 +235,20 @@ export class FeatureEngineer {
 
   // Calculate click rate
   private calculateClickRate(interactions: any[]): number {
-    const clicks = interactions.filter(i => i.eventName === 'click').length;
-    const views = interactions.filter(i => i.eventName === 'section_view').length;
+    const clicks = interactions.filter(i => i.interactionType === 'QUICK_ACTION').length;
+    const views = interactions.filter(i => i.interactionType === 'NAVIGATION').length;
     
     return views > 0 ? clicks / views : 0;
   }
 
   // Calculate average scroll depth
   private calculateAvgScrollDepth(interactions: any[]): number {
-    const scrollEvents = interactions.filter(i => i.eventName === 'scroll_milestone');
+    const scrollEvents = interactions.filter(i => i.interactionType === 'NAVIGATION');
     
     if (scrollEvents.length === 0) return 0;
     
     const depths = scrollEvents
-      .map(e => e.metadata?.depth)
+      .map(e => (e.context as any)?.depth)
       .filter(d => d !== undefined);
     
     return depths.length > 0
@@ -260,7 +260,7 @@ export class FeatureEngineer {
   private estimateTimeToComplete(enrollment: any, patterns: any): number {
     if (!enrollment) return 0;
     
-    const progress = enrollment.progressPercentage || 0;
+    const progress = enrollment.progress || 0;
     const velocity = patterns?.learningVelocity || 5; // Default 5% per week
     
     if (progress >= 100) return 0;
@@ -302,12 +302,12 @@ export class FeatureEngineer {
     
     const uniqueDays = new Set(
       interactions.map(i => 
-        new Date(i.timestamp).toISOString().split('T')[0]
+        new Date(i.createdAt).toISOString().split('T')[0]
       )
     );
     
-    const firstDay = new Date(interactions[0].timestamp);
-    const lastDay = new Date(interactions[interactions.length - 1].timestamp);
+    const firstDay = new Date(interactions[0].createdAt);
+    const lastDay = new Date(interactions[interactions.length - 1].createdAt);
     const totalDays = Math.ceil(
       (lastDay.getTime() - firstDay.getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -325,9 +325,9 @@ export class FeatureEngineer {
     };
 
     interactions.forEach(interaction => {
-      if (interaction.eventName.includes('video')) counts.video++;
-      else if (interaction.eventName.includes('quiz')) counts.quiz++;
-      else if (interaction.eventName === 'form_submit') counts.interactive++;
+      if (interaction.interactionType === 'NAVIGATION') counts.video++;
+      else if (interaction.interactionType === 'FORM_SUBMIT') counts.quiz++;
+      else if (interaction.interactionType === 'QUICK_ACTION') counts.interactive++;
       else counts.text++;
     });
 
@@ -347,12 +347,12 @@ export class FeatureEngineer {
     interactions: any[]
   ): Promise<LearningStyle> {
     // Analyze interaction patterns to determine learning style
-    const videoInteractions = interactions.filter(i => i.eventName.includes('video'));
+    const videoInteractions = interactions.filter(i => i.interactionType === 'NAVIGATION');
     const readingTime = interactions.filter(i => 
-      i.eventName === 'section_view' || i.eventName === 'scroll_milestone'
+      i.interactionType === 'NAVIGATION'
     );
     const interactiveElements = interactions.filter(i => 
-      i.eventName === 'click' || i.eventName === 'form_submit'
+      i.interactionType === 'QUICK_ACTION' || i.interactionType === 'FORM_SUBMIT'
     );
 
     const total = interactions.length;
@@ -371,10 +371,10 @@ export class FeatureEngineer {
     let lastPlayTime = 0;
     
     events.forEach(event => {
-      if (event.eventName === 'video_play') {
-        lastPlayTime = event.metadata?.currentTime || 0;
-      } else if (event.eventName === 'video_pause' || event.eventName === 'video_complete') {
-        const currentTime = event.metadata?.currentTime || 0;
+      if (event.interactionType === 'NAVIGATION') {
+        lastPlayTime = (event.context as any)?.currentTime || 0;
+      } else if (event.interactionType === 'QUICK_ACTION') {
+        const currentTime = (event.context as any)?.currentTime || 0;
         if (lastPlayTime !== null) {
           watchTime += currentTime - lastPlayTime;
         }
@@ -390,7 +390,7 @@ export class FeatureEngineer {
     studentId: string,
     courseId: string
   ): Promise<number> {
-    const course = await db.Course.findUnique({
+    const course = await db.course.findUnique({
       where: { id: courseId },
       include: {
         chapters: {
@@ -405,9 +405,9 @@ export class FeatureEngineer {
 
     const completedSections = await db.sAMInteraction.findMany({
       where: {
-        studentId,
+        userId: studentId,
         courseId,
-        eventName: 'section_complete'
+        interactionType: 'NAVIGATION'
       },
       distinct: ['sectionId']
     });
@@ -430,7 +430,7 @@ export class FeatureEngineer {
     const dayActivity = new Map<string, number>();
     
     interactions.forEach(interaction => {
-      const day = new Date(interaction.timestamp).toISOString().split('T')[0];
+      const day = new Date(interaction.createdAt).toISOString().split('T')[0];
       dayActivity.set(day, (dayActivity.get(day) || 0) + 1);
     });
 

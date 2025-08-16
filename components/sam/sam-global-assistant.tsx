@@ -250,7 +250,7 @@ Which form would you like me to help you with? I can generate content based on t
       };
       
       setMessages(prev => [...prev, aiResponse]);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error handling quick action:', error);
       const errorResponse = {
         id: (Date.now() + 1).toString(),
@@ -340,7 +340,7 @@ Which form would you like me to help you with? I can generate content based on t
 
         setPageContext(context);
         generateQuickActions(context);
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error detecting page context:', error);
       }
     };
@@ -449,7 +449,7 @@ Which form would you like me to help you with? I can generate content based on t
       };
       
       setMessages(prev => [...prev, aiResponse]);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error sending message:', error);
       
       // Fallback to enhanced local response

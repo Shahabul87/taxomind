@@ -73,7 +73,7 @@ const ButtonWithClick = forwardRef<HTMLButtonElement, ButtonProps>(
         } else {
           toast.error("No metadata returned");
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error("Test fetch error:", error);
         toast.error("Error fetching metadata");
       }

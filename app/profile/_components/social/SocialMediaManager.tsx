@@ -135,7 +135,7 @@ export function SocialMediaManager({ userId, initialAccounts = [] }: SocialMedia
       } else {
         toast.error(result.error || "Failed to connect account");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("An error occurred while connecting the account");
     } finally {
       setLoading(false);
@@ -153,7 +153,7 @@ export function SocialMediaManager({ userId, initialAccounts = [] }: SocialMedia
         ));
         toast.success("Stats updated successfully!");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to update stats");
     }
   };
@@ -165,7 +165,7 @@ export function SocialMediaManager({ userId, initialAccounts = [] }: SocialMedia
         setAccounts(accounts.filter(acc => acc.id !== accountId));
         toast.success("Account disconnected successfully!");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to disconnect account");
     }
   };

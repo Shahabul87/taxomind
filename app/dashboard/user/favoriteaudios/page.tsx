@@ -17,7 +17,7 @@ export default async function FavoriteAudiosPage() {
     redirect("/auth/login");
   }
   
-  const favoriteAudios = userData.favoriteAudios || [];
+  const favoriteAudios = userData.FavoriteAudio || [];
   
   // Group audio by category
   const groupedAudios = favoriteAudios.reduce((acc: any, audio: any) => {

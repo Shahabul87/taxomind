@@ -81,7 +81,7 @@ export const EnterpriseAnalyticsDashboard: React.FC<EnterpriseAnalyticsDashboard
         setCourseAnalytics(course);
         setPlatformAnalytics(platform);
         setRealtimeMetrics(realtime);
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to load analytics:', error);
       } finally {
         setIsLoading(false);

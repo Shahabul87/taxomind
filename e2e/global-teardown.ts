@@ -21,7 +21,7 @@ async function globalTeardown(config: FullConfig) {
     
     console.log('✅ Global teardown completed successfully');
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Global teardown failed:', error);
     // Don't throw to avoid failing the entire test run
   }
@@ -47,7 +47,7 @@ async function cleanupAuthFiles() {
     
     console.log('✅ Authentication files cleaned up');
     
-  } catch (error) {
+  } catch (error: any) {
     // Directory might not exist or be empty
     console.log('ℹ️  No authentication files to clean up');
   }
@@ -87,7 +87,7 @@ async function cleanupTestData(config: FullConfig) {
       console.warn(`⚠️  Test data cleanup warning: ${response.status}`);
     }
     
-  } catch (error) {
+  } catch (error: any) {
     console.warn('⚠️  Could not cleanup test data via API:', error);
   }
 }
@@ -111,7 +111,7 @@ async function cleanupTempFiles() {
         // Only remove specific temporary files, not the entire directory
         await cleanupDirectory(dir);
       }
-    } catch (error) {
+    } catch (error: any) {
       // Directory doesn't exist, skip
       continue;
     }
@@ -143,7 +143,7 @@ async function cleanupDirectory(dirPath: string) {
       }
     }
     
-  } catch (error) {
+  } catch (error: any) {
     console.warn(`⚠️  Could not clean directory ${dirPath}:`, error);
   }
 }

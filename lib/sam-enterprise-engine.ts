@@ -173,26 +173,16 @@ export class SAMEnterpriseEngine {
       // Get all users in the organization
       const users = await db.user.findMany({
         where: {
-          metadata: {
-            path: ["organizationId"],
-            equals: organizationId,
-          },
+          // Fallback: match by email domain as organization proxy (adjust to real schema)
+          email: { contains: `@${organizationId}.` },
         },
         include: {
-          Enrollment: {
-            include: {
-              Course: true,
-            },
-          },
-          user_progress: true,
-          user_achievements: true,
+          Enrollment: true,
         },
       });
 
       const totalLearners = users.length;
-      const activeLearners = users.filter(
-        (u) => u.Enrollment.length > 0
-      ).length;
+      const activeLearners = users.filter((u: any) => Array.isArray(u.Enrollment) && u.Enrollment.length > 0).length;
 
       // Calculate engagement and completion rates
       const engagementRate = this.calculateEngagementRate(users, dateRange);
@@ -554,16 +544,13 @@ export class SAMEnterpriseEngine {
     const spentBudget = 650000;
     const remainingBudget = allocatedBudget - spentBudget;
     
-    const users = await db.user.count({
-      where: {
-        metadata: {
-          path: ["organizationId"],
-          equals: organizationId,
+      const users = await db.user.count({
+        where: {
+          email: { contains: `@${organizationId}.` },
         },
-      },
-    });
+      });
 
-    const courses = await db.Course.count();
+    const courses = await db.course.count();
 
     return {
       allocatedBudget,

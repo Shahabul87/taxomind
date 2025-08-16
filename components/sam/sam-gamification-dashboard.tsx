@@ -103,7 +103,7 @@ export function SAMGamificationDashboard() {
           const challengesData = await challengesResponse.json();
           setChallenges(challengesData.data);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error loading gamification data:', error);
       } finally {
         setIsLoading(false);
@@ -132,7 +132,7 @@ export function SAMGamificationDashboard() {
 
         trackInteraction('challenge_started', { challengeId });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error starting challenge:', error);
     }
   };

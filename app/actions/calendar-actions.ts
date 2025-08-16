@@ -24,7 +24,7 @@ export async function getCalendarEvents(
     // Try to get the authenticated user
     const session = await auth();
     authenticatedUserId = session?.user?.id;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Authentication error:", error);
     // If headers/cookies can't be accessed, fall back to the passed userId
   }
@@ -82,7 +82,7 @@ export async function getCalendarEvents(
         });
         lastError = null;
         break; // Success, break out of retry loop
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
         retries--;
         if (retries > 0) {
@@ -124,7 +124,7 @@ export async function getCalendarEvents(
             endDate
           );
           allEvents.push(...expandedEvents);
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`Error expanding recurring event: ${error}, Event: ${JSON.stringify(event)}`);
           // Continue with other events even if one fails
         }
@@ -132,7 +132,7 @@ export async function getCalendarEvents(
     }
 
     return allEvents;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error in getCalendarEvents:", error);
     throw new Error(`Failed to fetch calendar events: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }

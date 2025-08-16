@@ -28,7 +28,7 @@ export function useSamDebounce() {
         try {
           await fn();
           activeCallsRef.current.delete(key);
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`Sam debounced call failed for key: ${key}`, error);
           activeCallsRef.current.delete(key);
         }

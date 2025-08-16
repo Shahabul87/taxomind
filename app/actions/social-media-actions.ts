@@ -43,7 +43,7 @@ export async function connectSocialMediaAccount(data: {
 
     revalidatePath("/profile");
     return { success: true, data: account };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error connecting social media account:", error);
     return { success: false, error: "Failed to connect account" };
   }
@@ -73,7 +73,7 @@ export async function updateSocialMediaStats(accountId: string, stats: {
 
     revalidatePath("/profile");
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error updating social media stats:", error);
     return { success: false, error: "Failed to update stats" };
   }
@@ -95,7 +95,7 @@ export async function disconnectSocialMediaAccount(accountId: string) {
 
     revalidatePath("/profile");
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error disconnecting social media account:", error);
     return { success: false, error: "Failed to disconnect account" };
   }
@@ -126,7 +126,7 @@ export async function createContentCollection(data: {
 
     revalidatePath("/profile");
     return { success: true, data: collection };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error creating content collection:", error);
     return { success: false, error: "Failed to create collection" };
   }
@@ -165,7 +165,7 @@ export async function addContentItem(data: {
 
     revalidatePath("/profile");
     return { success: true, data: contentItem };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error adding content item:", error);
     return { success: false, error: "Failed to add content item" };
   }
@@ -199,7 +199,7 @@ export async function updateContentItem(itemId: string, data: {
 
     revalidatePath("/profile");
     return { success: true, data: contentItem };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error updating content item:", error);
     return { success: false, error: "Failed to update content item" };
   }
@@ -237,7 +237,7 @@ export async function addSubscription(data: {
 
     revalidatePath("/profile");
     return { success: true, data: subscription };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error adding subscription:", error);
     return { success: false, error: "Failed to add subscription" };
   }
@@ -267,7 +267,7 @@ export async function updateSubscription(subscriptionId: string, data: {
 
     revalidatePath("/profile");
     return { success: true, data: subscription };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error updating subscription:", error);
     return { success: false, error: "Failed to update subscription" };
   }
@@ -300,7 +300,7 @@ export async function createGoal(data: {
 
     revalidatePath("/profile");
     return { success: true, data: goal };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error creating goal:", error);
     return { success: false, error: "Failed to create goal" };
   }
@@ -325,7 +325,7 @@ export async function updateGoalProgress(goalId: string, currentValue: number) {
 
     revalidatePath("/profile");
     return { success: true, data: goal };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error updating goal progress:", error);
     return { success: false, error: "Failed to update goal progress" };
   }
@@ -355,7 +355,7 @@ export async function recordAnalytics(data: {
     });
 
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error recording analytics:", error);
     return { success: false, error: "Failed to record analytics" };
   }
@@ -427,7 +427,7 @@ export async function getDashboardData() {
       goalStats,
       recentActivity
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error fetching dashboard data:", error);
     throw error;
   }

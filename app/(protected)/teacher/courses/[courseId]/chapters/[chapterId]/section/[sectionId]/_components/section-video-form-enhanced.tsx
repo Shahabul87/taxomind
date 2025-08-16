@@ -101,7 +101,7 @@ export const SectionYoutubeVideoFormEnhanced = ({
         toast.success("Video analysis complete!");
         return response.data.data;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to analyze video");
       logger.error("Video analysis error:", error);
     } finally {

@@ -1,18 +1,17 @@
-import { currentUser } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 
 import { db } from "@/lib/db";
 
-export async function PATCH(req: Request, props: { params: Promise<{ postId: string }> }) {
+export const PATCH = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   const params = await props.params;
   try {
-    const user = await currentUser();
 
-    if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const userId = user.id;
+    const userId = context.user.id;
 
     const post = await db.post.findUnique({
       where: {
@@ -35,9 +34,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ postId: str
       }
     });
 
-    return NextResponse.json(unpublishedPost);
+    return createSuccessResponse(unpublishedPost);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return createErrorResponse(ApiError.internal("Internal Error"));
   }
-}
+});

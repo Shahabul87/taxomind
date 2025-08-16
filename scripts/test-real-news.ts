@@ -52,7 +52,7 @@ async function testRealNews() {
       console.log(`   Published: ${article.publishDate}`);
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error testing real news:', error);
   }
 }

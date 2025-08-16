@@ -144,7 +144,7 @@ export const FavoriteBlogLinkForm = ({
       }
       
       toast.success("Blog details fetched");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching blog metadata:", error);
       toast.error("Couldn't fetch blog details. Please enter them manually.");
     } finally {
@@ -310,7 +310,7 @@ export const FavoriteBlogLinkForm = ({
             } else {
               toast.error("Couldn't find blog details. Please enter them manually.", { id: "fetching-metadata" });
             }
-          } catch (error) {
+          } catch (error: any) {
             logger.error("Error fetching metadata:", error);
             toast.error("Couldn't fetch blog details. Please enter them manually.", { id: "fetching-metadata" });
           }

@@ -152,7 +152,7 @@ export const BlueprintRefinementModal = ({
       const result = await response.json();
       setRefinementResult(result);
       toast.success("Blueprint refinement completed!");
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Refinement error:', error);
       toast.error("Failed to refine blueprint. Please try again.");
     } finally {

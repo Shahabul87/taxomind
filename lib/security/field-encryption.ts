@@ -121,7 +121,7 @@ export class FieldEncryption {
       }
 
       return encryptedField;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to encrypt field ${fieldName}: ${error.message}`);
     }
   }
@@ -149,7 +149,7 @@ export class FieldEncryption {
       }
 
       return decryptedValue;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to decrypt field ${encryptedField.fieldType}: ${error.message}`);
     }
   }

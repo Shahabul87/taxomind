@@ -27,6 +27,7 @@ export interface LearningHistory {
 export interface PerformanceMetrics {
   overallProgress: number;
   assessmentScores: number[];
+  averageScore: number;
   improvementRate: number;
   consistencyScore: number;
   engagementLevel: number;
@@ -469,7 +470,7 @@ export class SAMPredictiveEngine {
         orderBy: { timestamp: 'desc' },
         take: 500
       }),
-      db.examAttempt.findMany({
+      db.userExamAttempt.findMany({
         where: { userId },
         include: { exam: true },
         orderBy: { startedAt: 'desc' },

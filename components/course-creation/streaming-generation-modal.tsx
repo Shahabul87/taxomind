@@ -241,7 +241,7 @@ export const StreamingGenerationModal = ({
         }
       }
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Streaming generation error:', error);
       setError(error instanceof Error ? error.message : 'Unknown error occurred');
       setIsGenerating(false);

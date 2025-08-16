@@ -1,0 +1,107 @@
+// Performance Monitoring Models
+// Add these models to your main schema.prisma file
+
+model WebVital {
+  id              String   @id @default(cuid())
+  name            String   // CLS, FID, FCP, LCP, TTFB
+  value           Float
+  rating          String   // good, needs-improvement, poor
+  delta           Float?
+  entryId         String?
+  navigationType  String?
+  timestamp       DateTime
+  url             String
+  userAgent       String?
+  connectionType  String?
+  sessionId       String?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([name])
+  @@index([timestamp])
+  @@index([rating])
+  @@index([url])
+  @@index([sessionId])
+  @@index([name, timestamp])
+  @@index([url, timestamp])
+}
+
+model PagePerformance {
+  id              String   @id @default(cuid())
+  url             String
+  dnsLookup       Float    @default(0)
+  tcpConnect      Float    @default(0)
+  sslHandshake    Float    @default(0)
+  timeToFirstByte Float
+  download        Float    @default(0)
+  domInteractive  Float    @default(0)
+  domComplete     Float    @default(0)
+  loadComplete    Float
+  timestamp       DateTime
+  userAgent       String?
+  sessionId       String?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([url])
+  @@index([timestamp])
+  @@index([sessionId])
+  @@index([url, timestamp])
+}
+
+model PerformanceAlert {
+  id          String   @id @default(cuid())
+  metric      String
+  value       Float
+  threshold   Float
+  severity    String   // LOW, MEDIUM, HIGH, CRITICAL
+  url         String
+  timestamp   DateTime
+  resolved    Boolean  @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([metric])
+  @@index([severity])
+  @@index([resolved])
+  @@index([timestamp])
+  @@index([metric, resolved])
+}
+
+model SlowResource {
+  id          String   @id @default(cuid())
+  name        String
+  duration    Float
+  size        Float?
+  type        String
+  url         String
+  timestamp   DateTime
+  sessionId   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([type])
+  @@index([duration])
+  @@index([timestamp])
+  @@index([url])
+}
+
+model SlowInteraction {
+  id          String   @id @default(cuid())
+  element     String
+  selector    String?
+  duration    Float
+  url         String
+  timestamp   DateTime
+  sessionId   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([element])
+  @@index([duration])
+  @@index([timestamp])
+  @@index([url])
+}

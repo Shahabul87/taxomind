@@ -54,7 +54,7 @@ export function ProfileSection({ userData, userId, onImageUpdate }: ProfileSecti
         await navigator.clipboard.writeText(window.location.href);
         toast.success("Profile link copied to clipboard!");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error sharing:', error);
       // Fallback: copy to clipboard
       try {

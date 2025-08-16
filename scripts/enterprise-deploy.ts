@@ -66,7 +66,7 @@ class EnterpriseDeploymentManager {
       console.log(`🎉 [ENTERPRISE DEPLOY] Deployment successful! Duration: ${duration}ms`);
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ [ENTERPRISE DEPLOY] Deployment failed:`, error);
       await this.handleDeploymentFailure(error);
       return false;
@@ -129,7 +129,7 @@ class EnterpriseDeploymentManager {
         console.warn('⚠️ Uncommitted changes detected in production deployment');
         // In strict mode, this would throw an error
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn('⚠️ Could not check git status');
     }
 
@@ -140,7 +140,7 @@ class EnterpriseDeploymentManager {
         if (currentBranch.trim() !== 'main' && currentBranch.trim() !== 'master') {
           console.warn(`⚠️ Deploying from branch: ${currentBranch.trim()}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.warn('⚠️ Could not check current branch');
       }
     }
@@ -149,7 +149,7 @@ class EnterpriseDeploymentManager {
     try {
       // This would normally test the actual database connection
       console.log('🔌 Database connectivity check - OK');
-    } catch (error) {
+    } catch (error: any) {
       throw new Error('Database connectivity check failed');
     }
 
@@ -206,7 +206,7 @@ class EnterpriseDeploymentManager {
       }
       
       console.log('✅ Build validation passed');
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Build validation failed: ${error}`);
     }
   }
@@ -230,7 +230,7 @@ class EnterpriseDeploymentManager {
       console.log('🗃️ Applying database migrations...');
       await execAsync('npx prisma migrate deploy');
       console.log('✅ Database migrations applied');
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Database migration failed: ${error}`);
     }
   }
@@ -260,7 +260,7 @@ class EnterpriseDeploymentManager {
     try {
       // Would normally make HTTP request to health endpoint
       console.log('❤️ Health check - OK');
-    } catch (error) {
+    } catch (error: any) {
       throw new Error('Health check failed');
     }
 
@@ -268,7 +268,7 @@ class EnterpriseDeploymentManager {
     try {
       // Would test database operations
       console.log('🗃️ Database operations - OK');
-    } catch (error) {
+    } catch (error: any) {
       throw new Error('Database validation failed');
     }
 

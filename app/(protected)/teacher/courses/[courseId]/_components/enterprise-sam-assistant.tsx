@@ -349,7 +349,7 @@ How can I assist you today?`,
       
       setMessages(prev => [...prev, samMessage]);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('SAM Error:', error);
       
       const errorMessage: ChatMessage = {

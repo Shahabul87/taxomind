@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { CertificateGenerator, CertificateData, CertificateTemplate, CertificateType } from "./generator";
+import { verificationService } from "./verification";
 import { nanoid } from "nanoid";
 import { logger } from '@/lib/logger';
 
@@ -47,7 +48,7 @@ export class CertificateService {
         }
       });
 
-      const course = await db.Course.findUnique({
+      const course = await db.course.findUnique({
         where: { id: courseId },
         include: {
           user: {
@@ -151,10 +152,13 @@ export class CertificateService {
     error?: string;
   }> {
     try {
-      // TODO: Implement when certificate tables are added
+      // Use the full verification service
+      const result = await verificationService.verifyCredential(verificationCode);
+      
       return {
-        isValid: false,
-        error: "Certificate verification not yet implemented"
+        isValid: result.isValid,
+        certificate: result.data,
+        error: result.error
       };
 
     } catch (error: any) {
@@ -171,8 +175,17 @@ export class CertificateService {
     reason: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // TODO: Implement when certificate tables are added
-      return { success: false, error: "Certificate revocation not yet implemented" };
+      // Update certificate to revoked status
+      await db.certification.update({
+        where: { id: certificateId },
+        data: {
+          isRevoked: true,
+          revokedAt: new Date(),
+          revokedReason: reason
+        }
+      });
+
+      return { success: true };
 
     } catch (error: any) {
       logger.error("Certificate revocation error:", error);
@@ -184,18 +197,49 @@ export class CertificateService {
   }
 
   async getUserCertificates(userId: string): Promise<any[]> {
-    // TODO: Implement when certificate tables are added
-    return [];
+    try {
+      return await db.certification.findMany({
+        where: { userId },
+        include: {
+          course: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              imageUrl: true
+            }
+          },
+          template: {
+            select: {
+              name: true,
+              templateType: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch (error: any) {
+      logger.error("Get user certificates error:", error);
+      return [];
+    }
   }
 
   async getCertificateAnalytics(certificateId: string): Promise<any> {
-    // TODO: Implement when certificate analytics tables are added
-    return {
-      events: [],
-      verifications: [],
-      totalVerifications: 0,
-      lastVerified: null
-    };
+    try {
+      // Use the verification service analytics
+      return await verificationService.getVerificationAnalytics(certificateId, 'certificate');
+    } catch (error: any) {
+      logger.error("Get certificate analytics error:", error);
+      return {
+        totalVerifications: 0,
+        verifiedThisWeek: 0,
+        verifiedThisMonth: 0,
+        lastVerified: null,
+        verificationsByMethod: {},
+        verificationsByDay: [],
+        uniqueVerifiers: 0
+      };
+    }
   }
 
   private async getCourseCompletionData(userId: string, courseId: string) {
@@ -215,7 +259,7 @@ export class CertificateService {
     }
 
     // Get course sections and user progress
-    const course = await db.Course.findUnique({
+    const course = await db.course.findUnique({
       where: { id: courseId },
       include: {
         chapters: {
@@ -239,7 +283,7 @@ export class CertificateService {
 
     // Simplified completion calculation using existing tables
     const totalSections = course.chapters.reduce(
-      (count, chapter) => count + chapter.sections.length,
+      (count: number, chapter: any) => count + chapter.sections.length,
       0
     );
 

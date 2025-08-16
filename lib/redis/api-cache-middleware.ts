@@ -59,7 +59,7 @@ export const API_CACHE_STRATEGIES = {
     keyGenerator: (req: NextRequest) => {
       const url = new URL(req.url);
       const courseId = url.pathname.split('/').find(part => part.startsWith('course'));
-      return `Course:${courseId}:${url.pathname}:${url.search}`;
+      return `course:${courseId}:${url.pathname}:${url.search}`;
     }
   },
   
@@ -159,7 +159,7 @@ export class APICacheMiddleware {
   }
 
   // Create cache middleware
-  static create(config: APICacheConfig = API_CACHE_STRATEGIES.MEDIUM_TERM) {
+  static create(config: APICacheConfig = { ...API_CACHE_STRATEGIES.MEDIUM_TERM, tags: [...API_CACHE_STRATEGIES.MEDIUM_TERM.tags] }) {
     return async (req: NextRequest, handler: () => Promise<NextResponse>): Promise<NextResponse> => {
       // Check if request should be cached
       if (!this.shouldCacheRequest(req)) {

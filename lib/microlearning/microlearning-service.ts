@@ -32,7 +32,7 @@ import {
 
 export class MicrolearningService {
   private segmenter: MicrolearningContentSegmenter;
-  private activeSegmentations = new Map<string, MicrolearningSegmentation>();
+  private activeExperiences = new Map<string, MicrolearningExperience>();
   private learnerSessions = new Map<string, LearningSession>();
   private performanceCache = new Map<string, SegmentPerformance>();
 
@@ -606,8 +606,8 @@ export class MicrolearningService {
   }
 
   private async getExperience(experienceId: string): Promise<MicrolearningExperience> {
-    if (this.activeSegmentations.has(experienceId)) {
-      return this.activeSegmentations.get(experienceId)!;
+    if (this.activeExperiences.has(experienceId)) {
+      return this.activeExperiences.get(experienceId)!;
     }
 
     // Try to load from cache
@@ -615,10 +615,10 @@ export class MicrolearningService {
       const cached = await redis.get(`experience_${experienceId}`);
       if (cached) {
         const experience = JSON.parse(cached);
-        this.activeSegmentations.set(experienceId, experience);
+        this.activeExperiences.set(experienceId, experience);
         return experience;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to load experience from cache:', error);
     }
 
@@ -626,7 +626,7 @@ export class MicrolearningService {
   }
 
   private async cacheExperience(experience: MicrolearningExperience): Promise<void> {
-    this.activeSegmentations.set(experience.id, experience);
+    this.activeExperiences.set(experience.id, experience);
     
     try {
       await redis.setex(
@@ -634,7 +634,7 @@ export class MicrolearningService {
         7200, // 2 hours
         JSON.stringify(experience)
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to cache experience:', error);
     }
   }
@@ -776,7 +776,7 @@ export class MicrolearningService {
     
     // Look for remediation content
     const remediationContent = failedSegment.content.scaffolding.find(
-      s => s.type === 'remediation'
+      s => s.type === 'guide'
     );
 
     if (remediationContent) {
@@ -925,7 +925,7 @@ export class MicrolearningService {
   private async cacheAnalytics(experienceId: string, analytics: MicrolearningAnalytics): Promise<void> {
     try {
       await redis.setex(`analytics_${experienceId}`, 1800, JSON.stringify(analytics));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to cache analytics:', error);
     }
   }

@@ -48,7 +48,7 @@ export const NewDiscussionDialog = ({
       await axios.post(`/api/groups/${groupId}/discussions`, values);
       toast.success("Discussion created successfully!");
       onSuccess?.();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsSubmitting(false);

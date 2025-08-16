@@ -1,6 +1,39 @@
+/**
+ * Email Service - Hybrid Queue/Direct Sending
+ * 
+ * Features:
+ * - Production: Uses email queue for resilience, retry logic, and rate limiting
+ * - Development/Staging: Uses direct Resend sending for immediate feedback
+ * - Automatic fallback: If queue fails, falls back to direct sending
+ * - Environment-aware: Logs email method being used
+ * 
+ * Queue Benefits in Production:
+ * - Exponential backoff retry logic
+ * - Circuit breaker for email service failures
+ * - Rate limiting and flood protection
+ * - Dead letter queue for failed emails
+ * - Priority-based processing (2FA is critical priority)
+ * - Deduplication to prevent spam
+ */
+
 import { Resend } from "resend";
 import { getEnvironmentConfig, devLog } from "./db-environment";
 import { logger } from '@/lib/logger';
+
+// Import queue functions (lazy import to avoid circular dependencies)
+let queueFunctions: any = null;
+const getQueueFunctions = async () => {
+  if (!queueFunctions) {
+    try {
+      queueFunctions = await import('./queue/email-queue');
+      logger.info('[MAIL] Email queue functions loaded successfully');
+    } catch (error) {
+      logger.error('[MAIL] Failed to load email queue functions:', error);
+      queueFunctions = null;
+    }
+  }
+  return queueFunctions;
+};
 
 // Initialize Resend with better error handling
 let resend: Resend | null = null;
@@ -11,7 +44,7 @@ try {
   } else {
     logger.warn('RESEND_API_KEY not found. Email functionality will be disabled.');
   }
-} catch (error) {
+} catch (error: any) {
   logger.error('Failed to initialize Resend:', error);
 }
 
@@ -39,17 +72,54 @@ const getDomain = () => {
 
 const domain = getDomain();
 
+// Helper function to determine if we should use the queue
+const shouldUseQueue = () => {
+  return process.env.NODE_ENV === 'production';
+};
+
+// Helper function to safely attempt queue sending with fallback
+const attemptQueueSending = async (
+  queueFunction: string,
+  queueData: any,
+  emailType: string
+) => {
+  try {
+    const queueFns = await getQueueFunctions();
+    if (queueFns && queueFns[queueFunction]) {
+      const result = await queueFns[queueFunction](queueData);
+      logger.info(`[MAIL] ${emailType} email queued successfully:`, { 
+        email: queueData.userEmail, 
+        jobId: typeof result === 'object' ? result.id : result 
+      });
+      return { success: true, result };
+    } else {
+      logger.warn(`[MAIL] Queue function ${queueFunction} not available`);
+      return { success: false, reason: 'function_not_available' };
+    }
+  } catch (queueError) {
+    logger.error(`[MAIL] Email queue failed for ${emailType}:`, queueError);
+    return { success: false, reason: 'queue_error', error: queueError };
+  }
+};
+
 // Helper function to check if email is configured
 const isEmailConfigured = () => {
   const config = getEnvironmentConfig();
   if (config.isDevelopment) {
     return true; // Always "configured" in development (we'll log instead)
   }
-  return resend !== null && process.env.RESEND_API_KEY;
+  return !!(resend && process.env.RESEND_API_KEY);
+};
+
+type SafeEmailResult = {
+  dev: boolean;
+  id?: string;
+  data?: any;
+  error?: any;
 };
 
 // Helper function to send emails safely in different environments
-const sendEmailSafely = async (emailData: any) => {
+const sendEmailSafely = async (emailData: any): Promise<SafeEmailResult> => {
   const config = getEnvironmentConfig();
   
   if (config.isDevelopment) {
@@ -58,16 +128,18 @@ const sendEmailSafely = async (emailData: any) => {
       subject: emailData.subject,
       from: emailData.from
     });
-    devLog('📧 Email HTML content:', emailData.html.substring(0, 200) + '...');
-    return { success: true, dev: true, id: 'dev_email_' + Date.now() };
+    if (typeof emailData.html === 'string') {
+      devLog('📧 Email HTML content:', emailData.html.substring(0, 200) + '...');
+    }
+    return { dev: true, id: 'dev_email_' + Date.now() };
   }
   
   // Send real email in staging/production
   if (!resend) {
     throw new Error('Resend not configured for production email sending');
   }
-  
-  return await resend.emails.send(emailData);
+  const { data, error } = await resend.emails.send(emailData);
+  return { dev: false, id: data?.id, data, error };
 };
 
 export const sendTwoFactorTokenEmail = async (
@@ -81,6 +153,32 @@ export const sendTwoFactorTokenEmail = async (
   }
 
   try {
+    // In production, use the email queue for resilience (2FA is critical priority)
+    if (shouldUseQueue()) {
+      logger.info('[MAIL] Using email queue for 2FA token email (production mode)');
+      
+      const queueData = {
+        userEmail: email,
+        userName: email.split('@')[0], // Extract username from email
+        code: token,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes expiry
+        metadata: {
+          source: 'mail-service',
+          queuedAt: new Date(),
+        },
+      };
+      
+      const queueResult = await attemptQueueSending('queue2FAEmail', queueData, '2FA token');
+      if (queueResult.success) {
+        return queueResult.result;
+      }
+      
+      logger.warn('[MAIL] Queue sending failed, falling back to direct sending');
+    } else {
+      logger.info('[MAIL] Using direct email sending (development/staging mode)');
+    }
+
+    // Direct sending for development/staging or fallback for production
     const emailData = {
       from: "noreply@taxomind.com",
       to: email,
@@ -111,8 +209,9 @@ export const sendTwoFactorTokenEmail = async (
       return;
     }
 
+    logger.info('[MAIL] 2FA token email sent successfully via direct method');
     return result;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Detailed error:", error);
     return null;
   }
@@ -132,7 +231,33 @@ export const sendPasswordResetEmail = async (
   }
   
   try {
-    const { data, error } = await resend!.emails.send({
+    // In production, use the email queue for resilience
+    if (shouldUseQueue()) {
+      logger.info('[MAIL] Using email queue for password reset email (production mode)');
+      
+      const queueData = {
+        userEmail: email,
+        userName: email.split('@')[0], // Extract username from email
+        resetToken: token,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour expiry
+        metadata: {
+          source: 'mail-service',
+          queuedAt: new Date(),
+        },
+      };
+      
+      const queueResult = await attemptQueueSending('queuePasswordResetEmail', queueData, 'password reset');
+      if (queueResult.success) {
+        return queueResult.result;
+      }
+      
+      logger.warn('[MAIL] Queue sending failed, falling back to direct sending');
+    } else {
+      logger.info('[MAIL] Using direct email sending (development/staging mode)');
+    }
+
+    // Direct sending for development/staging or fallback for production
+    const result = await sendEmailSafely({
       from: "noreply@taxomind.com",
       to: email,
       subject: "Reset Your Taxomind Password",
@@ -220,13 +345,20 @@ export const sendPasswordResetEmail = async (
       `
     });
 
-    if (error) {
-      logger.error("Resend API Error:", error);
-      throw new Error(`Failed to send reset email: ${error.message}`);
+    if (result.dev) {
+      devLog('Password reset email logged to console (development mode)');
+      devLog('Reset link:', resetLink);
+      return result;
     }
 
-    return data;
-  } catch (error) {
+    if (result.error) {
+      logger.error("Email API Error:", result.error);
+      throw new Error(`Failed to send reset email: ${result.error.message}`);
+    }
+
+    logger.info('[MAIL] Password reset email sent successfully via direct method');
+    return result.data;
+  } catch (error: any) {
     logger.error("Reset email error:", error);
     throw error;
   }
@@ -246,6 +378,32 @@ export const sendVerificationEmail = async (
   }
 
   try {
+    // In production, use the email queue for resilience
+    if (shouldUseQueue()) {
+      logger.info('[MAIL] Using email queue for verification email (production mode)');
+      
+      const queueData = {
+        userEmail: email,
+        userName: email.split('@')[0], // Extract username from email
+        verificationToken: token,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour expiry
+        metadata: {
+          source: 'mail-service',
+          queuedAt: new Date(),
+        },
+      };
+      
+      const queueResult = await attemptQueueSending('queueVerificationEmail', queueData, 'verification');
+      if (queueResult.success) {
+        return queueResult.result;
+      }
+      
+      logger.warn('[MAIL] Queue sending failed, falling back to direct sending');
+    } else {
+      logger.info('[MAIL] Using direct email sending (development/staging mode)');
+    }
+
+    // Direct sending for development/staging or fallback for production
     const emailData = {
       from: "noreply@taxomind.com",
       to: email,
@@ -344,8 +502,9 @@ export const sendVerificationEmail = async (
       throw new Error(`Failed to send verification email: ${result.error.message}`);
     }
 
+    logger.info('[MAIL] Verification email sent successfully via direct method');
     return result;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Verification email error:", error);
     throw error;
   }

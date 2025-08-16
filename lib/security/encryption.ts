@@ -88,7 +88,7 @@ export class DataEncryption {
       const key = this.deriveKey(salt);
       
       // Create cipher
-      const cipher = crypto.createCipherGCM(this.config.algorithm, key, iv);
+      const cipher = crypto.createCipheriv(this.config.algorithm, key, iv) as unknown as crypto.CipherGCM;
       cipher.setAAD(Buffer.from('taxomind-lms')); // Additional authenticated data
       
       // Encrypt
@@ -104,7 +104,7 @@ export class DataEncryption {
         tag: tag.toString('hex'),
         salt: salt.toString('hex'),
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Encryption failed: ${error.message}`);
     }
   }
@@ -125,7 +125,7 @@ export class DataEncryption {
       const key = this.deriveKey(saltBuffer);
       
       // Create decipher
-      const decipher = crypto.createDecipherGCM(this.config.algorithm, key, ivBuffer);
+      const decipher = crypto.createDecipheriv(this.config.algorithm, key, ivBuffer) as unknown as crypto.DecipherGCM;
       decipher.setAuthTag(tagBuffer);
       decipher.setAAD(Buffer.from('taxomind-lms'));
       
@@ -134,7 +134,7 @@ export class DataEncryption {
       decrypted += decipher.final('utf8');
       
       return decrypted;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Decryption failed: ${error.message}`);
     }
   }

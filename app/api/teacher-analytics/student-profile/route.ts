@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
@@ -93,22 +93,21 @@ interface StudentProfile {
 }
 
 // POST endpoint for detailed student analytics
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-    const user = await currentUser();
-    if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
 
     // Parse and validate request
-    const body = await req.json();
+    const body = await request.json();
     const parseResult = StudentProfileRequestSchema.safeParse(body);
     
     if (!parseResult.success) {
-      return NextResponse.json(
+      return createSuccessResponse(
         { error: 'Invalid request format', details: parseResult.error.errors },
-        { status: 400 }
-      );
+        { status: 400 });
     }
 
     const { courseId, studentId, timeframe } = parseResult.data;
@@ -117,15 +116,14 @@ export async function POST(req: NextRequest) {
     const course = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: user.id
+        userId: context.user.id
       }
     });
 
     if (!course) {
-      return NextResponse.json(
+      return createSuccessResponse(
         { error: 'Course not found or access denied' },
-        { status: 404 }
-      );
+        { status: 404 });
     }
 
     // Get student data
@@ -140,10 +138,9 @@ export async function POST(req: NextRequest) {
     });
 
     if (!student) {
-      return NextResponse.json(
+      return createSuccessResponse(
         { error: 'Student not found' },
-        { status: 404 }
-      );
+        { status: 404 });
     }
 
     // Calculate timeframe filter
@@ -152,7 +149,7 @@ export async function POST(req: NextRequest) {
     // Generate student profile
     const profile = await generateStudentProfile(courseId, studentId, timeFilter, student);
 
-    return NextResponse.json({
+    return createSuccessResponse({
       success: true,
       profile,
       metadata: {
@@ -165,7 +162,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     logger.error('Student profile analytics error:', error);
-    return NextResponse.json(
+    return createSuccessResponse(
       { 
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
@@ -173,7 +170,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 function getTimeFilter(timeframe: string): Date {
   const now = new Date();

@@ -34,7 +34,7 @@ export async function sendCertificateEmail(
     });
 
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Certificate email error:', error);
     return { 
       success: false, 
@@ -56,7 +56,7 @@ export async function sendBadgeEmail(
     });
 
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Badge email error:', error);
     return { 
       success: false, 
@@ -175,7 +175,7 @@ function generateCertificateEmailHTML(data: CertificateEmailData): string {
 
         <div class="certificate-info">
           <h3>Certificate Details:</h3>
-          <p><strong>Course:</strong> ${data.courseName}</p>
+          <p><strong>course:</strong> ${data.courseName}</p>
           ${data.instructorName ? `<p><strong>Instructor:</strong> ${data.instructorName}</p>` : ''}
           <p><strong>Issued:</strong> ${new Date().toLocaleDateString()}</p>
           <p><strong>Verification Code:</strong></p>

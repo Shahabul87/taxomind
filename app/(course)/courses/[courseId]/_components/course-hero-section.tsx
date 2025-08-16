@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { AiFillStar, AiOutlineClockCircle, AiOutlineUser } from 'react-icons/ai';
+import { Star, Clock, User } from 'lucide-react';
 import { Course } from '@prisma/client';
 import { cleanHtmlContent } from '../utils/html-utils';
 
@@ -104,20 +104,20 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps) => {
             className="flex flex-wrap gap-6 text-white/90"
           >
             <div className="flex items-center gap-2">
-              <AiFillStar className="text-yellow-500 text-2xl" />
+              <Star className="text-yellow-500 text-2xl" />
               <span className="text-2xl font-semibold">{averageRating}</span>
               <span className="text-white/70">
                 ({totalReviews} {totalReviews === 1 ? 'rating' : 'ratings'})
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <AiOutlineUser className="text-purple-400 text-xl" />
+              <User className="text-purple-400 text-xl" />
               <span>
                 {totalEnrollments.toLocaleString()} {totalEnrollments === 1 ? 'student' : 'students'} enrolled
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <AiOutlineClockCircle className="text-blue-400 text-xl" />
+              <Clock className="text-blue-400 text-xl" />
               <span>Last updated {lastUpdated}</span>
             </div>
           </motion.div>

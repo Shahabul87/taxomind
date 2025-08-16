@@ -5,22 +5,22 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import {
-  IconDashboard,
-  IconUser,
-  IconSettings,
-  IconBook,
-  IconChartBar,
-  IconUsers,
-  IconCalendar,
-  IconMessageCircle,
-  IconBrain,
-  IconLibrary,
-  IconHelpCircle,
-  IconMenu2,
-  IconX,
-  IconNews,
-  IconBrandTabler,
-} from "@tabler/icons-react";
+  LayoutDashboard as IconDashboard,
+  User as IconUser,
+  Settings as IconSettings,
+  BookOpen as IconBook,
+  BarChart3 as IconChartBar,
+  Users as IconUsers,
+  Calendar as IconCalendar,
+  MessageCircle as IconMessageCircle,
+  Brain as IconBrain,
+  Library as IconLibrary,
+  HelpCircle as IconHelpCircle,
+  Menu as IconMenu2,
+  X,
+  Newspaper as IconNews,
+  Layers,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
@@ -271,7 +271,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
             transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
           >
             {open ? (
-              <IconX className="w-5 h-5" />
+              <X className="w-5 h-5" />
             ) : (
               <IconMenu2 className="w-5 h-5" />
             )}
@@ -362,7 +362,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
                 )}
               >
                 {open ? (
-                  <IconX className="w-5 h-5 dark:text-gray-400 text-gray-600" />
+                  <X className="w-5 h-5 dark:text-gray-400 text-gray-600" />
                 ) : (
                   <IconMenu2 className="w-5 h-5 dark:text-gray-400 text-gray-600" />
                 )}
@@ -510,7 +510,7 @@ export const Logo = () => {
   return (
     <Link href="/" className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors">
       <div className="h-8 w-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-        <IconBrandTabler className="h-5 w-5" />
+        <Layers className="h-5 w-5" />
       </div>
       <span className="font-medium">Taxomind</span>
     </Link>
@@ -521,7 +521,7 @@ export const LogoIcon = () => {
   return (
     <Link href="/" className="block">
       <div className="h-8 w-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-        <IconBrandTabler className="h-5 w-5 text-purple-400" />
+        <Layers className="h-5 w-5 text-purple-400" />
       </div>
     </Link>
   );

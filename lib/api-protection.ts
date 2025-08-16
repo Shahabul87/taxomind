@@ -58,7 +58,7 @@ export async function requireAdminRole() {
 }
 
 export async function requireTeacherOrAdmin() {
-  return requireRole([UserRole.TEACHER, UserRole.ADMIN]);
+  return requireRole([UserRole.USER, UserRole.ADMIN]);
 }
 
 export function withAuth<T extends any[]>(
@@ -68,7 +68,7 @@ export function withAuth<T extends any[]>(
     try {
       await requireAuth();
       return await handler(...args);
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof UnauthorizedError) {
         return new Response(
           JSON.stringify({ error: error.message }),
@@ -97,7 +97,7 @@ export function withRole<T extends any[]>(
     try {
       await requireRole(allowedRoles);
       return await handler(...args);
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof UnauthorizedError) {
         return new Response(
           JSON.stringify({ error: error.message }),
@@ -126,7 +126,7 @@ export function withPermission<T extends any[]>(
     try {
       await requirePermission(permission);
       return await handler(...args);
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof UnauthorizedError) {
         return new Response(
           JSON.stringify({ error: error.message }),

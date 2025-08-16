@@ -42,7 +42,7 @@ export function SocialProfileData() {
           }));
           setMetrics(mockMetrics);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error("Failed to fetch profile links:", error);
         setError("Failed to load social profile data. Please try again later.");
       } finally {

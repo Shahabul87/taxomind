@@ -73,7 +73,7 @@ const swaggerDefinition = {
           },
           required: ['id', 'email', 'role'],
         },
-        Course: {
+        course: {
           type: 'object',
           properties: {
             id: {

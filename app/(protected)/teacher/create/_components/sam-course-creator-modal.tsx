@@ -380,7 +380,7 @@ export const SamCourseCreatorModal = ({
           action: undefined
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting Sam suggestion:', error);
     } finally {
       setIsLoadingSuggestion(false);
@@ -429,7 +429,7 @@ export const SamCourseCreatorModal = ({
           action: undefined
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error validating form:', error);
     } finally {
       setIsValidating(false);
@@ -477,7 +477,7 @@ export const SamCourseCreatorModal = ({
           setTitleSuggestions(extractedTitles);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating title suggestions:', error);
     } finally {
       setIsLoadingTitleSuggestions(false);
@@ -525,7 +525,7 @@ export const SamCourseCreatorModal = ({
           setOverviewSuggestions(extractedOverviews);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating overview suggestions:', error);
     } finally {
       setIsLoadingOverviewSuggestions(false);

@@ -172,12 +172,16 @@ export class SecurityHeaders {
     };
 
     // Merge with custom CSP directives
-    const mergedDirectives = { ...baseDirectives };
+    const mergedDirectives: CSPDirectives = { ...baseDirectives };
     Object.entries(this.config.customCSP).forEach(([key, value]) => {
-      if (value) {
-        mergedDirectives[key as keyof CSPDirectives] = Array.isArray(value) 
-          ? [...(mergedDirectives[key as keyof CSPDirectives] as string[] || []), ...value]
-          : value;
+      if (value === undefined) return;
+      const k = key as keyof CSPDirectives;
+      if (typeof value === 'boolean') {
+        (mergedDirectives as any)[k] = value;
+      } else if (Array.isArray(value)) {
+        const existing = (mergedDirectives as any)[k];
+        const existingArr: string[] = Array.isArray(existing) ? existing : [];
+        (mergedDirectives as any)[k] = [...existingArr, ...value];
       }
     });
 

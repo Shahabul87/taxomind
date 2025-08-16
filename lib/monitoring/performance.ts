@@ -65,7 +65,7 @@ class PerformanceMonitor {
       const result = await fn();
       this.endTimer(name, metadata);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       this.endTimer(name, { ...metadata, error: true });
       throw error;
     }

@@ -1,0 +1,51 @@
+// File: /pages/api/users/[userId]/subscriptions/reorder.ts
+
+import { currentUser } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
+export const PUT = withOwnership(
+  async (request, context, params) => {
+    
+  },
+  async (request, params) => params?.userId, // Extract userId for ownership check
+  {
+    rateLimit: { requests: 20, window: 60000 },
+    auditLog: true
+  }
+); from '@/lib/api/with-api-auth';
+
+export async function PUT(req: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
+  try {
+    const user = await currentUser();
+    if (!user?.id || user.id !== params.userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const { list } = await req.json();
+
+    // Ensure `list` is non-empty and contains `id` and `position`
+    if (!Array.isArray(list) || list.length === 0) {
+      return new NextResponse("Invalid data: 'list' must be a non-empty array", { status: 400 });
+    }
+
+    for (const item of list) {
+      if (typeof item.id !== "string" || typeof item.position !== "number") {
+        logger.error("Invalid item in list:", item); // Log any invalid item
+        return new NextResponse("Each item must have a valid 'id' (string) and 'position' (number)", { status: 400 });
+      }
+    }
+
+    // Note: Position field doesn't exist in the subscription model'
+    // This endpoint would need the schema to be updated to support ordering
+    return new NextResponse("Reordering not supported - position field not available in schema", { status: 400 });
+  } catch (error: any) {
+    logger.error("[REORDER ERROR]", error);
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    return new NextResponse(
+      JSON.stringify({ error: errorMessage }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}

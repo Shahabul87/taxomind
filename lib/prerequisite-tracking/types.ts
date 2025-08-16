@@ -494,6 +494,7 @@ export interface QueryParameters {
   difficultyPreference?: QuestionDifficultyLevel;
   considerAlternatives?: boolean;
   optimizationObjective?: OptimizationObjective;
+  courseId?: string;
 }
 
 export type OptimizationObjective = 

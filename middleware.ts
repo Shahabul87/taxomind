@@ -1,11 +1,8 @@
 import NextAuth from "next-auth";
 import authConfig from "@/auth.config.edge";
 import { NextResponse } from 'next/server';
-// Use actual database UserRole enum to match Prisma schema
-enum UserRole {
-  ADMIN = "ADMIN",
-  USER = "USER"
-}
+import type { UserRole } from "@prisma/client";
+import { applySecurityHeaders, getMinimalSecurityHeaders } from "@/lib/security/headers";
 
 import {
   DEFAULT_LOGIN_REDIRECT,
@@ -15,138 +12,162 @@ import {
   isProtectedRoute,
 } from "@/routes";
 
-// Role-based route definitions - aligned with actual roles
-const ROLE_ROUTES = {
-  [UserRole.ADMIN]: ['/admin', '/analytics/admin', '/dashboard/admin'],
-  [UserRole.USER]: ['/analytics/user', '/dashboard/user']
-};
+// Import MFA enforcement utilities
+import { shouldBlockAdminAccess, isRouteAllowedDuringMFASetup } from "@/lib/auth/mfa-enforcement";
+
+// Simplified role-based routes
+const ADMIN_ROUTES = ['/admin', '/dashboard/admin'];
 
 function getRoleBasedRedirect(role: UserRole): string {
-  switch (role) {
-    case UserRole.ADMIN:
-      return '/dashboard/admin';
-    case UserRole.USER:
-      return '/dashboard/user';
-    default:
-      return DEFAULT_LOGIN_REDIRECT;
-  }
+  return role === "ADMIN" ? '/dashboard/admin' : '/dashboard';
 }
 
 function hasAccessToRoute(pathname: string, userRole: UserRole): boolean {
   // Admin has access to everything
-  if (userRole === UserRole.ADMIN) return true;
+  if (userRole === "ADMIN") return true;
   
-  // Check role-specific routes
-  for (const [role, routes] of Object.entries(ROLE_ROUTES)) {
-    if (routes.some(route => pathname.startsWith(route))) {
-      return role === userRole;
-    }
+  // Check if user is trying to access admin routes
+  if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
+    return false; // Only admins can access admin routes
   }
   
-  // Allow access to general routes
+  // Users can access all other authenticated routes
   return true;
 }
 
 const { auth } = NextAuth(authConfig);
 
-export default auth((req) => {
-    const { nextUrl } = req;
-    const isLoggedIn = !!req.auth;
-    const pathname = nextUrl.pathname;
-    const userRole = req.auth?.user?.role as UserRole | undefined;
+export default auth(async (req) => {
+  const { nextUrl } = req;
+  const isLoggedIn = !!req.auth;
+  const pathname = nextUrl.pathname;
+  const userRole = req.auth?.user?.role as UserRole | undefined;
 
-    // Allow CSS files to be served normally - don't interfere with them
-
-    // Skip middleware for Next.js internal routes and static files
-    if (
-      pathname.startsWith('/_next/') ||
-      pathname.startsWith('/favicon.ico') ||
-      pathname.startsWith('/api/auth/') ||
-      pathname.includes('.') && !pathname.includes('/api/') ||
-      pathname.startsWith('/api/_next/') ||
-      pathname.startsWith('/__nextjs_original-stack-frame') ||
-      pathname.startsWith('/minimal-') ||
-      pathname.startsWith('/test-') ||
-      pathname.startsWith('/css-') ||
-      pathname.startsWith('/pure-') ||
-      pathname.startsWith('/simple-')
-    ) {
-      return;
-    }
-
-    // CRITICAL: Skip middleware for ALL API routes to prevent 404s
-    if (pathname.startsWith('/api/')) {
-      return;
-    }
-
-    // Check if it's an auth route (login, register, etc.)
-    const isAuthRoute = authRoutes.includes(pathname);
-    
-    // Check if it's a public route using the improved function
-    const isPublic = isPublicRoute(pathname);
-    
-    // Check if it's a protected route using the improved function
-    const isProtected = isProtectedRoute(pathname);
-
-    // Reduced debug logging - only log when necessary
-    if (process.env.NODE_ENV === 'development' && !isPublic && !pathname.startsWith('/_next')) {
-      console.log(`[MIDDLEWARE] ${pathname} - Public: ${isPublic}, Protected: ${isProtected}, LoggedIn: ${isLoggedIn}`);
-    }
-
-    // Handle auth routes
-    if (isAuthRoute) {
-      if (isLoggedIn) {
-        // Redirect to role-based route after login
-        const redirectUrl = userRole ? getRoleBasedRedirect(userRole) : DEFAULT_LOGIN_REDIRECT;
-        return NextResponse.redirect(new URL(redirectUrl, nextUrl));
-      }
-      return;
-    }
-
-    // Handle protected routes
-    if (isProtected && !isLoggedIn) {
-      let callbackUrl = pathname;
-      if (nextUrl.search) {
-        callbackUrl += nextUrl.search;
-      }
-
-      const encodedCallbackUrl = encodeURIComponent(callbackUrl);
-      return NextResponse.redirect(new URL(
-        `/auth/login?callbackUrl=${encodedCallbackUrl}`,
-        nextUrl
-      ));
-    }
-
-    // Role-based access control
-    if (isLoggedIn && userRole && !hasAccessToRoute(pathname, userRole)) {
-      // Redirect unauthorized users to their appropriate dashboard
-      const redirectUrl = getRoleBasedRedirect(userRole);
-      return NextResponse.redirect(new URL(redirectUrl, nextUrl));
-    }
-
-    // Handle non-public routes that aren't explicitly protected
-    if (!isPublic && !isProtected && !isLoggedIn) {
-      let callbackUrl = pathname;
-      if (nextUrl.search) {
-        callbackUrl += nextUrl.search;
-      }
-
-      const encodedCallbackUrl = encodeURIComponent(callbackUrl);
-      return NextResponse.redirect(new URL(
-        `/auth/login?callbackUrl=${encodedCallbackUrl}`,
-        nextUrl
-      ));
-    }
-
+  // Skip middleware for Next.js internal routes and static files
+  if (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.startsWith('/api/auth/') ||
+    pathname.includes('.') && !pathname.includes('/api/') ||
+    pathname.startsWith('/api/_next/')
+  ) {
     return;
+  }
+
+  // Apply minimal security headers to API routes and return
+  if (pathname.startsWith('/api/')) {
+    const response = NextResponse.next();
+    const minimalHeaders = getMinimalSecurityHeaders();
+    
+    Object.entries(minimalHeaders).forEach(([name, value]) => {
+      if (value) {
+        response.headers.set(name, value);
+      } else {
+        response.headers.delete(name);
+      }
+    });
+    
+    return response;
+  }
+
+  // Check if it's an auth route (login, register, etc.)
+  const isAuthRoute = authRoutes.includes(pathname);
+  
+  // Check if it's a public route
+  const isPublic = isPublicRoute(pathname);
+  
+  // Check if it's a protected route
+  const isProtected = isProtectedRoute(pathname);
+
+  // Handle auth routes
+  if (isAuthRoute) {
+    if (isLoggedIn) {
+      // Redirect to appropriate dashboard after login
+      const redirectUrl = userRole ? getRoleBasedRedirect(userRole) : DEFAULT_LOGIN_REDIRECT;
+      const response = NextResponse.redirect(new URL(redirectUrl, nextUrl));
+      return applySecurityHeaders(response);
+    }
+    // Apply security headers to auth pages
+    const response = NextResponse.next();
+    return applySecurityHeaders(response);
+  }
+
+  // Handle protected routes
+  if (isProtected && !isLoggedIn) {
+    let callbackUrl = pathname;
+    if (nextUrl.search) {
+      callbackUrl += nextUrl.search;
+    }
+
+    const encodedCallbackUrl = encodeURIComponent(callbackUrl);
+    const response = NextResponse.redirect(new URL(
+      `/auth/login?callbackUrl=${encodedCallbackUrl}`,
+      nextUrl
+    ));
+    return applySecurityHeaders(response);
+  }
+
+  // MFA Enforcement for Admin Users
+  if (isLoggedIn && userRole === "ADMIN" && req.auth?.user?.id) {
+    try {
+      // Check if admin should be blocked due to MFA requirements
+      const mfaCheck = await shouldBlockAdminAccess(req.auth.user.id, pathname);
+      
+      if (mfaCheck.shouldBlock) {
+        console.log(`[MFA_ENFORCEMENT] Blocking admin access to ${pathname}:`, mfaCheck.reason);
+        
+        // Redirect to MFA setup or warning page
+        const redirectUrl = mfaCheck.redirectUrl || '/admin/mfa-setup';
+        const response = NextResponse.redirect(new URL(redirectUrl, nextUrl));
+        
+        // Add MFA enforcement headers
+        response.headers.set('X-MFA-Required', 'true');
+        response.headers.set('X-MFA-Reason', mfaCheck.reason || 'MFA setup required');
+        
+        return applySecurityHeaders(response);
+      }
+    } catch (error) {
+      // Log error but don't break authentication flow
+      console.error('[MFA_ENFORCEMENT] Error checking admin MFA status:', error);
+      
+      // In case of error, log the incident but allow access to prevent lockout
+      // You might want to implement a fallback strategy here
+    }
+  }
+
+  // Simple role-based access control
+  if (isLoggedIn && userRole && !hasAccessToRoute(pathname, userRole)) {
+    // Redirect unauthorized users to their dashboard
+    const redirectUrl = getRoleBasedRedirect(userRole);
+    const response = NextResponse.redirect(new URL(redirectUrl, nextUrl));
+    return applySecurityHeaders(response);
+  }
+
+  // Handle non-public routes that aren't explicitly protected
+  if (!isPublic && !isProtected && !isLoggedIn) {
+    let callbackUrl = pathname;
+    if (nextUrl.search) {
+      callbackUrl += nextUrl.search;
+    }
+
+    const encodedCallbackUrl = encodeURIComponent(callbackUrl);
+    const response = NextResponse.redirect(new URL(
+      `/auth/login?callbackUrl=${encodedCallbackUrl}`,
+      nextUrl
+    ));
+    return applySecurityHeaders(response);
+  }
+
+  // Apply security headers to all other routes
+  const response = NextResponse.next();
+  return applySecurityHeaders(response);
 });
 
-// CRITICAL FIX: More specific matcher to reduce middleware calls
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes - CRITICAL FOR DYNAMIC ROUTES)
+     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)

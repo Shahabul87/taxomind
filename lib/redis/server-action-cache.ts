@@ -46,7 +46,7 @@ export class ServerActionCache {
             fromCache: true
           };
         } catch (error: any) {
-          logger.warn('Failed to parse cached data for key:', key, error);
+          logger.warn(`Failed to parse cached data for key: ${key}`, error);
           // Clear corrupted cache entry
           await redis?.del(key);
         }
@@ -93,7 +93,7 @@ export class ServerActionCache {
   ): Promise<CacheResult<T>> {
     const key = `${REDIS_KEYS.COURSE_DETAILS(courseId)}:${userId || 'public'}`;
     return this.withCache(key, REDIS_TTL.COURSE_DETAILS, fetchFn, {
-      tags: [`Course:${courseId}`, 'courses'],
+      tags: [`course:${courseId}`, 'courses'],
       invalidateOnError: true
     });
   }
@@ -128,7 +128,7 @@ export class ServerActionCache {
   ): Promise<CacheResult<T>> {
     const key = REDIS_KEYS.COURSE_PROGRESS(userId, courseId);
     return this.withCache(key, REDIS_TTL.COURSE_PROGRESS, fetchFn, {
-      tags: [`user:${userId}`, `Course:${courseId}`, 'progress'],
+      tags: [`user:${userId}`, `course:${courseId}`, 'progress'],
       invalidateOnError: false // Keep stale progress if needed
     });
   }

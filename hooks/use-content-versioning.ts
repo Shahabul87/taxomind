@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { VersionType, VersionStatus } from "@prisma/client";
+enum VersionStatus { DRAFT = 'DRAFT', UNDER_REVIEW = 'UNDER_REVIEW', PUBLISHED = 'PUBLISHED', ARCHIVED = 'ARCHIVED', SCHEDULED = 'SCHEDULED' }
+enum VersionType { MAJOR = 'MAJOR', MINOR = 'MINOR', PATCH = 'PATCH', HOTFIX = 'HOTFIX' }
 import { toast } from "sonner";
 
 export interface ContentSnapshot {
@@ -53,7 +54,7 @@ export function useContentVersioning(contentType: string, contentId: string) {
       } else {
         toast.error("Failed to fetch version history");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error fetching version history");
     } finally {
       setLoading(false);
@@ -103,7 +104,7 @@ export function useContentVersioning(contentType: string, contentId: string) {
         toast.error(error.error || "Failed to create version");
         return null;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error creating version");
       return null;
     } finally {
@@ -129,7 +130,7 @@ export function useContentVersioning(contentType: string, contentId: string) {
         toast.error(error.error || "Failed to publish version");
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error publishing version");
       return false;
     }
@@ -156,7 +157,7 @@ export function useContentVersioning(contentType: string, contentId: string) {
         toast.error(error.error || "Failed to submit for review");
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error submitting for review");
       return false;
     }
@@ -184,7 +185,7 @@ export function useContentVersioning(contentType: string, contentId: string) {
         toast.error(error.error || "Failed to review version");
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error reviewing version");
       return false;
     }
@@ -213,7 +214,7 @@ export function useContentVersioning(contentType: string, contentId: string) {
         toast.error(error.error || "Failed to rollback");
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error rolling back");
       return false;
     }
@@ -231,7 +232,7 @@ export function useContentVersioning(contentType: string, contentId: string) {
         toast.error("Failed to fetch content");
         return null;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error fetching content");
       return null;
     }

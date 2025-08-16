@@ -153,7 +153,7 @@ export function SimpleCourseContext({
               }
             });
 
-          } catch (error) {
+          } catch (error: any) {
             logger.warn('⚠️ Enhanced SAM context injection failed:', error);
           }
         } else {
@@ -203,7 +203,7 @@ export function SimpleCourseContext({
           } else {
             logger.warn('⚠️ Enhanced SAM API test failed:', testResponse.status);
           }
-        } catch (error) {
+        } catch (error: any) {
           logger.warn('⚠️ Enhanced SAM API test error:', error);
         }
       }, 3000);

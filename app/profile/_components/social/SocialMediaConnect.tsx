@@ -95,7 +95,7 @@ export function SocialMediaConnect({
         onProfileLinksUpdated(response.data);
         onClose();
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to update social profiles");
       logger.error(error);
     } finally {

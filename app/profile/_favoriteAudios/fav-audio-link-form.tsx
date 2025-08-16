@@ -205,7 +205,7 @@ export const FavoriteAudioLinkForm = ({
       }
       
       toast.success("Audio details fetched");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching audio metadata:", error);
       toast.error("Couldn't fetch audio details. Please enter them manually.");
     } finally {
@@ -412,7 +412,7 @@ export const FavoriteAudioLinkForm = ({
             } else {
               toast.error("Couldn't find audio details. Please enter them manually.", { id: "fetching-metadata" });
             }
-          } catch (error) {
+          } catch (error: any) {
             logger.error("Error fetching metadata:", error);
             toast.error("Couldn't fetch audio details. Please enter them manually.", { id: "fetching-metadata" });
           }

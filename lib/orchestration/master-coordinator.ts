@@ -75,7 +75,7 @@ export class MasterServiceCoordinator {
         timestamp: new Date()
       });
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('❌ Failed to initialize services:', error);
       await this.handleInitializationFailure(error);
       throw error;
@@ -217,7 +217,7 @@ export class MasterServiceCoordinator {
         errors: 0
       });
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`    ❌ Failed to initialize ${name}:`, error);
       this.healthStatus.set(name, {
         status: 'error',
@@ -280,7 +280,7 @@ export class MasterServiceCoordinator {
       if (service && service.handleEvent) {
         try {
           await service.handleEvent(eventName, data);
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`Error routing ${eventName} to ${serviceName}:`, error);
           this.updateServiceHealth(serviceName, 'error');
         }
@@ -334,7 +334,7 @@ export class MasterServiceCoordinator {
           // Basic health check - service exists and responds
           this.updateServiceHealth(serviceName, 'healthy');
         }
-      } catch (error) {
+      } catch (error: any) {
         this.updateServiceHealth(serviceName, 'error', { error: error.message });
       }
     }
@@ -418,7 +418,7 @@ export class MasterServiceCoordinator {
       // Trigger adaptive responses
       await this.triggerAdaptiveResponses(studentId, eventType, eventData);
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Error processing learning event ${eventType}:`, error);
       throw error;
     }
@@ -464,7 +464,7 @@ export class MasterServiceCoordinator {
         try {
           await service.shutdown();
 
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`❌ Error shutting down ${serviceName}:`, error);
         }
       }
@@ -491,7 +491,7 @@ export class MasterServiceCoordinator {
     try {
       await redis.ping();
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('    ❌ Redis connection failed:', error);
       throw error;
     }
@@ -501,7 +501,7 @@ export class MasterServiceCoordinator {
     try {
       await db.$queryRaw`SELECT 1`;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('    ❌ Database connection failed:', error);
       throw error;
     }
@@ -544,14 +544,14 @@ export class MasterServiceCoordinator {
     // Check Redis
     try {
       await redis.ping();
-    } catch (error) {
+    } catch (error: any) {
       this.eventBus.emit('dependency:error', { service: 'Redis', error });
     }
 
     // Check Database
     try {
       await db.$queryRaw`SELECT 1`;
-    } catch (error) {
+    } catch (error: any) {
       this.eventBus.emit('dependency:error', { service: 'Database', error });
     }
   }

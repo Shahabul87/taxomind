@@ -3,7 +3,7 @@
 import { CldUploadWidget } from "next-cloudinary";
 import Image from "next/image";
 import { useCallback } from "react";
-import { TbPhotoPlus } from 'react-icons/tb'
+import { ImagePlus } from 'lucide-react'
 
 declare global {
   var cloudinary: any
@@ -51,7 +51,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, value }) => {
               text-neutral-600
             "
           >
-            <TbPhotoPlus
+            <ImagePlus
               size={50}
             />
             <div className="font-semibold text-lg">

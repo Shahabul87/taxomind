@@ -1,4 +1,4 @@
-import ldap from 'ldapjs';
+import { Client, SearchEntry, SearchOptions } from 'ldapts';
 import { CryptoUtils } from '@/lib/security/crypto-utils';
 import { logger } from '@/lib/logger';
 
@@ -137,7 +137,7 @@ export interface LDAPSearchResult {
 
 export class LDAPProvider {
   private config: LDAPConfiguration;
-  private client: ldap.Client | null = null;
+  private client: Client | null = null;
   private sessions: Map<string, LDAPSession> = new Map();
   private userCache: Map<string, { user: LDAPUser; expires: number }> = new Map();
   
@@ -193,27 +193,10 @@ export class LDAPProvider {
    */
   public async initialize(): Promise<void> {
     try {
-      const clientOptions: ldap.ClientOptions = {
+      this.client = new Client({
         url: this.config.url,
-        connectTimeout: this.config.connectTimeout,
-        timeout: this.config.timeout,
-        reconnect: this.config.reconnect,
+        timeout: this.config.connectTimeout,
         tlsOptions: this.config.tlsOptions,
-      };
-      
-      this.client = ldap.createClient(clientOptions);
-      
-      // Set up event handlers
-      this.client.on('error', (error) => {
-        logger.error('[LDAP] Connection error:', error);
-      });
-      
-      this.client.on('connect', () => {
-
-      });
-      
-      this.client.on('connectTimeout', () => {
-        logger.error('[LDAP] Connection timeout');
       });
       
       // Test connection and bind
@@ -221,7 +204,7 @@ export class LDAPProvider {
         await this.bind(this.config.bindDN, this.config.bindPassword);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to initialize LDAP provider: ${error.message}`);
     }
   }
@@ -230,20 +213,15 @@ export class LDAPProvider {
    * Binds to LDAP server with credentials
    */
   private async bind(dn: string, password: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.client) {
-        reject(new Error('LDAP client not initialized'));
-        return;
-      }
-      
-      this.client.bind(dn, password, (error) => {
-        if (error) {
-          reject(new Error(`LDAP bind failed: ${error.message}`));
-        } else {
-          resolve();
-        }
-      });
-    });
+    if (!this.client) {
+      throw new Error('LDAP client not initialized');
+    }
+    
+    try {
+      await this.client.bind(dn, password);
+    } catch (error: any) {
+      throw new Error(`LDAP bind failed: ${error.message}`);
+    }
   }
 
   /**
@@ -286,7 +264,7 @@ export class LDAPProvider {
       await this.auditLogin(sessionUser, 'success');
       
       return sessionUser;
-    } catch (error) {
+    } catch (error: any) {
       await this.auditLogin(null, 'error', error.message);
       throw new Error(`LDAP authentication failed: ${error.message}`);
     }
@@ -307,25 +285,18 @@ export class LDAPProvider {
    */
   private async verifyPassword(userDN: string, password: string): Promise<void> {
     // Create temporary client for password verification
-    const tempClient = ldap.createClient({
+    const tempClient = new Client({
       url: this.config.url,
-      connectTimeout: this.config.connectTimeout,
-      timeout: this.config.timeout,
+      timeout: this.config.connectTimeout,
       tlsOptions: this.config.tlsOptions,
     });
     
     try {
-      await new Promise<void>((resolve, reject) => {
-        tempClient.bind(userDN, password, (error) => {
-          if (error) {
-            reject(new Error('Invalid credentials'));
-          } else {
-            resolve();
-          }
-        });
-      });
+      await tempClient.bind(userDN, password);
+    } catch (error: any) {
+      throw new Error('Invalid credentials');
     } finally {
-      tempClient.unbind();
+      await tempClient.unbind();
     }
   }
 
@@ -447,46 +418,29 @@ export class LDAPProvider {
     attributes?: string[],
     scope: 'base' | 'one' | 'sub' = 'sub'
   ): Promise<LDAPSearchResult[]> {
-    return new Promise((resolve, reject) => {
-      if (!this.client) {
-        reject(new Error('LDAP client not initialized'));
-        return;
-      }
+    if (!this.client) {
+      throw new Error('LDAP client not initialized');
+    }
+    
+    const options: SearchOptions = {
+      scope,
+      filter,
+      attributes,
+      timeLimit: this.config.timeout! / 1000,
+    };
+    
+    try {
+      const { searchEntries } = await this.client.search(baseDN, options);
       
-      const options: ldap.SearchOptions = {
-        filter,
-        scope,
-        attributes,
-        timeLimit: this.config.timeout! / 1000,
-      };
-      
-      const results: LDAPSearchResult[] = [];
-      
-      this.client.search(baseDN, options, (error, searchResult) => {
-        if (error) {
-          reject(new Error(`LDAP search failed: ${error.message}`));
-          return;
-        }
-        
-        searchResult.on('searchEntry', (entry) => {
-          results.push({
-            dn: entry.dn,
-            attributes: entry.attributes.reduce((acc: any, attr) => {
-              acc[attr.type] = attr.values.length === 1 ? attr.values[0] : attr.values;
-              return acc;
-            }, {}),
-          });
-        });
-        
-        searchResult.on('error', (searchError) => {
-          reject(new Error(`LDAP search error: ${searchError.message}`));
-        });
-        
-        searchResult.on('end', () => {
-          resolve(results);
-        });
-      });
-    });
+      return searchEntries.map((entry) => ({
+        dn: entry.dn,
+        attributes: Object.fromEntries(
+          Object.entries(entry).filter(([key]) => key !== 'dn')
+        ),
+      }));
+    } catch (error: any) {
+      throw new Error(`LDAP search failed: ${error.message}`);
+    }
   }
 
   /**
@@ -588,7 +542,7 @@ export class LDAPProvider {
       await this.search(this.config.baseDN, '(objectClass=*)', ['dn'], 'base');
       
       return { success: true, message: 'LDAP connection successful' };
-    } catch (error) {
+    } catch (error: any) {
       return { success: false, message: `LDAP connection failed: ${error.message}` };
     }
   }
@@ -598,7 +552,7 @@ export class LDAPProvider {
    */
   public async disconnect(): Promise<void> {
     if (this.client) {
-      this.client.unbind();
+      await this.client.unbind();
       this.client = null;
     }
   }

@@ -351,7 +351,7 @@ export const CategoryForm = ({
           categoryId = response.data.id;
 
           toast.success("New category created");
-        } catch (error) {
+        } catch (error: any) {
           logger.error("Error creating new category:", error);
           if (error && typeof error === 'object' && 'response' in error) {
             const axiosError = error as any;
@@ -390,7 +390,7 @@ export const CategoryForm = ({
         toast.success("Category updated");
         setIsEditing(false);
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         logger.error("Course update error:", error);
         if (error && typeof error === 'object' && 'response' in error) {
           const axiosError = error as any;
@@ -399,7 +399,7 @@ export const CategoryForm = ({
         }
         toast.error("Error updating course category");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Category update error:", error);
       toast.error("Something went wrong");
     } finally {
@@ -892,7 +892,7 @@ export const CategoryForm = ({
                             });
 
                             toast.success("API connection test successful");
-                          } catch (error) {
+                          } catch (error: any) {
                             logger.error("API test error:", error);
                             if (error && typeof error === 'object' && 'response' in error) {
                               const axiosError = error as any;

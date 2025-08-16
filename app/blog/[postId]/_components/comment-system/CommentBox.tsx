@@ -43,7 +43,7 @@ export const CommentBox = ({
     try {
       await onSubmit(content);
       setContent("");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error submitting comment:", error);
       
       let errorMessage = "Failed to submit comment";

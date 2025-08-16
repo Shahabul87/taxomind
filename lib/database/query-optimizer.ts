@@ -3,14 +3,15 @@
  * Provides optimized query patterns and utilities to prevent N+1 queries
  */
 
-import { db } from "@/lib/db";
+import { db } from "../db";
 import { Prisma } from "@prisma/client";
-import { logger } from '@/lib/logger';
+import { logger } from '../logger';
 
 // Type definitions for optimized queries
 export type OptimizedCourseQuery = Prisma.CourseGetPayload<{
   include: {
     category: true;
+    user: true;
     chapters: {
       include: {
         sections: {
@@ -21,52 +22,29 @@ export type OptimizedCourseQuery = Prisma.CourseGetPayload<{
             notes: true;
             exams: {
               include: {
-                questions: true;
+                ExamQuestion: true;
               };
             };
           };
         };
       };
     };
-    Enrollment: {
-      include: {
-        user: {
-          select: {
-            id: true;
-            name: true;
-            email: true;
-            image: true;
-          };
-        };
-      };
-    };
+    Enrollment: true;
+    reviews: true;
   };
 }>;
 
 export type OptimizedUserProgressQuery = Prisma.user_progressGetPayload<{
-  include: {
-    user: {
-      select: {
-        id: true;
-        name: true;
-        email: true;
-        image: true;
-      };
-    };
-    chapter: {
-      select: {
-        id: true;
-        title: true;
-        courseId: true;
-      };
-    };
-    section: {
-      select: {
-        id: true;
-        title: true;
-        chapterId: true;
-      };
-    };
+  select: {
+    id: true;
+    userId: true;
+    courseId: true;
+    chapterId: true;
+    sectionId: true;
+    isCompleted: true;
+    progressPercent: true;
+    timeSpent: true;
+    lastAccessedAt: true;
   };
 }>;
 
@@ -98,23 +76,12 @@ export class CourseQueryOptimizer {
               include: {
                 videos: {
                   orderBy: { position: "asc" as const },
-                  include: {
-                    userVideoProgress: userId ? {
-                      where: { userId },
-                      select: {
-                        watchedSeconds: true,
-                        totalSeconds: true,
-                        isCompleted: true,
-                        lastWatchedAt: true,
-                      },
-                    } : false,
-                  },
                 },
                 blogs: {
                   orderBy: { position: "asc" as const },
                 },
                 articles: {
-                  orderBy: { position: "asc" as const },
+                  orderBy: { createdAt: "desc" as const },
                 },
                 notes: {
                   orderBy: { position: "asc" as const },
@@ -123,20 +90,20 @@ export class CourseQueryOptimizer {
                   where: { isPublished: true },
                   orderBy: { createdAt: "desc" as const },
                   include: {
-                    questions: {
-                      orderBy: { position: "asc" as const },
+                    ExamQuestion: {
+                      orderBy: { order: "asc" as const },
                       select: {
                         id: true,
                         question: true,
-                        type: true,
+                        questionType: true,
                         options: true,
                         points: true,
-                        position: true,
-                        bloomLevel: true,
+                        order: true,
+                        bloomsLevel: true,
                         // Don't include correct answers for security
                       },
                     },
-                    userAttempts: userId ? {
+                    UserExamAttempt: userId ? {
                       where: { userId },
                       select: {
                         id: true,
@@ -149,33 +116,33 @@ export class CourseQueryOptimizer {
                     } : false,
                   },
                 },
-                userProgress: userId ? {
+                userSectionCompletions: userId ? {
                   where: { userId },
                   select: {
-                    isCompleted: true,
                     progress: true,
-                    updatedAt: true,
+                    completedAt: true,
+                    startedAt: true,
                   },
                 } : false,
               },
             },
-            userProgress: userId ? {
+            userChapterCompletions: userId ? {
               where: { userId },
               select: {
-                isCompleted: true,
                 progress: true,
-                updatedAt: true,
+                completedAt: true,
+                startedAt: true,
               },
             } : false,
           },
         },
-        Enrollment: userId ? {
+        userCourseEnrollments: userId ? {
           where: { userId },
           select: {
             enrolledAt: true,
             completedAt: true,
             lastAccessedAt: true,
-            progressPercentage: true,
+            progress: true,
           },
         } : false,
         reviews: {
@@ -201,7 +168,7 @@ export class CourseQueryOptimizer {
       },
     };
 
-    return await db.Course.findUnique(baseQuery);
+    return await db.course.findUnique(baseQuery);
   }
 
   /**
@@ -241,7 +208,7 @@ export class CourseQueryOptimizer {
     };
 
     const [courses, total] = await Promise.all([
-      db.Course.findMany({
+      db.course.findMany({
         where,
         skip,
         take,
@@ -275,7 +242,7 @@ export class CourseQueryOptimizer {
           },
         },
       }),
-      db.Course.count({ where }),
+      db.course.count({ where }),
     ]);
 
     return { courses, total };
@@ -285,7 +252,7 @@ export class CourseQueryOptimizer {
    * Get teacher's courses with analytics - optimized
    */
   static async getTeacherCoursesWithAnalytics(userId: string) {
-    return await db.Course.findMany({
+    return await db.course.findMany({
       where: { userId },
       include: {
         category: true,
@@ -298,9 +265,8 @@ export class CourseQueryOptimizer {
         },
         Enrollment: {
           select: {
-            enrolledAt: true,
-            progressPercentage: true,
-            user: {
+            createdAt: true,
+            User: {
               select: {
                 id: true,
                 name: true,
@@ -308,7 +274,7 @@ export class CourseQueryOptimizer {
               },
             },
           },
-          orderBy: { enrolledAt: "desc" },
+          orderBy: { createdAt: "desc" },
           take: 5,
         },
         reviews: {
@@ -317,13 +283,13 @@ export class CourseQueryOptimizer {
             createdAt: true,
           },
         },
-        studentInteractions: {
+        samInteractions: {
           select: {
             interactionType: true,
-            timestamp: true,
-            metadata: true,
+            createdAt: true,
+            context: true,
           },
-          orderBy: { timestamp: "desc" },
+          orderBy: { createdAt: "desc" },
           take: 100,
         },
       },
@@ -346,7 +312,7 @@ export class ProgressQueryOptimizer {
           userId_courseId: { userId, courseId },
         },
         include: {
-          Course: {
+          course: {
             select: {
               id: true,
               title: true,
@@ -409,7 +375,7 @@ export class ProgressQueryOptimizer {
     return await db.userCourseEnrollment.findMany({
       where: { userId },
       include: {
-        Course: {
+        course: {
           select: {
             id: true,
             title: true,
@@ -448,7 +414,7 @@ export class ProgressQueryOptimizer {
         where: { courseId },
         _count: true,
         _avg: {
-          progressPercentage: true,
+          progress: true,
         },
       }),
       db.userSectionCompletion.aggregate({
@@ -468,14 +434,14 @@ export class ProgressQueryOptimizer {
           // Note: would need to parse metadata for numeric values
         },
       }),
-      db.examAttempt.aggregate({
+      db.userExamAttempt.aggregate({
         where: {
-          exam: { section: { chapter: { courseId } } },
+          Exam: { section: { chapter: { courseId } } },
           ...(userId && { userId }),
         },
         _count: true,
         _avg: {
-          score: true,
+          scorePercentage: true,
         },
       }),
     ]);
@@ -508,7 +474,7 @@ export class ExamQueryOptimizer {
               select: {
                 id: true,
                 title: true,
-                Course: {
+                course: {
                   select: {
                     id: true,
                     title: true,
@@ -518,30 +484,30 @@ export class ExamQueryOptimizer {
             },
           },
         },
-        questions: {
-          orderBy: { position: "asc" },
+        ExamQuestion: {
+          orderBy: { order: "asc" },
           select: {
             id: true,
             question: true,
-            type: true,
+            questionType: true,
             options: true,
             points: true,
-            position: true,
-            bloomLevel: true,
+            order: true,
+            bloomsLevel: true,
             // Don't include correct answers for security
           },
         },
-        userAttempts: userId ? {
+        UserExamAttempt: userId ? {
           where: { userId },
           orderBy: { attemptNumber: "desc" },
           include: {
-            answers: {
+            UserAnswer: {
               include: {
-                question: {
+                ExamQuestion: {
                   select: {
                     id: true,
                     question: true,
-                    type: true,
+                    questionType: true,
                     correctAnswer: true,
                     explanation: true,
                   },
@@ -552,8 +518,8 @@ export class ExamQueryOptimizer {
         } : false,
         _count: {
           select: {
-            questions: true,
-            userAttempts: true,
+            ExamQuestion: true,
+            UserExamAttempt: true,
           },
         },
       },
@@ -577,26 +543,26 @@ export class ExamQueryOptimizer {
           passingScore: true,
           _count: {
             select: {
-              questions: true,
-              userAttempts: true,
+              ExamQuestion: true,
+              UserExamAttempt: true,
             },
           },
         },
       }),
-      db.question.findMany({
+      db.examQuestion.findMany({
         where: { examId },
         select: {
           id: true,
           question: true,
-          type: true,
+          questionType: true,
           points: true,
-          bloomLevel: true,
+          bloomsLevel: true,
           _count: {
             select: {
-              attempts: true,
+              UserAnswer: true,
             },
           },
-          attempts: {
+          UserAnswer: {
             select: {
               isCorrect: true,
               pointsEarned: true,
@@ -604,18 +570,18 @@ export class ExamQueryOptimizer {
           },
         },
       }),
-      db.examAttempt.aggregate({
+      db.userExamAttempt.aggregate({
         where: { examId },
         _count: true,
         _avg: {
-          score: true,
+          scorePercentage: true,
           timeSpent: true,
         },
         _max: {
-          score: true,
+          scorePercentage: true,
         },
         _min: {
-          score: true,
+          scorePercentage: true,
         },
       }),
     ]);
@@ -703,7 +669,7 @@ export class BatchQueryOptimizer {
         where: { courseId: { in: courseIds } },
         _count: true,
         _avg: {
-          progressPercentage: true,
+          progress: true,
         },
       }),
       db.sAMInteraction.groupBy({
@@ -711,10 +677,10 @@ export class BatchQueryOptimizer {
         where: { courseId: { in: courseIds } },
         _count: true,
       }),
-      db.examAttempt.groupBy({
-        by: ["exam"],
+      db.userExamAttempt.groupBy({
+        by: ["examId"],
         where: {
-          exam: {
+          Exam: {
             section: {
               chapter: { courseId: { in: courseIds } },
             },
@@ -722,18 +688,18 @@ export class BatchQueryOptimizer {
         },
         _count: true,
         _avg: {
-          score: true,
+          scorePercentage: true,
         },
       }),
     ]);
 
-    courseIds.forEach(courseId => {
+    courseIds.forEach((courseId: string) => {
       analyticsMap.set(courseId, {
-        Enrollment: enrollments.find(e => e.courseId === courseId),
-        interactions: interactions.find(i => i.courseId === courseId),
-        examAttempts: examAttempts.filter(a => 
+        Enrollment: enrollments.find((e: any) => e.courseId === courseId),
+        interactions: interactions.find((i: any) => i.courseId === courseId),
+        examAttempts: examAttempts.filter((a: any) => 
           // Note: would need to resolve exam to course relationship
-          true
+          a.examId // simplified filter
         ),
       });
     });
@@ -836,7 +802,7 @@ export class QueryPerformanceMonitor {
 
 // Export utility functions
 export const queryOptimizer = {
-  Course: CourseQueryOptimizer,
+  course: CourseQueryOptimizer,
   progress: ProgressQueryOptimizer,
   exam: ExamQueryOptimizer,
   batch: BatchQueryOptimizer,

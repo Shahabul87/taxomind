@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
 import { logger } from '@/lib/logger';
@@ -15,14 +15,14 @@ export async function POST(req: NextRequest) {
     const user = await currentUser();
     if (!user || !user.id) {
 
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createSuccessResponse({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check rate limiting
     const rateLimitResult = await isRateLimited(user.id, 'reply');
     if (rateLimitResult.limited) {
 
-      return NextResponse.json({ 
+      return createSuccessResponse({ 
         error: getRateLimitMessage('reply', rateLimitResult.reset),
         rateLimitInfo: rateLimitResult
       }, { status: 429 });
@@ -35,22 +35,22 @@ export async function POST(req: NextRequest) {
 
     } catch (err) {
       logger.error("[NESTED_REPLIES] Error parsing request:", err);
-      return NextResponse.json({ error: "Invalid request format" }, { status: 400 });
+      return createSuccessResponse({ error: "Invalid request format" }, { status: 400 });
     }
 
     const { postId, commentId, parentReplyId, content } = body;
 
     // Validate required fields
     if (!content) {
-      return NextResponse.json({ error: "Content is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Content is required" }, { status: 400 });
     }
     
     if (!postId) {
-      return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Post ID is required" }, { status: 400 });
     }
     
     if (!commentId) {
-      return NextResponse.json({ error: "Comment ID is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Comment ID is required" }, { status: 400 });
     }
 
     // First verify the post exists
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     if (!post) {
 
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Post not found" }, { status: 404 });
     }
 
     // Verify the comment exists and belongs to the post
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     if (!comment) {
 
-      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Comment not found" }, { status: 404 });
     }
 
     // Handle depth and path generation
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       
       if (!parentReply) {
 
-        return NextResponse.json({ error: "Parent reply not found" }, { status: 404 });
+        return createSuccessResponse({ error: "Parent reply not found" }, { status: 404 });
       }
       
       // Set depth and path based on parent
@@ -140,10 +140,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(reply);
+    return createSuccessResponse(reply);
   } catch (error) {
     logger.error("[NESTED_REPLIES] Error:", error);
-    return NextResponse.json(
+    return createSuccessResponse(
       { error: "Error creating reply" },
       { status: 500 }
     );

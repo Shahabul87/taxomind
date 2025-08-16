@@ -472,8 +472,8 @@ export class PrerequisiteTrackingService {
           return b.score - a.score;
         }
         
-        const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3, 'expert': 4 };
-        return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        const difficultyOrder: { [key: string]: number } = { 'beginner': 1, 'intermediate': 2, 'advanced': 3, 'expert': 4 };
+        return (difficultyOrder[a.difficulty] || 2) - (difficultyOrder[b.difficulty] || 2);
       })
       .map((item: any) => item.contentId);
   }
@@ -577,28 +577,35 @@ export class PrerequisiteTrackingService {
   private async getStudentCompletedContent(studentId: string, courseId: string): Promise<string[]> {
     const completions = await db.sAMInteraction.findMany({
       where: {
-        studentId,
+        userId: studentId,
         courseId,
-        eventName: 'section_complete'
+        actionTaken: 'section_complete'
       },
       distinct: ['sectionId']
     });
 
-    return completions.map(c => c.sectionId).filter(Boolean);
+    return completions.map(c => c.sectionId).filter((id): id is string => Boolean(id));
   }
 
   private async getCourseContent(courseId: string): Promise<any[]> {
     return await db.section.findMany({
-      where: { courseId },
+      where: { 
+        chapter: {
+          courseId: courseId
+        }
+      },
       orderBy: { position: 'asc' }
     });
   }
 
   private async getContentCourseId(contentId: string): Promise<string> {
     const section = await db.section.findUnique({
-      where: { id: contentId }
+      where: { id: contentId },
+      include: {
+        chapter: true
+      }
     });
-    return section?.courseId || '';
+    return section?.chapter?.courseId || '';
   }
 
   private async getStudentCurrentCourse(studentId: string): Promise<string> {

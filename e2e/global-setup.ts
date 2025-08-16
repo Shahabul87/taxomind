@@ -33,7 +33,7 @@ async function globalSetup(config: FullConfig) {
     
     console.log('✅ Global setup completed successfully');
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Global setup failed:', error);
     throw error;
   } finally {
@@ -62,7 +62,7 @@ async function setupTestData(page: any) {
     } else {
       console.warn(`⚠️  Test data setup warning: ${response.status()}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.warn('⚠️  Could not setup test data via API, using existing data');
   }
 }
@@ -102,7 +102,7 @@ async function createAuthenticatedSessions(page: any, baseURL: string) {
       
       console.log(`✅ ${session.role} session created and saved`);
       
-    } catch (error) {
+    } catch (error: any) {
       console.warn(`⚠️  Could not create ${session.role} session:`, error);
       // Continue with other sessions even if one fails
     }

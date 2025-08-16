@@ -1,3 +1,5 @@
+"use server";
+
 import { enterpriseDataAPI } from "@/lib/data-fetching/enterprise-data-api";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
@@ -33,6 +35,10 @@ const extractTextFromHtml = (html: string | null): string => {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
+};
+
+export const getAllCourses = async (): Promise<CourseWithProgressWithCategory[]> => {
+  return getCoursesForHomepage();
 };
 
 export const getCoursesForHomepage = async (): Promise<CourseWithProgressWithCategory[]> => {
@@ -76,7 +82,7 @@ export const getCoursesForHomepage = async (): Promise<CourseWithProgressWithCat
     });
 
     return processedCourses;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_COURSES]", error);
     return [];
   }

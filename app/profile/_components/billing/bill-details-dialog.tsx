@@ -134,7 +134,7 @@ export function BillDetailsDialog({
             onDelete(bill.id);
             toast.success("Bill deleted successfully");
             onOpenChange(false); // Close dialog
-          } catch (error) {
+          } catch (error: any) {
             toast.error("Failed to delete bill");
           } finally {
             setIsDeleting(false);
@@ -156,7 +156,7 @@ export function BillDetailsDialog({
     try {
       onMarkAsPaid(bill.id);
       toast.success("Bill marked as paid");
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to mark bill as paid");
     } finally {
       setIsMarking(false);

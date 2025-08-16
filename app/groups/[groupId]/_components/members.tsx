@@ -388,10 +388,6 @@ export const Members = ({ group, currentUser, isGroupMember }: MembersProps) => 
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         groupId={group.id}
-        onSuccess={() => {
-          setIsDialogOpen(false);
-          window.location.reload();
-        }}
       />
     </motion.div>
   );

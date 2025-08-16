@@ -153,7 +153,7 @@ export const TitleFormEnhanced = ({
         // Fallback to demo data
         setGeneratedTitles(getDemoTitles());
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Title generation error:", error);
       toast.error("Failed to generate titles. Using demo suggestions.");
       setGeneratedTitles(getDemoTitles());

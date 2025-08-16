@@ -537,4 +537,5 @@ if (typeof window !== 'undefined') {
   initializeCommonPreloading();
 }
 
-export { PreloadingManager, PreloadResource, PreloadStrategy };
+export { PreloadingManager };
+export type { PreloadResource, PreloadStrategy };

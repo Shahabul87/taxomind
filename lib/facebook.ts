@@ -16,7 +16,7 @@ export const facebookClient = {
         }
       });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching Facebook user profile:', error);
       throw error;
     }
@@ -31,7 +31,7 @@ export const facebookClient = {
         }
       });
       return response.data.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching Facebook pages:', error);
       throw error;
     }
@@ -49,7 +49,7 @@ export const facebookClient = {
         }
       });
       return response.data.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching Facebook page insights:', error);
       throw error;
     }
@@ -65,7 +65,7 @@ export const facebookClient = {
         }
       });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching Facebook page followers:', error);
       throw error;
     }
@@ -82,7 +82,7 @@ export const facebookClient = {
         }
       });
       return response.data.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching Facebook page posts:', error);
       throw error;
     }

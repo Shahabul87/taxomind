@@ -126,7 +126,7 @@ export const ContentOptimizer = ({
       const result = await response.json();
       setOptimizationResult(result);
       toast.success("Content optimization complete!");
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Optimization error:', error);
       toast.error("Failed to optimize content. Please try again.");
     } finally {

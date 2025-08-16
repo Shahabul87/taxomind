@@ -134,7 +134,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       onCopy?.();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to copy equation:", error);
     }
   };
@@ -202,7 +202,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
       }
       
       return result;
-    } catch (error) {
+    } catch (error: any) {
       const renderErr = error as Error;
       setRenderError(renderErr);
       onRenderError?.(renderErr);
@@ -328,7 +328,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
         </div>
       </>
     );
-  } catch (error) {
+  } catch (error: any) {
     const renderErr = error as Error;
     setRenderError(renderErr);
     onRenderError?.(renderErr);
@@ -354,7 +354,7 @@ export const validateLatex = (equation: string): { valid: boolean; error?: strin
     }
     
     return { valid: true };
-  } catch (error) {
+  } catch (error: any) {
     return { valid: false, error: (error as Error).message };
   }
 };

@@ -13,9 +13,9 @@ const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_RE
 
 // Different limits for different actions
 const RATE_LIMIT_CONFIG = {
-  comment: { requests: 10, duration: '5 m' }, // 10 comments per 5 minutes
-  reply: { requests: 20, duration: '5 m' },   // 20 replies per 5 minutes
-  reaction: { requests: 50, duration: '5 m' }, // 50 reactions per 5 minutes
+  comment: { requests: 10, duration: "5 m" }, // 10 comments per 5 minutes
+  reply: { requests: 20, duration: "5 m" },   // 20 replies per 5 minutes
+  reaction: { requests: 50, duration: "5 m" }, // 50 reactions per 5 minutes
 };
 
 // Function to check if user is rate limited
@@ -34,7 +34,7 @@ export async function isRateLimited(
   // Create rate limiter with appropriate configuration
   const ratelimit = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(config.requests, config.duration),
+    limiter: Ratelimit.slidingWindow(config.requests, config.duration as any),
     analytics: true,
   });
 

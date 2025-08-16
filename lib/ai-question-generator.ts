@@ -257,7 +257,7 @@ export class AdvancedQuestionGenerator {
     return `You are an expert educational assessment designer with deep knowledge of cognitive science, learning theory, and Bloom's taxonomy. Create pedagogically sophisticated exam questions that accurately assess student learning at specific cognitive levels.
 
 **EDUCATIONAL CONTEXT:**
-Course: ${request.courseTitle || 'Not specified'}
+course: ${request.courseTitle || 'Not specified'}
 Chapter: ${request.chapterTitle || 'Not specified'}
 Section: ${request.sectionTitle}
 Assessment Purpose: ${request.assessmentPurpose}

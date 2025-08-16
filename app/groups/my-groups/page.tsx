@@ -23,13 +23,13 @@ export default async function MyGroupsPage() {
       userId: user.id,
     },
     include: {
-      group: {
+      Group: {
         include: {
           _count: {
             select: {
               members: true,
-              discussions: true,
-              events: true,
+              GroupDiscussion: true,
+              GroupEvent: true,
             },
           },
           categoryRef: true,
@@ -50,14 +50,14 @@ export default async function MyGroupsPage() {
 
   // Separate groups into owned and joined groups
   const ownedGroups = userGroups.filter(
-    (membership) => membership.group.creator.id === user.id
+    (membership) => membership.Group.creator.id === user.id
   );
   const joinedGroups = userGroups.filter(
-    (membership) => membership.group.creator.id !== user.id
+    (membership) => membership.Group.creator.id !== user.id
   );
 
   // Fetch group activity (recent discussions and events)
-  const groupIds = userGroups.map((membership) => membership.group.id);
+  const groupIds = userGroups.map((membership) => membership.Group.id);
   
   const recentDiscussions = await db.groupDiscussion.findMany({
     where: {
@@ -66,7 +66,7 @@ export default async function MyGroupsPage() {
       },
     },
     include: {
-      group: {
+      Group: {
         select: {
           id: true,
           name: true,
@@ -103,7 +103,7 @@ export default async function MyGroupsPage() {
       },
     },
     include: {
-      group: {
+      Group: {
         select: {
           id: true,
           name: true,

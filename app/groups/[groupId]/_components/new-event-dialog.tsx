@@ -112,7 +112,7 @@ export const NewEventDialog = ({
       form.reset();
       onClose();
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Event creation error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to schedule event");
     } finally {

@@ -195,7 +195,7 @@ export const SocialLearningAnalytics = ({
         setDiscussions(getDemoDiscussions());
         setStudyGroups(getDemoStudyGroups());
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to load social learning data:", error);
       // Use demo data as fallback
       setCollaborationData(getDemoAnalytics());
@@ -237,7 +237,7 @@ export const SocialLearningAnalytics = ({
       } else {
         toast.error("Failed to create discussion");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to create discussion:", error);
       toast.error("Failed to create discussion");
     }

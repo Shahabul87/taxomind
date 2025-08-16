@@ -373,7 +373,7 @@ export function useRetry<T>(
         setRetryCount(0);
         setIsRetrying(false);
         return result;
-      } catch (error) {
+      } catch (error: any) {
         if (attempt === maxRetries) {
           setIsRetrying(false);
           throw error;

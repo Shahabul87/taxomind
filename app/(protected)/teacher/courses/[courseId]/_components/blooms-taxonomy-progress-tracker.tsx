@@ -295,7 +295,7 @@ export const BloomsTaxonomyProgressTracker = ({
       const healthScore = calculateOverallHealth(finalAnalysis);
       setOverallHealth(healthScore);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing Bloom\'s distribution:', error);
     } finally {
       setIsLoading(false);

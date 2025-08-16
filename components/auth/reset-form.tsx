@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { FaEnvelope } from "react-icons/fa";
+import { Mail } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { ResetSchema } from "@/schemas";
@@ -72,7 +72,7 @@ export const ResetForm = () => {
     visible: { 
       y: 0, 
       opacity: 1,
-      transition: { type: "spring", stiffness: 100 }
+      transition: { type: "spring" as const, stiffness: 100 }
     }
   };
   
@@ -80,7 +80,7 @@ export const ResetForm = () => {
     hover: { 
       scale: 1.03,
       boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
-      transition: { type: "spring", stiffness: 400 }
+      transition: { type: "spring" as const, stiffness: 400 }
     },
     tap: { scale: 0.97 }
   };
@@ -140,7 +140,7 @@ export const ResetForm = () => {
                           </FormControl>
                           <div className={`absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 transition-all duration-300 
                             ${field.value || focusedField === 'email' ? 'opacity-0 -translate-x-2' : 'opacity-100'}`}>
-                            <FaEnvelope className="w-5 h-5" />
+                            <Mail className="w-5 h-5" />
                           </div>
                           <div className={`absolute top-0 left-0 h-full w-2 rounded-l-xl transition-all duration-300 ${field.value ? 'bg-gradient-to-b from-cyan-400 to-purple-400' : 'bg-transparent'}`}></div>
                         </div>

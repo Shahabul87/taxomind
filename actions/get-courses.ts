@@ -1,3 +1,5 @@
+"use server";
+
 import { Category, Course } from "@prisma/client";
 
 import { getProgress } from "@/actions/get-progress";
@@ -101,8 +103,8 @@ async function fetchCoursesFromDatabase(
     });
 
     return coursesWithProgress;
-  } catch (error) {
-
+  } catch (error: any) {
+    console.error('[GET_COURSES_ERROR]', error);
     return [];
   }
 }

@@ -332,11 +332,11 @@ export default function CoursePage() {
           
           const allCategories = [
             "All", 
-            ...courseCategories,
-            ...additionalCategories.filter(cat => !courseCategories.includes(cat))
+            ...courseCategories.filter((cat): cat is string => Boolean(cat)),
+            ...additionalCategories.filter(cat => cat && !courseCategories.includes(cat))
           ];
           
-          setCategories(allCategories);
+          setCategories(allCategories as string[]);
           
           // Initial tab calculation will be handled by useEffect
         } else {

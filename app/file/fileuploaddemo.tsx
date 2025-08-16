@@ -55,7 +55,7 @@ export function FileUploadDemo() {
       } else {
         alert("Failed to upload files.");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error uploading files:", error);
       alert("An error occurred during file upload.");
     } finally {

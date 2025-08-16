@@ -69,7 +69,7 @@ export const ExplanationActions = ({
       
       await axios.delete(deleteEndpoint);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Delete error:", error);
       throw error;
     }

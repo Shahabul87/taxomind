@@ -323,43 +323,55 @@ export class OptimizedAIAPI {
     },
     context: Partial<AIRequestContext> = {}
   ): Promise<void> {
-    const preloadRequests = [];
+    const preloadRequests: Array<{
+      request: any;
+      context: AIRequestContext;
+      fetchFn: () => Promise<any>;
+    }> = [];
 
     // Preload common question types for each chapter
     for (const chapter of courseStructure.chapters) {
+      const questionRequest: QuestionGenerationRequest = {
+        topic: chapter.title,
+        count: 5,
+        bloomsLevel: ['remember', 'understand'],
+        difficulty: 'medium',
+        questionType: 'multiple-choice'
+      };
+
+      const questionContext: AIRequestContext = {
+        type: 'question-generation',
+        priority: 'low',
+        courseId,
+        userId: context.userId
+      };
+
       preloadRequests.push({
-        request: {
-          topic: chapter.title,
-          count: 5,
-          bloomsLevel: ['remember', 'understand'],
-          difficulty: 'medium' as const,
-          questionType: 'multiple-choice' as const
-        },
-        context: {
-          type: 'question-generation' as const,
-          priority: 'low' as const,
-          courseId,
-          ...context
-        },
-        fetchFn: () => this.generateQuestions(preloadRequests[0].request, context)
+        request: questionRequest,
+        context: questionContext,
+        fetchFn: () => this.generateQuestions(questionRequest, context)
       });
 
       // Preload content outlines
+      const contentRequest: ContentGenerationRequest = {
+        type: 'outline',
+        topic: chapter.title,
+        level: 'intermediate',
+        tone: 'engaging',
+        length: 'medium'
+      };
+
+      const contentContext: AIRequestContext = {
+        type: 'content-creation',
+        priority: 'low',
+        courseId,
+        userId: context.userId
+      };
+
       preloadRequests.push({
-        request: {
-          type: 'outline' as const,
-          topic: chapter.title,
-          level: 'intermediate' as const,
-          tone: 'engaging' as const,
-          length: 'medium' as const
-        },
-        context: {
-          type: 'content-creation' as const,
-          priority: 'low' as const,
-          courseId,
-          ...context
-        },
-        fetchFn: () => this.generateContent(preloadRequests[1].request, context)
+        request: contentRequest,
+        context: contentContext,
+        fetchFn: () => this.generateContent(contentRequest, context)
       });
     }
 

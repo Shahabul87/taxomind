@@ -95,7 +95,7 @@ export function CollaborativeEditor({
         // Join document
         const collaborator = await realtimeEngine.joinDocument(documentId, user.id, {
           name: user.name || 'Anonymous',
-          avatar: user.image,
+          avatar: user.image || undefined,
           permissions: {
             canEdit: !readOnly,
             canComment: true,
@@ -116,7 +116,7 @@ export function CollaborativeEditor({
         // Set up WebSocket connection
         setupWebSocketConnection();
 
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to initialize collaborative editor:', error);
         toast.error('Failed to connect to collaborative editor');
       }
@@ -331,7 +331,7 @@ export function CollaborativeEditor({
       setCommentText('');
       setSelectedText(null);
       toast.success('Comment added');
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to add comment');
       logger.error(error);
     }
@@ -343,7 +343,7 @@ export function CollaborativeEditor({
       await realtimeEngine.createCheckpoint(documentId, user?.id || 'anonymous', 'Manual save');
       onSave?.(editorState.content);
       toast.success('Document saved');
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to save document');
       logger.error(error);
     }

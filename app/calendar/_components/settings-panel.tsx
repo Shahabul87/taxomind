@@ -16,7 +16,7 @@ export const SettingsPanel = () => {
     const handleBeforeUnload = async () => {
       try {
         await syncSettings();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to sync settings:', error);
       }
     };
@@ -30,7 +30,7 @@ export const SettingsPanel = () => {
       resetSettings();
       await syncSettings();
       toast.success('Settings reset to defaults');
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to reset settings');
     }
   };

@@ -104,7 +104,7 @@ export const EventsWithCalendar = ({ group, currentUser, isGroupMember }: Events
       });
       
       setEvents(mockEvents);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching events:", error);
     } finally {
       setIsLoading(false);
@@ -531,7 +531,6 @@ export const EventsWithCalendar = ({ group, currentUser, isGroupMember }: Events
         onClose={() => setIsDialogOpen(false)}
         groupId={group.id}
         currentUser={currentUser}
-        selectedDate={selectedDate}
         onSuccess={() => {
           setIsDialogOpen(false);
           setSelectedDate(null);

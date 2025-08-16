@@ -662,7 +662,11 @@ export class IntelligentQuestionSequencer {
   }
 
   private sortByQuestionDifficulty(questions: SequencedQuestion[], studentProfile: StudentProfile): SequencedQuestion[] {
-    const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
+    const difficultyOrder: Record<QuestionDifficulty, number> = {
+      [QuestionDifficulty.EASY]: 1,
+      [QuestionDifficulty.MEDIUM]: 2,
+      [QuestionDifficulty.HARD]: 3,
+    };
     
     return [...questions].sort((a, b) => {
       // Primary sort by difficulty
@@ -756,7 +760,11 @@ export class IntelligentQuestionSequencer {
       ANALYZE: 4, EVALUATE: 5, CREATE: 6
     };
     
-    const difficultyWeights = { easy: 1, medium: 2, hard: 3 };
+    const difficultyWeights: Record<QuestionDifficulty, number> = {
+      [QuestionDifficulty.EASY]: 1,
+      [QuestionDifficulty.MEDIUM]: 2,
+      [QuestionDifficulty.HARD]: 3,
+    };
     
     return (
       bloomsWeights[question.bloomsLevel] * 0.5 +
@@ -957,9 +965,9 @@ export class IntelligentQuestionSequencer {
   private getTargetQuestionDifficulty(studentProfile: StudentProfile): QuestionDifficulty {
     const avgMastery = Object.values(studentProfile.masteryLevels).reduce((sum, m) => sum + m, 0) / 6;
     
-    if (avgMastery > 0.8) return 'hard';
-    if (avgMastery > 0.6) return 'medium';
-    return 'easy';
+    if (avgMastery > 0.8) return QuestionDifficulty.HARD;
+    if (avgMastery > 0.6) return QuestionDifficulty.MEDIUM;
+    return QuestionDifficulty.EASY;
   }
 
   private calculateInitialQuestionDifficultyTarget(studentProfile: StudentProfile): number {
@@ -973,7 +981,11 @@ export class IntelligentQuestionSequencer {
     studentProfile: StudentProfile
   ): SequencedQuestion[] {
     
-    const difficultyMap = { easy: 0.3, medium: 0.6, hard: 0.9 };
+    const difficultyMap: Record<QuestionDifficulty, number> = {
+      [QuestionDifficulty.EASY]: 0.3,
+      [QuestionDifficulty.MEDIUM]: 0.6,
+      [QuestionDifficulty.HARD]: 0.9,
+    };
     const tolerance = 0.2;
     
     return questions.filter(q => {
@@ -986,7 +998,11 @@ export class IntelligentQuestionSequencer {
     // Adjust towards available questions
     if (remaining.length === 0) return current;
     
-    const difficultyMap = { easy: 0.3, medium: 0.6, hard: 0.9 };
+    const difficultyMap: Record<QuestionDifficulty, number> = {
+      [QuestionDifficulty.EASY]: 0.3,
+      [QuestionDifficulty.MEDIUM]: 0.6,
+      [QuestionDifficulty.HARD]: 0.9,
+    };
     const availableDifficulties = remaining.map(q => difficultyMap[q.difficulty]);
     const avgAvailable = availableDifficulties.reduce((sum, d) => sum + d, 0) / availableDifficulties.length;
     
@@ -1023,10 +1039,14 @@ export class IntelligentQuestionSequencer {
 
   private predictQuestionAccuracy(question: SequencedQuestion, studentProfile: StudentProfile): number {
     const masteryLevel = studentProfile.masteryLevels[question.bloomsLevel] || 0.5;
-    const difficultyPenalty = { easy: 0, medium: 0.1, hard: 0.2 }[question.difficulty];
+    const difficultyPenalty: Record<QuestionDifficulty, number> = {
+      [QuestionDifficulty.EASY]: 0,
+      [QuestionDifficulty.MEDIUM]: 0.1,
+      [QuestionDifficulty.HARD]: 0.2,
+    };
     const cognitiveLoadPenalty = Math.max(0, question.cognitiveLoad - studentProfile.cognitivePreferences.optimalCognitiveLoad) * 0.05;
     
-    return Math.max(0.1, masteryLevel - difficultyPenalty - cognitiveLoadPenalty);
+    return Math.max(0.1, masteryLevel - difficultyPenalty[question.difficulty] - cognitiveLoadPenalty);
   }
 
   // Additional helper methods would be implemented here...

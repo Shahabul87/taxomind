@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useCallback, useRef } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+// Fallback to simple drag-drop if library is not available in runtime/build
+import { DragDrop } from '@/components/ui/drag-drop';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -139,15 +140,9 @@ export function TemplateBuilder({
   }, [template.blocks]);
 
   // Drag and Drop
-  const onDragEnd = useCallback((result: DropResult) => {
-    if (!result.destination) return;
-
-    const items = Array.from(template.blocks || []);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
+  const onReorder = useCallback((items: TemplateBlock[]) => {
     setTemplate(prev => ({ ...prev, blocks: items }));
-  }, [template.blocks]);
+  }, []);
 
   // Template Actions
   const saveTemplate = async () => {
@@ -160,7 +155,7 @@ export function TemplateBuilder({
       const savedTemplate = await templateEngine.createTemplate(template as any);
       onSave?.(savedTemplate);
       toast.success('Template saved successfully');
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to save template');
       logger.error(error);
     }
@@ -395,95 +390,52 @@ export function TemplateBuilder({
                 </Card>
 
                 {/* Blocks */}
-                <DragDropContext onDragEnd={onDragEnd}>
-                  <Droppable droppableId="blocks">
-                    {(provided) => (
+                <div className="space-y-4">
+                  <DragDrop
+                    items={template.blocks || []}
+                    onReorder={onReorder}
+                    renderItem={(block, index) => (
                       <div
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                        className="space-y-4"
+                        className={`group relative ${
+                          selectedBlock === block.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+                        }`}
+                        onClick={() => setSelectedBlock(block.id)}
                       >
-                        {template.blocks?.map((block, index) => (
-                          <Draggable key={block.id} draggableId={block.id} index={index}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className={`group relative ${
-                                  selectedBlock === block.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''
-                                } ${snapshot.isDragging ? 'shadow-lg' : ''}`}
-                                onClick={() => setSelectedBlock(block.id)}
-                              >
-                                <div className="absolute left-0 top-0 h-full w-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
-                                  <div {...provided.dragHandleProps}>
-                                    <GripVertical className="h-4 w-4 text-gray-400" />
-                                  </div>
-                                </div>
-                                
-                                <div className="ml-8">
-                                  <BlockRenderer 
-                                    block={block} 
-                                    editable={true}
-                                    onEdit={(blockId) => {
-                                      setEditingBlock(block);
-                                      setShowBlockDialog(true);
-                                    }}
-                                    onDelete={deleteBlock}
-                                  />
-                                </div>
-                                
-                                {selectedBlock === block.id && (
-                                  <div className="absolute top-2 right-2 flex gap-1 bg-white shadow-lg rounded-md p-1">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        duplicateBlock(block.id);
-                                      }}
-                                    >
-                                      <Copy className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingBlock(block);
-                                        setShowBlockDialog(true);
-                                      }}
-                                    >
-                                      <Settings className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteBlock(block.id);
-                                      }}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                        
-                        {(!template.blocks || template.blocks.length === 0) && (
-                          <div className="text-center py-12 text-gray-500">
-                            <Layout className="mx-auto h-12 w-12 mb-4" />
-                            <h3 className="text-lg font-medium mb-2">No blocks yet</h3>
-                            <p>Add blocks from the library to start building your template</p>
+                        <div className="ml-8">
+                          <BlockRenderer 
+                            block={block} 
+                            editable={true}
+                            onEdit={() => {
+                              setEditingBlock(block);
+                              setShowBlockDialog(true);
+                            }}
+                            onDelete={deleteBlock}
+                          />
+                        </div>
+                        {selectedBlock === block.id && (
+                          <div className="absolute top-2 right-2 flex gap-1 bg-white shadow-lg rounded-md p-1">
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); duplicateBlock(block.id); }}>
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingBlock(block); setShowBlockDialog(true); }}>
+                              <Settings className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); deleteBlock(block.id); }}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           </div>
                         )}
                       </div>
                     )}
-                  </Droppable>
-                </DragDropContext>
+                  />
+                  {(!template.blocks || template.blocks.length === 0) && (
+                    <div className="text-center py-12 text-gray-500">
+                      <Layout className="mx-auto h-12 w-12 mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No blocks yet</h3>
+                      <p>Add blocks from the library to start building your template</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

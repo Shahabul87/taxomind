@@ -62,7 +62,7 @@ export class SAMMasterIntegration {
         role: user.role,
         learningProfile: engineInsights.learningProfile,
       },
-      Course: courseId ? await this.getCourseContext(courseId) : null,
+      course: courseId ? await this.getCourseContext(courseId) : null,
       engineInsights,
       recommendations,
       conversationContext: {
@@ -172,7 +172,6 @@ export class SAMMasterIntegration {
     try {
       const analysis = await db.courseMarketAnalysis.findUnique({
         where: { courseId },
-        orderBy: { analyzedAt: 'desc' },
       });
 
       if (!analysis) return null;
@@ -180,10 +179,10 @@ export class SAMMasterIntegration {
       return {
         marketValue: analysis.marketValue,
         demandScore: analysis.demandScore,
-        competitionLevel: analysis.competitionLevel,
-        growthPotential: analysis.growthPotential,
+        competitionLevel: (analysis.competitorAnalysis as any)?.competition ?? 0,
+        growthPotential: (analysis.trendAnalysis as any)?.growthPotential ?? 0,
         position: analysis.marketPosition,
-        lastUpdated: analysis.analyzedAt,
+        lastUpdated: analysis.lastAnalyzedAt,
       };
     } catch (error: any) {
       logger.error('Error fetching market insights:', error);
@@ -244,13 +243,13 @@ export class SAMMasterIntegration {
         orderBy: { createdAt: 'desc' },
       });
 
-      if (!latestGuide?.result) return null;
+      if (!latestGuide?.context) return null;
 
-      const result = latestGuide.result as any;
+      const result = latestGuide.context as any;
       return {
-        metrics: result.metrics,
-        successProbability: result.successProbability,
-        criticalActions: result.criticalActions,
+        metrics: result?.metrics ?? null,
+        successProbability: result?.successProbability ?? null,
+        criticalActions: result?.criticalActions ?? 0,
       };
     } catch (error: any) {
       logger.error('Error fetching course guide insights:', error);
@@ -296,7 +295,7 @@ export class SAMMasterIntegration {
    * Get course context
    */
   private async getCourseContext(courseId: string) {
-    const course = await db.Course.findUnique({
+    const course = await db.course.findUnique({
       where: { id: courseId },
       include: {
         _count: {
@@ -559,14 +558,14 @@ export class SAMMasterIntegration {
     if (context.user.role === 'ADMIN' && context.course) {
       actions.push({
         label: 'Run Full Analysis',
-        route: `/teacher/courses/${context.Course.id}/sam-analysis`,
+        route: `/teacher/courses/${context.course.id}/sam-analysis`,
         icon: 'analysis',
       });
 
       if (context.engineInsights.courseGuide?.criticalActions > 0) {
         actions.push({
           label: 'View Critical Actions',
-          route: `/teacher/courses/${context.Course.id}/sam-analysis?tab=recommendations`,
+          route: `/teacher/courses/${context.course.id}/sam-analysis?tab=recommendations`,
           icon: 'alert',
         });
       }
@@ -584,7 +583,7 @@ interface SAMEnhancedContext {
     role: string;
     learningProfile: any;
   };
-  Course: any;
+  course: any;
   engineInsights: EngineInsights;
   recommendations: PersonalizedRecommendations;
   conversationContext: {

@@ -113,7 +113,7 @@ export default function AINewsPage() {
       if (data.source === 'real') {
         setUseRealData(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching news:', error);
       setError('Failed to load news. Please try again later.');
     } finally {

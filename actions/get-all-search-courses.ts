@@ -1,3 +1,5 @@
+"use server";
+
 import { Category, Course } from "@prisma/client";
 
 import { getProgress } from "@/actions/get-progress";
@@ -21,15 +23,18 @@ type CourseForHomepage = {
     } | null;
   };
 type GetCourses = {
-  userId: string;
+  userId?: string;
   title?: string;
   categoryId?: string;
 };
 
-export const getAllSearchCourses = async ({
-  title,
-  categoryId
-}: GetCourses): Promise<CourseForHomepage[]> => {
+export const getAllSearchCourses = async (
+  params: GetCourses | string = {}
+): Promise<CourseForHomepage[]> => {
+  // Handle backward compatibility where title was passed as string
+  const { title, categoryId } = typeof params === 'string' 
+    ? { title: params, categoryId: undefined }
+    : params;
 
   try {
     const courses = await db.course.findMany({
@@ -59,8 +64,8 @@ export const getAllSearchCourses = async ({
     });
 
     return courses as CourseForHomepage[];
-  } catch (error) {
-
+  } catch (error: any) {
+    console.error('[GET_ALL_SEARCH_COURSES_ERROR]', error);
     return [];
   }
 }

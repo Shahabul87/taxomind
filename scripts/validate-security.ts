@@ -182,7 +182,7 @@ class SecurityValidator {
         this.addResult('Hash Functions', 'fail', 'Hash verification failed');
       }
 
-    } catch (error) {
+    } catch (error: any) {
       this.addResult('Encryption', 'fail', 'Encryption test failed', { error: error.message });
     }
   }
@@ -247,7 +247,7 @@ class SecurityValidator {
         this.addResult('User Data Encryption', 'fail', 'User data encryption failed');
       }
 
-    } catch (error) {
+    } catch (error: any) {
       this.addResult('Field Encryption', 'fail', 'Field encryption test failed', { error: error.message });
     }
   }
@@ -313,7 +313,7 @@ class SecurityValidator {
         this.addResult('API Key Generation', 'fail', 'API key validation failed');
       }
 
-    } catch (error) {
+    } catch (error: any) {
       this.addResult('Crypto Utils', 'fail', 'Crypto utilities test failed', { error: error.message });
     }
   }
@@ -384,7 +384,7 @@ class SecurityValidator {
         });
       }
 
-    } catch (error) {
+    } catch (error: any) {
       this.addResult('Security Headers', 'fail', 'Security headers test failed', { error: error.message });
     }
   }
@@ -417,7 +417,7 @@ class SecurityValidator {
               errors: validation.errors,
             });
           }
-        } catch (error) {
+        } catch (error: any) {
           this.addResult(`Security Middleware (${env})`, 'fail', `Failed to initialize ${env} middleware`, {
             error: error.message,
           });
@@ -433,7 +433,7 @@ class SecurityValidator {
         eventTypes: Object.keys(stats.eventsByType).length,
       });
 
-    } catch (error) {
+    } catch (error: any) {
       this.addResult('Security Middleware', 'fail', 'Security middleware test failed', { error: error.message });
     }
   }
@@ -489,7 +489,7 @@ class SecurityValidator {
         this.addResult('Token Generation Performance', 'warning', `Token generation slow: ${tokenDuration.toFixed(2)}ms avg`);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       this.addResult('Performance Benchmarks', 'fail', 'Performance benchmarks failed', { error: error.message });
     }
   }
@@ -608,7 +608,7 @@ async function main() {
     const hasFailures = validator['results'].some(r => r.status === 'fail');
     process.exit(hasFailures ? 1 : 0);
     
-  } catch (error) {
+  } catch (error: any) {
     console.error(chalk.red.bold('\n💥 Validation script failed:'));
     console.error(error);
     process.exit(1);

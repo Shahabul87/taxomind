@@ -21,14 +21,13 @@ export const redis = (() => {
       
       const redisClient = new Redis(redisUrl, {
         maxRetriesPerRequest: 3,
-        retryDelayOnFailover: 100,
         enableReadyCheck: false,
         lazyConnect: true,
-      });
+      } as any);
       
       globalThis.redis = redisClient;
       return redisClient;
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Redis connection failed, using fallback:', error);
     }
   }
@@ -193,6 +192,23 @@ class MockRedis {
     return list.length;
   }
 
+  async lrange(key: string, start: number, stop: number): Promise<string[]> {
+    let list = this.store.get(key);
+    if (!list) return [];
+    
+    if (typeof list === 'string') {
+      try {
+        list = JSON.parse(list);
+      } catch {
+        return [];
+      }
+    }
+    
+    if (!Array.isArray(list)) return [];
+    
+    return list.slice(start, stop === -1 ? undefined : stop + 1);
+  }
+
   async ltrim(key: string, start: number, stop: number): Promise<string> {
     let list = this.store.get(key);
     if (!list) return 'OK';
@@ -231,15 +247,17 @@ class MockRedis {
   }
 
   // Pub/Sub operations (simplified for development)
-  async publish(channel: string, message: string): Promise<number> {
-
+  async publish(_channel: string, _message: string): Promise<number> {
     return 1;
   }
 
-  async subscribe(channel: string): Promise<void> {
-}
-  on(event: string, callback: (channel: string, message: string) => void): void {
-}
+  async subscribe(_channel: string): Promise<void> {
+    return;
+  }
+
+  on(_event: string, _callback: (channel: string, message: string) => void): void {
+    return;
+  }
   // Additional methods for compatibility
   async info(section?: string): Promise<string> {
     return 'redis_version:6.0.0-mock\nused_memory_human:1.0M\nconnected_clients:1';

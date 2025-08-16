@@ -202,6 +202,14 @@ export interface ClassCognitiveProfile {
   learningCultureIndicators: LearningCultureIndicator[];
 }
 
+// Indicator describing aspects of the class learning culture
+interface LearningCultureIndicator {
+  name: string;
+  score: number; // 0-1
+  trend: 'improving' | 'stable' | 'declining';
+  notes?: string;
+}
+
 export interface BloomsDistribution {
   current: Record<BloomsLevel, ClassLevelStats>;
   optimal: Record<BloomsLevel, ClassLevelStats>;

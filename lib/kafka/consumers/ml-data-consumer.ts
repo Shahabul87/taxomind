@@ -59,7 +59,7 @@ export async function processMLDataMessage(
     // Check if we have enough data for training
     await checkDataReadiness(data.studentId, data.courseId);
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error processing ML data:', error);
   }
 }
@@ -214,7 +214,7 @@ async function prepareTrainingData(
     
     // Generate labels (in production, these would come from historical data)
     const labels = {
-      willComplete: enrollment.progressPercentage > 80,
+      willComplete: enrollment.progress > 80,
       performanceLevel: getPerformanceLevel(features.engagementScore),
       dropoutRisk: calculateDropoutRisk(features),
       nextContentRecommendation: 'adaptive' // Placeholder
@@ -227,7 +227,7 @@ async function prepareTrainingData(
       labels
     };
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error preparing training data:', error);
     return null;
   }
@@ -319,7 +319,7 @@ async function sendToMLPipeline(data: MLTrainingData): Promise<void> {
   await redis.lpush('ml_training_queue', JSON.stringify(data));
   
   // Trigger ML model update if queue is large enough
-  const queueSize = await redis.llen('ml_training_queue');
+  const queueSize = await (redis as any).llen('ml_training_queue');
   if (queueSize >= 1000) {
     // Trigger batch training
     await redis.publish('ml_training_trigger', 'start_training');
@@ -342,7 +342,7 @@ export async function startMLDataConsumer(): Promise<void> {
       eachMessage: processMLDataMessage
     });
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to start ML data consumer:', error);
     throw error;
   }

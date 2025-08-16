@@ -92,7 +92,7 @@ class Logger {
       const result = await operation();
       this.log(level, `${message} - Success`, result);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       this.error(`${message} - Failed`, error as Error);
       throw error;
     }

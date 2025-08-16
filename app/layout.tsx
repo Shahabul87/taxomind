@@ -84,7 +84,7 @@ async function AsyncHeader() {
   
   try {
     user = await currentUser();
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error fetching user:", error);
     user = null;
   }
@@ -98,7 +98,7 @@ async function AsyncLayoutWithSidebar({ children }: { children: React.ReactNode 
   
   try {
     user = await currentUser();
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error fetching user for sidebar:", error);
     user = null;
   }
@@ -120,7 +120,7 @@ export default async function RootLayout({
   
   try {
     session = await auth();
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error fetching auth session:", error);
     session = null;
   }

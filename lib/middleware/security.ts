@@ -323,7 +323,7 @@ export class SecurityMiddleware {
         },
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Security middleware error:', error);
       
       // Log security middleware error
@@ -378,7 +378,8 @@ export class SecurityMiddleware {
       return forwardedFor.split(',')[0].trim();
     }
     
-    return request.ip || 'unknown';
+    // Fallback to connection info or unknown
+    return 'unknown';
   }
 
   /**
@@ -749,7 +750,7 @@ export class SecurityMiddleware {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(event),
         });
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to send security webhook:', error);
       }
     }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 
 interface UseIntelligentOnboardingProps {
-  userRole: "TEACHER" | "STUDENT" | "ADMIN";
+  userRole: "USER" | "ADMIN";
   userId?: string;
   autoStart?: boolean;
 }

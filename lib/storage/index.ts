@@ -90,7 +90,7 @@ async function deleteFile(publicId: string): Promise<boolean> {
   try {
     const result = await cloudinary.uploader.destroy(publicId);
     return result.result === 'ok';
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Cloudinary delete error:', error);
     return false;
   }
@@ -136,7 +136,7 @@ async function uploadFileLocal(
   try {
     fs.writeFileSync(filePath, buffer);
     return `/uploads/certificates/${fileName}`;
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Local upload error:', error);
     throw new Error('Failed to upload file locally');
   }

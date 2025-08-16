@@ -116,7 +116,7 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
       }
       
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error saving activity:', error);
       setErrors({ submit: 'Failed to save activity. Please try again.' });
     } finally {

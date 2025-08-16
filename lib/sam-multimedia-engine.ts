@@ -138,7 +138,7 @@ export class SAMMultiMediaEngine {
       await this.storeVideoAnalysis(content.courseId, content.chapterId, analysis);
 
       return analysis;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing video:', error);
       throw new Error('Failed to analyze video content');
     }
@@ -163,7 +163,7 @@ export class SAMMultiMediaEngine {
       await this.storeAudioAnalysis(content.courseId, analysis);
 
       return analysis;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing audio:', error);
       throw new Error('Failed to analyze audio content');
     }
@@ -186,7 +186,7 @@ export class SAMMultiMediaEngine {
       await this.storeInteractiveAnalysis(content.courseId, analysis);
 
       return analysis;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing interactive content:', error);
       throw new Error('Failed to analyze interactive content');
     }
@@ -221,7 +221,7 @@ export class SAMMultiMediaEngine {
       });
 
       return insights;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating multi-modal insights:', error);
       throw new Error('Failed to generate multi-modal insights');
     }

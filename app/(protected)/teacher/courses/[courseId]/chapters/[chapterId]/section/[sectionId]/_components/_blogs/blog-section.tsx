@@ -176,7 +176,7 @@ export const BlogSectionForm = ({
       } else {
         throw new Error("No metadata returned");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching blog metadata:", error);
       
       // Handle different types of errors

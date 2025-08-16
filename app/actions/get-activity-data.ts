@@ -20,12 +20,12 @@ export const getActivityData = async () => {
     try {
       const activities = await fetchRealActivities(userId);
       return activities;
-    } catch (error) {
+    } catch (error: any) {
       logger.warn("Activity table not available, returning empty array:", error);
       return [];
     }
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error fetching activity data:", error);
     return [];
   }
@@ -56,7 +56,7 @@ const fetchRealActivities = async (userId: string): Promise<ActivityItem[]> => {
       progress: activity.progress || 0,
       userId: activity.userId
     }));
-  } catch (error) {
+  } catch (error: any) {
     // If Activity table doesn't exist, try to get activities from other sources
     const userActivities = await getActivitiesFromUserData(userId);
     return userActivities;
@@ -126,7 +126,7 @@ const getActivitiesFromUserData = async (userId: string): Promise<ActivityItem[]
     
     return activities;
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error getting activities from user data:", error);
     return [];
   }

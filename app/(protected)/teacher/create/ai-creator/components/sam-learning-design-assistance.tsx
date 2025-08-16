@@ -68,7 +68,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
       const result = await response.json();
       setObjectiveSuggestions(result.objectives || []);
       setShowObjectiveSuggestions(true);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating learning objectives:', error);
       toast.error('Failed to generate learning objectives');
     } finally {
@@ -106,7 +106,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
       const result = await response.json();
       setBloomsRecommendations(result);
       setShowBloomsRecommendations(true);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating Bloom\'s recommendations:', error);
       toast.error('Failed to generate Bloom\'s recommendations');
     } finally {

@@ -38,7 +38,7 @@ export default function ContentGovernanceDashboard() {
       } else {
         toast.error(data.error || 'Failed to fetch dashboard data');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to fetch dashboard data');
     } finally {
       setIsLoading(false);

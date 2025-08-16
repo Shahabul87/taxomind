@@ -1016,3 +1016,102 @@ export interface FieldValidation {
   max?: number;
   customRule?: string;
 }
+
+// Missing interface definitions
+export interface AttributeMappingConfig {
+  [key: string]: any;
+}
+
+export interface GroupMappingConfig {
+  [key: string]: any;
+}
+
+export interface SessionManagementConfig {
+  [key: string]: any;
+}
+
+export interface MetricsSyncConfig {
+  [key: string]: any;
+}
+
+export interface ReportingConfig {
+  [key: string]: any;
+}
+
+export interface DashboardIntegrationConfig {
+  [key: string]: any;
+}
+
+export interface CustomDimensionConfig {
+  [key: string]: any;
+}
+
+export interface ContentImportConfig {
+  [key: string]: any;
+}
+
+export interface MetadataSyncConfig {
+  [key: string]: any;
+}
+
+export interface LicensingConfig {
+  [key: string]: any;
+}
+
+export interface QualityAssuranceConfig {
+  [key: string]: any;
+}
+
+export interface NotificationConfig {
+  [key: string]: any;
+}
+
+export interface AutomationRule {
+  [key: string]: any;
+}
+
+export interface ChannelMappingConfig {
+  [key: string]: any;
+}
+
+export interface TemplateManagementConfig {
+  [key: string]: any;
+}
+
+export interface ErrorTracking {
+  [key: string]: any;
+}
+
+// All remaining missing interfaces
+export interface DataTypeMapping { [key: string]: any; }
+export interface ContentSyncConfig { [key: string]: any; }
+export interface EnrollmentSyncConfig { [key: string]: any; }
+export interface LoggingConfig { [key: string]: any; }
+export interface ComplianceMonitoring { [key: string]: any; }
+export interface CourseMappingRule { [key: string]: any; }
+export interface CategoryMappingConfig { [key: string]: any; }
+export interface ContentMappingConfig { [key: string]: any; }
+export interface UserAttributeMapping { [key: string]: any; }
+export interface RoleMappingConfig { [key: string]: any; }
+export interface GradeMappingConfig { [key: string]: any; }
+export interface IdentityProviderConfig { [key: string]: any; }
+export interface ServiceProviderConfig { [key: string]: any; }
+export interface SSOAttributeMapping { [key: string]: any; }
+export interface SSOSessionConfig { [key: string]: any; }
+export interface ProvisioningRule { [key: string]: any; }
+export interface DeprovisioningRule { [key: string]: any; }
+export interface EventTypeMapping { [key: string]: any; }
+export interface CustomEventConfig { [key: string]: any; }
+export interface EventFilterConfig { [key: string]: any; }
+export interface EventEnrichmentConfig { [key: string]: any; }
+export interface EventBatchingConfig { [key: string]: any; }
+export interface LibraryAuthConfig { [key: string]: any; }
+export interface SearchCapabilityConfig { [key: string]: any; }
+export interface DownloadRightsConfig { [key: string]: any; }
+export interface UsageTrackingConfig { [key: string]: any; }
+export interface MessageRoutingRule { [key: string]: any; }
+export interface ChannelPriorityConfig { [key: string]: any; }
+export interface FallbackChannelConfig { [key: string]: any; }
+export interface MessageFormattingConfig { [key: string]: any; }
+export interface DeliveryTrackingConfig { [key: string]: any; }
+export interface MetadataMappingConfig { [key: string]: any; }

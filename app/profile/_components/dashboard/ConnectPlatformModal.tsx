@@ -237,7 +237,7 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
     try {
       // Redirect to OAuth flow
       window.location.href = `/api/auth/${platform.id}/connect`;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error connecting platform:', error);
       setConnectingPlatform(null);
     }
@@ -298,7 +298,7 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
         throw new Error('Invalid metadata response');
       }
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching metadata:', error);
       
       // Enhanced error handling with better user feedback
@@ -364,7 +364,7 @@ export function ConnectPlatformModal({ children, userId, onProfileLinksUpdated }
         resetModal();
         setIsOpen(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error saving selection:', error);
       toast.error('Failed to save your preferences');
     } finally {

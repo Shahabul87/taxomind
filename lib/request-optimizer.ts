@@ -94,8 +94,7 @@ export class RequestOptimizer {
     operation: string,
     params: any,
     executor: () => Promise<T>,
-    config: Partial<RequestConfig> = {
-}
+    config: Partial<RequestConfig> = {}
   ): Promise<T> {
     const finalConfig: RequestConfig = {
       priority: 'medium',
@@ -200,7 +199,7 @@ export class RequestOptimizer {
   ): Promise<T> {
     this.stats.queuedRequests++;
     
-    return new Promise((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
       const request: QueuedRequest = {
         id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         operation,
@@ -246,7 +245,7 @@ export class RequestOptimizer {
   ): Promise<T> {
     this.stats.batchedRequests++;
     
-    return new Promise((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
       if (!this.batchQueue.has(operation)) {
         this.batchQueue.set(operation, {
           operation,
@@ -273,7 +272,7 @@ export class RequestOptimizer {
       // Set timer for batch execution if not already set
       if (!batch.timer) {
         batch.timer = setTimeout(() => {
-          this.executeBatch(operation);
+          void this.executeBatch(operation);
         }, 200); // Wait 200ms for more requests
       }
 
@@ -282,7 +281,7 @@ export class RequestOptimizer {
         if (batch.timer) {
           clearTimeout(batch.timer);
         }
-        this.executeBatch(operation);
+        void this.executeBatch(operation);
       }
     });
   }
@@ -306,19 +305,19 @@ export class RequestOptimizer {
             const result = await this.executeWithOptimizations(
               request.operation,
               request.params,
-              () => this.createExecutor(request),
+              this.createExecutor(request),
               request.config
             );
             request.resolve(result);
             return result;
-          } catch (error) {
+          } catch (error: any) {
             request.reject(error);
             throw error;
           }
         })
       );
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Batch execution failed for ${operation}:`, error);
     }
   }
@@ -337,7 +336,7 @@ export class RequestOptimizer {
     config: RequestConfig
   ): Promise<T> {
     const startTime = Date.now();
-    let lastError: Error;
+    let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= config.retries; attempt++) {
       try {
@@ -362,7 +361,7 @@ export class RequestOptimizer {
         this.updateStats(true, duration);
 
         return result;
-      } catch (error) {
+      } catch (error: any) {
         lastError = error as Error;
         
         // Don't retry on certain errors
@@ -380,7 +379,7 @@ export class RequestOptimizer {
 
     // Update stats for failure
     this.updateStats(false, Date.now() - startTime);
-    throw lastError;
+    throw (lastError ?? new Error('Request failed'));
   }
 
   private isNonRetryableError(error: any): boolean {
@@ -442,10 +441,10 @@ export class RequestOptimizer {
       }
 
       // Execute the request
-      this.executeWithOptimizations(
+      void this.executeWithOptimizations(
         request.operation,
         request.params,
-        () => this.createExecutor(request),
+        this.createExecutor(request),
         request.config
       ).then(request.resolve).catch(request.reject);
     });

@@ -154,7 +154,7 @@ export const AISectionAssistant = ({
       setSuggestions(result.suggestions);
       
       toast.success("Section analysis completed!");
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing section:', error);
       toast.error('Failed to analyze section. Please try again.');
     } finally {
@@ -201,7 +201,7 @@ export const AISectionAssistant = ({
       setShowContentModal(true);
       
       toast.success("Content generated successfully!");
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating content:', error);
       toast.error('Failed to generate content. Please try again.');
     } finally {
@@ -219,7 +219,7 @@ export const AISectionAssistant = ({
       
       // Refresh the page to show new content
       window.location.reload();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error applying content:', error);
       toast.error('Failed to apply content. Please try again.');
     }

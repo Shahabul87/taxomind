@@ -298,3 +298,12 @@ export const FeatureProgressIndicator = ({
     </motion.div>
   );
 };
+
+// Backwards-compatible showcase placeholder
+export function FeatureShowcase({ maxFeatures = 5, className = "" }: { maxFeatures?: number; className?: string }) {
+  return (
+    <div className={cn("p-4 border rounded-lg text-sm text-gray-600 dark:text-gray-300", className)}>
+      Feature showcase coming soon. Showing top {maxFeatures} features.
+    </div>
+  );
+}

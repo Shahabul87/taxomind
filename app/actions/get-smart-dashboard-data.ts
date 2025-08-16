@@ -175,7 +175,7 @@ export async function getSmartDashboardData() {
 
     return safeData;
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[GET_SMART_DASHBOARD_DATA] Error fetching smart dashboard data:", error);
     return null;
   }
@@ -189,7 +189,7 @@ async function fetchUserAnalytics(userId: string) {
       orderBy: { recordedAt: 'desc' },
       take: 100
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.warn("User analytics not available:", error);
     return [];
   }
@@ -236,7 +236,7 @@ async function fetchPerformanceMetrics(userId: string) {
         lastAccessed: enrollment.updatedAt
       };
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.warn("Performance metrics not available:", error);
     return [];
   }

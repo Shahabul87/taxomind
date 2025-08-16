@@ -334,7 +334,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
       const upgradedSub = await accessController.upgradeSubscription(userId, tier);
       setSubscription(upgradedSub);
       onUpgrade?.(tier);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Upgrade failed:', error);
     }
   };

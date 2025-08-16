@@ -70,7 +70,7 @@ export const getStableAnalyticsData = (): AnalyticsData => ({
       averageEngagementScore: 82,
       totalStudyTime: 720, // 12 hours
       riskScore: 25,
-      Course: {
+      course: {
         title: 'Advanced JavaScript Concepts',
         imageUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=100&h=100&fit=crop&crop=center'
       }
@@ -81,7 +81,7 @@ export const getStableAnalyticsData = (): AnalyticsData => ({
       averageEngagementScore: 75,
       totalStudyTime: 480, // 8 hours
       riskScore: 55,
-      Course: {
+      course: {
         title: 'React & Next.js Development',
         imageUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=100&h=100&fit=crop&crop=center'
       }
@@ -92,7 +92,7 @@ export const getStableAnalyticsData = (): AnalyticsData => ({
       averageEngagementScore: 88,
       totalStudyTime: 420, // 7 hours
       riskScore: 15,
-      Course: {
+      course: {
         title: 'Database Design & SQL',
         imageUrl: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=100&h=100&fit=crop&crop=center'
       }
@@ -103,7 +103,7 @@ export const getStableAnalyticsData = (): AnalyticsData => ({
       averageEngagementScore: 65,
       totalStudyTime: 227, // ~4 hours
       riskScore: 78,
-      Course: {
+      course: {
         title: 'Machine Learning Fundamentals',
         imageUrl: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=100&h=100&fit=crop&crop=center'
       }

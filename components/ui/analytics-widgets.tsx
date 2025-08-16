@@ -206,7 +206,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          {renderChart()}
+          {renderChart() as any}
         </ResponsiveContainer>
       </CardContent>
     </Card>

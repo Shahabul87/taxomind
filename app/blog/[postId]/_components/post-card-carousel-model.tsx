@@ -7,10 +7,10 @@ import React, {
   useContext,
 } from "react";
 import {
-  IconArrowNarrowLeft,
-  IconArrowNarrowRight,
-  IconX,
-} from "@tabler/icons-react";
+  ArrowLeft,
+  ArrowRight,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import Image, { ImageProps } from "next/image";
@@ -138,7 +138,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
             onClick={scrollLeft}
             disabled={!canScrollLeft}
           >
-            <IconArrowNarrowLeft className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+            <ArrowLeft className="h-6 w-6 text-gray-700 dark:text-gray-300" />
           </button>
           <button
             className={cn(
@@ -152,7 +152,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
             onClick={scrollRight}
             disabled={!canScrollRight}
           >
-            <IconArrowNarrowRight className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+            <ArrowRight className="h-6 w-6 text-gray-700 dark:text-gray-300" />
           </button>
         </div>
       </div>
@@ -239,7 +239,7 @@ export const Card = ({
                       "transition-colors duration-200"
                     )}
                   >
-                    <IconX className="h-5 w-5 text-gray-600 dark:text-gray-200" />
+                    <X className="h-5 w-5 text-gray-600 dark:text-gray-200" />
                   </button>
                 </div>
                 

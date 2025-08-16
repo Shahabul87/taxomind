@@ -37,7 +37,7 @@ export const ProfileLinksContent = ({ userId, profileLinks }: ProfileLinksConten
           await axios.put(`/api/users/${userId}/profile-links/reorder`, { list: updateData });
           // No need for a toast on successful reordering as it's a common operation
           router.refresh();
-        } catch (error) {
+        } catch (error: any) {
           toast.error("Failed to save new order");
         } finally {
           setIsUpdating(false);

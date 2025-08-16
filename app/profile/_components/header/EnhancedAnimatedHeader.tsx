@@ -123,7 +123,7 @@ export function EnhancedAnimatedHeader({ userId, initialData }: EnhancedAnimated
         const data = await response.json();
 
         setUserData(data);
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error fetching user data:', error);
         toast.error(`Failed to load profile data: ${error instanceof Error ? error.message : 'Unknown error'}`);
         

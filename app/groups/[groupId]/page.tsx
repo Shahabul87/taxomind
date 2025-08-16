@@ -21,6 +21,11 @@ export default async function GroupPage(props: GroupPageProps) {
     return redirect("/");
   }
 
+  // Type guard: ensure user has required properties
+  if (!user.id) {
+    return redirect("/");
+  }
+
 
   const group = await db.group.findUnique({
     where: {
@@ -30,23 +35,23 @@ export default async function GroupPage(props: GroupPageProps) {
       creator: true,
       members: {
         include: {
-          user: true,
+          User: true,
         },
       },
-      course: {
+      Course: {
         select: {
           title: true,
           imageUrl: true,
         },
       },
       categoryRef: true,
-      discussions: {
+      GroupDiscussion: {
         include: {
-          author: true,
+          User: true,
           _count: {
             select: {
-              comments: true,
-              likedBy: true,
+              GroupDiscussionComment: true,
+              GroupDiscussionLike: true,
             },
           },
         },
@@ -54,9 +59,9 @@ export default async function GroupPage(props: GroupPageProps) {
           createdAt: 'desc',
         },
       },
-      resources: {
+      GroupResource: {
         include: {
-          author: {
+          User: {
             select: {
               name: true,
               image: true,
@@ -86,7 +91,7 @@ export default async function GroupPage(props: GroupPageProps) {
       }
     },
     include: {
-      group: {
+      Group: {
         select: {
           id: true,
           name: true,
@@ -99,7 +104,7 @@ export default async function GroupPage(props: GroupPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <ConditionalHeader user={user} />
+      <ConditionalHeader user={{ id: user.id!, role: user.role }} />
       
       <div className="flex pt-16">
         {/* Custom Group Sidebar */}
@@ -170,11 +175,11 @@ export default async function GroupPage(props: GroupPageProps) {
                 <div className="space-y-1">
                   {userGroups.map((membership) => (
                     <Link 
-                      key={membership.group.id}
-                      href={`/groups/${membership.group.id}`}
+                      key={membership.Group.id}
+                      href={`/groups/${membership.Group.id}`}
                       className="flex items-center justify-between px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
-                      <span className="truncate">{membership.group.name}</span>
+                      <span className="truncate">{membership.Group.name}</span>
                       <ChevronRight className="w-4 h-4 text-gray-400" />
                     </Link>
                   ))}

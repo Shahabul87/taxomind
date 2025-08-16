@@ -40,14 +40,15 @@ interface OnboardingFlow {
 }
 
 interface IntelligentOnboardingProps {
-  userRole: "TEACHER" | "STUDENT" | "ADMIN";
+  userRole: "USER" | "ADMIN";
+  isTeacher?: boolean;
   isVisible: boolean;
   onComplete: () => void;
   onSkip: () => void;
 }
 
 const teacherOnboarding: OnboardingFlow = {
-  role: "TEACHER",
+  role: "USER",
   title: "Welcome to AI-Enhanced Teaching",
   description: "Let's get you set up with powerful AI tools to create better courses and assessments.",
   estimatedTime: "5 minutes",
@@ -166,7 +167,7 @@ const teacherOnboarding: OnboardingFlow = {
 };
 
 const studentOnboarding: OnboardingFlow = {
-  role: "STUDENT",
+  role: "USER",
   title: "Welcome to Personalized Learning",
   description: "Discover how AI adapts to your learning style and helps you succeed.",
   estimatedTime: "3 minutes",
@@ -328,6 +329,7 @@ const adminOnboarding: OnboardingFlow = {
 
 export const IntelligentOnboarding = ({
   userRole,
+  isTeacher,
   isVisible,
   onComplete,
   onSkip
@@ -336,15 +338,12 @@ export const IntelligentOnboarding = ({
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
 
   const getOnboardingFlow = () => {
-    switch (userRole) {
-      case "TEACHER":
-        return teacherOnboarding;
-      case "STUDENT":
-        return studentOnboarding;
-      case "ADMIN":
-        return adminOnboarding;
-      default:
-        return teacherOnboarding;
+    if (userRole === "ADMIN") {
+      return adminOnboarding;
+    } else if (isTeacher) {
+      return teacherOnboarding;
+    } else {
+      return studentOnboarding;
     }
   };
 

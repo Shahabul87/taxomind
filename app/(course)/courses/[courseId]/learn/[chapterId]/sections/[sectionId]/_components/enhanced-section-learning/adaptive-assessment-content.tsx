@@ -115,7 +115,7 @@ export const AdaptiveAssessmentContent = ({ sectionId, courseId, chapterId }: Ad
       } else {
         toast.error('Failed to load assessment analysis');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching analysis:', error);
       toast.error('Failed to load assessment analysis');
     } finally {
@@ -150,7 +150,7 @@ export const AdaptiveAssessmentContent = ({ sectionId, courseId, chapterId }: Ad
       } else {
         toast.error('Failed to generate adaptive questions');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating questions:', error);
       toast.error('Failed to generate adaptive questions');
     } finally {

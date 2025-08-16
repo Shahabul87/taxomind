@@ -346,8 +346,7 @@ const featureVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
-    transition: { duration: 0.6, ease: [0.25, 0.25, 0, 1] }
+    scale: 1
   }
 };
 
@@ -531,13 +530,13 @@ export default function ProfessionalFeaturesPage() {
                     <div className="flex flex-col sm:block">
                       <div className="flex items-center gap-2">
                         <span className="text-sm sm:text-base font-semibold">{category.title}</span>
-                        {category.badge && (
+                        {(category as any).badge && (
                           <span className={`text-xs px-2 py-1 rounded-full ${
                             activeCategory === key 
                               ? 'bg-white/20 text-white' 
                               : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                           }`}>
-                            {category.badge}
+                            {(category as any).badge}
                           </span>
                         )}
                       </div>
@@ -628,14 +627,14 @@ export default function ProfessionalFeaturesPage() {
                     </div>
 
                     {/* Technical Specifications */}
-                    {feature.techSpecs && (
+                    {(feature as any).techSpecs && (
                       <div className="mb-4 sm:mb-6 p-3 bg-slate-50 dark:bg-slate-900/30 rounded-lg border">
                         <div className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center">
                           <Cpu className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Technical Features
                         </div>
                         <div className="flex flex-wrap gap-1 sm:gap-2">
-                          {feature.techSpecs.map((spec, i) => (
+                          {(feature as any).techSpecs.map((spec: string, i: number) => (
                             <span key={i} className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
                               {spec}
                             </span>
@@ -648,7 +647,7 @@ export default function ProfessionalFeaturesPage() {
                     <div className="pt-3 sm:pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
                       <button className="flex items-center text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group">
                         <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                        {feature.demo || "Learn More"}
+                        {(feature as any).demo || "Learn More"}
                         <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                       </button>
                       

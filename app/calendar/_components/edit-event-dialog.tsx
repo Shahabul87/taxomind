@@ -53,7 +53,7 @@ export const EditEventDialog = ({
       } else {
         throw new Error("Failed to update event");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     }
   };
@@ -71,7 +71,7 @@ export const EditEventDialog = ({
       } else {
         throw new Error("Failed to delete event");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     }
   };

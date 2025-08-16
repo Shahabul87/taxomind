@@ -110,7 +110,7 @@ export function PredictiveAnalyticsEnhanced({ user, enrolledCourses = [] }: Pred
         setLastAnalysisTime(new Date());
         toast.success("AI predictions updated successfully");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to fetch SAM predictions:", error);
       toast.error("Failed to load AI predictions");
     } finally {
@@ -132,7 +132,7 @@ export function PredictiveAnalyticsEnhanced({ user, enrolledCourses = [] }: Pred
       if (response.data.success && response.data.data.risks?.length > 0) {
         setRiskAnalysis(response.data.data.risks[0]);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to fetch risk analysis:", error);
     }
   }, [user.id, selectedCourse]);
@@ -151,7 +151,7 @@ export function PredictiveAnalyticsEnhanced({ user, enrolledCourses = [] }: Pred
       if (response.data.success) {
         setCohortData(response.data.data);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to fetch cohort comparison:", error);
     }
   }, [user.id, selectedCourse]);

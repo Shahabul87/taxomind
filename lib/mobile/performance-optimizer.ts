@@ -249,7 +249,7 @@ class MobilePerformanceOptimizer {
   }
 
   // Lazy Loading
-  public createLazyLoadObserver(callback: (entry: IntersectionObserverEntry) => void): IntersectionObserver {
+  public createLazyLoadObserver(callback: (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => void): IntersectionObserver {
     const options = {
       root: null,
       rootMargin: this.deviceInfo.isLowEndDevice ? '50px' : '200px',

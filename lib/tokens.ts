@@ -20,7 +20,7 @@ export const generateTwoFactorToken = async (email: string) => {
     });
   }
 
-  const twoFactorToken = await db.twoFactorToken.create({
+  await db.twoFactorToken.create({
     data: {
       email,
       token,
@@ -28,7 +28,7 @@ export const generateTwoFactorToken = async (email: string) => {
     }
   });
 
-  return twoFactorToken;
+  return { email, token, expires };
 }
 
 export const generatePasswordResetToken = async (email: string) => {
@@ -43,7 +43,7 @@ export const generatePasswordResetToken = async (email: string) => {
     });
   }
 
-  const passwordResetToken = await db.passwordResetToken.create({
+  await db.passwordResetToken.create({
     data: {
       email,
       token,
@@ -51,7 +51,7 @@ export const generatePasswordResetToken = async (email: string) => {
     }
   });
 
-  return passwordResetToken;
+  return { email, token, expires };
 }
 
 export const generateVerificationToken = async (email: string) => {
@@ -68,7 +68,7 @@ export const generateVerificationToken = async (email: string) => {
     });
   }
 
-  const verficationToken = await db.verificationToken.create({
+  await db.verificationToken.create({
     data: {
       email,
       token,
@@ -76,5 +76,5 @@ export const generateVerificationToken = async (email: string) => {
     }
   });
 
-  return verficationToken;
+  return { email, token, expires };
 };

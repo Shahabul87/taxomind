@@ -3,14 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logger } from '@/lib/logger';
 import {
   BookOpen,
-  Sun,
-  Moon,
   Search,
   LogIn,
   UserPlus,
@@ -71,7 +68,6 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const desktopAIToolsRef = useRef<HTMLDivElement>(null);
   const desktopIntelligentLMSRef = useRef<HTMLDivElement>(null);
-  const { theme, setTheme } = useTheme();
   const router = useRouter();
   
   // Use the custom search hook
@@ -110,7 +106,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
           timestamp: new Date().toISOString()
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Analytics tracking error:', error);
     }
   }, [user?.id, user?.role]);
@@ -149,7 +145,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
             setFavorites(mockFavorites);
             setIsLoading(false);
           }, 800);
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Failed to load user data:', error);
           setIsLoading(false);
         }
@@ -490,24 +486,6 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                 aria-label="Search"
               >
                 <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-300" />
-              </button>
-              
-              {/* Theme Toggle - Fixed hydration */}
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-1.5 sm:p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors"
-                aria-label="Toggle theme"
-              >
-                {mounted ? (
-                  theme === "dark" ? (
-                    <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
-                  ) : (
-                    <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
-                  )
-                ) : (
-                  // Render a placeholder that matches the server during hydration
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 bg-gray-400 rounded animate-pulse" />
-                )}
               </button>
 
               {/* Notifications and Messages (for authenticated users) */}

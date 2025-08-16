@@ -27,17 +27,17 @@ export async function withObservability(
   });
 
   // Create Sentry transaction
-  const transaction = Sentry.startTransaction({
-    op: 'http.server',
-    name: `${method} ${route}`,
-    data: {
-      url: request.url,
-      method,
-      headers: Object.fromEntries(request.headers.entries()),
-    },
-  });
-
-  Sentry.getCurrentHub().configureScope((scope) => scope.setSpan(transaction));
+  const transaction = Sentry.startSpan(
+    { op: 'http.server', name: `${method} ${route}` },
+    () => {
+      Sentry.setContext('http', {
+        url: request.url,
+        method,
+        headers: Object.fromEntries(request.headers.entries()),
+      });
+      return null;
+    }
+  );
 
   try {
     // Execute the handler within the OpenTelemetry context
@@ -71,12 +71,14 @@ export async function withObservability(
       span.setStatus({ code: SpanStatusCode.OK });
     }
 
-    // Update Sentry transaction
-    transaction.setHttpStatus(statusCode);
-    transaction.setData('response_time', duration);
+    // Update Sentry context
+    Sentry.setContext('response', {
+      status_code: statusCode,
+      response_time: duration,
+    });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     const duration = (Date.now() - startTime) / 1000;
     
     // Record error in metrics
@@ -105,13 +107,12 @@ export async function withObservability(
       },
     });
 
-    transaction.setStatus('internal_error');
+    // Error status is automatically set by captureException
 
     throw error;
   } finally {
-    // End spans and transactions
+    // End span
     span.end();
-    transaction.finish();
   }
 }
 

@@ -280,8 +280,8 @@ export function OverviewTabEnhanced({ user, enrolledCourses = [] }: OverviewTabE
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {quickActions
                   .sort((a, b) => {
-                    const priority = { high: 3, medium: 2, low: 1 };
-                    return priority[b.aiPriority] - priority[a.aiPriority];
+                    const priority: Record<string, number> = { high: 3, medium: 2, low: 1 };
+                    return (priority[b.aiPriority] || 1) - (priority[a.aiPriority] || 1);
                   })
                   .map((action, index) => (
                   <motion.div

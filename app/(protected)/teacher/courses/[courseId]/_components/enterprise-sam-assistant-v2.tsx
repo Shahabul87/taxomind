@@ -278,7 +278,7 @@ How can I help you improve your course today?`,
       
       setMessages(prev => [...prev, samMessage]);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('SAM Error:', error);
       
       const errorMessage: ChatMessage = {

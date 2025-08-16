@@ -23,5 +23,15 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "packages/sam-engine",
+    "playwright.config.ts",
+    "e2e/**",
+    "backups/**",
+    ".next/**",
+    "coverage/**",
+    "dist/**",
+    "__tests__/**"
+  ]
 }

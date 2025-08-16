@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-import { VersionStatus, VersionType, UserRole } from "@prisma/client";
+import { UserRole, ContentType, AITemplateType } from "@prisma/client";
 
 export interface ContentSnapshot {
   id: string;
@@ -12,10 +12,10 @@ export interface ContentSnapshot {
 }
 
 export interface CreateVersionParams {
-  contentType: string;
+  contentType: ContentType;
   contentId: string;
   contentSnapshot: ContentSnapshot;
-  versionType?: VersionType;
+  // increment type no longer used; always increments integer versionNumber
   title?: string;
   description?: string;
   changeLog?: string[];
@@ -24,8 +24,8 @@ export interface CreateVersionParams {
 
 export interface VersionInfo {
   id: string;
-  versionNumber: string;
-  status: VersionStatus;
+  versionNumber: number;
+  isActive: boolean;
   title?: string;
   description?: string;
   author: {
@@ -47,7 +47,7 @@ export class ContentVersioningService {
     contentType,
     contentId,
     contentSnapshot,
-    versionType = VersionType.PATCH,
+    // versionType is ignored in integer versioning
     title,
     description,
     changeLog = [],
@@ -56,28 +56,20 @@ export class ContentVersioningService {
     const user = await currentUser();
     if (!user) throw new Error("Authentication required");
 
-    // Get the latest version to determine new version number
+    // Get the latest version number to determine new version number
     const latestVersion = await this.getLatestVersion(contentType, contentId);
-    const newVersionNumber = this.generateNextVersionNumber(latestVersion?.versionNumber || "0.0.0", versionType);
-    const [major, minor, patch] = newVersionNumber.split('.').map(Number);
+    const newVersionNumber = this.generateNextVersionNumber(latestVersion?.versionNumber ?? 0);
 
     const version = await db.contentVersion.create({
       data: {
         contentType,
         contentId,
         versionNumber: newVersionNumber,
-        majorVersion: major,
-        minorVersion: minor,
-        patchVersion: patch,
-        versionType,
-        status: scheduledAt ? VersionStatus.SCHEDULED : VersionStatus.DRAFT,
         title,
-        description,
-        changeLog: JSON.stringify(changeLog),
-        contentSnapshot: JSON.stringify(contentSnapshot),
-        authorId: user.id,
-        scheduledAt,
-        parentVersionId: latestVersion?.id
+        changesSummary: description,
+        changes: changeLog,
+        metadata: contentSnapshot,
+        author: { connect: { id: user.id! } }
       },
       include: {
         author: {
@@ -105,21 +97,20 @@ export class ContentVersioningService {
 
     // Check permissions
     const canPublish = user.role === UserRole.ADMIN || 
-                      user.role === UserRole.TEACHER || 
+                      user.role === UserRole.USER || 
                       version.authorId === user.id;
     
     if (!canPublish) throw new Error("Insufficient permissions to publish");
 
-    // Archive current published version
+    // Deactivate current active version
     await db.contentVersion.updateMany({
       where: {
         contentType: version.contentType,
         contentId: version.contentId,
-        status: VersionStatus.PUBLISHED
+        isActive: true
       },
       data: {
-        status: VersionStatus.ARCHIVED,
-        archivedAt: new Date()
+        isActive: false
       }
     });
 
@@ -127,8 +118,9 @@ export class ContentVersioningService {
     const publishedVersion = await db.contentVersion.update({
       where: { id: versionId },
       data: {
-        status: VersionStatus.PUBLISHED,
-        publishedAt: new Date()
+        isActive: true,
+        approvedAt: new Date(),
+        approvedBy: user.id
       },
       include: {
         author: {
@@ -144,7 +136,7 @@ export class ContentVersioningService {
    * Rollback to a previous version
    */
   static async rollbackToVersion(
-    contentType: string,
+    contentType: ContentType,
     contentId: string,
     targetVersionId: string,
     reason?: string
@@ -165,8 +157,7 @@ export class ContentVersioningService {
     const rollbackVersion = await this.createVersion({
       contentType,
       contentId,
-      contentSnapshot: JSON.parse(targetVersion.contentSnapshot as string),
-      versionType: VersionType.HOTFIX,
+      contentSnapshot: (targetVersion.metadata as any) || {},
       title: `Rollback to ${targetVersion.versionNumber}`,
       description: `Rolled back from ${currentVersion.versionNumber} to ${targetVersion.versionNumber}. Reason: ${reason || 'No reason provided'}`,
       changeLog: [`Rollback to version ${targetVersion.versionNumber}`]
@@ -176,9 +167,10 @@ export class ContentVersioningService {
     await db.contentVersion.update({
       where: { id: rollbackVersion.id },
       data: {
-        isRollback: true,
-        rollbackFromId: currentVersion.id,
-        rollbackReason: reason
+        metadata: {
+          ...(rollbackVersion.metadata as any),
+          rollback: { fromVersionId: currentVersion.id, reason }
+        }
       }
     });
 
@@ -189,7 +181,7 @@ export class ContentVersioningService {
   /**
    * Get version history for content
    */
-  static async getVersionHistory(contentType: string, contentId: string): Promise<VersionInfo[]> {
+  static async getVersionHistory(contentType: ContentType, contentId: string): Promise<VersionInfo[]> {
     const versions = await db.contentVersion.findMany({
       where: { contentType, contentId },
       include: {
@@ -197,23 +189,19 @@ export class ContentVersioningService {
           select: { id: true, name: true, email: true }
         }
       },
-      orderBy: [
-        { majorVersion: 'desc' },
-        { minorVersion: 'desc' },
-        { patchVersion: 'desc' }
-      ]
+      orderBy: { createdAt: 'desc' }
     });
 
     return versions.map(version => ({
       id: version.id,
       versionNumber: version.versionNumber,
-      status: version.status,
+      isActive: version.isActive,
       title: version.title || undefined,
-      description: version.description || undefined,
-      author: version.author,
+      description: version.changesSummary || undefined,
+      author: { id: version.author!.id, name: version.author!.name ?? undefined, email: version.author!.email ?? undefined },
       createdAt: version.createdAt,
-      publishedAt: version.publishedAt || undefined,
-      changeLog: JSON.parse(version.changeLog as string)
+      publishedAt: version.approvedAt || undefined,
+      changeLog: (version.changes as any[]) || []
     }));
   }
 
@@ -226,9 +214,6 @@ export class ContentVersioningService {
       include: {
         author: {
           select: { id: true, name: true, email: true }
-        },
-        reviewer: {
-          select: { id: true, name: true, email: true }
         }
       }
     });
@@ -237,12 +222,12 @@ export class ContentVersioningService {
   /**
    * Get the published version of content
    */
-  static async getPublishedVersion(contentType: string, contentId: string) {
+  static async getPublishedVersion(contentType: ContentType, contentId: string) {
     return await db.contentVersion.findFirst({
       where: {
         contentType,
         contentId,
-        status: VersionStatus.PUBLISHED
+        isActive: true
       },
       include: {
         author: {
@@ -255,14 +240,10 @@ export class ContentVersioningService {
   /**
    * Get the latest version (any status)
    */
-  static async getLatestVersion(contentType: string, contentId: string) {
+  static async getLatestVersion(contentType: ContentType, contentId: string) {
     return await db.contentVersion.findFirst({
       where: { contentType, contentId },
-      orderBy: [
-        { majorVersion: 'desc' },
-        { minorVersion: 'desc' },
-        { patchVersion: 'desc' }
-      ]
+      orderBy: { versionNumber: 'desc' }
     });
   }
 
@@ -276,7 +257,7 @@ export class ContentVersioningService {
 
     if (!version) return null;
 
-    return JSON.parse(version.contentSnapshot as string);
+    return (version.metadata as any) || null;
   }
 
   /**
@@ -286,25 +267,18 @@ export class ContentVersioningService {
     const user = await currentUser();
     if (!user) throw new Error("Authentication required");
 
-    // Update version status
+    // Mark as pending approval via metadata; workflow handled elsewhere
     await db.contentVersion.update({
       where: { id: versionId },
-      data: { status: VersionStatus.UNDER_REVIEW }
+      data: {
+        metadata: {
+          reviewRequestedBy: user.id,
+          reviewerIds
+        }
+      }
     });
 
-    // Create approval requests
-    const approvals = await Promise.all(
-      reviewerIds.map(reviewerId =>
-        db.contentVersionApproval.create({
-          data: {
-            versionId,
-            approverId: reviewerId
-          }
-        })
-      )
-    );
-
-    return approvals;
+    return [];
   }
 
   /**
@@ -318,60 +292,22 @@ export class ContentVersioningService {
     const user = await currentUser();
     if (!user) throw new Error("Authentication required");
 
-    const approval = await db.contentVersionApproval.update({
-      where: {
-        versionId_approverId: {
-          versionId,
-          approverId: user.id
-        }
-      },
-      data: {
-        status: approved ? 'APPROVED' : 'REJECTED',
-        comments,
-        reviewedAt: new Date()
-      }
+    // Minimal review handling: toggle isActive on approved
+    const updated = await db.contentVersion.update({
+      where: { id: versionId },
+      data: approved
+        ? { isActive: true, approvedAt: new Date(), approvedBy: user.id }
+        : { isActive: false }
     });
 
-    // Check if all approvals are complete
-    const allApprovals = await db.contentVersionApproval.findMany({
-      where: { versionId }
-    });
-
-    const allApproved = allApprovals.every(a => a.status === 'APPROVED');
-    const anyRejected = allApprovals.some(a => a.status === 'REJECTED');
-
-    if (anyRejected) {
-      await db.contentVersion.update({
-        where: { id: versionId },
-        data: { status: VersionStatus.DRAFT }
-      });
-    } else if (allApproved) {
-      await db.contentVersion.update({
-        where: { id: versionId },
-        data: { status: VersionStatus.PUBLISHED, publishedAt: new Date() }
-      });
-    }
-
-    return approval;
+    return updated;
   }
 
   /**
    * Generate next version number based on type
    */
-  private static generateNextVersionNumber(currentVersion: string, versionType: VersionType): string {
-    const [major, minor, patch] = currentVersion.split('.').map(Number);
-
-    switch (versionType) {
-      case VersionType.MAJOR:
-        return `${major + 1}.0.0`;
-      case VersionType.MINOR:
-        return `${major}.${minor + 1}.0`;
-      case VersionType.PATCH:
-      case VersionType.HOTFIX:
-        return `${major}.${minor}.${patch + 1}`;
-      default:
-        return `${major}.${minor}.${patch + 1}`;
-    }
+  private static generateNextVersionNumber(currentVersion: number): number {
+    return (currentVersion || 0) + 1;
   }
 
   /**
@@ -393,16 +329,19 @@ export class ContentVersioningService {
 
     if (!version) throw new Error("Version not found");
 
-    const template = await db.contentTemplate.create({
+    const template = await db.aIContentTemplate.create({
       data: {
+        id: crypto.randomUUID(),
         name: templateName,
         description,
-        contentType: version.contentType,
+        templateType: AITemplateType.COURSE_OUTLINE,
         category,
-        templateData: version.contentSnapshot,
-        authorId: user.id,
+        promptTemplate: JSON.stringify(version.metadata || {}),
+        contentStructure: (version.metadata as any) || {},
         isPublic,
-        isOfficial: user.role === UserRole.ADMIN
+        isActive: true,
+        User: user.id ? { connect: { id: user.id } } : undefined,
+        updatedAt: new Date()
       }
     });
 
@@ -418,26 +357,25 @@ export class ContentVersioningService {
     contentId: string,
     customizations?: Partial<ContentSnapshot>
   ) {
-    const template = await db.contentTemplate.findUnique({
+    const template = await db.aIContentTemplate.findUnique({
       where: { id: templateId }
     });
 
     if (!template) throw new Error("Template not found");
 
     // Update usage count
-    await db.contentTemplate.update({
+    await db.aIContentTemplate.update({
       where: { id: templateId },
       data: { usageCount: { increment: 1 } }
     });
 
-    const templateData = JSON.parse(template.templateData as string);
+    const templateData = template?.promptTemplate ? JSON.parse(template.promptTemplate) : {};
     const contentSnapshot = { ...templateData, ...customizations };
 
     return await this.createVersion({
-      contentType,
+      contentType: contentType as ContentType,
       contentId,
       contentSnapshot,
-      versionType: VersionType.MINOR,
       title: `Applied template: ${template.name}`,
       changeLog: [`Applied template "${template.name}"`]
     });

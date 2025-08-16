@@ -69,7 +69,7 @@ export function ComplianceCenter({ className }: ComplianceCenterProps) {
         setEvents(data.data.events);
         setSummary(data.data.summary);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching compliance data:', error);
     } finally {
       setIsLoading(false);

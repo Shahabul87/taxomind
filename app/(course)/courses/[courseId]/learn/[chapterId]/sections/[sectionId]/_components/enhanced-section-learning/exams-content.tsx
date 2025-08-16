@@ -98,7 +98,7 @@ export const ExamsContent = ({ sectionId, courseId, chapterId }: ExamsContentPro
         const data = await response.json();
         setAnalytics(data);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching analytics:", error);
     }
   }, [sectionId]);
@@ -115,7 +115,7 @@ export const ExamsContent = ({ sectionId, courseId, chapterId }: ExamsContentPro
           fetchAnalytics(data[0].id);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching exams:", error);
     } finally {
       setLoading(false);
@@ -136,7 +136,7 @@ export const ExamsContent = ({ sectionId, courseId, chapterId }: ExamsContentPro
         // Navigate to exam taking interface
         window.open(`/courses/${courseId}/learn/${chapterId}/sections/${sectionId}/exams/${examId}/take/${attempt.id}`, '_blank');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error starting exam:", error);
     }
   };

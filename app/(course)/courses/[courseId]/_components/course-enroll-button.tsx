@@ -43,11 +43,11 @@ export const CourseEnrollButton = ({ course, userId, isEnrolled = false }: Cours
           if (response.data.url) {
             window.location.href = response.data.url; // Stripe checkout URL
           }
-        } catch (error) {
+        } catch (error: any) {
           toast.error("Failed to initiate payment");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsLoading(false);

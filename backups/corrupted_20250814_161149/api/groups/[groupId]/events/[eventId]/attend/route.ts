@@ -1,0 +1,83 @@
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
+
+export async function POST(
+  req: Request,
+  props: { params: Promise<{ groupId: string; eventId: string }> }
+) {
+  const params = await props.params;
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const values = await req.json();
+    const status = values.status || "attending";
+
+    // Check if user is already attending
+    const existingAttendee = await db.groupEventAttendee.findUnique({
+      where: {
+        eventId_userId: {
+          eventId: params.eventId,
+          userId: session.user.id,
+        },
+      },
+    });
+
+    if (existingAttendee) {
+      // Update attendance status
+      const updatedAttendee = await db.groupEventAttendee.update({
+        where: {
+          id: existingAttendee.id,
+        },
+        data: {
+          status,
+        },
+      });
+
+      return NextResponse.json(updatedAttendee);
+    }
+
+    // Check if event has reached max attendees
+    const event = await db.groupEvent.findUnique({
+      where: {
+        id: params.eventId,
+      },
+      include: {
+        _count: {
+          select: {
+            GroupEventAttendee: true,
+          },
+        },
+      },
+    });
+
+    if (
+      event?.maxAttendees &&
+      event._count.GroupEventAttendee >= event.maxAttendees &&
+      status === "attending"
+    ) {
+      return new NextResponse("Event is full", { status: 400 });
+    }
+
+    // Create new attendance
+    const attendee = await db.groupEventAttendee.create({
+      data: {
+        id: randomUUID(),
+        eventId: params.eventId,
+        userId: session.user.id,
+        status,
+        updatedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json(attendee);
+  } catch (error: any) {
+    logger.error("[EVENT_ATTEND]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+} 

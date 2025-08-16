@@ -48,7 +48,7 @@ export function TeacherFeaturesTab({ analytics, performance }: TeacherFeaturesPr
       const data = await response.json();
       setFeaturesData(data);
       setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch teacher features:', error);
       setIsLoading(false);
     }

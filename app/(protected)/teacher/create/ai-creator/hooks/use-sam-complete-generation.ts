@@ -172,7 +172,7 @@ export function useSamCompleteGeneration() {
 
       return courseStructure;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error in complete generation:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate course structure';
       

@@ -1,25 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
 import { logger } from '@/lib/logger';
 
 // A simplified, universal endpoint for handling all types of reactions
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
 
   try {
-    // Authenticate the user
-    const user = await currentUser();
-    if (!user || !user.id) {
-
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     // Check rate limiting
-    const rateLimitResult = await isRateLimited(user.id, 'reaction');
+    const rateLimitResult = await isRateLimited(context.user.id, 'reaction');
     if (rateLimitResult.limited) {
 
-      return NextResponse.json({ 
+      return createSuccessResponse({ 
         error: getRateLimitMessage('reaction', rateLimitResult.reset),
         rateLimitInfo: rateLimitResult
       }, { status: 429 });
@@ -28,28 +25,28 @@ export async function POST(req: NextRequest) {
     // Parse request body
     let body;
     try {
-      body = await req.json();
+      body = await request.json();
 
     } catch (err) {
       logger.error("[COMMENT_REACTION] Error parsing request:", err);
-      return NextResponse.json({ error: "Invalid request format" }, { status: 400 });
+      return createSuccessResponse({ error: "Invalid request format" }, { status: 400 });
     }
 
     const { postId, commentId, replyId, type } = body;
     
     // Validate required fields
     if (!type) {
-      return NextResponse.json({ error: "Reaction type is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Reaction type is required" }, { status: 400 });
     }
     
     if (!postId) {
-      return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Post ID is required" }, { status: 400 });
     }
     
     // Modified validation to allow either/or for testing purposes
     if (!commentId && !replyId) {
 
-      return NextResponse.json({ 
+      return createSuccessResponse({ 
         error: "Either commentId or replyId is required",
         status: "VALIDATION_ERROR"
       }, { status: 400 });
@@ -58,15 +55,15 @@ export async function POST(req: NextRequest) {
     // For test/dev environment, allow dummy requests
     if (process.env.NODE_ENV === 'development' && postId === 'test-post-id') {
 
-      return NextResponse.json({
+      return createSuccessResponse({
         id: replyId || commentId,
         reactions: [{
           id: 'test-reaction-id',
           type,
-          userId: user.id,
+          userId: context.user.id,
           user: {
-            id: user.id,
-            name: user.name || 'Test User'
+            id: context.user.id,
+            name: context.user.name || 'Test User'
           }
         }],
         message: "Test reaction processed successfully"
@@ -81,28 +78,28 @@ export async function POST(req: NextRequest) {
 
     if (!post) {
 
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Post not found" }, { status: 404 });
     }
 
     // Handle comment reaction
     if (commentId && !replyId) {
-      return await handleCommentReaction(user.id, type, commentId, postId);
+      return await handleCommentReaction(context.user.id, type, commentId, postId);
     }
     
     // Handle reply reaction
     if (replyId) {
-      return await handleReplyReaction(user.id, type, replyId, postId, commentId);
+      return await handleReplyReaction(context.user.id, type, replyId, postId, commentId);
     }
 
-    return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
+    return createSuccessResponse({ error: "Invalid parameters" }, { status: 400 });
   } catch (error) {
     logger.error("[COMMENT_REACTION] Error:", error);
-    return NextResponse.json(
+    return createSuccessResponse(
       { error: "Error processing reaction" },
       { status: 500 }
     );
   }
-}
+});
 
 // Helper function to handle comment reactions
 async function handleCommentReaction(userId: string, type: string, commentId: string, postId: string) {
@@ -117,7 +114,7 @@ async function handleCommentReaction(userId: string, type: string, commentId: st
 
     if (!comment) {
 
-      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Comment not found" }, { status: 404 });
     }
 
     // Process the reaction in a transaction
@@ -180,7 +177,7 @@ async function handleCommentReaction(userId: string, type: string, commentId: st
       return updatedComment;
     });
 
-    return NextResponse.json(result);
+    return createSuccessResponse(result);
   } catch (error) {
     logger.error("[COMMENT_REACTION] Comment reaction error:", error);
     throw error;
@@ -195,7 +192,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
     if (process.env.NODE_ENV === 'development' && 
         (postId === 'test-post-id' || replyId === 'test-reply-id')) {
 
-      return NextResponse.json({
+      return createSuccessResponse({
         id: replyId,
         reactions: [{
           id: 'test-reaction-id',
@@ -227,7 +224,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
     if (!reply) {
 
       // Additional error details
-      return NextResponse.json({ 
+      return createSuccessResponse({ 
         error: "Reply not found", 
         details: {
           replyId,
@@ -300,7 +297,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
       return updatedReply;
     });
 
-    return NextResponse.json(result);
+    return createSuccessResponse(result);
   } catch (error) {
     logger.error("[COMMENT_REACTION] Reply reaction error:", error);
     throw error;

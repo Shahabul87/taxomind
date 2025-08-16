@@ -470,7 +470,7 @@ export function SAMInnovationFeatures({ user, className }: SAMInnovationFeatures
       setQuantumPaths(mockQuantumPaths);
       setSelectedPath(mockQuantumPaths.find(p => p.status === "in-progress") || mockQuantumPaths[0]);
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching innovation data:", error);
       toast.error("Failed to load SAM Innovation features");
     } finally {
@@ -559,8 +559,9 @@ export function SAMInnovationFeatures({ user, className }: SAMInnovationFeatures
 
     const interval = setInterval(() => {
       // Update real-time metrics
-      if (studyBuddy) {
-        setStudyBuddy(prev => prev ? {
+      setStudyBuddy(prev => {
+        if (!prev) return prev;
+        return {
           ...prev,
           emotionalState: {
             energy: Math.max(0, Math.min(100, prev.emotionalState.energy + (Math.random() - 0.5) * 10)),
@@ -568,12 +569,12 @@ export function SAMInnovationFeatures({ user, className }: SAMInnovationFeatures
             motivation: Math.max(0, Math.min(100, prev.emotionalState.motivation + (Math.random() - 0.5) * 5)),
             stress: Math.max(0, Math.min(100, prev.emotionalState.stress + (Math.random() - 0.5) * 8))
           }
-        } : null);
-      }
+        };
+      });
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, studyBuddy]);
+  }, [autoRefresh]);
 
   if (isLoading) {
     return (

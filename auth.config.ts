@@ -5,6 +5,7 @@ import Google from "next-auth/providers/google";
 
 import { LoginSchema } from "@/schemas";
 import { getUserByEmail } from "@/data/user";
+import { DefaultCookieConfig } from "@/lib/security/cookie-config";
 
 export default {
   providers: [
@@ -42,7 +43,7 @@ export default {
             );
 
             if (passwordsMatch) return user;
-          } catch (error) {
+          } catch (error: any) {
             console.error("Password verification failed:", error);
             return null;
           }
@@ -52,4 +53,8 @@ export default {
       }
     })
   ],
+  // Secure cookie configuration
+  cookies: DefaultCookieConfig,
+  // Configure for secure environments
+  useSecureCookies: process.env.NODE_ENV === 'production',
 } satisfies NextAuthConfig

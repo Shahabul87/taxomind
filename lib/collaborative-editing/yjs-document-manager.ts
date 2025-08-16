@@ -79,7 +79,7 @@ export class YjsDocumentManager {
         const updates = new Uint8Array(session.yjsUpdates);
         Y.applyUpdate(doc, updates);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error loading document state:', error);
     }
   }
@@ -95,7 +95,7 @@ export class YjsDocumentManager {
           lastActivity: new Date(),
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error saving document state:', error);
     }
   }
@@ -129,7 +129,7 @@ export class YjsDocumentManager {
       }
       
       // Update version
-      const currentVersion = yMap.get('version') || 0;
+      const currentVersion = (yMap.get('version') as number) || 0;
       yMap.set('version', currentVersion + 1);
       yMap.set('lastModified', new Date().toISOString());
       yMap.set('lastModifiedBy', operation.userId);
@@ -150,8 +150,8 @@ export class YjsDocumentManager {
     
     return {
       content: yText.toString(),
-      version: yMap.get('version') || 0,
-      timestamp: new Date(yMap.get('lastModified') || Date.now()),
+      version: (yMap.get('version') as number) || 0,
+      timestamp: new Date((yMap.get('lastModified') as string) || Date.now()),
     };
   }
 
@@ -189,11 +189,12 @@ export class YjsDocumentManager {
           sessionId,
           name: name || `Snapshot ${new Date().toISOString()}`,
           snapshotType: 'AUTO',
-          content: documentState,
+          content: documentState ? JSON.parse(JSON.stringify(documentState)) : {},
           yjsState: Buffer.from(state),
+          createdById: 'system', // Add required field
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating snapshot:', error);
     }
   }
@@ -221,7 +222,7 @@ export class YjsDocumentManager {
       
       // Save to database
       await this.saveDocumentState(sessionId, doc);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error restoring from snapshot:', error);
       throw error;
     }
@@ -276,7 +277,7 @@ export class YjsDocumentManager {
         metadata: activity.metadata,
         timestamp: activity.timestamp,
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting document history:', error);
       return [];
     }
@@ -339,7 +340,7 @@ export class YjsDocumentManager {
           await this.cleanupDocument(sessionId);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error cleaning up inactive documents:', error);
     }
   }
@@ -377,7 +378,7 @@ export class YjsDocumentManager {
           resolvedAt: new Date(),
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error resolving conflict:', error);
       throw error;
     }

@@ -150,13 +150,23 @@ export class SamMemorySystem {
 
   // Context Management
   public updateContext(updates: Partial<CourseCreationContext>): void {
+    const nowIso = new Date().toISOString();
+    const prevSession = this.context.sessionInfo ?? {
+      sessionId: Date.now().toString(),
+      startedAt: nowIso,
+      lastUpdated: nowIso,
+      currentPage: '',
+      totalInteractions: 0,
+      successfulGenerations: 0
+    };
     this.context = {
       ...this.context,
       ...updates,
       sessionInfo: {
+        ...prevSession,
         ...this.context.sessionInfo,
-        lastUpdated: new Date().toISOString(),
-        totalInteractions: (this.context.sessionInfo?.totalInteractions || 0) + 1
+        lastUpdated: nowIso,
+        totalInteractions: (prevSession.totalInteractions || 0) + 1
       }
     };
     this.saveContext();
@@ -208,13 +218,30 @@ export class SamMemorySystem {
   }
 
   // Wizard Integration
-  public saveWizardData(wizardData: CourseCreationContext['wizardData']): void {
-    this.updateContext({
-      wizardData: {
-        ...wizardData,
-        completedAt: new Date().toISOString()
-      }
-    });
+  public saveWizardData(wizardData: Partial<CourseCreationContext['wizardData']>): void {
+    const base: NonNullable<CourseCreationContext['wizardData']> = {
+      courseTitle: '',
+      courseShortOverview: '',
+      courseCategory: '',
+      courseSubcategory: undefined,
+      targetAudience: '',
+      difficulty: '',
+      courseIntent: undefined,
+      courseGoals: [],
+      bloomsFocus: [],
+      preferredContentTypes: [],
+      chapterCount: 0,
+      sectionsPerChapter: 0,
+      includeAssessments: false,
+      completedAt: undefined
+    };
+    const prev = this.context.wizardData ?? base;
+    const next = {
+      ...prev,
+      ...wizardData,
+      completedAt: new Date().toISOString()
+    };
+    this.updateContext({ wizardData: next });
   }
 
   public addWizardInteraction(interaction: {
@@ -295,9 +322,16 @@ export class SamMemorySystem {
 
   // User Preferences
   public updateUserPreferences(preferences: Partial<CourseCreationContext['userPreferences']>): void {
+    const prev: NonNullable<CourseCreationContext['userPreferences']> = this.context.userPreferences ?? {
+      preferredGenerationMethod: 'ai-assisted',
+      communicationStyle: 'detailed',
+      experienceLevel: 'beginner',
+      lastActiveSection: undefined,
+      favoriteSamFeatures: undefined
+    };
     this.updateContext({
       userPreferences: {
-        ...this.context.userPreferences,
+        ...prev,
         ...preferences
       }
     });

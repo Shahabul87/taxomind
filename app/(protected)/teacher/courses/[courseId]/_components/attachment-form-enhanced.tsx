@@ -72,7 +72,7 @@ export const AttachmentFormEnhanced = ({
         setPendingFile(file);
         toast.success("Content analysis complete!");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to analyze content");
       logger.error("Analysis error:", error);
     } finally {

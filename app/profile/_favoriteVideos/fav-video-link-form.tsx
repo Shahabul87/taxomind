@@ -142,7 +142,7 @@ export const FavoriteVideoLinkForm = ({
       }
       
       toast.success("Video details fetched");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching video metadata:", error);
       
       // Fallback for YouTube videos if API fails
@@ -235,7 +235,7 @@ export const FavoriteVideoLinkForm = ({
       
       router.refresh();
       toggleCreating();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong!");
     } finally {
       setIsLoading(false);
@@ -337,7 +337,7 @@ export const FavoriteVideoLinkForm = ({
             } else {
               toast.error("Couldn't find video details. Please enter them manually.", { id: "fetching-metadata" });
             }
-          } catch (error) {
+          } catch (error: any) {
             logger.error("Error fetching metadata:", error);
             toast.error("Couldn't fetch video details. Please enter them manually.", { id: "fetching-metadata" });
           }

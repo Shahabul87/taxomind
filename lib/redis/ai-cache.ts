@@ -82,7 +82,7 @@ export class AICache {
           const parsed = JSON.parse(cached as string);
           return parsed.data as T;
         } catch (error: any) {
-          logger.warn('Failed to parse AI cache data for key:', cacheKey, error);
+          logger.warn(`Failed to parse AI cache data for key: ${cacheKey}`, error);
           // Clear corrupted cache entry
           await redis.del(cacheKey);
           await redis.hincrby('cache:stats', 'corruption_errors', 1);
@@ -123,8 +123,8 @@ export class AICache {
     if (!redis) return { hits: 0, misses: 0, hitRate: 0 };
 
     const stats = await redis.hgetall('cache:stats') || {};
-    const hits = parseInt(stats.hits || '0');
-    const misses = parseInt(stats.misses || '0');
+    const hits = parseInt(String(stats.hits || '0'));
+    const misses = parseInt(String(stats.misses || '0'));
     const total = hits + misses;
     
     return {
@@ -159,7 +159,7 @@ export class AICache {
     
     await this.set(key, questions, {
       ttl: 7 * 24 * 60 * 60, // 7 days
-      tags: ['question_generation', `Course:${courseId}`]
+      tags: ['question_generation', `course:${courseId}`]
     });
   }
 

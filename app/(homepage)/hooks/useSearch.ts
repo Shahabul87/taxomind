@@ -71,7 +71,7 @@ export function useSearch(): UseSearchReturn {
         setSearchError("Invalid response format");
         setSearchResults(fallbackResults);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('❌ Search error:', error);
       setSearchError(error instanceof Error ? error.message : 'Search failed');
       setSearchResults(fallbackResults);

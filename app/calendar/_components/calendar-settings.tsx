@@ -56,7 +56,7 @@ export const CalendarSettings = () => {
       });
       toast.success("Settings saved successfully");
       setOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to save settings");
     }
   };

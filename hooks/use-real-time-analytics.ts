@@ -369,7 +369,7 @@ export function useStudentMetrics(courseId?: string) {
           const data = await response.json();
           setMetrics(data);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to fetch student metrics:', error);
       } finally {
         setLoading(false);
@@ -398,7 +398,7 @@ export function useCourseAnalytics(courseId: string) {
           const data = await response.json();
           setAnalytics(data);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to fetch course analytics:', error);
       } finally {
         setLoading(false);

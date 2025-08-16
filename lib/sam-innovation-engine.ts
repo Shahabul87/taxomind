@@ -968,13 +968,14 @@ export class SAMInnovationEngine {
   private calculateTaskSwitchingRate(activities: any[]): number {
     // Calculate how often user switches between tasks
     let switches = 0;
-    let lastContentId = null;
+    let lastContentId: string | null = null;
 
     activities.forEach((activity) => {
-      if (lastContentId && activity.contentId !== lastContentId) {
+      const currentId = String(activity.contentId ?? "");
+      if (lastContentId && currentId !== lastContentId) {
         switches++;
       }
-      lastContentId = activity.contentId;
+      lastContentId = currentId;
     });
 
     return activities.length > 0 ? switches / activities.length : 0;
@@ -1235,13 +1236,7 @@ export class SAMInnovationEngine {
   
   private async getCompleteLearningHistory(userId: string): Promise<any> {
     // Get comprehensive learning history for DNA generation
-    const [
-      enrollments,
-      progress,
-      achievements,
-      activities,
-      assessments,
-    ] = await Promise.all([
+    const [enrollments, progress, achievements, activities] = await Promise.all([
       db.enrollment.findMany({
         where: { userId },
         include: { Course: true },
@@ -1257,9 +1252,6 @@ export class SAMInnovationEngine {
         orderBy: { timestamp: "desc" },
         take: 1000,
       }),
-      db.assessmentResult.findMany({
-        where: { userId },
-      }),
     ]);
 
     return {
@@ -1268,7 +1260,7 @@ export class SAMInnovationEngine {
       progress,
       achievements,
       activities,
-      assessments,
+      assessments: [],
       preferredLearningStyle: this.detectPreferredStyle(activities),
       peakPerformanceTime: this.detectPeakTime(activities),
       strongestSubject: this.detectStrongestSubject(progress, enrollments),
@@ -1322,18 +1314,18 @@ export class SAMInnovationEngine {
     return `${bestHour}:00`;
   }
 
-  private detectStrongestSubject(progress: any[], Enrollment: any[]): string {
+  private detectStrongestSubject(progress: any[], enrollments: any[]): string {
     // Find subject with best performance
     const subjectScores = new Map<string, { total: number; count: number }>();
 
     progress.forEach((p) => {
-      const enrollment = enrollments.find((e) => e.courseId === p.courseId);
-      if (enrollment?.course?.categoryId) {
+      const enrollment = enrollments.find((e: any) => e.courseId === p.courseId);
+      if (enrollment?.Course?.categoryId) {
         const current = subjectScores.get(enrollment.Course.categoryId) || {
           total: 0,
           count: 0,
         };
-        current.total += p.quizScore || 0;
+        current.total += (p.quizScore || 0);
         current.count++;
         subjectScores.set(enrollment.Course.categoryId, current);
       }
@@ -1635,7 +1627,7 @@ export class SAMInnovationEngine {
       user,
       learningStyle: learningStyle ? JSON.parse(learningStyle.styleStrengths as string) : null,
       emotionalState: emotionalState ? JSON.parse(emotionalState.indicators as string) : null,
-      preferences: user?.metadata?.buddyPreferences || {},
+      preferences: (user?.samLearningProfile?.preferences as any) || {},
     };
   }
 
@@ -2311,7 +2303,6 @@ export class SAMInnovationEngine {
       where: { pathId: path.pathId },
       data: {
         superposition: JSON.stringify(path.superposition),
-        observations: JSON.stringify(path.observations),
         coherenceLevel: path.superposition.coherenceLevel,
       },
     });
@@ -2374,7 +2365,7 @@ export class SAMInnovationEngine {
       data: {
         collapsed: true,
         collapse: JSON.stringify(path.collapse),
-        finalStateId: selectedState.stateId,
+        finalStateId: (selectedState as QuantumState).stateId,
       },
     });
   }

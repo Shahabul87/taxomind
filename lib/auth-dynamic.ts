@@ -60,6 +60,7 @@ export async function authenticateApiRoute(request?: NextRequest): Promise<Authe
     const decoded = await decode({
       token: sessionToken,
       secret: process.env.NEXTAUTH_SECRET!,
+      salt: process.env.NEXTAUTH_SALT || process.env.AUTH_SALT || '',
     });
     
     if (!decoded || !decoded.sub) {
@@ -91,12 +92,12 @@ export async function authenticateApiRoute(request?: NextRequest): Promise<Authe
 
     return {
       id: user.id,
-      email: user.email,
+      email: user.email ?? '',
       name: user.name || undefined,
       role: user.role,
     };
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[AUTH_DYNAMIC] Authentication error:", error);
     return null;
   }
@@ -122,46 +123,54 @@ export async function authenticateBySession(): Promise<AuthenticatedUser | null>
       return null;
     }
     
-    // Query the session table directly
-    const session = await db.session.findUnique({
-      where: { sessionToken: sessionId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            emailVerified: true,
-          }
-        }
+    // Query the session table directly (schema: token, userId, expiresAt, ...)
+    // Align with schema: AuthSession is the persisted session model
+    const session = await (db as any).authSession.findUnique({
+      where: { token: sessionId },
+      select: {
+        id: true,
+        token: true,
+        userId: true,
+        expiresAt: true,
       }
     });
     
-    if (!session || !session.user) {
+    if (!session) {
 
       return null;
     }
     
     // Check if session is expired
-    if (session.expires < new Date()) {
+    if (session.expiresAt < new Date()) {
 
       return null;
     }
     
-    if (!session.user.emailVerified) {
+    // Fetch user separately
+    const user = await db.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        emailVerified: true,
+      }
+    });
+
+    if (!user || !user.emailVerified) {
 
       return null;
     }
 
     return {
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name || undefined,
-      role: session.user.role,
+      id: user.id,
+      email: user.email ?? '',
+      name: user.name || undefined,
+      role: user.role,
     };
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[AUTH_SESSION] Session authentication error:", error);
     return null;
   }
@@ -189,7 +198,7 @@ export async function authenticateWithOriginalAuth(): Promise<AuthenticatedUser 
       role: (session.user as any).role || "USER",
     };
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[AUTH_ORIGINAL] Original auth error:", error);
     return null;
   }

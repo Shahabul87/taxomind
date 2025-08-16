@@ -25,7 +25,7 @@ export const SimpleLogoutButton = ({
         redirect: true 
       });
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("SimpleLogoutButton: Logout error:", error);
       // Fallback: force redirect
       window.location.href = "/";

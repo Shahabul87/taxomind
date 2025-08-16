@@ -134,7 +134,7 @@ export function ProgressMonitor({ user }: ProgressMonitorProps) {
           setMetrics(metricsResponse.data.overallStats);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to fetch progress data:", error);
       // Set default data on error
       setAlerts([]);
@@ -157,7 +157,7 @@ export function ProgressMonitor({ user }: ProgressMonitorProps) {
       await axios.patch(`/api/progress/alerts/${alertId}/resolve`);
       setAlerts(prev => prev.filter(alert => alert.id !== alertId));
       toast.success("Alert dismissed");
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to dismiss alert");
     }
   };

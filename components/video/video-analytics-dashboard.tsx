@@ -95,7 +95,7 @@ export function VideoAnalyticsDashboard({ courseId, isTeacher = false }: VideoAn
       if (data.videos?.length > 0 && !selectedVideo) {
         setSelectedVideo(data.videos[0]);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch video analytics:', error);
     } finally {
       setLoading(false);

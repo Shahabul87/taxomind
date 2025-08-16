@@ -33,7 +33,7 @@ export default async function ArticlePage(props: ArticlePageProps) {
 
   return (
     <div className="prose prose-invert max-w-none">
-      <PreviewEditor content={article.content || article.summary || ''} />
+      <PreviewEditor value={article.content || article.summary || ''} />
     </div>
   );
 } 

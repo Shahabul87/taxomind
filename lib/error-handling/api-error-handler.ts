@@ -181,7 +181,7 @@ export class ApiErrorHandler {
       try {
         const result = await handler(request, context);
         return this.createSuccessResponse(result, request);
-      } catch (error) {
+      } catch (error: any) {
         return this.handleError(error as Error, request, context);
       }
     };

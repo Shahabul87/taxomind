@@ -64,7 +64,7 @@ export const AddEventDialog = ({
       toast.success("Event created successfully");
       onClose();
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to create event");
     } finally {
       setIsSubmitting(false);

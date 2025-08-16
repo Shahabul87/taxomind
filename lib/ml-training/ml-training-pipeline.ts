@@ -213,17 +213,17 @@ export class MLTrainingPipeline {
   private async collectLearningData(userId: string): Promise<any[]> {
     try {
       const interactions = await db.sAMInteraction.findMany({
-        where: { studentId: userId },
+        where: { userId: userId },
         take: 1000,
-        orderBy: { timestamp: 'desc' }
+        orderBy: { createdAt: 'desc' }
       });
 
       return interactions.map(interaction => ({
         userId,
         contentType: interaction.interactionType,
-        timestamp: interaction.timestamp,
-        data: interaction.interactionData,
-        session: interaction.sessionId
+        timestamp: interaction.createdAt,
+        data: interaction.context || {},
+        session: interaction.id
       }));
     } catch (error: any) {
       logger.error('Failed to collect learning data:', error);
@@ -236,18 +236,15 @@ export class MLTrainingPipeline {
     try {
       const interactions = await db.sAMInteraction.findMany({
         take: 5000,
-        orderBy: { timestamp: 'desc' },
-        include: {
-          student: true
-        }
+        orderBy: { createdAt: 'desc' }
       });
 
       return interactions.map(interaction => ({
-        userId: interaction.studentId,
-        contentId: interaction.interactionData?.contentId || 'unknown',
+        userId: interaction.userId,
+        contentId: typeof interaction.context === 'object' && interaction.context && 'contentId' in interaction.context ? (interaction.context as {contentId: string}).contentId : 'unknown',
         interactionType: interaction.interactionType,
         engagement: this.calculateEngagement(interaction),
-        timestamp: interaction.timestamp
+        timestamp: interaction.createdAt
       }));
     } catch (error: any) {
       logger.error('Failed to collect content interaction data:', error);

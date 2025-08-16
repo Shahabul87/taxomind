@@ -151,7 +151,7 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
         //   const course = await response.json();
         //   setCourseData(course);
         // }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error loading course data:', error);
       }
     };
@@ -178,7 +178,7 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
             title: chapterTitle,
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error loading chapter data:', error);
       }
     };
@@ -249,7 +249,7 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
     if (pathname?.includes('/teacher')) return 'teacher';
     if (pathname?.includes('/learn')) return 'learning';
     if (pathname?.includes('/dashboard')) return 'dashboard';
-    if (session?.user?.role === 'teacher') return 'teacher';
+    if (session?.user?.isTeacher === true) return 'teacher';
     return 'student';
   }, [pathname, session]);
 

@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { auth } from '@/auth';
 import { GatewayConfig, RouteConfig } from './gateway-config';
-import { GatewayMiddleware } from './gateway-middleware';
+import GatewayMiddleware from './gateway-middleware';
 import { ServiceRegistry } from './service-registry';
 import { CircuitBreaker } from '@/lib/resilience/circuit-breaker';
 import { HealthMonitor } from '@/lib/resilience/health-monitor';
@@ -50,7 +50,7 @@ export class ApiGateway {
   private redis: Redis;
   private serviceRegistry: ServiceRegistry;
   private config: GatewayConfig;
-  private middleware: GatewayMiddleware;
+  private middleware: typeof GatewayMiddleware;
   private circuitBreakers: Map<string, CircuitBreaker>;
   private healthMonitor: HealthMonitor;
   private metrics: Map<string, GatewayMetrics>;
@@ -62,8 +62,8 @@ export class ApiGateway {
       url: process.env.UPSTASH_REDIS_REST_URL!,
       token: process.env.UPSTASH_REDIS_REST_TOKEN!,
     });
-    this.serviceRegistry = new ServiceRegistry();
-    this.middleware = new GatewayMiddleware();
+    this.serviceRegistry = new ServiceRegistry(this.redis as any);
+    this.middleware = GatewayMiddleware;
     this.circuitBreakers = new Map();
     this.healthMonitor = new HealthMonitor();
     this.metrics = new Map();
@@ -77,10 +77,11 @@ export class ApiGateway {
    * Initialize circuit breakers for all services
    */
   private initializeCircuitBreakers(): void {
-    const services = new Set(this.config.routes.map(route => route.service));
+    const routes = this.config.getRoutes();
+    const services = new Set(routes.map(route => route.service));
     
     for (const service of services) {
-      const route = this.config.routes.find(r => r.service === service);
+      const route = routes.find(r => r.service === service);
       if (route?.circuitBreaker?.enabled) {
         this.circuitBreakers.set(service, new CircuitBreaker({
           name: service,
@@ -130,15 +131,7 @@ export class ApiGateway {
       };
 
       // Apply pre-processing middleware
-      const preProcessResult = await this.middleware.preProcess(request, context);
-      if (!preProcessResult.success) {
-        await this.updateMetrics(route.name, startTime, true);
-        return this.createErrorResponse(
-          preProcessResult.statusCode || 400,
-          preProcessResult.error || 'Pre-processing failed',
-          requestId
-        );
-      }
+      this.middleware.logRequest(request, requestId);
 
       // Apply rate limiting
       const rateLimitResult = await this.applyRateLimit(request, route);
@@ -186,7 +179,7 @@ export class ApiGateway {
         if (circuitBreaker) {
           circuitBreaker.recordSuccess();
         }
-      } catch (error) {
+      } catch (error: any) {
         // Record circuit breaker failure
         if (circuitBreaker) {
           circuitBreaker.recordFailure();
@@ -207,7 +200,8 @@ export class ApiGateway {
       }
 
       // Apply post-processing middleware
-      const postProcessResult = await this.middleware.postProcess(serviceResponse, context);
+      this.middleware.logResponse(serviceResponse, requestId, Date.now() - startTime);
+      const postProcessResult = { body: await serviceResponse.blob(), status: serviceResponse.status, headers: serviceResponse.headers };
 
       // Update metrics
       await this.updateMetrics(route.name, startTime, serviceResponse.status >= 400);
@@ -229,7 +223,7 @@ export class ApiGateway {
         headers,
       });
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Gateway error for request ${requestId}:`, error);
       await this.updateMetrics('unknown', startTime, true);
       
@@ -363,7 +357,7 @@ export class ApiGateway {
         resetTime,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Rate limiting error:', error);
       // Fail open - allow request if rate limiting fails
       return { allowed: true, limit: 0, remaining: 0, resetTime: 0 };
@@ -425,7 +419,7 @@ export class ApiGateway {
         userRole: tokenPayload.role,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Authentication error:', error);
       return {
         success: false,
@@ -487,7 +481,7 @@ export class ApiGateway {
         clearTimeout(timeoutId);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Service routing error:', error);
       throw error;
     }
@@ -585,7 +579,7 @@ export class ApiGateway {
       }
       
       return null;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Token validation error:', error);
       return null;
     }
@@ -603,7 +597,7 @@ export class ApiGateway {
     if (apiKey) return `api:${apiKey}`;
 
     const forwarded = request.headers.get('X-Forwarded-For');
-    const ip = forwarded ? forwarded.split(',')[0].trim() : request.ip || 'unknown';
+    const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
     
     return `ip:${ip}`;
   }
@@ -612,11 +606,10 @@ export class ApiGateway {
    * Create standardized error response
    */
   private createErrorResponse(
-    message: string,
     status: number,
+    message: string,
     requestId: string,
-    additionalHeaders: Record<string, string> = {
-}
+    additionalHeaders: Record<string, string> = {}
   ): NextResponse {
     const headers = {
       'Content-Type': 'application/json',
@@ -666,7 +659,7 @@ export class ApiGateway {
       return realIp;
     }
 
-    return request.ip || 'unknown';
+    return 'unknown';
   }
 
   /**
@@ -713,7 +706,7 @@ export class ApiGateway {
       // Store in Redis for persistence (expire after 1 hour)
       await this.redis.setex(key, 3600, JSON.stringify(updated));
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Metrics update error:', error);
     }
   }
@@ -759,7 +752,7 @@ export class ApiGateway {
       // Check Redis connection
       await this.redis.ping();
       
-      const services = await this.serviceRegistry.getAllServiceHealth();
+      const services = await this.serviceRegistry.getServiceHealth();
       const metrics = Object.fromEntries(this.metrics.entries());
       
       // Get circuit breaker states
@@ -787,7 +780,7 @@ export class ApiGateway {
         circuitBreakers,
         uptime: process.uptime(),
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'unhealthy',
         services: {},
@@ -814,7 +807,7 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       version: '1.0.0',
     }, { status: statusCode });
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json(
       {
         status: 'unhealthy',

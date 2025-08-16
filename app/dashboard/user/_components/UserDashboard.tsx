@@ -27,7 +27,7 @@ export function UserDashboard({ user }: UserDashboardProps) {
     completeOnboarding,
     skipOnboarding
   } = useIntelligentOnboarding({
-    userRole: "STUDENT",
+    userRole: "USER",
     userId: user.id,
     autoStart: true
   });
@@ -35,7 +35,7 @@ export function UserDashboard({ user }: UserDashboardProps) {
   return (
     <div className="relative w-full overflow-x-hidden min-h-screen bg-gradient-to-bl from-slate-900 via-slate-800 to-slate-900">
       <IntelligentOnboarding
-        userRole="STUDENT"
+        userRole="USER"
         isVisible={isOnboardingVisible}
         onComplete={completeOnboarding}
         onSkip={skipOnboarding}

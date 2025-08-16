@@ -1,0 +1,425 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Remove these animation keyframes since they're now in the tailwind config */
+
+html,
+body,
+:root {
+ height:100%;
+}
+
+
+ 
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+
+.ql-container {
+  font-size: 16px !important
+}
+.bg-full-vh {
+  min-height: 100vh; /* This makes sure your gradient background covers at least the full viewport height */
+} 
+
+
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium inline-flex items-center justify-center tracking-tight;
+  }
+
+  .btn-primary {
+    @apply bg-gray-900 text-white;
+  }
+
+  .btn-text {
+    @apply text-black bg-transparent;
+  }
+}
+
+.logo-ticker-image {
+  @apply h-8 w-auto
+}
+
+
+.tag{
+  @apply text-sm inline-flex border border-[#222]/10 px-3 py-1 rounded-lg tracking-tight
+}
+
+.section-title {
+  @apply text-center text-3xl md:text-[54px] md:leading-[60px]
+  font-bold tracking-tighter bg-gradient-to-b from-black to-[#001E80] text-transparent bg-clip-text 
+}
+
+.section-title-style {
+  @apply text-center text-3xl md:text-[54px] md:leading-[60px]
+  font-bold tracking-tighter bg-[linear-gradient(to_right,#DD7DDF,#E1CD86,#BBCB92,#71C2EF,#3BFFFF,#DD7DDF,#E1CD86,#BBCB92,#71C2EF,#3BFFFE)] [background-size:200%] text-transparent bg-clip-text
+}
+
+.section-description {
+  @apply text-center text-[22px] leading-[30px] tracking-tight text-[#010D3E]
+}
+
+.section-heading {
+  @apply max-w-[540px] mx-auto
+}
+
+.card {
+  @apply p-10 border border-[#F1F1F1] rounded-3xl shadow-[0_7px_14px_#EAEAEA] max-w-xs w-full
+}
+
+.no-visible-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.no-visible-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* React Quill Editor Styles */
+.ql-toolbar {
+  @apply !bg-gray-800 !border-gray-700 !text-gray-200;
+}
+
+.ql-container {
+  @apply !border-gray-700;
+}
+
+.ql-editor {
+  @apply !text-gray-200 !min-h-[200px];
+}
+
+.ql-picker {
+  @apply !text-gray-200;
+}
+
+.ql-picker-options {
+  @apply !bg-gray-800 !border-gray-700;
+}
+
+.ql-picker-label {
+  @apply !text-gray-200;
+}
+
+.ql-snow.ql-toolbar button,
+.ql-snow .ql-toolbar button {
+  @apply !text-gray-200;
+}
+
+.ql-snow .ql-stroke {
+  @apply !stroke-gray-200;
+}
+
+.ql-snow .ql-fill {
+  @apply !fill-gray-200;
+}
+
+.ql-snow .ql-picker-label::before {
+  @apply !border-gray-200;
+}
+
+.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  @apply !border-gray-700;
+}
+
+.ql-snow .ql-picker-options {
+  @apply !bg-gray-800 !border-gray-700;
+}
+
+.ql-snow .ql-tooltip {
+  @apply !bg-gray-800 !border-gray-700 !text-gray-200 !shadow-lg;
+}
+
+.ql-snow .ql-tooltip input[type=text] {
+  @apply !bg-gray-900 !border-gray-700 !text-gray-200;
+}
+
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: rgb(139 92 246);
+  --rdp-background-color: rgb(139 92 246 / 0.3);
+  --rdp-accent-color-dark: rgb(139 92 246);
+  --rdp-background-color-dark: rgb(139 92 246 / 0.2);
+  --rdp-outline: 2px solid var(--rdp-accent-color);
+  --rdp-outline-selected: 3px solid var(--rdp-accent-color);
+  margin: 1em;
+}
+
+.rdp-months {
+  display: flex;
+  justify-content: center;
+}
+
+.rdp-month {
+  background-color: rgb(17 24 39 / 0.7);
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.rdp-day_selected, 
+.rdp-day_selected:focus-visible, 
+.rdp-day_selected:hover {
+  background-color: var(--rdp-accent-color);
+  color: white;
+}
+
+.rdp-day:hover:not(.rdp-day_selected) {
+  background-color: rgb(55 65 81 / 0.5);
+}
+
+.rdp-day_today {
+  font-weight: bold;
+  color: var(--rdp-accent-color);
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .bg-gray-850 {
+    background-color: rgba(18, 24, 38, 1);
+  }
+}
+
+/* Drag and Drop Styles */
+body.dragging {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  overflow: hidden !important; /* Prevents scrolling during drag operations */
+}
+
+/* Apply grabbing cursor during drag */
+body.dragging * {
+  cursor: grabbing !important;
+}
+
+/* Ensure we don't accidentally select text during drag */
+body.dragging *::selection {
+  background: transparent !important;
+}
+
+/* Make pointer events work better on touch devices */
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Specific iOS fix */
+@supports (-webkit-touch-callout: none) {
+  [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Custom scrollbar for filter menu */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.4);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+/* Add grid pattern background for groups page */
+.bg-grid-pattern {
+  --grid-size: 30px;
+  --dot-size: 1.5px;
+  background-size: var(--grid-size) var(--grid-size);
+  background-image: radial-gradient(
+    circle at center,
+    currentColor var(--dot-size),
+    transparent 0
+  );
+}
+
+/* Enhanced Animated Header Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(-180deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1) rotate(-90deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.5s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.delay-100 {
+  animation-delay: 0.1s;
+}
+
+.delay-300 {
+  animation-delay: 0.3s;
+}
+
+/* Blob animations for hero section */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}

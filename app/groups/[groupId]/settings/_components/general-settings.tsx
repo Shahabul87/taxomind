@@ -83,7 +83,7 @@ export function GeneralSettings({ group, currentUser, isCreator }: GeneralSettin
       } else {
         throw new Error("Failed to upload image");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error(`Error uploading image: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -105,7 +105,7 @@ export function GeneralSettings({ group, currentUser, isCreator }: GeneralSettin
       }
 
       toast.success("Group settings updated successfully");
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
       logger.error(error);
     } finally {

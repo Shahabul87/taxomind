@@ -61,7 +61,7 @@ export const PostDescription = ({
       toast.success("Description updated");
       setIsEditing(false);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     }
   };

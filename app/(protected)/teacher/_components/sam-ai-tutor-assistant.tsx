@@ -250,7 +250,7 @@ export function SamAITutorAssistant() {
       });
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error populating form:', error);
       return false;
     }
@@ -274,7 +274,7 @@ export function SamAITutorAssistant() {
       // If no submit button, try form.submit()
       form.submit();
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error submitting form:', error);
       return false;
     }
@@ -313,7 +313,7 @@ export function SamAITutorAssistant() {
       }
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error validating form:', error);
       return false;
     }
@@ -333,7 +333,7 @@ export function SamAITutorAssistant() {
       }));
       
       setIsReady(true);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error refreshing page data:', error);
     }
   }, [detectForms]);
@@ -359,7 +359,7 @@ export function SamAITutorAssistant() {
       }
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error interacting with component:', error);
       return false;
     }
@@ -381,7 +381,7 @@ export function SamAITutorAssistant() {
       }
       
       return false;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error navigating workflow:', error);
       return false;
     }
@@ -406,7 +406,7 @@ export function SamAITutorAssistant() {
         const data = await response.json();
         return data.content || `Generated ${type} content for ${topic}`;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating content:', error);
     }
     
@@ -1049,7 +1049,7 @@ ${data.response.practiceExercises?.map((e: string) => `• ${e}`).join('\n') || 
           suggestions: data.followUpSuggestions || ['Ask about timestamp', 'Get more examples', 'Practice concept']
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Content companion failed:', error);
       addMessage({
         type: 'sam',
@@ -1105,7 +1105,7 @@ ${data.result.learningBenefits?.map((b: string) => `• ${b}`).join('\n') || 'En
           suggestions: data.suggestions || ['Generate different diagram', 'Explain visual elements', 'Create more visuals']
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Visual processing failed:', error);
       addMessage({
         type: 'sam',
@@ -1269,7 +1269,7 @@ Would you like me to:
           ]
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch AI trends:', error);
       addMessage({
         type: 'sam',
@@ -1320,7 +1320,7 @@ Would you like me to:
           ]
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch AI news:', error);
       addMessage({
         type: 'sam',
@@ -1372,7 +1372,7 @@ Would you like me to:
           ]
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch AI research:', error);
       addMessage({
         type: 'sam',
@@ -1479,7 +1479,7 @@ Exploring the latest in AI...`,
           });
           break;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Quick action failed:', error);
       toast.error('Action failed. Please try again.');
     } finally {
@@ -1661,7 +1661,7 @@ Each objective will be measured through:
             suggestions: ['Try course creator', 'Generate titles', 'Create structure']
           });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Course creation action failed:', error);
       addMessage({
         type: 'sam',
@@ -1770,7 +1770,7 @@ Each objective will be measured through:
         throw new Error('Failed to get response');
       }
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error sending message:', error);
       
       const errorMessage: ChatMessage = {

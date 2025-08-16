@@ -53,7 +53,7 @@ export const PrivateSettingsPage = () => {
       await axios.patch('/api/user/security', values);
       toast.success("Security settings updated successfully");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsUpdating(false);

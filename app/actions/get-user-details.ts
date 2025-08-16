@@ -10,7 +10,7 @@ export async function getUserDetails(userId: string) {
       include: { profileLinks: true },
     });
     return user;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error fetching user details:", error);
     throw error;
   }

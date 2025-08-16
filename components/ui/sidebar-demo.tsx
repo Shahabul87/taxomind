@@ -2,26 +2,26 @@
 import React, { useState, useEffect } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "../ui/sidebar";
 import {
-  IconDashboard,
-  IconUser,
-  IconSettings,
-  IconBook,
-  IconChartBar,
-  IconUsers,
-  IconCalendar,
-  IconMessageCircle,
-  IconBrain,
-  IconLibrary,
-  IconHelpCircle,
-  IconMenu2,
-  IconX,
-  IconSchool,
-  IconPencil,
-  IconNews,
-  IconAnalyze,
-  IconRobot,
-  IconBrandTabler,
-} from "@tabler/icons-react";
+  LayoutDashboard,
+  User,
+  Settings,
+  BookOpen,
+  BarChart3,
+  Users,
+  Calendar,
+  MessageCircle,
+  Brain,
+  Library,
+  HelpCircle,
+  Menu,
+  X,
+  GraduationCap,
+  PencilLine,
+  Newspaper,
+  TrendingUp,
+  Bot,
+  Layers,
+} from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -75,24 +75,24 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
   const menuItems: MenuItem[] = [
     {
       title: "Dashboard",
-      icon: <IconDashboard className="w-5 h-5" />,
+      icon: <LayoutDashboard className="w-5 h-5" />,
       submenu: [
         { label: "Admin Dashboard", href: "/dashboard/admin" },
       ],
     },
     {
       title: "Profile Manager",
-      icon: <IconUser className="w-5 h-5" />,
+      icon: <User className="w-5 h-5" />,
       href: "/profile",
     },
     {
       title: "Settings",
-      icon: <IconSettings className="w-5 h-5" />,
+      icon: <Settings className="w-5 h-5" />,
       href: "/settings",
     },
     {
       title: "Courses",
-      icon: <IconBook className="w-5 h-5" />,
+      icon: <BookOpen className="w-5 h-5" />,
       submenu: [
         { label: "My Courses", href: "/dashboard/student" },
         { label: "All Courses", href: "/teacher/courses" },
@@ -102,7 +102,7 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
     },
     {
       title: "Posts",
-      icon: <IconNews className="w-5 h-5" />,
+      icon: <Newspaper className="w-5 h-5" />,
       submenu: [
         { label: "My Posts", href: "/teacher/posts" },
         { label: "All Posts", href: "/teacher/allposts" },
@@ -112,7 +112,7 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
     },
     {
       title: "Analytics",
-      icon: <IconChartBar className="w-5 h-5" />,
+      icon: <BarChart3 className="w-5 h-5" />,
       submenu: [
         { label: "Student Analytics", href: "/analytics/student" },
         { label: "Teacher Analytics", href: "/analytics/teacher" },
@@ -121,7 +121,7 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
     },
     {
       title: "Groups",
-      icon: <IconUsers className="w-5 h-5" />,
+      icon: <Users className="w-5 h-5" />,
       submenu: [
         { label: "My Groups", href: "/groups/my-groups" },
         { label: "All Groups", href: "/groups" },
@@ -130,27 +130,27 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
     },
     {
       title: "Calendar",
-      icon: <IconCalendar className="w-5 h-5" />,
+      icon: <Calendar className="w-5 h-5" />,
       href: "/calendar",
     },
     {
       title: "Support",
-      icon: <IconHelpCircle className="w-5 h-5" />,
+      icon: <HelpCircle className="w-5 h-5" />,
       href: "/support",
     },
     {
       title: "Message Center",
-      icon: <IconMessageCircle className="w-5 h-5" />,
+      icon: <MessageCircle className="w-5 h-5" />,
       href: "/messages",
     },
     {
       title: "Resource Center",
-      icon: <IconLibrary className="w-5 h-5" />,
+      icon: <Library className="w-5 h-5" />,
       href: "/resources",
     },
     {
       title: "AI Tutor",
-      icon: <IconRobot className="w-5 h-5" />,
+      icon: <Bot className="w-5 h-5" />,
       href: "/ai-tutor",
     },
   ];
@@ -171,7 +171,7 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
             transition-colors md:hidden  border dark:border-gray-700 border-gray-200"
         >
           {open ? (
-            <IconX className="w-6 h-6" />
+            <X className="w-6 h-6" />
           ) : (
             <ChevronRight className="w-4 h-4" />
           )}
@@ -226,9 +226,9 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
                 )}
               >
                 {open ? (
-                  <IconX className="w-5 h-5 dark:text-gray-400 text-gray-600" />
+                  <X className="w-5 h-5 dark:text-gray-400 text-gray-600" />
                 ) : (
-                  <IconMenu2 className="w-5 h-5 dark:text-gray-400 text-gray-600" />
+                  <Menu className="w-5 h-5 dark:text-gray-400 text-gray-600" />
                 )}
               </button>
             )}
@@ -337,7 +337,7 @@ export const Logo = () => {
   return (
     <Link href="/" className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors">
       <div className="h-8 w-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-        <IconBrandTabler className="h-5 w-5" />
+        <Layers className="h-5 w-5" />
       </div>
       <span className="font-medium">iSham</span>
     </Link>
@@ -348,7 +348,7 @@ export const LogoIcon = () => {
   return (
     <Link href="/" className="block">
       <div className="h-8 w-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-        <IconBrandTabler className="h-5 w-5 text-purple-400" />
+        <Layers className="h-5 w-5 text-purple-400" />
       </div>
     </Link>
   );

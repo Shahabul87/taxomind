@@ -20,7 +20,7 @@ export default async function CreateGroupPage() {
       userId: user.id,
     },
     include: {
-      course: {
+      Course: {
         select: {
           id: true,
           title: true,
@@ -38,7 +38,7 @@ export default async function CreateGroupPage() {
     }
   });
 
-  const courses = enrolledCourses.map(enrollment => enrollment.course);
+  const courses = enrolledCourses.map(enrollment => enrollment.Course);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

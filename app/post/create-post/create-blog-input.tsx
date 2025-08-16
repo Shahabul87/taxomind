@@ -110,7 +110,7 @@ export const CreateBlogInputSection = () => {
         toast.error("Failed to create blog");
         logger.error("API response error:", response.data);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to create blog");
       logger.error("Blog creation error:", error);
     }

@@ -79,7 +79,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
     if (level === 'page') {
       actions.push({
         label: 'Go Home',
-        action: () => window.location.href = '/',
+        action: () => { window.location.href = '/'; },
         type: 'navigate'
       });
     }

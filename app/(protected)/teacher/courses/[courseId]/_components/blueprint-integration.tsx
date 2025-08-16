@@ -79,7 +79,7 @@ export const BlueprintIntegration = ({ courseId, currentCourse }: BlueprintInteg
         const parsedBlueprint = JSON.parse(storedBlueprint);
         setBlueprint(parsedBlueprint);
 
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error parsing blueprint:', error);
         sessionStorage.removeItem(`course_blueprint_${courseId}`);
       }
@@ -168,7 +168,7 @@ export const BlueprintIntegration = ({ courseId, currentCourse }: BlueprintInteg
       // Refresh the page to show the new structure
       window.location.reload();
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating chapters from blueprint:', error);
       toast.error(`Failed to generate course structure: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {

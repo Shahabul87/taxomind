@@ -136,7 +136,7 @@ export function SAMTipTapIntegration({
         suggestionsGenerated: newSuggestions.length,
         formType: context?.formType,
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing content:', error);
     }
   }, [editor, isActive, context, trackInteraction]);
@@ -177,7 +177,7 @@ export function SAMTipTapIntegration({
           formType: context?.formType,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating content suggestion:', error);
     } finally {
       setIsGenerating(false);

@@ -35,7 +35,7 @@ export const MathTab = ({
     setIsRefreshing(true);
     try {
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error during router refresh:", error);
     } finally {
       // Reset flag after a delay
@@ -71,7 +71,7 @@ export const MathTab = ({
 
       await axios.delete(`/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations/${id}`);
       debouncedRefresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error deleting math explanation:", error);
       throw error;
     }

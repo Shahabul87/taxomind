@@ -48,7 +48,7 @@ export function StudentFeaturesTab({ analytics, performance }: StudentFeaturesPr
       const data = await response.json();
       setFeaturesData(data);
       setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch student features:', error);
       setIsLoading(false);
     }

@@ -37,9 +37,9 @@ function getUserRole(user: any): UserRole {
     switch (user.role.toString().toUpperCase()) {
       case 'ADMIN':
         return 'ADMIN';
-      case 'TEACHER':
+      case 'USER':
         return 'TEACHER';
-      case 'STUDENT':
+      case 'USER':
         return 'STUDENT';
       case 'USER':
         // Convert legacy USER role to STUDENT
@@ -67,9 +67,9 @@ function getDefaultDashboard(role: UserRole): string {
   switch (role) {
     case 'ADMIN':
       return '/analytics/admin';
-    case 'TEACHER':
+    case 'USER':
       return '/analytics/teacher';
-    case 'STUDENT':
+    case 'USER':
     default:
       return '/analytics/student';
   }

@@ -140,7 +140,7 @@ export const CourseCreatorDashboard = ({
 
       const data = await response.json();
       setAnalytics(data.analytics);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching creator analytics:', error);
       toast.error('Failed to load creator analytics');
     } finally {

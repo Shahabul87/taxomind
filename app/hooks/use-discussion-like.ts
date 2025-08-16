@@ -37,7 +37,7 @@ export const useDiscussionLike = ({
       const data = await response.json();
       setIsLiked(data.liked);
       onSuccess?.();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsLoading(false);

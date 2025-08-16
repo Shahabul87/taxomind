@@ -213,7 +213,7 @@ export async function getAdminDashboardDataSecure(
         }
       }
     };
-  } catch (error) {
+  } catch (error: any) {
     // Log error securely without exposing details
     logger.error("[ADMIN_DASHBOARD_SECURE_ERROR]", {
       timestamp: new Date().toISOString(),
@@ -302,6 +302,49 @@ function maskEmail(email: string): string {
   return `${maskedLocal}@${domain}`;
 }
 
+// Check if current user is a secure admin
+export async function isAdminSecure() {
+  try {
+    const session = await auth();
+    
+    // Check session validity
+    if (!session?.user?.id || !session.user.role) {
+      return {
+        isAdmin: false,
+        user: null
+      };
+    }
+
+    // Double-check with database to ensure role hasn't changed
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        emailVerified: true,
+        isTwoFactorEnabled: true,
+      }
+    });
+
+    // Validate user exists and role matches
+    if (!user || user.role !== session.user.role || user.role !== UserRole.ADMIN) {
+      return {
+        isAdmin: false,
+        user: null
+      };
+    }
+
+    return {
+      isAdmin: true,
+      user
+    };
+  } catch (error: any) {
+    logger.error("[IS_ADMIN_SECURE_ERROR]", error);
+    throw error;
+  }
+}
+
 // Audit logging function
 async function logAdminAccess(userId: string, action: string) {
   try {
@@ -317,7 +360,7 @@ async function logAdminAccess(userId: string, action: string) {
     //     metadata: {}
     //   }
     // });
-  } catch (error) {
+  } catch (error: any) {
     logger.error("[AUDIT_LOG_ERROR]", error);
   }
 }
@@ -351,7 +394,7 @@ export async function exportUserDataSecure(
       success: true,
       message: "Export initiated"
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       success: false,
       error: error instanceof Error && 
@@ -400,7 +443,7 @@ export async function performBulkActionSecure(
       success: true,
       message: `${action} performed on ${entityIds.length} items`
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       success: false,
       error: error instanceof Error && 

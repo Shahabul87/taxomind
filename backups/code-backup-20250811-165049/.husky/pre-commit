@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Run lint-staged for code quality checks
+npx lint-staged
+
+# Run build to catch any TypeScript errors
+echo "🔍 Checking TypeScript..."
+npx tsc --noEmit
+
+# Check for console.log statements
+echo "🔎 Checking for console.log statements..."
+if grep -r "console\.log" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=coverage . 2>/dev/null; then
+  echo "❌ Error: Found console.log statements. Please remove them before committing."
+  echo "💡 Tip: Use proper logging utilities or remove debug statements."
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"

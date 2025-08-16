@@ -97,7 +97,7 @@ export const PostCategory = ({
       toast.success("Categories updated");
       setIsEditing(false);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     }
   };

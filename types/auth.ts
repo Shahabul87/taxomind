@@ -1,7 +1,6 @@
 export enum UserRole {
   ADMIN = "ADMIN",
-  TEACHER = "TEACHER", 
-  STUDENT = "STUDENT"
+  USER = "USER"
 }
 
 export enum Permission {
@@ -35,8 +34,7 @@ export enum Permission {
 
 export interface RolePermissions {
   [UserRole.ADMIN]: Permission[];
-  [UserRole.TEACHER]: Permission[];
-  [UserRole.STUDENT]: Permission[];
+  [UserRole.USER]: Permission[];
 }
 
 export interface AuthUser {
@@ -44,5 +42,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role: UserRole;
+  isTeacher?: boolean;
+  isAffiliate?: boolean;
   image?: string;
 }

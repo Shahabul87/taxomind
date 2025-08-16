@@ -169,7 +169,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
           chatMessages: [welcomeMessage]
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize career coach:', error);
       // Fallback to mock initialization
       const welcomeMessage = {
@@ -294,7 +294,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
           })
         }));
 
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to get AI response:', error);
         
         // Remove loading message and add fallback response
@@ -365,7 +365,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
         setCourseMarketData(mockData);
       }
       setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch course market analysis:', error);
       // Use mock data as fallback
       const mockData = generateMockCourseData();
@@ -399,7 +399,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
       if (data.success) {
         await fetchCourseMarketAnalysis();
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to perform deep market research:', error);
     }
     setIsAnalyzing(false);

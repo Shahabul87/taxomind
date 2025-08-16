@@ -122,7 +122,7 @@ export const PersonalLearningDashboard = ({
 
       const data = await response.json();
       setAnalytics(data.analytics);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching analytics:', error);
       toast.error('Failed to load learning analytics');
     } finally {

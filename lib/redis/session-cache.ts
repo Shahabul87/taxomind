@@ -21,6 +21,12 @@ interface SessionData {
   metadata?: Record<string, any>;
 }
 
+// Extended session shape stored in cache
+type ExtendedSessionData = SessionData & {
+  createdAt: number;
+  expiresAt: number;
+};
+
 // Authentication cache interface
 interface AuthCache {
   userId: string;
@@ -63,7 +69,7 @@ export class SessionCacheManager {
     try {
       const cacheKey = this.getSessionKey(sessionId);
       
-      const extendedData = {
+      const extendedData: ExtendedSessionData = {
         ...sessionData,
         createdAt: Date.now(),
         lastActivity: Date.now(),
@@ -79,28 +85,27 @@ export class SessionCacheManager {
       });
 
       // Add to active sessions set
-      await redis.sadd(REDIS_KEYS.ACTIVE_SESSIONS, sessionId);
-      await redis.expire(REDIS_KEYS.ACTIVE_SESSIONS, config.ttl);
+      if (redis) {
+        await redis.sadd(REDIS_KEYS.ACTIVE_SESSIONS, sessionId);
+        await redis.expire(REDIS_KEYS.ACTIVE_SESSIONS, config.ttl);
+      }
 
       // Store user session mapping
       await this.addUserSession(sessionData.userId, sessionId, config.ttl);
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating session:', error);
       return false;
     }
   }
 
   // Get session data
-  async getSession(sessionId: string): Promise<SessionData | null> {
+  async getSession(sessionId: string): Promise<ExtendedSessionData | null> {
     try {
       const cacheKey = this.getSessionKey(sessionId);
       
-      const session = await cacheManager.get<SessionData & {
-        createdAt: number;
-        expiresAt: number;
-      }>(cacheKey, {
+      const session = await cacheManager.get<ExtendedSessionData>(cacheKey, {
         ttl: REDIS_TTL.SESSION,
         layer: CacheLayer.SESSION,
         prefix: 'session'
@@ -115,7 +120,7 @@ export class SessionCacheManager {
       }
 
       return session;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting session:', error);
       return null;
     }
@@ -134,7 +139,7 @@ export class SessionCacheManager {
       const now = Date.now();
 
       // Update last activity
-      const updatedSession = {
+      const updatedSession: ExtendedSessionData = {
         ...session,
         lastActivity: now
       };
@@ -152,7 +157,7 @@ export class SessionCacheManager {
       });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error updating session activity:', error);
       return false;
     }
@@ -170,13 +175,15 @@ export class SessionCacheManager {
       await cacheManager.invalidatePattern(cacheKey, CacheLayer.SESSION);
       
       // Remove from active sessions
-      await redis.srem(REDIS_KEYS.ACTIVE_SESSIONS, sessionId);
+      if (redis) {
+        await redis.srem(REDIS_KEYS.ACTIVE_SESSIONS, sessionId);
+      }
       
       // Remove from user session mapping
       await this.removeUserSession(session.userId, sessionId);
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error destroying session:', error);
       return false;
     }
@@ -185,9 +192,10 @@ export class SessionCacheManager {
   // Get all user sessions
   async getUserSessions(userId: string): Promise<string[]> {
     try {
+      if (!redis) return [];
       const userSessionsKey = `user:sessions:${userId}`;
       return await redis.smembers(userSessionsKey) || [];
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting user sessions:', error);
       return [];
     }
@@ -203,7 +211,7 @@ export class SessionCacheManager {
       );
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error destroying all user sessions:', error);
       return false;
     }
@@ -226,7 +234,7 @@ export class SessionCacheManager {
       });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error caching auth token:', error);
       return false;
     }
@@ -242,7 +250,7 @@ export class SessionCacheManager {
         layer: CacheLayer.AUTHENTICATION,
         prefix: 'auth'
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting cached auth token:', error);
       return null;
     }
@@ -272,7 +280,7 @@ export class SessionCacheManager {
       });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error caching user permissions:', error);
       return false;
     }
@@ -296,7 +304,7 @@ export class SessionCacheManager {
         layer: CacheLayer.AUTHENTICATION,
         prefix: 'permissions'
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting cached user permissions:', error);
       return null;
     }
@@ -324,7 +332,7 @@ export class SessionCacheManager {
       });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error caching user profile:', error);
       return false;
     }
@@ -340,7 +348,7 @@ export class SessionCacheManager {
         layer: CacheLayer.USER_DATA,
         prefix: 'profile'
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting cached user profile:', error);
       return null;
     }
@@ -354,7 +362,7 @@ export class SessionCacheManager {
         cacheManager.invalidateByTags([`user:${userId}`], CacheLayer.AUTHENTICATION),
         cacheManager.invalidateByTags([`user:${userId}`], CacheLayer.USER_DATA)
       ]);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error invalidating user cache:', error);
     }
   }
@@ -362,8 +370,9 @@ export class SessionCacheManager {
   // Get active sessions count
   async getActiveSessionsCount(): Promise<number> {
     try {
+      if (!redis) return 0;
       return await redis.scard(REDIS_KEYS.ACTIVE_SESSIONS) || 0;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting active sessions count:', error);
       return 0;
     }
@@ -376,6 +385,13 @@ export class SessionCacheManager {
     avgSessionDuration: number;
   }> {
     try {
+      if (!redis) {
+        return {
+          totalActiveSessions: 0,
+          userSessionCounts: {},
+          avgSessionDuration: 0
+        };
+      }
       const activeSessions = await redis.smembers(REDIS_KEYS.ACTIVE_SESSIONS) || [];
       const userSessionCounts: Record<string, number> = {};
       let totalDuration = 0;
@@ -393,7 +409,7 @@ export class SessionCacheManager {
         userSessionCounts,
         avgSessionDuration: activeSessions.length > 0 ? totalDuration / activeSessions.length : 0
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error getting session stats:', error);
       return {
         totalActiveSessions: 0,
@@ -409,12 +425,14 @@ export class SessionCacheManager {
   }
 
   private async addUserSession(userId: string, sessionId: string, ttl: number): Promise<void> {
+    if (!redis) return;
     const userSessionsKey = `user:sessions:${userId}`;
     await redis.sadd(userSessionsKey, sessionId);
     await redis.expire(userSessionsKey, ttl);
   }
 
   private async removeUserSession(userId: string, sessionId: string): Promise<void> {
+    if (!redis) return;
     const userSessionsKey = `user:sessions:${userId}`;
     await redis.srem(userSessionsKey, sessionId);
   }
@@ -438,6 +456,7 @@ export class SessionCacheManager {
 
   private async cleanupExpiredSessions(): Promise<void> {
     try {
+      if (!redis) return;
       const activeSessions = await redis.smembers(REDIS_KEYS.ACTIVE_SESSIONS) || [];
       const now = Date.now();
 
@@ -448,7 +467,7 @@ export class SessionCacheManager {
           await this.destroySession(sessionId);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error during session cleanup:', error);
     }
   }
@@ -498,8 +517,7 @@ export class SessionUtils {
       lastActivity: Date.now(),
       deviceInfo,
       preferences: user.preferences || {},
-      metadata: {
-}
+      metadata: {}
     };
   }
 

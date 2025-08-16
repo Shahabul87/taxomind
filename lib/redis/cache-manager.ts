@@ -97,7 +97,7 @@ export class CacheManager {
 
       this.metricsCollector.recordMiss(config.layer, Date.now() - startTime);
       return null;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Cache get error for key ${cacheKey}:`, error);
       this.metricsCollector.recordError(config.layer);
       
@@ -119,6 +119,8 @@ export class CacheManager {
     const cacheKey = this.generateKey(config.layer, key, config.prefix);
 
     try {
+      if (!redis) return false;
+      
       const serializedValue = await this.serializeValue(value, config);
       
       // Set with TTL
@@ -137,7 +139,7 @@ export class CacheManager {
       await this.metricsCollector.recordSet(config.layer);
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Cache set error for key ${cacheKey}:`, error);
       this.metricsCollector.recordError(config.layer);
       return false;
@@ -156,7 +158,7 @@ export class CacheManager {
 
     try {
       return await this.deserializeValue<T>(cached as string, config);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache deserialization error:', error);
       // Remove corrupted cache entry
       await redis.del(cacheKey);
@@ -201,6 +203,8 @@ export class CacheManager {
     layer?: CacheLayer
   ): Promise<number> {
     try {
+      if (!redis) return 0;
+      
       const searchPattern = layer ? `${layer}:*:${pattern}` : `*:${pattern}`;
       const keys = await redis.keys(searchPattern);
       
@@ -208,7 +212,7 @@ export class CacheManager {
       
       await redis.del(...keys);
       return keys.length;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache invalidation error:', error);
       return 0;
     }
@@ -220,6 +224,8 @@ export class CacheManager {
     layer: CacheLayer
   ): Promise<number> {
     try {
+      if (!redis) return 0;
+      
       let totalInvalidated = 0;
       
       for (const tag of tags) {
@@ -234,7 +240,7 @@ export class CacheManager {
       }
       
       return totalInvalidated;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache tag invalidation error:', error);
       return 0;
     }
@@ -257,7 +263,7 @@ export class CacheManager {
         this.warmStaticContent(warmingStrategy)
       ]);
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Cache warming error:', error);
     }
   }
@@ -292,6 +298,16 @@ export class CacheManager {
     details: Record<string, any>;
   }> {
     try {
+      if (!redis) {
+        return {
+          status: 'unhealthy',
+          details: {
+            error: 'Redis connection not available',
+            timestamp: new Date().toISOString()
+          }
+        };
+      }
+      
       const startTime = Date.now();
       
       // Test basic Redis operations
@@ -323,7 +339,7 @@ export class CacheManager {
           }
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'unhealthy',
         details: {
@@ -348,28 +364,48 @@ class CacheMetricsCollector {
   private metrics: Map<CacheLayer, any> = new Map();
 
   async recordHit(layer: CacheLayer, responseTime: number): Promise<void> {
+    if (!redis) return;
+    
     const key = `metrics:${layer}:hits`;
     await redis.hincrby(key, 'count', 1);
     await redis.hincrby(key, 'totalResponseTime', responseTime);
   }
 
   async recordMiss(layer: CacheLayer, responseTime: number): Promise<void> {
+    if (!redis) return;
+    
     const key = `metrics:${layer}:misses`;
     await redis.hincrby(key, 'count', 1);
     await redis.hincrby(key, 'totalResponseTime', responseTime);
   }
 
   async recordSet(layer: CacheLayer): Promise<void> {
+    if (!redis) return;
+    
     const key = `metrics:${layer}:sets`;
     await redis.hincrby(key, 'count', 1);
   }
 
   async recordError(layer: CacheLayer): Promise<void> {
+    if (!redis) return;
+    
     const key = `metrics:${layer}:errors`;
     await redis.hincrby(key, 'count', 1);
   }
 
   async getMetrics(): Promise<CacheMetrics> {
+    if (!redis) {
+      return {
+        hits: 0,
+        misses: 0,
+        hitRate: 0,
+        totalKeys: 0,
+        memoryUsage: 0,
+        evictions: 0,
+        averageResponseTime: 0
+      };
+    }
+    
     const layers = Object.values(CacheLayer);
     let totalHits = 0;
     let totalMisses = 0;
@@ -377,10 +413,10 @@ class CacheMetricsCollector {
     let totalRequests = 0;
 
     for (const layer of layers) {
-      const hits = await redis.hget(`metrics:${layer}:hits`, 'count') || '0';
-      const misses = await redis.hget(`metrics:${layer}:misses`, 'count') || '0';
-      const hitResponseTime = await redis.hget(`metrics:${layer}:hits`, 'totalResponseTime') || '0';
-      const missResponseTime = await redis.hget(`metrics:${layer}:misses`, 'totalResponseTime') || '0';
+      const hits = String(await redis.hget(`metrics:${layer}:hits`, 'count') || '0');
+      const misses = String(await redis.hget(`metrics:${layer}:misses`, 'count') || '0');
+      const hitResponseTime = String(await redis.hget(`metrics:${layer}:hits`, 'totalResponseTime') || '0');
+      const missResponseTime = String(await redis.hget(`metrics:${layer}:misses`, 'totalResponseTime') || '0');
 
       totalHits += parseInt(hits);
       totalMisses += parseInt(misses);
@@ -400,6 +436,8 @@ class CacheMetricsCollector {
   }
 
   private async getTotalKeys(): Promise<number> {
+    if (!redis) return 0;
+    
     const keys = await redis.keys('*');
     return keys.length;
   }

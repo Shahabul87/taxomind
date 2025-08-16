@@ -3,7 +3,39 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useEventTracker } from '@/lib/analytics/analytics-provider';
 import { usePathname } from 'next/navigation';
-import { throttle, debounce } from '@/lib/utils';
+// Local lightweight throttle/debounce to avoid missing utils exports
+function throttle<T extends (...args: any[]) => void>(fn: T, wait: number): T {
+  let last = 0;
+  let timeout: any;
+  return function(this: any, ...args: any[]) {
+    const now = Date.now();
+    const remaining = wait - (now - last);
+    if (remaining <= 0) {
+      clearTimeout(timeout);
+      last = now;
+      fn.apply(this, args);
+    } else if (!timeout) {
+      timeout = setTimeout(() => {
+        last = Date.now();
+        timeout = null;
+        fn.apply(this, args);
+      }, remaining);
+    }
+  } as T;
+}
+
+function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T & { flush: () => void } {
+  let timeout: any;
+  const debounced = function(this: any, ...args: any[]) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn.apply(this, args), wait);
+  } as T & { flush: () => void };
+  debounced.flush = () => {
+    clearTimeout(timeout);
+    fn();
+  };
+  return debounced;
+}
 
 interface ScrollTrackingOptions {
   courseId?: string;

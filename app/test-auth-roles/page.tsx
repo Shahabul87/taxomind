@@ -52,9 +52,9 @@ export default async function TestAuthRoles() {
         <div className="bg-green-100 p-6 rounded-lg">
           <h2 className="text-xl font-semibold mb-4">Access Permissions</h2>
           <div className="space-y-2">
-            <p><strong>Can Create Courses:</strong> {(role === 'ADMIN' || role === 'TEACHER') ? "✅ Yes" : "❌ No"}</p>
+            <p><strong>Can Create Courses:</strong> {(role === 'ADMIN' || isTeacher === true) ? "✅ Yes" : "❌ No"}</p>
             <p><strong>Can Manage Users:</strong> {role === 'ADMIN' ? "✅ Yes" : "❌ No"}</p>
-            <p><strong>Can Enroll in Courses:</strong> {(role === 'STUDENT' || role === 'TEACHER') ? "✅ Yes" : "❌ No"}</p>
+            <p><strong>Can Enroll in Courses:</strong> {(role === 'USER' || isTeacher === true) ? "✅ Yes" : "❌ No"}</p>
             <p><strong>Can View Analytics:</strong> {role === 'ADMIN' ? "✅ Yes" : "❌ No"}</p>
           </div>
         </div>

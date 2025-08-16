@@ -86,7 +86,7 @@ export const PostComment = ({
       form.reset();
       router.refresh();
       onCommentAdded?.();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to add comment");
     }
   };

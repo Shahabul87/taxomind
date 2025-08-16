@@ -79,10 +79,7 @@ export class ConnectionPoolManager {
   private isShuttingDown = false;
 
   constructor(redis?: Redis) {
-    this.redis = redis || new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
+    this.redis = redis || new Redis(process.env.UPSTASH_REDIS_REST_URL!);
     
     this.startMonitoring();
     this.startAutoScaling();
@@ -97,7 +94,7 @@ export class ConnectionPoolManager {
       try {
         await pool.$disconnect();
 
-      } catch (error) {
+      } catch (error: any) {
         logger.warn(`[CONNECTION_POOL] Error closing pool ${poolName}:`, error);
       }
     }
@@ -107,7 +104,7 @@ export class ConnectionPoolManager {
       try {
         await rawPool.end();
 
-      } catch (error) {
+      } catch (error: any) {
         logger.warn(`[CONNECTION_POOL] Error closing raw pool ${poolName}:`, error);
       }
     }

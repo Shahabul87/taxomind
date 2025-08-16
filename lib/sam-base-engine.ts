@@ -17,7 +17,7 @@ export abstract class SAMBaseEngine {
         await this.performInitialization();
         this.initialized = true;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to initialize ${this.name}:`, error);
       throw new Error(`Engine initialization failed: ${this.name}`);
     }
@@ -33,7 +33,7 @@ export abstract class SAMBaseEngine {
   ): Promise<T> {
     try {
       return await operation();
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Database operation failed in ${this.name}:`, error);
       if (fallback !== undefined) {
         return fallback;
@@ -52,19 +52,17 @@ export abstract class SAMBaseEngine {
       await db.sAMInteraction.create({
         data: {
           userId,
-          interactionType: 'CONTENT_GENERATED',
+          interactionType: 'CONTENT_GENERATE' as any,
           context: {
             engine: this.name.toLowerCase(),
             action,
             ...context,
             timestamp: new Date()
           },
-          result: {
-            success: true
-          }
+          // remove non-schema field 'result'
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       // Log error but don't throw - interaction recording shouldn't break main flow
       logger.error(`Failed to record interaction in ${this.name}:`, error);
     }
@@ -93,7 +91,7 @@ export abstract class SAMBaseEngine {
         return fallback;
       }
       return operation(array);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Array operation failed in ${this.name}:`, error);
       return fallback;
     }
@@ -170,18 +168,20 @@ export abstract class SAMBaseEngine {
     operation: string,
     fn: () => Promise<T>
   ): Promise<T> {
-    const start = performance.now();
+    const start = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     try {
       const result = await fn();
-      const duration = performance.now() - start;
+      const end = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      const duration = end - start;
       
       if (duration > 1000) {
         logger.warn(`Slow operation in ${this.name}: ${operation} took ${duration.toFixed(2)}ms`);
       }
       
       return result;
-    } catch (error) {
-      const duration = performance.now() - start;
+    } catch (error: any) {
+      const end = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      const duration = end - start;
       logger.error(`Operation failed in ${this.name}: ${operation} after ${duration.toFixed(2)}ms`, error);
       throw error;
     }

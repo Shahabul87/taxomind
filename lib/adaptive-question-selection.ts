@@ -5,7 +5,7 @@
  * learning patterns, and optimal challenge zones to maximize learning effectiveness.
  */
 
-import { BloomsLevel, QuestionType, QuestionQuestionDifficulty } from '@prisma/client';
+import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 import { CognitivePrerequisiteMapper } from './cognitive-prerequisite-mapping';
 import { CognitiveAnalyticsEngine } from './cognitive-analytics';
 
@@ -14,7 +14,7 @@ export interface AdaptiveQuestion {
   question: string;
   bloomsLevel: BloomsLevel;
   questionType: QuestionType;
-  difficulty: QuestionQuestionDifficulty;
+  difficulty: QuestionDifficulty;
   cognitiveLoad: number; // 1-5
   prerequisites: BloomsLevel[];
   learningObjectives: string[];
@@ -417,7 +417,7 @@ export class AdaptiveQuestionSelector {
     const weakAreas = studentProfile.strengthsWeaknesses.cognitiveWeaknesses;
     const remediationQuestions = questions.filter(q =>
       weakAreas.includes(q.bloomsLevel) &&
-      q.difficulty !== 'hard' &&
+      q.difficulty !== QuestionDifficulty.HARD &&
       q.adaptiveMetrics.scaffoldingValue >= 0.7
     );
     
@@ -513,7 +513,11 @@ export class AdaptiveQuestionSelector {
   private calculateChallengeScore(question: AdaptiveQuestion, studentProfile: StudentProfile): number {
     const discriminationValue = question.adaptiveMetrics.discriminationIndex * 0.4;
     const cognitiveLoadChallenge = (question.cognitiveLoad / 5) * 0.3;
-    const difficultyLevel = question.difficulty === 'hard' ? 0.2 : question.difficulty === 'medium' ? 0.1 : 0;
+    const difficultyLevel = question.difficulty === QuestionDifficulty.HARD
+      ? 0.2
+      : question.difficulty === QuestionDifficulty.MEDIUM
+        ? 0.1
+        : 0;
     const growthPotential = question.adaptiveMetrics.cognitiveGrowthPotential * 0.1;
     
     return discriminationValue + cognitiveLoadChallenge + difficultyLevel + growthPotential;
@@ -524,7 +528,11 @@ export class AdaptiveQuestionSelector {
    */
   private calculateRemediationScore(question: AdaptiveQuestion, studentProfile: StudentProfile): number {
     const scaffoldingValue = question.adaptiveMetrics.scaffoldingValue * 0.4;
-    const appropriateQuestionDifficulty = question.difficulty === 'easy' ? 0.3 : question.difficulty === 'medium' ? 0.2 : 0;
+    const appropriateQuestionDifficulty = question.difficulty === QuestionDifficulty.EASY
+      ? 0.3
+      : question.difficulty === QuestionDifficulty.MEDIUM
+        ? 0.2
+        : 0;
     const addressesWeakness = studentProfile.strengthsWeaknesses.cognitiveWeaknesses.includes(question.bloomsLevel) ? 0.2 : 0;
     const engagementScore = question.adaptiveMetrics.engagementScore * 0.1;
     
@@ -541,7 +549,7 @@ export class AdaptiveQuestionSelector {
   ): number {
     const growthPotential = question.adaptiveMetrics.cognitiveGrowthPotential * 0.4;
     const proximityBonus = zpdAnalysis.proximateZones.includes(question.bloomsLevel) ? 0.3 : 0;
-    const challengeLevel = question.difficulty !== 'easy' ? 0.2 : 0;
+    const challengeLevel = question.difficulty !== QuestionDifficulty.EASY ? 0.2 : 0;
     const breakthroughFactor = zpdAnalysis.breakthroughPotential * 0.1;
     
     return growthPotential + proximityBonus + challengeLevel + breakthroughFactor;

@@ -1,33 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
+import { currentUser } from "@/lib/auth";
 
 // Near the top of the file, add a helper function for safer error responses
-const createErrorResponse = (message: string, status = 500) => {
+const createSafeErrorResponse = (message: string, status = 500) => {
   logger.error(`[REACTIONS_POST] Error: ${message}`);
-  return NextResponse.json(
+  return createSuccessResponse(
     { error: message },
     { status }
   );
 };
 
-export async function POST(
-  request: NextRequest,
-  props: { params: Promise<{ postId: string; commentId: string }> }
-) {
+export const POST = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
     // At the start of the POST function, add a try/catch for the session check
     let user;
     try {
       user = await currentUser();
-      if (!user || !user.id) {
-        return createErrorResponse("Unauthorized", 401);
-      }
     } catch (sessionError) {
       logger.error("[REACTIONS_POST] Session Error:", sessionError);
-      return createErrorResponse("Authentication error. Please sign in again.", 401);
+      return createSafeErrorResponse("Authentication error. Please sign in again.", 401);
     }
 
     // Get the reaction type from the request body
@@ -36,7 +35,7 @@ export async function POST(
 
     // Add validation for request body
     if (!type || typeof type !== 'string') {
-      return createErrorResponse("Invalid reaction type", 400);
+      return createSafeErrorResponse("Invalid reaction type", 400);
     }
 
     // Get the params and extract commentId and postId
@@ -45,11 +44,11 @@ export async function POST(
 
     // Validate IDs
     if (!postId || typeof postId !== 'string') {
-      return createErrorResponse("Invalid post ID", 400);
+      return createSafeErrorResponse("Invalid post ID", 400);
     }
     
     if (!commentId || typeof commentId !== 'string') {
-      return createErrorResponse("Invalid comment ID", 400);
+      return createSafeErrorResponse("Invalid comment ID", 400);
     }
 
     // First verify the post exists
@@ -59,8 +58,7 @@ export async function POST(
     });
 
     if (!post) {
-
-      return createErrorResponse("Post not found", 404);
+      return createSafeErrorResponse("Post not found", 404);
     }
 
     // Verify the comment exists and belongs to the post
@@ -84,7 +82,6 @@ export async function POST(
     });
 
     if (!comment) {
-
       // Let's check if the comment exists at all, regardless of postId
       const commentExists = await db.comment.findUnique({
         where: { id: commentId },
@@ -92,8 +89,9 @@ export async function POST(
       });
       
       if (commentExists) {
-}
-      return createErrorResponse("Comment not found", 404);
+        return createSafeErrorResponse("Comment does not belong to this post", 400);
+      }
+      return createSafeErrorResponse("Comment not found", 404);
     }
 
     // Handle the reaction in a transaction
@@ -101,14 +99,13 @@ export async function POST(
       // Check for existing reaction
       const existingReaction = await tx.reaction.findFirst({
         where: {
-          userId: user.id!,
+          userId: context.user.id!,
           commentId: commentId,
           type: type,
         },
       });
 
       if (existingReaction) {
-
         // Remove existing reaction
         await tx.reaction.delete({
           where: {
@@ -116,13 +113,12 @@ export async function POST(
           },
         });
       } else {
-
         // Create new reaction
         await tx.reaction.create({
           data: {
             id: randomUUID(),
             type,
-            userId: user.id!,
+            userId: context.user.id!,
             commentId,
             updatedAt: new Date(),
           },
@@ -179,7 +175,7 @@ export async function POST(
       return updatedComment;
     });
 
-    return NextResponse.json(result);
+    return createSuccessResponse(result);
   } catch (error) {
     // Improve error logging
     logger.error("[REACTIONS_POST] Unexpected error:", error);
@@ -187,10 +183,10 @@ export async function POST(
     // Provide more specific error messages based on error type
     if (error instanceof Error) {
       if (error.message.includes("database") || error.message.includes("prisma")) {
-        return createErrorResponse("Database error. Please try again later.", 500);
+        return createSafeErrorResponse("Database error. Please try again later.", 500);
       }
     }
     
-    return createErrorResponse("Internal server error", 500);
+    return createSafeErrorResponse("Internal server error", 500);
   }
-} 
+});

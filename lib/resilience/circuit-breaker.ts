@@ -261,7 +261,7 @@ export class CircuitBreaker {
     if (this.notificationCallback) {
       try {
         await this.notificationCallback(state, this.name);
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`[CIRCUIT_BREAKER] Failed to send notification:`, error);
       }
     }
@@ -270,23 +270,22 @@ export class CircuitBreaker {
   /**
    * Persist circuit breaker state to Redis
    */
-  private async persistState(): Promise<void> {
+  private async persistStateData(): Promise<void> {
     if (!this.persistState || !this.redis) return;
 
     try {
       const stateData = {
         state: this.state,
-        stats: this.statistics,
+        stats: this.getStatistics(),
         timestamp: Date.now(),
       };
 
       await this.redis.set(
         `circuit_breaker:${this.name}:state`,
         JSON.stringify(stateData),
-        'EX',
-        3600 // Expire in 1 hour
+        { ex: 3600 }
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[CIRCUIT_BREAKER] Failed to persist state for ${this.name}:`, error);
     }
   }
@@ -299,15 +298,15 @@ export class CircuitBreaker {
 
     try {
       const stats = this.getStatistics();
-      await this.redis.setex(
+      await this.redis.set(
         `circuit_breaker:${this.name}:stats`,
-        3600, // Expire in 1 hour
         JSON.stringify({
           ...stats,
           timestamp: Date.now(),
-        })
+        }),
+        { ex: 3600 }
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[CIRCUIT_BREAKER] Failed to persist stats for ${this.name}:`, error);
     }
   }
@@ -342,7 +341,9 @@ export class CircuitBreaker {
           }
         }
       }
-    } catch (error) {
+      // Also persist current state snapshot on startup
+      await this.persistStateData();
+    } catch (error: any) {
       logger.error(`[CIRCUIT_BREAKER] Failed to restore state for ${this.name}:`, error);
     }
   }
@@ -356,7 +357,7 @@ export class CircuitBreaker {
     }
     
     await this.persistStats();
-
+    await this.persistStateData();
   }
 }
 

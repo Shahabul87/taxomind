@@ -87,7 +87,9 @@ export class SAMMemoryEngine {
 
         if (recentConversations.length > 0) {
           const lastConversation = recentConversations[0];
-          const timeSinceLastMessage = new Date().getTime() - lastConversation.updatedAt.getTime();
+          const lastMessage = lastConversation.messages[lastConversation.messages.length - 1];
+          const lastActivityAt = lastMessage ? lastMessage.createdAt : (lastConversation as any).startedAt;
+          const timeSinceLastMessage = Date.now() - new Date(lastActivityAt).getTime();
           const hoursSinceLastMessage = timeSinceLastMessage / (1000 * 60 * 60);
 
           // Resume if less than 24 hours old
@@ -188,7 +190,7 @@ export class SAMMemoryEngine {
 
       const messages = conversation.messages.reverse().map(msg => ({
         id: msg.id,
-        role: msg.role,
+        role: msg.messageType,
         content: msg.content,
         timestamp: msg.createdAt,
         metadata: msg.metadata as Record<string, any>,
@@ -243,9 +245,9 @@ export class SAMMemoryEngine {
       return {
         userPreferences: {
           learningStyle: learningProfile?.learningStyle || 'adaptive',
-          preferredTone: learningProfile?.adaptiveSettings?.tone || 'encouraging',
-          contentFormat: learningProfile?.interactionPreferences?.formats || ['text', 'visual'],
-          difficulty: learningProfile?.preferredQuestionDifficulty || 'medium',
+          preferredTone: (learningProfile as any)?.preferredTone || 'encouraging',
+          contentFormat: ((learningProfile?.preferences as any)?.formats) || ['text', 'visual'],
+          difficulty: ((learningProfile?.preferences as any)?.difficulty) || 'medium',
         },
         recentTopics,
         ongoingProjects,
@@ -288,7 +290,7 @@ export class SAMMemoryEngine {
 - QuestionDifficulty Level: ${context.userPreferences.difficulty}
 
 ## Current Context
-- Course: ${this.context.courseId || 'General'}
+- course: ${this.context.courseId || 'General'}
 - Chapter: ${this.context.chapterId || 'N/A'}
 - Section: ${this.context.sectionId || 'N/A'}
 
@@ -342,17 +344,20 @@ Based on this context, provide a helpful, personalized response that:
         limit,
       });
 
-      return conversations.map(conv => ({
-        id: conv.id,
-        title: conv.title || 'Untitled Conversation',
-        startTime: conv.createdAt,
-        lastActivity: conv.updatedAt,
-        messageCount: conv._count?.messages || 0,
-        topics: this.extractTopicsFromMessages(conv.messages || []),
-        userGoals: this.extractGoalsFromMessages(conv.messages || []),
-        keyInsights: this.extractInsightsFromMessages(conv.messages || []),
-        assistanceProvided: this.extractAssistanceFromMessages(conv.messages || []),
-      }));
+      return conversations.map(conv => {
+        const lastMsg = conv.messages?.[conv.messages.length - 1];
+        return {
+          id: conv.id,
+          title: 'SAM Session',
+          startTime: (conv as any).startedAt,
+          lastActivity: lastMsg ? lastMsg.createdAt : (conv as any).startedAt,
+          messageCount: conv._count?.messages || 0,
+          topics: this.extractTopicsFromMessages(conv.messages || []),
+          userGoals: this.extractGoalsFromMessages(conv.messages || []),
+          keyInsights: this.extractInsightsFromMessages(conv.messages || []),
+          assistanceProvided: this.extractAssistanceFromMessages(conv.messages || []),
+        };
+      });
     } catch (error: any) {
       logger.error('Error getting conversation summaries:', error);
       return [];
@@ -400,7 +405,7 @@ Based on this context, provide a helpful, personalized response that:
     welcomeMessage += "I'm here to help you create amazing content and achieve your learning goals. What can I assist you with today?";
 
     await addSAMMessage(conversationId, {
-      role: 'ASSISTANT',
+      role: 'SAM',
       content: welcomeMessage,
       metadata: { type: 'welcome', contextual: true },
     });
@@ -431,7 +436,7 @@ Based on this context, provide a helpful, personalized response that:
     if (role === 'USER') {
       // Analyze user message for preferences and patterns
       await this.updateUserPreferencesFromMessage(content);
-    } else if (role === 'ASSISTANT') {
+    } else if (role === 'SAM') {
       // Track assistance provided
       await this.trackAssistanceProvided(content, metadata);
     }
@@ -458,7 +463,7 @@ Based on this context, provide a helpful, personalized response that:
         timestamp: interaction.createdAt,
         type: 'interaction',
         content: JSON.stringify(interaction.context),
-        metadata: interaction.result as Record<string, any> || {},
+        metadata: {},
         relevanceScore: 0,
       }));
 
@@ -584,7 +589,7 @@ Based on this context, provide a helpful, personalized response that:
   private async getOngoingProjects(): Promise<PersonalizedContext['ongoingProjects']> {
     try {
       // Get user's courses in progress
-      const courses = await db.Course.findMany({
+      const courses = await db.course.findMany({
         where: {
           userId: this.context.userId,
           isPublished: false,
@@ -647,7 +652,7 @@ Based on this context, provide a helpful, personalized response that:
           successes.push('Successfully using AI content generation');
         }
         
-        if (interaction.interactionType === 'SUGGESTION_APPLIED') {
+        if ((context?.type || '').toUpperCase() === 'SUGGESTION_APPLIED') {
           successes.push('Actively improving content with suggestions');
         }
       });
@@ -680,7 +685,6 @@ Based on this context, provide a helpful, personalized response that:
     if (Object.keys(preferences).length > 0) {
       await updateSAMLearningProfile(this.context.userId, {
         adaptiveSettings: preferences,
-        courseId: this.context.courseId,
       });
     }
   }
@@ -696,7 +700,6 @@ Based on this context, provide a helpful, personalized response that:
           userId: this.context.userId,
           interactionType: 'LEARNING_ASSISTANCE',
           context: { assistanceType, content: content.substring(0, 200) },
-          result: metadata,
           courseId: this.context.courseId,
           chapterId: this.context.chapterId,
           sectionId: this.context.sectionId,

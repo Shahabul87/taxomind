@@ -224,7 +224,7 @@ export const EnterpriseIntelligenceDashboard = ({ className }: EnterpriseIntelli
         setPredictiveAnalytics(getDemoPredictiveAnalytics());
         setBusinessIntelligence(getDemoBusinessIntelligence());
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to load enterprise intelligence data:", error);
       // Use demo data as fallback
       setSecurityMetrics(getDemoSecurityMetrics());

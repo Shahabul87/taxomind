@@ -26,7 +26,7 @@ export const LogoutButton = ({
         redirect: true 
       });
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Logout failed:", error);
       // Fallback: force redirect to clear any cached state
       window.location.href = "/";

@@ -126,7 +126,7 @@ export const performanceMonitoring = {
       })
       
       return result
-    } catch (error) {
+    } catch (error: any) {
       const duration = Date.now() - startTime
       
       telemetry.recordMetric('http_request_duration', duration, {
@@ -160,7 +160,7 @@ export const performanceMonitoring = {
       })
       
       return result
-    } catch (error) {
+    } catch (error: any) {
       const duration = Date.now() - startTime
       
       telemetry.recordMetric('database_query_duration', duration, {

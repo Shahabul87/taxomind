@@ -12,7 +12,7 @@ export class CacheInvalidation {
    */
   static async invalidateCourse(courseId: string, userId?: string): Promise<void> {
     const tags = [
-      `Course:${courseId}`,
+      `course:${courseId}`,
       'courses',
       'course-list'
     ];
@@ -39,7 +39,7 @@ export class CacheInvalidation {
     ];
 
     if (courseId) {
-      tags.push(`Course:${courseId}`);
+      tags.push(`course:${courseId}`);
       await invalidateKey(REDIS_KEYS.COURSE_PROGRESS(userId, courseId));
     }
 
@@ -47,7 +47,7 @@ export class CacheInvalidation {
     await invalidateKey(REDIS_KEYS.DASHBOARD_DATA(userId));
     await invalidateKey(REDIS_KEYS.USER_COURSES(userId));
 
-    console.log(`Cache invalidated for user progress: ${userId}${courseId ? ` (Course: ${courseId})` : ''}`);
+    console.log(`Cache invalidated for user progress: ${userId}${courseId ? ` (course: ${courseId})` : ''}`);
   }
 
   /**
@@ -62,7 +62,7 @@ export class CacheInvalidation {
     }
 
     if (courseId) {
-      tags.push(`Course:${courseId}`);
+      tags.push(`course:${courseId}`);
     }
 
     await invalidateByTags(tags);

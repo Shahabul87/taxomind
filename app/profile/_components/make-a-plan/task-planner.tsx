@@ -129,7 +129,7 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
       setIsLoading(true);
       const taskData = await TaskService.getAllTasks();
       setTasks(taskData);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to load tasks:", error);
       toast.error("Failed to load tasks. Please try again.");
     } finally {
@@ -316,7 +316,7 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
         ...prev,
         startTime: newDate
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error setting start date:", error);
       toast.error("Error setting date. Please try again.");
     }
@@ -334,7 +334,7 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
         ...prev,
         startTime: newDateTime
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error setting start time:", error);
       toast.error("Error setting time. Please try again.");
     }
@@ -353,7 +353,7 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
         ...prev,
         dueDate: newDate
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error setting due date:", error);
       toast.error("Error setting date. Please try again.");
     }
@@ -370,7 +370,7 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
         ...prev,
         dueDate: newDateTime
       }));
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error setting due time:", error);
       toast.error("Error setting time. Please try again.");
     }
@@ -515,7 +515,7 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
       // Reset form
       resetTaskForm();
       setIsNewTaskOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to add task:", error);
       toast.error("Failed to add task. Please try again.");
     } finally {
@@ -534,7 +534,7 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
       ));
       
       toast.success(`Task marked as ${!completed ? 'completed' : 'incomplete'}`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to update task:", error);
       toast.error("Failed to update task. Please try again.");
     } finally {
@@ -549,7 +549,7 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
       await TaskService.deleteTask(id);
       setTasks(tasks.filter(task => task.id !== id));
       toast.success("Task deleted successfully");
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to delete task:", error);
       toast.error("Failed to delete task. Please try again.");
     } finally {

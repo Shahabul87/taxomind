@@ -233,7 +233,7 @@ export class SAMSocialEngine {
       await this.storeEffectivenessScore(group.id, score);
       
       return score;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error measuring collaboration effectiveness:', error);
       throw new Error('Failed to measure collaboration effectiveness');
     }
@@ -273,7 +273,7 @@ export class SAMSocialEngine {
       await this.storeEngagementMetrics(community.id, metrics);
       
       return metrics;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error analyzing engagement:', error);
       throw new Error('Failed to analyze engagement');
     }
@@ -309,7 +309,7 @@ export class SAMSocialEngine {
       await this.storeSharingImpact(impact);
       
       return impact;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error evaluating knowledge sharing:', error);
       throw new Error('Failed to evaluate knowledge sharing');
     }
@@ -362,7 +362,7 @@ export class SAMSocialEngine {
       await this.storeMatchingResults(matchingResults);
       
       return matchingResults;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error matching mentor-mentee:', error);
       throw new Error('Failed to match mentor-mentee');
     }
@@ -418,7 +418,7 @@ export class SAMSocialEngine {
       await this.storeDynamicsAnalysis(group.id, analysis);
       
       return analysis;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error assessing group dynamics:', error);
       throw new Error('Failed to assess group dynamics');
     }
@@ -1223,7 +1223,7 @@ export class SAMSocialEngine {
       interactions.push({
         id: discussion.id,
         type: 'post',
-        userId: discussion.userId,
+        userId: discussion.authorId,
         contentId: discussion.id,
         timestamp: discussion.createdAt,
         sentiment: 'neutral'
@@ -1233,8 +1233,8 @@ export class SAMSocialEngine {
         interactions.push({
           id: comment.id,
           type: 'comment',
-          userId: comment.userId,
-          targetUserId: discussion.userId,
+          userId: comment.authorId,
+          targetUserId: discussion.authorId,
           contentId: comment.id,
           timestamp: comment.createdAt,
           sentiment: 'neutral'
@@ -1376,7 +1376,7 @@ export class SAMSocialEngine {
     ]);
     
     const averageScore = progress.length > 0 ?
-      progress.reduce((sum, p) => sum + (p.quizScore || 0), 0) / progress.length : 0;
+      progress.reduce((sum, p) => sum + (p.averageScore || 0), 0) / progress.length : 0;
     
     return {
       experience: achievements.length, // Simplified

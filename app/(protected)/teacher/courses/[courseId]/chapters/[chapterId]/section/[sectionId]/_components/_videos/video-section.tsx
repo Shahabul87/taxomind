@@ -166,7 +166,7 @@ export const VideoSectionForm = ({
       } else {
         throw new Error("No metadata returned");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error fetching video metadata:", error);
       toast.error("Could not fetch video details. Please enter them manually.");
       

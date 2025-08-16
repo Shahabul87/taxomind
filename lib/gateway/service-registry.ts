@@ -325,7 +325,7 @@ export class ServiceRegistry {
         error: response.ok ? undefined : `HTTP ${response.status}`,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       const responseTime = Date.now() - startTime;
       
       return {

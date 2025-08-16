@@ -1,5 +1,5 @@
 // scripts/dev-seed.ts
-const { PrismaClient } = require("@prisma/client");
+import { PrismaClient } from "@prisma/client";
 
 const database = new PrismaClient();
 
@@ -68,14 +68,14 @@ async function main() {
         {
           name: "Dev Teacher",
           email: "teacher@dev.local",
-          role: "TEACHER",
+          role: "USER", isTeacher: true,
           emailVerified: new Date(),
           password: hashedPassword,
         },
         {
           name: "Dev Student",
           email: "student@dev.local",
-          role: "STUDENT", 
+          role: "USER", 
           emailVerified: new Date(),
           password: hashedPassword,
         },
@@ -89,14 +89,14 @@ async function main() {
         {
           name: "John Doe",
           email: "john@dev.local",
-          role: "TEACHER",
+          role: "USER", isTeacher: true,
           emailVerified: new Date(),
           password: hashedPassword,
         },
         {
           name: "Jane Smith",
           email: "jane@dev.local",
-          role: "STUDENT",
+          role: "USER",
           emailVerified: new Date(),
           password: hashedPassword,
         }
@@ -164,7 +164,7 @@ async function main() {
     console.log("- Default password for all users: password123");
     console.log("\n🚀 Start development: npm run dev");
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Error seeding development database:", error);
   } finally {
     await database.$disconnect();

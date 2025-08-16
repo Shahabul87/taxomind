@@ -43,7 +43,7 @@ export const SettingsContent = ({ userId }: SettingsContentProps) => {
         if (!response.ok) throw new Error('Failed to fetch user details');
         const data = await response.json();
         setUserDetails(data);
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error fetching user details:', error);
       } finally {
         setIsLoading(false);

@@ -14,6 +14,7 @@ import {
   LoadMonitoringConfig,
   DateRange,
   LoadAnalyticsSummary,
+  LoadAnalyticsPattern,
   LoadPattern,
   StrategyAnalytics,
   SystemLoadRecommendation,
@@ -26,7 +27,8 @@ import {
   LoadHistoryEntry,
   SessionOutcome,
   OverloadRisk,
-  LoadAssessment
+  LoadAssessment,
+  ContentChange
 } from './types';
 
 export class CognitiveLoadManagementService {
@@ -425,7 +427,7 @@ export class CognitiveLoadManagementService {
         await this.executeIntervention(intervention);
         applied.push(intervention);
 
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to apply intervention:', error);
       }
     }
@@ -496,7 +498,7 @@ export class CognitiveLoadManagementService {
         // Check for intervention triggers
         await this.checkInterventionTriggers(assessment, config);
 
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Monitoring interval error:', error);
       }
     }, config.assessmentFrequency * 60 * 1000); // Convert minutes to milliseconds
@@ -744,7 +746,7 @@ export class CognitiveLoadManagementService {
   private async analyzeLoadPatterns(
     courseId: string,
     timeRange: DateRange
-  ): Promise<LoadPattern[]> {
+  ): Promise<LoadAnalyticsPattern[]> {
     return []; // Placeholder
   }
 
@@ -773,7 +775,7 @@ export class CognitiveLoadManagementService {
   private async saveProfileToCache(cacheKey: string, profile: CognitiveLoadProfile): Promise<void> {
     try {
       await redis.setex(cacheKey, 1800, JSON.stringify(profile)); // 30 minutes TTL
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to cache profile:', error);
     }
   }

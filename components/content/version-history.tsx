@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { VersionStatus, VersionType } from "@prisma/client";
+// Use local enums matching service instead of Prisma enums
+enum VersionStatus { DRAFT = 'DRAFT', UNDER_REVIEW = 'UNDER_REVIEW', PUBLISHED = 'PUBLISHED', ARCHIVED = 'ARCHIVED', SCHEDULED = 'SCHEDULED' }
+enum VersionType { MAJOR = 'MAJOR', MINOR = 'MINOR', PATCH = 'PATCH', HOTFIX = 'HOTFIX' }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

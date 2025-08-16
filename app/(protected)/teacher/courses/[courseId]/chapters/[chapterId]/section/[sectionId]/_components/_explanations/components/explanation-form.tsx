@@ -61,7 +61,7 @@ export const ExplanationForm = ({
       
       toast.success("Explanation form reset successfully!");
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Form submission error:", error);
       // Don't reset on error - let user see their data
     }

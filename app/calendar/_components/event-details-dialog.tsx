@@ -39,7 +39,7 @@ export const EventDetailsDialog = ({
       toast.success("Event deleted successfully");
       onDelete();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to delete event");
     } finally {
       setIsDeleting(false);

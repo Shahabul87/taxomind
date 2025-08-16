@@ -17,7 +17,7 @@ export default async function FavoriteBlogsPage() {
     redirect("/auth/login");
   }
   
-  const favoriteBlogs = userData.favoriteBlogs || [];
+  const favoriteBlogs = userData.FavoriteBlog || [];
   
   // Sort blogs by recently added (newest first)
   const sortedBlogs = [...favoriteBlogs].sort((a, b) => {
@@ -94,7 +94,7 @@ export default async function FavoriteBlogsPage() {
                       </h2>
                       
                       <p className="text-gray-600 dark:text-gray-400 mb-6 line-clamp-3">
-                        {featuredBlog.description || "This blog post has been saved to your favorites. Click below to read the full article."}
+                        {"This blog post has been saved to your favorites. Click below to read the full article."}
                       </p>
                       
                       <div className="flex space-x-3">

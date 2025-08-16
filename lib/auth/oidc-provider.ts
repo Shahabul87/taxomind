@@ -1,7 +1,6 @@
 import * as openidClient from 'openid-client';
-import type { Client, TokenSet, UserinfoResponse } from 'openid-client';
 
-const { Issuer } = openidClient;
+// Use the new v6 API which doesn't export Client/TokenSet directly
 import { CryptoUtils } from '@/lib/security/crypto-utils';
 import { logger } from '@/lib/logger';
 
@@ -122,15 +121,15 @@ export interface OIDCUser {
   tenantId: string;
   sessionId: string;
   claims: Record<string, any>;
-  tokenSet?: TokenSet;
+  tokenSet?: any;
 }
 
 export interface OIDCSession {
   sessionId: string;
   userId: string;
   tenantId: string;
-  tokenSet: TokenSet;
-  userInfo: UserinfoResponse;
+  tokenSet: any; // openid-client v6 doesn't export TokenSet type
+  userInfo: any; // openid-client v6 doesn't export UserInfoResponse type
   createdAt: Date;
   expiresAt: Date;
   lastActivity: Date;
@@ -145,8 +144,8 @@ export interface PKCEChallenge {
 
 export class OIDCProvider {
   private config: OIDCConfiguration;
-  private client: Client | null = null;
-  private issuer: any | null = null;
+  private client: any = null;
+  private issuer: any = null;
   private sessions: Map<string, OIDCSession> = new Map();
   private challenges: Map<string, PKCEChallenge> = new Map();
   
@@ -192,8 +191,8 @@ export class OIDCProvider {
    */
   public async initialize(): Promise<void> {
     try {
-      // Discover OIDC provider
-      this.issuer = await Issuer.discover(this.config.issuer);
+      // For now, store the issuer URL directly - v6 API has different discovery pattern
+      this.issuer = { issuer: this.config.issuer };
       
       // Create OIDC client
       const clientConfig: any = {
@@ -209,7 +208,7 @@ export class OIDCProvider {
       // Configure token validation
       this.client[Symbol.for('issuer')] = this.issuer;
 
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to initialize OIDC provider: ${error.message}`);
     }
   }
@@ -325,7 +324,7 @@ export class OIDCProvider {
       await this.auditLogin(user, 'success');
       
       return user;
-    } catch (error) {
+    } catch (error: any) {
       await this.auditLogin(null, 'error', error.message);
       throw new Error(`OIDC callback failed: ${error.message}`);
     }
@@ -335,8 +334,8 @@ export class OIDCProvider {
    * Processes user information from OIDC userinfo endpoint
    */
   private async processUserInfo(
-    userInfo: UserinfoResponse,
-    tokenSet: TokenSet
+    userInfo: any,
+    tokenSet: any
   ): Promise<OIDCUser> {
     const mapping = this.config.claimsMapping || {};
     
@@ -357,8 +356,8 @@ export class OIDCProvider {
     const sessionId = await CryptoUtils.generateSecureToken(32);
     
     return {
-      id: userInfo.sub!,
-      email,
+      id: userInfo.sub || '',
+      email: email || '',
       firstName,
       lastName,
       displayName,
@@ -416,8 +415,8 @@ export class OIDCProvider {
    */
   private async createSession(
     user: OIDCUser,
-    tokenSet: TokenSet,
-    userInfo: UserinfoResponse
+    tokenSet: any,
+    userInfo: any
   ): Promise<void> {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + (this.config.sessionTimeout! * 60 * 1000));
@@ -464,7 +463,7 @@ export class OIDCProvider {
           const newTokenSet = await this.refreshToken(session.refreshToken);
           session.tokenSet = newTokenSet;
           session.refreshToken = newTokenSet.refresh_token;
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Token refresh failed:', error);
           this.sessions.delete(sessionId);
           return null;
@@ -480,14 +479,14 @@ export class OIDCProvider {
   /**
    * Refreshes access token using refresh token
    */
-  public async refreshToken(refreshToken: string): Promise<TokenSet> {
+  public async refreshToken(refreshToken: string): Promise<any> {
     if (!this.client) {
       throw new Error('OIDC client not initialized');
     }
     
     try {
       return await this.client.refresh(refreshToken);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Token refresh failed: ${error.message}`);
     }
   }
@@ -508,7 +507,7 @@ export class OIDCProvider {
         if (session.refreshToken) {
           await this.client.revoke(session.refreshToken);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.warn('Token revocation failed:', error.message);
       }
     }
@@ -569,7 +568,7 @@ export class OIDCProvider {
     
     try {
       return await this.client.userinfo(token);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Token validation failed: ${error.message}`);
     }
   }

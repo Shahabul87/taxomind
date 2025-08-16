@@ -7,6 +7,16 @@
 
 import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
 
+// Local Bloom's level color mapping for non-UI contexts
+const BLOOM_COLORS: Record<BloomsLevel, string> = {
+  REMEMBER: '#3B82F6',
+  UNDERSTAND: '#10B981',
+  APPLY: '#F59E0B',
+  ANALYZE: '#F97316',
+  EVALUATE: '#EF4444',
+  CREATE: '#8B5CF6',
+};
+
 export interface CognitiveState {
   studentId: string;
   timestamp: Date;

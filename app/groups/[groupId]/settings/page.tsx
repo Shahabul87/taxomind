@@ -28,7 +28,7 @@ export default async function GroupSettingsPage({ params }: GroupSettingsPagePro
       creator: true,
       members: {
         include: {
-          user: true,
+          User: true,
         },
       },
       categoryRef: true,

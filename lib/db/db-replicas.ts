@@ -269,7 +269,7 @@ export class DatabaseReplicaManager {
           this.updateDisconnectionMetrics(replicaId);
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[DB_REPLICAS] Failed to get connection from ${replicaId}:`, error);
       
       // If replica failed and this wasn't a write, try master
@@ -298,7 +298,7 @@ export class DatabaseReplicaManager {
         this.recordQuerySuccess(clientName, Date.now() - startTime);
         return result;
 
-      } catch (error) {
+      } catch (error: any) {
         lastError = error as Error;
         this.recordQueryError(clientName, error as Error);
         
@@ -330,7 +330,7 @@ export class DatabaseReplicaManager {
       this.recordQuerySuccess('master', Date.now() - startTime);
       return result;
       
-    } catch (error) {
+    } catch (error: any) {
       this.recordQueryError('master', error as Error);
       throw error;
     }
@@ -355,7 +355,7 @@ export class DatabaseReplicaManager {
       console.log(`[DB_REPLICAS] Raw read query executed on ${connection.replicaId} (${queryTime}ms)`);
       
       return result.rows;
-    } catch (error) {
+    } catch (error: any) {
       this.recordQueryError(connection.replicaId, error as Error);
       throw error;
     } finally {
@@ -382,7 +382,7 @@ export class DatabaseReplicaManager {
       console.log(`[DB_REPLICAS] Raw write query executed on master (${queryTime}ms)`);
       
       return result.rows;
-    } catch (error) {
+    } catch (error: any) {
       this.recordQueryError('master', error as Error);
       throw error;
     } finally {
@@ -419,7 +419,7 @@ export class DatabaseReplicaManager {
       await connection.client.query('COMMIT');
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       await connection.client.query('ROLLBACK');
       logger.error('[DB_REPLICAS] Transaction rolled back:', error);
       throw error;
@@ -793,7 +793,7 @@ export class DatabaseReplicaManager {
         console.log(`[DB_REPLICAS] Database ${name} is back online (${responseTime}ms)`);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       const currentHealth = this.healthStatus.get(name);
       const errorCount = (currentHealth?.errorCount || 0) + 1;
       
@@ -833,7 +833,7 @@ export class DatabaseReplicaManager {
         })
       );
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[DB_REPLICAS] Failed to persist metrics:', error);
     }
   }
@@ -1061,7 +1061,7 @@ export class DatabaseReplicaManager {
       this.healthStatus.clear();
       this.metrics.clear();
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('[DB_REPLICAS] Error during shutdown:', error);
       throw error;
     }

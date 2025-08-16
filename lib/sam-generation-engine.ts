@@ -241,7 +241,7 @@ export class SAMGenerationEngine {
   }
 
   // Generate Study Guides
-  async generateStudyGuides(Course: Course): Promise<StudyGuide> {
+  async generateStudyGuides(course: Course): Promise<StudyGuide> {
     try {
       // Analyze course content
       const courseAnalysis = await this.analyzeCourseForStudyGuide(course);
@@ -566,7 +566,7 @@ export class SAMGenerationEngine {
     return this.parseTranslatedContent(response.content[0].text || '', content);
   }
 
-  private async analyzeCourseForStudyGuide(Course: any) {
+  private async analyzeCourseForStudyGuide(course: any) {
     // Analyze course structure and content
     return {
       mainTopics: [],
@@ -632,7 +632,7 @@ export class SAMGenerationEngine {
     ];
   }
 
-  private async generateStudyTips(Course: any, topics: KeyTopic[]): Promise<string[]> {
+  private async generateStudyTips(course: any, topics: KeyTopic[]): Promise<string[]> {
     const tips = [
       "Review critical topics daily for better retention",
       "Practice with sample questions after each study session",
@@ -661,7 +661,7 @@ export class SAMGenerationEngine {
     ];
   }
 
-  private async generateStudyGuideOverview(Course: any): Promise<string> {
+  private async generateStudyGuideOverview(course: any): Promise<string> {
     return `This study guide covers the essential concepts from ${course.title}. Focus on the critical topics and use the practice questions to test your understanding.`;
   }
 

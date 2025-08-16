@@ -144,7 +144,7 @@ export const SubscriptionLinkForm = ({
       toast.success("Subscription added");
       toggleCreating();
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error(error);
       toast.error("Something went wrong");
     } finally {
@@ -170,7 +170,7 @@ export const SubscriptionLinkForm = ({
       setEditingSubscriptionId(null);
       form.reset();
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error(error);
       toast.error("Something went wrong");
     } finally {

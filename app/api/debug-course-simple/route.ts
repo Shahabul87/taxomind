@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
-import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get('courseId');
     
     if (!courseId) {
-      return NextResponse.json({
+      return createSuccessResponse({
         error: "Missing courseId parameter",
         usage: "Add ?courseId=your-course-id to the URL",
         example: "/api/debug-course-simple?courseId=bc037619-84dc-4ef9-b8c8-cfa3d059b7c7"
@@ -87,10 +87,10 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    return NextResponse.json(debugInfo);
+    return createSuccessResponse(debugInfo);
   } catch (error) {
     logger.error("[DEBUG_COURSE_SIMPLE] Error:", error);
-    return NextResponse.json({ 
+    return createSuccessResponse({ 
       error: "Debug failed", 
       details: error instanceof Error ? error.message : "Unknown error",
       timestamp: new Date().toISOString()

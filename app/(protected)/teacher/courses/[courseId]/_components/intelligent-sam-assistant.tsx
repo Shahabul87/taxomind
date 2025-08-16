@@ -441,7 +441,7 @@ What would you like me to help you with today?`,
           }
           break;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Form action error:', error);
       toast.error('Failed to update form');
     }
@@ -498,7 +498,7 @@ What would you like me to help you with today?`,
       
       setMessages(prev => [...prev, samMessage]);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('SAM Error:', error);
       
       const errorMessage: ChatMessage = {

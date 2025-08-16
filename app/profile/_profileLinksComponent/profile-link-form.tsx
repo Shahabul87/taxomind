@@ -58,7 +58,7 @@ export const ProfileLinkForm = ({ userId }: ProfileLinkFormProps) => {
       toast.success("Profile link added successfully");
       form.reset();
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
       logger.error(error);
     } finally {

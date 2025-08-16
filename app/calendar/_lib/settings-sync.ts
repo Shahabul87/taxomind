@@ -18,7 +18,7 @@ export const useSettingsSync = () => {
           }
           setInitialized(true);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Failed to fetch settings:', error);
       }
     };
@@ -42,7 +42,7 @@ export const useSettingsSync = () => {
       if (!response.ok) {
         throw new Error('Failed to sync settings');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to sync settings:', error);
       // Only show error toast if it's not the initial sync
       if (isInitialized) {

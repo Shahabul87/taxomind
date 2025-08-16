@@ -58,7 +58,7 @@ export class RealTimeDashboard extends EventEmitter {
     this.updateInterval = setInterval(async () => {
       try {
         await this.broadcastUpdates();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error broadcasting dashboard updates:', error);
       }
     }, this.config.updateInterval);
@@ -112,7 +112,7 @@ export class RealTimeDashboard extends EventEmitter {
       // Store latest metrics
       this.lastMetrics = realTimeMetrics;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to broadcast dashboard updates:', error);
     }
   }
@@ -120,15 +120,18 @@ export class RealTimeDashboard extends EventEmitter {
   // Get recent events for dashboard
   private async getRecentEvents(): Promise<any[]> {
     try {
-      const events = await redis.lrange('analytics:recent_events', 0, 19); // Last 20 events
-      return events.map(eventJson => {
+      if (!redis || typeof (redis as any).lrange !== 'function') {
+        return [];
+      }
+      const events = await (redis as any).lrange('analytics:recent_events', 0, 19); // Last 20 events
+      return events.map((eventJson: any) => {
         try {
           return JSON.parse(eventJson as string);
         } catch {
           return null;
         }
       }).filter(Boolean);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get recent events:', error);
       return [];
     }
@@ -139,7 +142,7 @@ export class RealTimeDashboard extends EventEmitter {
     try {
       const healthData = await redis.get('system:health:latest');
       return healthData ? JSON.parse(healthData) : null;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get system health:', error);
       return null;
     }
@@ -224,7 +227,7 @@ export class RealTimeDashboard extends EventEmitter {
       // Send to specific connection (implementation depends on your WebSocket setup)
       this.emit('connection:initial', { connection, data: initialData });
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to send initial data:', error);
     }
   }
@@ -259,7 +262,7 @@ export class RealTimeDashboard extends EventEmitter {
         this.handleRedisMessage(channel, message);
       });
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to setup Redis subscriptions:', error);
     }
   }
@@ -286,7 +289,7 @@ export class RealTimeDashboard extends EventEmitter {
           });
           break;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error handling Redis message:', error);
     }
   }
@@ -308,7 +311,7 @@ export class RealTimeDashboard extends EventEmitter {
           updateInterval: this.config.updateInterval
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'error',
         details: { error: error.message }

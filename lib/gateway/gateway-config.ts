@@ -212,7 +212,7 @@ export class GatewayConfig {
         cache: {
           enabled: true,
           ttl: 300, // 5 minutes
-          key: (req) => `Course:${req.url}:${req.headers.get('X-User-ID')}`
+          key: (req) => `course:${req.url}:${req.headers.get('X-User-ID')}`
         },
         circuitBreaker: {
           enabled: true,
@@ -410,7 +410,7 @@ export class GatewayConfig {
   
   private async validateLoginAttempts(request: NextRequest): Promise<NextRequest | NextResponse> {
     // Implement failed login attempt tracking
-    const clientIP = request.headers.get('X-Forwarded-For') || request.ip || 'unknown';
+    const clientIP = request.headers.get('X-Forwarded-For') || 'unknown';
     
     // This would typically check a failed attempts cache
     // For now, just pass through

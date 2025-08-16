@@ -1,10 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { currentUser } from "@/lib/auth";
+import { withAuth, withOwnership, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { logger } from '@/lib/logger';
 
-export async function GET(req: Request, props: { params: Promise<{ userId: string }> }) {
+/**
+ * GET /api/users/[userId]
+ * Get user details by ID
+ * Public endpoint - anyone can view user profiles
+ */
+export async function GET(
+  req: NextRequest, 
+  props: { params: Promise<{ userId: string }> }
+) {
   const params = await props.params;
+  
   try {
     const userDetails = await db.user.findUnique({
       where: {
@@ -15,36 +24,52 @@ export async function GET(req: Request, props: { params: Promise<{ userId: strin
       },
     });
 
-    return NextResponse.json(userDetails);
+    if (!userDetails) {
+      return createErrorResponse(ApiError.notFound("User not found"));
+    }
+
+    return createSuccessResponse(userDetails);
   } catch (error) {
     logger.error("[USER_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return createErrorResponse(ApiError.internal("Failed to fetch user details"));
   }
 }
 
-export async function PATCH(req: Request, props: { params: Promise<{ userId: string }> }) {
-  const params = await props.params;
-  try {
-    const user = await currentUser();
+/**
+ * PATCH /api/users/[userId]
+ * Update user profile
+ * Protected endpoint - users can only update their own profile
+ */
+export const PATCH = withOwnership(
+  async (request: NextRequest, params?: any) => params?.userId,
+  async (request: NextRequest, context: APIAuthContext, props?: { params: Promise<{ userId: string }> }) => {
+    const params = await props?.params;
     
-    if (!user?.id || user.id !== params.userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    if (!params?.userId) {
+      return createErrorResponse(ApiError.badRequest("User ID is required"));
     }
+    
+    try {
+      const body = await request.json();
+      const { image } = body;
 
-    const { image } = await req.json();
-
-    const updatedUser = await db.user.update({
-      where: {
-        id: params.userId
-      },
-      data: {
-        image
+      if (!image) {
+        return createErrorResponse(ApiError.badRequest("Image URL is required"));
       }
-    });
 
-    return NextResponse.json(updatedUser);
-  } catch (error) {
-    logger.error("[USER_PATCH]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+      const updatedUser = await db.user.update({
+        where: {
+          id: params.userId
+        },
+        data: {
+          image
+        }
+      });
+
+      return createSuccessResponse(updatedUser, "Profile updated successfully");
+    } catch (error) {
+      logger.error("[USER_PATCH]", error);
+      return createErrorResponse(ApiError.internal("Failed to update profile"));
+    }
   }
-} 
+);

@@ -139,10 +139,16 @@ export default function BlogPage() {
           setExcitingPosts(exciting);
           
           // Get unique categories from posts
-          const postCategories = Array.from(new Set(data.posts.map((post: Post) => post.category).filter(Boolean)));
+          const postCategories: string[] = Array.from(
+            new Set(
+              data.posts
+                .map((post: Post) => post.category)
+                .filter((cat: string | null): cat is string => Boolean(cat))
+            )
+          );
           
           // Combine with additional categories for demonstration
-          const additionalCategories = [
+          const additionalCategories: string[] = [
             "Data Science",
             "Mobile Development", 
             "DevOps",
@@ -150,7 +156,7 @@ export default function BlogPage() {
             "Cloud Computing"
           ];
           
-          const allCategories = [
+          const allCategories: string[] = [
             "All", 
             ...postCategories,
             ...additionalCategories.filter(cat => !postCategories.includes(cat))

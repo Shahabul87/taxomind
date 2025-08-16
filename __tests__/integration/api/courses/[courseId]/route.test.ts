@@ -144,7 +144,7 @@ describe('/api/courses/[courseId] Integration Tests', () => {
         },
       });
 
-      await testDb.getClient().userProgress.create({
+      await testDb.getClient().user_progress.create({
         data: {
           userId: testData.users.student.id,
           chapterId: testData.chapters[0].id,

@@ -106,7 +106,7 @@ export const ChaptersForm = ({
       });
       toast.success("Chapters reordered");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error reordering chapters:", error);
       toast.error("Something went wrong");
     } finally {
@@ -124,7 +124,7 @@ export const ChaptersForm = ({
       await axios.delete(`/api/courses/${courseId}/chapters/${id}`);
       toast.success("Chapter deleted");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error deleting chapter:", error);
       toast.error("Something went wrong");
     } finally {

@@ -103,7 +103,7 @@ export function TeacherEmpowermentDashboard({
         const data = await response.json();
         setInsights(data.insights);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching insights:', error);
       toast.error('Failed to fetch insights');
     } finally {
@@ -133,7 +133,7 @@ export function TeacherEmpowermentDashboard({
         setShowLessonPlanDialog(false);
         toast.success('Lesson plan generated successfully!');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error generating lesson plan:', error);
       toast.error('Failed to generate lesson plan');
     } finally {

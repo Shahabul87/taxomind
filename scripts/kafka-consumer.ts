@@ -38,7 +38,7 @@ async function start() {
     ]);
     
     console.log('All Kafka consumers started successfully');
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to start Kafka consumers:', error);
     process.exit(1);
   }

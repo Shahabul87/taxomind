@@ -168,7 +168,7 @@ export class EmailWorker {
       await job.updateProgress(100);
       return jobResult;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[EMAIL_WORKER] Welcome email failed for ${userEmail}:`, error);
       
       const jobResult: EmailJobResult = {
@@ -229,7 +229,7 @@ export class EmailWorker {
 
       return jobResult;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[EMAIL_WORKER] Notification email failed for ${userEmail}:`, error);
       
       const jobResult: EmailJobResult = {
@@ -307,7 +307,7 @@ export class EmailWorker {
 
       return jobResult;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[EMAIL_WORKER] Course reminder failed for ${userEmail}:`, error);
       
       const jobResult: EmailJobResult = {
@@ -396,7 +396,7 @@ export class EmailWorker {
 
       return jobResult;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[EMAIL_WORKER] Bulk announcement failed:`, error);
       
       const jobResult: EmailJobResult = {
@@ -455,7 +455,7 @@ export class EmailWorker {
         processingTime: Date.now() - job.timestamp,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[EMAIL_WORKER] Password reset email failed:`, error);
       throw error;
     }
@@ -505,7 +505,7 @@ export class EmailWorker {
         processingTime: Date.now() - job.timestamp,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[EMAIL_WORKER] Certificate email failed:`, error);
       throw error;
     }

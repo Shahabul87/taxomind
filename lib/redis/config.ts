@@ -51,7 +51,7 @@ export const redis = (() => {
 export const REDIS_KEYS = {
   // Real-time metrics
   STUDENT_METRICS: (userId: string, courseId: string) => `metrics:${userId}:${courseId}`,
-  COURSE_METRICS: (courseId: string) => `Course:metrics:${courseId}`,
+  COURSE_METRICS: (courseId: string) => `course:metrics:${courseId}`,
   ENGAGEMENT_SCORE: (userId: string) => `engagement:${userId}`,
   
   // Learning patterns
@@ -72,7 +72,7 @@ export const REDIS_KEYS = {
   ANALYTICS_CACHE: (key: string) => `analytics:cache:${key}`,
   
   // Course data caching
-  COURSE_DETAILS: (courseId: string) => `Course:details:${courseId}`,
+  COURSE_DETAILS: (courseId: string) => `course:details:${courseId}`,
   COURSE_LIST: (userId?: string, filters?: string) => `courses:list:${userId || 'public'}:${filters || 'default'}`,
   COURSE_PROGRESS: (userId: string, courseId: string) => `progress:${userId}:${courseId}`,
   USER_COURSES: (userId: string) => `user:courses:${userId}`,

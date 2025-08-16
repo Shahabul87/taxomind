@@ -75,7 +75,7 @@ export const PostchapterAccessForm = ({
       setFormState({ success: true, message: "Access settings updated" });
       setIsEditing(false);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       setFormState({ error: true, message: "Something went wrong" });
     } finally {
       setIsLoading(false);

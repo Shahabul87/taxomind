@@ -198,7 +198,7 @@ export const ContentTabsPersonalized = ({
       // For now, we'll use demo data based on preferences
       const recommendations = generateAdaptiveRecommendations();
       setAdaptiveRecommendations(recommendations);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to load adaptive recommendations:", error);
     }
   }, [generateAdaptiveRecommendations, setAdaptiveRecommendations]);

@@ -62,7 +62,7 @@ export const MathImageUpload = ({
       } else {
         toast.error("Upload failed");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong during upload");
       logger.error('Math image upload error:', error);
     } finally {

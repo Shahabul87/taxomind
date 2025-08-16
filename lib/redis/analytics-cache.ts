@@ -114,6 +114,7 @@ export class AnalyticsCacheManager {
 
       await cacheManager.set(cacheKey, metricData, {
         ...ANALYTICS_CACHE_CONFIG.REAL_TIME_METRICS,
+        tags: [...ANALYTICS_CACHE_CONFIG.REAL_TIME_METRICS.tags],
         ttl
       });
 
@@ -131,13 +132,18 @@ export class AnalyticsCacheManager {
 }
   ): Promise<MetricData[]> {
     try {
+      if (!redis) return [];
+      
       const pattern = `realtime:${metricName}:*`;
       const keys = await redis.keys(pattern);
       
       const metrics: MetricData[] = [];
       
       for (const key of keys) {
-        const metric = await cacheManager.get<MetricData>(key, ANALYTICS_CACHE_CONFIG.REAL_TIME_METRICS);
+        const metric = await cacheManager.get<MetricData>(key, {
+          ...ANALYTICS_CACHE_CONFIG.REAL_TIME_METRICS,
+          tags: [...ANALYTICS_CACHE_CONFIG.REAL_TIME_METRICS.tags]
+        });
         if (metric) {
           metrics.push(metric);
         }
@@ -187,7 +193,10 @@ export class AnalyticsCacheManager {
       
       return await cacheManager.get<Record<string, any>>(
         cacheKey,
-        ANALYTICS_CACHE_CONFIG.DASHBOARD_DATA
+        {
+          ...ANALYTICS_CACHE_CONFIG.DASHBOARD_DATA,
+          tags: [...ANALYTICS_CACHE_CONFIG.DASHBOARD_DATA.tags]
+        }
       );
     } catch (error: any) {
       logger.error('Error getting cached dashboard data:', error);
@@ -228,7 +237,10 @@ export class AnalyticsCacheManager {
       
       const data = await cacheManager.get<AggregatedData>(
         cacheKey,
-        ANALYTICS_CACHE_CONFIG.AGGREGATED_DATA
+        {
+          ...ANALYTICS_CACHE_CONFIG.AGGREGATED_DATA,
+          tags: [...ANALYTICS_CACHE_CONFIG.AGGREGATED_DATA.tags]
+        }
       );
 
       // Check if data is still valid
@@ -275,7 +287,10 @@ export class AnalyticsCacheManager {
       
       return await cacheManager.get<Record<string, any>>(
         cacheKey,
-        ANALYTICS_CACHE_CONFIG.USER_ANALYTICS
+        {
+          ...ANALYTICS_CACHE_CONFIG.USER_ANALYTICS,
+          tags: [...ANALYTICS_CACHE_CONFIG.USER_ANALYTICS.tags]
+        }
       );
     } catch (error: any) {
       logger.error('Error getting cached user analytics:', error);
@@ -322,7 +337,10 @@ export class AnalyticsCacheManager {
       
       return await cacheManager.get<Record<string, any>>(
         cacheKey,
-        ANALYTICS_CACHE_CONFIG.REPORTS_DATA
+        {
+          ...ANALYTICS_CACHE_CONFIG.REPORTS_DATA,
+          tags: [...ANALYTICS_CACHE_CONFIG.REPORTS_DATA.tags]
+        }
       );
     } catch (error: any) {
       logger.error('Error getting cached report data:', error);
@@ -339,10 +357,12 @@ export class AnalyticsCacheManager {
 }
   ): Promise<void> {
     try {
+      if (!redis) return;
+      
       const key = `timeseries:${metricName}:${this.hashDimensions(dimensions)}`;
       
       // Use Redis sorted set for time series data
-      await redis.zadd(key, { score: timestamp, member: JSON.stringify({ value, timestamp, dimensions }) });
+      await redis.zadd(key, timestamp, JSON.stringify({ value, timestamp, dimensions }));
       
       // Keep only last 24 hours of data
       const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
@@ -366,9 +386,10 @@ export class AnalyticsCacheManager {
       const key = `timeseries:${metricName}:${this.hashDimensions(dimensions)}`;
       
       const start = startTime || (Date.now() - (24 * 60 * 60 * 1000));
-      const end = endTime || Date.now();
+      if (!redis) return null;
       
-      const rawData = await redis.zrangebyscore(key, start, end, { withScores: true });
+      const end = endTime || Date.now();
+      const rawData = await redis.zrange(key, start, end, 'BYSCORE');
       
       if (!rawData || rawData.length === 0) {
         return null;
@@ -384,12 +405,12 @@ export class AnalyticsCacheManager {
       });
 
       // Calculate aggregations
-      const values = dataPoints.map(dp => dp.value);
+      const values = dataPoints.map((dp: any) => dp.value);
       const aggregations = {
-        avg: values.reduce((sum, val) => sum + val, 0) / values.length,
+        avg: values.reduce((sum: number, val: number) => sum + val, 0) / values.length,
         min: Math.min(...values),
         max: Math.max(...values),
-        sum: values.reduce((sum, val) => sum + val, 0),
+        sum: values.reduce((sum: number, val: number) => sum + val, 0),
         count: values.length
       };
 
@@ -432,6 +453,8 @@ export class AnalyticsCacheManager {
     topMetrics: string[];
   }> {
     try {
+      if (!redis) return { totalKeys: 0, hitRate: 0, memoryUsage: 0, topMetrics: [] };
+      
       const keys = await redis.keys('analytics:*');
       const metrics = await cacheManager.getMetrics();
       
@@ -480,6 +503,8 @@ export class AnalyticsCacheManager {
     try {
       const patterns = ['timeseries:*'];
       
+      if (!redis) return;
+      
       for (const pattern of patterns) {
         const keys = await redis.keys(pattern);
         
@@ -487,11 +512,11 @@ export class AnalyticsCacheManager {
           const [, metricName, dimensionHash] = key.split(':');
           
           // Get recent data for aggregation
-          const recentData = await redis.zrangebyscore(
+          const recentData = await redis.zrange(
             key,
             Date.now() - (5 * 60 * 1000), // Last 5 minutes
             Date.now(),
-            { withScores: true }
+            'BYSCORE'
           );
 
           if (recentData.length > 0) {
@@ -502,10 +527,10 @@ export class AnalyticsCacheManager {
             });
 
             const aggregation = {
-              avg: values.reduce((sum, val) => sum + val, 0) / values.length,
+              avg: values.reduce((sum: number, val: number) => sum + val, 0) / values.length,
               min: Math.min(...values),
               max: Math.max(...values),
-              sum: values.reduce((sum, val) => sum + val, 0),
+              sum: values.reduce((sum: number, val: number) => sum + val, 0),
               count: values.length,
               period: '5m',
               timestamp: Date.now()

@@ -253,7 +253,7 @@ export class DatabaseEnvironmentValidator {
         database: config.database.name,
         issues,
       };
-    } catch (error) {
+    } catch (error: any) {
       issues.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return {
         valid: false,

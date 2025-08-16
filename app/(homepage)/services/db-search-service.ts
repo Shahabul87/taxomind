@@ -202,7 +202,7 @@ export class DatabaseSearchService {
           
           throw fetchError;
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error("💥 Database search service error:", error);
         
         // Last retry failed, return empty results

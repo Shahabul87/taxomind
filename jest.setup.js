@@ -53,7 +53,7 @@ jest.mock('next/navigation', () => ({
   },
 }))
 
-// Mock NextAuth
+// Mock NextAuth client
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(() => ({
     data: null,
@@ -65,18 +65,61 @@ jest.mock('next-auth/react', () => ({
   SessionProvider: ({ children }) => children,
 }))
 
-// Mock server actions (only mock existing ones)
-// Note: Add mocks here as needed for actual actions that exist
+// Mock NextAuth server
+jest.mock('next-auth', () => ({
+  default: jest.fn(),
+  getServerSession: jest.fn(),
+}))
 
-// Mock Prisma (only when needed)
-// jest.mock('@/lib/db', () => ({
-//   db: {
-//     user: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
-//     course: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
-//     chapter: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
-//     section: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
-//   },
-// }))
+jest.mock('@/auth', () => ({
+  auth: jest.fn(),
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  handlers: {
+    GET: jest.fn(),
+    POST: jest.fn(),
+  },
+}))
+
+jest.mock('@/lib/auth', () => ({
+  currentUser: jest.fn(),
+  currentRole: jest.fn(),
+}))
+
+// Mock Prisma - always mock to avoid database connections in tests
+jest.mock('@/lib/db', () => {
+  const { prismaMock } = require('./__tests__/utils/test-db')
+  return {
+    db: prismaMock,
+    default: prismaMock,
+  }
+})
+
+// Mock external services
+jest.mock('@/lib/redis', () => ({
+  redis: {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    exists: jest.fn(),
+    expire: jest.fn(),
+    ttl: jest.fn(),
+  }
+}))
+
+jest.mock('@/lib/mail', () => ({
+  sendVerificationEmail: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
+  sendTwoFactorTokenEmail: jest.fn(),
+}))
+
+jest.mock('resend', () => ({
+  Resend: jest.fn(() => ({
+    emails: {
+      send: jest.fn().mockResolvedValue({ id: 'test-email-id' })
+    }
+  }))
+}))
 
 // Mock environment variables
 process.env.NEXTAUTH_SECRET = 'test-secret'

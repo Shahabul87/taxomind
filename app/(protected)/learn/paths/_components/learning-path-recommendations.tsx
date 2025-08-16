@@ -58,7 +58,7 @@ export const LearningPathRecommendations = () => {
       setLoading(true);
       const response = await axios.get("/api/learning-paths/recommend");
       setRecommendations(response.data.recommendations || []);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to fetch recommendations:", error);
     } finally {
       setLoading(false);
@@ -73,7 +73,7 @@ export const LearningPathRecommendations = () => {
         toast.success("New recommendations generated!");
         setRecommendations(response.data.recommendations);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to generate recommendations:", error);
       toast.error("Failed to generate recommendations");
     } finally {
@@ -103,7 +103,7 @@ export const LearningPathRecommendations = () => {
       }
 
       setSelectedPath(null);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to record interaction:", error);
       toast.error("Failed to process action");
     }

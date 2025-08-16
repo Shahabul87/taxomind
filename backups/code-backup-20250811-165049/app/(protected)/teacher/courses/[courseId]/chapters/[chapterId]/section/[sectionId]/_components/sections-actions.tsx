@@ -1,0 +1,195 @@
+"use client";
+
+import axios from "axios";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, Loader2, Trash } from "lucide-react";
+import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
+
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+
+interface SectionActionsProps {
+  disabled: boolean;
+  courseId: string;
+  chapterId: string;
+  sectionId: string;
+  isPublished: boolean;
+}
+
+export const SectionActions = ({
+  disabled,
+  courseId,
+  chapterId,
+  sectionId,
+  isPublished,
+}: SectionActionsProps) => {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+
+  const onClick = async () => {
+    try {
+      setIsLoading(true);
+
+      if (isPublished) {
+        const response = await axios.patch(
+          `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/unpublish`
+        );
+
+        toast.success("Section unpublished");
+      } else {
+        const response = await axios.patch(
+          `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/publish`
+        );
+
+        toast.success("Section published");
+      }
+
+      router.refresh();
+    } catch (error: any) {
+      logger.error("Section publish/unpublish error:", error);
+      toast.error(error.response?.data || "Failed to update section status");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const onDelete = async () => {
+    try {
+      setIsLoading(true);
+      await axios.delete(`/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`);
+      toast.success("Section deleted");
+      router.refresh();
+      router.push(`/teacher/courses/${courseId}/chapters/${chapterId}`);
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <div className={cn(
+      "flex flex-col sm:flex-row lg:flex-row",
+      "items-center lg:items-start",
+      "justify-center lg:justify-end",
+      "w-full",
+      "gap-2"
+    )}>
+      <div className="w-full lg:w-auto flex flex-col sm:flex-row lg:flex-row items-center lg:items-start gap-2">
+        <Button
+          onClick={onClick}
+          disabled={disabled || isLoading}
+          variant="outline"
+          size="sm"
+          className={cn(
+            "flex items-center gap-x-2",
+            "transition-all duration-200",
+            "w-full lg:w-auto",
+            "h-9 lg:h-10",
+            "text-xs lg:text-sm",
+            isPublished
+              ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/40 hover:text-orange-800 dark:hover:text-orange-200 hover:border-orange-300 dark:hover:border-orange-600"
+              : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:text-emerald-800 dark:hover:text-emerald-200 hover:border-emerald-300 dark:hover:border-emerald-600",
+            disabled && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          {isLoading ? (
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            >
+              <Loader2 className="h-3 w-3 lg:h-4 lg:w-4" />
+            </motion.div>
+          ) : isPublished ? (
+            <>
+              <EyeOff className="h-3 w-3 lg:h-4 lg:w-4" />
+              <span>Unpublish</span>
+            </>
+          ) : (
+            <>
+              <Eye className="h-3 w-3 lg:h-4 lg:w-4" />
+              <span>Publish</span>
+            </>
+          )}
+        </Button>
+        <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+          <AlertDialogTrigger asChild>
+            <Button
+              disabled={isLoading}
+              variant="outline"
+              size="sm"
+              className={cn(
+                "bg-red-50 dark:bg-red-900/20",
+                "text-red-700 dark:text-red-300",
+                "border-red-200 dark:border-red-700",
+                "hover:bg-red-100 dark:hover:bg-red-900/40",
+                "hover:text-red-800 dark:hover:text-red-200",
+                "hover:border-red-300 dark:hover:border-red-600",
+                "transition-all duration-200",
+                "w-full lg:w-auto",
+                "h-9 lg:h-10",
+                "flex items-center justify-center gap-x-2"
+              )}
+            >
+              <Trash className="h-3 w-3 lg:h-4 lg:w-4" />
+              <span className="lg:hidden">Delete</span>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className={cn(
+            "bg-white dark:bg-gray-900",
+            "border border-gray-200 dark:border-gray-800",
+            "backdrop-blur-sm"
+          )}>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                Delete Section
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-600 dark:text-gray-400 text-base">
+                Are you sure you want to delete this section? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className={cn(
+                "bg-gray-100 dark:bg-gray-800",
+                "text-gray-900 dark:text-gray-100",
+                "hover:bg-gray-200 dark:hover:bg-gray-700",
+                "border-gray-200 dark:border-gray-700",
+                "transition-colors"
+              )}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={onDelete}
+                className={cn(
+                  "bg-rose-50 dark:bg-rose-500/10",
+                  "text-rose-700 dark:text-rose-300",
+                  "hover:bg-rose-100 dark:hover:bg-rose-500/20",
+                  "hover:text-rose-800 dark:hover:text-rose-200",
+                  "border border-rose-200/20 dark:border-rose-500/20",
+                  "transition-all duration-200"
+                )}
+              >
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
+  );
+};

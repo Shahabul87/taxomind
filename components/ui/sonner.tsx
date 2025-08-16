@@ -1,28 +1,13 @@
 "use client"
 
-import { useTheme } from "next-themes"
 import { Toaster as Sonner } from "sonner"
-import { useEffect, useState } from "react"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  
-  // Safely mount the component after initial render
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-  
-  // Don't render the Toaster until after client-side hydration
-  if (!mounted) {
-    return null
-  }
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="dark"
       className="toaster group"
       toastOptions={{
         classNames: {

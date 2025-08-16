@@ -74,9 +74,9 @@ export async function trackAchievementProgress(
       }
 
       // Build updated stats for checking
-      const updatedStats = {
+      const updatedStats: any = {
         ...userStats,
-        [action]: (userStats[action] || 0) + 1,
+        [action]: ((userStats as any)[action] || 0) + 1,
       };
 
       const progress = checkAchievementProgress(achievement, updatedStats);
@@ -160,7 +160,7 @@ export async function trackAchievementProgress(
       challengesCompleted,
       levelUp,
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error tracking achievement progress:', error);
     return {
       pointsAwarded: 0,
@@ -177,7 +177,7 @@ export async function getActiveChallenges(userId: string): Promise<Challenge[]> 
     const activeParticipations = await db.user.findUnique({
       where: { id: userId },
       select: {
-        samActiveChallenges: true, // Assuming we store active challenges in user profile
+        samActiveChallenges: true,
       }
     });
 
@@ -188,7 +188,7 @@ export async function getActiveChallenges(userId: string): Promise<Challenge[]> 
     // Filter challenges that are still active
     const activeChallengeIds = activeParticipations.samActiveChallenges as string[];
     return CHALLENGES.filter(challenge => activeChallengeIds.includes(challenge.id));
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting active challenges:', error);
     return [];
   }
@@ -231,7 +231,7 @@ export async function startChallengeForUser(
     });
 
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error starting challenge:', error);
     return false;
   }
@@ -267,7 +267,7 @@ async function checkChallengeCompletion(
 
     const currentProgress = interactions.length + (requirements.type === action ? 1 : 0);
     return currentProgress >= requirements.target;
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error checking challenge completion:', error);
     return false;
   }
@@ -316,8 +316,8 @@ async function completeChallengeForUser(
     if (challenge.rewards.badges) {
       for (const badgeId of challenge.rewards.badges) {
         await unlockSAMBadge(userId, {
-          badgeType: 'ACHIEVEMENT',
-          level: 'SILVER',
+          badgeType: 'ACHIEVEMENT' as any,
+          level: 'SILVER' as any,
           description: badgeId,
           requirements: { challengeId: challenge.id },
           courseId: context?.courseId,
@@ -333,7 +333,7 @@ async function completeChallengeForUser(
       result: { completed: true, rewards: challenge.rewards },
       courseId: context?.courseId,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error completing challenge:', error);
   }
 }
@@ -365,7 +365,7 @@ export async function getAvailableChallengesForUser(userId: string): Promise<Cha
       const levelRequirements = { easy: 1, medium: 3, hard: 5, expert: 8 };
       return userLevel >= levelRequirements[challenge.difficulty];
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting available challenges:', error);
     return [];
   }
@@ -412,7 +412,7 @@ export async function getUserAchievementSummary(userId: string): Promise<{
       activeChallenges: ((user?.samActiveChallenges as string[]) || []).length,
       recommendations,
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error getting user achievement summary:', error);
     return {
       level: 1,

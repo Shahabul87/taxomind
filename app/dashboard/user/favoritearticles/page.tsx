@@ -17,7 +17,7 @@ export default async function FavoriteArticlesPage() {
     redirect("/auth/login");
   }
   
-  const favoriteArticles = userData.favoriteArticles || [];
+  const favoriteArticles = userData.FavoriteArticle || [];
   
   // Sort articles by recently added (newest first)
   const sortedArticles = [...favoriteArticles].sort((a, b) => {
@@ -96,7 +96,7 @@ export default async function FavoriteArticlesPage() {
                         </h2>
                         
                         <p className="text-gray-600 dark:text-gray-400 mb-6">
-                          {featuredArticles[0].description || "A featured article from your collection. Click to read the full content."}
+                          A featured article from your collection. Click to read the full content.
                         </p>
                       </div>
                       

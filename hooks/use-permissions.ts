@@ -28,15 +28,15 @@ export function usePermissions() {
   };
   
   const isTeacher = (): boolean => {
-    return session?.user?.role === UserRole.TEACHER;
+    return session?.user?.role === UserRole.USER;
   };
   
   const isStudent = (): boolean => {
-    return session?.user?.role === UserRole.STUDENT;
+    return session?.user?.role === UserRole.USER;
   };
   
   const isTeacherOrAdmin = (): boolean => {
-    return hasAnyRole([UserRole.TEACHER, UserRole.ADMIN]);
+    return hasAnyRole([UserRole.USER, UserRole.ADMIN]);
   };
   
   const canManageUsers = (): boolean => {

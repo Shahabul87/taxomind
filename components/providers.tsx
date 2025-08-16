@@ -1,6 +1,5 @@
 "use client";
 
-import { ThemeProvider } from "./providers/theme-provider";
 import { SessionProvider } from "next-auth/react";
 import { ReactNode, useEffect, useState } from "react";
 
@@ -28,14 +27,7 @@ export function Providers({
 }) {
   return (
     <CustomAuthProvider session={session}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem={true}
-        disableTransitionOnChange
-      >
-        {children}
-      </ThemeProvider>
+      {children}
     </CustomAuthProvider>
   );
 } 

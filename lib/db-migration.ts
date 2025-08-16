@@ -1,11 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import { EnterpriseDB } from './enterprise-db';
-import { getEnvironment } from './db-environment';
+import { getDbEnvironment } from './db-environment';
 import { logger } from '@/lib/logger';
 
-const isProduction = process.env.NODE_ENV === 'production';
-const isStaging = process.env.NODE_ENV === 'staging';
-const strictMode = process.env.STRICT_ENV_MODE === 'true';
+const { environment, strictMode } = getDbEnvironment();
+const isProduction = environment === 'production';
+const isStaging = environment === 'staging';
 
 let dbInstance: PrismaClient | EnterpriseDB | null = null;
 

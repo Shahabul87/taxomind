@@ -90,7 +90,7 @@ export const useSmartValidation = () => {
           }));
 
           resolve(result);
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Validation error:', error);
           
           // Set a basic "valid" state on error

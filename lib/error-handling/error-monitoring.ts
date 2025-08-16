@@ -68,15 +68,6 @@ export class ErrorMonitoring {
         timestamp: {
           gte: oneHourAgo
         }
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
       }
     });
 
@@ -89,7 +80,7 @@ export class ErrorMonitoring {
           errorCount: criticalErrors.length,
           timeWindow: '1 hour',
           threshold: this.alertThresholds.criticalErrors,
-          affectedUsers: criticalErrors.map(e => e.user?.id).filter(Boolean)
+          affectedUsers: criticalErrors.map(e => e.userId).filter(Boolean)
         }
       });
     }
@@ -302,12 +293,12 @@ export class ErrorMonitoring {
       });
 
       const errorsByType = errors.reduce((acc, error) => {
-        acc[error.errorType] = (acc[error.errorType] || 0) + 1;
+        acc[error.errorType as ErrorType] = (acc[error.errorType as ErrorType] || 0) + 1;
         return acc;
       }, {} as Record<ErrorType, number>);
 
       const errorsBySeverity = errors.reduce((acc, error) => {
-        acc[error.severity] = (acc[error.severity] || 0) + 1;
+        acc[error.severity as ErrorSeverity] = (acc[error.severity as ErrorSeverity] || 0) + 1;
         return acc;
       }, {} as Record<ErrorSeverity, number>);
 
@@ -335,14 +326,14 @@ export class ErrorMonitoring {
         recentErrors: errors.slice(0, 10).map(error => ({
           id: error.id,
           message: error.message,
-          stack: error.stack,
+          stack: error.stack || undefined,
           timestamp: error.timestamp,
-          userId: error.userId,
-          userAgent: error.userAgent,
-          url: error.url,
-          component: error.component,
-          errorType: error.errorType,
-          severity: error.severity,
+          userId: error.userId || undefined,
+          userAgent: error.userAgent || undefined,
+          url: error.url || undefined,
+          component: error.component || undefined,
+          errorType: error.errorType as ErrorType,
+          severity: error.severity as ErrorSeverity,
           context: error.context ? JSON.parse(error.context) : undefined,
           metadata: error.metadata ? JSON.parse(error.metadata) : undefined
         })),
@@ -429,7 +420,7 @@ export class ErrorMonitoring {
         take: 50
       });
 
-      return alerts.map(alert => ({
+      return alerts.map((alert: any) => ({
         id: alert.id,
         errorId: alert.errorId,
         type: alert.type,

@@ -869,17 +869,17 @@ export class SAMResearchEngine {
       await db.sAMInteraction.create({
         data: {
           userId,
-          interactionType: 'CONTENT_GENERATED',
+          interactionType: 'CONTENT_GENERATE' as any,
           context: {
             engine: 'research',
             action: 'create_reading_list',
             listId: readingList.listId,
             paperCount: paperIds.length
           },
-          result: { success: true }
+          // schema has no 'result' field
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating reading list:', error);
     }
 
@@ -1044,17 +1044,17 @@ export class SAMResearchEngine {
       await db.sAMInteraction.create({
         data: {
           userId,
-          interactionType: 'CONTENT_GENERATED',
+          interactionType: 'CONTENT_GENERATE' as any,
           context: {
             engine: 'research',
             action,
             paperId,
             timestamp: new Date()
           },
-          result: { success: true }
+          // schema has no 'result' field
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error recording research interaction:', error);
     }
   }

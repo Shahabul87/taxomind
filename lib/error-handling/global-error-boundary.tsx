@@ -34,7 +34,7 @@ export class GlobalErrorBoundary extends Component<ErrorBoundaryProps, State> {
           isolate: this.props.isolate || false,
           ...errorInfo
         },
-        this.extractComponentName(errorInfo.componentStack)
+        this.extractComponentName(errorInfo.componentStack || '')
       );
 
       this.setState({

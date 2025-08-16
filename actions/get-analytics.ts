@@ -1,3 +1,5 @@
+"use server";
+
 import { db } from "@/lib/db";
 import { Course, Purchase } from "@prisma/client";
 
@@ -13,7 +15,7 @@ const groupByCourse = (purchases: PurchaseWithCourse[]) => {
     if (!grouped[courseTitle]) {
       grouped[courseTitle] = 0;
     }
-    grouped[courseTitle] += purchase.Course.price!;
+    grouped[courseTitle] += purchase.Course.price || 0;
   });
 
   return grouped;
@@ -46,8 +48,8 @@ export const getAnalytics = async (userId: string) => {
       totalRevenue,
       totalSales,
     }
-  } catch (error) {
-
+  } catch (error: any) {
+    console.error('[GET_ANALYTICS_ERROR]', error);
     return {
       data: [],
       totalRevenue: 0,

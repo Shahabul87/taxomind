@@ -467,7 +467,7 @@ export function TemplateEditor({
     try {
       await onSave(templateData);
       toast.success("Template saved successfully");
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to save template");
     } finally {
       setIsLoading(false);

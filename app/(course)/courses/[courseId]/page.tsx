@@ -98,7 +98,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
           },
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error checking enrollment:", error);
     }
   }
@@ -119,7 +119,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
         createdAt: "desc",
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Error fetching reviews:", error);
     // Continue with empty reviews array
   }

@@ -72,7 +72,7 @@ export class VerificationService {
             image: true
           }
         },
-        Course: {
+        course: {
           select: {
             id: true,
             title: true,
@@ -152,7 +152,7 @@ export class VerificationService {
       data: {
         certificate,
         recipient: certificate.user,
-        Course: certificate.course,
+        course: certificate.course,
         template: certificate.template
       },
       verificationDetails: {
@@ -249,7 +249,6 @@ export class VerificationService {
       const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
         errorCorrectionLevel: 'M',
         type: 'image/png',
-        quality: 0.92,
         margin: 1,
         color: {
           dark: '#000000',
@@ -299,8 +298,8 @@ export class VerificationService {
 
     const analytics = {
       totalVerifications: verifications.length,
-      verifiedThisWeek: verifications.filter(v => v.verifiedAt >= lastWeek).length,
-      verifiedThisMonth: verifications.filter(v => v.verifiedAt >= lastMonth).length,
+      verifiedThisWeek: verifications.filter((v: any) => v.verifiedAt >= lastWeek).length,
+      verifiedThisMonth: verifications.filter((v: any) => v.verifiedAt >= lastMonth).length,
       lastVerified: verifications[0]?.verifiedAt || null,
       verificationsByMethod: this.groupVerificationsByMethod(verifications),
       verificationsByDay: this.groupVerificationsByDay(verifications),
@@ -358,7 +357,7 @@ export class VerificationService {
         where: { id: credentialId },
         include: {
           user: { select: { name: true, email: true } },
-          Course: { select: { title: true } }
+          course: { select: { title: true } }
         }
       });
     } else {

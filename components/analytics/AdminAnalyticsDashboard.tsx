@@ -38,7 +38,7 @@ export function AdminAnalyticsDashboard({ user, className }: AdminAnalyticsDashb
       const data = await response.json();
       setSystemData(data);
       setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch system data:', error);
       setIsLoading(false);
     }

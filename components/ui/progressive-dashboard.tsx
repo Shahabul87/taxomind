@@ -34,12 +34,10 @@ interface ProgressiveDashboardProps {
 }
 
 export const ProgressiveDashboard = ({ className }: ProgressiveDashboardProps) => {
-  const { 
-    getUnlockedFeatures, 
-    getNextFeatures, 
-    getProgressStats, 
-    userProgress 
-  } = useProgressiveDisclosure();
+  const legacy = useProgressiveDisclosure();
+  const getUnlockedFeatures = () => legacy.getAllRevealedFeatures().map(id => ({ id, name: id, description: '', category: 'ai', difficulty: 'beginner' as const }));
+  const getNextFeatures = () => [] as Array<{ id: string; name: string; description: string; category: string; difficulty: 'beginner' | 'intermediate' | 'advanced'; prerequisites?: string[] }>;
+  const getProgressStats = () => ({ userLevel: 'beginner', unlockedFeatures: getUnlockedFeatures().length, discoveredFeatures: getUnlockedFeatures().length, unlockProgress: Math.round(legacy.getProgressScore() * 100) });
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   
@@ -171,7 +169,7 @@ export const ProgressiveDashboard = ({ className }: ProgressiveDashboardProps) =
           </Badge>
         </div>
         
-        <FeatureProgressIndicator />
+         <FeatureProgressIndicator totalFeatures={10} unlockedFeatures={getUnlockedFeatures().length} />
       </div>
 
       {/* Category Overview */}

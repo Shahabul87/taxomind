@@ -21,19 +21,14 @@ export const ROLE_PERMISSIONS: RolePermissions = {
     Permission.ACCESS_ADMIN_PANEL
   ],
   
-  [UserRole.TEACHER]: [
-    // Course and content management
+  [UserRole.USER]: [
+    // Course and content management + basic learning access
     Permission.CREATE_COURSE,
     Permission.EDIT_COURSE,
     Permission.DELETE_COURSE, // Own courses only
     Permission.PUBLISH_COURSE,
-    Permission.VIEW_ANALYTICS, // Own courses only
+    Permission.VIEW_ANALYTICS, // Own courses/progress only
     Permission.MODERATE_CONTENT // Own content only
-  ],
-  
-  [UserRole.STUDENT]: [
-    // Basic learning access
-    Permission.VIEW_ANALYTICS // Own progress only
   ]
 };
 
@@ -58,10 +53,8 @@ export const getRoleLabel = (role: UserRole): string => {
   switch (role) {
     case UserRole.ADMIN:
       return "Administrator";
-    case UserRole.TEACHER:
-      return "Teacher";
-    case UserRole.STUDENT:
-      return "Student";
+    case UserRole.USER:
+      return "User";
     default:
       return "Unknown";
   }
@@ -71,10 +64,8 @@ export const getRoleColor = (role: UserRole): string => {
   switch (role) {
     case UserRole.ADMIN:
       return "bg-red-100 text-red-800";
-    case UserRole.TEACHER:
+    case UserRole.USER:
       return "bg-green-100 text-green-800";
-    case UserRole.STUDENT:
-      return "bg-blue-100 text-blue-800";
     default:
       return "bg-gray-100 text-gray-800";
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import qs from "query-string";
-import { IconType } from "react-icons";
+import { LucideIcon } from "lucide-react";
 import { 
   usePathname, 
   useRouter, 
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 interface CategoryItemProps {
   label: string;
   value?: string;
-  icon?: IconType;
+  icon?: LucideIcon | React.FC<{ className?: string }>;
 };
 
 export const CategoryItem = ({label, value, icon: Icon,}: CategoryItemProps) => {
@@ -48,7 +48,7 @@ export const CategoryItem = ({label, value, icon: Icon,}: CategoryItemProps) => 
       )}
       type="button"
     >
-      {Icon && <Icon size={20} />}
+      {Icon && <Icon className="w-5 h-5" />}
       <div className="truncate text-cyan-500 font-semibold tracking-wide">
         {label}
       </div>

@@ -143,7 +143,7 @@ export const StudentProfileAnalytics = ({
 
       const data = await response.json();
       setProfile(data.profile);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching student profile:', error);
       toast.error('Failed to load student profile');
     } finally {

@@ -70,7 +70,7 @@ class EnterpriseDataAPI {
     for (let i = 0; i < attempts; i++) {
       try {
         return await operation();
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`[${operationName}] Attempt ${i + 1} failed:`, error);
         
         if (i === attempts - 1) {
@@ -87,7 +87,7 @@ class EnterpriseDataAPI {
     try {
       await db.$queryRaw`SELECT 1`;
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("[DB_CONNECTION] Database connection test failed:", error);
       return false;
     }
@@ -103,7 +103,7 @@ class EnterpriseDataAPI {
         );
       ` as [{ exists: boolean }];
       return result[0]?.exists || false;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[TABLE_CHECK] Error checking table ${tableName}:`, error);
       return false;
     }
@@ -120,7 +120,7 @@ class EnterpriseDataAPI {
         );
       ` as [{ exists: boolean }];
       return result[0]?.exists || false;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[COLUMN_CHECK] Error checking column ${tableName}.${columnName}:`, error);
       return false;
     }
@@ -301,7 +301,7 @@ class EnterpriseDataAPI {
         });
       }, 'fetchPosts');
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("[ENTERPRISE_API] Error in fetchPosts:", error);
       
       if (error instanceof z.ZodError) {
@@ -446,7 +446,7 @@ class EnterpriseDataAPI {
         });
       }, 'fetchCourses');
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("[ENTERPRISE_API] Error in fetchCourses:", error);
       
       return this.createErrorResponse(
@@ -514,7 +514,7 @@ class EnterpriseDataAPI {
         return this.createSuccessResponse(formattedCategories);
       }, 'fetchCategories');
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("[ENTERPRISE_API] Error in fetchCategories:", error);
       
       return this.createErrorResponse(
@@ -537,7 +537,7 @@ class EnterpriseDataAPI {
         database: dbHealth,
         timestamp: new Date()
       });
-    } catch (error) {
+    } catch (error: any) {
       return this.createErrorResponse(
         ErrorCode.UNKNOWN_ERROR,
         "Health check failed",

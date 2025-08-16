@@ -1,4 +1,3 @@
-import { User } from "@prisma/client";
 import { logger } from '@/lib/logger';
 
 export interface AIInsight {
@@ -296,7 +295,7 @@ function calculateLearningStreak(activities: any[]): number {
   return Math.min(learningActivities.length, 30); // Cap at 30 days
 }
 
-function calculateAverageCompletionRate(Enrollment: any[]): number {
+function calculateAverageCompletionRate(enrollments: any[]): number {
   if (enrollments.length === 0) return 0;
   
   const totalRate = enrollments.reduce((sum: number, enrollment: any) => {

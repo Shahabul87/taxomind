@@ -44,7 +44,7 @@ export function ProfileImageUpload({ userId, initialImage }: ProfileImageUploadP
       
       toast.success("Profile image uploaded!");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error(error);
       toast.error("Something went wrong");
     } finally {

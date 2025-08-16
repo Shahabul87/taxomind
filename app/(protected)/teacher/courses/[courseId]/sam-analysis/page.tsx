@@ -34,7 +34,7 @@ export default function SAMAnalysisPage() {
         const data = await response.json();
         setAnalysisData(data.data);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error loading analysis:', error);
     }
   }, [courseId]);
@@ -81,7 +81,7 @@ export default function SAMAnalysisPage() {
 
       // Reload data
       await loadLatestAnalysis();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
         description: 'Failed to run analysis',
@@ -124,7 +124,7 @@ export default function SAMAnalysisPage() {
         title: 'Export Complete',
         description: 'Analysis report downloaded successfully',
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Export Failed',
         description: 'Could not export the report',

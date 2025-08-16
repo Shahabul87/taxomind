@@ -1,5 +1,5 @@
-import { currentUser } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { getSimplePostsForBlog } from "@/actions/get-simple-posts";
 import { logger } from '@/lib/logger';
@@ -7,25 +7,15 @@ import { logger } from '@/lib/logger';
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-export async function POST(
-  req: Request,
-) {
+export const POST = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-    // Authenticate the user
-    const user = await currentUser();
-    
-    if (!user?.id) {
-      return new NextResponse(JSON.stringify({ 
-        success: false,
-        error: "Unauthorized"
-      }), { 
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
     
     // Parse the request body
-    const body = await req.json();
+    const body = await request.json();
     const { title, categories } = body;
     
     if (!title) {
@@ -46,7 +36,7 @@ export async function POST(
     // Create the post in the database
     const post = await db.post.create({
       data: {
-        userId: user.id,
+        userId: context.user.id,
         title: title.trim(),
         category: categoryString,
       }
@@ -72,14 +62,17 @@ export async function POST(
       headers: { 'Content-Type': 'application/json' }
     });
   }
-}
+});
 
-export async function GET() {
+export const GET = withAuth(async (
+  request: NextRequest, 
+  context: APIAuthContext,
+  props?: any
+) => {
   try {
-
     const posts = await getSimplePostsForBlog();
 
-    return NextResponse.json({
+    return createSuccessResponse({
       success: true,
       posts,
       count: posts.length
@@ -87,13 +80,12 @@ export async function GET() {
   } catch (error) {
     logger.error("💥 [API] /api/posts - Error fetching posts:", error);
     
-    return NextResponse.json(
+    return createSuccessResponse(
       {
         success: false,
         error: "Failed to fetch posts",
         message: error instanceof Error ? error.message : "Unknown error"
       },
-      { status: 500 }
-    );
+      { status: 500 });
   }
-}
+});

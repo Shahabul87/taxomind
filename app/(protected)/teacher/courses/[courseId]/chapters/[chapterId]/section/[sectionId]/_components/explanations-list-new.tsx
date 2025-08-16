@@ -35,7 +35,7 @@ export const ExplanationsList = ({
       setIsDeleting(true);
       await onDelete(id);
       toast.success("Math explanation deleted successfully");
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsDeleting(false);

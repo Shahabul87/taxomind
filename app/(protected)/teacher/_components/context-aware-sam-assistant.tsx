@@ -282,7 +282,7 @@ What would you like to work on today?`,
         default:
           // Unknown action type
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Action error:', error);
       toast.error('Failed to perform action');
     }
@@ -336,7 +336,7 @@ What would you like to work on today?`,
       
       setMessages(prev => [...prev, samMessage]);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('SAM Error:', error);
       
       const errorMessage: ChatMessage = {

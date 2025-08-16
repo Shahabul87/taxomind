@@ -95,7 +95,7 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
         logger.warn(`Invalid JSON in localStorage for key: ${key}, using default value`);
         return initialValue;
       }
-    } catch (error) {
+    } catch (error: any) {
       // If error or can't access localStorage, return initialValue
       logger.error("Error reading from localStorage:", error);
       return initialValue;
@@ -111,7 +111,7 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(key, JSON.stringify(value));
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error writing to localStorage:", error);
     }
   };

@@ -73,7 +73,7 @@ export const MathRenderer = ({
         </div>
       </>
     );
-  } catch (error) {
+  } catch (error: any) {
     logger.error("KaTeX rendering error:", error);
     // If KaTeX fails to render, show error state with raw equation
     return (
@@ -187,7 +187,7 @@ export const AdvancedMathRenderer = ({
         </div>
       </>
     );
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Advanced KaTeX rendering error:", error);
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">

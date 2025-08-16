@@ -166,7 +166,7 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
       const group = await response.json();
       toast.success("Group created successfully!");
       router.push(`/groups/${group.id}`);
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Something went wrong");
     } finally {
       setIsSubmitting(false);

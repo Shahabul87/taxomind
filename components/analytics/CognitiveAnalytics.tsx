@@ -194,7 +194,7 @@ export function CognitiveAnalytics({ user, className }: CognitiveAnalyticsProps)
         };
 
         setCognitiveData(mockCognitiveProfile);
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error fetching cognitive data:', error);
       } finally {
         setLoading(false);

@@ -3,13 +3,11 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from 'next/navigation';
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import {
-  IconDashboard, IconUser, IconSettings, IconBook, IconChartBar, IconUsers,
-  IconCalendar, IconMessageCircle, IconBrain, IconLibrary, IconHelpCircle,
-  IconMenu2, IconX, IconNews, IconBrandTabler, IconTarget, IconTrendingUp,
-  IconClock, IconAward, IconZap, IconEye
-} from "@tabler/icons-react";
+import { 
+  ChevronRight, LayoutDashboard, User, Settings, BookOpen, BarChart3, Users,
+  Calendar, MessageCircle, Brain, Library, HelpCircle, Menu, X, Newspaper,
+  Layers, Target, TrendingUp, Clock, Award, Zap, Eye
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,25 +40,25 @@ const dashboardTabs: DashboardTab[] = [
   {
     id: 'overview',
     label: 'Overview',
-    icon: <IconDashboard className="w-4 h-4" />,
+    icon: <LayoutDashboard className="w-4 h-4" />,
     description: 'AI insights & daily progress'
   },
   {
     id: 'learning',
     label: 'Learning',
-    icon: <IconBook className="w-4 h-4" />,
+    icon: <BookOpen className="w-4 h-4" />,
     description: 'Courses & learning journey'
   },
   {
     id: 'analytics',
     label: 'Analytics',
-    icon: <IconChartBar className="w-4 h-4" />,
+    icon: <BarChart3 className="w-4 h-4" />,
     description: 'Performance & predictions'
   },
   {
     id: 'achievements',
     label: 'Achievements',
-    icon: <IconAward className="w-4 h-4" />,
+    icon: <Award className="w-4 h-4" />,
     description: 'Badges & gamification'
   }
 ];
@@ -102,22 +100,22 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
   const menuItems: MenuItem[] = [
     {
       title: "Dashboard",
-      icon: <IconDashboard className="w-5 h-5" />,
+      icon: <LayoutDashboard className="w-5 h-5" />,
       href: user?.role === "ADMIN" ? "/dashboard/admin" : (user ? "/dashboard/user" : "/"),
     },
     {
       title: "Profile Manager",
-      icon: <IconUser className="w-5 h-5" />,
+      icon: <User className="w-5 h-5" />,
       href: "/profile",
     },
     {
       title: "Settings",
-      icon: <IconSettings className="w-5 h-5" />,
+      icon: <Settings className="w-5 h-5" />,
       href: "/settings",
     },
     {
       title: "Courses",
-      icon: <IconBook className="w-5 h-5" />,
+      icon: <BookOpen className="w-5 h-5" />,
       submenu: [
         { label: "My Courses", href: "/my-courses" },
         { label: "All Courses", href: "/teacher/courses" },
@@ -126,7 +124,7 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
     },
     {
       title: "Posts",
-      icon: <IconNews className="w-5 h-5" />,
+      icon: <Newspaper className="w-5 h-5" />,
       submenu: [
         { label: "My Posts", href: "/post/all-posts" },
         { label: "Browse Posts", href: "/post" },
@@ -135,12 +133,12 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
     },
     {
       title: "Analytics",
-      icon: <IconChartBar className="w-5 h-5" />,
+      icon: <BarChart3 className="w-5 h-5" />,
       href: user?.role === "ADMIN" ? "/analytics/admin" : "/analytics/student",
     },
     {
       title: "Groups",
-      icon: <IconUsers className="w-5 h-5" />,
+      icon: <Users className="w-5 h-5" />,
       submenu: [
         { label: "My Groups", href: "/groups/my-groups" },
         { label: "All Groups", href: "/groups" },
@@ -149,22 +147,22 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
     },
     {
       title: "Support",
-      icon: <IconHelpCircle className="w-5 h-5" />,
+      icon: <HelpCircle className="w-5 h-5" />,
       href: "/support",
     },
     {
       title: "Message Center",
-      icon: <IconMessageCircle className="w-5 h-5" />,
+      icon: <MessageCircle className="w-5 h-5" />,
       href: "/messages",
     },
     {
       title: "Resource Center",
-      icon: <IconLibrary className="w-5 h-5" />,
+      icon: <Library className="w-5 h-5" />,
       href: "/resources",
     },
     {
       title: "AI Tutor",
-      icon: <IconBrain className="w-5 h-5" />,
+      icon: <Brain className="w-5 h-5" />,
       href: "/ai-tutor",
     },
   ];
@@ -194,7 +192,7 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
             transition-colors md:hidden border dark:border-gray-700 border-gray-200"
         >
           {open ? (
-            <IconX className="w-6 h-6" />
+            <X className="w-6 h-6" />
           ) : (
             <ChevronRight className="w-4 h-4" />
           )}
@@ -250,9 +248,9 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
                 )}
               >
                 {open ? (
-                  <IconX className="w-5 h-5 dark:text-gray-400 text-gray-600" />
+                  <X className="w-5 h-5 dark:text-gray-400 text-gray-600" />
                 ) : (
-                  <IconMenu2 className="w-5 h-5 dark:text-gray-400 text-gray-600" />
+                  <Menu className="w-5 h-5 dark:text-gray-400 text-gray-600" />
                 )}
               </button>
             )}
@@ -331,7 +329,7 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
             <div className="grid grid-cols-2 gap-2">
               <Card className="bg-white/50 dark:bg-gray-800/50 border-gray-200/50 dark:border-gray-700/50">
                 <CardContent className="p-3 text-center">
-                  <IconClock className="w-4 h-4 text-purple-500 mx-auto mb-1" />
+                  <Clock className="w-4 h-4 text-purple-500 mx-auto mb-1" />
                   <div className="text-lg font-bold text-gray-900 dark:text-white">{quickStats.streak}</div>
                   <div className="text-xs text-gray-500">Day Streak</div>
                 </CardContent>
@@ -339,7 +337,7 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
               
               <Card className="bg-white/50 dark:bg-gray-800/50 border-gray-200/50 dark:border-gray-700/50">
                 <CardContent className="p-3 text-center">
-                  <IconTarget className="w-4 h-4 text-green-500 mx-auto mb-1" />
+                  <Target className="w-4 h-4 text-green-500 mx-auto mb-1" />
                   <div className="text-lg font-bold text-gray-900 dark:text-white">{quickStats.completionRate}%</div>
                   <div className="text-xs text-gray-500">Complete</div>
                 </CardContent>
@@ -350,7 +348,7 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
             <div className="mt-3 px-2">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <IconBrain className="w-4 h-4 text-purple-500" />
+                  <Brain className="w-4 h-4 text-purple-500" />
                   <span className="text-sm text-gray-600 dark:text-gray-400">AI Score</span>
                 </div>
                 <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
@@ -456,11 +454,11 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
           >
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" size="sm" className="w-full bg-white/50 dark:bg-gray-800/50 border-gray-200/50 dark:border-gray-700/50">
-                <IconZap className="w-4 h-4 mr-1" />
+                <Zap className="w-4 h-4 mr-1" />
                 AI Tutor
               </Button>
               <Button variant="outline" size="sm" className="w-full bg-white/50 dark:bg-gray-800/50 border-gray-200/50 dark:border-gray-700/50">
-                <IconEye className="w-4 h-4 mr-1" />
+                <Eye className="w-4 h-4 mr-1" />
                 Analytics
               </Button>
             </div>
@@ -483,7 +481,7 @@ export const Logo = () => {
   return (
     <Link href="/" className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors">
       <div className="h-8 w-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-        <IconBrandTabler className="h-5 w-5" />
+        <Layers className="h-5 w-5" />
       </div>
       <span className="font-medium">iSham</span>
     </Link>
@@ -494,7 +492,7 @@ export const LogoIcon = () => {
   return (
     <Link href="/" className="block">
       <div className="h-8 w-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-        <IconBrandTabler className="h-5 w-5 text-purple-400" />
+        <Layers className="h-5 w-5 text-purple-400" />
       </div>
     </Link>
   );

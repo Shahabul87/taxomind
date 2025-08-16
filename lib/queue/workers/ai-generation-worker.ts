@@ -419,7 +419,7 @@ class MockAIService implements AIService {
   }
 
   private generateMilestones(totalWeeks: number): any[] {
-    const milestones = [];
+    const milestones: any[] = [];
     const milestoneWeeks = [
       Math.ceil(totalWeeks * 0.25),
       Math.ceil(totalWeeks * 0.5),

@@ -42,15 +42,10 @@ interface User {
 }
 
 const roleConfig = {
-  [UserRole.STUDENT]: {
-    label: "Student",
+  [UserRole.USER]: {
+    label: "User",
     color: "bg-blue-100 text-blue-800",
     icon: GraduationCap
-  },
-  [UserRole.TEACHER]: {
-    label: "Teacher",
-    color: "bg-green-100 text-green-800",
-    icon: Users
   },
   [UserRole.ADMIN]: {
     label: "Admin",
@@ -78,7 +73,7 @@ export function UserManagementTable() {
       } else {
         toast.error("Failed to fetch users");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error fetching users");
     } finally {
       setLoading(false);
@@ -104,7 +99,7 @@ export function UserManagementTable() {
         const data = await response.json();
         toast.error(data.error || "Failed to update role");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error updating role");
     }
   };
@@ -124,15 +119,14 @@ export function UserManagementTable() {
         const data = await response.json();
         toast.error(data.error || "Failed to delete user");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Error deleting user");
     }
   };
 
   const getRoleStats = () => {
     const stats = {
-      [UserRole.STUDENT]: 0,
-      [UserRole.TEACHER]: 0,
+      [UserRole.USER]: 0,
       [UserRole.ADMIN]: 0,
     };
     

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import React, { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { IconUpload, IconX } from "@tabler/icons-react";
+import { Upload, X } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 
 const mainVariant = {
@@ -119,7 +119,7 @@ export const FileUpload = ({ onChange, className }: FileUploadProps) => {
                       onClick={(e) => handleRemoveFile(e, idx)} // Stop the click from triggering the file input
                       className="text-red-500 hover:text-red-700"
                     >
-                      <IconX className="h-5 w-5" />
+                      <X className="h-5 w-5" />
                     </button>
                   </div>
 
@@ -165,10 +165,10 @@ export const FileUpload = ({ onChange, className }: FileUploadProps) => {
                     className="text-neutral-600 flex flex-col items-center"
                   >
                     Drop it
-                    <IconUpload className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
+                    <Upload className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
                   </motion.p>
                 ) : (
-                  <IconUpload className="h-4 w-4 text-neutral-600 dark:text-neutral-300" />
+                  <Upload className="h-4 w-4 text-neutral-600 dark:text-neutral-300" />
                 )}
               </motion.div>
             )}

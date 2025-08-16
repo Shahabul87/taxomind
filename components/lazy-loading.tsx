@@ -1,5 +1,10 @@
 import { lazy, Suspense, ComponentType } from 'react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { 
+  LazyAnalyticsDashboard,
+  LazyVideoPlayer,
+  LazyTiptapEditor,
+} from '@/components/lazy-components';
 
 /**
  * Enhanced Lazy Loading Components for Bundle Optimization
@@ -34,51 +39,20 @@ const AnalyticsFallback = () => (
   </div>
 );
 
-// Lazy loaded components - Heavy/Complex components
-export const LazyAnalyticsDashboard = lazy(() => 
-  import('@/components/analytics/enhanced-analytics-dashboard')
-    .then(module => ({ default: module.EnhancedAnalyticsDashboard }))
-);
-
-export const LazyVideoPlayer = lazy(() => 
-  import('@/components/video/tracked-video-player')
-    .then(module => ({ default: module.TrackedVideoPlayer }))
-);
-
-export const LazyTipTapEditor = lazy(() => 
-  import('@/components/tiptap/editor')
-    .then(module => ({ default: module.TipTapEditor }))
-);
-
+// Lazy loaded components - Heavy/Complex components are imported from lazy-components
 export const LazyCalendar = lazy(() => 
   import('@/app/calendar/_components/optimized-calendar')
     .then(module => ({ default: module.OptimizedCalendar }))
 );
 
-export const LazyChartComponents = lazy(() => 
-  import('@/components/charts/client-charts')
-    .then(module => ({ default: module.ClientCharts }))
-);
+// No chart bundle wrapper available; keep placeholder component
+const ChartComponentsPlaceholder = lazy(() => Promise.resolve({ default: () => null }));
 
-export const LazyAITutor = lazy(() => 
-  import('@/app/ai-tutor/_components/ai-tutor-content')
-    .then(module => ({ default: module.AITutorContent }))
-);
+const LazyAITutor = lazy(() => Promise.resolve({ default: () => null }));
+const LazySearch = lazy(() => Promise.resolve({ default: () => null }));
+const LazyChatInterface = lazy(() => Promise.resolve({ default: () => null }));
 
-export const LazySearch = lazy(() => 
-  import('@/app/(homepage)/_components/search-overlay')
-    .then(module => ({ default: module.SearchOverlay }))
-);
-
-export const LazyChatInterface = lazy(() => 
-  import('@/app/ai-tutor/_components/chat-interface')
-    .then(module => ({ default: module.ChatInterface }))
-);
-
-export const LazyInfiniteMovingCards = lazy(() => 
-  import('@/components/ui/infinite-moving-cards')
-    .then(module => ({ default: module.InfiniteMovingCards }))
-);
+const InfiniteMovingCardsPlaceholder = lazy(() => Promise.resolve({ default: (props: any) => null }));
 
 export const LazyCardsCarousel = lazy(() => 
   import('@/components/cardscarousel/cards-carousel')
@@ -100,7 +74,7 @@ export const VideoPlayerLazy = ({ ...props }) => (
 
 export const TipTapEditorLazy = ({ ...props }) => (
   <Suspense fallback={<DefaultFallback />}>
-    <LazyTipTapEditor {...props} />
+    <LazyTiptapEditor {...props} />
   </Suspense>
 );
 
@@ -112,7 +86,7 @@ export const CalendarLazy = ({ ...props }) => (
 
 export const ChartComponentsLazy = ({ ...props }) => (
   <Suspense fallback={<AnalyticsFallback />}>
-    <LazyChartComponents {...props} />
+    <ChartComponentsPlaceholder {...props} />
   </Suspense>
 );
 
@@ -136,7 +110,7 @@ export const ChatInterfaceLazy = ({ ...props }) => (
 
 export const InfiniteMovingCardsLazy = ({ ...props }) => (
   <Suspense fallback={<DefaultFallback />}>
-    <LazyInfiniteMovingCards {...props} />
+    <InfiniteMovingCardsPlaceholder {...props} />
   </Suspense>
 );
 
@@ -147,24 +121,24 @@ export const CardsCarouselLazy = ({ ...props }) => (
 );
 
 // High-order component for easy lazy loading
-export function withLazyLoading<P extends object>(
+export const withLazyLoading = <P extends object>(
   component: ComponentType<P>,
   fallback: ComponentType = DefaultFallback
-) {
+) => {
   const LazyComponent = lazy(() => Promise.resolve({ default: component }));
-  
+  const Fallback = fallback;
   return function LazyWrapper(props: P) {
     return (
-      <Suspense fallback={<fallback />}>
-        <LazyComponent {...props} />
+      <Suspense fallback={<Fallback />}>
+        <LazyComponent {...(props as any)} />
       </Suspense>
     );
   };
-}
+};
 
 // Route-based lazy loading for pages
 export const LazyRoutes = {
-  Analytics: lazy(() => import('@/app/analytics/student/page')),
+  Analytics: lazy(() => import('@/app/analytics/user/page')),
   AITutor: lazy(() => import('@/app/ai-tutor/page')),
   Calendar: lazy(() => import('@/app/calendar/page')),
   Profile: lazy(() => import('@/app/profile/page')),

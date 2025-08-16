@@ -70,7 +70,7 @@ export const ChaptersSectionForm = ({
       setIsCreating(false);
       form.reset();
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Section creation error:", error);
       toast.error("Something went wrong");
     }

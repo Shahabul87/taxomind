@@ -27,7 +27,7 @@ export type BaseEvent = z.infer<typeof BaseEventSchema>;
  * Course Event Schemas
  */
 
-export const CourseCreatedSchema = z.object({
+const CourseCreatedSchema = z.object({
   type: z.literal('course.created'),
   payload: z.object({
     courseId: z.string(),
@@ -41,7 +41,7 @@ export const CourseCreatedSchema = z.object({
   }),
 });
 
-export const CourseUpdatedSchema = z.object({
+const CourseUpdatedSchema = z.object({
   type: z.literal('course.updated'),
   payload: z.object({
     courseId: z.string(),
@@ -55,7 +55,7 @@ export const CourseUpdatedSchema = z.object({
   }),
 });
 
-export const CoursePublishedSchema = z.object({
+const CoursePublishedSchema = z.object({
   type: z.literal('course.published'),
   payload: z.object({
     courseId: z.string(),
@@ -65,7 +65,7 @@ export const CoursePublishedSchema = z.object({
   }),
 });
 
-export const CourseDeletedSchema = z.object({
+const CourseDeletedSchema = z.object({
   type: z.literal('course.deleted'),
   payload: z.object({
     courseId: z.string(),
@@ -79,7 +79,7 @@ export const CourseDeletedSchema = z.object({
  * Enrollment Event Schemas
  */
 
-export const StudentEnrolledSchema = z.object({
+const StudentEnrolledSchema = z.object({
   type: z.literal('course.student.enrolled'),
   payload: z.object({
     courseId: z.string(),
@@ -91,7 +91,7 @@ export const StudentEnrolledSchema = z.object({
   }),
 });
 
-export const StudentUnenrolledSchema = z.object({
+const StudentUnenrolledSchema = z.object({
   type: z.literal('course.student.unenrolled'),
   payload: z.object({
     courseId: z.string(),
@@ -106,7 +106,7 @@ export const StudentUnenrolledSchema = z.object({
  * Progress Event Schemas
  */
 
-export const ProgressUpdatedSchema = z.object({
+const ProgressUpdatedSchema = z.object({
   type: z.literal('course.progress.updated'),
   payload: z.object({
     courseId: z.string(),
@@ -119,7 +119,7 @@ export const ProgressUpdatedSchema = z.object({
   }),
 });
 
-export const ChapterCompletedSchema = z.object({
+const ChapterCompletedSchema = z.object({
   type: z.literal('course.chapter.completed'),
   payload: z.object({
     courseId: z.string(),
@@ -131,7 +131,7 @@ export const ChapterCompletedSchema = z.object({
   }),
 });
 
-export const CourseCompletedSchema = z.object({
+const CourseCompletedSchema = z.object({
   type: z.literal('course.completed'),
   payload: z.object({
     courseId: z.string(),
@@ -147,7 +147,7 @@ export const CourseCompletedSchema = z.object({
  * Assessment Event Schemas
  */
 
-export const AssessmentStartedSchema = z.object({
+const AssessmentStartedSchema = z.object({
   type: z.literal('course.assessment.started'),
   payload: z.object({
     courseId: z.string(),
@@ -160,7 +160,7 @@ export const AssessmentStartedSchema = z.object({
   }),
 });
 
-export const AssessmentCompletedSchema = z.object({
+const AssessmentCompletedSchema = z.object({
   type: z.literal('course.assessment.completed'),
   payload: z.object({
     courseId: z.string(),
@@ -177,7 +177,7 @@ export const AssessmentCompletedSchema = z.object({
   }),
 });
 
-export const AssessmentFailedSchema = z.object({
+const AssessmentFailedSchema = z.object({
   type: z.literal('course.assessment.failed'),
   payload: z.object({
     courseId: z.string(),
@@ -195,7 +195,7 @@ export const AssessmentFailedSchema = z.object({
  * Certificate Event Schemas
  */
 
-export const CertificateGeneratedSchema = z.object({
+const CertificateGeneratedSchema = z.object({
   type: z.literal('course.certificate.generated'),
   payload: z.object({
     courseId: z.string(),
@@ -207,7 +207,7 @@ export const CertificateGeneratedSchema = z.object({
   }),
 });
 
-export const CertificateDownloadedSchema = z.object({
+const CertificateDownloadedSchema = z.object({
   type: z.literal('course.certificate.downloaded'),
   payload: z.object({
     courseId: z.string(),
@@ -222,7 +222,7 @@ export const CertificateDownloadedSchema = z.object({
  * Review Event Schemas
  */
 
-export const ReviewSubmittedSchema = z.object({
+const ReviewSubmittedSchema = z.object({
   type: z.literal('course.review.submitted'),
   payload: z.object({
     courseId: z.string(),
@@ -234,7 +234,7 @@ export const ReviewSubmittedSchema = z.object({
   }),
 });
 
-export const ReviewUpdatedSchema = z.object({
+const ReviewUpdatedSchema = z.object({
   type: z.literal('course.review.updated'),
   payload: z.object({
     courseId: z.string(),
@@ -250,7 +250,7 @@ export const ReviewUpdatedSchema = z.object({
  * Discussion Event Schemas
  */
 
-export const DiscussionStartedSchema = z.object({
+const DiscussionStartedSchema = z.object({
   type: z.literal('course.discussion.started'),
   payload: z.object({
     courseId: z.string(),
@@ -263,7 +263,7 @@ export const DiscussionStartedSchema = z.object({
   }),
 });
 
-export const CommentAddedSchema = z.object({
+const CommentAddedSchema = z.object({
   type: z.literal('course.comment.added'),
   payload: z.object({
     courseId: z.string(),
@@ -280,7 +280,7 @@ export const CommentAddedSchema = z.object({
  * Content Interaction Schemas
  */
 
-export const VideoWatchedSchema = z.object({
+const VideoWatchedSchema = z.object({
   type: z.literal('course.video.watched'),
   payload: z.object({
     courseId: z.string(),
@@ -295,7 +295,7 @@ export const VideoWatchedSchema = z.object({
   }),
 });
 
-export const ResourceDownloadedSchema = z.object({
+const ResourceDownloadedSchema = z.object({
   type: z.literal('course.resource.downloaded'),
   payload: z.object({
     courseId: z.string(),
@@ -313,7 +313,7 @@ export const ResourceDownloadedSchema = z.object({
  * System Event Schemas
  */
 
-export const SystemMaintenanceScheduledSchema = z.object({
+const SystemMaintenanceScheduledSchema = z.object({
   type: z.literal('system.maintenance.scheduled'),
   payload: z.object({
     maintenanceId: z.string(),
@@ -324,7 +324,7 @@ export const SystemMaintenanceScheduledSchema = z.object({
   }),
 });
 
-export const SystemErrorOccurredSchema = z.object({
+const SystemErrorOccurredSchema = z.object({
   type: z.literal('system.error.occurred'),
   payload: z.object({
     errorId: z.string(),
@@ -341,7 +341,7 @@ export const SystemErrorOccurredSchema = z.object({
  * User Event Schemas
  */
 
-export const UserRegisteredSchema = z.object({
+const UserRegisteredSchema = z.object({
   type: z.literal('user.registered'),
   payload: z.object({
     userId: z.string(),
@@ -353,7 +353,7 @@ export const UserRegisteredSchema = z.object({
   }),
 });
 
-export const UserProfileUpdatedSchema = z.object({
+const UserProfileUpdatedSchema = z.object({
   type: z.literal('user.profile.updated'),
   payload: z.object({
     userId: z.string(),
@@ -369,7 +369,7 @@ export const UserProfileUpdatedSchema = z.object({
  * Payment Event Schemas
  */
 
-export const PaymentCompletedSchema = z.object({
+const PaymentCompletedSchema = z.object({
   type: z.literal('payment.completed'),
   payload: z.object({
     paymentId: z.string(),
@@ -382,7 +382,7 @@ export const PaymentCompletedSchema = z.object({
   }),
 });
 
-export const PaymentFailedSchema = z.object({
+const PaymentFailedSchema = z.object({
   type: z.literal('payment.failed'),
   payload: z.object({
     paymentId: z.string(),
@@ -399,7 +399,7 @@ export const PaymentFailedSchema = z.object({
  * Analytics Event Schemas
  */
 
-export const PageViewedSchema = z.object({
+const PageViewedSchema = z.object({
   type: z.literal('analytics.page.viewed'),
   payload: z.object({
     userId: z.string().optional(),
@@ -412,7 +412,7 @@ export const PageViewedSchema = z.object({
   }),
 });
 
-export const FeatureUsedSchema = z.object({
+const FeatureUsedSchema = z.object({
   type: z.literal('analytics.feature.used'),
   payload: z.object({
     userId: z.string().optional(),
@@ -426,7 +426,7 @@ export const FeatureUsedSchema = z.object({
 /**
  * Schema Registry
  */
-export const EventSchemaRegistry = new Map([
+export const EventSchemaRegistry = new Map<string, z.ZodSchema>([
   // Course events
   ['course.created', CourseCreatedSchema],
   ['course.updated', CourseUpdatedSchema],
@@ -500,7 +500,7 @@ export class EventValidator {
     try {
       schema.parse(event);
       return { valid: true };
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         return {
           valid: false,
@@ -529,11 +529,11 @@ export class EventValidator {
     }
 
     try {
-      // Extract payload schema from the full event schema
-      const payloadSchema = schema.shape.payload;
-      payloadSchema.parse(payload);
+      // Create a test event with the payload to validate
+      const testEvent = { type: eventType, payload };
+      schema.parse(testEvent);
       return { valid: true };
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         return {
           valid: false,

@@ -451,7 +451,11 @@ export class CognitiveGapAnalyzer {
       const next = levelElements[i + 1];
       
       // Simple difficulty mapping
-      const difficultyMap = { easy: 1, medium: 2, hard: 3 };
+      const difficultyMap: Record<QuestionDifficulty, number> = {
+        [QuestionDifficulty.EASY]: 1,
+        [QuestionDifficulty.MEDIUM]: 2,
+        [QuestionDifficulty.HARD]: 3,
+      };
       const currentDiff = difficultyMap[current.difficulty];
       const nextDiff = difficultyMap[next.difficulty];
       
@@ -653,7 +657,11 @@ export class CognitiveGapAnalyzer {
     performanceData: Map<string, ItemPerformanceData>
   ): SequentialGap {
     
-    const difficultyMap = { easy: 1, medium: 2, hard: 3 };
+    const difficultyMap: Record<QuestionDifficulty, number> = {
+      [QuestionDifficulty.EASY]: 1,
+      [QuestionDifficulty.MEDIUM]: 2,
+      [QuestionDifficulty.HARD]: 3,
+    };
     const difficultyJump = difficultyMap[next.difficulty] - difficultyMap[current.difficulty];
     const severity = Math.max(0, (difficultyJump - 1) / 2);
     

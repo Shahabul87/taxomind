@@ -60,7 +60,7 @@ export function UserDebugPanel({ className = "", defaultOpen = false }: UserDebu
       setDebugData(response.data);
       setLastFetch(new Date());
       toast.success('Debug data refreshed');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to fetch debug data:', error);
       toast.error('Failed to fetch debug data');
     } finally {
@@ -77,7 +77,7 @@ export function UserDebugPanel({ className = "", defaultOpen = false }: UserDebu
       await fetchDebugData();
       
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Action "${action}" failed:`, error);
       toast.error(`Action "${action}" failed`);
     }
@@ -89,7 +89,7 @@ export function UserDebugPanel({ className = "", defaultOpen = false }: UserDebu
       setCopiedItem(label);
       toast.success(`${label} copied to clipboard`);
       setTimeout(() => setCopiedItem(null), 2000);
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to copy to clipboard');
     }
   };

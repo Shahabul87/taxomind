@@ -45,7 +45,7 @@ export function SamFormIntegrationExample({
       // If you have access to the form instance, you can also update it directly:
       // learningObjectivesFormRef.current?.setValue('whatYouWillLearn', htmlContent);
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update learning objectives:', error);
       toast.error('Failed to update learning objectives');
       throw error;
@@ -67,7 +67,7 @@ export function SamFormIntegrationExample({
       toast.success(`${chapters.length} chapters created successfully!`);
       router.refresh();
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to create chapters:', error);
       toast.error('Failed to create chapters');
       throw error;
@@ -80,7 +80,7 @@ export function SamFormIntegrationExample({
       await axios.patch(`/api/courses/${courseId}`, { title });
       toast.success("Course title updated!");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update title:', error);
       toast.error('Failed to update title');
       throw error;
@@ -93,7 +93,7 @@ export function SamFormIntegrationExample({
       await axios.patch(`/api/courses/${courseId}`, { description });
       toast.success("Course description updated!");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to update description:', error);
       toast.error('Failed to update description');
       throw error;
