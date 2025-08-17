@@ -2,11 +2,48 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 ENTERPRISE CODING STANDARDS - MANDATORY
+
+**CRITICAL**: This project enforces strict enterprise coding standards. ALL code generation MUST comply with these rules. Violations are considered critical issues requiring immediate fix.
+
+### ⛔ ABSOLUTE PROHIBITIONS
+1. **NEVER use `any` type in TypeScript** - This violates enterprise security and type safety standards
+2. **NEVER use `unknown` without proper type guards** - Must narrow types before use
+3. **NEVER skip post-generation validation** - Always check TypeScript errors after generating code
+4. **NEVER commit code with TypeScript/ESLint errors** - Fix all errors before proceeding
+5. **NEVER process unvalidated input** - All inputs must be validated with Zod or similar
+6. **NEVER expose sensitive data** - Check all logs, errors, and responses
+7. **NEVER make massive changes without user confirmation** - Alert if >10 files or >100 lines affected
+
+### ✅ MANDATORY WORKFLOW FOR CODE GENERATION
+
+1. **PRE-GENERATION**:
+   - Check current TypeScript errors: `npx tsc --noEmit`
+   - Verify Prisma schema for database fields: `cat prisma/schema.prisma`
+   - Review existing patterns in the codebase
+
+2. **GENERATION**:
+   - Use explicit TypeScript types (no `any` or `unknown`)
+   - Follow established patterns in the codebase
+   - Implement proper error handling
+
+3. **POST-GENERATION VALIDATION** (NEVER SKIP):
+   ```bash
+   npx tsc --noEmit        # Check TypeScript errors
+   npm run lint            # Check ESLint errors
+   npx prettier --check .  # Check formatting
+   ```
+   - Fix ALL errors before proceeding to next file
+   - Check for unescaped HTML entities (`&apos;`, `&quot;`, `&amp;`)
+
+4. **CLEANUP**:
+   - Apply Prettier formatting
+   - Refactor if needed for clarity
+   - Add necessary type definitions
+
 ## Project Overview
 
 **Taxomind** is an intelligent learning management system (LMS) built with Next.js 15, featuring AI-powered adaptive learning, real-time analytics, and enterprise-grade security. The platform supports multiple learning paths with role-based access control for students, teachers, and administrators.
-
-IMPORTANT: Always check build errors, lint error, unescaped entities errors, terminal errors after generating code
 
 ## Essential Development Commands
 
@@ -234,6 +271,156 @@ Based on our schema:
 2. Look for the model definition and its relations
 3. Use `npx prisma studio` to visually explore relations
 4. Run `npx prisma generate` after schema changes to update TypeScript types
+
+## 🔒 API Security Standards - MANDATORY
+
+### Standard API Response Format
+**EVERY API endpoint MUST use this structure**:
+```typescript
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
+  metadata?: {
+    timestamp: string;
+    requestId: string;
+    version: string;
+  };
+}
+
+// Example implementation
+export async function POST(request: Request) {
+  try {
+    // ALWAYS validate input first
+    const body = await request.json();
+    const validatedData = CreateCourseSchema.parse(body);
+    
+    // Process request
+    const result = await createCourse(validatedData);
+    
+    return NextResponse.json({
+      success: true,
+      data: result,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        requestId: crypto.randomUUID(),
+        version: '1.0.0'
+      }
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: error.errors
+        }
+      }, { status: 400 });
+    }
+    
+    // Never expose internal errors
+    return NextResponse.json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred processing your request'
+      }
+    }, { status: 500 });
+  }
+}
+```
+
+### API Security Checklist
+**CHECK EVERY API endpoint for**:
+- ✅ Input validation using Zod schemas
+- ✅ SQL injection prevention (parameterized queries)
+- ✅ XSS prevention (output sanitization)
+- ✅ Authentication required (unless public)
+- ✅ Authorization checks for resources
+- ✅ Rate limiting implemented
+- ✅ Sensitive data not in URLs
+- ✅ Error messages don't leak system info
+- ✅ HTTPS only (no HTTP)
+- ✅ CORS properly configured
+
+### Schema Validation Requirements
+```typescript
+// ALWAYS validate with Zod
+import { z } from 'zod';
+
+// Define strict schemas
+const CourseSchema = z.object({
+  title: z.string().min(3).max(200),
+  description: z.string().min(10).max(5000),
+  categoryId: z.string().uuid(),
+  price: z.number().min(0).max(999999),
+  imageUrl: z.string().url().optional(),
+});
+
+// Validate before processing
+const validatedData = CourseSchema.parse(requestBody);
+
+// NEVER do this:
+const data = req.body; // ❌ Unvalidated input
+```
+
+### Database Schema Compliance
+
+**BEFORE writing ANY database query**:
+
+1. **Check schema first**:
+   ```bash
+   npx prisma studio  # Visual check
+   # OR
+   cat prisma/schema.prisma | grep -A 20 "model User"
+   ```
+
+2. **NEVER use non-existent fields**:
+   ```typescript
+   // ❌ WRONG - Check if 'emailVerified' exists first
+   await db.user.update({
+     where: { id },
+     data: { emailVerified: true } // Verify this field exists!
+   });
+   ```
+
+3. **If new fields needed**:
+   - STOP code generation
+   - Update schema.prisma
+   - Run: `npx prisma db push`
+   - Generate client: `npx prisma generate`
+   - THEN write code
+
+### Git State Monitoring
+
+**BEFORE large changes**:
+```bash
+# Check current state
+git status
+git diff --stat
+
+# If changes affect > 10 files or > 100 lines
+# STOP and ask user for confirmation
+```
+
+**Warning template for massive changes**:
+```
+⚠️ MASSIVE CHANGE DETECTED
+
+This operation will modify:
+- Files: [count]
+- Lines: [approximate count]
+- Main areas affected: [list]
+
+Reason: [explanation]
+
+Proceed? (yes/no)
+```
 
 ## Key Technical Decisions
 
