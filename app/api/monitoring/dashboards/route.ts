@@ -1,62 +1,82 @@
 /**
- * Dashboards API Route
- * Access monitoring dashboards
+ * Monitoring Dashboards API Route
+ * Provides dashboard configurations and data
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+
 import { auth } from '@/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET(): Promise<NextResponse> {
   try {
     const session = await auth();
     
-    if (!session || !session.user) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    
-    // Temporarily return empty dashboards to fix build
-    return NextResponse.json([]);
+
+    // Mock dashboard data
+    const dashboards = [
+      {
+        id: '1',
+        name: 'System Overview',
+        widgets: [
+          { id: 'w1', type: 'metric', title: 'CPU Usage', value: 45 },
+          { id: 'w2', type: 'metric', title: 'Memory Usage', value: 62 },
+          { id: 'w3', type: 'chart', title: 'Request Rate', data: [] }
+        ]
+      }
+    ];
+
+    return NextResponse.json({ dashboards }, { status: 200 });
   } catch (error) {
-    console.error('Dashboards API error: ', error);
     return NextResponse.json(
       {
         error: 'Failed to fetch dashboards',
-        message: (error as Error).message,
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     
-    if (!session || session.user?.role !== 'ADMIN') {
+    if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    const body = await request.json() as { name: string; widgets: unknown[] };
     
-    const body = await request.json();
-    const { name, widgets } = body;
-    
-    // Temporarily return mock response to fix build
-    return NextResponse.json({
-      success: true,
-      dashboardId: 'mock-dashboard-id',
-      message: 'Dashboard created successfully',
-    });
+    // Mock dashboard creation
+    const newDashboard = {
+      id: Date.now().toString(),
+      name: body.name,
+      widgets: body.widgets,
+      createdBy: session.user.id,
+      createdAt: new Date().toISOString()
+    };
+
+    return NextResponse.json(
+      { 
+        success: true,
+        dashboard: newDashboard
+      },
+      { status: 201 }
+    );
   } catch (error) {
-    console.error('Dashboard creation error: ', error);
     return NextResponse.json(
       {
         error: 'Failed to create dashboard',
-        message: (error as Error).message,
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

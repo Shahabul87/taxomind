@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export function GET(request: NextRequest): NextResponse {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const baseHealth = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || '1.0.0'
+      version: process.env.npm_package_version ?? '1.0.0'
     };
     
     if (type === 'liveness') {
@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(baseHealth, { status: 200 });
   } catch (error) {
-    console.error('Health check error: ', error);
     return NextResponse.json(
       {
         status: 'error',

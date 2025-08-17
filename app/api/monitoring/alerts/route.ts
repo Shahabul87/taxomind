@@ -1,88 +1,91 @@
 /**
- * Alerts API Route
- * Manage monitoring alerts
+ * Monitoring Alerts API Route
+ * Manages system alerts and notifications
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-// Temporarily disabled complex monitoring import to fix build
-// import { monitoring } from '@/lib/monitoring';
 
-export async function GET(request: NextRequest) {
+import { auth } from '@/auth';
+
+export async function GET(): Promise<NextResponse> {
   try {
     const session = await auth();
     
-    if (!session || session.user?.role !== 'ADMIN') {
+    if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    
-    // Temporarily return mock data to fix build
-    if (status === 'active') {
-      return NextResponse.json([]);
-    } else if (status === 'history') {
-      return NextResponse.json([]);
-    } else {
-      return NextResponse.json({
-        total: 0,
-        active: 0,
-        resolved: 0,
-        acknowledged: 0
-      });
-    }
+
+    // Mock alerts data
+    const alerts = [
+      {
+        id: '1',
+        type: 'warning',
+        title: 'High Memory Usage',
+        message: 'Server memory usage above 80%',
+        timestamp: new Date().toISOString(),
+        severity: 'medium',
+        resolved: false
+      },
+      {
+        id: '2',
+        type: 'info',
+        title: 'Scheduled Maintenance',
+        message: 'System maintenance scheduled for tonight',
+        timestamp: new Date().toISOString(),
+        severity: 'low',
+        resolved: false
+      }
+    ];
+
+    return NextResponse.json({ alerts }, { status: 200 });
   } catch (error) {
-    console.error('Alerts API error: ', error);
     return NextResponse.json(
       {
         error: 'Failed to fetch alerts',
-        message: (error as Error).message,
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     
-    if (!session || session.user?.role !== 'ADMIN') {
+    if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    
-    const body = await request.json();
-    const { action, alertId } = body;
-    
-    // Temporarily return success to fix build
-    const userId = session.user.id!;
-    
-    switch (action) {
-      case 'acknowledge':
-        return NextResponse.json({ success: true, message: 'Alert acknowledged' });
-        
-      case 'resolve':
-        return NextResponse.json({ success: true, message: 'Alert resolved' });
-        
-      default:
-        return NextResponse.json(
-          { error: 'Invalid action' },
-          { status: 400 }
-        );
-    }
+
+    const body = await request.json() as { alertId: string };
+    const { alertId } = body;
+
+    // Mock alert resolution
+    const resolvedAlert = {
+      id: alertId,
+      resolved: true,
+      resolvedAt: new Date().toISOString(),
+      resolvedBy: session.user.id
+    };
+
+    return NextResponse.json(
+      { 
+        success: true,
+        alert: resolvedAlert
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error('Alert action error: ', error);
     return NextResponse.json(
       {
-        error: 'Failed to perform alert action',
-        message: (error as Error).message,
+        error: 'Failed to resolve alert',
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

@@ -1,55 +1,67 @@
 /**
- * Metrics API Route
- * Provides access to application metrics
+ * Monitoring Metrics API Route
+ * Provides system metrics and performance data
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+
 import { auth } from '@/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     
-    if (!session || !session.user) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    
+
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period') || '1h';
+    const period = searchParams.get('period') ?? '1h';
     
-    // Temporarily return mock metrics to fix build
-    const mockMetrics = {
+    // Mock metrics data
+    const metrics = {
       period,
       timestamp: new Date().toISOString(),
-      metrics: {
-        requests: {
-          total: 1000,
-          success: 950,
-          errors: 50,
+      system: {
+        cpu: {
+          usage: 45,
+          cores: 8,
+          loadAverage: [1.2, 1.5, 1.8]
         },
-        performance: {
-          avgResponseTime: 250,
-          p95ResponseTime: 500,
-          p99ResponseTime: 1000,
+        memory: {
+          used: 62,
+          total: 100,
+          available: 38
         },
-        resources: {
-          cpuUsage: 45,
-          memoryUsage: 60,
-          diskUsage: 30,
-        },
+        disk: {
+          used: 75,
+          total: 500,
+          available: 125
+        }
       },
+      application: {
+        requests: {
+          total: 10000,
+          rate: 50,
+          errors: 12
+        },
+        responseTime: {
+          average: 250,
+          p95: 500,
+          p99: 1000
+        }
+      }
     };
-    
-    return NextResponse.json(mockMetrics);
+
+    return NextResponse.json({ metrics }, { status: 200 });
   } catch (error) {
-    console.error('Metrics API error: ', error);
     return NextResponse.json(
       {
         error: 'Failed to fetch metrics',
-        message: (error as Error).message,
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
