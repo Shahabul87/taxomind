@@ -5,9 +5,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+
+import * as crypto from 'crypto';
+
 import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
 import { logger } from '@/lib/logger';
-import * as crypto from 'crypto';
 
 interface CacheConfig {
   ttl?: number;
@@ -21,15 +23,16 @@ interface CacheConfig {
 interface CachedResponse {
   status: number;
   headers: Record<string, string>;
-  body: any;
+  body: string;
   timestamp: number;
   etag: string;
 }
 
 interface SessionData {
+  userId?: string;
   createdAt: number;
   lastAccessed: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 class ApiCacheMiddleware {
@@ -111,8 +114,8 @@ class ApiCacheMiddleware {
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.substring(7);
-        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-        return payload.sub || payload.userId || null;
+        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString()) as { sub?: string; userId?: string };
+        return payload.sub ?? payload.userId ?? null;
       } catch {
         // Ignore token parsing errors
       }
@@ -131,9 +134,8 @@ class ApiCacheMiddleware {
   /**
    * Generate ETag for response
    */
-  private generateETag(data: any): string {
-    const content = typeof data === 'string' ? data : JSON.stringify(data);
-    return crypto.createHash('md5').update(content).digest('hex');
+  private generateETag(data: string): string {
+    return crypto.createHash('sha256').update(data).digest('hex').substring(0, 16);
   }
 
   /**
@@ -187,7 +189,7 @@ class ApiCacheMiddleware {
 
       // Check if cached response is still fresh
       const age = Date.now() - cachedResponse.timestamp;
-      const maxAge = (config.ttl || CACHE_TTL.MEDIUM) * 1000;
+      const maxAge = (config.ttl ?? CACHE_TTL.MEDIUM) * 1000;
 
       if (age > maxAge) {
         // Expired, remove from cache
@@ -255,20 +257,25 @@ class ApiCacheMiddleware {
 
       const etag = this.generateETag(body);
       
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+
       const cachedResponse: CachedResponse = {
         status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        body: body,
+        headers,
+        body,
         timestamp: Date.now(),
         etag,
       };
 
-      const ttl = config.ttl || CACHE_TTL.MEDIUM;
+      const ttl = config.ttl ?? CACHE_TTL.MEDIUM;
       
       await redisCache.set(cacheKey, cachedResponse, {
         prefix: CACHE_PREFIXES.TEMP,
         ttl,
-        tags: config.tags || ['api-cache'],
+        tags: config.tags ?? ['api-cache'],
       });
 
       // Add cache headers to original response
@@ -313,7 +320,7 @@ export const apiCacheMiddleware = ApiCacheMiddleware.getInstance();
  * Higher-order function to wrap API routes with caching
  */
 export function withCache(config: CacheConfig = {}) {
-  return function (handler: (request: NextRequest) => Promise<NextResponse>) {
+  return function (handler: (request: NextRequest) => Promise<NextResponse>): (request: NextRequest) => Promise<NextResponse> {
     return async function cachedHandler(request: NextRequest): Promise<NextResponse> {
       // Try to get cached response
       const cachedResponse = await apiCacheMiddleware.getCachedResponse(request, config);
@@ -423,10 +430,10 @@ export class SessionManager {
   /**
    * Create a new session
    */
-  async createSession(userId: string, sessionData: any, ttl: number = CACHE_TTL.DAY): Promise<string> {
+  async createSession(userId: string, sessionData: Record<string, unknown>, ttl = CACHE_TTL.DAY): Promise<string> {
     const sessionId = this.generateSessionId();
     
-    const session = {
+    const session: SessionData = {
       userId,
       ...sessionData,
       createdAt: Date.now(),
@@ -458,14 +465,14 @@ export class SessionManager {
   /**
    * Update session data
    */
-  async updateSession(sessionId: string, data: Partial<any>): Promise<boolean> {
+  async updateSession(sessionId: string, data: Partial<SessionData>): Promise<boolean> {
     const session = await redisCache.getSession(sessionId);
     
     if (!session) {
       return false;
     }
 
-    const updatedSession = {
+    const updatedSession: SessionData = {
       ...session,
       ...data,
       lastAccessed: Date.now(),

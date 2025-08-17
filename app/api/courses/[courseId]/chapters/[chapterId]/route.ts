@@ -1,5 +1,6 @@
-import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
+
+import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
@@ -25,7 +26,7 @@ export async function DELETE(
     const courseOwner = await db.course.findFirst({
       where: {
         id: courseId,
-        userId: userId,
+        userId,
       }
     });
 
@@ -37,7 +38,7 @@ export async function DELETE(
     const chapter = await db.chapter.findUnique({
       where: {
         id: chapterId,
-        courseId: courseId,
+        courseId,
       }
     });
 
@@ -55,7 +56,7 @@ export async function DELETE(
     // Reorder the remaining chapters
     const remainingChapters = await db.chapter.findMany({
       where: {
-        courseId: courseId,
+        courseId,
         position: {
           gt: chapter.position
         }
@@ -115,7 +116,7 @@ export async function PATCH(
     const courseOwner = await db.course.findFirst({
       where: {
         id: courseId,
-        userId: userId,
+        userId,
       }
     });
 
@@ -127,7 +128,7 @@ export async function PATCH(
     const chapter = await db.chapter.update({
       where: {
         id: chapterId,
-        courseId: courseId,
+        courseId,
       },
       data: {
         ...values,
@@ -139,7 +140,7 @@ export async function PATCH(
       await db.chapter.update({
         where: {
           id: chapterId,
-          courseId: courseId,
+          courseId,
         },
         data: {
           isPublished

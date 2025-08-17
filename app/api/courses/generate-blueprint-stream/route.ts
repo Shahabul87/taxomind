@@ -1,7 +1,7 @@
+import { type EnhancedContentRequest } from "@/lib/ai-content-generator";
+import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/anthropic-client";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { generateIntelligentCourseContent, type EnhancedContentRequest } from "@/lib/ai-content-generator";
-import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/anthropic-client";
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          await generateBlueprintWithStreaming(courseRequirements, user.id!, controller);
+          await generateBlueprintWithStreaming(courseRequirements, user.id, controller);
         } catch (error) {
           logger.error('[STREAMING] Error in blueprint generation:', error);
           const errorMessage: StreamMessage = {

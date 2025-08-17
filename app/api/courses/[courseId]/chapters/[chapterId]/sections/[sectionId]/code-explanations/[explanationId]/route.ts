@@ -1,6 +1,7 @@
+import { NextResponse } from "next/server";
+
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { NextResponse } from "next/server";
 
 export async function PATCH(
   req: Request,
@@ -21,7 +22,7 @@ export async function PATCH(
     const courseOwner = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: userId,
+        userId,
       }
     });
 
@@ -41,7 +42,7 @@ export async function PATCH(
     const codeExplanation = await db.codeExplanation.update({
       where: {
         id: explanationId,
-        sectionId: sectionId,
+        sectionId,
       },
       data: updateData,
     });
@@ -71,7 +72,7 @@ export async function DELETE(
     const courseOwner = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: userId,
+        userId,
       }
     });
 
@@ -83,7 +84,7 @@ export async function DELETE(
     const codeExplanation = await db.codeExplanation.delete({
       where: {
         id: explanationId,
-        sectionId: sectionId,
+        sectionId,
       },
     });
 
@@ -112,7 +113,7 @@ export async function GET(
     const courseOwner = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: userId,
+        userId,
       }
     });
 
@@ -124,7 +125,7 @@ export async function GET(
     const codeExplanation = await db.codeExplanation.findUnique({
       where: {
         id: explanationId,
-        sectionId: sectionId,
+        sectionId,
       },
     });
 

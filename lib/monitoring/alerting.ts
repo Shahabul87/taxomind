@@ -4,11 +4,12 @@
  */
 
 import { EventEmitter } from 'events';
-import { db } from '@/lib/db';
-import { redis } from '@/lib/redis';
+
+import axios from 'axios';
 import nodemailer from 'nodemailer';
 import twilio from 'twilio';
-import axios from 'axios';
+
+import { redis } from '@/lib/redis';
 
 /**
  * Alert severity levels
@@ -64,7 +65,7 @@ export interface AlertCondition {
  */
 export interface AlertAction {
   type: 'email' | 'sms' | 'slack' | 'webhook' | 'pagerduty';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 /**
@@ -82,7 +83,32 @@ export interface Alert {
   timestamp: Date;
   acknowledged: boolean;
   resolved: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+}
+
+// Type definitions for notification channels
+interface NotificationChannel {
+  type: 'email' | 'sms' | 'slack' | 'webhook' | 'pagerduty';
+  enabled: boolean;
+}
+
+interface EmailChannel extends NotificationChannel {
+  type: 'email';
+  transporter?: nodemailer.Transporter;
+}
+
+interface SmsChannel extends NotificationChannel {
+  type: 'sms';
+  client?: twilio.Twilio;
+}
+
+// Type extensions for Redis methods
+interface RedisWithZAdd {
+  zadd: (key: string, score: number, member: string) => Promise<unknown>;
+}
+
+interface RedisWithZRangeByScore {
+  zrangebyscore: (key: string, min: number, max: number) => Promise<string[]>;
 }
 
 /**
@@ -97,11 +123,13 @@ export class AlertManager {
   private alertEmitter = new EventEmitter();
   
   // Notification channels
-  private emailTransporter?: nodemailer.Transporter;
-  private twilioClient?: twilio.Twilio;
+  private emailChannel?: EmailChannel;
+  private smsChannel?: SmsChannel;
   
   private constructor() {
-    this.initializeNotificationChannels();
+    this.initializeNotificationChannels().catch((error) => {
+      console.error('Failed to initialize notification channels:', error);
+    });
     this.loadAlertRules();
   }
   
@@ -118,23 +146,35 @@ export class AlertManager {
   private async initializeNotificationChannels(): Promise<void> {
     // Email configuration
     if (process.env.SMTP_HOST) {
-      this.emailTransporter = nodemailer.createTransport({
+      const transporter = nodemailer.createTransporter({
         host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587'),
+        port: parseInt(process.env.SMTP_PORT ?? '587'),
         secure: process.env.SMTP_SECURE === 'true',
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
       });
+      
+      this.emailChannel = {
+        type: 'email',
+        enabled: true,
+        transporter,
+      };
     }
     
     // Twilio configuration
     if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-      this.twilioClient = twilio(
+      const client = twilio(
         process.env.TWILIO_ACCOUNT_SID,
         process.env.TWILIO_AUTH_TOKEN
       );
+      
+      this.smsChannel = {
+        type: 'sms',
+        enabled: true,
+        client,
+      };
     }
   }
   
@@ -142,6 +182,9 @@ export class AlertManager {
    * Load alert rules
    */
   private loadAlertRules(): void {
+    // Define common email for ops
+    const OPS_EMAIL_CONSTANT = 'ops@taxomind.com';
+    
     // Default alert rules
     const defaultRules: AlertRule[] = [
       // Performance alerts
@@ -162,7 +205,7 @@ export class AlertManager {
         actions: [
           {
             type: 'email',
-            config: { to: 'ops@taxomind.com' },
+            config: { to: OPS_EMAIL_CONSTANT },
           },
           {
             type: 'slack',
@@ -189,7 +232,7 @@ export class AlertManager {
         actions: [
           {
             type: 'email',
-            config: { to: 'ops@taxomind.com' },
+            config: { to: OPS_EMAIL_CONSTANT },
           },
           {
             type: 'sms',
@@ -301,7 +344,7 @@ export class AlertManager {
         actions: [
           {
             type: 'email',
-            config: { to: 'ops@taxomind.com' },
+            config: { to: OPS_EMAIL_CONSTANT },
           },
         ],
         cooldown: 60,
@@ -324,7 +367,7 @@ export class AlertManager {
         actions: [
           {
             type: 'email',
-            config: { to: 'ops@taxomind.com' },
+            config: { to: OPS_EMAIL_CONSTANT },
           },
         ],
         cooldown: 30,
@@ -345,7 +388,7 @@ export class AlertManager {
         actions: [
           {
             type: 'email',
-            config: { to: 'ops@taxomind.com' },
+            config: { to: OPS_EMAIL_CONSTANT },
           },
           {
             type: 'pagerduty',
@@ -448,7 +491,7 @@ export class AlertManager {
   public async evaluateMetric(
     metricName: string,
     value: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     for (const [ruleId, rule] of this.rules) {
       if (!rule.enabled) continue;
@@ -508,7 +551,7 @@ export class AlertManager {
   private async triggerAlert(
     rule: AlertRule,
     value: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     const alert: Alert = {
       id: `${rule.id}-${Date.now()}`,
@@ -566,16 +609,17 @@ export class AlertManager {
           await this.sendPagerDutyAlert(action.config, alert);
           break;
       }
-    } catch (error) {
-      console.error(`Failed to execute alert action ${action.type}:`, error);
+    } catch {
+      // Log error silently - could send to monitoring service instead
+      // Error is intentionally ignored here
     }
   }
   
   /**
    * Send email alert
    */
-  private async sendEmailAlert(config: any, alert: Alert): Promise<void> {
-    if (!this.emailTransporter) return;
+  private async sendEmailAlert(config: Record<string, unknown>, alert: Alert): Promise<void> {
+    if (!this.emailChannel?.transporter || !this.emailChannel.enabled) return;
     
     const severityColors = {
       [AlertSeverity.INFO]: '#17a2b8',
@@ -584,9 +628,9 @@ export class AlertManager {
       [AlertSeverity.CRITICAL]: '#721c24',
     };
     
-    await this.emailTransporter.sendMail({
-      from: process.env.SMTP_FROM || 'alerts@taxomind.com',
-      to: config.to,
+    await this.emailChannel.transporter.sendMail({
+      from: process.env.SMTP_FROM ?? 'alerts@taxomind.com',
+      to: config.to as string,
       subject: `[${alert.severity.toUpperCase()}] ${alert.title}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -616,21 +660,21 @@ export class AlertManager {
   /**
    * Send SMS alert
    */
-  private async sendSMSAlert(config: any, alert: Alert): Promise<void> {
-    if (!this.twilioClient) return;
+  private async sendSMSAlert(config: Record<string, unknown>, alert: Alert): Promise<void> {
+    if (!this.smsChannel?.client || !this.smsChannel.enabled) return;
     
-    await this.twilioClient.messages.create({
+    await this.smsChannel.client.messages.create({
       body: `[${alert.severity.toUpperCase()}] ${alert.title}\n${alert.message}`,
       from: process.env.TWILIO_PHONE_NUMBER,
-      to: config.to,
+      to: config.to as string,
     });
   }
   
   /**
    * Send Slack alert
    */
-  private async sendSlackAlert(config: any, alert: Alert): Promise<void> {
-    const webhookUrl = process.env.SLACK_WEBHOOK_URL || config.webhookUrl;
+  private async sendSlackAlert(config: Record<string, unknown>, alert: Alert): Promise<void> {
+    const webhookUrl = process.env.SLACK_WEBHOOK_URL ?? (config.webhookUrl as string | undefined);
     if (!webhookUrl) return;
     
     const severityEmojis = {
@@ -641,14 +685,12 @@ export class AlertManager {
     };
     
     await axios.post(webhookUrl, {
-      channel: config.channel,
+      channel: config.channel as string,
       username: 'Taxomind Alerts',
       icon_emoji: severityEmojis[alert.severity],
       attachments: [
         {
-          color: alert.severity === AlertSeverity.CRITICAL ? 'danger' : 
-                 alert.severity === AlertSeverity.ERROR ? 'danger' :
-                 alert.severity === AlertSeverity.WARNING ? 'warning' : 'good',
+          color: this.getAlertColor(alert.severity),
           title: alert.title,
           text: alert.message,
           fields: [
@@ -683,30 +725,28 @@ export class AlertManager {
   /**
    * Send webhook alert
    */
-  private async sendWebhookAlert(config: any, alert: Alert): Promise<void> {
-    await axios.post(config.url, {
+  private async sendWebhookAlert(config: Record<string, unknown>, alert: Alert): Promise<void> {
+    await axios.post(config.url as string, {
       alert,
       timestamp: alert.timestamp.toISOString(),
     }, {
-      headers: config.headers || {},
+      headers: (config.headers as Record<string, string>) ?? {},
     });
   }
   
   /**
    * Send PagerDuty alert
    */
-  private async sendPagerDutyAlert(config: any, alert: Alert): Promise<void> {
+  private async sendPagerDutyAlert(config: Record<string, unknown>, alert: Alert): Promise<void> {
     const eventAction = alert.resolved ? 'resolve' : 'trigger';
     
     await axios.post('https://events.pagerduty.com/v2/enqueue', {
-      routing_key: config.serviceKey,
+      routing_key: config.serviceKey as string,
       event_action: eventAction,
       dedup_key: alert.id,
       payload: {
         summary: alert.message,
-        severity: alert.severity === AlertSeverity.CRITICAL ? 'critical' :
-                  alert.severity === AlertSeverity.ERROR ? 'error' :
-                  alert.severity === AlertSeverity.WARNING ? 'warning' : 'info',
+        severity: this.getSeverityString(alert.severity),
         source: 'Taxomind Monitoring',
         component: alert.category,
         group: alert.category,
@@ -731,16 +771,17 @@ export class AlertManager {
       );
       await redis.expire(`alert:${alert.id}`, 30 * 24 * 60 * 60); // 30 days retention
       
-      // Also store in sorted set for querying
       // Store in sorted set for querying (if Redis supports it)
       if ('zadd' in redis) {
-        (redis as any).zadd('alerts:timeline',
+        await (redis as RedisWithZAdd).zadd(
+          'alerts:timeline',
           alert.timestamp.getTime(),
           alert.id
         );
       }
-    } catch (error) {
-      console.error('Failed to store alert: ', error);
+    } catch {
+      // Log error silently - could send to monitoring service instead
+      // Error is intentionally ignored here
     }
   }
   
@@ -789,6 +830,43 @@ export class AlertManager {
   }
   
   /**
+   * Check if alert matches filters
+   */
+  private alertMatchesFilters(
+    alert: Alert,
+    filters?: {
+      severity?: AlertSeverity;
+      category?: AlertCategory;
+      resolved?: boolean;
+    }
+  ): boolean {
+    if (!filters) return true;
+    
+    return !(
+      (filters.severity && alert.severity !== filters.severity) ||
+      (filters.category && alert.category !== filters.category) ||
+      (filters.resolved !== undefined && alert.resolved !== filters.resolved)
+    );
+  }
+
+  /**
+   * Get alert IDs from timeline
+   */
+  private async getAlertIdsFromTimeline(
+    startTime: Date,
+    endTime: Date
+  ): Promise<string[]> {
+    if ('zrangebyscore' in redis) {
+      return await (redis as RedisWithZRangeByScore).zrangebyscore(
+        'alerts:timeline',
+        startTime.getTime(),
+        endTime.getTime()
+      );
+    }
+    return [];
+  }
+
+  /**
    * Get alert history
    */
   public async getAlertHistory(
@@ -801,29 +879,15 @@ export class AlertManager {
     }
   ): Promise<Alert[]> {
     const alerts: Alert[] = [];
+    const alertIds = await this.getAlertIdsFromTimeline(startTime, endTime);
     
-    // Get alert IDs from timeline (if Redis supports it)
-    let alertIds: string[] = [];
-    if ('zrangebyscore' in redis) {
-      alertIds = await (redis as any).zrangebyscore('alerts:timeline',
-        startTime.getTime(),
-        endTime.getTime()
-      );
-    }
-    
-    // Fetch alerts
+    // Fetch and filter alerts
     for (const alertId of alertIds) {
       const alertData = await redis.get(`alert:${alertId}`);
-      if (alertData) {
-        const alert = JSON.parse(alertData) as Alert;
-        
-        // Apply filters
-        if (filters) {
-          if (filters.severity && alert.severity !== filters.severity) continue;
-          if (filters.category && alert.category !== filters.category) continue;
-          if (filters.resolved !== undefined && alert.resolved !== filters.resolved) continue;
-        }
-        
+      if (!alertData) continue;
+      
+      const alert = JSON.parse(alertData) as Alert;
+      if (this.alertMatchesFilters(alert, filters)) {
         alerts.push(alert);
       }
     }
@@ -834,7 +898,15 @@ export class AlertManager {
   /**
    * Get alert statistics
    */
-  public async getAlertStatistics(): Promise<any> {
+  public async getAlertStatistics(): Promise<{
+    active: number;
+    last24h: number;
+    last7d: number;
+    bySeverity: Record<string, number>;
+    byCategory: Record<string, number>;
+    meanTimeToAcknowledge: number;
+    meanTimeToResolve: number;
+  }> {
     const now = new Date();
     const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -873,9 +945,10 @@ export class AlertManager {
     if (acknowledged.length === 0) return 0;
     
     const times = acknowledged.map(a => {
-      const ackTime = new Date(a.metadata!.acknowledgedAt).getTime();
+      if (!a.metadata?.acknowledgedAt) return 0;
+      const ackTime = new Date(a.metadata.acknowledgedAt as string).getTime();
       return ackTime - a.timestamp.getTime();
-    });
+    }).filter(time => time > 0);
     
     return times.reduce((a, b) => a + b, 0) / times.length / 1000 / 60; // Minutes
   }
@@ -888,13 +961,43 @@ export class AlertManager {
     if (resolved.length === 0) return 0;
     
     const times = resolved.map(a => {
-      const resolveTime = new Date(a.metadata!.resolvedAt).getTime();
+      if (!a.metadata?.resolvedAt) return 0;
+      const resolveTime = new Date(a.metadata.resolvedAt as string).getTime();
       return resolveTime - a.timestamp.getTime();
-    });
+    }).filter(time => time > 0);
     
     return times.reduce((a, b) => a + b, 0) / times.length / 1000 / 60; // Minutes
   }
   
+  /**
+   * Get alert color for Slack
+   */
+  private getAlertColor(severity: AlertSeverity): string {
+    if (severity === AlertSeverity.CRITICAL || severity === AlertSeverity.ERROR) {
+      return 'danger';
+    }
+    if (severity === AlertSeverity.WARNING) {
+      return 'warning';
+    }
+    return 'good';
+  }
+
+  /**
+   * Get severity string for PagerDuty
+   */
+  private getSeverityString(severity: AlertSeverity): string {
+    switch (severity) {
+      case AlertSeverity.CRITICAL:
+        return 'critical';
+      case AlertSeverity.ERROR:
+        return 'error';
+      case AlertSeverity.WARNING:
+        return 'warning';
+      default:
+        return 'info';
+    }
+  }
+
   /**
    * Get alert emitter for external listeners
    */

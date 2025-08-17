@@ -1,6 +1,7 @@
+import { NextResponse } from "next/server";
+
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { NextResponse } from "next/server";
 
 export async function POST(
   req: Request,
@@ -32,7 +33,7 @@ export async function POST(
     const courseOwner = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: userId,
+        userId,
       }
     });
 
@@ -43,17 +44,16 @@ export async function POST(
     // Create code explanations for each block
     const createdExplanations = await Promise.all(
       codeBlocks.map(async (block: any, index: number) => {
-        const codeExplanation = await db.codeExplanation.create({
+        return await db.codeExplanation.create({
           data: {
             heading: block.title,
             code: block.code,
             explanation: block.explanation,
-            sectionId: sectionId,
+            sectionId,
             language: block.language || 'typescript',
             order: block.order || index,
           },
         });
-        return codeExplanation;
       })
     );
 
@@ -82,7 +82,7 @@ export async function GET(
     const courseOwner = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: userId,
+        userId,
       }
     });
 
@@ -93,7 +93,7 @@ export async function GET(
     // Get all code explanations for this section
     const codeExplanations = await db.codeExplanation.findMany({
       where: {
-        sectionId: sectionId,
+        sectionId,
       },
       orderBy: [
         {

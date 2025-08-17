@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+
 import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
@@ -48,7 +49,7 @@ interface AnalyticsData {
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ courseId: string }> }
-) {
+): Promise<NextResponse> {
   try {
 
     // Get current user
@@ -74,7 +75,7 @@ export async function GET(
     
     const { courseId } = await params;
     const url = new URL(req.url);
-    const timeframe = url.searchParams.get('timeframe') || '30d';
+    const timeframe = url.searchParams.get('timeframe') ?? '30d';
 
     // Verify course ownership
     const course = await db.course.findUnique({
@@ -116,9 +117,9 @@ export async function GET(
     }
     
     // Generate analytics data
-    const analytics = await generateAnalyticsData(course, timeframe);
-    const studentProgress = await generateStudentProgressData(course, timeframe);
-    const contentAnalytics = await generateContentAnalyticsData(course, timeframe);
+    const analytics = generateAnalyticsData(course, timeframe);
+    const studentProgress = generateStudentProgressData(course);
+    const contentAnalytics = generateContentAnalyticsData(course);
 
     return NextResponse.json({
       analytics,
@@ -138,12 +139,42 @@ export async function GET(
   }
 }
 
-async function generateAnalyticsData(course: any, timeframe: string): Promise<AnalyticsData> {
+interface CourseWithDetails {
+  id: string;
+  title: string;
+  userId: string;
+  chapters: Array<{
+    id: string;
+    title: string;
+    sections: Array<{
+      id: string;
+      title: string;
+      videos: Array<{ id: string; title?: string }>,
+      blogs: Array<{ id: string; title?: string }>,
+      codeExplanations: Array<{ id: string }>,
+      mathExplanations: Array<{ id: string }>
+    }>
+  }>;
+  Purchase: Array<{ id: string; userId: string; createdAt: Date }>;
+  Enrollment: Array<{
+    id: string;
+    userId: string;
+    createdAt: Date;
+    User: {
+      id: string;
+      name: string | null;
+      email: string | null;
+      createdAt: Date;
+    }
+  }>;
+}
+
+function generateAnalyticsData(course: CourseWithDetails, timeframe: string): AnalyticsData {
 
   // Calculate basic metrics
   const totalStudents = course.Purchase.length + course.Enrollment.length;
   const totalChapters = course.chapters.length;
-  const totalSections = course.chapters.reduce((sum: number, chapter: any) => sum + chapter.sections.length, 0);
+  const totalSections = course.chapters.reduce((sum: number, chapter) => sum + chapter.sections.length, 0);
   
   // Calculate engagement metrics (mock data for now - would be real analytics in production)
   const activeStudents = Math.round(totalStudents * 0.77); // 77% active rate
@@ -154,7 +185,7 @@ async function generateAnalyticsData(course: any, timeframe: string): Promise<An
   const contentMetrics = calculateContentMetrics(course);
   
   // Performance analytics
-  const performanceMetrics = calculatePerformanceMetrics(course);
+  const performanceMetrics = calculatePerformanceMetrics();
   
   // Engagement analytics
   const engagementMetrics = calculateEngagementMetrics(course, timeframe);
@@ -190,9 +221,9 @@ async function generateAnalyticsData(course: any, timeframe: string): Promise<An
   };
 }
 
-function calculateCompletionRate(course: any): number {
+function calculateCompletionRate(course: CourseWithDetails): number {
   // Mock calculation - in production would query actual progress data
-  const totalSections = course.chapters.reduce((sum: number, chapter: any) => sum + chapter.sections.length, 0);
+  const totalSections = course.chapters.reduce((sum: number, chapter) => sum + chapter.sections.length, 0);
   
   if (totalSections === 0) return 0;
   
@@ -203,14 +234,22 @@ function calculateCompletionRate(course: any): number {
   return 89.3; // Shorter courses have higher completion
 }
 
-function calculateAverageProgress(course: any): number {
+function calculateAverageProgress(course: CourseWithDetails): number {
   // Mock calculation - in production would aggregate user progress
   const completionRate = calculateCompletionRate(course);
-  return completionRate * 0.85 + Math.random() * 10; // Simulate realistic progress distribution
+  // Using deterministic value based on completion rate for consistent results
+  return completionRate * 0.85 + (completionRate % 10); // Simulate realistic progress distribution
 }
 
-function calculateContentMetrics(course: any) {
-  const totalSections = course.chapters.reduce((sum: number, chapter: any) => sum + chapter.sections.length, 0);
+interface ContentMetrics {
+  videosWatched: number;
+  articlesRead: number;
+  exercisesCompleted: number;
+  avgTimePerSection: number;
+}
+
+function calculateContentMetrics(course: CourseWithDetails): ContentMetrics {
+  const totalSections = course.chapters.reduce((sum: number, chapter) => sum + chapter.sections.length, 0);
   const totalStudents = course.Purchase.length + course.Enrollment.length;
   
   // Calculate content interaction metrics (mock data)
@@ -218,15 +257,24 @@ function calculateContentMetrics(course: any) {
     videosWatched: Math.round(totalSections * totalStudents * 0.65),
     articlesRead: Math.round(totalSections * totalStudents * 0.78),
     exercisesCompleted: Math.round(totalSections * totalStudents * 0.42),
-    avgTimePerSection: 15 + Math.random() * 20 // 15-35 minutes average
+    avgTimePerSection: 25 // Fixed average time per section
   };
 }
 
-function calculatePerformanceMetrics(course: any) {
+interface PerformanceMetrics {
+  quizScores: number[];
+  assignmentScores: number[];
+  bloomsLevelProgress: Record<string, number>;
+  learningPathEffectiveness: number;
+  retentionRate: number;
+}
+
+function calculatePerformanceMetrics(): PerformanceMetrics {
   // Generate realistic performance data
-  const generateScores = (base: number, variance: number, count: number = 8) => {
-    return Array.from({ length: count }, () => 
-      Math.round(base + (Math.random() - 0.5) * variance)
+  const generateScores = (base: number, variance: number, count: number = 8): number[] => {
+    return Array.from({ length: count }, (_, index) => 
+      // Using index-based deterministic variation instead of random
+      Math.round(base + ((index % 3) - 1) * (variance / 2))
     );
   };
   
@@ -237,41 +285,57 @@ function calculatePerformanceMetrics(course: any) {
   bloomsLevels.forEach((level, index) => {
     // Higher cognitive levels have progressively lower completion rates
     const baseRate = 90 - (index * 12);
-    bloomsProgress[level] = Math.max(30, baseRate + (Math.random() - 0.5) * 15);
+    // Using index-based deterministic variation
+    bloomsProgress[level] = Math.max(30, baseRate + ((index % 2) === 0 ? 5 : -5));
   });
   
   return {
     quizScores: generateScores(82, 15),
     assignmentScores: generateScores(85, 12),
     bloomsLevelProgress: bloomsProgress,
-    learningPathEffectiveness: 75 + Math.random() * 20,
-    retentionRate: 85 + Math.random() * 10
+    learningPathEffectiveness: 85, // Fixed value for consistency
+    retentionRate: 90 // Fixed value for consistency
   };
 }
 
-function calculateEngagementMetrics(course: any, timeframe: string) {
+interface EngagementMetrics {
+  dailyActiveUsers: number[];
+  weeklyEngagement: number[];
+  contentInteractions: Record<string, number>;
+  peakUsageHours: number[];
+  dropoffPoints: string[];
+}
+
+function calculateEngagementMetrics(course: CourseWithDetails, timeframe: string): EngagementMetrics {
   const totalStudents = course.Purchase.length + course.Enrollment.length;
   
   // Generate engagement patterns based on timeframe
-  const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
+  const getDays = (tf: string): number => {
+    if (tf === '7d') return 7;
+    if (tf === '30d') return 30;
+    return 90;
+  };
+  const days = getDays(timeframe);
   
   // Daily active users (percentage of total)
-  const dailyActiveUsers = Array.from({ length: 7 }, () => 
-    Math.round(totalStudents * (0.15 + Math.random() * 0.25))
+  const dailyActiveUsers = Array.from({ length: 7 }, (_, index) => 
+    // Using day-based pattern instead of random
+    Math.round(totalStudents * (0.15 + (index % 3) * 0.08))
   );
   
   // Weekly engagement trends
-  const weeklyEngagement = Array.from({ length: Math.min(days / 7, 12) }, () => 
-    70 + Math.random() * 25
+  const weeklyEngagement = Array.from({ length: Math.min(days / 7, 12) }, (_, index) => 
+    // Using week-based pattern
+    70 + (index % 4) * 6
   );
   
   // Content interaction percentages
-  const contentInteractions = {
-    videos: 40 + Math.random() * 15,
-    blogs: 30 + Math.random() * 15,
-    code: 25 + Math.random() * 15,
-    quizzes: 35 + Math.random() * 15,
-    exercises: 30 + Math.random() * 15
+  const contentInteractions: Record<string, number> = {
+    videos: 47.5,
+    blogs: 37.5,
+    code: 32.5,
+    quizzes: 42.5,
+    exercises: 37.5
   };
   
   return {
@@ -283,18 +347,18 @@ function calculateEngagementMetrics(course: any, timeframe: string) {
   };
 }
 
-function identifyDropoffPoints(course: any): string[] {
+function identifyDropoffPoints(course: CourseWithDetails): string[] {
   const dropoffPoints: string[] = [];
   
   // Analyze course structure to identify potential dropoff points
-  course.chapters.forEach((chapter: any, chapterIndex: number) => {
+  course.chapters.forEach((chapter, chapterIndex: number) => {
     // Longer chapters are potential dropoff points
     if (chapter.sections.length > 8) {
       dropoffPoints.push(`Chapter ${chapterIndex + 1}: ${chapter.title}`);
     }
     
     // Chapters with complex content types
-    const hasComplexContent = chapter.sections.some((section: any) => 
+    const hasComplexContent = chapter.sections.some((section) => 
       section.codeExplanations.length > 0 || section.mathExplanations.length > 0
     );
     
@@ -311,7 +375,21 @@ function identifyDropoffPoints(course: any): string[] {
   return dropoffPoints.slice(0, 3); // Limit to top 3
 }
 
-function generatePredictions(course: any, metrics: any) {
+interface CourseMetrics {
+  totalStudents: number;
+  activeStudents: number;
+  completionRate: number;
+  averageProgress: number;
+}
+
+interface PredictionResult {
+  completionPrediction: number;
+  riskStudents: number;
+  successPredictors: string[];
+  recommendedActions: string[];
+}
+
+function generatePredictions(course: CourseWithDetails, metrics: CourseMetrics): PredictionResult {
   const { totalStudents, activeStudents, completionRate, averageProgress } = metrics;
   
   // Predict final completion rate
@@ -334,8 +412,8 @@ function generatePredictions(course: any, metrics: any) {
   ];
   
   // Add course-specific predictors
-  const hasInteractiveContent = course.chapters.some((chapter: any) =>
-    chapter.sections.some((section: any) => 
+  const hasInteractiveContent = course.chapters.some((chapter) =>
+    chapter.sections.some((section) => 
       section.codeExplanations.length > 0 || section.mathExplanations.length > 0
     )
   );
@@ -371,81 +449,124 @@ function generatePredictions(course: any, metrics: any) {
   };
 }
 
-async function generateStudentProgressData(course: any, timeframe: string) {
+interface StudentProgress {
+  id: string;
+  name: string;
+  email: string;
+  enrolledDate: Date;
+  progress: number;
+  lastActive: string;
+  completedSections: number;
+  totalSections: number;
+  currentBloomsLevel: string;
+  riskLevel: string;
+  predictedCompletion: string;
+  engagementScore: number;
+  averageQuizScore: number;
+}
+
+function generateStudentProgressData(course: CourseWithDetails): StudentProgress[] {
   // Mock student progress data - in production would query actual user progress
-  const students = [...course.Purchase, ...course.Enrollment].map((enrollment: any) => ({
-    id: enrollment.user.id,
-    name: enrollment.user.name || 'Unknown',
-    email: enrollment.user.email,
+  const enrollments = course.Enrollment;
+  const students = enrollments.map((enrollment, index) => ({
+    id: enrollment.User.id,
+    name: enrollment.User.name ?? 'Unknown',
+    email: enrollment.User.email ?? 'Unknown',
     enrolledDate: enrollment.createdAt,
-    progress: Math.round(Math.random() * 100),
-    lastActive: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-    completedSections: Math.round(Math.random() * course.chapters.reduce((sum: number, chapter: any) => sum + chapter.sections.length, 0)),
-    totalSections: course.chapters.reduce((sum: number, chapter: any) => sum + chapter.sections.length, 0),
-    currentBloomsLevel: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE'][Math.floor(Math.random() * 4)],
-    riskLevel: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-    predictedCompletion: new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString(),
-    engagementScore: Math.round(Math.random() * 100),
-    averageQuizScore: Math.round(70 + Math.random() * 25)
+    progress: Math.round(75 + (index % 4) * 5), // Deterministic progress based on index
+    lastActive: new Date(Date.now() - (index % 7) * 24 * 60 * 60 * 1000).toISOString(),
+    completedSections: Math.round(0.7 * course.chapters.reduce((sum: number, chapter) => sum + chapter.sections.length, 0)),
+    totalSections: course.chapters.reduce((sum: number, chapter) => sum + chapter.sections.length, 0),
+    currentBloomsLevel: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE'][index % 4],
+    riskLevel: ['low', 'medium', 'high'][index % 3],
+    predictedCompletion: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    engagementScore: 75 + (index % 5) * 5,
+    averageQuizScore: 80 + (index % 3) * 5
   }));
   
   return students.slice(0, 20); // Return first 20 for display
 }
 
-async function generateContentAnalyticsData(course: any, timeframe: string) {
+interface ContentItem {
+  id: string;
+  title: string;
+  type: string;
+  viewCount: number;
+  completionRate: number;
+  averageTimeSpent: number;
+  engagementScore: number;
+  difficultyRating: number;
+  bloomsLevel: string;
+  feedback: {
+    likes: number;
+    dislikes: number;
+    comments: number;
+    rating: number;
+  };
+  performance: {
+    dropoffRate: number;
+    retentionRate: number;
+    successRate: number;
+  };
+}
+
+function generateContentAnalyticsData(course: CourseWithDetails): ContentItem[] {
   // Mock content analytics - in production would track actual content performance
-  const contentItems: any[] = [];
+  const contentItems: ContentItem[] = [];
   
-  course.chapters.forEach((chapter: any) => {
-    chapter.sections.forEach((section: any) => {
+  let itemIndex = 0;
+  course.chapters.forEach((chapter) => {
+    chapter.sections.forEach((section) => {
       // Videos
-      section.videos.forEach((video: any) => {
+      section.videos.forEach((video) => {
+        itemIndex++;
         contentItems.push({
           id: video.id,
-          title: video.title || section.title,
+          title: video.title ?? section.title,
           type: 'video',
-          viewCount: Math.round(Math.random() * 200),
-          completionRate: Math.round(60 + Math.random() * 35),
-          averageTimeSpent: Math.round(300 + Math.random() * 600), // seconds
-          engagementScore: Math.round(Math.random() * 100),
-          difficultyRating: Math.round(1 + Math.random() * 4),
-          bloomsLevel: ['UNDERSTAND', 'APPLY'][Math.floor(Math.random() * 2)],
+          viewCount: 100 + (itemIndex % 10) * 10,
+          completionRate: 75 + (itemIndex % 4) * 5,
+          averageTimeSpent: 450 + (itemIndex % 6) * 50, // seconds
+          engagementScore: 70 + (itemIndex % 4) * 7,
+          difficultyRating: 2 + (itemIndex % 3),
+          bloomsLevel: ['UNDERSTAND', 'APPLY'][itemIndex % 2],
           feedback: {
-            likes: Math.round(Math.random() * 50),
-            dislikes: Math.round(Math.random() * 5),
-            comments: Math.round(Math.random() * 15),
-            rating: 3.5 + Math.random() * 1.5
+            likes: 25 + (itemIndex % 5) * 5,
+            dislikes: 2 + (itemIndex % 2),
+            comments: 8 + (itemIndex % 3) * 2,
+            rating: 4.0 + (itemIndex % 3) * 0.3
           },
           performance: {
-            dropoffRate: Math.round(Math.random() * 30),
-            retentionRate: Math.round(70 + Math.random() * 25),
-            successRate: Math.round(75 + Math.random() * 20)
+            dropoffRate: 15 + (itemIndex % 3) * 5,
+            retentionRate: 80 + (itemIndex % 4) * 5,
+            successRate: 85 + (itemIndex % 3) * 5
           }
         });
       });
       
       // Blogs
-      section.blogs.forEach((blog: any) => {
+      section.blogs.forEach((blog) => {
+        itemIndex++;
         contentItems.push({
           id: blog.id,
-          title: blog.title || section.title,
+          title: blog.title ?? section.title,
           type: 'blog',
-          viewCount: Math.round(Math.random() * 150),
-          completionRate: Math.round(65 + Math.random() * 30),
-          averageTimeSpent: Math.round(600 + Math.random() * 900),
-          engagementScore: Math.round(Math.random() * 100),
-          difficultyRating: Math.round(1 + Math.random() * 4),
-          bloomsLevel: ['REMEMBER', 'UNDERSTAND', 'ANALYZE'][Math.floor(Math.random() * 3)],
+          viewCount: 75 + (itemIndex % 8) * 10,
+          completionRate: 80 + (itemIndex % 4) * 5,
+          averageTimeSpent: 750 + (itemIndex % 6) * 75, // seconds
+          engagementScore: 65 + (itemIndex % 5) * 7,
+          difficultyRating: 2 + (itemIndex % 3),
+          bloomsLevel: ['REMEMBER', 'UNDERSTAND', 'ANALYZE'][itemIndex % 3],
           feedback: {
-            likes: Math.round(Math.random() * 30),
-            dislikes: Math.round(Math.random() * 3),
-            comments: Math.round(Math.random() * 8),
-            rating: 3.8 + Math.random() * 1.2
+            likes: 15 + (itemIndex % 4) * 4,
+            dislikes: 1 + (itemIndex % 2),
+            comments: 4 + (itemIndex % 3),
+            rating: 4.2 + (itemIndex % 3) * 0.2
           },
           performance: {
-            dropoffRate: Math.round(Math.random() * 25),
-            retentionRate: Math.round(75 + Math.random() * 20),
-            successRate: Math.round(80 + Math.random() * 15)
+            dropoffRate: 12 + (itemIndex % 3) * 4,
+            retentionRate: 85 + (itemIndex % 3) * 5,
+            successRate: 87 + (itemIndex % 3) * 4
           }
         });
       });

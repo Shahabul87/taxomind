@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { currentUser } from "@/lib/auth";
+
 import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/anthropic-client";
+import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { AIErrorHandler } from "@/lib/error-handler";
 import { logger } from '@/lib/logger';
 

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
-import { db } from "@/lib/db";
+
 import { z } from "zod";
+
+import { currentUser } from "@/lib/auth";
 import { QueryPerformanceMonitor } from "@/lib/database/query-optimizer";
+import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
@@ -120,21 +122,19 @@ export async function POST(
       });
 
       // Update the attempt
-      const updatedAttempt = await tx.userExamAttempt.update({
+      return await tx.userExamAttempt.update({
         where: {
           id: params.attemptId,
         },
         data: {
           submittedAt: new Date(),
           timeSpent,
-          scorePercentage: scorePercentage,
-          isPassed: isPassed,
+          scorePercentage,
+          isPassed,
           correctAnswers,
           totalQuestions: attempt.Exam.ExamQuestion.length,
         }
       });
-
-      return updatedAttempt;
     });
 
     return NextResponse.json({
@@ -171,7 +171,7 @@ function checkAnswer(question: any, userAnswer: any): boolean {
     return false; // No answer provided
   }
 
-  const correctAnswer = question.correctAnswer;
+  const {correctAnswer} = question;
 
   switch (question.questionType) {
     case 'MULTIPLE_CHOICE':

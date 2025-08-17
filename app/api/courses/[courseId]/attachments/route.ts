@@ -1,5 +1,6 @@
-import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
+
+import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 // Force Node.js runtime
@@ -20,7 +21,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     const courseOwner = await db.course.findUnique({
       where: {
         id: params.courseId,
-        userId: userId,
+        userId,
       }
     });
 

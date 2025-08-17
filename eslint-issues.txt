@@ -1,0 +1,126 @@
+Scanning lib/monitoring...
+/Users/mdshahabulalam/myprojects/taxomind/taxomind/lib/monitoring/alerting.ts
+    6:1   error    There should be at least one empty line between import groups                                                                                                       import/order
+    7:10  error    'db' is defined but never used                                                                                                                                      @typescript-eslint/no-unused-vars
+    7:10  error    'db' is defined but never used                                                                                                                                      unused-imports/no-unused-imports
+    7:10  error    Remove this unused import of 'db'                                                                                                                                   sonarjs/unused-import
+    8:1   error    There should be at least one empty line between import groups                                                                                                       import/order
+    9:1   error    `nodemailer` import should occur before import of `@/lib/db`                                                                                                        import/order
+   10:1   error    `twilio` import should occur before import of `@/lib/db`                                                                                                            import/order
+   11:1   error    `axios` import should occur before import of `@/lib/db`                                                                                                             import/order
+   67:26  error    Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+   85:29  error    Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+  104:5   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  104:5   error    Refactor this asynchronous operation outside of the constructor                                                                                                     sonarjs/no-async-constructor
+  118:3   error    Async method 'initializeNotificationChannels' has no 'await' expression                                                                                             require-await
+  118:3   error    Async method 'initializeNotificationChannels' has no 'await' expression                                                                                             @typescript-eslint/require-await
+  123:46  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+  165:27  error    Define a constant instead of duplicating this literal 5 times                                                                                                       sonarjs/no-duplicate-string
+  451:31  error    Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+  511:31  error    Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+  570:7   error    Unexpected console statement                                                                                                                                        no-console
+Scanning lib/database...
+/Users/mdshahabulalam/myprojects/taxomind/taxomind/lib/database/connection-pool.ts
+    8:1   error    There should be at least one empty line between import groups                                              import/order
+   49:27  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  124:28  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  125:28  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  126:36  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  127:28  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  128:36  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  131:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  132:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  136:54  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  141:66  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  142:54  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  143:46  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  144:52  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  155:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  155:49  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  156:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  156:58  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  157:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+Scanning lib/performance...
+/Users/mdshahabulalam/myprojects/taxomind/taxomind/lib/performance/code-splitting.tsx
+    7:1   error    There should be at least one empty line between import groups                                                                                                       import/order
+    7:41  error    'ReactNode' is defined but never used                                                                                                                               @typescript-eslint/no-unused-vars
+    7:41  error    'ReactNode' is defined but never used                                                                                                                               unused-imports/no-unused-imports
+    7:41  error    Remove this unused import of 'ReactNode'                                                                                                                            sonarjs/unused-import
+   18:11  error    Unsafe spread of an `any` value in an array                                                                                                                         @typescript-eslint/no-unsafe-assignment
+   19:26  warning  Do not use Array index in keys                                                                                                                                      react/no-array-index-key
+   50:11  error    Unsafe spread of an `any` value in an array                                                                                                                         @typescript-eslint/no-unsafe-assignment
+   51:26  warning  Do not use Array index in keys                                                                                                                                      react/no-array-index-key
+   63:11  error    Unsafe spread of an `any` value in an array                                                                                                                         @typescript-eslint/no-unsafe-assignment
+   64:26  warning  Do not use Array index in keys                                                                                                                                      react/no-array-index-key
+   90:61  error    Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+   91:44  error    Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+   91:44  error    'any' overrides all other types in this union type                                                                                                                  @typescript-eslint/no-redundant-type-constituents
+  107:38  warning  Missing return type on function                                                                                                                                     @typescript-eslint/explicit-function-return-type
+  109:11  error    Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable                                                             @next/next/no-assign-module-variable
+  109:17  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  111:17  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  111:67  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  112:19  error    Unsafe argument of type `any` assigned to a parameter of type `{ default: T; } | PromiseLike<{ default: T; }>`                                                      @typescript-eslint/no-unsafe-argument
+Scanning lib/cache...
+/Users/mdshahabulalam/myprojects/taxomind/taxomind/lib/cache/api-cache-middleware.ts
+    7:1   error    There should be at least one empty line between import groups                                              import/order
+    9:1   error    There should be at least one empty line between import groups                                              import/order
+   10:1   error    `crypto` import should occur before import of `next/server`                                                import/order
+   24:9   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   32:18  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   60:11  warning  Use object destructuring                                                                                   prefer-destructuring
+   61:11  warning  Use object destructuring                                                                                   prefer-destructuring
+  114:15  error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  115:9   error    Unsafe return of a value of type `any`                                                                     @typescript-eslint/no-unsafe-return
+  115:24  error    Unsafe member access .sub on an `any` value                                                                @typescript-eslint/no-unsafe-member-access
+  115:28  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  115:39  error    Unsafe member access .userId on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+  115:46  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  134:30  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  136:12  error    Make sure this weak hash algorithm is not used in a sensitive context here                                 sonarjs/hashing
+  190:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  261:9   error    Expected property shorthand                                                                                object-shorthand
+  266:30  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  271:27  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+Scanning components/ui...
+/Users/mdshahabulalam/myprojects/taxomind/taxomind/components/ui/accordion.tsx
+  3:1  error  There should be at least one empty line between import groups               import/order
+  4:1  error  There should be at least one empty line between import groups               import/order
+  5:1  error  There should be at least one empty line between import groups               import/order
+  6:1  error  `@radix-ui/react-icons` import should occur before import of `@/lib/utils`  import/order
+/Users/mdshahabulalam/myprojects/taxomind/taxomind/components/ui/ai-cache-monitor.tsx
+    3:1    error    There should be at least one empty line between import groups                         import/order
+    4:10   error    'motion' is defined but never used                                                    @typescript-eslint/no-unused-vars
+    4:10   error    'motion' is defined but never used                                                    unused-imports/no-unused-imports
+    4:10   error    Remove this unused import of 'motion'                                                 sonarjs/unused-import
+    5:1    error    There should be at least one empty line between import groups                         import/order
+   18:1    error    `@/components/ui/button` import should occur before import of `@/components/ui/card`  import/order
+   19:1    error    `@/components/ui/badge` import should occur before import of `@/components/ui/card`   import/order
+   40:95   warning  Missing return type on function                                                       @typescript-eslint/explicit-function-return-type
+   59:48   warning  Function Call Object Injection Sink                                                   security/detect-object-injection
+   65:25   warning  Generic Object Injection Sink                                                         security/detect-object-injection
+   80:86   error    Refactor this function to reduce its Cognitive Complexity from 20 to the 15 allowed   sonarjs/cognitive-complexity
+   80:86   warning  Missing return type on function                                                       @typescript-eslint/explicit-function-return-type
+   85:33   warning  Missing return type on function                                                       @typescript-eslint/explicit-function-return-type
+  106:12   error    Unexpected string concatenation                                                       prefer-template
+Scanning app/api/courses...
+/Users/mdshahabulalam/myprojects/taxomind/taxomind/app/api/courses/[courseId]/analytics/report/route.ts
+   1:1   error    There should be at least one empty line between import groups              import/order
+   3:1   error    `@/lib/auth` import should occur before import of `@/lib/db`               import/order
+   9:8   warning  Missing return type on function                                            @typescript-eslint/explicit-function-return-type
+  37:11  error    Unsafe assignment of an `any` value                                        @typescript-eslint/no-unsafe-assignment
+  38:11  error    Unsafe assignment of an `any` value                                        @typescript-eslint/no-unsafe-assignment
+  59:63  error    Unsafe argument of type `any` assigned to a parameter of type `string`     @typescript-eslint/no-unsafe-argument
+  59:74  error    Unsafe argument of type `any` assigned to a parameter of type `string`     @typescript-eslint/no-unsafe-argument
+  65:7   error    Unsafe assignment of an `any` value                                        @typescript-eslint/no-unsafe-assignment
+  66:7   error    Unsafe assignment of an `any` value                                        @typescript-eslint/no-unsafe-assignment
+  90:1   warning  Missing return type on function                                            @typescript-eslint/explicit-function-return-type
+  90:1   error    Async function 'generateReportContent' has no 'await' expression           require-await
+  90:1   error    Async function 'generateReportContent' has no 'await' expression           @typescript-eslint/require-await
+  90:46  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  90:70  error    'metrics' is defined but never used                                        @typescript-eslint/no-unused-vars
+  90:70  error    'metrics' is defined but never used. Allowed unused args must match /^_/u  unused-imports/no-unused-vars
+  96:77  error    Unsafe member access .title on an `any` value                              @typescript-eslint/no-unsafe-member-access
+/Users/mdshahabulalam/myprojects/taxomind/taxomind/app/api/courses/[courseId]/analytics/route.ts
+    1:1    error    There should be at least one empty line between import groups                                              import/order
+    3:1    error    `@/lib/auth` import should occur before import of `@/lib/db`                                               import/order

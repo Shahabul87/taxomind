@@ -3,20 +3,18 @@
  * Demonstrates the new standardized patterns for API development
  */
 
-import { NextRequest } from 'next/server';
 
-import { db } from '@/lib/db';
-import { currentUser } from '@/lib/auth';
 import { 
   successResponse, 
   noContentResponse,
-  createdResponse,
 } from '@/lib/api/response';
 import { 
   courseIdSchema, 
   courseUpdateSchema,
   validatedHandler,
 } from '@/lib/api/validation';
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { AppErrors, withErrorHandler } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 

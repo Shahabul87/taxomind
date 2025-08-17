@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+
 
 // TODO: Implement user progress tracking when UserProgress model is ready
 export async function PUT(

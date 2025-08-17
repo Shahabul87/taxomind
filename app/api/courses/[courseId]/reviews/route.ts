@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+
+import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
-import { currentUser } from "@/lib/auth";
 
 export async function POST(req: Request, props: { params: Promise<{ courseId: string }> }) {
   const params = await props.params;

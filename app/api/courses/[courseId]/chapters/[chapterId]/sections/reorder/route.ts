@@ -1,6 +1,6 @@
-import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
+import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
 // Force Node.js runtime
@@ -23,7 +23,7 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
     const ownCourse = await db.course.findUnique({
       where: {
         id: params.courseId,
-        userId: userId
+        userId
       }
     });
 
@@ -44,7 +44,7 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
     }
 
     // Update the positions of all sections in the list
-    for (let item of list) {
+    for (const item of list) {
       await db.section.update({
         where: { id: item.id },
         data: { position: item.position }

@@ -3,6 +3,7 @@
 // Rename this to "route.ts" to use it temporarily
 
 import { NextRequest, NextResponse } from "next/server";
+
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';

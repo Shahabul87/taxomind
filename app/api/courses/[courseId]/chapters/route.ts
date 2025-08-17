@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+
 import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime to avoid Edge Runtime issues with bcrypt
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ cour
     const courseOwner = await db.course.findUnique({
       where: {
         id: params.courseId,
-        userId: userId,
+        userId,
       }
     });
 

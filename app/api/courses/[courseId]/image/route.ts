@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+
 import { v2 as cloudinary } from 'cloudinary';
+
+import { auth } from "@/auth";
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime

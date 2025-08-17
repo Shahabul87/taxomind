@@ -5,7 +5,10 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import * as os from 'os';
+
 import { Pool, PoolClient, PoolConfig } from 'pg';
+
 import { logger } from '@/lib/logger';
 
 interface ConnectionPoolConfig {
@@ -46,7 +49,7 @@ interface PoolMetrics {
   lastError?: string;
 }
 
-interface QueryResult<T = any> {
+interface QueryResult<T = Record<string, unknown>> {
   rows: T[];
   rowCount: number;
   executionTime: number;
@@ -121,27 +124,27 @@ class DatabaseConnectionPool {
       const url = new URL(databaseUrl);
       
       return {
-        host: config?.host || url.hostname,
-        port: config?.port || parseInt(url.port) || 5432,
-        database: config?.database || url.pathname.slice(1),
-        user: config?.user || url.username,
-        password: config?.password || url.password,
+        host: config?.host ?? url.hostname,
+        port: config?.port ?? parseInt(url.port) ?? 5432,
+        database: config?.database ?? url.pathname.slice(1),
+        user: config?.user ?? url.username,
+        password: config?.password ?? url.password,
         
         // Pool configuration
-        min: config?.min || 2,
-        max: config?.max || this.getOptimalMaxConnections(),
+        min: config?.min ?? 2,
+        max: config?.max ?? this.getOptimalMaxConnections(),
         // acquireTimeoutMillis: config?.acquireTimeoutMillis || 60000, // Not supported by pg Pool
         // createTimeoutMillis: config?.createTimeoutMillis || 30000, // Not supported by pg Pool
         // destroyTimeoutMillis: config?.destroyTimeoutMillis || 5000, // Not supported by pg Pool
-        idleTimeoutMillis: config?.idleTimeoutMillis || 300000, // 5 minutes
+        idleTimeoutMillis: config?.idleTimeoutMillis ?? 300000, // 5 minutes
         // reapIntervalMillis: config?.reapIntervalMillis || 10000,  // Not supported by pg Pool
         // createRetryIntervalMillis: config?.createRetryIntervalMillis || 200, // Not supported by pg Pool
         
         // Advanced PostgreSQL settings
-        connectionTimeoutMillis: config?.connectionTimeoutMillis || 10000,
-        statement_timeout: config?.statement_timeout || 60000,
-        query_timeout: config?.query_timeout || 30000,
-        application_name: config?.application_name || 'taxomind-app',
+        connectionTimeoutMillis: config?.connectionTimeoutMillis ?? 10000,
+        statement_timeout: config?.statement_timeout ?? 60000,
+        query_timeout: config?.query_timeout ?? 30000,
+        application_name: config?.application_name ?? 'taxomind-app',
         
         // SSL settings for production
         ssl: process.env.NODE_ENV === 'production' && !url.searchParams.get('sslmode')?.includes('disable')
@@ -152,25 +155,25 @@ class DatabaseConnectionPool {
 
     // Fallback to individual environment variables
     return {
-      host: config?.host || process.env.DB_HOST || 'localhost',
-      port: config?.port || parseInt(process.env.DB_PORT || '5432'),
-      database: config?.database || process.env.DB_NAME || 'taxomind',
-      user: config?.user || process.env.DB_USER || 'postgres',
-      password: config?.password || process.env.DB_PASSWORD || '',
+      host: config?.host ?? process.env.DB_HOST ?? 'localhost',
+      port: config?.port ?? parseInt(process.env.DB_PORT ?? '5432'),
+      database: config?.database ?? process.env.DB_NAME ?? 'taxomind',
+      user: config?.user ?? process.env.DB_USER ?? 'postgres',
+      password: config?.password ?? process.env.DB_PASSWORD ?? '',
       
-      min: config?.min || 2,
-      max: config?.max || this.getOptimalMaxConnections(),
+      min: config?.min ?? 2,
+      max: config?.max ?? this.getOptimalMaxConnections(),
       // acquireTimeoutMillis: config?.acquireTimeoutMillis || 60000, // Not supported by pg Pool
       // createTimeoutMillis: config?.createTimeoutMillis || 30000, // Not supported by pg Pool
       // destroyTimeoutMillis: config?.destroyTimeoutMillis || 5000, // Not supported by pg Pool
-      idleTimeoutMillis: config?.idleTimeoutMillis || 300000,
+      idleTimeoutMillis: config?.idleTimeoutMillis ?? 300000,
       // reapIntervalMillis: config?.reapIntervalMillis || 10000, // Not supported by pg Pool
       // createRetryIntervalMillis: config?.createRetryIntervalMillis || 200, // Not supported by pg Pool
       
-      connectionTimeoutMillis: config?.connectionTimeoutMillis || 10000,
-      statement_timeout: config?.statement_timeout || 60000,
-      query_timeout: config?.query_timeout || 30000,
-      application_name: config?.application_name || 'taxomind-app',
+      connectionTimeoutMillis: config?.connectionTimeoutMillis ?? 10000,
+      statement_timeout: config?.statement_timeout ?? 60000,
+      query_timeout: config?.query_timeout ?? 30000,
+      application_name: config?.application_name ?? 'taxomind-app',
     };
   }
 
@@ -179,7 +182,7 @@ class DatabaseConnectionPool {
    */
   private getOptimalMaxConnections(): number {
     // Base calculation on available CPU cores and environment
-    const cpuCores = require('os').cpus().length;
+    const cpuCores = os.cpus().length;
     
     if (process.env.NODE_ENV === 'production') {
       // Production: More conservative approach
@@ -265,9 +268,9 @@ class DatabaseConnectionPool {
   /**
    * Execute a query using the connection pool
    */
-  async query<T = any>(
+  async query<T = Record<string, unknown>>(
     text: string, 
-    params?: any[], 
+    params?: unknown[], 
     timeout?: number
   ): Promise<QueryResult<T>> {
     if (!this.pool) {
@@ -377,7 +380,7 @@ class DatabaseConnectionPool {
    */
   getHealthStatus(): {
     status: 'healthy' | 'degraded' | 'unhealthy';
-    details: any;
+    details: Record<string, unknown>;
   } {
     if (!this.pool) {
       return {
@@ -451,9 +454,9 @@ export async function initializeConnectionPool(config?: ConnectionPoolConfig): P
 }
 
 // Helper function for direct SQL queries
-export async function executeQuery<T = any>(
+export async function executeQuery<T = Record<string, unknown>>(
   sql: string,
-  params?: any[],
+  params?: unknown[],
   timeout?: number
 ): Promise<QueryResult<T>> {
   return connectionPool.query<T>(sql, params, timeout);

@@ -1,6 +1,7 @@
+import { NextResponse } from "next/server";
+
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { NextResponse } from "next/server";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -93,7 +94,7 @@ export async function POST(
     // Use the proper MathExplanation model with new fields
     const mathEquation = await db.mathExplanation.create({
       data: {
-        title: title,
+        title,
         content: contentData,
         latex: equationData, // Keep backward compatibility with existing latex field
         equation: equationData, // New equation field

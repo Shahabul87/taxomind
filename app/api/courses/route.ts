@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+
 import { currentUser } from "@/lib/auth";
-import { logger } from '@/lib/logger';
+import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
+import { db } from "@/lib/db";
 import { 
-  optimizedCourseQueries, 
   cacheInvalidation 
 } from '@/lib/db/query-optimizer';
-import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';

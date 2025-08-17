@@ -350,8 +350,10 @@ export function withOpenAPI(metadata: Partial<RouteMetadata>) {
  * }
  */
 
-export default {
+const swaggerGenerator = {
   generateOpenAPISpec,
   scanForRoutes,
   withOpenAPI,
 };
+
+export default swaggerGenerator;

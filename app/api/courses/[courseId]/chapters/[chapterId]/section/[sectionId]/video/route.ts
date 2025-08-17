@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+
 import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime

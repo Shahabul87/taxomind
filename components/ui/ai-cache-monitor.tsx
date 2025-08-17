@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+
 import {
   Database,
   Zap,
@@ -14,9 +14,12 @@ import {
   Trash2,
   Settings
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+
 import { Badge } from '@/components/ui/badge';
+
+import { Button } from '@/components/ui/button';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAICache } from '@/lib/ai-cache-system';
@@ -37,7 +40,7 @@ interface MetricCardProps {
   color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple';
 }
 
-const MetricCard = ({ title, value, subtitle, icon, trend, color = 'blue' }: MetricCardProps) => {
+const MetricCard = ({ title, value, subtitle, icon, trend, color = 'blue' }: MetricCardProps): React.ReactElement => {
   const colorClasses = {
     blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
     green: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
@@ -77,12 +80,12 @@ const MetricCard = ({ title, value, subtitle, icon, trend, color = 'blue' }: Met
   );
 };
 
-export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorProps) => {
+export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorProps): React.ReactElement => {
   const { getStats, invalidate, invalidateByUser, invalidateByCourse } = useAICache();
   const [stats, setStats] = useState(() => getStats());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const refreshStats = async () => {
+  const refreshStats = async (): Promise<void> => {
     setIsRefreshing(true);
     // Simulate a small delay for visual feedback
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -103,20 +106,20 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
+      return `${(num / 1000000).toFixed(1)}M`;
     }
     if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
+      return `${(num / 1000).toFixed(1)}K`;
     }
     return num.toString();
   };
 
-  const handleClearCache = async (type: 'all' | 'user' | 'course') => {
+  const handleClearCache = async (type: 'all' | 'user' | 'course'): Promise<void> => {
     switch (type) {
       case 'all':
         invalidate();
@@ -132,14 +135,41 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
   };
 
   const getCacheEfficiency = (): { score: number; status: string; color: string } => {
-    const hitRate = stats.hitRate;
-    if (hitRate >= 80) return { score: hitRate, status: 'Excellent', color: 'green' };
-    if (hitRate >= 60) return { score: hitRate, status: 'Good', color: 'blue' };
-    if (hitRate >= 40) return { score: hitRate, status: 'Fair', color: 'yellow' };
-    return { score: hitRate, status: 'Poor', color: 'red' };
+    const { hitRate } = stats;
+    const efficiencyLevels = [
+      { threshold: 80, status: 'Excellent', color: 'green' },
+      { threshold: 60, status: 'Good', color: 'blue' },
+      { threshold: 40, status: 'Fair', color: 'yellow' },
+      { threshold: 0, status: 'Poor', color: 'red' }
+    ];
+    
+    const level = efficiencyLevels.find(l => hitRate >= l.threshold) ?? { status: 'Unknown', color: 'gray' };
+    return { score: hitRate, status: level.status, color: level.color };
   };
 
   const efficiency = getCacheEfficiency();
+  
+  const getEfficiencyColor = (color: string): string => {
+    const colorMap: Record<string, string> = {
+      green: '#10b981',
+      blue: '#3b82f6',
+      yellow: '#f59e0b',
+      red: '#ef4444'
+    };
+    return colorMap[color] ?? '#6b7280';
+  };
+  
+  const getResponseTimeStatus = (time: number): string => {
+    if (time < 1000) return 'Excellent';
+    if (time < 3000) return 'Good';
+    return 'Needs Improvement';
+  };
+  
+  const getResponseTimeColor = (time: number): 'green' | 'yellow' | 'red' => {
+    if (time < 1000) return 'green';
+    if (time < 3000) return 'yellow';
+    return 'red';
+  };
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -157,7 +187,7 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
           <Button
             variant="outline"
             size="sm"
-            onClick={refreshStats}
+            onClick={() => { refreshStats().catch(() => {}); }}
             disabled={isRefreshing}
           >
             <RefreshCw className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")} />
@@ -166,7 +196,7 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleClearCache('all')}
+            onClick={() => { handleClearCache('all').catch(() => {}); }}
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Clear Cache
@@ -181,8 +211,12 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
           value={`${stats.hitRate.toFixed(1)}%`}
           subtitle={efficiency.status}
           icon={<Zap className="w-5 h-5" />}
-          color={efficiency.color as any}
-          trend={stats.hitRate > 50 ? 'up' : stats.hitRate > 25 ? 'neutral' : 'down'}
+          color={efficiency.color as 'blue' | 'green' | 'yellow' | 'red' | 'purple'}
+          trend={(() => {
+            if (stats.hitRate > 50) return 'up';
+            if (stats.hitRate > 25) return 'neutral';
+            return 'down';
+          })()}
         />
         
         <MetricCard
@@ -198,7 +232,7 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
           value={`${stats.averageResponseTime.toFixed(0)}ms`}
           subtitle="Including cache hits"
           icon={<Clock className="w-5 h-5" />}
-          color={stats.averageResponseTime < 1000 ? 'green' : stats.averageResponseTime < 3000 ? 'yellow' : 'red'}
+          color={getResponseTimeColor(stats.averageResponseTime)}
         />
         
         <MetricCard
@@ -244,8 +278,7 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
                   <div className="flex justify-between text-sm mb-2">
                     <span>Response Time Efficiency</span>
                     <span className="font-medium">
-                      {stats.averageResponseTime < 1000 ? 'Excellent' : 
-                       stats.averageResponseTime < 3000 ? 'Good' : 'Needs Improvement'}
+                      {getResponseTimeStatus(stats.averageResponseTime)}
                     </span>
                   </div>
                   <Progress 
@@ -302,7 +335,7 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
-                  <div className="text-4xl font-bold mb-2" style={{ color: efficiency.color === 'green' ? '#10b981' : efficiency.color === 'blue' ? '#3b82f6' : efficiency.color === 'yellow' ? '#f59e0b' : '#ef4444' }}>
+                  <div className="text-4xl font-bold mb-2" style={{ color: getEfficiencyColor(efficiency.color) }}>
                     {efficiency.score.toFixed(0)}
                   </div>
                   <Badge className={cn(
@@ -398,7 +431,7 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
                   <Button
                     variant="outline"
                     className="w-full justify-start"
-                    onClick={() => handleClearCache('all')}
+                    onClick={() => { handleClearCache('all').catch(() => {}); }}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Clear All Cache
@@ -408,7 +441,7 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
                     <Button
                       variant="outline"
                       className="w-full justify-start"
-                      onClick={() => handleClearCache('user')}
+                      onClick={() => { handleClearCache('user').catch(() => {}); }}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Clear User Cache
@@ -419,7 +452,7 @@ export const AICacheMonitor = ({ userId, courseId, className }: AICacheMonitorPr
                     <Button
                       variant="outline"
                       className="w-full justify-start"
-                      onClick={() => handleClearCache('course')}
+                      onClick={() => { handleClearCache('course').catch(() => {}); }}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Clear Course Cache

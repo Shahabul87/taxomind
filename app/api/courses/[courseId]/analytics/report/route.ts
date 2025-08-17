@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+
 import { currentUser } from "@/lib/auth";
+
+import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
@@ -9,7 +11,7 @@ export const runtime = 'nodejs';
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ courseId: string }> }
-) {
+): Promise<NextResponse> {
   try {
 
     // Get current user
@@ -34,7 +36,7 @@ export async function POST(
     }
     
     const { courseId } = await params;
-    const body = await req.json();
+    const body = await req.json() as { timeframe: string; metrics: string };
     const { timeframe, metrics } = body;
 
     // Verify course ownership
@@ -56,7 +58,7 @@ export async function POST(
     }
     
     // Generate report content
-    const reportContent = await generateReportContent(course, timeframe, metrics);
+    const reportContent = generateReportContent(course, timeframe);
     
     // For now, return JSON report - in production would generate PDF
     const report = {
@@ -87,7 +89,29 @@ export async function POST(
   }
 }
 
-async function generateReportContent(course: any, timeframe: string, metrics: string) {
+interface CourseInfo {
+  id: string;
+  title: string;
+  description: string | null;
+  createdAt: Date;
+}
+
+function generateReportContent(
+  course: CourseInfo, 
+  timeframe: string
+): {
+  executiveSummary: {
+    title: string;
+    overview: string;
+    keyFindings: string[];
+    recommendations: string[];
+  };
+  metrics: Record<string, unknown>;
+  insights: Record<string, unknown>;
+  predictiveAnalytics: Record<string, unknown>;
+  actionableRecommendations: Record<string, unknown>;
+  appendices: Record<string, unknown>;
+} {
   const currentDate = new Date().toISOString().split('T')[0];
   
   return {

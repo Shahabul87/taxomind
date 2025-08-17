@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -50,7 +51,7 @@ export async function PATCH(
         sectionId: params.sectionId,
       },
       data: {
-        title: title,
+        title,
         content: contentData,
         latex: equationData, // Keep backward compatibility
         equation: equationData,

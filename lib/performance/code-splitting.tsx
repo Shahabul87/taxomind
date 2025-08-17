@@ -4,7 +4,8 @@
  * Part of Enterprise Code Quality Plan Phase 3
  */
 
-import { lazy, Suspense, ComponentType, ReactNode, useState, useEffect } from 'react';
+import { lazy, Suspense, ComponentType, useState, useEffect } from 'react';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { logger } from '@/lib/logger';
 
@@ -15,7 +16,7 @@ const LoadingComponents = {
     <div className="space-y-4">
       <Skeleton className="h-8 w-1/3" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[...Array(6)].map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i: number) => (
           <Skeleton key={i} className="h-32 w-full" />
         ))}
       </div>
@@ -47,7 +48,7 @@ const LoadingComponents = {
   Analytics: () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
+        {Array.from({ length: 4 }).map((_, i: number) => (
           <Skeleton key={i} className="h-20 w-full" />
         ))}
       </div>
@@ -60,7 +61,7 @@ const LoadingComponents = {
   Editor: () => (
     <div className="space-y-4">
       <div className="flex space-x-2">
-        {[...Array(6)].map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i: number) => (
           <Skeleton key={i} className="h-8 w-8" />
         ))}
       </div>
@@ -87,8 +88,8 @@ interface LazyComponentConfig {
 /**
  * Enhanced lazy loading with error boundaries and retry logic
  */
-export function createLazyComponent<T extends ComponentType<any>>(
-  importFn: () => Promise<{ default: T } | any>,
+export function createLazyComponent<T extends ComponentType<Record<string, unknown>>>(
+  importFn: () => Promise<{ default: T } | T>,
   config: LazyComponentConfig = {}
 ): ComponentType<React.ComponentProps<T>> {
   const {
@@ -104,11 +105,11 @@ export function createLazyComponent<T extends ComponentType<any>>(
     return new Promise<{ default: T }>((resolve, reject) => {
       let attempts = 0;
 
-      const attemptImport = async () => {
+      const attemptImport = async (): Promise<void> => {
         try {
-          const module = await importFn();
+          const moduleResult = await importFn();
           // Handle both default exports and module exports
-          const resolvedModule = 'default' in module ? module : { default: module };
+          const resolvedModule = 'default' in moduleResult ? moduleResult : { default: moduleResult as T };
           resolve(resolvedModule);
         } catch (error) {
           attempts++;
@@ -132,10 +133,10 @@ export function createLazyComponent<T extends ComponentType<any>>(
   if (preload) {
     // Preload on idle or immediately for critical resources
     if (criticalResource) {
-      importFn().catch(console.error);
+      void importFn().catch(console.error);
     } else if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
       window.requestIdleCallback(() => {
-        importFn().catch(console.error);
+        void importFn().catch(console.error);
       });
     }
   }
@@ -331,9 +332,9 @@ export function useProgressiveEnhancement() {
  */
 export function useLazyLoadOnScroll(
   ref: React.RefObject<HTMLElement>,
-  importFn: () => Promise<any>,
+  importFn: () => Promise<{ default: ComponentType }>,
   options?: IntersectionObserverInit
-) {
+): { Component: ComponentType | null; loaded: boolean } {
   const [loaded, setLoaded] = useState(false);
   const [Component, setComponent] = useState<ComponentType | null>(null);
 
@@ -344,8 +345,8 @@ export function useLazyLoadOnScroll(
       async (entries) => {
         if (entries[0].isIntersecting) {
           try {
-            const module = await importFn();
-            setComponent(() => module.default);
+            const moduleResult = await importFn();
+            setComponent(() => moduleResult.default);
             setLoaded(true);
             observer.disconnect();
           } catch (error) {
@@ -367,7 +368,7 @@ export function useLazyLoadOnScroll(
 /**
  * Bundle size monitoring utility
  */
-export function logBundleSize(componentName: string, startTime: number) {
+export function logBundleSize(componentName: string, startTime: number): void {
   if (process.env.NODE_ENV === 'development') {
     const loadTime = performance.now() - startTime;
     logger.info(`[Code Splitting] ${componentName} loaded in ${loadTime.toFixed(2)}ms`);
@@ -381,7 +382,7 @@ export class PreloadStrategy {
   private static preloadedModules = new Set<string>();
   private static interactionCount = new Map<string, number>();
 
-  static trackInteraction(route: string) {
+  static trackInteraction(route: string): void {
     const count = this.interactionCount.get(route) || 0;
     this.interactionCount.set(route, count + 1);
 
@@ -391,12 +392,12 @@ export class PreloadStrategy {
     }
   }
 
-  static async preloadRoute(route: string) {
+  static async preloadRoute(route: string): Promise<void> {
     if (this.preloadedModules.has(route)) return;
 
     try {
       // Map routes to their respective lazy components
-      const routeMap: Record<string, () => Promise<any>> = {
+      const routeMap: Record<string, () => Promise<unknown>> = {
         '/dashboard': () => import('@/app/dashboard/page'),
         '/analytics': () => import('@/components/analytics/enhanced-analytics-dashboard'),
         // '/courses': () => import('@/app/courses/[courseId]/page'), // Module doesn't exist
@@ -414,7 +415,7 @@ export class PreloadStrategy {
     }
   }
 
-  static getStats() {
+  static getStats(): { preloadedModules: string[]; interactionCounts: Record<string, number> } {
     return {
       preloadedModules: Array.from(this.preloadedModules),
       interactionCounts: Object.fromEntries(this.interactionCount),

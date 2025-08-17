@@ -1,5 +1,6 @@
-import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
+
+import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 // Force Node.js runtime
@@ -48,7 +49,7 @@ export async function PATCH(
       //console.log(section)
 
     // Check for the presence of required fields in the chapter
-    if (!section || !section.title || !section.videoUrl) {
+    if (!section?.title || !section.videoUrl) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 

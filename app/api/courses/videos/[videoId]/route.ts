@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 export async function GET(req: Request, props: { params: Promise<{ videoId: string }> }) {

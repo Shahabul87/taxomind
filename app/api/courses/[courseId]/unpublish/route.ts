@@ -1,6 +1,6 @@
-import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
+import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 // Force Node.js runtime
