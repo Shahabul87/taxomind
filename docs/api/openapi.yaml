@@ -1,0 +1,1331 @@
+openapi: 3.0.3
+info:
+  title: Taxomind API
+  version: 1.0.0
+  description: |
+    # Taxomind Learning Management System API
+    
+    Comprehensive API documentation for the Taxomind intelligent learning platform.
+    
+    ## Base URLs
+    - Development: `http://localhost:3000/api`
+    - Staging: `https://staging.taxomind.com/api`
+    - Production: `https://api.taxomind.com`
+    
+  contact:
+    name: Taxomind Support
+    email: support@taxomind.com
+    url: https://taxomind.com/support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://staging.taxomind.com/api
+    description: Staging server
+  - url: https://api.taxomind.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+  - sessionAuth: []
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User management and profiles
+  - name: Courses
+    description: Course management
+  - name: Chapters
+    description: Chapter management
+  - name: Analytics
+    description: Learning analytics
+  - name: SAM AI
+    description: AI-powered features
+  - name: Admin
+    description: Administrative operations
+  - name: Social
+    description: Social features
+  - name: Security
+    description: Security features
+
+paths:
+  # Authentication endpoints
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                totpCode:
+                  type: string
+                  description: TOTP code for 2FA
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: User registration
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                name:
+                  type: string
+                role:
+                  type: string
+                  enum: [USER, TEACHER]
+      responses:
+        201:
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+        400:
+          $ref: '#/components/responses/ValidationError'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: User logout
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Logout successful
+
+  /auth/mfa/totp/setup:
+    post:
+      tags: [Authentication, Security]
+      summary: Setup TOTP 2FA
+      operationId: setupTotp
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: TOTP setup data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetup'
+
+  /auth/mfa/totp/verify:
+    post:
+      tags: [Authentication, Security]
+      summary: Verify TOTP code
+      operationId: verifyTotp
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+      responses:
+        200:
+          description: Verification successful
+
+  # User endpoints
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      operationId: listUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [USER, TEACHER, ADMIN]
+      responses:
+        200:
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get user profile
+      operationId: getUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        200:
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags: [Users]
+      summary: Update user profile
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                image:
+                  type: string
+                learningStyle:
+                  type: string
+      responses:
+        200:
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
+
+  # Course endpoints
+  /courses:
+    get:
+      tags: [Courses]
+      summary: List courses
+      operationId: listCourses
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/SortParam'
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [BEGINNER, INTERMEDIATE, ADVANCED]
+        - name: isPublished
+          in: query
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Courses list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CourseWithStats'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      tags: [Courses]
+      summary: Create course
+      operationId: createCourse
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description, categoryId]
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                categoryId:
+                  type: string
+                price:
+                  type: number
+                imageUrl:
+                  type: string
+                level:
+                  type: string
+                  enum: [BEGINNER, INTERMEDIATE, ADVANCED]
+                prerequisites:
+                  type: array
+                  items:
+                    type: string
+                learningObjectives:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        201:
+          description: Course created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Course'
+
+  /courses/{courseId}:
+    get:
+      tags: [Courses]
+      summary: Get course details
+      operationId: getCourse
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+      responses:
+        200:
+          description: Course details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/CourseWithStats'
+
+    patch:
+      tags: [Courses]
+      summary: Update course
+      operationId: updateCourse
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                imageUrl:
+                  type: string
+                isPublished:
+                  type: boolean
+      responses:
+        200:
+          description: Course updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Course'
+
+    delete:
+      tags: [Courses]
+      summary: Delete course
+      operationId: deleteCourse
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+      responses:
+        204:
+          description: Course deleted
+
+  /courses/{courseId}/chapters:
+    get:
+      tags: [Chapters]
+      summary: List course chapters
+      operationId: listChapters
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+      responses:
+        200:
+          description: Chapters list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Chapter'
+
+    post:
+      tags: [Chapters]
+      summary: Create chapter
+      operationId: createChapter
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                videoUrl:
+                  type: string
+                position:
+                  type: integer
+                isFree:
+                  type: boolean
+      responses:
+        201:
+          description: Chapter created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Chapter'
+
+  /courses/{courseId}/enroll:
+    post:
+      tags: [Courses]
+      summary: Enroll in course
+      operationId: enrollInCourse
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+      responses:
+        200:
+          description: Enrollment successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Enrollment'
+
+  # Analytics endpoints
+  /analytics/progress:
+    get:
+      tags: [Analytics]
+      summary: Get user progress metrics
+      operationId: getProgressMetrics
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: courseId
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Progress metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ProgressMetrics'
+
+  /learning-analytics/personal:
+    get:
+      tags: [Analytics]
+      summary: Get personal learning analytics
+      operationId: getPersonalAnalytics
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Personal analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/LearningAnalytics'
+
+  # SAM AI endpoints
+  /sam/chat:
+    post:
+      tags: [SAM AI]
+      summary: Chat with SAM AI assistant
+      operationId: chatWithSAM
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SAMRequest'
+      responses:
+        200:
+          description: SAM response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/SAMResponse'
+
+  /sam/ai-tutor/socratic:
+    post:
+      tags: [SAM AI]
+      summary: Socratic tutoring session
+      operationId: socraticTutoring
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question, context]
+              properties:
+                question:
+                  type: string
+                context:
+                  type: object
+                courseId:
+                  type: string
+      responses:
+        200:
+          description: Socratic response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SAMResponse'
+
+  /sam/ai-tutor/adaptive-content:
+    post:
+      tags: [SAM AI]
+      summary: Generate adaptive content
+      operationId: generateAdaptiveContent
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [topic, learningStyle, difficulty]
+              properties:
+                topic:
+                  type: string
+                learningStyle:
+                  type: string
+                difficulty:
+                  type: string
+                  enum: [BEGINNER, INTERMEDIATE, ADVANCED]
+      responses:
+        200:
+          description: Adaptive content generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: string
+                      exercises:
+                        type: array
+                        items:
+                          type: object
+                      resources:
+                        type: array
+                        items:
+                          type: string
+
+  /courses/generate-blueprint:
+    post:
+      tags: [SAM AI, Courses]
+      summary: Generate course blueprint with AI
+      operationId: generateCourseBlueprint
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description, targetAudience]
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                targetAudience:
+                  type: string
+                objectives:
+                  type: array
+                  items:
+                    type: string
+                duration:
+                  type: integer
+                level:
+                  type: string
+      responses:
+        200:
+          description: Course blueprint generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      blueprint:
+                        type: object
+                      chapters:
+                        type: array
+                        items:
+                          type: object
+                      estimatedDuration:
+                        type: integer
+
+  # Admin endpoints
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List all users (admin)
+      operationId: adminListUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: isLocked
+          in: query
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserProfile'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        403:
+          $ref: '#/components/responses/ForbiddenError'
+
+  /admin/mfa-status:
+    get:
+      tags: [Admin, Security]
+      summary: Get MFA status overview
+      operationId: getMFAStatus
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: MFA status overview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalUsers:
+                    type: integer
+                  mfaEnabled:
+                    type: integer
+                  percentage:
+                    type: number
+
+  # Security endpoints
+  /security/alerts:
+    get:
+      tags: [Security]
+      summary: Get security alerts
+      operationId: getSecurityAlerts
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH, CRITICAL]
+      responses:
+        200:
+          description: Security alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        severity:
+                          type: string
+                        message:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+
+  /audit-logs:
+    get:
+      tags: [Security, Admin]
+      summary: Get audit logs
+      operationId: getAuditLogs
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  # Social endpoints
+  /posts:
+    get:
+      tags: [Social]
+      summary: List posts
+      operationId: listPosts
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - name: authorId
+          in: query
+          schema:
+            type: string
+        - name: published
+          in: query
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Posts list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Post'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      tags: [Social]
+      summary: Create post
+      operationId: createPost
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content]
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                published:
+                  type: boolean
+      responses:
+        201:
+          description: Post created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Post'
+
+  /posts/{postId}/comments:
+    get:
+      tags: [Social]
+      summary: Get post comments
+      operationId: getPostComments
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        200:
+          description: Comments list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+
+    post:
+      tags: [Social]
+      summary: Add comment to post
+      operationId: addComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                parentId:
+                  type: string
+      responses:
+        201:
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Comment'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        image:
+          type: string
+        role:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    UserProfile:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            phone:
+              type: string
+            learningStyle:
+              type: string
+            samLevel:
+              type: integer
+            samTotalPoints:
+              type: integer
+
+    Course:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        price:
+          type: number
+        isPublished:
+          type: boolean
+        categoryId:
+          type: string
+        userId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CourseWithStats:
+      allOf:
+        - $ref: '#/components/schemas/Course'
+        - type: object
+          properties:
+            enrollmentCount:
+              type: integer
+            completionRate:
+              type: number
+            averageRating:
+              type: number
+
+    Chapter:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        videoUrl:
+          type: string
+        position:
+          type: integer
+        isPublished:
+          type: boolean
+        courseId:
+          type: string
+
+    Enrollment:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        courseId:
+          type: string
+        progress:
+          type: number
+        enrolledAt:
+          type: string
+          format: date-time
+
+    ProgressMetrics:
+      type: object
+      properties:
+        totalCourses:
+          type: integer
+        completedCourses:
+          type: integer
+        overallProgress:
+          type: number
+
+    LearningAnalytics:
+      type: object
+      properties:
+        userId:
+          type: string
+        courseId:
+          type: string
+        timeSpent:
+          type: integer
+        completionRate:
+          type: number
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        authorId:
+          type: string
+        published:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        authorId:
+          type: string
+        postId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    SAMRequest:
+      type: object
+      required: [prompt, mode]
+      properties:
+        prompt:
+          type: string
+        context:
+          type: object
+        mode:
+          type: string
+          enum: [tutor, assistant, analyzer, generator]
+
+    SAMResponse:
+      type: object
+      properties:
+        response:
+          type: string
+        suggestions:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+
+    MFASetup:
+      type: object
+      properties:
+        secret:
+          type: string
+        qrCode:
+          type: string
+        backupCodes:
+          type: array
+          items:
+            type: string
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        action:
+          type: string
+        resource:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Authentication required
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Insufficient permissions
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Resource not found
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Validation failed
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+    SearchParam:
+      name: search
+      in: query
+      schema:
+        type: string
+    SortParam:
+      name: sort
+      in: query
+      schema:
+        type: string
+    CourseIdParam:
+      name: courseId
+      in: path
+      required: true
+      schema:
+        type: string
+    UserIdParam:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+    ChapterIdParam:
+      name: chapterId
+      in: path
+      required: true
+      schema:
+        type: string

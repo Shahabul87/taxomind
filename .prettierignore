@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+.next
+out
+dist
+build
+coverage
+
+# Environment files
+.env*
+
+# Git
+.git
+
+# IDE
+.vscode
+.idea
+
+# Prisma
+prisma/migrations
+
+# Backup files
+backups
+backup*
+*.backup
+*.old
+*.bak
+
+# Generated files
+*.min.js
+*.min.css
+generated
+
+# Public assets
+public/sw.js
+public/workbox-*.js
