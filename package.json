@@ -37,7 +37,7 @@
     "validate:csp": "node scripts/validate-csp.js",
     "validate:security": "node scripts/validate-csp.js",
     "prebuild": "node scripts/validate-env.js",
-    "lint": "next lint",
+    "lint": "next lint --max-warnings 0",
     "lint:fix": "next lint --fix",
     "typecheck": "bash scripts/typecheck.sh",
     "postinstall": "prisma generate",

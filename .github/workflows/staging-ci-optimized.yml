@@ -32,11 +32,11 @@ jobs:
         run: npm ci --prefer-offline --no-audit
         
       - name: 🔍 Lint Check
-        run: npm run lint -- --max-warnings=0
+        run: NODE_OPTIONS='--max-old-space-size=8192' npm run lint -- --max-warnings=0
         
       - name: 🎯 TypeScript Check
         run: |
-          NODE_OPTIONS='--max-old-space-size=2048' \
+          NODE_OPTIONS='--max-old-space-size=8192' \
           npx tsc --noEmit --skipLibCheck --incremental false
         continue-on-error: true
 

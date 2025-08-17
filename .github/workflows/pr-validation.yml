@@ -76,7 +76,7 @@ jobs:
         continue-on-error: true
         
       - name: Run ESLint
-        run: npm run lint -- --max-warnings=0
+        run: NODE_OPTIONS='--max-old-space-size=8192' npm run lint -- --max-warnings=0
         
       - name: Check for console.log statements
         run: |
