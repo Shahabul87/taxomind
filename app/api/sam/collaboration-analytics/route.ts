@@ -147,11 +147,11 @@ async function handleJoinSession(data: any, userId: string) {
   const hasAccess = await db.enrollment.findFirst({
     where: {
       userId,
-      courseId: dbSession.courseId,
+      courseId: dbSession.courseId || undefined,
     },
   });
 
-  if (!hasAccess && !(await isTeacherOrAdmin(userId, dbSession.courseId))) {
+  if (!hasAccess && dbSession.courseId && !(await isTeacherOrAdmin(userId, dbSession.courseId))) {
     throw new Error("Access denied to this session");
   }
 
@@ -220,7 +220,9 @@ async function handleEndSession(data: any, userId: string) {
   const session = await samCollaborationEngine.endCollaborationSession(sessionId);
 
   // Notify participants
-  await notifyUsersAboutSession(dbSession.courseId, sessionId, "ended");
+  if (dbSession.courseId) {
+    await notifyUsersAboutSession(dbSession.courseId, sessionId, "ended");
+  }
 
   return {
     session: {
@@ -266,7 +268,7 @@ async function handleGetRealTimeMetrics(data: any) {
 
     const recentContributions = await db.collaborationContribution.count({
       where: {
-        createdAt: {
+        timestamp: {
           gte: new Date(Date.now() - 5 * 60 * 1000), // Last 5 minutes
         },
       },
@@ -329,14 +331,15 @@ async function handleGetCollaborationInsights(data: any) {
     const userSessions = await db.collaborationSession.findMany({
       where: {
         participants: {
-          contains: userId,
+          path: [],
+          string_contains: userId,
         },
-        startTime: {
+        startedAt: {
           gte: startDate,
         },
       },
       orderBy: {
-        startTime: "desc",
+        startedAt: "desc",
       },
       take: 20,
     });
@@ -344,7 +347,7 @@ async function handleGetCollaborationInsights(data: any) {
     const contributions = await db.collaborationContribution.findMany({
       where: {
         userId,
-        createdAt: {
+        timestamp: {
           gte: startDate,
         },
       },
@@ -378,7 +381,7 @@ async function handleGetCollaborationInsights(data: any) {
     const courseSessions = await db.collaborationSession.findMany({
       where: {
         courseId,
-        startTime: {
+        startedAt: {
           gte: startDate,
         },
       },
@@ -450,11 +453,11 @@ async function notifyUsersAboutSession(
     enrolledUsers.map((enrollment) =>
       db.notification.create({
         data: {
+          id: `collab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           userId: enrollment.userId,
           title: `Collaboration session ${action}`,
           message: `A collaboration session has ${action} in your course`,
           type: "collaboration",
-          metadata: JSON.stringify({ sessionId, courseId }),
         },
       })
     )
@@ -602,7 +605,7 @@ async function getCourseTopContributors(courseId: string, startDate: Date) {
   const contributions = await db.collaborationContribution.groupBy({
     by: ["userId"],
     where: {
-      createdAt: {
+      timestamp: {
         gte: startDate,
       },
       session: {
@@ -635,7 +638,7 @@ async function getCourseTopContributors(courseId: string, startDate: Date) {
 
   return contributions.map((contribution) => ({
     user: users.find((u) => u.id === contribution.userId),
-    contributionCount: contribution._count.userId,
+    contributionCount: (contribution._count as any)?.userId || 0,
   }));
 }
 
@@ -667,14 +670,14 @@ async function handleGetSocialAnalytics(data: any, userId: string) {
   });
 
   // Get currently active students (online in last 5 minutes)
-  const activeNow = await db.userProgress.count({
+  const activeNow = await db.userSectionCompletion.count({
     where: {
       section: {
         chapter: {
           courseId,
         },
       },
-      updatedAt: {
+      completedAt: {
         gte: new Date(Date.now() - 5 * 60 * 1000),
       },
     },
@@ -1043,7 +1046,7 @@ export async function GET(req: NextRequest) {
               isActive: true,
             },
             orderBy: {
-              startTime: "desc",
+              startedAt: "desc",
             },
           });
         } else {
@@ -1051,11 +1054,12 @@ export async function GET(req: NextRequest) {
             where: {
               isActive: true,
               participants: {
-                contains: userId,
+                path: [],
+          string_contains: userId,
               },
             },
             orderBy: {
-              startTime: "desc",
+              startedAt: "desc",
             },
           });
         }
@@ -1068,11 +1072,12 @@ export async function GET(req: NextRequest) {
             ? { courseId }
             : {
                 participants: {
-                  contains: userId,
+                  path: [],
+          string_contains: userId,
                 },
               },
           orderBy: {
-            startTime: "desc",
+            startedAt: "desc",
           },
           take: limit,
         });
@@ -1118,14 +1123,16 @@ export async function GET(req: NextRequest) {
           db.collaborationSession.count({
             where: {
               participants: {
-                contains: userId,
+                path: [],
+          string_contains: userId,
               },
             },
           }),
           db.collaborationSession.count({
             where: {
               participants: {
-                contains: userId,
+                path: [],
+          string_contains: userId,
               },
               isActive: true,
             },
@@ -1142,18 +1149,19 @@ export async function GET(req: NextRequest) {
           recentActivity: await db.collaborationSession.findMany({
             where: {
               participants: {
-                contains: userId,
+                path: [],
+          string_contains: userId,
               },
             },
             orderBy: {
-              startTime: "desc",
+              startedAt: "desc",
             },
             take: 5,
             select: {
               sessionId: true,
               courseId: true,
               sessionType: true,
-              startTime: true,
+              startedAt: true,
               isActive: true,
             },
           }),

@@ -81,7 +81,7 @@ export function useMultipleIntersectionObserver(
   } = options;
 
   useEffect(() => {
-    const elements = elementsRef.map(ref => ref.current).filter(Boolean);
+    const elements = elementsRef.map(ref => ref.current).filter(Boolean) as Element[];
     if (elements.length === 0) return;
 
     const observer = new IntersectionObserver(

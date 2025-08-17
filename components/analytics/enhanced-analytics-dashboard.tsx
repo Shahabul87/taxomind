@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -250,7 +251,7 @@ interface SystemHealth {
 }
 
 interface FilterOptions {
-  dateRange: { from: Date; to: Date };
+  dateRange: DateRange;
   course: string;
   userType: string;
   metric: string;
@@ -339,8 +340,8 @@ export function EnhancedAnalyticsDashboard({
         ...(userId && { userId }),
         ...(courseId && { courseId }),
         view,
-        from: filters.dateRange.from.toISOString(),
-        to: filters.dateRange.to.toISOString(),
+        from: filters.dateRange.from?.toISOString() || subDays(new Date(), 30).toISOString(),
+        to: filters.dateRange.to?.toISOString() || new Date().toISOString(),
         course: filters.course,
         userType: filters.userType,
         metric: filters.metric
@@ -615,7 +616,7 @@ export function EnhancedAnalyticsDashboard({
         <div className="flex items-center gap-2">
           <DateRangePicker
             value={filters.dateRange}
-            onChange={(range) => setFilters(prev => ({ ...prev, dateRange: range }))}
+            onChange={(range) => setFilters(prev => ({ ...prev, dateRange: range || { from: subDays(new Date(), 30), to: new Date() } }))}
           />
           
           <Select value={filters.course} onValueChange={(value) => setFilters(prev => ({ ...prev, course: value }))}>
@@ -1118,7 +1119,6 @@ export function EnhancedAnalyticsDashboard({
                   <Treemap
                     data={data.contentAnalytics.contentEngagement}
                     dataKey="value"
-                    ratio={4/3}
                     stroke="#fff"
                     fill={COLORS.primary}
                   />

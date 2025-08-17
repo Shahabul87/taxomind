@@ -22,7 +22,9 @@ interface SAMGlobalContextType {
 interface LearningContext {
   courseId?: string;
   chapterId?: string;
+  chapterName?: string;
   sectionId?: string;
+  sectionName?: string;
   subject?: string;
   currentTopic?: string;
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
@@ -249,7 +251,7 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
     if (pathname?.includes('/teacher')) return 'teacher';
     if (pathname?.includes('/learn')) return 'learning';
     if (pathname?.includes('/dashboard')) return 'dashboard';
-    if (session?.user?.isTeacher === true) return 'teacher';
+    if (session?.user?.role === 'ADMIN') return 'teacher';
     return 'student';
   }, [pathname, session]);
 

@@ -13,6 +13,18 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
+// Type the mocked db
+type MockedDb = {
+  user_progress: {
+    count: jest.MockedFunction<any>;
+  };
+  chapter: {
+    findMany: jest.MockedFunction<any>;
+  };
+};
+
+const mockedDb = db as unknown as MockedDb;
+
 describe('getProgress action', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -22,12 +34,12 @@ describe('getProgress action', () => {
     const userId = 'user-123';
     const courseId = 'course-456';
 
-    (db.chapter.findMany as jest.Mock).mockResolvedValue([]);
+    mockedDb.chapter.findMany.mockResolvedValue([]);
 
     const progress = await getProgress(userId, courseId);
 
     expect(progress).toBe(0);
-    expect(db.chapter.findMany).toHaveBeenCalledWith({
+    expect(mockedDb.chapter.findMany).toHaveBeenCalledWith({
       where: {
         courseId: courseId,
         isPublished: true,
@@ -48,14 +60,14 @@ describe('getProgress action', () => {
       { id: 'chapter-3' },
     ];
 
-    (db.chapter.findMany as jest.Mock).mockResolvedValue(mockChapters);
-    (db.user_progress.count as jest.Mock).mockResolvedValue(3);
+    mockedDb.chapter.findMany.mockResolvedValue(mockChapters);
+    mockedDb.user_progress.count.mockResolvedValue(3);
 
     const progress = await getProgress(userId, courseId);
 
     expect(progress).toBe(100);
     
-    expect(db.user_progress.count).toHaveBeenCalledWith({
+    expect(mockedDb.user_progress.count).toHaveBeenCalledWith({
       where: {
         userId: userId,
         chapterId: {
@@ -77,8 +89,8 @@ describe('getProgress action', () => {
       { id: 'chapter-4' },
     ];
 
-    (db.chapter.findMany as jest.Mock).mockResolvedValue(mockChapters);
-    (db.user_progress.count as jest.Mock).mockResolvedValue(2);
+    mockedDb.chapter.findMany.mockResolvedValue(mockChapters);
+    mockedDb.user_progress.count.mockResolvedValue(2);
 
     const progress = await getProgress(userId, courseId);
 
@@ -94,8 +106,8 @@ describe('getProgress action', () => {
       { id: 'chapter-2' },
     ];
 
-    (db.chapter.findMany as jest.Mock).mockResolvedValue(mockChapters);
-    (db.user_progress.count as jest.Mock).mockResolvedValue(0);
+    mockedDb.chapter.findMany.mockResolvedValue(mockChapters);
+    mockedDb.user_progress.count.mockResolvedValue(0);
 
     const progress = await getProgress(userId, courseId);
 
@@ -112,8 +124,8 @@ describe('getProgress action', () => {
       { id: 'chapter-3' },
     ];
 
-    (db.chapter.findMany as jest.Mock).mockResolvedValue(mockChapters);
-    (db.user_progress.count as jest.Mock).mockResolvedValue(1); // 1/3 = 33.33%
+    mockedDb.chapter.findMany.mockResolvedValue(mockChapters);
+    mockedDb.user_progress.count.mockResolvedValue(1); // 1/3 = 33.33%
 
     const progress = await getProgress(userId, courseId);
 
@@ -126,8 +138,8 @@ describe('getProgress action', () => {
 
     const mockChapters = [{ id: 'chapter-1' }];
 
-    (db.chapter.findMany as jest.Mock).mockResolvedValue(mockChapters);
-    (db.user_progress.count as jest.Mock).mockResolvedValue(1);
+    mockedDb.chapter.findMany.mockResolvedValue(mockChapters);
+    mockedDb.user_progress.count.mockResolvedValue(1);
 
     const progress = await getProgress(userId, courseId);
 
@@ -138,7 +150,7 @@ describe('getProgress action', () => {
     const userId = 'user-123';
     const courseId = 'course-456';
 
-    (db.chapter.findMany as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
+    mockedDb.chapter.findMany.mockRejectedValue(new Error('Database connection failed'));
 
     // Function returns 0 on error, doesn't throw
     const progress = await getProgress(userId, courseId);
@@ -151,8 +163,8 @@ describe('getProgress action', () => {
 
     const mockChapters = [{ id: 'chapter-1' }];
 
-    (db.chapter.findMany as jest.Mock).mockResolvedValue(mockChapters);
-    (db.user_progress.count as jest.Mock).mockRejectedValue(new Error('Count failed'));
+    mockedDb.chapter.findMany.mockResolvedValue(mockChapters);
+    mockedDb.user_progress.count.mockRejectedValue(new Error('Count failed'));
 
     // Function returns 0 on error, doesn't throw
     const progress = await getProgress(userId, courseId);
@@ -168,8 +180,8 @@ describe('getProgress action', () => {
       id: `chapter-${i + 1}` 
     }));
 
-    (db.chapter.findMany as jest.Mock).mockResolvedValue(mockChapters);
-    (db.user_progress.count as jest.Mock).mockResolvedValue(75); // 75 completed
+    mockedDb.chapter.findMany.mockResolvedValue(mockChapters);
+    mockedDb.user_progress.count.mockResolvedValue(75); // 75 completed
 
     const progress = await getProgress(userId, courseId);
 
@@ -185,9 +197,9 @@ describe('getProgress action', () => {
       { id: 'chapter-2' },
     ];
 
-    (db.chapter.findMany as jest.Mock).mockResolvedValue(mockChapters);
+    mockedDb.chapter.findMany.mockResolvedValue(mockChapters);
     // Simulate data inconsistency where more chapters are marked complete than exist
-    (db.user_progress.count as jest.Mock).mockResolvedValue(5);
+    mockedDb.user_progress.count.mockResolvedValue(5);
 
     const progress = await getProgress(userId, courseId);
 

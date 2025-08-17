@@ -1,5 +1,5 @@
 import { DataEncryption, EncryptionUtils } from '@/lib/security/encryption';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 
 describe('DataEncryption', () => {
   let encryption: DataEncryption;
@@ -455,7 +455,7 @@ describe('Security Properties', () => {
       ]);
       
       const ivs = encryptions.map(enc => enc.iv);
-      const uniqueIvs = [...new Set(ivs)];
+      const uniqueIvs = Array.from(new Set(ivs));
       
       expect(uniqueIvs).toHaveLength(3);
     });
@@ -469,7 +469,7 @@ describe('Security Properties', () => {
       ]);
       
       const salts = encryptions.map(enc => enc.salt);
-      const uniqueSalts = [...new Set(salts)];
+      const uniqueSalts = Array.from(new Set(salts));
       
       expect(uniqueSalts).toHaveLength(3);
     });

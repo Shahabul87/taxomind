@@ -609,7 +609,7 @@ export class OIDCProvider {
   public getActiveSessionsCount(): number {
     // Clean up expired sessions first
     const now = new Date();
-    for (const [sessionId, session] of this.sessions.entries()) {
+    for (const [sessionId, session] of Array.from(this.sessions.entries())) {
       if (session.expiresAt < now) {
         this.sessions.delete(sessionId);
       }
@@ -681,7 +681,7 @@ export class OIDCProviderManager {
   public getProvidersSummary() {
     const summary: Record<string, any> = {};
     
-    for (const [tenantId, provider] of this.providers.entries()) {
+    for (const [tenantId, provider] of Array.from(this.providers.entries())) {
       summary[tenantId] = provider.getConfigSummary();
     }
     

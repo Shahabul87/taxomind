@@ -16,17 +16,16 @@ export async function POST(req: NextRequest) {
     const user = await currentUser();
     if (!user || !user.id) {
 
-      return createSuccessResponse({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse(new ApiError("Unauthorized", 401));
     }
 
     // Check rate limiting
     const rateLimitResult = await isRateLimited(user.id, 'reply');
     if (rateLimitResult.limited) {
 
-      return createSuccessResponse({ 
-        error: getRateLimitMessage('reply', rateLimitResult.reset),
-        rateLimitInfo: rateLimitResult
-      }, { status: 429 });
+      return createErrorResponse(
+        new ApiError(getRateLimitMessage('reply', rateLimitResult.reset), 429)
+      );
     }
 
     // Parse request body
@@ -36,22 +35,22 @@ export async function POST(req: NextRequest) {
 
     } catch (err) {
       logger.error("[NESTED_REPLIES] Error parsing request:", err);
-      return createSuccessResponse({ error: "Invalid request format" }, { status: 400 });
+      return createErrorResponse(new ApiError("Invalid request format", 400));
     }
 
     const { postId, commentId, parentReplyId, content } = body;
 
     // Validate required fields
     if (!content) {
-      return createSuccessResponse({ error: "Content is required" }, { status: 400 });
+      return createErrorResponse(new ApiError("Content is required", 400));
     }
     
     if (!postId) {
-      return createSuccessResponse({ error: "Post ID is required" }, { status: 400 });
+      return createErrorResponse(new ApiError("Post ID is required", 400));
     }
     
     if (!commentId) {
-      return createSuccessResponse({ error: "Comment ID is required" }, { status: 400 });
+      return createErrorResponse(new ApiError("Comment ID is required", 400));
     }
 
     // First verify the post exists
@@ -62,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     if (!post) {
 
-      return createSuccessResponse({ error: "Post not found" }, { status: 404 });
+      return createErrorResponse(new ApiError("Post not found", 404));
     }
 
     // Verify the comment exists and belongs to the post
@@ -76,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     if (!comment) {
 
-      return createSuccessResponse({ error: "Comment not found" }, { status: 404 });
+      return createErrorResponse(new ApiError("Comment not found", 404));
     }
 
     // Handle depth and path generation
@@ -101,7 +100,7 @@ export async function POST(req: NextRequest) {
       
       if (!parentReply) {
 
-        return createSuccessResponse({ error: "Parent reply not found" }, { status: 404 });
+        return createErrorResponse(new ApiError("Parent reply not found", 404));
       }
       
       // Set depth and path based on parent
@@ -144,9 +143,6 @@ export async function POST(req: NextRequest) {
     return createSuccessResponse(reply);
   } catch (error) {
     logger.error("[NESTED_REPLIES] Error:", error);
-    return createSuccessResponse(
-      { error: "Error creating reply" },
-      { status: 500 }
-    );
+    return createErrorResponse(new ApiError("Error creating reply", 500));
   }
 } 

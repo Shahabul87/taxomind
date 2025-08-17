@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
         const category = searchParams.get('category') as any;
         const tags = searchParams.get('tags')?.split(',').filter(Boolean);
         const minRelevance = searchParams.get('minRelevance');
-        const technicalDepth = searchParams.get('technicalDepth');
+        const technicalDepth = searchParams.get('technicalDepth') || undefined;
         const limit = searchParams.get('limit');
 
         const news = await samNewsEngine.getLatestNews({

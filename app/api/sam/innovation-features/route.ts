@@ -765,7 +765,7 @@ function predictTraitDevelopment(traits: any[]): any {
 }
 
 function generateLearningStrategies(dna: any): any[] {
-  const strategies = [];
+  const strategies: any[] = [];
 
   // Based on dominant traits
   dna.traits
@@ -817,7 +817,7 @@ function analyzeDNAEvolution(dnaHistory: any[]): any {
 
 function identifyDominantChanges(previousDNA: any, currentDNA: any): string[] {
   // Compare two DNA snapshots to find major changes
-  const changes = [];
+  const changes: string[] = [];
   
   const prevTraits = JSON.parse(previousDNA.traits as string);
   const currTraits = JSON.parse(currentDNA.traits as string);
@@ -978,10 +978,10 @@ async function calculateProgressCorrelation(userId: string, buddyCreatedAt: Date
     },
   });
 
-  const avgBefore = progressBefore.reduce((sum, p) => sum + (p.quizScore || 0), 0) / 
+  const avgBefore = progressBefore.reduce((sum, p) => sum + (p.progressPercent || 0), 0) / 
     Math.max(1, progressBefore.length);
   
-  const avgAfter = progressAfter.reduce((sum, p) => sum + (p.quizScore || 0), 0) / 
+  const avgAfter = progressAfter.reduce((sum, p) => sum + (p.progressPercent || 0), 0) / 
     Math.max(1, progressAfter.length);
 
   return (avgAfter - avgBefore) / 100; // Normalized improvement
@@ -1076,7 +1076,7 @@ function generatePathRecommendations(pathState: any): string[] {
     recommendations.push("Consider making a decisive choice to prevent random collapse");
   }
 
-  const probabilities = Array.from(pathState.superposition.currentProbabilities.values());
+  const probabilities = Array.from(pathState.superposition.currentProbabilities.values()) as number[];
   const maxProb = Math.max(...probabilities);
   
   if (maxProb > 0.8) {

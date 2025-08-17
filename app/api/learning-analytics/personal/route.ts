@@ -90,7 +90,7 @@ export const POST = withAuth(async (
     if (!parseResult.success) {
       return createSuccessResponse(
         { error: 'Invalid request format', details: parseResult.error.errors },
-        { status: 400 }
+        400
       );
     }
 
@@ -119,7 +119,7 @@ export const POST = withAuth(async (
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
       },
-      { status: 500 }
+      500
     );
   }
 });

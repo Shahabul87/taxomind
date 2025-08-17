@@ -142,7 +142,7 @@ const PresetCard: React.FC<PresetCardProps> = ({ preset, onSelect, isRecommended
               </Badge>
               <Badge variant="outline" className="text-xs">
                 <Users className="w-3 h-3 mr-1" />
-                {preset.targetAudience}
+                {preset.successMetrics.recommendedClassSize}
               </Badge>
             </div>
 
@@ -150,11 +150,11 @@ const PresetCard: React.FC<PresetCardProps> = ({ preset, onSelect, isRecommended
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-300">Learning Objectives</span>
                 <span className="text-gray-500 dark:text-gray-400">
-                  {preset.learningObjectives.length} goals
+                  {preset.courseStructure.learningObjectives.length} goals
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-1">
-                {preset.learningObjectives.slice(0, 3).map((objective, index) => (
+                {preset.courseStructure.learningObjectives.slice(0, 3).map((objective: string, index: number) => (
                   <div key={index} className="flex items-center gap-2 text-sm">
                     <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
                     <span className="text-gray-700 dark:text-gray-300 truncate">
@@ -162,9 +162,9 @@ const PresetCard: React.FC<PresetCardProps> = ({ preset, onSelect, isRecommended
                     </span>
                   </div>
                 ))}
-                {preset.learningObjectives.length > 3 && (
+                {preset.courseStructure.learningObjectives.length > 3 && (
                   <div className="text-xs text-gray-500 dark:text-gray-400 ml-5">
-                    +{preset.learningObjectives.length - 3} more objectives
+                    +{preset.courseStructure.learningObjectives.length - 3} more objectives
                   </div>
                 )}
               </div>
@@ -174,11 +174,11 @@ const PresetCard: React.FC<PresetCardProps> = ({ preset, onSelect, isRecommended
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-300">Course Structure</span>
                 <span className="text-gray-500 dark:text-gray-400">
-                  {preset.courseStructure.length} modules
+                  {preset.courseStructure.chapters.length} modules
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-1">
-                {preset.courseStructure.slice(0, 2).map((module, index) => (
+                {preset.courseStructure.chapters.slice(0, 2).map((module: any, index: number) => (
                   <div key={index} className="flex items-center gap-2 text-sm">
                     <Target className="w-3 h-3 text-blue-500 flex-shrink-0" />
                     <span className="text-gray-700 dark:text-gray-300 truncate">
@@ -186,9 +186,9 @@ const PresetCard: React.FC<PresetCardProps> = ({ preset, onSelect, isRecommended
                     </span>
                   </div>
                 ))}
-                {preset.courseStructure.length > 2 && (
+                {preset.courseStructure.chapters.length > 2 && (
                   <div className="text-xs text-gray-500 dark:text-gray-400 ml-5">
-                    +{preset.courseStructure.length - 2} more modules
+                    +{preset.courseStructure.chapters.length - 2} more modules
                   </div>
                 )}
               </div>
@@ -199,9 +199,9 @@ const PresetCard: React.FC<PresetCardProps> = ({ preset, onSelect, isRecommended
                 <span className="text-gray-600 dark:text-gray-300">Assessment Methods</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                {preset.assessmentMethods.map((method, index) => (
+                {Object.keys(preset.assessmentConfig.questionTypes).map((method: string, index: number) => (
                   <Badge key={index} variant="secondary" className="text-xs">
-                    {method}
+                    {method.charAt(0).toUpperCase() + method.slice(1).replace(/([A-Z])/g, ' $1')}
                   </Badge>
                 ))}
               </div>
@@ -240,7 +240,7 @@ export const SmartPresetSelector = ({
   const [selectedDuration, setSelectedDuration] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('recommended');
 
-  const presetManager = useMemo(() => new EducationalPresetManager(), []);
+
 
   const filteredPresets = useMemo(() => {
     let filtered = EDUCATIONAL_PRESETS;
@@ -249,7 +249,7 @@ export const SmartPresetSelector = ({
       filtered = filtered.filter(preset => 
         preset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         preset.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        preset.learningObjectives.some(obj => 
+        preset.courseStructure.learningObjectives.some((obj: string) => 
           obj.toLowerCase().includes(searchTerm.toLowerCase())
         )
       );
@@ -273,8 +273,8 @@ export const SmartPresetSelector = ({
   const recommendedPresets = useMemo(() => {
     if (!userProfile) return filteredPresets.slice(0, 3);
     
-    return presetManager.getRecommendations(userProfile).slice(0, 3);
-  }, [userProfile, presetManager, filteredPresets]);
+    return EducationalPresetManager.getRecommendedPresets(userProfile).slice(0, 3);
+  }, [userProfile, filteredPresets]);
 
   const categories = useMemo(() => {
     const cats = new Set(EDUCATIONAL_PRESETS.map(p => p.category));
@@ -316,7 +316,7 @@ export const SmartPresetSelector = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recommendedPresets.map((preset) => (
+            {recommendedPresets.map((preset: EducationalPreset) => (
               <PresetCard 
                 key={preset.id} 
                 preset={preset} 
@@ -329,13 +329,13 @@ export const SmartPresetSelector = ({
 
         <TabsContent value="all" className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+            <div className="flex-1 relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
                 placeholder="Search presets..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-                prefix={<Search className="w-4 h-4" />}
+                className="w-full pl-10"
               />
             </div>
             <div className="flex gap-2">
@@ -387,7 +387,7 @@ export const SmartPresetSelector = ({
                 key={preset.id} 
                 preset={preset} 
                 onSelect={onPresetSelect}
-                isRecommended={recommendedPresets.some(r => r.id === preset.id)}
+                isRecommended={recommendedPresets.some((r: EducationalPreset) => r.id === preset.id)}
               />
             ))}
           </div>

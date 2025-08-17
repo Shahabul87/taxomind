@@ -587,7 +587,7 @@ export class LDAPProvider {
   public getActiveSessionsCount(): number {
     // Clean up expired sessions first
     const now = new Date();
-    for (const [sessionId, session] of this.sessions.entries()) {
+    for (const [sessionId, session] of Array.from(this.sessions.entries())) {
       if (session.expiresAt < now) {
         this.sessions.delete(sessionId);
       }
@@ -672,7 +672,7 @@ export class LDAPProviderManager {
   public getProvidersSummary() {
     const summary: Record<string, any> = {};
     
-    for (const [tenantId, provider] of this.providers.entries()) {
+    for (const [tenantId, provider] of Array.from(this.providers.entries())) {
       summary[tenantId] = provider.getConfigSummary();
     }
     
@@ -685,7 +685,7 @@ export class LDAPProviderManager {
   public async testAllConnections(): Promise<Record<string, { success: boolean; message: string }>> {
     const results: Record<string, { success: boolean; message: string }> = {};
     
-    for (const [tenantId, provider] of this.providers.entries()) {
+    for (const [tenantId, provider] of Array.from(this.providers.entries())) {
       results[tenantId] = await provider.testConnection();
     }
     

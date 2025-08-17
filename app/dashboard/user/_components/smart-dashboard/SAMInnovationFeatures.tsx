@@ -609,7 +609,7 @@ export function SAMInnovationFeatures({ user, className }: SAMInnovationFeatures
             <Switch
               id="auto-refresh"
               checked={autoRefresh}
-              onCheckedChange={setAutoRefresh}
+              onCheckedChange={(checked) => setAutoRefresh(checked)}
             />
           </div>
         </div>

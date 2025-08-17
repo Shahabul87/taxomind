@@ -396,7 +396,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
         </TabsContent>
 
         <TabsContent value="usage" className="space-y-6">
-          <UsageOverview userId={userId} subscription={subscription} />
+          <UsageOverview userId={userId} subscription={subscription || undefined} />
         </TabsContent>
       </Tabs>
     </div>

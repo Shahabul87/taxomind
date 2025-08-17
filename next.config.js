@@ -5,9 +5,31 @@ const nextConfig = {
   reactStrictMode: true,
   trailingSlash: false,
   
+  // Generate consistent build IDs to prevent CSS 404 errors
+  generateBuildId: async () => {
+    // Use environment variable if available, otherwise use timestamp
+    if (process.env.BUILD_ID) {
+      return process.env.BUILD_ID;
+    }
+    // For development, use a stable ID to prevent constant rebuilds
+    if (process.env.NODE_ENV === 'development') {
+      return 'development-build';
+    }
+    // For production, use timestamp
+    return `${new Date().getTime()}`;
+  },
+  
   // Performance optimizations
   compress: true,
   productionBrowserSourceMaps: false,
+  
+  // CSS handling optimization
+  onDemandEntries: {
+    // Period (in ms) where the page must be accessed before being disposed
+    maxInactiveAge: 60 * 1000, // 60 seconds
+    // Number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 5,
+  },
   
   // TypeScript and ESLint validation - temporarily disabled for build optimization
   typescript: {
@@ -35,6 +57,80 @@ const nextConfig = {
       '@tiptap/react',
       '@tiptap/starter-kit',
     ],
+  },
+  
+  // Webpack configuration to fix chunking issues and CSS handling
+  webpack: (config, { isServer, dev }) => {
+    // CSS handling optimizations for development
+    if (dev && !isServer) {
+      // Ensure CSS files are properly handled in development
+      config.optimization = {
+        ...config.optimization,
+        runtimeChunk: 'single',
+        moduleIds: 'deterministic',
+      };
+    }
+    
+    // Fix for missing module errors
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          // CSS specific cache group
+          styles: {
+            name: 'styles',
+            test: /\.(css|scss|sass)$/,
+            chunks: 'all',
+            enforce: true,
+            priority: 50,
+          },
+          framework: {
+            chunks: 'all',
+            name: 'framework',
+            test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
+            priority: 40,
+            enforce: true,
+          },
+          lib: {
+            test(module) {
+              return module.size() > 160000 &&
+                /node_modules[/\\]/.test(module.identifier());
+            },
+            name(module) {
+              const hash = require('crypto').createHash('sha1');
+              hash.update(module.identifier());
+              return hash.digest('hex').substring(0, 8);
+            },
+            priority: 30,
+            minChunks: 1,
+            reuseExistingChunk: true,
+          },
+          commons: {
+            name: 'commons',
+            minChunks: 2,
+            priority: 20,
+          },
+          shared: {
+            name(module, chunks) {
+              return require('crypto')
+                .createHash('sha1')
+                .update(chunks.reduce((acc, chunk) => acc + chunk.name, ''))
+                .digest('hex') + (isServer ? '-server' : '-client');
+            },
+            priority: 10,
+            minChunks: 2,
+            reuseExistingChunk: true,
+          },
+        },
+        maxAsyncRequests: 30,
+        maxInitialRequests: 30,
+      },
+    };
+    
+    return config;
   },
   
   // External packages for Next.js 15

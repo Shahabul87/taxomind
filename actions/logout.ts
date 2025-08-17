@@ -1,3 +1,5 @@
+"use server";
+
 import { signOut } from "@/auth";
 import { logger } from '@/lib/logger';
 import { currentUser } from "@/lib/auth";
@@ -13,7 +15,7 @@ export const logout = async (forced: boolean = false) => {
 
     // Log successful logout
     if (user) {
-      await authAuditHelpers.logSignOut(user.id, user.email, forced);
+      await authAuditHelpers.logSignOut(user.id, user.email || undefined, forced);
     } else {
       // Log anonymous logout attempt
       await authAuditHelpers.logSignOut(undefined, undefined, forced);
@@ -29,7 +31,7 @@ export const logout = async (forced: boolean = false) => {
     if (user) {
       await authAuditHelpers.logSuspiciousActivity(
         user.id, 
-        user.email, 
+        user.email || undefined, 
         'LOGOUT_ERROR', 
         `Logout failed: ${error?.message || 'Unknown error'}`
       );

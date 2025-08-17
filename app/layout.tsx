@@ -21,6 +21,7 @@ import { Suspense } from 'react';
 import { SAMGlobalProvider } from '@/components/sam/sam-global-provider';
 import { SAMGlobalAssistant } from '@/components/sam/sam-global-assistant';
 import { SAMContextManager } from '@/components/sam/sam-context-manager';
+import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
 
 // Force dynamic rendering for the entire app
 export const dynamic = 'force-dynamic';
@@ -163,6 +164,9 @@ export default async function RootLayout({
             
             {/* Global SAM AI Tutor - Available across all authenticated pages */}
             <SAMGlobalAssistant />
+            
+            {/* CSS Error Monitor - Only in development */}
+            <CSSErrorMonitorClient />
           </SAMGlobalProvider>
         </Providers>
       </body>

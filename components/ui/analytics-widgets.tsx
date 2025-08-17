@@ -383,11 +383,9 @@ export const BloomsProgressWidget: React.FC<BloomsProgressWidgetProps> = ({
           <ResponsiveContainer width="100%" height={200}>
             <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%" data={data}>
               <RadialBar
-                minAngle={15}
-                label={{ position: 'insideStart', fill: '#fff' }}
-                background
-                clockWise
                 dataKey="value"
+                cornerRadius={10}
+                fill="#8b5cf6"
               />
               <Legend />
             </RadialBarChart>

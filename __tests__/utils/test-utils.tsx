@@ -1,4 +1,5 @@
-import React, { ReactElement } from 'react'
+import * as React from 'react'
+import { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { SessionProvider } from 'next-auth/react'
 import { Toaster } from 'sonner'
@@ -10,11 +11,11 @@ export const mockSession: Session = {
     id: 'test-user-id',
     name: 'Test User',
     email: 'test@example.com',
-    role: 'USER',
     image: null,
     isTwoFactorEnabled: false,
     isOAuth: false,
-  },
+    role: 'USER',
+  } as any,
   expires: '2024-12-31',
 }
 
@@ -23,11 +24,11 @@ export const mockAdminSession: Session = {
     id: 'admin-user-id',
     name: 'Admin User',
     email: 'admin@example.com',
-    role: 'ADMIN',
     image: null,
     isTwoFactorEnabled: false,
     isOAuth: false,
-  },
+    role: 'ADMIN',
+  } as any,
   expires: '2024-12-31',
 }
 
@@ -36,11 +37,11 @@ export const mockTeacherSession: Session = {
     id: 'teacher-user-id',
     name: 'Teacher User',
     email: 'teacher@example.com',
-    role: 'USER', isTeacher: true,
     image: null,
     isTwoFactorEnabled: false,
     isOAuth: false,
-  },
+    role: 'USER',
+  } as any,
   expires: '2024-12-31',
 }
 

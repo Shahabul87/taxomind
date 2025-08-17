@@ -191,7 +191,7 @@ export function ProgressiveImage({
 
   useEffect(() => {
     if (isIntersecting || priority > 5) {
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => setIsLoaded(true);
       img.onerror = () => setIsError(true);
       img.src = src;

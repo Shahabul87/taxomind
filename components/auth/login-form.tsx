@@ -61,7 +61,7 @@ export const LoginForm = () => {
 
       startTransition(() => {
         login(values, callbackUrl)
-          .then((data) => {
+          .then(async (data) => {
 
             if (data?.error) {
               form.reset();
@@ -70,6 +70,22 @@ export const LoginForm = () => {
             if (data?.success) {
               form.reset();
               setSuccess(data.success);
+              
+              // If server validated credentials, now sign in on client
+              if (data?.requiresSignIn && data?.email) {
+                const result = await signIn("credentials", {
+                  email: data.email,
+                  password: values.password,
+                  redirect: false,  // Don't let NextAuth redirect
+                });
+                
+                if (result?.error) {
+                  setError("Failed to sign in");
+                } else if (result?.ok) {
+                  // Manually redirect to dashboard
+                  window.location.href = callbackUrl || "/dashboard";
+                }
+              }
             }
             if (data?.twoFactor) {
               setShowTwoFactor(true);

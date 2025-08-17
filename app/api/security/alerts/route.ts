@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
           ...event,
           affectedUsers: undefined, // Hide other affected users
           details: {
-            ...event.details,
+            ...(event.details as Record<string, any>),
             sessionId: undefined, // Hide session IDs
             fingerprintHash: undefined, // Hide fingerprint details
           },

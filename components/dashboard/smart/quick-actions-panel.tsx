@@ -246,7 +246,7 @@ export default function QuickActionsPanel({
 
         {/* Settings Quick Access */}
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-          <Link href="/profile">
+          <Link href="/settings">
             <Button variant="outline" size="sm" className="w-full">
               <Settings className="h-4 w-4 mr-2" />
               Profile Settings

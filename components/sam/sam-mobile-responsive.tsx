@@ -148,12 +148,7 @@ export function SAMMobileResponsive({ className }: SAMMobileResponsiveProps) {
               </DrawerHeader>
               
               <div className="flex-1 min-h-0">
-                <SamAITutorAssistant
-                  isOpen={isOpen}
-                  onClose={() => setIsOpen(false)}
-                  learningContext={learningContext}
-                  tutorMode={tutorMode}
-                />
+                <SamAITutorAssistant />
               </div>
             </div>
           </DrawerContent>
@@ -201,12 +196,7 @@ export function SAMMobileResponsive({ className }: SAMMobileResponsiveProps) {
               </SheetHeader>
               
               <div className="flex-1 min-h-0">
-                <SamAITutorAssistant
-                  isOpen={isOpen}
-                  onClose={() => setIsOpen(false)}
-                  learningContext={learningContext}
-                  tutorMode={tutorMode}
-                />
+                <SamAITutorAssistant />
               </div>
             </div>
           </SheetContent>

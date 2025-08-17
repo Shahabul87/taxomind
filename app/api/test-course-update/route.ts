@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withPublicAPI, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { currentUser } from '@/lib/auth';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const user = await currentUser();
 
     if (!user?.id) {
-      return createSuccessResponse({
+      return NextResponse.json({
         success: false,
         error: "User not authenticated",
         timestamp: new Date().toISOString()
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!course) {
-      return createSuccessResponse({
+      return NextResponse.json({
         success: false,
         error: "No courses found for user",
         timestamp: new Date().toISOString()
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    return createSuccessResponse({
+    return NextResponse.json({
       success: true,
       message: "Course update test successful",
       courseId: course.id,
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     logger.error("[TEST_COURSE_UPDATE] Error:", error);
-    return createSuccessResponse({
+    return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
       timestamp: new Date().toISOString()

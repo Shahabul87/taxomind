@@ -12,8 +12,9 @@ import { headers } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
-    // Basic authentication for production environments
-    if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+    // Basic authentication for production environments  
+    const nodeEnv = process.env.NODE_ENV;
+    if (nodeEnv === 'production' || (nodeEnv as string) === 'staging') {
       const headersList = await headers();
       const authorization = headersList.get('authorization');
       
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest) {
         status: 'error',
         timestamp: new Date().toISOString(),
         error: 'Health check failed',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? (error as Error).message : 'Internal server error',
       },
       { status: 500 }
     );

@@ -15,10 +15,10 @@ export async function GET(
     }
 
     const { templateId } = await params;
-    const template = await db.contentTemplate.findUnique({
+    const template = await db.aIContentTemplate.findUnique({
       where: { id: templateId },
       include: {
-        author: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -34,7 +34,7 @@ export async function GET(
     }
 
     // Check if user can access this template
-    if (!template.isPublic && template.authorId !== user.id && user.role !== UserRole.ADMIN) {
+    if (!template.isPublic && template.creatorId !== user.id && user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
@@ -60,7 +60,7 @@ export async function PUT(
     }
 
     const { templateId } = await params;
-    const template = await db.contentTemplate.findUnique({
+    const template = await db.aIContentTemplate.findUnique({
       where: { id: templateId }
     });
 
@@ -69,7 +69,7 @@ export async function PUT(
     }
 
     // Check permissions
-    if (template.authorId !== user.id && user.role !== UserRole.ADMIN) {
+    if (template.creatorId !== user.id && user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
@@ -83,7 +83,7 @@ export async function PUT(
       tags
     } = body;
 
-    const updatedTemplate = await db.contentTemplate.update({
+    const updatedTemplate = await db.aIContentTemplate.update({
       where: { id: templateId },
       data: {
         ...(name && { name }),
@@ -95,7 +95,7 @@ export async function PUT(
         ...(user.role === UserRole.ADMIN && { isOfficial: true })
       },
       include: {
-        author: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -128,7 +128,7 @@ export async function DELETE(
     }
 
     const { templateId } = await params;
-    const template = await db.contentTemplate.findUnique({
+    const template = await db.aIContentTemplate.findUnique({
       where: { id: templateId }
     });
 
@@ -137,11 +137,11 @@ export async function DELETE(
     }
 
     // Check permissions
-    if (template.authorId !== user.id && user.role !== UserRole.ADMIN) {
+    if (template.creatorId !== user.id && user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    await db.contentTemplate.delete({
+    await db.aIContentTemplate.delete({
       where: { id: templateId }
     });
 

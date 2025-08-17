@@ -1,13 +1,34 @@
-import { getUserCourses } from '@/actions/get-user-courses';
-import { db } from '@/lib/db';
 import { prismaMock } from '../utils/test-db';
+
+// Mock the auth module
+jest.mock('@/auth', () => ({
+  auth: jest.fn(),
+}));
+
+// Mock the database
+jest.mock('@/lib/db', () => ({
+  db: prismaMock,
+}));
+
+import { getUserCreatedCourses, getUserEnrolledCourses } from '@/actions/get-user-courses';
+import { db } from '@/lib/db';
+import { auth } from '@/auth';
+
+const mockAuth = auth as jest.Mock;
 
 describe('getUserCourses action', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  const mockUserCourses = [
+  const mockSession = {
+    user: {
+      id: 'user-1',
+      email: 'user@example.com',
+    },
+  };
+
+  const mockCreatedCourses = [
     {
       id: 'course-1',
       title: 'React Advanced',
@@ -16,161 +37,154 @@ describe('getUserCourses action', () => {
       price: 99.99,
       isPublished: true,
       categoryId: 'cat-1',
-      userId: 'teacher-1',
+      userId: 'user-1',
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
       category: { id: 'cat-1', name: 'Programming' },
-      chapters: [
-        { id: 'ch-1', isPublished: true },
-        { id: 'ch-2', isPublished: true },
-      ],
-      purchase: [{ userId: 'user-1', courseId: 'course-1' }],
-      enrollment: [],
-    },
-    {
-      id: 'course-2',
-      title: 'TypeScript Mastery',
-      description: 'Master TypeScript',
-      imageUrl: 'https://example.com/ts.jpg',
-      price: 149.99,
-      isPublished: true,
-      categoryId: 'cat-1',
-      userId: 'teacher-1',
-      createdAt: new Date('2024-01-02'),
-      updatedAt: new Date('2024-01-02'),
-      category: { id: 'cat-1', name: 'Programming' },
-      chapters: [
-        { id: 'ch-3', isPublished: true },
-      ],
-      purchase: [],
-      enrollment: [{ userId: 'user-1', courseId: 'course-2' }],
+      Purchase: [{ id: 'purchase-1', userId: 'student-1' }],
+      reviews: [{ rating: 5 }, { rating: 4 }],
     },
   ];
 
-  it('should return courses purchased or enrolled by user', async () => {
-    prismaMock.course.findMany.mockResolvedValue(mockUserCourses);
-    prismaMock.userProgress.count.mockResolvedValue(1);
+  const mockEnrollments = [
+    {
+      id: 'enrollment-1',
+      userId: 'user-1',
+      courseId: 'course-2',
+      createdAt: new Date('2024-01-02'),
+      Course: {
+        id: 'course-2',
+        title: 'TypeScript Mastery',
+        description: 'Master TypeScript',
+        imageUrl: 'https://example.com/ts.jpg',
+        price: 149.99,
+        isPublished: true,
+        category: { id: 'cat-1', name: 'Programming' },
+        reviews: [{ rating: 4 }],
+        user: { name: 'Teacher', image: 'teacher.jpg' },
+      },
+    },
+  ];
 
-    const result = await getUserCourses();
+  describe('getUserCreatedCourses', () => {
+    it('should return courses created by user', async () => {
+      mockAuth.mockResolvedValue(mockSession);
+      prismaMock.course.findMany.mockResolvedValue(mockCreatedCourses);
 
-    expect(prismaMock.course.findMany).toHaveBeenCalledWith({
-      where: {
-        OR: [
-          {
-            purchase: {
-              some: {
-                userId: 'user-1',
-              },
+      const result = await getUserCreatedCourses();
+
+      expect(result.courses).toHaveLength(1);
+      expect(result.courses[0].title).toBe('React Advanced');
+      expect(result.courses[0].totalEnrolled).toBe(1);
+      expect(result.courses[0].totalChapters).toBe(8);
+      expect(result.error).toBeNull();
+
+      expect(prismaMock.course.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+        },
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
             },
           },
-          {
-            enrollment: {
-              some: {
-                userId: 'user-1',
-              },
+          Purchase: {
+            select: {
+              id: true,
+              userId: true,
             },
+            take: 100,
           },
-        ],
-      },
-      include: {
-        category: true,
-        chapters: {
-          where: {
-            isPublished: true,
-          },
-          select: {
-            id: true,
+          reviews: {
+            select: {
+              rating: true,
+            },
+            take: 50,
           },
         },
-        purchase: {
-          where: {
-            userId: 'user-1',
-          },
+        orderBy: {
+          createdAt: 'desc',
         },
-        enrollment: {
-          where: {
-            userId: 'user-1',
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+        take: 50,
+      });
     });
 
-    expect(result.courses).toHaveLength(2);
-    expect(result.courses[0].totalChapters).toBe(8);
-    expect(result.courses[1].totalChapters).toBe(8);
+    it('should return unauthorized error when no session', async () => {
+      mockAuth.mockResolvedValue(null);
+
+      const result = await getUserCreatedCourses();
+
+      expect(result.courses).toEqual([]);
+      expect(result.error).toBe('Unauthorized');
+    });
   });
 
-  it('should return empty array when user has no courses', async () => {
-    prismaMock.course.findMany.mockResolvedValue([]);
+  describe('getUserEnrolledCourses', () => {
+    it('should return enrolled courses for user', async () => {
+      mockAuth.mockResolvedValue(mockSession);
+      prismaMock.enrollment.findMany.mockResolvedValue(mockEnrollments);
 
-    const result = await getUserCourses();
+      const result = await getUserEnrolledCourses();
 
-    expect(result.courses).toEqual([]);
-  });
+      expect(result.courses).toHaveLength(1);
+      expect(result.courses[0].title).toBe('TypeScript Mastery');
+      expect(result.courses[0].instructor.name).toBe('Teacher');
+      expect(result.error).toBeNull();
 
-  it('should handle courses with no chapters', async () => {
-    const courseWithNoChapters = {
-      ...mockUserCourses[0],
-      chapters: [],
-    };
+      expect(prismaMock.enrollment.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+        },
+        include: {
+          Course: {
+            include: {
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              reviews: {
+                select: {
+                  rating: true,
+                },
+                take: 20,
+              },
+              user: {
+                select: {
+                  name: true,
+                  image: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 100,
+      });
+    });
 
-    prismaMock.course.findMany.mockResolvedValue([courseWithNoChapters]);
+    it('should return unauthorized error when no session', async () => {
+      mockAuth.mockResolvedValue(null);
 
-    const result = await getUserCourses();
+      const result = await getUserEnrolledCourses();
 
-    expect(result.courses[0].totalChapters).toBe(8);
-  });
-
-  it('should calculate 100% progress for completed courses', async () => {
-    prismaMock.course.findMany.mockResolvedValue([mockUserCourses[0]]);
-    prismaMock.userProgress.count.mockResolvedValue(2); // All chapters completed
-
-    const result = await getUserCourses();
-
-    expect(result.courses[0].totalChapters).toBe(8);
+      expect(result.courses).toEqual([]);
+      expect(result.error).toBe('Unauthorized');
+    });
   });
 
   it('should handle database errors gracefully', async () => {
+    mockAuth.mockResolvedValue(mockSession);
     prismaMock.course.findMany.mockRejectedValue(new Error('Database error'));
 
-    await expect(getUserCourses()).rejects.toThrow('Database error');
-  });
+    const result = await getUserCreatedCourses();
 
-  it('should only include published courses and chapters', async () => {
-    const mixedCourses = [
-      {
-        ...mockUserCourses[0],
-        isPublished: false, // Unpublished course
-      },
-      mockUserCourses[1],
-    ];
-
-    prismaMock.course.findMany.mockResolvedValue([mockUserCourses[1]]);
-
-    const result = await getUserCourses();
-
-    // Should not include unpublished course
-    expect(result.courses).toHaveLength(1);
-    expect(result.courses[0].id).toBe('course-2');
-  });
-
-  it('should handle both purchase and enrollment for same course', async () => {
-    const courseWithBoth = {
-      ...mockUserCourses[0],
-      purchase: [{ userId: 'user-1', courseId: 'course-1' }],
-      enrollment: [{ userId: 'user-1', courseId: 'course-1' }],
-    };
-
-    prismaMock.course.findMany.mockResolvedValue([courseWithBoth]);
-    prismaMock.userProgress.count.mockResolvedValue(1);
-
-    const result = await getUserCourses();
-
-    expect(result.courses[0].totalChapters).toBe(8);
-    // Should not duplicate the course
-    expect(result.courses).toHaveLength(1);
+    expect(result.courses).toEqual([]);
+    expect(result.error).toBe('Failed to fetch created courses');
   });
 });

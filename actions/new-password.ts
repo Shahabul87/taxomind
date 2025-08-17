@@ -8,7 +8,7 @@ import { getPasswordResetTokenByToken } from "@/data/password-reset-token";
 import { getUserByEmail } from "@/data/user";
 import { db } from "@/lib/db";
 import { rateLimitAuth } from "@/lib/rate-limit";
-import bcrypt from "bcryptjs";
+import * as bcrypt from "bcryptjs";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
 
 export const newPassword = async (
@@ -101,7 +101,7 @@ export const newPassword = async (
   // Log successful password reset
   await authAuditHelpers.logPasswordChanged(
     existingUser.id, 
-    existingUser.email, 
+    existingUser.email || '', 
     'reset'
   );
 

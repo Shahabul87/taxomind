@@ -51,8 +51,9 @@ export function useRateLimitError() {
     // Check if this is a rate limit error (status 429)
     const isAxiosError = error instanceof Error && 'isAxiosError' in error;
     if (isAxiosError && (error as AxiosError).response?.status === 429) {
-      const rateLimitInfo: RateLimitInfo = (error as AxiosError).response?.data?.rateLimitInfo;
-      const message = (error as AxiosError).response?.data?.error || 'Rate limit exceeded. Please try again later.';
+      const responseData = (error as AxiosError).response?.data as any;
+      const rateLimitInfo: RateLimitInfo = responseData?.rateLimitInfo;
+      const message = responseData?.error || 'Rate limit exceeded. Please try again later.';
       
       // If we have rate limit info with a reset timestamp
       if (rateLimitInfo?.reset) {

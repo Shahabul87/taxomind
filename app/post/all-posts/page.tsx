@@ -38,13 +38,13 @@ const AllPostsPage = async () => {
       userId: user.id
     },
     include: {
-      user: true,
+      User: true,
       comments: true,
     },
     orderBy: {
       createdAt: 'desc'
     }
-  }) as Post[];
+  });
 
   // Get post stats
   const publishedCount = posts.filter(post => post.published).length;

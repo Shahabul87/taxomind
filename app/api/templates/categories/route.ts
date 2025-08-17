@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get unique categories with counts
-    const categories = await db.contentTemplate.groupBy({
+    const categories = await db.aIContentTemplate.groupBy({
       by: ['category'],
       where,
       _count: {
@@ -40,12 +40,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Get content types with counts
-    const contentTypes = await db.contentTemplate.groupBy({
-      by: ['contentType'],
+    const contentTypes = await db.aIContentTemplate.groupBy({
+      by: ['templateType'],
       where: {
         OR: [
           { isPublic: true },
-          { authorId: user.id }
+          { creatorId: user.id }
         ]
       },
       _count: {
@@ -59,16 +59,16 @@ export async function GET(request: NextRequest) {
     });
 
     // Get popular tags
-    const templates = await db.contentTemplate.findMany({
+    const templates = await db.aIContentTemplate.findMany({
       where,
       select: {
-        tags: true
+        templateType: true
       }
     });
 
     const tagCounts = new Map<string, number>();
-    templates.forEach(template => {
-      template.tags.forEach(tag => {
+    templates.forEach((template: any) => {
+      template.tags.forEach((tag: string) => {
         tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
       });
     });
@@ -79,11 +79,11 @@ export async function GET(request: NextRequest) {
       .map(([tag, count]) => ({ tag, count }));
 
     return NextResponse.json({
-      categories: categories.map(cat => ({
+      categories: categories.map((cat: any) => ({
         name: cat.category || "Uncategorized",
         count: cat._count.id
       })),
-      contentTypes: contentTypes.map(ct => ({
+      contentTypes: contentTypes.map((ct: any) => ({
         name: ct.contentType,
         count: ct._count.id
       })),

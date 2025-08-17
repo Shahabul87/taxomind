@@ -30,7 +30,6 @@ export async function POST(req: NextRequest) {
       courseId,
       chapterId,
       sectionId,
-      conversationId,
     });
 
     return NextResponse.json({

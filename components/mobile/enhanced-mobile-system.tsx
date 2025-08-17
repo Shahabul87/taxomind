@@ -55,7 +55,6 @@ export const MobileNavigation = () => {
     { id: 'home', label: 'Home', icon: Home, href: '/' },
     { id: 'courses', label: 'Courses', icon: BookOpen, href: '/courses' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
-    { id: 'profile', label: 'Profile', icon: User, href: '/profile' },
   ];
 
   return (

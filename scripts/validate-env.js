@@ -27,18 +27,32 @@ async function runValidation() {
     // Try to require the compiled JS version first (if it exists)
     let validationModule;
     try {
-      validationModule = require('../lib/env-validation.js');
+      // First try the root directory where the compiled version actually is
+      validationModule = require('../env-validation.js');
     } catch (error) {
-      // If compiled JS doesn't exist, use ts-node or fall back to JavaScript implementation
       try {
-        require('ts-node/register');
-        validationModule = require('../lib/env-validation.ts');
-      } catch (tsError) {
-        console.error('❌ Could not load TypeScript validation module');
-        console.error('Make sure to run "npm run build" or install ts-node');
-        // Fall back to JavaScript implementation below
-        fallbackValidation();
-        return;
+        // Try lib directory as fallback
+        validationModule = require('../lib/env-validation.js');
+      } catch (error2) {
+        // If compiled JS doesn't exist, use ts-node or fall back to JavaScript implementation
+        try {
+          require('ts-node').register({
+            compilerOptions: {
+              module: 'commonjs',
+              target: 'es2020',
+              esModuleInterop: true,
+              allowSyntheticDefaultImports: true,
+              skipLibCheck: true
+            }
+          });
+          validationModule = require('../lib/env-validation.ts');
+        } catch (tsError) {
+          console.error('❌ Could not load TypeScript validation module');
+          console.error('Make sure to run "npm run build" or install ts-node');
+          // Fall back to JavaScript implementation below
+          fallbackValidation();
+          return;
+        }
       }
     }
 

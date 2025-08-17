@@ -17,7 +17,7 @@ interface RecentActivitiesProps {
 
 export default function RecentActivities({ activities }: RecentActivitiesProps) {
   return (
-    <DashboardSection title="Recent Activities" viewAllLink="/profile?tab=activity">
+    <DashboardSection title="Recent Activities" viewAllLink="/dashboard">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {activities.length > 0 ? (

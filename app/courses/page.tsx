@@ -278,12 +278,13 @@ export default function CoursePage() {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/courses');
+        const response = await fetch('/api/courses/public');
         const data = await response.json();
         
-        if (Array.isArray(data)) {
+        if (data.success && Array.isArray(data.courses)) {
           // Enhance courses with additional data
-          const enhancedCourses = data.map((course: any, index: number) => ({
+          const coursesData = data.courses;
+          const enhancedCourses = coursesData.map((course: any, index: number) => ({
             ...course,
             level: (['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const)[Math.floor(Math.random() * 4)],
             duration: `${Math.floor(Math.random() * 15) + 5}h`,

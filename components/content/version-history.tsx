@@ -231,7 +231,7 @@ export function VersionHistory({ contentType, contentId, onVersionSelect }: Vers
                           View
                         </Button>
                         
-                        {isTeacherOrAdmin && version.status === VersionStatus.DRAFT && (
+                        {isTeacherOrAdmin() && version.status === VersionStatus.DRAFT && (
                           <Button
                             size="sm"
                             onClick={() => handlePublish(version.id)}
@@ -241,7 +241,7 @@ export function VersionHistory({ contentType, contentId, onVersionSelect }: Vers
                           </Button>
                         )}
                         
-                        {isTeacherOrAdmin && !isPublished && currentVersion && (
+                        {isTeacherOrAdmin() && !isPublished && currentVersion && (
                           <Button
                             variant="outline"
                             size="sm"

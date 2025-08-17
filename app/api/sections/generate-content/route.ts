@@ -32,7 +32,7 @@ export const POST = withAdminAuth(async (
       contentType, 
       enhancement, 
       customPrompt, 
-      context 
+      context: requestContext 
     } = body;
 
     // Verify section ownership through course

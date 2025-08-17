@@ -128,7 +128,7 @@ function determineInteractionType(message: string): string {
     lowerMessage.includes('generate') ||
     lowerMessage.includes('make')
   ) {
-    return 'CONTENT_GENERATED';
+    return 'CONTENT_GENERATE';
   }
   
   return 'QUESTION_ASKED';
@@ -227,12 +227,12 @@ async function storeInteraction(
           message,
           engineIntegration: !!engineResponse,
           enginesUsed: engineResponse ? getUsedEngines(engineResponse) : [],
-        },
-        result: {
-          response: response.message,
-          suggestions: response.suggestions,
-          actions: response.actions,
-          insights: response.insights,
+          result: {
+            response: response.message,
+            suggestions: response.suggestions,
+            actions: response.actions,
+            insights: response.insights,
+          },
         },
       },
     });
@@ -284,9 +284,9 @@ export async function GET(request: NextRequest) {
     const messages = interactions.map(interaction => ({
       id: interaction.id,
       role: 'assistant',
-      content: (interaction.result as any)?.response || '',
-      suggestions: (interaction.result as any)?.suggestions || [],
-      actions: (interaction.result as any)?.actions || [],
+      content: (interaction.context as any)?.result?.response || '',
+      suggestions: (interaction.context as any)?.result?.suggestions || [],
+      actions: (interaction.context as any)?.result?.actions || [],
       timestamp: interaction.createdAt,
       enginePowered: (interaction.context as any)?.engineIntegration || false,
     }));

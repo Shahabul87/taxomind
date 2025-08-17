@@ -37,7 +37,6 @@ const FULL_WIDTH_ROUTES = [
   "/about",
   "/blog",
   "/courses",
-  "/profile",
   "/solutions",
   "/ai-trends",
   "/ai-tutor",

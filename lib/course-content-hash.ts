@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { createHash } from 'crypto';
 
 interface CourseContent {
   title?: string | null;
@@ -54,8 +54,7 @@ export function generateCourseContentHash(course: CourseContent): string {
   const contentString = JSON.stringify(contentToHash, Object.keys(contentToHash).sort());
   
   // Generate SHA-256 hash
-  return crypto
-    .createHash('sha256')
+  return createHash('sha256')
     .update(contentString)
     .digest('hex')
     .substring(0, 16); // Use first 16 chars for brevity

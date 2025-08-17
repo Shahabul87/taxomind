@@ -177,6 +177,64 @@ const courses = await db.course.findMany({
 });
 ```
 
+## Prisma Relation Naming Conventions - CRITICAL
+
+### ⚠️ IMPORTANT: Prisma Relations Use Exact Model Names
+Prisma relation fields use the **exact model name** as defined in the schema, which are typically capitalized. This is a common source of TypeScript errors.
+
+### ✅ CORRECT: Use Capitalized Model Names in Relations
+```typescript
+// When including relations, use the EXACT model name from schema
+const user = await db.user.findUnique({
+  include: {
+    Enrollment: true,        // ✅ Correct - matches model name
+    Course: true,           // ✅ Correct - matches model name
+    Purchase: true,         // ✅ Correct - matches model name
+  },
+});
+
+// When accessing nested relations
+const enrollment = await db.enrollment.findFirst({
+  include: {
+    Course: {              // ✅ Correct - capital 'C' for Course model
+      include: {
+        user: true,        // ✅ Correct - lowercase 'user' as defined in Course model
+      },
+    },
+    User: true,            // ✅ Correct - capital 'U' for User model
+  },
+});
+```
+
+### ❌ AVOID: Using Lowercase for Model Relations
+```typescript
+// These will cause TypeScript errors
+const user = await db.user.findUnique({
+  include: {
+    enrollment: true,      // ❌ Wrong - should be 'Enrollment'
+    course: true,         // ❌ Wrong - should be 'Course' if it exists
+    purchase: true,       // ❌ Wrong - should be 'Purchase'
+  },
+});
+
+// Accessing relations incorrectly
+enrollment.course         // ❌ Wrong - should be enrollment.Course
+enrollment.user          // ❌ Wrong - should be enrollment.User
+```
+
+### 📋 Quick Reference for Common Relations
+Based on our schema:
+- **User** model has: `Enrollment`, `courses` (authored), NOT direct `Purchase`
+- **Enrollment** model has: `Course`, `User`
+- **Purchase** model has: `Course` (no User relation defined in Purchase)
+- **Course** model has: `user` (author), `Purchase`, `Enrollment`, `chapters`
+
+### 🔍 How to Verify Relation Names
+1. Check `prisma/schema.prisma` for the exact relation field names
+2. Look for the model definition and its relations
+3. Use `npx prisma studio` to visually explore relations
+4. Run `npx prisma generate` after schema changes to update TypeScript types
+
 ## Key Technical Decisions
 
 ### 1. Environment Safety

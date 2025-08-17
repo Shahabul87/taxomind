@@ -47,7 +47,6 @@ export default async function GroupsPage(props: GroupsPageProps) {
           members: true,
         },
       },
-      categoryRef: true,
     },
     orderBy: {
       members: {
@@ -67,9 +66,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
           ],
         } : {},
         searchParams.category && searchParams.category !== "All Categories" ? {
-          categoryRef: {
-            name: searchParams.category
-          }
+          category: searchParams.category
         } : {},
       ],
     },
@@ -77,15 +74,6 @@ export default async function GroupsPage(props: GroupsPageProps) {
       _count: {
         select: {
           members: true,
-          discussions: true,
-          events: true,
-        },
-      },
-      categoryRef: true,
-      creator: {
-        select: {
-          name: true,
-          image: true,
         },
       },
     },
@@ -151,9 +139,9 @@ export default async function GroupsPage(props: GroupsPageProps) {
                     </div>
                     <h3 className="font-medium text-gray-900 dark:text-white mb-1 line-clamp-1">{group.name}</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">{group.description}</p>
-                    {group.categoryRef && (
+                    {group.category && (
                       <Badge variant="secondary" className="mt-auto self-start">
-                        {group.categoryRef.name}
+                        {group.category}
                       </Badge>
                     )}
                     <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2">
@@ -248,9 +236,9 @@ export default async function GroupsPage(props: GroupsPageProps) {
                     <Link key={group.id} href={`/groups/${group.id}`} className="block">
                       <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 h-full flex flex-col group">
                         <div className="h-36 bg-gradient-to-r from-indigo-500 to-purple-600 relative overflow-hidden">
-                          {group.coverImage ? (
+                          {group.imageUrl ? (
                             <Image 
-                              src={group.coverImage} 
+                              src={group.imageUrl} 
                               alt={group.name} 
                               fill 
                               className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -258,9 +246,9 @@ export default async function GroupsPage(props: GroupsPageProps) {
                           ) : (
                             <div className="absolute inset-0 bg-grid-white/10 bg-grid-pattern"></div>
                           )}
-                          {group.categoryRef && (
+                          {group.category && (
                             <Badge className="absolute top-3 right-3 bg-white/90 text-indigo-700 hover:bg-white">
-                              {group.categoryRef.name}
+                              {group.category}
                             </Badge>
                           )}
                         </div>
@@ -279,11 +267,9 @@ export default async function GroupsPage(props: GroupsPageProps) {
                                 <Users className="w-4 h-4 mr-1 text-indigo-500" />
                                 {group._count.members}
                               </div>
-                              {group.creator?.name && (
-                                <div className="text-xs">
-                                  by {group.creator.name}
-                                </div>
-                              )}
+                              <div className="text-xs">
+                                by Admin
+                              </div>
                             </div>
                             <Button variant="ghost" size="sm" className="rounded-full h-8 w-8 p-0 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50">
                               <PlusCircle className="h-4 w-4" />
@@ -300,9 +286,9 @@ export default async function GroupsPage(props: GroupsPageProps) {
                     <Link key={group.id} href={`/groups/${group.id}`} className="block">
                       <div className="flex flex-col md:flex-row gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-300 group">
                         <div className="w-full md:w-48 h-32 md:h-auto bg-gradient-to-r from-indigo-500 to-purple-600 rounded-md overflow-hidden relative flex-shrink-0">
-                          {group.coverImage ? (
+                          {group.imageUrl ? (
                             <Image 
-                              src={group.coverImage} 
+                              src={group.imageUrl} 
                               alt={group.name} 
                               fill 
                               className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -319,9 +305,9 @@ export default async function GroupsPage(props: GroupsPageProps) {
                             <h3 className="text-xl font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                               {group.name}
                             </h3>
-                            {group.categoryRef && (
+                            {group.category && (
                               <Badge className="self-start md:self-auto bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 hover:bg-indigo-200">
-                                {group.categoryRef.name}
+                                {group.category}
                               </Badge>
                             )}
                           </div>
@@ -335,11 +321,9 @@ export default async function GroupsPage(props: GroupsPageProps) {
                               <Users className="w-4 h-4 mr-1 text-indigo-500" />
                               {group._count.members} members
                             </div>
-                            {group.creator?.name && (
-                              <div>
-                                Created by {group.creator.name}
-                              </div>
-                            )}
+                            <div>
+                              Created by Admin
+                            </div>
                             <div className="ml-auto">
                               <Button variant="outline" size="sm" className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950">
                                 View Group

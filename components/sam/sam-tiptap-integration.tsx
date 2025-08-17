@@ -46,34 +46,6 @@ export function SAMTipTapIntegration({
   const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
   const integrationRef = useRef<HTMLDivElement>(null);
   
-  // Track editor selection changes
-  useEffect(() => {
-    if (!editor) return;
-
-    const handleSelectionUpdate = () => {
-      const { from, to } = editor.state.selection;
-      const text = editor.state.doc.textBetween(from, to, ' ');
-      setSelectedText(text);
-      
-      // Get cursor position for floating UI
-      const { coords } = editor.view.coordsAtPos(from);
-      setCursorPosition({ x: coords.left, y: coords.top });
-    };
-
-    const handleUpdate = () => {
-      // Analyze content for suggestions
-      analyzecontent();
-    };
-
-    editor.on('selectionUpdate', handleSelectionUpdate);
-    editor.on('update', handleUpdate);
-
-    return () => {
-      editor.off('selectionUpdate', handleSelectionUpdate);
-      editor.off('update', handleUpdate);
-    };
-  }, [editor, analyzecontent]);
-
   // Analyze content for SAM suggestions
   const analyzecontent = useCallback(async () => {
     if (!editor || !isActive) return;
@@ -140,6 +112,55 @@ export function SAMTipTapIntegration({
       logger.error('Error analyzing content:', error);
     }
   }, [editor, isActive, context, trackInteraction]);
+
+  // Track editor selection changes
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleSelectionUpdate = () => {
+      const { from, to } = editor.state.selection;
+      const text = editor.state.doc.textBetween(from, to, ' ');
+      setSelectedText(text);
+      
+      // Get cursor position for floating UI
+      const position = editor.view.coordsAtPos(from);
+      setCursorPosition({ x: position.left, y: position.top });
+    };
+
+    const handleUpdate = () => {
+      // Analyze content for suggestions
+      analyzecontent();
+    };
+
+    editor.on('selectionUpdate', handleSelectionUpdate);
+    editor.on('update', handleUpdate);
+
+    return () => {
+      editor.off('selectionUpdate', handleSelectionUpdate);
+      editor.off('update', handleUpdate);
+    };
+  }, [editor, analyzecontent]);
+
+  // Get appropriate prompt for content generation
+  const getPromptForType = useCallback((type: string, content: string, context?: any) => {
+    const baseContext = `
+      Form Type: ${context?.formType || 'general'}
+      Course Context: ${learningContext.currentCourse?.title || 'Unknown'}
+      Chapter Context: ${learningContext.currentChapter?.title || 'Unknown'}
+      Current Content: "${content}"
+    `;
+
+    switch (type) {
+      case 'expand':
+        return `${baseContext}\n\nPlease expand this content with more detail and examples.`;
+      case 'improve':
+        return `${baseContext}\n\nPlease improve this content for clarity and engagement.`;
+      case 'rephrase':
+        return `${baseContext}\n\nPlease rephrase this content in a different way while maintaining the meaning.`;
+      default:
+        return `${baseContext}\n\nPlease provide helpful suggestions for this content.`;
+    }
+  }, [learningContext]);
 
   // Generate AI content suggestions
   const generateContentSuggestion = useCallback(async (type: 'expand' | 'improve' | 'rephrase') => {
@@ -214,27 +235,6 @@ export function SAMTipTapIntegration({
     // Remove the applied suggestion
     setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
   }, [editor, selectedText, awardPoints, trackInteraction, context]);
-
-  // Get appropriate prompt for content generation
-  const getPromptForType = useCallback((type: string, content: string, context?: any) => {
-    const baseContext = `
-      Form Type: ${context?.formType || 'general'}
-      Course Context: ${learningContext.currentCourse?.title || 'Unknown'}
-      Chapter Context: ${learningContext.currentChapter?.title || 'Unknown'}
-      Current Content: "${content}"
-    `;
-
-    switch (type) {
-      case 'expand':
-        return `${baseContext}\n\nPlease expand this content with more detail and examples.`;
-      case 'improve':
-        return `${baseContext}\n\nPlease improve this content for clarity and engagement.`;
-      case 'rephrase':
-        return `${baseContext}\n\nPlease rephrase this content in a different way while maintaining the meaning.`;
-      default:
-        return `${baseContext}\n\nPlease provide helpful suggestions for this content.`;
-    }
-  }, [learningContext]);
 
   // Dismiss suggestion
   const dismissSuggestion = useCallback((suggestionId: string) => {

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { logger } from '@/lib/logger';
+// Note: logger import removed - using console.error for error handling
 import {
   LineChart,
   Line,
@@ -117,32 +117,6 @@ export function RealTimeDashboard({
   // WebSocket connection for real-time updates
   const wsRef = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    initializeRealTimeConnection();
-    fetchInitialData();
-
-    return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      const ws = wsRef.current;
-      if (ws) {
-        ws.close();
-      }
-      if (refreshTimer.current) {
-        clearInterval(refreshTimer.current);
-      }
-    };
-  }, [fetchInitialData]);
-
-  useEffect(() => {
-    if (autoRefresh) {
-      startAutoRefresh();
-    } else {
-      stopAutoRefresh();
-    }
-
-    return () => stopAutoRefresh();
-  }, [autoRefresh, startAutoRefresh]);
-
   const initializeRealTimeConnection = () => {
     // In a real implementation, this would connect to a WebSocket server
     // For now, we'll simulate real-time updates with polling
@@ -181,7 +155,7 @@ export function RealTimeDashboard({
       setMetrics([...metricsHistory.current]);
       setIsConnected(true);
     } catch (error: any) {
-      logger.error('Failed to fetch current metrics:', error);
+      console.error('Failed to fetch current metrics:', error);
       setIsConnected(false);
     }
   }, [courseId, selectedTimeRange]);
@@ -197,7 +171,7 @@ export function RealTimeDashboard({
       const data = await response.json();
       setStudentActivities(data.activities || []);
     } catch (error: any) {
-      logger.error('Failed to fetch student activities:', error);
+      console.error('Failed to fetch student activities:', error);
     }
   }, [courseId, selectedTimeRange]);
 
@@ -212,7 +186,7 @@ export function RealTimeDashboard({
       const data = await response.json();
       setAlerts(data.alerts || []);
     } catch (error: any) {
-      logger.error('Failed to fetch content alerts:', error);
+      console.error('Failed to fetch content alerts:', error);
     }
   }, [courseId]);
 
@@ -225,7 +199,7 @@ export function RealTimeDashboard({
         fetchContentAlerts()
       ]);
     } catch (error: any) {
-      logger.error('Failed to fetch initial data:', error);
+      console.error('Failed to fetch initial data:', error);
       setIsConnected(false);
     } finally {
       setLoading(false);
@@ -248,6 +222,33 @@ export function RealTimeDashboard({
     }
   };
 
+  useEffect(() => {
+    const currentWs = wsRef.current;
+    const currentTimer = refreshTimer.current;
+    
+    initializeRealTimeConnection();
+    fetchInitialData();
+
+    return () => {
+      if (currentWs) {
+        currentWs.close();
+      }
+      if (currentTimer) {
+        clearInterval(currentTimer);
+      }
+    };
+  }, [fetchInitialData]);
+
+  useEffect(() => {
+    if (autoRefresh) {
+      startAutoRefresh();
+    } else {
+      stopAutoRefresh();
+    }
+
+    return () => stopAutoRefresh();
+  }, [autoRefresh, startAutoRefresh]);
+
   const resolveAlert = async (alertId: string) => {
     try {
       await fetch(`/api/analytics/real-time/alerts/${alertId}/resolve`, {
@@ -258,7 +259,7 @@ export function RealTimeDashboard({
         alert.id === alertId ? { ...alert, resolved: true } : alert
       ));
     } catch (error: any) {
-      logger.error('Failed to resolve alert:', error);
+      console.error('Failed to resolve alert:', error);
     }
   };
 

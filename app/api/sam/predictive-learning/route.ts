@@ -140,12 +140,12 @@ async function buildStudentProfile(
         take: 100,
       }),
       db.enrollment.findMany({
-        where: { userId, status: "ACTIVE" },
-        include: { course: true },
+        where: { userId },
+        include: { Course: true },
       }),
       db.user_achievements.findMany({
         where: { userId },
-        orderBy: { achievedAt: "desc" },
+        // orderBy: { earnedAt: "desc" }, // Field not in schema
       }),
     ]);
 
@@ -155,7 +155,7 @@ async function buildStudentProfile(
 
   // Calculate learning history
   const learningHistory: LearningHistory = {
-    coursesCompleted: enrollments.filter((e) => e.completedAt).length,
+    coursesCompleted: enrollments.filter((e: any) => e.updatedAt !== e.createdAt).length,
     averageScore: calculateAverageScore(progress),
     timeSpentLearning: calculateTotalLearningTime(activities),
     lastActivityDate: activities[0]?.timestamp || new Date(),
@@ -173,6 +173,7 @@ async function buildStudentProfile(
     consistencyScore: calculateConsistencyScore(activities),
     engagementLevel: calculateEngagementLevel(activities),
     participationRate: calculateParticipationRate(activities),
+    averageScore: calculateAverageScore(progress),
   };
 
   // Identify behavior patterns
@@ -200,10 +201,9 @@ async function buildStudentCohort(
   const enrollments = await db.enrollment.findMany({
     where: {
       courseId,
-      status: "ACTIVE",
       ...(timeframe
         ? {
-            enrolledAt: {
+            createdAt: {
               gte: timeframe.start,
               lte: timeframe.end,
             },
@@ -211,7 +211,7 @@ async function buildStudentCohort(
         : {}),
     },
     include: {
-      user: true,
+      User: true,
     },
   });
 
@@ -276,7 +276,7 @@ async function buildLearningContext(
 function calculateAverageScore(progress: any[]): number {
   if (progress.length === 0) return 0;
   const scores = progress
-    .map((p) => p.quizScore)
+    .map((p) => p.score)
     .filter((s) => s !== null && s !== undefined);
   return scores.length > 0
     ? scores.reduce((a, b) => a + b, 0) / scores.length

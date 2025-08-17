@@ -337,10 +337,6 @@ export const TaxomindHeader = ({ user }: TaxomindHeaderProps) => {
                               <span className="text-sm text-gray-300 group-hover:text-white">Dashboard</span>
                             </Link>
                             
-                            <Link href="/profile" className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors group">
-                              <User className="w-4 h-4 text-gray-400 group-hover:text-purple-400" />
-                              <span className="text-sm text-gray-300 group-hover:text-white">My Profile</span>
-                            </Link>
 
                             <Link href="/my-courses" className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors group">
                               <BookMarked className="w-4 h-4 text-gray-400 group-hover:text-purple-400" />
@@ -510,10 +506,6 @@ export const TaxomindHeader = ({ user }: TaxomindHeaderProps) => {
                     <Link href="/dashboard/user" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800/50 transition-colors">
                       <BarChart3 className="w-5 h-5 text-gray-400" />
                       <span className="text-gray-300">Dashboard</span>
-                    </Link>
-                    <Link href="/profile" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800/50 transition-colors">
-                      <User className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-300">Profile</span>
                     </Link>
                     <Link href="/settings" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800/50 transition-colors">
                       <Settings className="w-5 h-5 text-gray-400" />

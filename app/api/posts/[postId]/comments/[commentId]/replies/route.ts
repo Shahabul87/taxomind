@@ -17,7 +17,7 @@ export const POST = withAuth(async (
       return createSuccessResponse({ 
         error: getRateLimitMessage('reply', rateLimitResult.reset),
         rateLimitInfo: rateLimitResult
-      }, { status: 429 });
+      }, 429);
     }
 
     const { content, parentReplyId } = await request.json();
@@ -25,7 +25,7 @@ export const POST = withAuth(async (
     const { postId, commentId } = params;
 
     if (!content) {
-      return createSuccessResponse({ error: "Content is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Content is required" }, 400);
     }
 
     // Check if comment exists
@@ -38,7 +38,7 @@ export const POST = withAuth(async (
 
     if (!comment) {
 
-      return createSuccessResponse({ error: "Comment not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Comment not found" }, 404);
     }
 
     // If parentReplyId is provided, ensure it exists and belongs to this comment
@@ -56,7 +56,7 @@ export const POST = withAuth(async (
 
       if (!parentReply) {
 
-        return createSuccessResponse({ error: "Parent reply not found" }, { status: 404 });
+        return createSuccessResponse({ error: "Parent reply not found" }, 404);
       }
 
       // Check nesting depth to prevent excessive depth
@@ -71,7 +71,7 @@ export const POST = withAuth(async (
         if (replyDepth > 10) { // Hard limit on server side for safety
           return createSuccessResponse({ 
             error: "Maximum reply nesting depth exceeded" 
-          }, { status: 400 });
+          }, 400);
         }
         
         // Get the next parent in the chain
@@ -115,12 +115,12 @@ export const POST = withAuth(async (
       },
     });
 
-    return createSuccessResponse(reply);
+    return createSuccessResponse(reply, 201);
   } catch (error) {
     logger.error("[COMMENT_REPLY_POST] Error:", error);
     return createSuccessResponse({ 
       error: error instanceof Error ? error.message : "Internal server error" 
-    }, { status: 500 });
+    }, 500);
   }
 });
 
@@ -161,7 +161,7 @@ export const GET = withAuth(async (
       },
     });
 
-    return createSuccessResponse(replies);
+    return createSuccessResponse(replies, 200);
   } catch (error) {
     logger.error("[REPLIES_GET]", error);
     return createErrorResponse(ApiError.internal("Internal Error"));

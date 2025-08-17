@@ -38,24 +38,24 @@ export async function POST(request: NextRequest) {
         }
 
         // Check if template already exists
-        const existingTemplate = await db.contentTemplate.findFirst({
+        const existingTemplate = await db.aIContentTemplate.findFirst({
           where: {
             name,
-            authorId: user.id,
-            contentType
+            creatorId: user.id,
+            templateType: contentType
           }
         });
 
         if (existingTemplate) {
           if (overwrite) {
-            await db.contentTemplate.update({
+            await db.aIContentTemplate.update({
               where: { id: existingTemplate.id },
               data: {
                 description,
                 category,
-                templateData: JSON.stringify(data),
-                tags,
-                isOfficial: user.role === UserRole.ADMIN
+                parameters: JSON.stringify(data),
+                // tags: No tags field in schema
+                // isOfficial: user.role === UserRole.ADMIN // Field not in schema
               }
             });
             results.updated++;
@@ -63,17 +63,18 @@ export async function POST(request: NextRequest) {
             results.skipped++;
           }
         } else {
-          await db.contentTemplate.create({
+          await db.aIContentTemplate.create({
             data: {
+              id: `template_${Date.now()}_${user.id}`,
               name,
               description,
-              contentType,
+              templateType: contentType,
               category,
-              templateData: JSON.stringify(data),
-              tags,
-              authorId: user.id,
+              parameters: JSON.stringify(data),
+              promptTemplate: JSON.stringify(data), // Required field
+              creatorId: user.id,
               isPublic: false,
-              isOfficial: user.role === UserRole.ADMIN
+              updatedAt: new Date(),
             }
           });
           results.created++;

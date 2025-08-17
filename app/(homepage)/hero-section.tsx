@@ -210,7 +210,7 @@ export default function HeroSection() {
   return (
     <section 
       ref={sectionRef}
-      className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900/10 to-slate-900 flex items-center"
+      className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center"
     >
       {/* Animated background pattern - Optimized for mobile */}
       <div className="absolute inset-0">
@@ -240,43 +240,7 @@ export default function HeroSection() {
           </div>
         )}
 
-        {/* Floating orbs - Simplified animations on mobile, static if reduced motion */}
-        <motion.div 
-          className="absolute top-20 left-20 w-32 sm:w-48 md:w-72 h-32 sm:h-48 md:h-72 bg-purple-500/20 rounded-full blur-3xl"
-          animate={mounted && !prefersReducedMotion ? {
-            x: [0, 15, 0],
-            y: [0, -10, 0],
-          } : {}}
-          transition={{
-            duration: mounted && !prefersReducedMotion ? 15 : 0,
-            repeat: mounted && !prefersReducedMotion ? Infinity : 0,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div 
-          className="absolute bottom-20 right-20 w-32 sm:w-48 md:w-96 h-32 sm:h-48 md:h-96 bg-blue-500/20 rounded-full blur-3xl"
-          animate={mounted && !prefersReducedMotion ? {
-            x: [0, -10, 0],
-            y: [0, 15, 0],
-          } : {}}
-          transition={{
-            duration: mounted && !prefersReducedMotion ? 20 : 0,
-            repeat: mounted && !prefersReducedMotion ? Infinity : 0,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 sm:w-48 md:w-80 h-32 sm:h-48 md:h-80 bg-emerald-500/10 rounded-full blur-3xl"
-          animate={mounted && !prefersReducedMotion ? {
-            scale: [1, 1.05, 1],
-            opacity: [0.1, 0.12, 0.1],
-          } : {}}
-          transition={{
-            duration: mounted && !prefersReducedMotion ? 10 : 0,
-            repeat: mounted && !prefersReducedMotion ? Infinity : 0,
-            ease: "easeInOut"
-          }}
-        />
+        {/* Removed floating orbs to eliminate glow effect */}
       </div>
 
       {/* Main content */}

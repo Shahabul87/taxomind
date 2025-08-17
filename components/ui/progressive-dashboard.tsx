@@ -37,7 +37,7 @@ export const ProgressiveDashboard = ({ className }: ProgressiveDashboardProps) =
   const legacy = useProgressiveDisclosure();
   const getUnlockedFeatures = () => legacy.getAllRevealedFeatures().map(id => ({ id, name: id, description: '', category: 'ai', difficulty: 'beginner' as const }));
   const getNextFeatures = () => [] as Array<{ id: string; name: string; description: string; category: string; difficulty: 'beginner' | 'intermediate' | 'advanced'; prerequisites?: string[] }>;
-  const getProgressStats = () => ({ userLevel: 'beginner', unlockedFeatures: getUnlockedFeatures().length, discoveredFeatures: getUnlockedFeatures().length, unlockProgress: Math.round(legacy.getProgressScore() * 100) });
+  const getProgressStats = () => ({ userLevel: 'beginner', unlockedFeatures: getUnlockedFeatures().length, discoveredFeatures: getUnlockedFeatures().length, unlockProgress: Math.round(legacy.getProgressScore() * 100), totalTimeSpent: 0 });
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   
@@ -449,7 +449,7 @@ export const ProgressiveDashboard = ({ className }: ProgressiveDashboardProps) =
                   Spend More Time
                 </p>
                 <p className="text-xs text-green-600 dark:text-green-400">
-                  {Math.max(0, 30 - stats.totalTimeSpent)} more minutes to level up
+                  {Math.max(0, 30 - (stats.totalTimeSpent || 0))} more minutes to level up
                 </p>
               </div>
               <ArrowRight className="w-4 h-4 text-green-600" />

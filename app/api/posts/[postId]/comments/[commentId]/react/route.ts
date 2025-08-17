@@ -88,7 +88,7 @@ export const PATCH = withAuth(async (
       }
     });
 
-    return createSuccessResponse(updatedComment);
+    return createSuccessResponse(updatedComment, 200);
   } catch (error) {
     logger.error("[COMMENT_REACTION]", error);
     return createErrorResponse(ApiError.internal("Internal Error"));

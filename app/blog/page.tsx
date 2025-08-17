@@ -48,6 +48,7 @@ export default function BlogPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [visibleTabs, setVisibleTabs] = useState<string[]>([]);
   const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
@@ -110,12 +111,17 @@ export default function BlogPage() {
     return () => window.removeEventListener('resize', updateLayout);
   }, [categories, calculateVisibleTabs]);
 
+  // Mount on client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Fetch posts from API route
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/posts');
+        const response = await fetch('/api/posts/public');
         const data = await response.json();
         
         if (data.success && Array.isArray(data.posts)) {
@@ -359,7 +365,7 @@ export default function BlogPage() {
                           {post.title}
                         </h4>
                         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                          {mounted && <span>{new Date(post.createdAt).toLocaleDateString()}</span>}
                           <span>{post.views} views</span>
                         </div>
                       </div>

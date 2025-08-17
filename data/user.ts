@@ -19,7 +19,11 @@ export const getUserByEmail = async (email: string) => {
         role: true,
         isTwoFactorEnabled: true,
         emailVerified: true,
-        image: true
+        image: true,
+        totpEnabled: true,
+        totpVerified: true,
+        totpSecret: true,
+        recoveryCodes: true
       }
     });
 
@@ -70,7 +74,9 @@ export const getUserById = async (id: string) => {
         role: true,
         emailVerified: true,
         image: true,
-        isTwoFactorEnabled: true
+        isTwoFactorEnabled: true,
+        totpEnabled: true,
+        totpVerified: true
       }
     });
     

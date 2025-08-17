@@ -110,7 +110,8 @@ export class IntelligentAICache {
     let removed = 0;
 
     // Remove expired entries
-    for (const [key, entry] of this.cache.entries()) {
+    const cacheEntries = Array.from(this.cache.entries());
+    for (const [key, entry] of cacheEntries) {
       if (entry.expiresAt < now) {
         this.cache.delete(key);
         removed++;
@@ -220,7 +221,8 @@ export class IntelligentAICache {
     
     // Calculate memory usage estimate
     let memoryUsage = 0;
-    for (const entry of this.cache.values()) {
+    const cacheValues = Array.from(this.cache.values());
+    for (const entry of cacheValues) {
       memoryUsage += JSON.stringify(entry).length * 2; // Rough estimate in bytes
     }
     this.stats.memoryUsage = memoryUsage;

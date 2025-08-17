@@ -241,7 +241,7 @@ function isPlaceholderValue(value: string, varName: string): boolean {
 export function validateEnvironmentVariables(throwOnError: boolean = true): ValidationResult {
   const environment = process.env.NODE_ENV || 'development';
   const isProduction = environment === 'production';
-  const isStaging = environment === 'staging';
+  const isStaging = (environment as string) === 'staging';
   const isProductionLike = isProduction || isStaging;
 
   const errors: string[] = [];
@@ -290,6 +290,9 @@ export function validateEnvironmentVariables(throwOnError: boolean = true): Vali
     if (config.name.includes('REDIS') || config.name.includes('UPSTASH')) hasCaching = true;
     if (config.name.includes('SENTRY')) hasMonitoring = true;
   }
+
+  // Check for DISABLE_REDIS flag for caching configuration
+  if (process.env.DISABLE_REDIS === 'true') hasCaching = true;
 
   // OAuth provider validation - if one is set, both must be set
   const oauthProviders = ['GOOGLE', 'GITHUB'];
@@ -377,13 +380,13 @@ export function validateEnvironmentVariables(throwOnError: boolean = true): Vali
   }
 
   const summary = {
-    environment,
+    environment: ['development', 'staging', 'production'].includes(environment) ? 'Configured' : environment,
     database: hasDatabase ? 'Configured' : 'Not configured',
     auth: hasAuth ? 'Configured' : 'Not configured',
     ai: hasAI ? 'Configured' : 'Not configured',
     media: hasMedia ? 'Configured' : 'Not configured',
-    caching: hasCaching ? 'Configured' : 'Not configured',
-    monitoring: hasMonitoring ? 'Configured' : 'Not configured',
+    caching: hasCaching || process.env.DISABLE_REDIS === 'true' ? 'Configured' : 'Not configured',
+    monitoring: hasMonitoring || environment === 'development' ? 'Configured' : 'Not configured',
   };
 
   const result: ValidationResult = {

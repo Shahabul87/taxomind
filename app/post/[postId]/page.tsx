@@ -24,21 +24,20 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
           createdAt: "asc",
         },
       },
-      reactions: true,
-      tags: true,
-      user: {
+      Tag: true,
+      User: {
         select: {
           id: true,
           name: true,
           email: true,
         },
       },
-      postchapter: {
+      PostChapterSection: {
         orderBy: {
           position: "asc",
         },
       },
-      imageSections: {
+      PostImageSection: {
         orderBy: {
           position: "asc",
         },
@@ -56,7 +55,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
     post.description,
     post.imageUrl,
     post.category,
-    post.postchapter.some(chapter => chapter.isPublished),
+    post.PostChapterSection.some(chapter => chapter.isPublished),
   ];
 
   const totalFields = requiredFields.length;
@@ -86,7 +85,14 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
     {
       title: "Post Content",
       icon: BookOpen,
-      content: <PostChaptersForm initialData={post} postId={post.id} />,
+      content: <PostChaptersForm initialData={{ 
+        ...post, 
+        postchapter: post.PostChapterSection.map(chapter => ({
+          ...chapter,
+          isPublished: chapter.isPublished ?? false,
+          isFree: chapter.isFree ?? false
+        }))
+      }} postId={post.id} />,
     },
     {
       title: "Post Image",
@@ -127,7 +133,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
                   <PostActions
                     disabled={!isComplete}
                     postId={params.postId}
-                    isPublished={post.published}
+                    isPublished={post.published || false}
                   />
                 </div>
               </div>

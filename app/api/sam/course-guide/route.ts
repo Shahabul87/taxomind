@@ -166,9 +166,8 @@ async function recordSAMInteraction(
       data: {
         userId,
         courseId,
-        interactionType: 'CONTENT_GENERATED',
-        context: { type: interactionType },
-        result,
+        interactionType: 'CONTENT_GENERATE',
+        context: { type: interactionType, result },
       },
     });
   } catch (error) {

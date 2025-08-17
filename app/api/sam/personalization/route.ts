@@ -139,7 +139,7 @@ async function buildLearningBehavior(userId: string): Promise<LearningBehavior> 
     }),
     db.user_achievements.findMany({
       where: { userId },
-      orderBy: { achievedAt: "desc" },
+      // orderBy: { earnedAt: "desc" }, // Field not in schema
       take: 50,
     }),
   ]);
@@ -149,22 +149,22 @@ async function buildLearningBehavior(userId: string): Promise<LearningBehavior> 
   
   // Process content interactions
   const contentInteractions = activities.map((activity) => ({
-    contentId: activity.contentId || "",
-    contentType: activity.contentType || "",
+    contentId: activity.courseId || activity.chapterId || "",
+    contentType: activity.activityType || "",
     interactionType: activity.activityType,
     timestamp: activity.timestamp,
     duration: activity.duration || 0,
-    completionRate: activity.metadata?.completionRate || 0,
-    repeatViews: activity.metadata?.repeatViews || 0,
-    engagementScore: activity.metadata?.engagementScore || 0.5,
+    completionRate: (activity.metadata as any)?.completionRate || 0,
+    repeatViews: (activity.metadata as any)?.repeatViews || 0,
+    engagementScore: (activity.metadata as any)?.engagementScore || 0.5,
   }));
 
   // Process assessment history
   const assessmentHistory = progress
-    .filter((p) => p.quizScore !== null)
+    .filter((p) => p.progressPercent !== null)
     .map((p) => ({
       assessmentId: p.chapterId || "",
-      score: p.quizScore || 0,
+      score: p.progressPercent || 0,
       timeSpent: p.timeSpent || 0,
       attempts: 1,
       mistakePatterns: [],
@@ -198,7 +198,7 @@ async function getRecentInteractions(userId: string) {
     userId,
     type: activity.activityType,
     timestamp: activity.timestamp,
-    responseTime: activity.metadata?.responseTime,
+    responseTime: (activity.metadata as any)?.responseTime || 0,
     isError: activity.activityType === "ERROR",
     metadata: activity.metadata,
   }));
@@ -235,7 +235,7 @@ async function buildStudentProfile(userId: string) {
     include: {
       Enrollment: {
         include: {
-          course: true,
+          Course: true,
         },
       },
       samLearningProfile: true,
@@ -254,18 +254,18 @@ async function buildStudentProfile(userId: string) {
   });
 
   const skillGaps = progress
-    .filter((p) => p.quizScore && p.quizScore < 70)
+    .filter((p) => p.progressPercent && p.progressPercent < 70)
     .map((p) => ({
       skill: p.chapterId || "unknown",
-      score: p.quizScore,
+      score: p.progressPercent || 0,
     }));
 
   // Extract career goals from enrollments
-  const careerGoals = user.Enrollment.map((e) => e.course.title).slice(0, 3);
+  const careerGoals = user.Enrollment.map((e: any) => e.Course.title).slice(0, 3);
 
   // Determine learning pace
   const avgProgress = progress.reduce(
-    (sum, p) => sum + (p.progressPercentage || 0),
+    (sum, p) => sum + (p.progressPercent || 0),
     0
   ) / Math.max(1, progress.length);
   

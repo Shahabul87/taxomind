@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { logger } from '@/lib/logger';
+// Note: logger import removed - using console.error for error handling
 import { 
   Users, MessageCircle, History, Save, Share2, Download,
   Eye, EyeOff, Clock, CheckCircle, AlertCircle, MoreHorizontal,
@@ -80,61 +80,36 @@ export function CollaborativeEditor({
   const selectionRef = useRef<{ start: number; end: number } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Initialize real-time connection
-  useEffect(() => {
-    if (!user) return;
+  // Apply operation to content (simplified)
+  const applyOperationToContent = (content: string, operation: Operation): string => {
+    switch (operation.type) {
+      case 'insert':
+        return content.slice(0, operation.position) + 
+               (operation.content || '') + 
+               content.slice(operation.position);
+      
+      case 'delete':
+        return content.slice(0, operation.position) + 
+               content.slice(operation.position + (operation.length || 0));
+      
+      default:
+        return content;
+    }
+  };
 
-    const initializeConnection = async () => {
-      try {
-        // Create or get document
-        let document = await realtimeEngine.getDocument(documentId);
-        if (!document) {
-          document = await realtimeEngine.createDocument(documentId, initialContent, user.id);
-        }
-
-        // Join document
-        const collaborator = await realtimeEngine.joinDocument(documentId, user.id, {
-          name: user.name || 'Anonymous',
-          avatar: user.image || undefined,
-          permissions: {
-            canEdit: !readOnly,
-            canComment: true,
-            canShare: true
-          }
-        });
-
-        if (collaborator) {
-          setEditorState(prev => ({
-            ...prev,
-            content: document!.content,
-            version: document!.version,
-            collaborators: new Map([[collaborator.id, collaborator]]),
-            isConnected: true
-          }));
-        }
-
-        // Set up WebSocket connection
-        setupWebSocketConnection();
-
-      } catch (error: any) {
-        logger.error('Failed to initialize collaborative editor:', error);
-        toast.error('Failed to connect to collaborative editor');
-      }
-    };
-
-    initializeConnection();
-
-    return () => {
-      if (user) {
-        realtimeEngine.leaveDocument(documentId, user.id);
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      const currentWs = wsRef.current;
-      if (currentWs) {
-        currentWs.close();
-      }
-    };
-  }, [documentId, user, initialContent, readOnly, setupWebSocketConnection]);
+  // Handle remote operations
+  const handleRemoteOperation = useCallback((operation: Operation) => {
+    setEditorState(prev => {
+      const newContent = applyOperationToContent(prev.content, operation);
+      onContentChange?.(newContent);
+      
+      return {
+        ...prev,
+        content: newContent,
+        version: prev.version + 1
+      };
+    });
+  }, [onContentChange]);
 
   // Set up WebSocket for real-time updates
   const setupWebSocketConnection = useCallback(() => {
@@ -202,36 +177,61 @@ export function CollaborativeEditor({
 
   }, [documentId, user, handleRemoteOperation]);
 
-  // Handle remote operations
-  const handleRemoteOperation = useCallback((operation: Operation) => {
-    setEditorState(prev => {
-      const newContent = applyOperationToContent(prev.content, operation);
-      onContentChange?.(newContent);
-      
-      return {
-        ...prev,
-        content: newContent,
-        version: prev.version + 1
-      };
-    });
-  }, [onContentChange]);
+  // Initialize real-time connection
+  useEffect(() => {
+    if (!user) return;
 
-  // Apply operation to content (simplified)
-  const applyOperationToContent = (content: string, operation: Operation): string => {
-    switch (operation.type) {
-      case 'insert':
-        return content.slice(0, operation.position) + 
-               (operation.content || '') + 
-               content.slice(operation.position);
-      
-      case 'delete':
-        return content.slice(0, operation.position) + 
-               content.slice(operation.position + (operation.length || 0));
-      
-      default:
-        return content;
-    }
-  };
+    const currentWs = wsRef.current;
+
+    const initializeConnection = async () => {
+      try {
+        // Create or get document
+        let document = await realtimeEngine.getDocument(documentId);
+        if (!document) {
+          document = await realtimeEngine.createDocument(documentId, initialContent, user.id);
+        }
+
+        // Join document
+        const collaborator = await realtimeEngine.joinDocument(documentId, user.id, {
+          name: user.name || 'Anonymous',
+          avatar: user.image || undefined,
+          permissions: {
+            canEdit: !readOnly,
+            canComment: true,
+            canShare: true
+          }
+        });
+
+        if (collaborator) {
+          setEditorState(prev => ({
+            ...prev,
+            content: document!.content,
+            version: document!.version,
+            collaborators: new Map([[collaborator.id, collaborator]]),
+            isConnected: true
+          }));
+        }
+
+        // Set up WebSocket connection
+        setupWebSocketConnection();
+
+      } catch (error: any) {
+        console.error('Failed to initialize collaborative editor:', error);
+        toast.error('Failed to connect to collaborative editor');
+      }
+    };
+
+    initializeConnection();
+
+    return () => {
+      if (user) {
+        realtimeEngine.leaveDocument(documentId, user.id);
+      }
+      if (currentWs) {
+        currentWs.close();
+      }
+    };
+  }, [documentId, user, initialContent, readOnly, setupWebSocketConnection]);
 
   // Handle content changes
   const handleContentChange = useCallback((newContent: string) => {
@@ -333,7 +333,7 @@ export function CollaborativeEditor({
       toast.success('Comment added');
     } catch (error: any) {
       toast.error('Failed to add comment');
-      logger.error(error);
+      console.error(error);
     }
   }, [user, documentId, selectedText, commentText]);
 
@@ -345,7 +345,7 @@ export function CollaborativeEditor({
       toast.success('Document saved');
     } catch (error: any) {
       toast.error('Failed to save document');
-      logger.error(error);
+      console.error(error);
     }
   }, [documentId, user, editorState.content, onSave]);
 

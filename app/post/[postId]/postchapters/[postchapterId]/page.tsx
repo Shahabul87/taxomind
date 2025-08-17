@@ -68,7 +68,7 @@ const PostChapterIdPage = async (props: PageProps) => {
             disabled={!isComplete}
             postId={params.postId}
             chapterId={params.postchapterId}
-            isPublished={chapter.isPublished}
+            isPublished={chapter.isPublished || false}
           />
         </div>
 
@@ -98,7 +98,7 @@ const PostChapterIdPage = async (props: PageProps) => {
         </div>
 
         {/* Warning Banner */}
-        {!chapter.isPublished && (
+        {!(chapter.isPublished || false) && (
           <div className="mb-8 max-w-screen-2xl mx-auto">
             <Banner
               variant="warning"
@@ -148,7 +148,11 @@ const PostChapterIdPage = async (props: PageProps) => {
 
             <div className="bg-white/80 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-gray-700/40 p-6 shadow-sm dark:shadow-gray-900/20">
               <PostchapterAccessForm
-                initialData={chapter}
+                initialData={{
+                  ...chapter,
+                  isFree: chapter.isFree ?? false,
+                  isPublished: chapter.isPublished ?? false
+                }}
                 postId={params.postId}
                 chapterId={params.postchapterId}
               />

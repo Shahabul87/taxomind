@@ -1,5 +1,55 @@
 import { http, HttpResponse } from 'msw'
-import { mockCourse, mockChapter, mockSection, mockUser } from './test-utils'
+
+// Mock data for tests
+const mockUser = {
+  id: 'user-1',
+  name: 'Test User',
+  email: 'test@example.com',
+  image: null,
+  role: 'USER' as const,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+}
+
+const mockCourse = {
+  id: 'course-1',
+  title: 'Test Course',
+  description: 'A test course description',
+  imageUrl: 'https://example.com/image.jpg',
+  price: 99.99,
+  isPublished: true,
+  categoryId: 'category-1',
+  userId: 'user-1',
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+}
+
+const mockChapter = {
+  id: 'chapter-1',
+  title: 'Test Chapter',
+  description: 'A test chapter description',
+  videoUrl: 'https://example.com/video.mp4',
+  position: 1,
+  isPublished: true,
+  isFree: false,
+  courseId: 'course-1',
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+}
+
+const mockSection = {
+  id: 'section-1',
+  title: 'Test Section',
+  description: 'A test section description',
+  videoUrl: 'https://example.com/video.mp4',
+  position: 1,
+  isPublished: true,
+  isFree: false,
+  duration: 300,
+  chapterId: 'chapter-1',
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+}
 
 // Mock API handlers for MSW
 export const handlers = [
@@ -24,7 +74,7 @@ export const handlers = [
   }),
 
   http.post('/api/courses', async ({ request }) => {
-    const body = await request.json()
+    const body = await request.json() as Record<string, any>
     return HttpResponse.json({
       ...mockCourse,
       ...body,
@@ -33,7 +83,7 @@ export const handlers = [
   }),
 
   http.patch('/api/courses/:courseId', async ({ params, request }) => {
-    const body = await request.json()
+    const body = await request.json() as Record<string, any>
     if (params.courseId === 'course-1') {
       return HttpResponse.json({
         ...mockCourse,
@@ -66,7 +116,7 @@ export const handlers = [
   }),
 
   http.post('/api/courses/:courseId/chapters', async ({ params, request }) => {
-    const body = await request.json()
+    const body = await request.json() as Record<string, any>
     if (params.courseId === 'course-1') {
       return HttpResponse.json({
         ...mockChapter,
@@ -116,7 +166,7 @@ export const handlers = [
   }),
 
   http.patch('/api/users/me', async ({ request }) => {
-    const body = await request.json()
+    const body = await request.json() as Record<string, any>
     return HttpResponse.json({
       ...mockUser,
       ...body,

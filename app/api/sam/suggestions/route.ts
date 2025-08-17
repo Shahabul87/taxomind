@@ -122,7 +122,7 @@ async function generateContextualSuggestion(request: SamSuggestionRequest): Prom
   }
   
   try {
-    const aiResponse = await generateSamSuggestion(contextPrompt, userInput);
+    const aiResponse = await generateSamSuggestion(contextPrompt, userInput as any);
     
     // Determine confidence based on context and input completeness
     const confidence = calculateConfidence(userInput, context);

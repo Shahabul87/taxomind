@@ -61,7 +61,7 @@ export function usePermissions() {
     return session?.user?.role || null;
   };
   
-  const getPermissions = (): Permission[] => {
+  const getPermissions = (): readonly Permission[] => {
     if (!session?.user?.role) return [];
     return ROLE_PERMISSIONS[session.user.role] || [];
   };

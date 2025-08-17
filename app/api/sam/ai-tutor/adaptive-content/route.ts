@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       max_tokens: 1500,
       temperature: 0.7,
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `System Instructions: ${systemPrompt}` },
         { role: 'user', content: `Create ${format} content about: ${topic}` }
       ]
     });

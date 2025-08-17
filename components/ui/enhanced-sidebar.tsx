@@ -104,11 +104,6 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
       href: user?.role === "ADMIN" ? "/dashboard/admin" : (user ? "/dashboard/user" : "/"),
     },
     {
-      title: "Profile Manager",
-      icon: <User className="w-5 h-5" />,
-      href: "/profile",
-    },
-    {
       title: "Settings",
       icon: <Settings className="w-5 h-5" />,
       href: "/settings",

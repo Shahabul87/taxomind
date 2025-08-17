@@ -87,14 +87,14 @@ export async function GET() {
         select: {
           _count: {
             select: {
-              posts: true,
-              comments: true,
-              replies: true,
+              Post: true,
+              Comment: true,
+              Reply: true,
               reactions: true,
-              videos: true,
-              blogs: true,
-              articles: true,
-              ideas: true,
+              Video: true,
+              Blog: true,
+              Article: true,
+              Idea_Idea_userIdToUser: true,
               courses: true
             }
           }
@@ -106,12 +106,12 @@ export async function GET() {
           followers: 0, // Will be calculated from social media accounts later
           following: 0, // Will be calculated from social media accounts later
           likes: counts._count.reactions,
-          posts: counts._count.posts,
-          comments: counts._count.comments,
+          posts: counts._count.Post,
+          comments: counts._count.Comment,
           subscriptions: 0, // Will be calculated from user subscriptions later
           monthlySpending: 0, // Will be calculated from user subscriptions later
-          content: counts._count.videos + counts._count.blogs + counts._count.articles,
-          ideas: counts._count.ideas,
+          content: counts._count.Video + counts._count.Blog + counts._count.Article,
+          ideas: counts._count.Idea_Idea_userIdToUser,
           courses: counts._count.courses
         };
       }

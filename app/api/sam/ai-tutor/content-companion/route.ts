@@ -101,7 +101,7 @@ Provide contextual help that:
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Student question at ${timestamp}: "${userQuestion}"` }
     ]
   });
@@ -151,7 +151,7 @@ Provide:
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Explain this code line: "${codeSnippet}" (line ${lineNumber})` }
     ]
   });
@@ -202,7 +202,7 @@ Provide:
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Please clarify this concept: "${concept}" from the text: "${textSegment}"` }
     ]
   });
@@ -253,7 +253,7 @@ Provide:
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Student is asking about "${annotationPoint}" in the image. Question: "${userQuestion}"` }
     ]
   });
@@ -306,7 +306,7 @@ Always encourage independent thinking and learning.`;
     max_tokens: 800,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Student needs ${assistanceLevel} help with: "${question}". Their current answer: "${studentAnswer}"` }
     ]
   });
@@ -357,7 +357,7 @@ Provide:
     max_tokens: 800,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Help me navigate this ${documentType} to find: "${navigationQuery}"` }
     ]
   });
@@ -408,7 +408,7 @@ Provide:
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Help me understand the ${connectionType} connection between "${concept1}" and "${concept2}"` }
     ]
   });
@@ -461,7 +461,7 @@ Provide:
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `I have ${timeAvailable} to study ${contentType}. My energy level is ${energyLevel} and I want to ${sessionGoals}` }
     ]
   });

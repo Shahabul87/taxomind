@@ -823,11 +823,11 @@ export class JobMarketEngine {
         skillName: 'JavaScript',
         category: 'technical',
         proficiencyLevel: 'intermediate',
-        assessmentMethod: 'practical',
+        assessmentMethod: 'practical' as any,
         assessmentDate: new Date(),
         confidence: 0.85,
         evidenceSource: [],
-        validatedBy: 'instructor',
+        validatedBy: 'instructor' as any,
         lastUpdated: new Date(),
         improvementTrend: 'increasing'
       },
@@ -836,11 +836,11 @@ export class JobMarketEngine {
         skillName: 'React',
         category: 'technical',
         proficiencyLevel: 'beginner',
-        assessmentMethod: 'project_based',
+        assessmentMethod: 'project_based' as any,
         assessmentDate: new Date(),
         confidence: 0.75,
         evidenceSource: [],
-        validatedBy: 'peer_review',
+        validatedBy: 'peer_review' as any,
         lastUpdated: new Date(),
         improvementTrend: 'increasing'
       }

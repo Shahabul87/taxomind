@@ -119,7 +119,7 @@ export default function UserAnalyticsPage() {
       
       <AnalyticsErrorBoundary>
         <ImprovedUnifiedAnalytics 
-          user={user} 
+          user={user as any} 
           variant="fullpage"
           className="min-h-screen"
         />

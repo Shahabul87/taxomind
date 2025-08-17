@@ -67,15 +67,12 @@ export async function createMFANotification(
       return null;
     }
 
-    // Check if a similar notification already exists and is not expired
+    // Check if a similar notification already exists
     const existingNotification = await db.notification.findFirst({
       where: {
         userId,
         type: `MFA_${type.toUpperCase()}`,
-        expiresAt: {
-          gte: new Date(),
-        },
-        dismissed: false,
+        read: false,
       },
     });
 
@@ -91,22 +88,12 @@ export async function createMFANotification(
     // Create the notification
     const notification = await db.notification.create({
       data: {
+        id: globalThis.crypto.randomUUID(),
         userId,
         type: `MFA_${type.toUpperCase()}`,
         title: notificationData.title,
         message: notificationData.message,
-        priority: notificationData.priority,
-        actionUrl: notificationData.actionUrl,
-        actionText: notificationData.actionText,
-        metadata: {
-          mfa: true,
-          enforcementLevel: enforcementStatus.enforcementLevel,
-          daysUntilEnforcement: enforcementStatus.daysUntilEnforcement,
-          ...metadata,
-        },
-        expiresAt: notificationData.expiresAt,
         read: false,
-        dismissed: false,
       },
     });
 
@@ -119,7 +106,12 @@ export async function createMFANotification(
 
     // Send email notification if applicable
     if (notificationData.priority === "high" || notificationData.priority === "critical") {
-      await sendMFAEmailNotification(user, type, enforcementStatus, notificationData);
+      await sendMFAEmailNotification(
+        { email: user.email || "", name: user.name }, 
+        type, 
+        enforcementStatus, 
+        notificationData
+      );
     }
 
     return {
@@ -130,12 +122,12 @@ export async function createMFANotification(
       message: notification.message,
       priority: notificationData.priority,
       read: notification.read,
-      dismissed: notification.dismissed,
-      actionUrl: notification.actionUrl,
-      actionText: notification.actionText,
-      metadata: notification.metadata as Record<string, any>,
+      dismissed: false, // Default since not in database model
+      actionUrl: notificationData.actionUrl,
+      actionText: notificationData.actionText,
+      metadata: {}, // Default since not in database model
       createdAt: notification.createdAt,
-      expiresAt: notification.expiresAt,
+      expiresAt: notificationData.expiresAt,
     };
   } catch (error) {
     logger.error("[MFA_NOTIFICATION] Failed to create notification", {
@@ -375,12 +367,7 @@ export async function getMFANotifications(
         type: {
           startsWith: "MFA_",
         },
-        dismissed: false,
         ...(includeRead ? {} : { read: false }),
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gte: new Date() } },
-        ],
       },
       orderBy: {
         createdAt: "desc",
@@ -393,14 +380,14 @@ export async function getMFANotifications(
       type: notification.type.replace("MFA_", "").toLowerCase() as MFANotification["type"],
       title: notification.title,
       message: notification.message,
-      priority: notification.priority as MFANotification["priority"],
+      priority: "medium" as MFANotification["priority"], // Default since not in DB
       read: notification.read,
-      dismissed: notification.dismissed,
-      actionUrl: notification.actionUrl,
-      actionText: notification.actionText,
-      metadata: notification.metadata as Record<string, any>,
+      dismissed: false, // Default since not in DB
+      actionUrl: undefined, // Default since not in DB
+      actionText: undefined, // Default since not in DB
+      metadata: {}, // Default since not in DB
       createdAt: notification.createdAt,
-      expiresAt: notification.expiresAt,
+      expiresAt: undefined, // Default since not in DB
     }));
   } catch (error) {
     logger.error("[MFA_NOTIFICATIONS] Failed to get notifications", {
@@ -451,6 +438,7 @@ export async function dismissMFANotification(
   userId: string
 ): Promise<boolean> {
   try {
+    // Since dismissed field doesn't exist, we'll mark as read instead
     await db.notification.update({
       where: {
         id: notificationId,
@@ -460,7 +448,7 @@ export async function dismissMFANotification(
         },
       },
       data: {
-        dismissed: true,
+        read: true,
       },
     });
 
@@ -480,13 +468,19 @@ export async function dismissMFANotification(
  */
 export async function cleanupExpiredMFANotifications(): Promise<void> {
   try {
+    // Since expiresAt doesn't exist in the model, we can't filter by it
+    // This will delete all read MFA notifications older than 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
     const result = await db.notification.deleteMany({
       where: {
         type: {
           startsWith: "MFA_",
         },
-        expiresAt: {
-          lt: new Date(),
+        read: true,
+        createdAt: {
+          lt: thirtyDaysAgo,
         },
       },
     });

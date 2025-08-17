@@ -66,13 +66,6 @@ export async function PATCH(req: NextRequest) {
       // For debugging - check if reply exists at all
       const anyReply = await db.reply.findUnique({
         where: { id: replyId },
-        select: { 
-          id: true, 
-          userId: true, 
-          postId: true,
-          commentId: true,
-          parentReplyId: true
-        }
       });
       
       if (!anyReply) {
@@ -100,7 +93,7 @@ export async function PATCH(req: NextRequest) {
         updatedAt: new Date(),
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,

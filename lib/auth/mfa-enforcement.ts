@@ -332,16 +332,16 @@ export async function logMFAEnforcementAction(
     // This assumes you have an audit log system - adjust based on your implementation
     await db.authAudit.create({
       data: {
+        id: globalThis.crypto.randomUUID(),
         userId,
         action: `MFA_${action}`,
-        success: true,
+        status: "success",
         ipAddress: metadata.ipAddress || "unknown",
         userAgent: metadata.userAgent || "unknown",
-        metadata: {
+        details: JSON.stringify({
           mfaEnforcement: true,
           ...metadata,
-        },
-        timestamp: new Date(),
+        }),
       },
     }).catch((error) => {
       // Don&apos;t fail the enforcement action if audit logging fails
@@ -366,6 +366,7 @@ export async function getMFAEnforcementStats() {
       select: {
         id: true,
         email: true,
+        role: true,
         isTwoFactorEnabled: true,
         totpEnabled: true,
         totpVerified: true,

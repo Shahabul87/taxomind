@@ -65,13 +65,13 @@ async function transformToLegacyBlueprint(
       const blueprint: CourseBlueprint = {
         id: blueprintId,
         course: {
-          title: aiBlueprint.Course.title,
-          description: aiBlueprint.Course.description,
-          subtitle: aiBlueprint.Course.subtitle,
-          difficulty: aiBlueprint.Course.difficulty,
-          duration: aiBlueprint.Course.estimatedDuration,
-          targetAudience: aiBlueprint.Course.targetAudience,
-          goals: aiBlueprint.Course.learningOutcomes, // Map learning outcomes to goals
+          title: aiBlueprint.course.title,
+          description: aiBlueprint.course.description,
+          subtitle: aiBlueprint.course.subtitle,
+          difficulty: aiBlueprint.course.difficulty,
+          duration: aiBlueprint.course.estimatedDuration,
+          targetAudience: aiBlueprint.course.targetAudience,
+          goals: aiBlueprint.course.learningOutcomes, // Map learning outcomes to goals
           includeAssessments: requirements.includeAssessments
         },
         chapters: aiBlueprint.chapters.map((chapter, index) => ({

@@ -40,7 +40,7 @@ export type EmailJobType =
 
 // Enhanced job data interfaces for authentication emails
 export interface VerificationEmailData extends JobData {
-  jobType?: EmailJobType;
+  jobType: EmailJobType;
   userEmail: string;
   userName: string;
   verificationToken: string;
@@ -49,7 +49,7 @@ export interface VerificationEmailData extends JobData {
 }
 
 export interface PasswordResetEmailData extends JobData {
-  jobType?: EmailJobType;
+  jobType: EmailJobType;
   userEmail: string;
   userName: string;
   resetToken: string;
@@ -59,7 +59,7 @@ export interface PasswordResetEmailData extends JobData {
 }
 
 export interface TwoFactorEmailData extends JobData {
-  jobType?: EmailJobType;
+  jobType: EmailJobType;
   userEmail: string;
   userName: string;
   code: string;
@@ -69,7 +69,7 @@ export interface TwoFactorEmailData extends JobData {
 }
 
 export interface MFASetupConfirmationData extends JobData {
-  jobType?: EmailJobType;
+  jobType: EmailJobType;
   userEmail: string;
   userName: string;
   method: 'totp' | 'sms' | 'email';
@@ -78,7 +78,7 @@ export interface MFASetupConfirmationData extends JobData {
 }
 
 export interface LoginAlertEmailData extends JobData {
-  jobType?: EmailJobType;
+  jobType: EmailJobType;
   userEmail: string;
   userName: string;
   loginDate: Date;
@@ -253,7 +253,7 @@ export class EmailQueue {
     queueManager.registerHandler('email-enhanced', this.processEmailJob.bind(this));
     queueManager.startWorker('email-enhanced');
 
-    this.queue = queueManager['queues'].get('email-enhanced');
+    this.queue = queueManager['queues'].get('email-enhanced') || null;
     
     if (this.queue) {
       // Set up queue events for monitoring
@@ -666,7 +666,7 @@ export class EmailQueue {
     }
 
     if (job) {
-      return await handler(job);
+      return await handler(job as any);
     } else {
       // Create mock job for in-memory processing
       const mockJob = {
@@ -677,7 +677,7 @@ export class EmailQueue {
         updateProgress: async () => {},
       } as any as Job<EmailJobData>;
 
-      return await handler(mockJob);
+      return await handler(mockJob as any);
     }
   }
 
@@ -1103,7 +1103,7 @@ export class EmailQueue {
    */
   public async getStatistics(): Promise<any> {
     try {
-      const stats = {
+      const stats: any = {
         queueType: this.queue ? 'redis' : 'in-memory',
         circuitBreaker: {
           state: this.circuitBreaker.state,
@@ -1123,13 +1123,13 @@ export class EmailQueue {
       if (this.queue) {
         // Get Redis queue stats
         const queueStats = await queueManager.getQueueStats('email-enhanced');
-        stats['redis'] = queueStats;
+        stats.redis = queueStats;
       }
 
       if (redis) {
         // Get DLQ stats
         const dlqKeys = await redis.keys('dlq:email:*');
-        stats['dlq'] = {
+        stats.dlq = {
           failedJobs: dlqKeys.length,
           threshold: this.config.dlq.alertThreshold,
         };
@@ -1254,19 +1254,19 @@ export type EmailJobData =
 export const emailQueue = EmailQueue.getInstance();
 
 // Export convenience functions
-export const queueVerificationEmail = (data: VerificationEmailData) =>
-  emailQueue.addEmailJob('send-verification-email', data);
+export const queueVerificationEmail = (data: Omit<VerificationEmailData, 'jobType'>) =>
+  emailQueue.addEmailJob('send-verification-email', { ...data, jobType: 'send-verification-email' as EmailJobType });
 
-export const queuePasswordResetEmail = (data: PasswordResetEmailData) =>
-  emailQueue.addEmailJob('send-password-reset-email', data);
+export const queuePasswordResetEmail = (data: Omit<PasswordResetEmailData, 'jobType'>) =>
+  emailQueue.addEmailJob('send-password-reset-email', { ...data, jobType: 'send-password-reset-email' as EmailJobType });
 
-export const queue2FAEmail = (data: TwoFactorEmailData) =>
-  emailQueue.addEmailJob('send-2fa-code-email', data, { priority: JOB_PRIORITIES.CRITICAL });
+export const queue2FAEmail = (data: Omit<TwoFactorEmailData, 'jobType'>) =>
+  emailQueue.addEmailJob('send-2fa-code-email', { ...data, jobType: 'send-2fa-code-email' as EmailJobType }, { priority: JOB_PRIORITIES.CRITICAL });
 
-export const queueMFASetupConfirmation = (data: MFASetupConfirmationData) =>
-  emailQueue.addEmailJob('send-mfa-setup-confirmation', data);
+export const queueMFASetupConfirmation = (data: Omit<MFASetupConfirmationData, 'jobType'>) =>
+  emailQueue.addEmailJob('send-mfa-setup-confirmation', { ...data, jobType: 'send-mfa-setup-confirmation' as EmailJobType });
 
-export const queueLoginAlertEmail = (data: LoginAlertEmailData) =>
-  emailQueue.addEmailJob('send-login-alert-email', data, { priority: JOB_PRIORITIES.HIGH });
+export const queueLoginAlertEmail = (data: Omit<LoginAlertEmailData, 'jobType'>) =>
+  emailQueue.addEmailJob('send-login-alert-email', { ...data, jobType: 'send-login-alert-email' as EmailJobType }, { priority: JOB_PRIORITIES.HIGH });
 
 export default EmailQueue;

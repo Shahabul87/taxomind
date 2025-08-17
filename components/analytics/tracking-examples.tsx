@@ -2,7 +2,7 @@
 
 // Example implementations of click and scroll tracking
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useClickTracking, useComponentClickTracking } from '@/hooks/use-click-tracking';
 import { useScrollTracking, useContentVisibility } from '@/hooks/use-scroll-tracking';
 import { useFormTracking, useQuizTracking } from '@/hooks/use-form-tracking';
@@ -140,18 +140,24 @@ export function ContactForm({ courseId }: { courseId?: string }) {
       <input
         name="name"
         placeholder="Your Name"
-        {...nameTrackers}
+        onFocus={nameTrackers.onFocus}
+        onBlur={nameTrackers.onBlur}
+        onChange={(e) => nameTrackers.onChange(e.target.value)}
       />
       <input
         name="email"
         type="email"
         placeholder="Email"
-        {...emailTrackers}
+        onFocus={emailTrackers.onFocus}
+        onBlur={emailTrackers.onBlur}
+        onChange={(e) => emailTrackers.onChange(e.target.value)}
       />
       <textarea
         name="message"
         placeholder="Message"
-        {...messageTrackers}
+        onFocus={messageTrackers.onFocus}
+        onBlur={messageTrackers.onBlur}
+        onChange={(e) => messageTrackers.onChange(e.target.value)}
       />
       <Button type="submit">Send Message</Button>
     </form>
@@ -241,7 +247,7 @@ export function LongFormContent({ content, sectionId }: { content: any; sectionI
   const timeHeatmap = Object.entries(metrics.timeAtPosition).map(([range, time]) => ({
     range,
     time,
-    intensity: Math.min(time / 30, 1) // Cap at 30 seconds for full intensity
+    intensity: Math.min((time as number) / 30, 1) // Cap at 30 seconds for full intensity
   }));
 
   return (
@@ -326,7 +332,4 @@ async function submitForm() {
   });
 }
 
-import { useState } from 'react';
-
-// Add this import at the top of the file to fix the error
-// The useState was already being used but not imported
+// useState is now properly imported at the top of the file

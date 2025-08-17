@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
         result = await generateDetailedFeedback(studentResponses, assessmentData);
         break;
       case 'difficulty_adjustment':
-        result = await adjustDifficulty(studentResponses, assessmentData);
+        result = await adjustDifficultyLevel(studentResponses, assessmentData);
         break;
       case 'learning_analytics':
-        result = await generateLearningAnalytics(assessmentData);
+        result = await generateLearningGoals(assessmentData);
         break;
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -129,7 +129,7 @@ Create a balanced assessment that challenges students appropriately while provid
     max_tokens: 4000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create a comprehensive ${assessmentType} assessment for ${topic} in ${subject}.` }
     ]
   });
@@ -207,7 +207,7 @@ Create a question that optimally challenges the student while supporting their l
     max_tokens: 1500,
     temperature: 0.8,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Generate an adaptive question for this student based on their performance patterns.` }
     ]
   });
@@ -266,7 +266,7 @@ Provide actionable insights that can guide personalized learning interventions.`
     max_tokens: 2000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Analyze these student responses and provide comprehensive learning insights.' }
     ]
   });
@@ -334,7 +334,7 @@ Create a rubric that promotes fair, consistent, and meaningful assessment.`;
     max_tokens: 2500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create a comprehensive rubric for evaluating ${assessmentType} assessments in ${subject} on ${topic}.` }
     ]
   });
@@ -395,7 +395,7 @@ Create feedback that empowers students to take ownership of their learning journ
     max_tokens: 2000,
     temperature: 0.8,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Generate detailed, personalized feedback for this student based on their assessment responses.' }
     ]
   });
@@ -1098,4 +1098,100 @@ function generateLearningGoals(performanceData: any): string[] {
   goals.push('Develop efficient problem-solving strategies');
   
   return goals;
+}
+
+async function adjustDifficultyLevel(studentResponses: any[], assessmentData: any) {
+  const performance = analyzePerformance(studentResponses);
+  const currentDifficulty = assessmentData.difficulty || 'medium';
+  const adjustedDifficulty = adjustDifficultyBasedOnPerformance(currentDifficulty, performance);
+  
+  const systemPrompt = `You are SAM, an expert AI assessment designer specializing in difficulty adjustment. Analyze student performance and provide recommendations for appropriate difficulty adjustments.
+
+**Performance Data:**
+${JSON.stringify(performance, null, 2)}
+
+**Current Difficulty:** ${currentDifficulty}
+**Recommended Difficulty:** ${adjustedDifficulty}
+
+**Assessment Context:**
+${JSON.stringify(assessmentData, null, 2)}
+
+**Adjustment Requirements:**
+1. **Performance Analysis**: Evaluate accuracy, speed, and confidence patterns
+2. **Difficulty Calibration**: Ensure optimal challenge level for learning
+3. **Learning Zone**: Keep students in productive struggle zone
+4. **Motivation Maintenance**: Balance challenge with achievable success
+5. **Skill Development**: Progressive skill building recommendations
+6. **Individual Adaptation**: Account for learning style and preferences
+
+Provide specific recommendations for difficulty adjustment including question types, cognitive levels, and support strategies.`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1500,
+    temperature: 0.7,
+    messages: [
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
+      { role: 'user', content: 'Analyze performance and recommend difficulty adjustments for optimal learning.' }
+    ]
+  });
+
+  const aiResponse = response.content[0];
+  const adjustmentText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+  return {
+    currentDifficulty,
+    adjustedDifficulty,
+    performance,
+    recommendations: adjustmentText,
+    difficultyScore: calculateDifficultyScore(performance),
+    adaptationStrategy: generateAdaptationStrategy(performance),
+    nextSteps: generateDifficultyNextSteps(adjustedDifficulty),
+    timestamp: new Date().toISOString()
+  };
+}
+
+function calculateDifficultyScore(performance: any): number {
+  // Calculate a difficulty score based on performance metrics
+  const accuracyScore = performance.accuracy;
+  const confidenceScore = performance.confidence || 50;
+  const timeScore = performance.timeEfficiency || 50;
+  
+  return Math.round((accuracyScore + confidenceScore + timeScore) / 3);
+}
+
+function generateAdaptationStrategy(performance: any): string {
+  if (performance.accuracy > 85) {
+    return 'Increase cognitive complexity and introduce advanced concepts';
+  } else if (performance.accuracy < 50) {
+    return 'Provide foundational support and scaffolded learning';
+  }
+  return 'Maintain current level with targeted skill development';
+}
+
+function generateDifficultyNextSteps(difficulty: string): string[] {
+  const steps = [];
+  
+  switch (difficulty) {
+    case 'easy':
+      steps.push('Focus on building confidence with basic concepts');
+      steps.push('Provide clear examples and guided practice');
+      break;
+    case 'medium':
+      steps.push('Apply concepts to varied contexts');
+      steps.push('Introduce moderate complexity challenges');
+      break;
+    case 'hard':
+      steps.push('Engage in complex problem solving');
+      steps.push('Synthesize multiple concepts');
+      break;
+    case 'expert':
+      steps.push('Tackle advanced theoretical applications');
+      steps.push('Create original solutions and approaches');
+      break;
+    default:
+      steps.push('Continue current learning progression');
+  }
+  
+  return steps;
 }

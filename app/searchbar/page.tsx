@@ -3,24 +3,27 @@
 
 import { db } from "@/lib/db";
 import { getCoursesForHomepage } from "@/actions/get-all-courses";
-import { CourseCardHome } from "@/components/course-card-home";
-import { Separator } from "@/components/ui/separator";
-import { useEffect, useState } from "react";
-import { SidebarDemo } from "@/components/ui/sidebar-demo";
 
-type CourseForHomepage = {
+type CourseWithProgressWithCategory = {
   id: string;
   title: string;
-  description: string | null;
-  cleanDescription: string | null;
-  imageUrl: string | null;
-  price: number | null;
-  chaptersLength?: number;
-  category: {
-    id: string;
-    name: string;
-  } | null;
+  subtitle?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  price?: number | null;
+  isPublished: boolean;
+  isFeatured: boolean;
+  category: any;
+  chapters: { id: string }[];
+  cleanDescription?: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
+import { CourseCardHome } from "@/components/course-card-home";
+import { Separator } from "@/components/ui/separator";
+import { useEffect, useState, useCallback } from "react";
+import { SidebarDemo } from "@/components/ui/sidebar-demo";
+
 
 import { PlaceholdersAndVanishInput } from "./placeholders-and-vanish-input";
 
@@ -33,7 +36,7 @@ export default function PlaceholdersAndVanishInputDemo() {
     "How to assemble your own PC?",
   ];
 
-  const [courses, setCourses] = useState<CourseForHomepage[]>([]);
+  const [courses, setCourses] = useState<CourseWithProgressWithCategory[]>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
@@ -44,14 +47,15 @@ export default function PlaceholdersAndVanishInputDemo() {
 
   };
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      const fetchedCourses = await getCoursesForHomepage();
-      // Log the courses to see what we're getting
-      setCourses(fetchedCourses);
-    };
-    fetchCourses();
+  const fetchCourses = useCallback(async () => {
+    const fetchedCourses = await getCoursesForHomepage();
+    // Log the courses to see what we're getting
+    setCourses(fetchedCourses);
   }, []);
+
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
 
   return (
     <SidebarDemo>
@@ -78,7 +82,7 @@ export default function PlaceholdersAndVanishInputDemo() {
                 price={item.price || 0}
                 category={item?.category?.name || 'Uncategorized'}
                 cleanDescription={item.cleanDescription || item.description || ''}
-                chaptersLength={item.chaptersLength || 0}
+                chaptersLength={item.chapters?.length || 0}
               />
             ))}
           </div>

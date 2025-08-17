@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { VersionType } from "@prisma/client";
+// Use local enum matching service instead of Prisma enum
+enum VersionType { MAJOR = 'MAJOR', MINOR = 'MINOR', PATCH = 'PATCH', HOTFIX = 'HOTFIX' }
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {

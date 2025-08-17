@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category'); // 'learning' | 'social' | 'streak' | 'performance'
 
     // Get available challenges
-    const challenges = await getAvailableChallenges(type, category);
+    const challenges = await getAvailableChallenges(type, category || undefined);
     
     // Get user's challenge progress
     const userChallenges = await getUserChallengeProgress(user.id, status);

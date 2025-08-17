@@ -196,7 +196,7 @@ export const useSmartValidation = () => {
           context: {
             difficulty: formData.difficulty,
             courseCategory: formData.courseCategory,
-            duration: formData.duration
+            otherFields: { duration: formData.duration }
           }
         }, 0)
       );

@@ -245,7 +245,7 @@ export function SAMEnginePoweredChat({
           <div className="grid grid-cols-3 gap-1 text-xs">
             {Object.entries(insight.data).slice(0, 3).map(([level, score]) => (
               <div key={level}>
-                <span className="font-medium">{level}:</span> {score}%
+                <span className="font-medium">{level}:</span> {String(score)}%
               </div>
             ))}
           </div>

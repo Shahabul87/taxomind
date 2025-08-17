@@ -31,16 +31,23 @@ export {
 // API response utilities
 export {
   ApiError,
-  ApiResponse,
+  ApiResponses,
   createErrorResponse,
   createSuccessResponse,
-  type ApiErrorResponse,
-  type ApiSuccessResponse,
+  createPaginatedResponse,
+  createNoContentResponse,
+  createMethodNotAllowedResponse,
+  parseRequestBody,
+  parseQueryParams,
+  validateRequiredFields,
+  handleDatabaseError,
+  withErrorHandling,
+  type ApiResponse,
 } from "./api-responses";
 
 // Re-export commonly used types
 export { UserRole } from "@prisma/client";
-export { Permission } from "@/lib/role-management";
+export type { Permission } from "../role-management";
 
 /**
  * Quick Start Guide:
@@ -139,4 +146,4 @@ export { Permission } from "@/lib/role-management";
 // Map old imports to new ones for backwards compatibility
 export { withAuth as authorize } from "./with-api-auth";
 export { withAdminAuth as requireAdmin } from "./with-api-auth";
-export { requireAuth, requireRole, requirePermission } from "@/lib/api-protection";
+export { requireAuth, requireRole, requirePermission } from "../api-protection";

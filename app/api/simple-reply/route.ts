@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
         depth
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,

@@ -1,6 +1,26 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import { ActivityItem, ActivityStatus, ActivityType, ActivityPriority } from "../profile/_components/activity-dashboard/types";
+// Define activity types locally since profile folder was removed
+type ActivityStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+type ActivityType = 'course' | 'assignment' | 'quiz' | 'project' | 'script' | 'plan' | 'other';
+type ActivityPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+interface ActivityItem {
+  id: string;
+  title: string;
+  description?: string;
+  type: ActivityType;
+  status: ActivityStatus;
+  priority?: ActivityPriority;
+  dueDate?: Date;
+  completedDate?: Date;
+  createdAt: Date;
+  updatedAt?: Date;
+  progress?: number;
+  tags?: string[];
+  metadata?: Record<string, any>;
+  userId?: string;
+}
 import { logger } from '@/lib/logger';
 
 /**

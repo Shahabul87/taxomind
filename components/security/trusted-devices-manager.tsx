@@ -74,7 +74,17 @@ const TrustedDevicesManager: React.FC = () => {
     try {
       const result = await getTrustedDevices();
       if (result.success && result.devices) {
-        setDevices(result.devices);
+        // Ensure the devices match the TrustedDevice interface
+        const devicesWithDefaults: TrustedDevice[] = result.devices.map((device: any) => ({
+          id: device.id,
+          deviceId: device.deviceId || device.id, // Use id as fallback for deviceId
+          name: device.name,
+          lastActivity: device.lastActivity,
+          trustEstablishedAt: device.trustEstablishedAt,
+          riskLevel: device.riskLevel || 'LOW', // Default to LOW if not provided
+          current: device.current || false
+        }));
+        setDevices(devicesWithDefaults);
       }
     } catch (error) {
       console.error('Failed to load trusted devices:', error);

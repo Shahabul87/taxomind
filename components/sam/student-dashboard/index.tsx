@@ -11,6 +11,7 @@ import { SkillsInventory } from './skills-inventory';
 import { Brain, BarChart3, Map, Sparkles, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
+import { BloomsLevel } from '@prisma/client';
 
 interface StudentDashboardProps {
   userId: string;
@@ -275,15 +276,22 @@ function getActivitiesForLevel(level: string) {
   return activities[level] || [];
 }
 
-function identifyLearningGaps(studentProgress: any) {
+interface LearningGap {
+  level: BloomsLevel;
+  severity: 'low' | 'medium' | 'high';
+  description: string;
+  suggestions: string[];
+}
+
+function identifyLearningGaps(studentProgress: any): LearningGap[] {
   if (!studentProgress) return [];
   
-  const gaps = [];
+  const gaps: LearningGap[] = [];
   const weakAreas = studentProgress.weaknessAreas || [];
   
   weakAreas.forEach((area: string) => {
     gaps.push({
-      level: area as any,
+      level: area as BloomsLevel,
       severity: 'medium' as const,
       description: `Your ${area.toLowerCase()} skills need improvement`,
       suggestions: [

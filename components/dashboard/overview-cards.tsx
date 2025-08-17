@@ -13,7 +13,7 @@ export default function OverviewCards({ userData }: OverviewCardsProps) {
         value={(userData?.activities?.length || 0).toString()} 
         icon={<Activity className="h-5 w-5 text-purple-500" />}
         change="+5% from last week"
-        href="/profile?tab=activity"
+        href="/dashboard"
       />
       <DashboardCard 
         title="Enrolled Courses" 
@@ -27,7 +27,7 @@ export default function OverviewCards({ userData }: OverviewCardsProps) {
         value={(userData?.ideas?.length || 0).toString()}
         icon={<Lightbulb className="h-5 w-5 text-amber-500" />}
         change="+3 new ideas"
-        href="/profile?tab=ideas"
+        href="/dashboard"
       />
       <DashboardCard 
         title="Performance" 

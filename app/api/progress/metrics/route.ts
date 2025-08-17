@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
+import { optimizedProgressQueries } from '@/lib/db/query-optimizer';
 
 // Get user's learning metrics
 export async function GET(req: NextRequest) {
@@ -17,6 +19,19 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get('courseId');
     const timeframe = searchParams.get('timeframe') || '30'; // days
+
+    // Generate cache key for this specific request
+    const cacheKey = `progress:metrics:${session.user.id}:${courseId || 'all'}:${timeframe}`;
+
+    // Try to get from cache first
+    const cached = await redisCache.get(cacheKey, {
+      prefix: CACHE_PREFIXES.PROGRESS,
+    });
+
+    if (cached.hit && cached.value) {
+      logger.info('[Progress Metrics API] Cache hit');
+      return NextResponse.json(cached.value);
+    }
 
     // Return mock data since learningMetrics and learningSession models don't exist in schema
     const mockMetrics = [
@@ -99,12 +114,23 @@ export async function GET(req: NextRequest) {
         }))
       };
 
-      return NextResponse.json({
+      const response = {
         success: true,
         metrics,
         trends: trendData,
         sessionCount: metrics.totalSessions
+      };
+
+      // Cache the response
+      await redisCache.set(cacheKey, response, {
+        prefix: CACHE_PREFIXES.PROGRESS,
+        ttl: CACHE_TTL.SHORT, // Short TTL for progress data as it changes frequently
+        tags: ['progress', `user:${session.user.id}`, `course:${courseId}`],
       });
+
+      logger.info('[Progress Metrics API] Cached course metrics');
+
+      return NextResponse.json(response);
 
     } else {
       // Get metrics for all courses
@@ -113,13 +139,24 @@ export async function GET(req: NextRequest) {
       // Calculate overall statistics
       const overallStats = calculateOverallStats(allMetrics);
 
-      return NextResponse.json({
+      const response = {
         success: true,
         metrics: allMetrics,
         overallStats,
         recentAlerts: 2,
         criticalAlerts: 1
+      };
+
+      // Cache the response
+      await redisCache.set(cacheKey, response, {
+        prefix: CACHE_PREFIXES.PROGRESS,
+        ttl: CACHE_TTL.SHORT, // Short TTL for progress data
+        tags: ['progress', `user:${session.user.id}`],
       });
+
+      logger.info('[Progress Metrics API] Cached all metrics');
+
+      return NextResponse.json(response);
     }
 
   } catch (error) {
@@ -206,7 +243,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function calculateTrendData(sessions: any[], timeframeDays: number) {
+function calculateTrendData(sessions: any[], timeframeDays: number): any {
   const trendData = {
     dailyEngagement: [] as Array<{date: string, engagement: number, duration: number}>,
     weeklyProgress: [] as Array<{week: string, chaptersCompleted: number, totalTime: number}>,
@@ -215,7 +252,7 @@ function calculateTrendData(sessions: any[], timeframeDays: number) {
   };
 
   // Group sessions by day
-  const sessionsByDay = sessions.reduce((acc, session) => {
+  const sessionsByDay = sessions.reduce((acc: Record<string, any[]>, session: any) => {
     const date = new Date(session.startTime).toISOString().split('T')[0];
     if (!acc[date]) {
       acc[date] = [];
@@ -226,8 +263,8 @@ function calculateTrendData(sessions: any[], timeframeDays: number) {
 
   // Calculate daily engagement
   Object.entries(sessionsByDay).forEach(([date, daySessions]) => {
-    const avgEngagement = daySessions.reduce((sum, s) => sum + s.engagementScore, 0) / daySessions.length;
-    const totalDuration = daySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+    const avgEngagement = (daySessions as any[]).reduce((sum: number, s: any) => sum + s.engagementScore, 0) / daySessions.length;
+    const totalDuration = (daySessions as any[]).reduce((sum: number, s: any) => sum + (s.duration || 0), 0);
     
     trendData.dailyEngagement.push({
       date,
@@ -240,7 +277,7 @@ function calculateTrendData(sessions: any[], timeframeDays: number) {
   trendData.dailyEngagement.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   // Calculate weekly progress
-  const weeklyData = sessions.reduce((acc, session) => {
+  const weeklyData = sessions.reduce((acc: Record<string, {chapters: Set<string>, totalTime: number}>, session: any) => {
     const week = getWeekKey(new Date(session.startTime));
     if (!acc[week]) {
       acc[week] = { chapters: new Set(), totalTime: 0 };
@@ -255,8 +292,8 @@ function calculateTrendData(sessions: any[], timeframeDays: number) {
   Object.entries(weeklyData).forEach(([week, data]) => {
     trendData.weeklyProgress.push({
       week,
-      chaptersCompleted: data.chapters.size,
-      totalTime: data.totalTime
+      chaptersCompleted: (data as any).chapters.size,
+      totalTime: (data as any).totalTime
     });
   });
 
@@ -270,13 +307,13 @@ function calculateTrendData(sessions: any[], timeframeDays: number) {
     }, {} as Record<string, number>);
 
   Object.entries(strugglingAreas).forEach(([area, frequency]) => {
-    trendData.strugglingPatterns.push({ area, frequency });
+    trendData.strugglingPatterns.push({ area, frequency: frequency as number });
   });
 
   return trendData;
 }
 
-function calculateOverallStats(metrics: any[]) {
+function calculateOverallStats(metrics: any[]): any {
   if (metrics.length === 0) {
     return {
       totalCourses: 0,

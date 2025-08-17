@@ -56,7 +56,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ).catch(console.error); // Don't fail auth if logging fails
       }
     },
-    async signOut({ token }) {
+    async signOut({ session, token }: { session?: any; token?: any }) {
       // Log sign-out events
       if (token?.sub && token?.email) {
         await authAuditHelpers.logSignOut(
@@ -176,7 +176,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return false;
       }
     },
-    async session({ token, session, req }) {
+    async session({ token, session, req }: { token: any; session: any; req?: any }) {
       if (!token || !session) {
         console.error("Missing token or session in session callback");
         return session;
@@ -194,7 +194,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             );
 
             // Add security metadata to session
-            session.security = {
+            (session as any).security = {
               riskLevel: validation.riskLevel,
               fingerprintValid: validation.isValid,
               lastCheck: new Date().toISOString(),
@@ -203,8 +203,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // If fingerprint validation fails critically, mark session as invalid
             if (validation.shouldForceReauth) {
               console.warn(`Session fingerprint validation failed for user ${token.sub}: ${validation.changes.join(', ')}`);
-              session.user = null; // This will force re-authentication
-              return session;
+              return { ...session, user: null }; // This will force re-authentication
             }
 
             // Store validation result for middleware use
@@ -223,7 +222,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.role = token.role as UserRole;
         
         // Store role in session for dynamic session config
-        session.expires = new Date(Date.now() + getSessionConfig(token.role as string).maxAge * 1000).toISOString();
+        (session as any).expires = new Date(Date.now() + getSessionConfig(token.role as string).maxAge * 1000).toISOString();
       }
 
       if (session.user) {

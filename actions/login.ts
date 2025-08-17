@@ -1,9 +1,8 @@
-// eslint-disable-next-line no-console
-console.log('[login module] loaded');
+"use server";
+
 import * as z from "zod";
 import { AuthError } from "next-auth";
-import bcrypt from "bcryptjs";
-// import { headers } from "next/headers"; // Removed - causes build error in client components
+import * as bcrypt from "bcryptjs";
 
 import { db } from "@/lib/db";
 import { signIn } from "@/auth";
@@ -60,7 +59,7 @@ export const login = async (
       email, 
       `Rate limit exceeded - ${rateLimitResult.retryAfter}s remaining`, 
       'credentials',
-      { remaining: rateLimitResult.remaining, limit: rateLimitResult.limit }
+      { attemptCount: rateLimitResult.remaining, failureReason: `Rate limit - ${rateLimitResult.limit} attempts` }
     );
     return { 
       error: `Too many login attempts. Try again in ${rateLimitResult.retryAfter} seconds.`,
@@ -103,11 +102,12 @@ export const login = async (
       let verificationMethod = '';
       
       // Check if user has TOTP enabled
-      if (existingUser.totpEnabled && existingUser.totpVerified && existingUser.totpSecret) {
+      const userWithTotp = existingUser as any;
+      if (userWithTotp.totpEnabled && userWithTotp.totpVerified && userWithTotp.totpSecret) {
         try {
           // First try TOTP verification (6 digits)
           if (code.length === 6 && /^\d{6}$/.test(code)) {
-            const decryptedSecret = await decryptTOTPSecret(existingUser.totpSecret);
+            const decryptedSecret = await decryptTOTPSecret(userWithTotp.totpSecret);
             isCodeValid = verifyTOTPToken(code, decryptedSecret);
             verificationMethod = 'TOTP';
             console.log('[login] totp verification attempted');
@@ -115,7 +115,7 @@ export const login = async (
           
           // If TOTP fails, try recovery code (longer format)
           if (!isCodeValid && code.length > 6) {
-            const recoveryResult = await verifyRecoveryCode(code, existingUser.recoveryCodes || []);
+            const recoveryResult = await verifyRecoveryCode(code, userWithTotp.recoveryCodes || []);
             if (recoveryResult.isValid) {
               isCodeValid = true;
               verificationMethod = 'Recovery Code';
@@ -173,9 +173,7 @@ export const login = async (
       console.log(`[login] 2fa validated via ${verificationMethod}`);
       
       // Log successful 2FA verification with method
-      await authAuditHelpers.logTwoFactorVerified(existingUser.id, existingUser.email, {
-        verificationMethod
-      });
+      await authAuditHelpers.logTwoFactorVerified(existingUser.id, existingUser.email);
     } else {
       // Send email-based 2FA token if no code provided
       const twoFactorToken = await generateTwoFactorToken(existingUser.email);
@@ -210,59 +208,22 @@ export const login = async (
     return { error: "Invalid credentials!" };
   }
 
-  try {
-    await signIn("credentials", { email, password });
-    console.log('[login] success');
-    
-    // Log successful login
-    await authAuditHelpers.logSignInSuccess(existingUser.id, existingUser.email, 'credentials', {
-      userRole: existingUser.role
-    });
-    
-    return { 
-      success: "Logged in!",
-      rateLimitInfo: {
-        remaining: rateLimitResult.remaining,
-        reset: rateLimitResult.reset
-      }
-    };
-  } catch (error: any) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case "CredentialsSignin":
-          console.log('[login] credentials signin error');
-          // Log authentication error
-          await authAuditHelpers.logSignInFailed(email, 'NextAuth CredentialsSignin error');
-          return { 
-            error: "Invalid credentials!",
-            rateLimitInfo: {
-              remaining: rateLimitResult.remaining,
-              reset: rateLimitResult.reset
-            }
-          };
-        default:
-          console.log('[login] auth error');
-          // Log general authentication error
-          await authAuditHelpers.logSignInFailed(email, `NextAuth error: ${error.type || 'Unknown'}`);
-          return { 
-            error: "Something went wrong!",
-            rateLimitInfo: {
-              remaining: rateLimitResult.remaining,
-              reset: rateLimitResult.reset
-            }
-          };
-      }
+  // Credentials are valid, return success
+  console.log('[login] credentials validated, returning success');
+  
+  // Log successful login
+  await authAuditHelpers.logSignInSuccess(existingUser.id, existingUser.email, 'credentials', {
+    userRole: existingUser.role
+  });
+  
+  // Return success - client will handle the actual sign in
+  return { 
+    success: "Logged in!",
+    email: existingUser.email,
+    requiresSignIn: true,  // Tell client to call signIn
+    rateLimitInfo: {
+      remaining: rateLimitResult.remaining,
+      reset: rateLimitResult.reset
     }
-
-    console.log('[login] unknown error');
-    // Log unknown error
-    await authAuditHelpers.logSignInFailed(email, `Unknown error: ${error?.message || 'Unhandled exception'}`);
-    return { 
-      error: "Something went wrong!",
-      rateLimitInfo: {
-        remaining: rateLimitResult.remaining,
-        reset: rateLimitResult.reset
-      }
-    };
-  }
+  };
 };

@@ -10,7 +10,7 @@ const createSafeErrorResponse = (message: string, status = 500) => {
   logger.error(`[REACTIONS_POST] Error: ${message}`);
   return createSuccessResponse(
     { error: message },
-    { status }
+    status
   );
 };
 
@@ -175,7 +175,7 @@ export const POST = withAuth(async (
       return updatedComment;
     });
 
-    return createSuccessResponse(result);
+    return createSuccessResponse(result, 200);
   } catch (error) {
     // Improve error logging
     logger.error("[REACTIONS_POST] Unexpected error:", error);

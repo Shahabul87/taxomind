@@ -34,7 +34,7 @@ export const PATCH = withAuth(async (
       }
     });
 
-    return createSuccessResponse(unpublishedPost);
+    return createSuccessResponse(unpublishedPost, 200);
   } catch (error) {
 
     return createErrorResponse(ApiError.internal("Internal Error"));

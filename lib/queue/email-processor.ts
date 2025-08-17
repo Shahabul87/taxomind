@@ -84,7 +84,8 @@ export class EmailProcessor {
     try {
       logger.info('[EMAIL_PROCESSOR] Starting email job processor...', {
         config: this.config,
-        environment: this.environmentConfig.environment,
+        environment: this.environmentConfig.isDevelopment ? 'development' : 
+                    this.environmentConfig.isStaging ? 'staging' : 'production',
         pid: process.pid,
       });
 
@@ -168,7 +169,8 @@ export class EmailProcessor {
         rss: Math.round(memory.rss / 1024 / 1024),
       },
       config: this.config,
-      environment: this.environmentConfig.environment,
+      environment: this.environmentConfig.isDevelopment ? 'development' : 
+                  this.environmentConfig.isStaging ? 'staging' : 'production',
       pid: process.pid,
       lastHealthCheck: new Date(this.lastHealth),
     };
@@ -222,7 +224,7 @@ export class EmailProcessor {
 
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
-      logger.error('[EMAIL_PROCESSOR] Unhandled rejection at:', promise, 'reason:', reason);
+      logger.error('[EMAIL_PROCESSOR] Unhandled rejection:', { promise, reason });
       this.gracefulShutdown().then(() => {
         process.exit(1);
       });

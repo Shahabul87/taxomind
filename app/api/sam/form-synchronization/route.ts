@@ -98,7 +98,6 @@ async function handleChapterSync(courseId: string, chaptersData: any[], userId: 
           const section = await db.section.create({
             data: {
               title: sectionData.title,
-              description: sectionData.description || '',
               chapterId: chapter.id,
               position: i + 1,
               isPublished: false

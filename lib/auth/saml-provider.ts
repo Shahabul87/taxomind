@@ -6,7 +6,7 @@
 
 import { Strategy as SamlStrategy, Profile, VerifyWithRequest } from '@node-saml/passport-saml';
 import { db } from '@/lib/db';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 
@@ -58,10 +58,10 @@ export class SAMLProvider {
   private loadConfiguration(organizationId: string): z.infer<typeof SAMLConfigSchema> {
     // In production, load from database or secure config store
     const config = {
-      entryPoint: process.env[`SAML_${organizationId}_ENTRY_POINT`] || process.env.SAML_ENTRY_POINT || '',
+      entryPoint: process.env[`SAML_${organizationId}_ENTRY_POINT`] || process.env.SAML_ENTRY_POINT || 'https://example.com/sso',
       issuer: process.env[`SAML_${organizationId}_ISSUER`] || process.env.SAML_ISSUER || 'taxomind-lms',
-      callbackUrl: process.env[`SAML_${organizationId}_CALLBACK_URL`] || `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/sso/saml/callback`,
-      cert: process.env[`SAML_${organizationId}_CERT`] || process.env.SAML_CERT || '',
+      callbackUrl: process.env[`SAML_${organizationId}_CALLBACK_URL`] || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/sso/saml/callback`,
+      cert: process.env[`SAML_${organizationId}_CERT`] || process.env.SAML_CERT || 'dummy-cert',
       privateKey: process.env[`SAML_${organizationId}_PRIVATE_KEY`] || process.env.SAML_PRIVATE_KEY,
       decryptionPvk: process.env[`SAML_${organizationId}_DECRYPTION_PVK`] || process.env.SAML_DECRYPTION_PVK,
       signatureAlgorithm: 'sha256' as const,
@@ -102,9 +102,21 @@ export class SAMLProvider {
 
     return new SamlStrategy(
       {
-        ...this.config,
+        callbackUrl: this.config.callbackUrl, // Required property
+        issuer: this.config.issuer, // Required property
+        entryPoint: this.config.entryPoint, // Required property
         idpCert: this.config.cert, // Map cert to idpCert as expected by passport-saml
         passReqToCallback: true,
+        privateKey: this.config.privateKey,
+        decryptionPvk: this.config.decryptionPvk,
+        signatureAlgorithm: this.config.signatureAlgorithm,
+        identifierFormat: this.config.identifierFormat,
+        acceptedClockSkewMs: this.config.acceptedClockSkewMs,
+        attributeConsumingServiceIndex: this.config.attributeConsumingServiceIndex,
+        disableRequestedAuthnContext: this.config.disableRequestedAuthnContext,
+        forceAuthn: this.config.forceAuthn,
+        skipRequestCompression: this.config.skipRequestCompression,
+        authnRequestBinding: this.config.authnRequestBinding,
       },
       verify,
       verify // Third argument for SamlStrategy
@@ -426,7 +438,7 @@ export class SAMLProviderManager {
   public getProvidersSummary() {
     const summary: Record<string, any> = {};
     
-    for (const [orgId, provider] of this.providers.entries()) {
+    for (const [orgId, provider] of Array.from(this.providers.entries())) {
       summary[orgId] = {
         organizationId: orgId,
         issuer: provider['config'].issuer,

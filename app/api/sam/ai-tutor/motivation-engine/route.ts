@@ -92,7 +92,7 @@ ${JSON.stringify(userState, null, 2)}
     max_tokens: 300,
     temperature: 0.8,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Generate a daily motivation message for me.' }
     ]
   });
@@ -140,7 +140,7 @@ ${JSON.stringify(recentActivity, null, 2)}
     max_tokens: 400,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'I\'m struggling with this topic and feeling frustrated.' }
     ]
   });
@@ -196,7 +196,7 @@ ${JSON.stringify(recentAchievements, null, 2)}
     max_tokens: 300,
     temperature: 0.8,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'I just completed a major milestone in my learning journey!' }
     ]
   });
@@ -250,7 +250,7 @@ ${JSON.stringify(streakData, null, 2)}
     max_tokens: 300,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'I want to maintain my learning streak and stay motivated.' }
     ]
   });
@@ -304,7 +304,7 @@ ${JSON.stringify(goals, null, 2)}
     max_tokens: 300,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Help me stay focused on my learning goals.' }
     ]
   });
@@ -359,7 +359,7 @@ ${JSON.stringify(peerData, null, 2)}
     max_tokens: 300,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'I want to be inspired by what others are achieving in their learning.' }
     ]
   });
@@ -414,7 +414,7 @@ ${JSON.stringify(inactivityData, null, 2)}
     max_tokens: 300,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'I\'ve been away from learning for a while and want to get back into it.' }
     ]
   });
@@ -467,7 +467,7 @@ ${JSON.stringify(personalityProfile, null, 2)}
     max_tokens: 400,
     temperature: 0.8,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Give me a personalized motivation message that speaks to who I am as a learner.' }
     ]
   });

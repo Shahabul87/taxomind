@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     });
     
     const existingIds = existingLinks.map(link => link.id);
-    const newIds = links.filter(link => !link.id.startsWith('temp-')).map(link => link.id);
+    const newIds = links.filter((link: any) => !link.id.startsWith('temp-')).map((link: any) => link.id);
     
     // IDs to delete (found in existing but not in new)
     const idsToDelete = existingIds.filter(id => !newIds.includes(id));
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     
     // Process each link (create new ones, update existing)
     const updatedLinks = await Promise.all(
-      links.map(async (link, index) => {
+      links.map(async (link: any, index: number) => {
         const linkMetadata = metadata && metadata[index] ? metadata[index] : null;
         const linkSelection = metadataSelection && metadataSelection[index] ? metadataSelection[index] : null;
         
@@ -93,7 +93,10 @@ export async function POST(req: Request) {
           lastUpdated: new Date().toISOString(),
           // User selections for what to display
           selections: linkSelection || {
-}
+            displayName: true,
+            followerCount: false,
+            bio: false
+          }
         } : null;
         
         // For temporary IDs, create new records
@@ -103,7 +106,7 @@ export async function POST(req: Request) {
               platform: link.platform,
               url: link.url,
               userId,
-              metadata: metadataForStorage
+              metadata: metadataForStorage as any
             }
           });
         } 
@@ -116,7 +119,7 @@ export async function POST(req: Request) {
             data: {
               platform: link.platform,
               url: link.url,
-              metadata: metadataForStorage
+              metadata: metadataForStorage as any
             }
           });
         }

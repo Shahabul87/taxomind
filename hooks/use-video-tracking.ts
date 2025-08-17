@@ -87,6 +87,93 @@ export function useVideoTracking(
   const currentWatchStreak = useRef<number>(0);
   const lastHeartbeat = useRef<number>(0);
 
+  // Calculate engagement score
+  const calculateEngagementScore = useCallback((): number => {
+    if (!videoElement) return 0;
+
+    const duration = videoElement.duration || 1;
+    const currentTime = videoElement.currentTime;
+    
+    // Base score from completion rate
+    let score = (currentTime / duration) * 40; // 40% weight for progress
+
+    // Penalize excessive pausing
+    const pauseRatio = metrics.totalPauses / (duration / 60); // Pauses per minute
+    score -= Math.min(pauseRatio * 5, 20); // Max 20 point penalty
+
+    // Penalize excessive seeking
+    const seekRatio = metrics.totalSeeks / (duration / 60);
+    score -= Math.min(seekRatio * 3, 15); // Max 15 point penalty
+
+    // Bonus for consistent watching
+    score += Math.min(metrics.maxConsecutiveWatchTime / 60 * 10, 20); // Max 20 point bonus
+
+    // Speed factor
+    const speedVariance = Math.abs(metrics.averagePlaybackSpeed - 1);
+    score += Math.min((1 - speedVariance) * 10, 10); // Max 10 point bonus
+
+    return Math.max(0, Math.min(100, score));
+  }, [videoElement, metrics]);
+
+  const stopHeartbeat = useCallback(() => {
+    if (heartbeatTimer.current) {
+      clearInterval(heartbeatTimer.current);
+      heartbeatTimer.current = undefined;
+    }
+  }, []);
+
+  // Heartbeat tracking for progress
+  const startHeartbeat = useCallback(() => {
+    stopHeartbeat(); // Clear any existing heartbeat
+
+    heartbeatTimer.current = setInterval(() => {
+      if (!videoElement || videoElement.paused) return;
+
+      const currentTime = videoElement.currentTime;
+      const duration = videoElement.duration;
+      
+      // Mark segments as watched
+      const segmentIndex = Math.floor(currentTime / 10); // 10-second segments
+      watchedSegments.current.add(segmentIndex);
+
+      // Calculate metrics
+      const completionRate = duration > 0 ? (currentTime / duration) * 100 : 0;
+      const watchTime = Array.from(watchedSegments.current).length * 10;
+
+      setMetrics(prev => ({
+        ...prev,
+        watchTime,
+        completionRate
+      }));
+
+      // Send heartbeat every minute or at significant milestones
+      const shouldSendHeartbeat = 
+        Date.now() - lastHeartbeat.current > 60000 || // Every minute
+        currentTime % 300 < heartbeatInterval; // Every 5 minutes
+
+      if (shouldSendHeartbeat) {
+        lastHeartbeat.current = Date.now();
+        
+        tracker.track({
+          eventType: 'video',
+          eventName: 'video_progress',
+          properties: {
+            videoId,
+            currentTime,
+            duration,
+            completionRate,
+            watchTime,
+            engagementScore: calculateEngagementScore(),
+            pathname
+          },
+          courseId,
+          chapterId,
+          sectionId
+        });
+      }
+    }, heartbeatInterval * 1000);
+  }, [videoElement, videoId, heartbeatInterval, tracker, pathname, courseId, chapterId, sectionId, calculateEngagementScore, stopHeartbeat]);
+
   // Track video session start
   const trackSessionStart = useCallback(() => {
     if (!videoElement) return;
@@ -316,92 +403,7 @@ export function useVideoTracking(
     }
   }, [videoElement, videoId, metrics.qualityChanges, trackQuality, tracker, pathname, courseId, chapterId, sectionId]);
 
-  // Heartbeat tracking for progress
-  const startHeartbeat = useCallback(() => {
-    stopHeartbeat(); // Clear any existing heartbeat
 
-    heartbeatTimer.current = setInterval(() => {
-      if (!videoElement || videoElement.paused) return;
-
-      const currentTime = videoElement.currentTime;
-      const duration = videoElement.duration;
-      
-      // Mark segments as watched
-      const segmentIndex = Math.floor(currentTime / 10); // 10-second segments
-      watchedSegments.current.add(segmentIndex);
-
-      // Calculate metrics
-      const completionRate = duration > 0 ? (currentTime / duration) * 100 : 0;
-      const watchTime = Array.from(watchedSegments.current).length * 10;
-
-      setMetrics(prev => ({
-        ...prev,
-        watchTime,
-        completionRate
-      }));
-
-      // Send heartbeat every minute or at significant milestones
-      const shouldSendHeartbeat = 
-        Date.now() - lastHeartbeat.current > 60000 || // Every minute
-        currentTime % 300 < heartbeatInterval; // Every 5 minutes
-
-      if (shouldSendHeartbeat) {
-        lastHeartbeat.current = Date.now();
-        
-        tracker.track({
-          eventType: 'video',
-          eventName: 'video_progress',
-          properties: {
-            videoId,
-            currentTime,
-            duration,
-            completionRate,
-            watchTime,
-            engagementScore: calculateEngagementScore(),
-            pathname
-          },
-          courseId,
-          chapterId,
-          sectionId
-        });
-      }
-    }, heartbeatInterval * 1000);
-  }, [videoElement, videoId, heartbeatInterval, tracker, pathname, courseId, chapterId, sectionId, calculateEngagementScore, stopHeartbeat]);
-
-  const stopHeartbeat = useCallback(() => {
-    if (heartbeatTimer.current) {
-      clearInterval(heartbeatTimer.current);
-      heartbeatTimer.current = undefined;
-    }
-  }, []);
-
-  // Calculate engagement score
-  const calculateEngagementScore = useCallback((): number => {
-    if (!videoElement) return 0;
-
-    const duration = videoElement.duration || 1;
-    const currentTime = videoElement.currentTime;
-    
-    // Base score from completion rate
-    let score = (currentTime / duration) * 40; // 40% weight for progress
-
-    // Penalize excessive pausing
-    const pauseRatio = metrics.totalPauses / (duration / 60); // Pauses per minute
-    score -= Math.min(pauseRatio * 5, 20); // Max 20 point penalty
-
-    // Penalize excessive seeking
-    const seekRatio = metrics.totalSeeks / (duration / 60);
-    score -= Math.min(seekRatio * 3, 15); // Max 15 point penalty
-
-    // Bonus for consistent watching
-    score += Math.min(metrics.maxConsecutiveWatchTime / 60 * 10, 20); // Max 20 point bonus
-
-    // Speed factor
-    const speedVariance = Math.abs(metrics.averagePlaybackSpeed - 1);
-    score += Math.min((1 - speedVariance) * 10, 10); // Max 10 point bonus
-
-    return Math.max(0, Math.min(100, score));
-  }, [videoElement, metrics]);
 
   // Track video end
   const trackVideoEnd = useCallback(() => {

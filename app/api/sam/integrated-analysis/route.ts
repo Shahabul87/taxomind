@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: latestAnalysis.result,
+      data: latestAnalysis.context,
       metadata: {
         analysisId: latestAnalysis.id,
         courseId: latestAnalysis.courseId,
@@ -174,13 +174,11 @@ async function storeAnalysisResults(userId: string, courseId: string, analysis: 
       data: {
         userId,
         courseId,
-        interactionType: 'CONTENT_GENERATED',
+        interactionType: 'CONTENT_GENERATE',
         context: {
           type: 'INTEGRATED_ANALYSIS',
           engines: ['market', 'blooms', 'exam', 'guide'],
           depth: analysis.analysisDepth || 'comprehensive',
-        },
-        result: {
           timestamp: analysis.timestamp,
           recommendationCount: analysis.integratedRecommendations?.length || 0,
           criticalActions: analysis.integratedRecommendations?.filter(

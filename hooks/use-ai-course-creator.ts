@@ -11,9 +11,9 @@ import {
   type ChapterGenerationResponse,
   type ContentCurationRequest,
   type ContentCurationResponse,
-  CourseDifficulty,
-  ContentType,
-  LearningStyle
+  CourseQuestionDifficulty,
+  type ContentType,
+  type LearningStyle
 } from '@/lib/ai-course-types';
 
 interface AIAssistanceState {
@@ -245,7 +245,7 @@ export function useAICourseCreator(options: UseAICourseCreatorOptions = {}) {
     description?: string;
     targetAudience: string;
     duration: string;
-    difficulty: CourseDifficulty;
+    difficulty: CourseQuestionDifficulty;
     learningGoals: string[];
     preferredContentTypes?: ContentType[];
     learningStyle?: LearningStyle;

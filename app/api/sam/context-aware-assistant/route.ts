@@ -105,7 +105,7 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
 }
 
 function getPageSpecificCapabilities(pageType: string): string {
-  const capabilities = {
+  const capabilities: Record<string, string> = {
     'courses': `
 - Course overview and analytics
 - Course creation guidance
@@ -166,7 +166,7 @@ function getPageSpecificCapabilities(pageType: string): string {
 }
 
 function generateContextualSuggestions(pageType: string, message: string): string[] {
-  const suggestions = {
+  const suggestions: Record<string, string[]> = {
     'courses': [
       "Show course analytics",
       "Create a new course",
@@ -255,7 +255,7 @@ function generateAction(message: string, pageContext: any, aiResponse: string): 
           type: 'form_update',
           details: {
             action: 'update_chapter_description',
-            description: descMatch[1].trim(),
+            value: descMatch[1].trim(),
             description: 'Update chapter description'
           }
         };

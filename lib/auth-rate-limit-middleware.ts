@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimitAuth, AuthEndpoint, getRateLimitHeaders, getClientIdentifier } from '@/lib/rate-limit';
+import { rateLimitAuth, AuthEndpoint, getRateLimitHeaders, getClientIdentifier, RateLimitHeaders, RateLimitResult } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 
 /**
@@ -100,7 +100,7 @@ export function withRateLimit<T extends any[]>(
     // Add rate limit headers to successful responses
     if (rateLimitResult.headers) {
       Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
-        response.headers.set(key, value);
+        response.headers.set(key, String(value));
       });
     }
     

@@ -47,7 +47,7 @@ export const POST = withAdminAuth(async (
     }
     
     const body = await request.json();
-    const { sectionId, chapterId, courseId, sectionData, context } = body;
+    const { sectionId, chapterId, courseId, sectionData, context: requestContext } = body;
 
     // Verify section ownership through course
     const course = await db.course.findUnique({
@@ -228,7 +228,7 @@ function inferBloomsLevel(title: string, description: string): string {
   const text = `${title} ${description}`.toLowerCase();
   
   // Keywords for each Bloom's level
-  const keywords = {
+  const keywords: Record<string, string[]> = {
     CREATE: ['create', 'design', 'build', 'compose', 'develop', 'generate', 'produce', 'construct', 'formulate', 'plan'],
     EVALUATE: ['evaluate', 'assess', 'critique', 'judge', 'review', 'validate', 'defend', 'justify', 'argue', 'recommend'],
     ANALYZE: ['analyze', 'examine', 'compare', 'contrast', 'investigate', 'categorize', 'differentiate', 'organize', 'deconstruct'],
@@ -239,7 +239,7 @@ function inferBloomsLevel(title: string, description: string): string {
   
   // Check for highest-order matches first
   for (const level of ['CREATE', 'EVALUATE', 'ANALYZE', 'APPLY', 'UNDERSTAND', 'REMEMBER']) {
-    if (keywords[level].some(keyword => text.includes(keyword))) {
+    if (keywords[level].some((keyword: string) => text.includes(keyword))) {
       return level;
     }
   }

@@ -277,7 +277,7 @@ export const usePresetApplication = () => {
         currentStep: 'Complete'
       }));
 
-      return { courseId, success: true };
+      return { courseId: courseId || '', success: true };
 
     } catch (error: any) {
       logger.error('Error applying preset:', error);

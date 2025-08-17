@@ -20,17 +20,17 @@ export const useCurrentRole = () => {
 
 export const useHasPermission = (permission: Permission) => {
   const role = useCurrentRole();
-  return role ? hasPermission(role, permission) : false;
+  return role ? hasPermission(role as UserRole, permission) : false;
 };
 
 export const useHasAnyPermission = (permissions: Permission[]) => {
   const role = useCurrentRole();
-  return role ? hasAnyPermission(role, permissions) : false;
+  return role ? hasAnyPermission(role as UserRole, permissions) : false;
 };
 
 export const useHasAllPermissions = (permissions: Permission[]) => {
   const role = useCurrentRole();
-  return role ? hasAllPermissions(role, permissions) : false;
+  return role ? hasAllPermissions(role as UserRole, permissions) : false;
 };
 
 export const useRequireAuth = () => {
@@ -64,7 +64,7 @@ export const useRequireAnyRole = (roles: UserRole[]) => {
   const router = useRouter();
   
   useEffect(() => {
-    if (!loading && authenticated && user?.role && !roles.includes(user.role)) {
+    if (!loading && authenticated && user?.role && !roles.includes(user.role as UserRole)) {
       router.push("/unauthorized");
     }
   }, [loading, authenticated, user?.role, roles, router]);
@@ -81,7 +81,7 @@ export const useRequirePermission = (permission: Permission) => {
     if (!loading && authenticated && !hasRequiredPermission) {
       router.push("/unauthorized");
     }
-  }, [loading, authenticated, hasRequiredPermission, router]);
+  }, [loading, authenticated, hasRequiredPermission, router, permission]);
   
   return { user, loading, authenticated, hasPermission: hasRequiredPermission };
 };

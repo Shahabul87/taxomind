@@ -27,7 +27,7 @@ const RecoveryCodesSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   // Apply rate limiting first
-  const rateLimitResult = await withAuthRateLimit(req, 'mfa-recovery');
+  const rateLimitResult = await withAuthRateLimit(req, 'twoFactor');
   
   // If rateLimitResult is a NextResponse (rate limit exceeded), return it
   if (rateLimitResult instanceof NextResponse) {

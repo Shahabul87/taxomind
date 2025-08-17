@@ -137,7 +137,7 @@ export default function EnhancedProfileSummary({
             )}
           </div>
           
-          <Link href="/profile">
+          <Link href="/settings">
             <Button variant="outline" size="sm">
               <Edit className="h-4 w-4 mr-1" />
               Edit
@@ -247,7 +247,7 @@ export default function EnhancedProfileSummary({
 
         {/* Profile Actions */}
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-          <Link href="/profile">
+          <Link href="/settings">
             <Button variant="outline" size="sm" className="w-full">
               <User className="h-4 w-4 mr-2" />
               View Full Profile

@@ -1,6 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+/**
+ * Enhanced Unified Dashboard with Google-style Context Switching
+ * 
+ * This dashboard implements the clean authentication system where:
+ * - Users have one role (ADMIN or USER)
+ * - Users can switch between different capability contexts
+ * - Similar to Google Workspace context switching
+ */
+
+import { useState, useEffect, useCallback } from "react";
 import { User } from "next-auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -19,7 +28,11 @@ import {
   Package,
   Target,
   Zap,
-  Star
+  Star,
+  ArrowUpRight,
+  RefreshCw,
+  Shield,
+  Briefcase
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +40,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -36,9 +57,32 @@ import axios from "axios";
 import { LearnerDashboard } from "./LearnerDashboard";
 import { TeacherDashboard } from "./TeacherDashboard";
 import { AffiliateDashboard } from "./AffiliateDashboard";
+import { AdminDashboard } from "./AdminDashboard";
+
+// Types
+interface UserCapabilityInfo {
+  capability: string;
+  label: string;
+  icon: any;
+  isActive: boolean;
+  activatedAt?: string;
+}
+
+interface UserContextInfo {
+  capability: string;
+  capabilities: string[];
+}
+
+interface ContextSwitch {
+  capability: string;
+  label: string;
+  icon: string;
+  isActive: boolean;
+}
 
 interface UnifiedDashboardProps {
   user: User & {
+    role?: string;
     isTeacher?: boolean;
     isAffiliate?: boolean;
     teacherActivatedAt?: Date;
@@ -48,417 +92,273 @@ interface UnifiedDashboardProps {
 }
 
 export function UnifiedDashboard({ user }: UnifiedDashboardProps) {
-  const [activeMode, setActiveMode] = useState<"learner" | "teacher" | "affiliate">("learner");
-  const [isTeacher, setIsTeacher] = useState(user.isTeacher || false);
-  const [isAffiliate, setIsAffiliate] = useState(user.isAffiliate || false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingType, setOnboardingType] = useState<"teacher" | "affiliate" | null>(null);
+  // State management
+  const [currentContext, setCurrentContext] = useState<UserContextInfo | null>(null);
+  const [availableSwitches, setAvailableSwitches] = useState<ContextSwitch[]>([]);
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [showCapabilityModal, setShowCapabilityModal] = useState(false);
+  const [requestedCapability, setRequestedCapability] = useState<string | null>(null);
 
-  // Determine available modes based on user flags
-  const availableModes = [
-    { id: "learner", label: "Student", icon: GraduationCap, available: true },
-    { id: "teacher", label: "Instructor", icon: BookOpen, available: isTeacher },
-    { id: "affiliate", label: "Affiliate", icon: DollarSign, available: isAffiliate },
-  ];
+  // Determine if user is admin
+  const isAdmin = user.role === "ADMIN";
 
-  // Handle becoming a teacher
-  const handleBecomeTeacher = async () => {
-    setIsLoading(true);
+  // Capability icon mapping
+  const capabilityIcons: Record<string, any> = {
+    STUDENT: GraduationCap,
+    TEACHER: BookOpen,
+    AFFILIATE: DollarSign,
+    CONTENT_CREATOR: Package,
+    MODERATOR: Shield,
+    REVIEWER: Star,
+  };
+
+  // Fetch current context and available switches
+  const fetchContext = useCallback(async () => {
     try {
-      const response = await axios.post("/api/user/become-teacher");
+      const response = await axios.get("/api/auth/context");
       if (response.data.success) {
-        setIsTeacher(true);
-        setActiveMode("teacher");
-        toast.success("Welcome to the instructor community! You can now create courses.");
+        setCurrentContext(response.data.data.currentContext);
+        setAvailableSwitches(response.data.data.availableSwitches);
+        setDashboardData(response.data.data.dashboardData);
       }
     } catch (error) {
-      toast.error("Failed to activate teacher mode");
+      console.error("Failed to fetch context:", error);
+      // Fallback to default context
+      setCurrentContext({
+        capability: "STUDENT",
+        capabilities: ["STUDENT"],
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchContext();
+  }, [fetchContext]);
+
+  // Handle context switching
+  const handleContextSwitch = async (newContext: string) => {
+    setIsSwitching(true);
+    try {
+      const response = await axios.post("/api/auth/context", {
+        context: newContext,
+      });
+
+      if (response.data.success) {
+        setCurrentContext(response.data.data.newContext);
+        setAvailableSwitches(response.data.data.availableSwitches);
+        setDashboardData(response.data.data.dashboardData);
+        toast.success(`Switched to ${newContext.toLowerCase()} view`);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to switch context");
+    } finally {
+      setIsSwitching(false);
+    }
+  };
+
+  // Handle capability request (become teacher/affiliate)
+  const handleCapabilityRequest = async (capability: string) => {
+    setIsLoading(true);
+    try {
+      const response = await axios.post("/api/auth/capabilities", {
+        capability,
+      });
+
+      if (response.data.success) {
+        toast.success(`You now have ${capability.toLowerCase()} capabilities!`);
+        // Refresh context to show new capability
+        await fetchContext();
+        // Switch to the new context
+        await handleContextSwitch(capability);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to activate capability");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle becoming an affiliate
-  const handleBecomeAffiliate = async () => {
-    setIsLoading(true);
-    try {
-      const response = await axios.post("/api/user/become-affiliate");
-      if (response.data.success) {
-        setIsAffiliate(true);
-        setActiveMode("affiliate");
-        toast.success("Welcome to the affiliate program! Start earning by promoting courses.");
-      }
-    } catch (error) {
-      toast.error("Failed to activate affiliate mode");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
-  // Mode switcher animation
-  const modeVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.3 }
-    },
-    exit: { 
-      opacity: 0, 
-      y: -20,
-      transition: { duration: 0.2 }
+  // Render admin dashboard if admin
+  if (isAdmin) {
+    return <AdminDashboard user={user} />;
+  }
+
+  // Context header component
+  const ContextHeader = () => (
+    <div className="mb-6 p-6 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Current context icon */}
+          <div className="p-3 bg-primary/20 rounded-lg">
+            {currentContext && capabilityIcons[currentContext.capability] && (
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                {(() => {
+                  const Icon = capabilityIcons[currentContext.capability];
+                  return <Icon className="h-6 w-6 text-primary" />;
+                })()}
+              </motion.div>
+            )}
+          </div>
+
+          {/* Context info */}
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              {currentContext?.capability === "STUDENT" && "Student Dashboard"}
+              {currentContext?.capability === "TEACHER" && "Instructor Dashboard"}
+              {currentContext?.capability === "AFFILIATE" && "Affiliate Dashboard"}
+              <Badge variant="secondary" className="ml-2">
+                {currentContext?.capability}
+              </Badge>
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              Welcome back, {user.name || user.email}
+            </p>
+          </div>
+        </div>
+
+        {/* Context switcher */}
+        <div className="flex items-center gap-3">
+          {/* Quick context switches */}
+          {availableSwitches.length > 0 && (
+            <div className="flex gap-2">
+              {availableSwitches.map((switchOption) => (
+                <Button
+                  key={switchOption.capability}
+                  variant="outline"
+                  size="sm"
+                  disabled={isSwitching}
+                  onClick={() => handleContextSwitch(switchOption.capability)}
+                  className="flex items-center gap-2"
+                >
+                  {isSwitching ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowUpRight className="h-4 w-4" />
+                  )}
+                  {switchOption.label}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {/* Capability dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Capability
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Available Capabilities</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              
+              {!currentContext?.capabilities.includes("TEACHER") && (
+                <DropdownMenuItem
+                  onClick={() => handleCapabilityRequest("TEACHER")}
+                  className="flex items-center gap-2"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  <div>
+                    <div className="font-medium">Become an Instructor</div>
+                    <div className="text-xs text-muted-foreground">
+                      Create and sell courses
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+              )}
+              
+              {!currentContext?.capabilities.includes("AFFILIATE") && (
+                <DropdownMenuItem
+                  onClick={() => handleCapabilityRequest("AFFILIATE")}
+                  className="flex items-center gap-2"
+                >
+                  <DollarSign className="h-4 w-4" />
+                  <div>
+                    <div className="font-medium">Become an Affiliate</div>
+                    <div className="text-xs text-muted-foreground">
+                      Earn by promoting courses
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+              )}
+
+              {!currentContext?.capabilities.includes("REVIEWER") && (
+                <DropdownMenuItem
+                  onClick={() => handleCapabilityRequest("REVIEWER")}
+                  className="flex items-center gap-2"
+                >
+                  <Star className="h-4 w-4" />
+                  <div>
+                    <div className="font-medium">Become a Reviewer</div>
+                    <div className="text-xs text-muted-foreground">
+                      Review and rate courses
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Capability badges */}
+      <div className="mt-4 flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Your capabilities:</span>
+        {currentContext?.capabilities.map((cap) => (
+          <Badge key={cap} variant={cap === currentContext.capability ? "default" : "secondary"}>
+            {cap.toLowerCase()}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Render appropriate dashboard based on current context
+  const renderDashboard = () => {
+    switch (currentContext?.capability) {
+      case "TEACHER":
+        return <TeacherDashboard user={user} />;
+      case "AFFILIATE":
+        return <AffiliateDashboard user={user} />;
+      case "STUDENT":
+      default:
+        return <LearnerDashboard user={user} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      {/* Header with Mode Switcher */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-4">
-            {/* User Welcome */}
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  Welcome back, {user.name}!
-                </h1>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Manage your learning journey, teaching, and earnings all in one place
-                </p>
-              </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/settings">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Link>
-              </Button>
-            </div>
-
-            {/* Mode Tabs */}
-            <div className="flex gap-2">
-              {availableModes.map((mode) => {
-                const Icon = mode.icon;
-                const isActive = activeMode === mode.id;
-                
-                if (!mode.available) {
-                  // Show activation button for unavailable modes
-                  return (
-                    <Button
-                      key={mode.id}
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        if (mode.id === "teacher") {
-                          setOnboardingType("teacher");
-                          setShowOnboarding(true);
-                        } else if (mode.id === "affiliate") {
-                          setOnboardingType("affiliate");
-                          setShowOnboarding(true);
-                        }
-                      }}
-                      disabled={isLoading}
-                    >
-                      <Icon className="h-4 w-4 mr-2" />
-                      Become {mode.label}
-                      <ChevronRight className="h-4 w-4 ml-auto" />
-                    </Button>
-                  );
-                }
-
-                return (
-                  <Button
-                    key={mode.id}
-                    variant={isActive ? "default" : "outline"}
-                    className={cn(
-                      "flex-1 transition-all",
-                      isActive && "shadow-lg"
-                    )}
-                    onClick={() => setActiveMode(mode.id as any)}
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {mode.label} Mode
-                    {isActive && <Badge className="ml-2" variant="secondary">Active</Badge>}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeMode}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            variants={modeVariants}
-          >
-            {/* Conditional Dashboard Rendering */}
-            {activeMode === "learner" && <LearnerDashboard user={user} />}
-            {activeMode === "teacher" && isTeacher && <TeacherDashboard user={user} />}
-            {activeMode === "affiliate" && isAffiliate && <AffiliateDashboard user={user} />}
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-blue-600" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {activeMode === "learner" && (
-                <>
-                  <Button className="w-full justify-start" variant="ghost" asChild>
-                    <Link href="/courses">
-                      <Play className="h-4 w-4 mr-2" />
-                      Browse Courses
-                    </Link>
-                  </Button>
-                  <Button className="w-full justify-start" variant="ghost" asChild>
-                    <Link href="/my-courses">
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      My Learning
-                    </Link>
-                  </Button>
-                </>
-              )}
-              {activeMode === "teacher" && (
-                <>
-                  <Button className="w-full justify-start" variant="ghost" asChild>
-                    <Link href="/teacher/create">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Course
-                    </Link>
-                  </Button>
-                  <Button className="w-full justify-start" variant="ghost" asChild>
-                    <Link href="/teacher/courses">
-                      <Package className="h-4 w-4 mr-2" />
-                      Manage Courses
-                    </Link>
-                  </Button>
-                </>
-              )}
-              {activeMode === "affiliate" && (
-                <>
-                  <Button className="w-full justify-start" variant="ghost" asChild>
-                    <Link href="/affiliate/links">
-                      <Zap className="h-4 w-4 mr-2" />
-                      Generate Links
-                    </Link>
-                  </Button>
-                  <Button className="w-full justify-start" variant="ghost" asChild>
-                    <Link href="/affiliate/earnings">
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      View Earnings
-                    </Link>
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Stats Card */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-green-600" />
-                Your Stats
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {activeMode === "learner" && (
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Courses Enrolled</span>
-                    <span className="font-bold">12</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Certificates Earned</span>
-                    <span className="font-bold">3</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Learning Streak</span>
-                    <span className="font-bold">7 days</span>
-                  </div>
-                </div>
-              )}
-              {activeMode === "teacher" && (
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Courses Created</span>
-                    <span className="font-bold">5</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Total Students</span>
-                    <span className="font-bold">234</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Revenue</span>
-                    <span className="font-bold">$3,456</span>
-                  </div>
-                </div>
-              )}
-              {activeMode === "affiliate" && (
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Referrals</span>
-                    <span className="font-bold">45</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Conversions</span>
-                    <span className="font-bold">12</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Earnings</span>
-                    <span className="font-bold">$567</span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Achievements Card */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-purple-600" />
-                Recent Achievements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                    <Star className="h-4 w-4 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">First Course Complete</p>
-                    <p className="text-xs text-slate-600">2 days ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                    <TrendingUp className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">7-Day Streak</p>
-                    <p className="text-xs text-slate-600">Today</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Onboarding Modal */}
-      {showOnboarding && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full p-6"
-          >
-            {onboardingType === "teacher" && (
-              <>
-                <h2 className="text-2xl font-bold mb-4">Become an Instructor</h2>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">
-                  Share your knowledge with thousands of learners. Create courses, 
-                  earn revenue, and build your teaching reputation.
-                </p>
-                <ul className="space-y-2 mb-6">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span>Create unlimited courses</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span>Set your own prices</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span>Get detailed analytics</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span>Earn 70% revenue share</span>
-                  </li>
-                </ul>
-                <div className="flex gap-3">
-                  <Button 
-                    className="flex-1" 
-                    onClick={handleBecomeTeacher}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Activating..." : "Start Teaching"}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => setShowOnboarding(false)}
-                  >
-                    Maybe Later
-                  </Button>
-                </div>
-              </>
-            )}
-            {onboardingType === "affiliate" && (
-              <>
-                <h2 className="text-2xl font-bold mb-4">Join Affiliate Program</h2>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">
-                  Earn commissions by promoting courses. Get your unique referral 
-                  link and start earning passive income.
-                </p>
-                <ul className="space-y-2 mb-6">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span>30% commission on sales</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span>Real-time tracking dashboard</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span>Monthly payouts</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span>Marketing materials provided</span>
-                  </li>
-                </ul>
-                <div className="flex gap-3">
-                  <Button 
-                    className="flex-1" 
-                    onClick={handleBecomeAffiliate}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Activating..." : "Join Program"}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => setShowOnboarding(false)}
-                  >
-                    Maybe Later
-                  </Button>
-                </div>
-              </>
-            )}
-          </motion.div>
-        </div>
-      )}
+    <div className="container mx-auto py-6 space-y-6">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentContext?.capability}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <ContextHeader />
+          {renderDashboard()}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
-
-// Add this import at the top
-import { CheckCircle } from "lucide-react";

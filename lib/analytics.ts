@@ -260,6 +260,6 @@ function getTopCourses(enrollments: any[]) {
   }, {} as Record<string, { title: string; enrollments: number; revenue: number }>);
 
   return Object.values(courseStats)
-    .sort((a, b) => b.enrollments - a.enrollments)
+    .sort((a, b) => (b as { enrollments: number }).enrollments - (a as { enrollments: number }).enrollments)
     .slice(0, 10);
 } 

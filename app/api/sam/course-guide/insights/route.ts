@@ -96,7 +96,7 @@ async function getPerformanceTrends(teacherId: string): Promise<any> {
 
   const recentEnrollments = await db.enrollment.count({
     where: {
-      course: {
+      Course: {
         userId: teacherId,
       },
       createdAt: {
@@ -107,7 +107,7 @@ async function getPerformanceTrends(teacherId: string): Promise<any> {
 
   const previousEnrollments = await db.enrollment.count({
     where: {
-      course: {
+      Course: {
         userId: teacherId,
       },
       createdAt: {

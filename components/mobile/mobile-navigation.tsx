@@ -123,12 +123,6 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
         badge: 2
       },
       {
-        id: 'profile',
-        label: 'Profile',
-        icon: <User className="w-5 h-5" />,
-        href: '/profile'
-      },
-      {
         id: 'settings',
         label: 'Settings',
         icon: <Settings className="w-5 h-5" />,
@@ -419,7 +413,6 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
             { icon: <BookOpen className="w-5 h-5" />, label: 'Courses', href: '/my-courses' },
             { icon: <Search className="w-5 h-5" />, label: 'Search', href: '/search' },
             { icon: <MessageSquare className="w-5 h-5" />, label: 'Messages', href: '/messages', badge: 2 },
-            { icon: <User className="w-5 h-5" />, label: 'Profile', href: '/profile' }
           ].map((item, index) => (
             <Link
               key={index}

@@ -52,7 +52,7 @@ Each criterion should have:
       max_tokens: 2000,
       temperature: 0.7,
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `System Instructions: ${systemPrompt}` },
         { role: 'user', content: `Create a comprehensive rubric for this assignment: ${JSON.stringify(assignment)}` }
       ]
     });

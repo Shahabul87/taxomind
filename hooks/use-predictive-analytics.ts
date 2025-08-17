@@ -37,7 +37,7 @@ export function usePredictiveAnalytics() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const predictCourseCompletion = async (courseId: string): Promise<CompletionPrediction | null> => {
+  const predictCourseCompletion = useCallback(async (courseId: string): Promise<CompletionPrediction | null> => {
     setLoading(true);
     setError(null);
 
@@ -75,9 +75,9 @@ export function usePredictiveAnalytics() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const predictOptimalStudySchedule = async (courseId: string): Promise<StudySchedule | null> => {
+  const predictOptimalStudySchedule = useCallback(async (courseId: string): Promise<StudySchedule | null> => {
     setLoading(true);
     setError(null);
 
@@ -108,9 +108,9 @@ export function usePredictiveAnalytics() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const identifyAtRiskStudents = async (courseId: string): Promise<AtRiskStudent[] | null> => {
+  const identifyAtRiskStudents = useCallback(async (courseId: string): Promise<AtRiskStudent[] | null> => {
     setLoading(true);
     setError(null);
 
@@ -136,9 +136,9 @@ export function usePredictiveAnalytics() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const generatePersonalizedRecommendations = async (courseId: string): Promise<PersonalizedRecommendations | null> => {
+  const generatePersonalizedRecommendations = useCallback(async (courseId: string): Promise<PersonalizedRecommendations | null> => {
     setLoading(true);
     setError(null);
 
@@ -184,7 +184,7 @@ export function usePredictiveAnalytics() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return {
     loading,

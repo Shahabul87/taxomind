@@ -1,6 +1,6 @@
 import { authenticator } from 'otplib';
-import QRCode from 'qrcode';
-import crypto from 'crypto';
+import * as QRCode from 'qrcode';
+import * as crypto from 'crypto';
 import { dataEncryption } from '@/lib/security/encryption';
 
 /**

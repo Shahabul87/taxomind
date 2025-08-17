@@ -13,9 +13,9 @@ const paramsSchema = z.object({
 
 // Validation schema for PATCH request body
 const updateConversationSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(200, 'Title too long').optional(),
-  favorite: z.boolean().optional(),
-  archived: z.boolean().optional(),
+  tutorMode: z.enum(['TEACHER', 'STUDENT', 'ASSISTANT']).optional(),
+  isActive: z.boolean().optional(),
+  context: z.any().optional(),
 });
 
 export async function GET(
@@ -76,12 +76,12 @@ export async function GET(
       success: true,
       data: {
         id: conversation.id,
-        title: conversation.title,
+        title: `Conversation ${conversation.id}`,
         courseId: conversation.courseId,
         chapterId: conversation.chapterId,
         sectionId: conversation.sectionId,
-        createdAt: conversation.createdAt,
-        updatedAt: conversation.updatedAt,
+        createdAt: conversation.startedAt,
+        updatedAt: conversation.startedAt,
         messageCount: conversation._count.messages,
       },
     });
@@ -163,28 +163,25 @@ export async function PATCH(
     // Update conversation
     const updatedConversation = await db.sAMConversation.update({
       where: { id: conversationId },
-      data: {
-        ...updateData,
-        updatedAt: new Date(),
-      },
-      include: {
-        _count: {
-          select: { messages: true },
-        },
-      },
+      data: updateData as any,
+    });
+
+    // Get message count separately
+    const messageCount = await db.sAMMessage.count({
+      where: { conversationId },
     });
 
     return NextResponse.json({
       success: true,
       data: {
         id: updatedConversation.id,
-        title: updatedConversation.title,
+        title: `Conversation ${updatedConversation.id}`,
         courseId: updatedConversation.courseId,
         chapterId: updatedConversation.chapterId,
         sectionId: updatedConversation.sectionId,
-        createdAt: updatedConversation.createdAt,
-        updatedAt: updatedConversation.updatedAt,
-        messageCount: updatedConversation._count.messages,
+        createdAt: updatedConversation.startedAt,
+        updatedAt: updatedConversation.startedAt,
+        messageCount,
       },
     });
 

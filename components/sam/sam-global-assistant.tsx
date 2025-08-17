@@ -88,7 +88,7 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
       // Simulate new features detection
       const hasNewAssessmentFeature = tutorMode === 'teacher' && learningContext.courseId;
       const hasNewStudyTips = tutorMode === 'student' && learningContext.subject;
-      setHasNewFeatures(hasNewAssessmentFeature || hasNewStudyTips);
+      setHasNewFeatures(Boolean(hasNewAssessmentFeature || hasNewStudyTips));
     };
 
     checkForNewFeatures();
@@ -202,8 +202,8 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
       let responseContent = '';
       switch (actionId) {
         case 'explain_page':
-          const formsDetails = pageContext?.forms?.map(form => {
-            const fieldsWithValues = form.fields.filter(f => f.value).length;
+          const formsDetails = pageContext?.forms?.map((form: any) => {
+            const fieldsWithValues = form.fields.filter((f: any) => f.value).length;
             const totalFields = form.fields.length;
             return `${form.purpose !== 'unknown' ? form.purpose : form.id} (${fieldsWithValues}/${totalFields} fields filled)`;
           }).join(', ') || 'no forms';
@@ -218,8 +218,8 @@ Current page status:
 I can help you fill forms, generate content, or explain how to use any specific feature. What would you like to focus on?`;
           break;
         case 'fill_forms':
-          const formsInfo = pageContext?.forms?.map(form => {
-            const emptyFields = form.fields.filter(f => !f.value && !f.readOnly).length;
+          const formsInfo = pageContext?.forms?.map((form: any) => {
+            const emptyFields = form.fields.filter((f: any) => !f.value && !f.readOnly).length;
             return `• ${form.purpose !== 'unknown' ? form.purpose : form.id}: ${emptyFields} empty field(s) that could be filled`;
           }).join('\n') || '• No forms available to fill';
           
@@ -281,7 +281,7 @@ Which form would you like me to help you with? I can generate content based on t
             } else {
               // Look for label by for attribute
               const labelFor = document.querySelector(`label[for="${field.id}"]`);
-              if (labelFor) label = labelFor.textContent?.trim();
+              if (labelFor) label = labelFor.textContent?.trim() || '';
               
               // Look for parent label
               const parentLabel = field.closest('label');
@@ -404,10 +404,10 @@ Which form would you like me to help you with? I can generate content based on t
             breadcrumbs: pageContext?.breadcrumbs || [],
             capabilities: ['form-detection', 'content-generation', 'page-analysis'],
             dataContext: {
-              forms: pageContext?.forms?.map(form => ({
+              forms: pageContext?.forms?.map((form: any) => ({
                 id: form.id,
                 purpose: form.purpose,
-                fields: form.fields.map(field => ({
+                fields: form.fields.map((field: any) => ({
                   name: field.name,
                   type: field.type,
                   value: field.value,
@@ -458,14 +458,14 @@ Which form would you like me to help you with? I can generate content based on t
       if (currentInput.toLowerCase().includes('page') || currentInput.toLowerCase().includes('where')) {
         fallbackResponse = `I can see you're on "${pageContext?.pageTitle || 'this page'}" (${pageContext?.pageUrl || 'unknown URL'}). This page has ${pageContext?.forms?.length || 0} form(s) and ${pageContext?.buttons?.length || 0} button(s). How can I help you with this page?`;
       } else if (currentInput.toLowerCase().includes('form') || currentInput.toLowerCase().includes('field')) {
-        const formsInfo = pageContext?.forms?.map(form => 
+        const formsInfo = pageContext?.forms?.map((form: any) => 
           `${form.purpose !== 'unknown' ? form.purpose : form.id}: ${form.fields.length} fields`
         ).join(', ') || 'no forms detected';
         fallbackResponse = `I can see these forms on this page: ${formsInfo}. Which form would you like help with?`;
       } else if (currentInput.toLowerCase().includes('description') && pageContext?.forms?.length > 0) {
         const descriptionField = pageContext.forms
-          .flatMap(form => form.fields)
-          .find(field => field.name.toLowerCase().includes('description') || field.label.toLowerCase().includes('description'));
+          .flatMap((form: any) => form.fields)
+          .find((field: any) => field.name.toLowerCase().includes('description') || field.label.toLowerCase().includes('description'));
         
         if (descriptionField) {
           fallbackResponse = descriptionField.value 
@@ -666,7 +666,7 @@ Which form would you like me to help you with? I can generate content based on t
             {/* Enhanced Tabbed Interface */}
             {!isMinimized && (
               <div className="h-[calc(100%-4rem)] flex flex-col">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'chat' | 'actions' | 'context')} className="flex-1 flex flex-col">
                   <TabsList className="grid w-full grid-cols-3 m-4 mb-0">
                     <TabsTrigger value="chat">Chat</TabsTrigger>
                     <TabsTrigger value="actions">Actions</TabsTrigger>

@@ -295,7 +295,7 @@ export class DatabasePerformanceMonitor {
             const queryInfo = this.extractQueryInfo(prop as string, args);
             
             try {
-              const result = await originalMethod.apply(target, args);
+              const result = await (originalMethod as Function).apply(target, args);
               
               this.recordQuery({
                 query: queryInfo.query,
@@ -762,6 +762,8 @@ export class DatabasePerformanceMonitor {
     
     if (!metrics) {
       metrics = {
+        name: poolName,
+        timestamp: new Date(),
         totalQueries: 0,
         successfulQueries: 0,
         failedQueries: 0,
@@ -769,7 +771,35 @@ export class DatabasePerformanceMonitor {
         slowQueries: 0,
         peakQueryTime: 0,
         queriesPerSecond: 0,
+        queriesPerMinute: 0,
         lastUpdated: new Date(),
+        connectionPool: {
+          totalConnections: 0,
+          activeConnections: 0,
+          idleConnections: 0,
+          waitingClients: 0,
+          maxConnections: 0,
+          utilization: 0,
+        },
+        performance: {
+          p50ResponseTime: 0,
+          p95ResponseTime: 0,
+          p99ResponseTime: 0,
+          throughputTrend: 0,
+          latencyTrend: 0,
+        },
+        sla: {
+          uptime: 100,
+          availability: 100,
+          mtbf: 0,
+          mttr: 0,
+        },
+        health: {
+          isHealthy: true,
+          healthScore: 100,
+          lastHealthCheck: new Date(),
+          consecutiveFailures: 0,
+        },
       };
       this.metrics.set(poolName, metrics);
     }
@@ -812,6 +842,8 @@ export class DatabasePerformanceMonitor {
     // Slow query alert
     if (data.duration > this.thresholds.slowQueryThreshold) {
       this.createAlert({
+        ruleId: 'slow-query-rule',
+        databaseName: data.poolName || 'default',
         type: 'slow-query',
         severity: data.duration > this.thresholds.slowQueryThreshold * 2 ? 'critical' : 'warning',
         message: `Slow query detected: ${data.duration}ms`,
@@ -821,12 +853,19 @@ export class DatabasePerformanceMonitor {
           poolName: data.poolName,
           threshold: this.thresholds.slowQueryThreshold,
         },
+        value: data.duration,
+        threshold: this.thresholds.slowQueryThreshold,
+        isResolved: false,
+        escalationLevel: 0,
+        notificationsSent: 0,
       });
     }
 
     // Query failure alert
     if (!data.success) {
       this.createAlert({
+        ruleId: 'query-error-rule',
+        databaseName: data.poolName || 'default',
         type: 'high-error-rate',
         severity: 'warning',
         message: `Query failed: ${data.errorMessage}`,
@@ -835,6 +874,11 @@ export class DatabasePerformanceMonitor {
           error: data.errorMessage,
           poolName: data.poolName,
         },
+        value: 1,
+        threshold: 0,
+        isResolved: false,
+        escalationLevel: 0,
+        notificationsSent: 0,
       });
     }
 
@@ -845,6 +889,8 @@ export class DatabasePerformanceMonitor {
       
       if (errorRate > this.thresholds.errorRateThreshold) {
         this.createAlert({
+          ruleId: 'error-rate-rule',
+          databaseName: data.poolName || 'default',
           type: 'high-error-rate',
           severity: errorRate > this.thresholds.errorRateThreshold * 2 ? 'critical' : 'warning',
           message: `High error rate: ${errorRate.toFixed(1)}%`,
@@ -854,6 +900,11 @@ export class DatabasePerformanceMonitor {
             failedQueries: poolMetrics.failedQueries,
             poolName: data.poolName,
           },
+          value: errorRate,
+          threshold: this.thresholds.errorRateThreshold,
+          isResolved: false,
+          escalationLevel: 0,
+          notificationsSent: 0,
         });
       }
     }
@@ -862,19 +913,21 @@ export class DatabasePerformanceMonitor {
   /**
    * Create performance alert
    */
-  private createAlert(alertData: Omit<PerformanceAlert, 'id' | 'timestamp' | 'acknowledged'>): void {
+  private createAlert(alertData: Omit<PerformanceAlert, 'id' | 'timestamp' | 'acknowledgedAt'>): void {
     const alert: PerformanceAlert = {
       ...alertData,
       id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date(),
-      acknowledged: false,
+      acknowledgedAt: undefined,
     };
 
-    this.alerts.push(alert);
+    this.alerts.set(alert.id, alert);
 
     // Keep only last 1000 alerts
-    if (this.alerts.length > 1000) {
-      this.alerts = this.alerts.slice(-1000);
+    if (this.alerts.size > 1000) {
+      const alertIds = Array.from(this.alerts.keys());
+      const toRemove = alertIds.slice(0, alertIds.length - 1000);
+      toRemove.forEach(id => this.alerts.delete(id));
     }
 
     logger.warn(`[DB_MONITOR] ${alert.severity.toUpperCase()} ALERT: ${alert.message}`);
@@ -884,10 +937,10 @@ export class DatabasePerformanceMonitor {
    * Start monitoring
    */
   private startMonitoring(): void {
-    this.monitoringInterval = setInterval(() => {
+    const intervalId = setInterval(() => {
       this.performSystemCheck();
     }, 60000); // Check every minute
-
+    // Store the interval ID if needed for cleanup
   }
 
   /**
@@ -901,10 +954,17 @@ export class DatabasePerformanceMonitor {
         
         if (poolSummary.averageUtilization > this.thresholds.connectionUtilizationThreshold) {
           this.createAlert({
+            ruleId: 'connection-pool-rule',
+            databaseName: 'default',
             type: 'connection-issue',
             severity: 'warning',
             message: `High connection pool utilization: ${poolSummary.averageUtilization.toFixed(1)}%`,
             details: poolSummary,
+            value: poolSummary.averageUtilization,
+            threshold: this.thresholds.connectionUtilizationThreshold,
+            isResolved: false,
+            escalationLevel: 0,
+            notificationsSent: 0,
           });
         }
       }
@@ -915,10 +975,17 @@ export class DatabasePerformanceMonitor {
         
         if (status.healthyReplicas === 0 && status.replicas.length > 0) {
           this.createAlert({
+            ruleId: 'replica-health-rule',
+            databaseName: 'default',
             type: 'connection-issue',
             severity: 'critical',
             message: 'No healthy read replicas available',
             details: status,
+            value: 0,
+            threshold: 1,
+            isResolved: false,
+            escalationLevel: 0,
+            notificationsSent: 0,
           });
         }
       }
@@ -941,6 +1008,8 @@ export class DatabasePerformanceMonitor {
 
     if (memoryUsagePercentage > this.thresholds.memoryUsageThreshold) {
       this.createAlert({
+        ruleId: 'memory-usage-rule',
+        databaseName: 'system',
         type: 'resource-exhaustion',
         severity: memoryUsagePercentage > 95 ? 'critical' : 'warning',
         message: `High memory usage: ${memoryUsagePercentage.toFixed(1)}%`,
@@ -949,6 +1018,11 @@ export class DatabasePerformanceMonitor {
           totalMemory,
           usagePercentage: memoryUsagePercentage,
         },
+        value: memoryUsagePercentage,
+        threshold: this.thresholds.memoryUsageThreshold,
+        isResolved: false,
+        escalationLevel: 0,
+        notificationsSent: 0,
       });
     }
   }
@@ -992,8 +1066,8 @@ export class DatabasePerformanceMonitor {
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, 10);
 
-    const activeAlerts = this.alerts
-      .filter(alert => !alert.acknowledged)
+    const activeAlerts = Array.from(this.alerts.values())
+      .filter(alert => !alert.acknowledgedAt)
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
     return {
@@ -1074,9 +1148,11 @@ export class DatabasePerformanceMonitor {
    * Acknowledge alert
    */
   acknowledgeAlert(alertId: string): boolean {
-    const alert = this.alerts.find(a => a.id === alertId);
+    const alert = this.alerts.get(alertId);
     if (alert) {
-      alert.acknowledged = true;
+      alert.acknowledgedAt = new Date();
+      alert.acknowledgedBy = 'system';
+      this.alerts.set(alertId, alert);
       return true;
     }
     return false;
@@ -1096,8 +1172,7 @@ export class DatabasePerformanceMonitor {
   clearHistory(): void {
     this.queryHistory = [];
     this.metrics.clear();
-    this.alerts = [];
-
+    this.alerts.clear();
   }
 
   /**
@@ -1114,7 +1189,7 @@ export class DatabasePerformanceMonitor {
       thresholds: this.thresholds,
       metrics: Object.fromEntries(this.metrics.entries()),
       recentQueries: this.queryHistory.slice(-1000), // Last 1000 queries
-      alerts: this.alerts,
+      alerts: Array.from(this.alerts.values()),
       exportedAt: new Date(),
     };
   }
@@ -1326,7 +1401,11 @@ export class DatabasePerformanceMonitor {
       }
     }
 
-    return { bottlenecks, recommendations, predictiveWarnings };
+    return { 
+      performanceBottlenecks: bottlenecks, 
+      recommendations, 
+      predictiveWarnings 
+    };
   }
 
   private calculateTrends(): {

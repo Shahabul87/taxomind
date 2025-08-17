@@ -135,6 +135,7 @@ async function handleCommentReaction(userId: string, type: string, commentId: st
             type,
             userId,
             commentId,
+            updatedAt: new Date(),
           },
         });
       }
@@ -186,7 +187,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
     const reply = await db.reply.findFirst({
       where: query,
       include: {
-        reactions: true,
+        Reaction: true,
       },
     });
 
@@ -226,6 +227,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
             type,
             userId,
             replyId,
+            updatedAt: new Date(),
           },
         });
       }
@@ -236,7 +238,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
           id: replyId,
         },
         include: {
-          reactions: {
+          Reaction: {
             include: {
               user: {
                 select: {

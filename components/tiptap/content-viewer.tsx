@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // Import additional extensions conditionally to avoid runtime errors
-let TextAlign, Table, TableRow, TableCell, TableHeader, Highlight, TextStyle, Color;
+let TextAlign: any, Table: any, TableRow: any, TableCell: any, TableHeader: any, Highlight: any, TextStyle: any, Color: any;
 
 try {
   // Try to dynamically import extensions if available

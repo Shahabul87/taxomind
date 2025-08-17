@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
+import { withAuth, type APIAuthContext, createSuccessResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
+import type { 
+  StudentAnalytics, 
+  BloomsAnalysis, 
+  DifficultyBreakdown,
+  ExamAttemptWithRelations,
+  ExamAnswerWithRelations
+} from '@/types/api';
+import type { User } from '@prisma/client';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -96,7 +104,7 @@ interface StudentProfile {
 export const POST = withAuth(async (
   request: NextRequest, 
   context: APIAuthContext,
-  props?: any
+  props?: Record<string, unknown>
 ) => {
   try {
 
@@ -105,9 +113,7 @@ export const POST = withAuth(async (
     const parseResult = StudentProfileRequestSchema.safeParse(body);
     
     if (!parseResult.success) {
-      return createSuccessResponse(
-        { error: 'Invalid request format', details: parseResult.error.errors },
-        { status: 400 });
+      return NextResponse.json({ error: 'Invalid request format', details: parseResult.error.errors }, { status: 400 });
     }
 
     const { courseId, studentId, timeframe } = parseResult.data;
@@ -121,7 +127,7 @@ export const POST = withAuth(async (
     });
 
     if (!course) {
-      return createSuccessResponse(
+      return NextResponse.json(
         { error: 'Course not found or access denied' },
         { status: 404 });
     }
@@ -138,7 +144,7 @@ export const POST = withAuth(async (
     });
 
     if (!student) {
-      return createSuccessResponse(
+      return NextResponse.json(
         { error: 'Student not found' },
         { status: 404 });
     }
@@ -160,12 +166,13 @@ export const POST = withAuth(async (
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Student profile analytics error:', error);
-    return createSuccessResponse(
+    return NextResponse.json(
       { 
         error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+        message: process.env.NODE_ENV === 'development' ? errorMessage : 'Something went wrong'
       },
       { status: 500 }
     );
@@ -186,12 +193,12 @@ function getTimeFilter(timeframe: string): Date {
   }
 }
 
-async function generateStudentProfile(courseId: string, studentId: string, timeFilter: Date, student: any): Promise<StudentProfile> {
+async function generateStudentProfile(courseId: string, studentId: string, timeFilter: Date, student: Pick<User, 'id' | 'name' | 'email' | 'createdAt'>): Promise<StudentProfile> {
   // Get student's exam attempts for this course
   const examAttempts = await db.userExamAttempt.findMany({
     where: {
       userId: studentId,
-      exam: {
+      Exam: {
         section: {
           chapter: {
             courseId: courseId
@@ -203,11 +210,11 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
       }
     },
     include: {
-      exam: {
+      Exam: {
         select: {
           id: true,
           title: true,
-          questions: {
+          ExamQuestion: {
             select: {
               id: true,
               bloomsLevel: true,
@@ -217,9 +224,9 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
           }
         }
       },
-      answers: {
+      UserAnswer: {
         include: {
-          question: {
+          ExamQuestion: {
             select: {
               id: true,
               bloomsLevel: true,
@@ -238,7 +245,7 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
   // Get all exam attempts for the course (for comparative analysis)
   const allCourseAttempts = await db.userExamAttempt.findMany({
     where: {
-      exam: {
+      Exam: {
         section: {
           chapter: {
             courseId: courseId
@@ -275,31 +282,31 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
   const consistency = Math.max(0, 100 - Math.sqrt(variance));
 
   // Analyze Bloom's taxonomy performance
-  const bloomsAnalysis = analyzeBloomsPerformance(examAttempts);
+  const bloomsAnalysis = analyzeBloomsPerformance(examAttempts as any);
   
   // Generate exam history
   const examHistory = examAttempts.map(attempt => ({
     examId: attempt.examId,
-    examTitle: attempt.exam.title,
+    examTitle: (attempt as any).Exam.title,
     attemptNumber: attempt.attemptNumber,
     score: attempt.scorePercentage || 0,
     timeSpent: attempt.timeSpent || 0,
     date: attempt.startedAt.toISOString(),
-    bloomsBreakdown: calculateBloomsBreakdown(attempt),
-    difficultyBreakdown: calculateDifficultyBreakdown(attempt)
+    bloomsBreakdown: calculateBloomsBreakdown(attempt as any),
+    difficultyBreakdown: calculateDifficultyBreakdown(attempt as any)
   }));
 
   // Calculate learning patterns
-  const learningPatterns = calculateLearningPatterns(examAttempts);
+  const learningPatterns = calculateLearningPatterns(examAttempts as any);
 
   // Generate intervention plan
-  const interventionPlan = generateInterventionPlan(overallScore, improvementTrend, bloomsAnalysis, consistency);
+  const interventionPlan = generateInterventionPlan(overallScore, improvementTrend, bloomsAnalysis as any, consistency);
 
   // Calculate comparative analysis
-  const comparativeAnalysis = calculateComparativeAnalysis(studentId, overallScore, allCourseAttempts);
+  const comparativeAnalysis = calculateComparativeAnalysis(studentId, overallScore, allCourseAttempts as any);
 
   // Calculate rank
-  const studentScores = [...new Set(allCourseAttempts.map(a => a.userId))]
+  const studentScores = Array.from(new Set(allCourseAttempts.map(a => a.userId)))
     .map(userId => {
       const userAttempts = allCourseAttempts.filter(a => a.userId === userId);
       const avgScore = userAttempts.reduce((sum, a) => sum + (a.scorePercentage || 0), 0) / userAttempts.length;
@@ -312,8 +319,8 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
   return {
     student: {
       id: student.id,
-      name: student.name || student.email,
-      email: student.email,
+      name: student.name || student.email || 'Unknown',
+      email: student.email || '',
       enrolledDate: student.createdAt.toISOString(),
       lastActivity: examAttempts.length > 0 ? examAttempts[0].startedAt.toISOString() : student.createdAt.toISOString()
     },
@@ -329,7 +336,7 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
       rank,
       totalStudents: studentScores.length
     },
-    cognitiveAnalysis: bloomsAnalysis,
+    cognitiveAnalysis: bloomsAnalysis as any,
     examHistory,
     learningPatterns,
     interventionPlan,
@@ -337,17 +344,17 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
   };
 }
 
-function analyzeBloomsPerformance(attempts: any[]) {
+function analyzeBloomsPerformance(attempts: ExamAttemptWithRelations[]) {
   const bloomsLevels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
-  const bloomsData: any = {};
+  const bloomsData: Record<string, BloomsAnalysis> = {};
 
   bloomsLevels.forEach(level => {
     let correct = 0;
     let total = 0;
 
-    attempts.forEach(attempt => {
-      attempt.answers.forEach((answer: any) => {
-        if (answer.question.bloomsLevel === level) {
+    attempts.forEach((attempt: any) => {
+      attempt.answers?.forEach((answer: ExamAnswerWithRelations) => {
+        if (answer.question?.bloomsLevel === level) {
           total++;
           if (answer.isCorrect) correct++;
         }
@@ -358,7 +365,9 @@ function analyzeBloomsPerformance(attempts: any[]) {
     bloomsData[level.toLowerCase()] = {
       score,
       total,
-      rank: score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'fair' : 'needs improvement'
+      rank: score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'average' : 'needs-improvement' as const,
+      level: level,
+      percentage: score
     };
   });
 
@@ -380,42 +389,47 @@ function analyzeBloomsPerformance(attempts: any[]) {
   };
 }
 
-function calculateBloomsBreakdown(attempt: any) {
-  const breakdown: any = {};
+function calculateBloomsBreakdown(attempt: ExamAttemptWithRelations) {
+  const breakdown: Record<string, number> = {};
   const bloomsLevels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
 
   bloomsLevels.forEach(level => {
-    const levelAnswers = attempt.answers.filter((a: any) => a.question.bloomsLevel === level);
-    const correct = levelAnswers.filter((a: any) => a.isCorrect).length;
+    const levelAnswers = attempt.answers?.filter((a: ExamAnswerWithRelations) => a.question?.bloomsLevel === level) || [];
+    const correct = levelAnswers.filter((a: ExamAnswerWithRelations) => a.isCorrect).length;
     breakdown[level.toLowerCase()] = levelAnswers.length > 0 ? (correct / levelAnswers.length) * 100 : 0;
   });
 
   return breakdown;
 }
 
-function calculateDifficultyBreakdown(attempt: any) {
-  const breakdown: any = {};
+function calculateDifficultyBreakdown(attempt: ExamAttemptWithRelations): DifficultyBreakdown {
+  const breakdown: DifficultyBreakdown = { easy: 0, medium: 0, hard: 0 };
   const difficulties = ['EASY', 'MEDIUM', 'HARD'];
 
   difficulties.forEach(difficulty => {
-    const difficultyAnswers = attempt.answers.filter((a: any) => a.question.difficulty === difficulty);
-    const correct = difficultyAnswers.filter((a: any) => a.isCorrect).length;
-    breakdown[difficulty.toLowerCase()] = difficultyAnswers.length > 0 ? (correct / difficultyAnswers.length) * 100 : 0;
+    const difficultyAnswers = attempt.answers?.filter((a: ExamAnswerWithRelations) => a.question?.difficulty === difficulty) || [];
+    const correct = difficultyAnswers.filter((a: ExamAnswerWithRelations) => a.isCorrect).length;
+    const key = difficulty.toLowerCase() as keyof DifficultyBreakdown;
+    breakdown[key] = difficultyAnswers.length > 0 ? (correct / difficultyAnswers.length) * 100 : 0;
   });
 
   return breakdown;
 }
 
-function calculateLearningPatterns(attempts: any[]) {
+function calculateLearningPatterns(attempts: ExamAttemptWithRelations[]) {
   // Analyze study times
   const studyHours = attempts.map(attempt => new Date(attempt.startedAt).getHours());
-  const hourCounts: any = {};
+  const hourCounts: Record<number, number> = {};
   studyHours.forEach(hour => {
     hourCounts[hour] = (hourCounts[hour] || 0) + 1;
   });
   
   const preferredHour = Object.entries(hourCounts)
-    .reduce((max, [hour, count]) => (count as number) > (max.count as number) ? { hour, count } : max, { hour: '0', count: 0 });
+    .reduce((max, [hour, count]) => {
+      const currentCount = count as number;
+      const maxCount = max.count as number;
+      return currentCount > maxCount ? { hour, count: currentCount } : max;
+    }, { hour: '0', count: 0 });
   
   const preferredStudyTime = 
     parseInt(preferredHour.hour) < 12 ? 'morning' :
@@ -448,10 +462,20 @@ function calculateLearningPatterns(attempts: any[]) {
   };
 }
 
-function generateInterventionPlan(overallScore: number, improvementTrend: number, bloomsAnalysis: any, consistency: number) {
+function generateInterventionPlan(overallScore: number, improvementTrend: number, bloomsAnalysis: Record<string, BloomsAnalysis>, consistency: number) {
   let riskLevel: 'low' | 'medium' | 'high' = 'low';
-  const recommendations: any[] = [];
-  const progressGoals: any[] = [];
+  const recommendations: Array<{
+    type: 'study' | 'content' | 'engagement' | 'support';
+    priority: 'high' | 'medium' | 'low';
+    description: string;
+    actionItems: string[];
+  }> = [];
+  const progressGoals: Array<{
+    area: string;
+    currentLevel: number;
+    targetLevel: number;
+    timeframe: string;
+  }> = [];
 
   // Determine risk level
   if (overallScore < 60 || improvementTrend < -10 || consistency < 50) {
@@ -476,11 +500,11 @@ function generateInterventionPlan(overallScore: number, improvementTrend: number
   }
 
   // Bloom's level recommendations
-  bloomsAnalysis.weakestAreas.forEach((area: string) => {
-    if (bloomsAnalysis.bloomsLevels[area].score < 60) {
+  (bloomsAnalysis as any).weakestAreas?.forEach((area: string) => {
+    if ((bloomsAnalysis as any).bloomsLevels?.[area]?.score < 60) {
       recommendations.push({
         type: 'content',
-        priority: bloomsAnalysis.bloomsLevels[area].score < 40 ? 'high' : 'medium',
+        priority: (bloomsAnalysis as any).bloomsLevels?.[area]?.score < 40 ? 'high' : 'medium',
         description: `Strengthen ${area} level thinking skills`,
         actionItems: [
           `Focus on ${area} level practice questions`,
@@ -507,8 +531,8 @@ function generateInterventionPlan(overallScore: number, improvementTrend: number
   }
 
   // Progress goals
-  bloomsAnalysis.weakestAreas.forEach((area: string) => {
-    const currentLevel = bloomsAnalysis.bloomsLevels[area].score;
+  (bloomsAnalysis as any).weakestAreas?.forEach((area: string) => {
+    const currentLevel = (bloomsAnalysis as any).bloomsLevels?.[area]?.score || 0;
     progressGoals.push({
       area: `${area} thinking skills`,
       currentLevel,
@@ -524,9 +548,9 @@ function generateInterventionPlan(overallScore: number, improvementTrend: number
   };
 }
 
-function calculateComparativeAnalysis(studentId: string, studentScore: number, allAttempts: any[]) {
+function calculateComparativeAnalysis(studentId: string, studentScore: number, allAttempts: ExamAttemptWithRelations[]) {
   // Calculate class average
-  const studentAverages = [...new Set(allAttempts.map(a => a.userId))]
+  const studentAverages = Array.from(new Set(allAttempts.map(a => a.userId)))
     .map(userId => {
       const userAttempts = allAttempts.filter(a => a.userId === userId);
       return userAttempts.reduce((sum, a) => sum + (a.scorePercentage || 0), 0) / userAttempts.length;
@@ -541,7 +565,7 @@ function calculateComparativeAnalysis(studentId: string, studentScore: number, a
   // Find similar performers (within 10 points)
   const similarPerformers = studentAverages
     .map((score, index) => ({ 
-      studentId: [...new Set(allAttempts.map(a => a.userId))][index], 
+      studentId: Array.from(new Set(allAttempts.map(a => a.userId)))[index], 
       score 
     }))
     .filter(s => s.studentId !== studentId && Math.abs(s.score - studentScore) <= 10)

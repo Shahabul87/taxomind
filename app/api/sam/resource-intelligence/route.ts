@@ -165,7 +165,7 @@ async function buildLearnerProfile(userId: string): Promise<StudentResourceProfi
       samLearningProfile: true,
       Enrollment: {
         include: {
-          course: {
+          Course: {
             select: {
               title: true,
               category: true,
@@ -189,9 +189,9 @@ async function buildLearnerProfile(userId: string): Promise<StudentResourceProfi
 
   // Determine preferred types from activity
   const preferredTypes: ResourceType[] = ["article", "video", "tutorial"];
-  const videoCount = activities.filter((a) => a.contentType === "VIDEO").length;
+  const videoCount = activities.filter((a) => a.activityType.includes("VIDEO")).length;
   const articleCount = activities.filter(
-    (a) => a.contentType === "ARTICLE"
+    (a) => a.activityType.includes("ARTICLE")
   ).length;
 
   if (videoCount > articleCount) {
@@ -200,7 +200,7 @@ async function buildLearnerProfile(userId: string): Promise<StudentResourceProfi
 
   // Determine learning goals from enrolled courses
   const learningGoals = user.Enrollment.map(
-    (e) => e.course.title || "General learning"
+    (e: any) => e.Course.title || "General learning"
   ).slice(0, 3);
 
   return {

@@ -28,7 +28,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ postId: str
       return new NextResponse("Not found", { status: 404 });
     }
 
-    const hasPublishedChapter = post.postchapter.some((chapter) => chapter.isPublished);
+    const hasPublishedChapter = post.PostChapterSection.some((chapter) => chapter.isPublished);
 
     if (!post.title || !post.description || !post.imageUrl || !post.category || !hasPublishedChapter) {
       return new NextResponse("Missing required fields", { status: 401 });

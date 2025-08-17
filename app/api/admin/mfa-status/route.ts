@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getAdminMFAInfo } from "@/lib/auth/mfa-enforcement";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, getClientIdentifier } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   try {
     // Rate limiting
-    const rateLimitResult = await rateLimit(request, {
-      limit: 10, // 10 requests
-      window: 60 * 1000, // per minute
-    });
+    const identifier = getClientIdentifier(request as Request);
+    const rateLimitResult = await rateLimit(
+      identifier,
+      10, // 10 requests
+      60 * 1000 // per minute
+    );
 
     if (!rateLimitResult.success) {
       return NextResponse.json(

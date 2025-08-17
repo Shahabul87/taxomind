@@ -168,7 +168,7 @@ Make the insights practical and actionable for teachers.`;
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Generate comprehensive class overview insights for this teacher.' }
     ]
   });
@@ -250,7 +250,7 @@ Focus on actionable recommendations to improve student engagement.`;
     max_tokens: 1200,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Analyze the engagement patterns and provide actionable insights.' }
     ]
   });
@@ -336,7 +336,7 @@ Focus on data-driven recommendations for improving student outcomes.`;
     max_tokens: 1200,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Analyze the performance data and provide actionable insights.' }
     ]
   });
@@ -431,7 +431,7 @@ Focus on prevention and early intervention strategies.`;
     max_tokens: 1200,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Analyze at-risk student patterns and provide intervention strategies.' }
     ]
   });
@@ -513,7 +513,7 @@ Focus on how to adapt teaching methods to match student learning patterns.`;
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Analyze learning patterns and suggest teaching adaptations.' }
     ]
   });
@@ -583,7 +583,7 @@ Focus on data-driven content optimization strategies.`;
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: 'Analyze content effectiveness and provide optimization suggestions.' }
     ]
   });
@@ -689,7 +689,7 @@ Provide practical, actionable insights based on educational best practices and d
     max_tokens: 800,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: query }
     ]
   });

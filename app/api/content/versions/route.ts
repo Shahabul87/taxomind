@@ -11,7 +11,6 @@ export const POST = withAuth(async (request: NextRequest) => {
       contentType,
       contentId,
       contentSnapshot,
-      versionType = "PATCH",
       title,
       description,
       changeLog,
@@ -29,7 +28,6 @@ export const POST = withAuth(async (request: NextRequest) => {
       contentType,
       contentId,
       contentSnapshot,
-      versionType,
       title,
       description,
       changeLog,
@@ -60,7 +58,7 @@ export const GET = withAuth(async (request: NextRequest) => {
     }
 
     const versions = await ContentVersioningService.getVersionHistory(
-      contentType,
+      contentType as ContentType,
       contentId
     );
 

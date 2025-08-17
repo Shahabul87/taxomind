@@ -40,7 +40,7 @@ Generate a thoughtful Socratic question that will help the student think more de
       max_tokens: 500,
       temperature: 0.7,
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `System Instructions: ${systemPrompt}` },
         { role: 'user', content: `Please provide a Socratic question about ${topic} based on the student's answer: "${studentAnswer}"` }
       ]
     });

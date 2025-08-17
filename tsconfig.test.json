@@ -1,27 +1,21 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
     "types": ["jest", "@testing-library/jest-dom", "node"],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   },
   "include": [
-    "**/__tests__/**/*.ts",
-    "**/__tests__/**/*.tsx",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "__tests__/jest-dom.d.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "backups/**",
-    ".next/**",
-    "coverage/**",
-    "dist/**"
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx",
+    "lib/**/*.ts",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx"
   ]
 }

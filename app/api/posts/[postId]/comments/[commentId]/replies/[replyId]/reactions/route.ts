@@ -3,13 +3,14 @@ import { withAuth, type APIAuthContext, createSuccessResponse, createErrorRespon
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
+import { currentUser } from '@/lib/auth';
 
 // Helper function for safer error responses
-const createErrorResponse = (message: string, status = 500) => {
+const createSafeErrorResponse = (message: string, status = 500) => {
   logger.error(`[NESTED_REPLY_REACTIONS_POST] Error: ${message}`);
   return createSuccessResponse(
     { error: message },
-    { status }
+    status
   );
 };
 
@@ -25,11 +26,11 @@ export async function POST(
     try {
       user = await currentUser();
       if (!user || !user.id) {
-        return createErrorResponse("Unauthorized", 401);
+        return createSafeErrorResponse("Unauthorized", 401);
       }
     } catch (sessionError) {
       logger.error("[NESTED_REPLY_REACTIONS_POST] Session Error:", sessionError);
-      return createErrorResponse("Authentication error. Please sign in again.", 401);
+      return createSafeErrorResponse("Authentication error. Please sign in again.", 401);
     }
 
     // Safely parse the request body
@@ -39,11 +40,11 @@ export async function POST(
       type = body.type;
     } catch (parseError) {
       logger.error("[NESTED_REPLY_REACTIONS_POST] JSON Parse Error:", parseError);
-      return createErrorResponse("Invalid request format", 400);
+      return createSafeErrorResponse("Invalid request format", 400);
     }
 
     if (!type) {
-      return createErrorResponse("Reaction type is required", 400);
+      return createSafeErrorResponse("Reaction type is required", 400);
     }
 
     // Get the params
@@ -52,15 +53,15 @@ export async function POST(
 
     // Validate parameters
     if (!postId || typeof postId !== 'string') {
-      return createErrorResponse("Invalid post ID", 400);
+      return createSafeErrorResponse("Invalid post ID", 400);
     }
     
     if (!commentId || typeof commentId !== 'string') {
-      return createErrorResponse("Invalid comment ID", 400);
+      return createSafeErrorResponse("Invalid comment ID", 400);
     }
     
     if (!replyId || typeof replyId !== 'string') {
-      return createErrorResponse("Invalid reply ID", 400);
+      return createSafeErrorResponse("Invalid reply ID", 400);
     }
 
     // First verify the post exists
@@ -70,7 +71,7 @@ export async function POST(
     });
 
     if (!post) {
-      return createErrorResponse("Post not found", 404);
+      return createSafeErrorResponse("Post not found", 404);
     }
 
     // Then verify the comment exists
@@ -83,7 +84,7 @@ export async function POST(
     });
 
     if (!comment) {
-      return createErrorResponse("Comment not found", 404);
+      return createSafeErrorResponse("Comment not found", 404);
     }
 
     // Finally verify the reply exists and belongs to the comment
@@ -109,7 +110,7 @@ export async function POST(
 
     if (!reply) {
 
-      return createErrorResponse("Reply not found", 404);
+      return createSafeErrorResponse("Reply not found", 404);
     }
 
     // Store the user ID to ensure it's accessible in the transaction
@@ -183,17 +184,17 @@ export async function POST(
       return updatedReply;
     });
 
-    return createSuccessResponse(result);
+    return createSuccessResponse(result, 200);
   } catch (error) {
     logger.error("[NESTED_REPLY_REACTIONS_POST]", error);
     
     // Provide more specific error messages based on error type
     if (error instanceof Error) {
       if (error.message.includes("database") || error.message.includes("prisma")) {
-        return createErrorResponse("Database error. Please try again later.", 500);
+        return createSafeErrorResponse("Database error. Please try again later.", 500);
       }
     }
     
-    return createErrorResponse("Internal server error", 500);
+    return createSafeErrorResponse("Internal server error", 500);
   }
 } 

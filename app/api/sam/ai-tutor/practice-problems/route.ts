@@ -50,7 +50,7 @@ Return a JSON array of problems, each with:
       max_tokens: 2000,
       temperature: 0.8,
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `System Instructions: ${systemPrompt}` },
         { role: 'user', content: `Generate ${count} practice problems about ${topic} at ${difficulty} difficulty level.` }
       ]
     });

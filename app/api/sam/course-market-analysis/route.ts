@@ -157,9 +157,8 @@ async function recordSAMInteraction(
       data: {
         userId,
         courseId,
-        interactionType: 'CONTENT_GENERATED', // Using existing enum value
-        context: { type: interactionType },
-        result,
+        interactionType: 'CONTENT_GENERATE', // Using existing enum value
+        context: { type: interactionType, ...result },
       },
     });
   } catch (error) {

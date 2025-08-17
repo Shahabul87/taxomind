@@ -65,15 +65,15 @@ export const GET = withAuth(async (
     if (!comment) {
       return createSuccessResponse(
         { error: "Comment not found" },
-        { status: 404 });
+        404);
     }
 
-    return createSuccessResponse(comment);
+    return createSuccessResponse(comment, 200);
   } catch (error) {
     logger.error("[COMMENT_GET]", error);
     return createSuccessResponse(
       { error: "Internal server error" },
-      { status: 500 }
+      500
     );
   }
 });
@@ -93,7 +93,7 @@ export const PATCH = withAuth(async (
     if (!content) {
       return createSuccessResponse(
         { error: "Content is required" },
-        { status: 400 });
+        400);
     }
 
     // Find the comment to ensure it exists and belongs to the user
@@ -107,7 +107,7 @@ export const PATCH = withAuth(async (
     if (!comment) {
       return createSuccessResponse(
         { error: "Comment not found" },
-        { status: 404 }
+        404
       );
     }
 
@@ -141,12 +141,12 @@ export const PATCH = withAuth(async (
       },
     });
 
-    return createSuccessResponse(updatedComment);
+    return createSuccessResponse(updatedComment, 200);
   } catch (error) {
     logger.error("[COMMENT_PATCH]", error);
     return createSuccessResponse(
       { error: "Internal server error" },
-      { status: 500 }
+      500
     );
   }
 });
@@ -174,7 +174,7 @@ export const DELETE = withAuth(async (
     if (!comment) {
       return createSuccessResponse(
         { error: "Comment not found or unauthorized" },
-        { status: 404 }
+        404
       );
     }
 
@@ -218,12 +218,12 @@ export const DELETE = withAuth(async (
       invalidateCache(`replies:${commentId}:*`),
     ]);
 
-    return createSuccessResponse({ success: true });
+    return createSuccessResponse({ success: true }, 200);
   } catch (error) {
     logger.error("[COMMENT_DELETE]", error);
     return createSuccessResponse(
       { error: "Internal server error" },
-      { status: 500 }
+      500
     );
   }
 });

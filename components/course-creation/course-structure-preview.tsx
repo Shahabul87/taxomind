@@ -82,7 +82,7 @@ export const CourseStructurePreview = ({
     return colorMap[difficulty] || 'text-gray-600 dark:text-gray-400';
   };
 
-  const estimatedTotalHours = data.chapterCount && data.sectionsPerChapter 
+  const estimatedTotalHours = data?.chapterCount && data?.sectionsPerChapter 
     ? Math.round((data.chapterCount * data.sectionsPerChapter * 20) / 60 * 10) / 10 
     : 0;
 
@@ -108,14 +108,14 @@ export const CourseStructurePreview = ({
         <div className="space-y-3">
           <div>
             <h3 className="font-semibold text-base text-gray-900 dark:text-white">
-              {data.courseTitle || "Your Course Title"}
+              {data?.courseTitle || "Your Course Title"}
             </h3>
-            {data.courseCategory && (
+            {data?.courseCategory && (
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="secondary" className="text-xs">
                   {data.courseCategory}
                 </Badge>
-                {data.courseSubcategory && (
+                {data?.courseSubcategory && (
                   <Badge variant="outline" className="text-xs">
                     {data.courseSubcategory}
                   </Badge>
@@ -124,7 +124,7 @@ export const CourseStructurePreview = ({
             )}
           </div>
           
-          {data.courseShortOverview && (
+          {data?.courseShortOverview && (
             <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
               {data.courseShortOverview}
             </p>
@@ -138,7 +138,7 @@ export const CourseStructurePreview = ({
             <div>
               <p className="font-medium text-gray-900 dark:text-white">Target</p>
               <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                {data.targetAudience || "Not specified"}
+                {data?.targetAudience || "Not specified"}
               </p>
             </div>
           </div>
@@ -148,12 +148,12 @@ export const CourseStructurePreview = ({
             <div>
               <p className="font-medium text-gray-900 dark:text-white">Duration</p>
               <p className="text-xs text-gray-600 dark:text-gray-400">
-                {data.duration || estimatedTotalHours ? `${estimatedTotalHours}h` : "TBD"}
+                {data?.duration || estimatedTotalHours ? `${estimatedTotalHours}h` : "TBD"}
               </p>
             </div>
           </div>
           
-          {data.difficulty && (
+          {data?.difficulty && (
             <div className="flex items-center gap-2 text-sm">
               <Award className={cn("h-4 w-4", getDifficultyColor(data.difficulty))} />
               <div>
@@ -165,7 +165,7 @@ export const CourseStructurePreview = ({
             </div>
           )}
           
-          {data.chapterCount && (
+          {data?.chapterCount && (
             <div className="flex items-center gap-2 text-sm">
               <BookOpen className="h-4 w-4 text-purple-500" />
               <div>
@@ -179,7 +179,7 @@ export const CourseStructurePreview = ({
         </div>
 
         {/* Learning Goals */}
-        {data.courseGoals && data.courseGoals.length > 0 && (
+        {data?.courseGoals && data.courseGoals.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <Target className="h-4 w-4 text-orange-500" />
@@ -202,7 +202,7 @@ export const CourseStructurePreview = ({
         )}
 
         {/* Bloom's Taxonomy Focus */}
-        {data.bloomsFocus && data.bloomsFocus.length > 0 && (
+        {data?.bloomsFocus && data.bloomsFocus.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <Brain className="h-4 w-4 text-indigo-500" />
@@ -223,7 +223,7 @@ export const CourseStructurePreview = ({
         )}
 
         {/* Content Types */}
-        {data.preferredContentTypes && data.preferredContentTypes.length > 0 && (
+        {data?.preferredContentTypes && data.preferredContentTypes.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <Palette className="h-4 w-4 text-pink-500" />
@@ -243,14 +243,14 @@ export const CourseStructurePreview = ({
         )}
 
         {/* Course Structure Preview */}
-        {data.chapterCount && data.sectionsPerChapter && (
+        {data?.chapterCount && data?.sectionsPerChapter && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-blue-500" />
               Course Structure
             </h4>
             <div className="space-y-2">
-              {Array.from({ length: Math.min(data.chapterCount, 3) }, (_, chapterIndex) => (
+              {Array.from({ length: Math.min(data.chapterCount ?? 0, 3) }, (_, chapterIndex) => (
                 <div key={chapterIndex} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <BookOpen className="h-3 w-3 text-blue-500" />
@@ -259,23 +259,23 @@ export const CourseStructurePreview = ({
                     </span>
                   </div>
                   <div className="ml-5 space-y-1">
-                    {Array.from({ length: Math.min(data.sectionsPerChapter, 2) }, (_, sectionIndex) => (
+                    {Array.from({ length: Math.min(data.sectionsPerChapter ?? 0, 2) }, (_, sectionIndex) => (
                       <div key={sectionIndex} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                         <div className="w-1 h-1 rounded-full bg-gray-400"></div>
                         Section {sectionIndex + 1}
                       </div>
                     ))}
-                    {data.sectionsPerChapter > 2 && (
+                    {(data.sectionsPerChapter ?? 0) > 2 && (
                       <div className="text-xs text-gray-500 dark:text-gray-500 ml-3">
-                        +{data.sectionsPerChapter - 2} more sections
+                        +{(data.sectionsPerChapter ?? 0) - 2} more sections
                       </div>
                     )}
                   </div>
                 </div>
               ))}
-              {data.chapterCount > 3 && (
+              {(data.chapterCount ?? 0) > 3 && (
                 <div className="text-xs text-gray-500 dark:text-gray-500 text-center py-2">
-                  +{data.chapterCount - 3} more chapters
+                  +{(data.chapterCount ?? 0) - 3} more chapters
                 </div>
               )}
             </div>

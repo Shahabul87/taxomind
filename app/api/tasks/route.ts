@@ -41,7 +41,6 @@ export async function POST(req: Request) {
     const { 
       title, 
       description, 
-      startTime,
       dueDate, 
       priority, 
       category, 
@@ -62,16 +61,13 @@ export async function POST(req: Request) {
     
     const task = await db.task.create({
       data: {
+        id: `task_${Date.now()}_${session.user.id}`,
         title,
         description,
-        startTime: startTime ? new Date(startTime) : null,
         dueDate: new Date(dueDate),
-        priority,
-        category,
-        hasReminder: hasReminder || false,
-        reminderDate: reminderDate ? new Date(reminderDate) : null,
-        reminderType,
-        userId: session.user.id
+        priority: priority || "MEDIUM",
+        userId: session.user.id,
+        updatedAt: new Date(),
       }
     });
     
@@ -136,7 +132,6 @@ export async function PATCH(req: Request) {
       id,
       title, 
       description, 
-      startTime,
       dueDate, 
       priority, 
       category, 
@@ -170,15 +165,13 @@ export async function PATCH(req: Request) {
       data: {
         title: title !== undefined ? title : undefined,
         description: description !== undefined ? description : undefined,
-        startTime: startTime !== undefined ? new Date(startTime) : undefined,
         dueDate: dueDate !== undefined ? new Date(dueDate) : undefined,
         priority: priority !== undefined ? priority : undefined,
-        category: category !== undefined ? category : undefined,
-        completed: completed !== undefined ? completed : undefined,
-        hasReminder: hasReminder !== undefined ? hasReminder : undefined,
-        reminderDate: reminderDate !== undefined ? new Date(reminderDate) : undefined,
-        reminderType: reminderType !== undefined ? reminderType : undefined,
-        reminderSent: reminderSent !== undefined ? reminderSent : undefined
+        // completed: completed !== undefined ? completed : undefined, // Field not in schema
+        // hasReminder: hasReminder !== undefined ? hasReminder : undefined, // Field not in schema
+        // reminderDate: reminderDate !== undefined ? new Date(reminderDate) : undefined, // Field not in schema
+        // reminderType: reminderType !== undefined ? reminderType : undefined, // Field not in schema
+        // reminderSent: reminderSent !== undefined ? reminderSent : undefined // Field not in schema
       }
     });
     

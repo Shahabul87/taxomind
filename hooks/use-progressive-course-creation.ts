@@ -56,33 +56,6 @@ export const useProgressiveCourseCreation = (userId?: string) => {
   const [timeSpent, setTimeSpent] = useState<Record<number, number>>({});
   const [stepStartTime, setStepStartTime] = useState<number>(Date.now());
 
-  // Initialize user patterns from localStorage or API
-  useEffect(() => {
-    const initializePatterns = async () => {
-      try {
-        // Try to load from localStorage first
-        const savedPatterns = localStorage.getItem(`courseCreationPatterns_${userId || 'anonymous'}`);
-        if (savedPatterns) {
-          const patterns = JSON.parse(savedPatterns);
-          setUserPattern(patterns);
-          adaptInterface(patterns);
-        } else if (userId) {
-          // Load from API if user is logged in
-          const response = await fetch(`/api/user/patterns/${userId}`);
-          if (response.ok) {
-            const patterns = await response.json();
-            setUserPattern(patterns);
-            adaptInterface(patterns);
-          }
-        }
-      } catch (error: any) {
-        logger.error('Failed to initialize user patterns:', error);
-      }
-    };
-
-    initializePatterns();
-  }, [userId, adaptInterface]);
-
   // Adapt interface based on user patterns
   const adaptInterface = useCallback((patterns: UserPattern) => {
     const experience = determineUserExperience(patterns);
@@ -97,83 +70,26 @@ export const useProgressiveCourseCreation = (userId?: string) => {
     }));
   }, []);
 
-  // Determine user experience level
-  const determineUserExperience = (patterns: UserPattern): 'beginner' | 'intermediate' | 'expert' => {
-    const indicators = {
-      coursesCreated: patterns.patterns.completionRate > 0.8 ? 2 : patterns.patterns.completionRate > 0.5 ? 1 : 0,
-      avgTimePerStep: Object.values(patterns.patterns.timeSpentPerStep).reduce((avg, time, _, arr) => avg + time / arr.length, 0),
-      helpRequests: patterns.patterns.helpRequestFrequency,
-      advancedFeatureUsage: patterns.adaptations.showAdvancedOptions ? 1 : 0
-    };
-
-    const score = indicators.coursesCreated * 3 + 
-                  (indicators.avgTimePerStep < 60 ? 2 : indicators.avgTimePerStep < 120 ? 1 : 0) +
-                  (indicators.helpRequests < 2 ? 2 : indicators.helpRequests < 5 ? 1 : 0) +
-                  indicators.advancedFeatureUsage;
-
-    if (score >= 7) return 'expert';
-    if (score >= 4) return 'intermediate';
-    return 'beginner';
-  };
-
-  // Track step completion and time
-  const completeStep = useCallback((step: number, formData?: any) => {
-    const now = Date.now();
-    const timeOnStep = now - stepStartTime;
-    
-    setTimeSpent(prev => ({
-      ...prev,
-      [step]: timeOnStep
-    }));
-
-    // Update user patterns
-    if (userPattern) {
-      const updatedPattern = {
-        ...userPattern,
-        patterns: {
-          ...userPattern.patterns,
-          timeSpentPerStep: {
-            ...userPattern.patterns.timeSpentPerStep,
-            [step]: timeOnStep
-          }
-        }
-      };
+  // Save patterns to localStorage and optionally to API
+  const savePatterns = useCallback(async (patterns: UserPattern) => {
+    try {
+      // Save to localStorage
+      localStorage.setItem(`courseCreationPatterns_${userId || 'anonymous'}`, JSON.stringify(patterns));
       
-      // Analyze form data for patterns
-      if (formData) {
-        updatePatternsFromFormData(updatedPattern, formData);
+      // Save to API if user is logged in
+      if (userId) {
+        await fetch(`/api/user/patterns/${userId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(patterns),
+        });
       }
-      
-      setUserPattern(updatedPattern);
-      savePatterns(updatedPattern);
+    } catch (error: any) {
+      logger.error('Failed to save user patterns:', error);
     }
-
-    setStepStartTime(now);
-    
-    // Generate suggestions for next step
-    generateStepSuggestions(step + 1, formData);
-  }, [stepStartTime, userPattern, generateStepSuggestions, savePatterns]);
-
-  // Update patterns based on form data
-  const updatePatternsFromFormData = (pattern: UserPattern, formData: any) => {
-    if (formData.preferredContentTypes?.length > 0) {
-      pattern.patterns.preferredContentTypes = formData.preferredContentTypes;
-    }
-    
-    if (formData.chapterCount) {
-      pattern.patterns.typicalChapterCount = formData.chapterCount;
-    }
-    
-    if (formData.difficulty) {
-      pattern.patterns.favoriteDifficulty = formData.difficulty;
-    }
-    
-    if (formData.courseCategory) {
-      if (!pattern.patterns.commonCategories.includes(formData.courseCategory)) {
-        pattern.patterns.commonCategories.push(formData.courseCategory);
-      }
-    }
-  };
+  }, [userId]);
 
   // Generate contextual suggestions for upcoming steps
   const generateStepSuggestions = useCallback((nextStep: number, currentFormData?: any) => {
@@ -264,26 +180,112 @@ export const useProgressiveCourseCreation = (userId?: string) => {
     setStepSuggestions(suggestions);
   }, [userPattern, disclosureState]);
 
-  // Save patterns to localStorage and optionally to API
-  const savePatterns = useCallback(async (patterns: UserPattern) => {
-    try {
-      // Save to localStorage
-      localStorage.setItem(`courseCreationPatterns_${userId || 'anonymous'}`, JSON.stringify(patterns));
-      
-      // Save to API if user is logged in
-      if (userId) {
-        await fetch(`/api/user/patterns/${userId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(patterns),
-        });
+  // Initialize user patterns from localStorage or API
+  useEffect(() => {
+    const initializePatterns = async () => {
+      try {
+        // Try to load from localStorage first
+        const savedPatterns = localStorage.getItem(`courseCreationPatterns_${userId || 'anonymous'}`);
+        if (savedPatterns) {
+          const patterns = JSON.parse(savedPatterns);
+          setUserPattern(patterns);
+          adaptInterface(patterns);
+        } else if (userId) {
+          // Load from API if user is logged in
+          const response = await fetch(`/api/user/patterns/${userId}`);
+          if (response.ok) {
+            const patterns = await response.json();
+            setUserPattern(patterns);
+            adaptInterface(patterns);
+          }
+        }
+      } catch (error: any) {
+        logger.error('Failed to initialize user patterns:', error);
       }
-    } catch (error: any) {
-      logger.error('Failed to save user patterns:', error);
+    };
+
+    initializePatterns();
+  }, [userId, adaptInterface]);
+
+  // Determine user experience level
+  const determineUserExperience = (patterns: UserPattern): 'beginner' | 'intermediate' | 'expert' => {
+    const indicators = {
+      coursesCreated: patterns.patterns.completionRate > 0.8 ? 2 : patterns.patterns.completionRate > 0.5 ? 1 : 0,
+      avgTimePerStep: Object.values(patterns.patterns.timeSpentPerStep).reduce((avg, time, _, arr) => avg + time / arr.length, 0),
+      helpRequests: patterns.patterns.helpRequestFrequency,
+      advancedFeatureUsage: patterns.adaptations.showAdvancedOptions ? 1 : 0
+    };
+
+    const score = indicators.coursesCreated * 3 + 
+                  (indicators.avgTimePerStep < 60 ? 2 : indicators.avgTimePerStep < 120 ? 1 : 0) +
+                  (indicators.helpRequests < 2 ? 2 : indicators.helpRequests < 5 ? 1 : 0) +
+                  indicators.advancedFeatureUsage;
+
+    if (score >= 7) return 'expert';
+    if (score >= 4) return 'intermediate';
+    return 'beginner';
+  };
+
+  // Track step completion and time
+  const completeStep = useCallback((step: number, formData?: any) => {
+    const now = Date.now();
+    const timeOnStep = now - stepStartTime;
+    
+    setTimeSpent(prev => ({
+      ...prev,
+      [step]: timeOnStep
+    }));
+
+    // Update user patterns
+    if (userPattern) {
+      const updatedPattern = {
+        ...userPattern,
+        patterns: {
+          ...userPattern.patterns,
+          timeSpentPerStep: {
+            ...userPattern.patterns.timeSpentPerStep,
+            [step]: timeOnStep
+          }
+        }
+      };
+      
+      // Analyze form data for patterns
+      if (formData) {
+        updatePatternsFromFormData(updatedPattern, formData);
+      }
+      
+      setUserPattern(updatedPattern);
+      savePatterns(updatedPattern);
     }
-  }, [userId]);
+
+    setStepStartTime(now);
+    
+    // Generate suggestions for next step
+    generateStepSuggestions(step + 1, formData);
+  }, [stepStartTime, userPattern, generateStepSuggestions, savePatterns]);
+
+  // Update patterns based on form data
+  const updatePatternsFromFormData = (pattern: UserPattern, formData: any) => {
+    if (formData.preferredContentTypes?.length > 0) {
+      pattern.patterns.preferredContentTypes = formData.preferredContentTypes;
+    }
+    
+    if (formData.chapterCount) {
+      pattern.patterns.typicalChapterCount = formData.chapterCount;
+    }
+    
+    if (formData.difficulty) {
+      pattern.patterns.favoriteDifficulty = formData.difficulty;
+    }
+    
+    if (formData.courseCategory) {
+      if (!pattern.patterns.commonCategories.includes(formData.courseCategory)) {
+        pattern.patterns.commonCategories.push(formData.courseCategory);
+      }
+    }
+  };
+
+
 
   // Manual interface adjustments
   const toggleAdvancedOptions = useCallback(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { User } from "next-auth";
+import { ExtendedUser } from "@/next-auth";
 import { useState, useEffect, useCallback } from 'react';
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,7 +28,7 @@ import { AdminFeaturesTab } from './tabs/AdminFeaturesTab';
 import { PostAnalyticsTab } from './tabs/PostAnalyticsTab';
 
 interface UnifiedAnalyticsProps {
-  user: User;
+  user: ExtendedUser;
   variant?: 'dashboard' | 'fullpage';
   className?: string;
 }

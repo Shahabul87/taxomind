@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser, currentRole } from "@/lib/auth";
-import { UserRole, Permission } from "@/types/auth";
+import { Permission, UserRole as AppUserRole } from "@/types/auth";
+import { UserRole } from "@prisma/client";
 import { hasPermission } from "@/lib/auth/permissions";
 import { logger } from '@/lib/logger';
 
@@ -18,10 +19,10 @@ export async function GET() {
 
     // Test different permission levels
     const permissions = {
-      canCreateCourse: role ? hasPermission(role, Permission.CREATE_COURSE) : false,
-      canManageUsers: role ? hasPermission(role, Permission.CREATE_USER) : false,
-      canAccessAdmin: role ? hasPermission(role, Permission.ACCESS_ADMIN_PANEL) : false,
-      canViewAllAnalytics: role ? hasPermission(role, Permission.VIEW_ALL_ANALYTICS) : false,
+      canCreateCourse: role ? hasPermission(role as AppUserRole, Permission.CREATE_COURSE) : false,
+      canManageUsers: role ? hasPermission(role as AppUserRole, Permission.CREATE_USER) : false,
+      canAccessAdmin: role ? hasPermission(role as AppUserRole, Permission.ACCESS_ADMIN_PANEL) : false,
+      canViewAllAnalytics: role ? hasPermission(role as AppUserRole, Permission.VIEW_ALL_ANALYTICS) : false,
     };
 
     const roleInfo = {

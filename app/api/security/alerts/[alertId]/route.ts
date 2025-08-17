@@ -70,8 +70,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       data: {
         status,
         resolvedAt: status === 'RESOLVED' ? new Date() : null,
-        details: {
-          ...(alert as any).details,
+        affectedUsers: {
+          ...(alert.affectedUsers as Record<string, any>),
           resolution: resolution || null,
           resolvedBy: session.user.id,
         },
@@ -147,7 +147,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         ...alert,
         affectedUsers: [session.user.id], // Only show self
         details: {
-          ...alert.details,
+          ...(alert.details as Record<string, any>),
           sessionId: undefined,
           fingerprintHash: undefined,
         },

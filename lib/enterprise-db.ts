@@ -86,18 +86,18 @@ class DatabaseConnectionManager {
       if (isDevelopment) {
         // In development, allow local databases
         isValidConnection = currentDB === 'taxomind_dev' || 
-                          currentDB?.includes('dev') || 
-                          currentDB?.includes('local') ||
-                          process.env.DATABASE_URL?.includes('localhost');
+                          (currentDB?.includes('dev') ?? false) || 
+                          (currentDB?.includes('local') ?? false) ||
+                          (process.env.DATABASE_URL?.includes('localhost') ?? false);
       } else if (isProduction) {
         // In production, expect railway or production database
         isValidConnection = currentDB === 'railway' || 
-                          process.env.DATABASE_URL?.includes('railway.internal') ||
-                          process.env.DATABASE_URL?.includes('railway.app');
+                          (process.env.DATABASE_URL?.includes('railway.internal') ?? false) ||
+                          (process.env.DATABASE_URL?.includes('railway.app') ?? false);
       } else if (isStaging) {
         // In staging, expect staging database
-        isValidConnection = currentDB?.includes('staging') ||
-                          process.env.DATABASE_URL?.includes('staging');
+        isValidConnection = (currentDB?.includes('staging') ?? false) ||
+                          (process.env.DATABASE_URL?.includes('staging') ?? false);
       }
       
       if (!isValidConnection) {
@@ -189,7 +189,7 @@ class EnterpriseTransactionManager {
         return await operation(client);
       } else {
         return await client.$transaction(async (tx) => {
-          return await operation(tx);
+          return await operation(tx as any);
         }, {
           timeout: config.transactionTimeout,
         });

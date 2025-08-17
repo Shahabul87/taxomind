@@ -102,7 +102,7 @@ Provide comprehensive analysis including:
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Analyze this educational image: ${imageDescription}` }
     ]
   });
@@ -158,7 +158,7 @@ Create a detailed diagram specification including:
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create a ${diagramType} diagram for "${concept}" at ${complexity} complexity level for ${audience}` }
     ]
   });
@@ -218,7 +218,7 @@ Create a comprehensive visualization plan including:
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create a ${visualizationType} visualization for concepts: ${concepts.join(', ')}` }
     ]
   });
@@ -276,7 +276,7 @@ Create interactive annotation plan including:
     max_tokens: 1200,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create interactive annotations for: ${imageDescription}` }
     ]
   });
@@ -333,7 +333,7 @@ Create visual quiz including:
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create a visual quiz for: ${imageDescription}` }
     ]
   });
@@ -388,7 +388,7 @@ Create infographic specification including:
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create an infographic about "${topic}" for ${audience}` }
     ]
   });
@@ -446,7 +446,7 @@ Create mind map specification including:
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create a mind map for "${centralConcept}" with ${depth} levels of depth` }
     ]
   });
@@ -504,7 +504,7 @@ Create flowchart specification including:
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create a ${flowType} flowchart for the process: "${process}"` }
     ]
   });

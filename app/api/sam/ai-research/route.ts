@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
         const minCitations = searchParams.get('minCitations');
         const hasCode = searchParams.get('hasCode') === 'true';
         const hasDataset = searchParams.get('hasDataset') === 'true';
-        const difficulty = searchParams.get('difficulty');
+        const difficulty = searchParams.get('difficulty') || undefined;
         const sort = searchParams.get('sort') as any;
         const limit = searchParams.get('limit');
 
@@ -97,8 +97,8 @@ export async function GET(req: NextRequest) {
       }
 
       case 'educational': {
-        const difficulty = searchParams.get('difficulty');
-        const prerequisites = searchParams.get('prerequisites')?.split(',').filter(Boolean);
+        const difficulty = searchParams.get('difficulty') || undefined;
+        const prerequisites = searchParams.get('prerequisites')?.split(',').filter(Boolean) || undefined;
 
         const papers = await samResearchEngine.getEducationalPapers(
           difficulty,
@@ -247,7 +247,7 @@ export async function POST(req: NextRequest) {
           })
         );
 
-        const bibtex = bibtexEntries.filter(e => e !== null).join('\n\n');
+        const bibtex = bibtexEntries.filter((e): e is string => e !== null).join('\n\n');
         
         return NextResponse.json({ bibtex });
       }

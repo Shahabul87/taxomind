@@ -3,6 +3,9 @@ import { testDb, setupTestDatabase, teardownTestDatabase } from '../../utils/tes
 import { TestDataFactory } from '../../utils/test-factory';
 import { mockAnthropicClient, setupMockProviders, resetMockProviders } from '../../utils/mock-providers';
 
+// Mock the Anthropic SDK
+jest.mock('@anthropic-ai/sdk');
+
 describe('BloomsAnalysisEngine', () => {
   let engine: BloomsAnalysisEngine;
   let testData: any;
@@ -56,7 +59,7 @@ describe('BloomsAnalysisEngine', () => {
 
       // Verify distribution totals make sense
       const distribution = result.courseLevel.distribution;
-      const total = Object.values(distribution).reduce((sum, value) => sum + value, 0);
+      const total = Object.values(distribution).reduce((sum: number, value: unknown) => sum + Number(value), 0);
       expect(total).toBeCloseTo(100, 1); // Should sum to approximately 100%
 
       // Verify cognitive depth is calculated
@@ -102,7 +105,7 @@ describe('BloomsAnalysisEngine', () => {
     });
   });
 
-  describe('Bloom\'s Level Analysis', () => {
+  describe('Bloom&apos;s Level Analysis', () => {
     it('should correctly identify REMEMBER level content', async () => {
       const section = {
         id: 'test-section',
@@ -115,11 +118,11 @@ describe('BloomsAnalysisEngine', () => {
         Question: []
       };
 
-      mockAnthropicClient.messages.create.mockResolvedValue({
+      (mockAnthropicClient.messages.create as jest.Mock).mockResolvedValue({
         content: [{ type: 'text', text: 'REMEMBER - This content focuses on basic recall and recognition.' }]
       });
 
-      const result = await engine['analyzeContent'](section);
+      const result = await (engine as any).analyzeContent(section);
       expect(result).toBe('REMEMBER');
     });
 
@@ -135,16 +138,16 @@ describe('BloomsAnalysisEngine', () => {
         Question: []
       };
 
-      mockAnthropicClient.messages.create.mockResolvedValue({
+      (mockAnthropicClient.messages.create as jest.Mock).mockResolvedValue({
         content: [{ type: 'text', text: 'ANALYZE - This section requires students to compare and analyze different concepts.' }]
       });
 
-      const result = await engine['analyzeContent'](section);
+      const result = await (engine as any).analyzeContent(section);
       expect(result).toBe('ANALYZE');
     });
 
     it('should fall back to UNDERSTAND for unclear content', async () => {
-      mockAnthropicClient.messages.create.mockResolvedValue({
+      (mockAnthropicClient.messages.create as jest.Mock).mockResolvedValue({
         content: [{ type: 'text', text: 'This content is unclear about cognitive level.' }]
       });
 
@@ -159,13 +162,13 @@ describe('BloomsAnalysisEngine', () => {
         Question: []
       };
 
-      const result = await engine['analyzeContent'](section);
+      const result = await (engine as any).analyzeContent(section);
       expect(result).toBe('UNDERSTAND');
     });
   });
 
   describe('Question Analysis', () => {
-    it('should analyze exam questions for Bloom\'s levels', () => {
+    it('should analyze exam questions for Bloom&apos;s levels', () => {
       const exams = [
         {
           ExamQuestion: [
@@ -176,7 +179,7 @@ describe('BloomsAnalysisEngine', () => {
         }
       ];
 
-      const result = engine['analyzeExams'](exams);
+      const result = (engine as any).analyzeExams(exams);
       expect(result).toEqual(['REMEMBER', 'APPLY', 'ANALYZE']);
     });
 
@@ -184,7 +187,7 @@ describe('BloomsAnalysisEngine', () => {
       const result = engine['analyzeExams']([]);
       expect(result).toEqual([]);
       
-      const resultNull = engine['analyzeExams'](null);
+      const resultNull = (engine as any).analyzeExams(null);
       expect(resultNull).toEqual([]);
     });
 
@@ -200,7 +203,7 @@ describe('BloomsAnalysisEngine', () => {
       ];
 
       testCases.forEach(({ text, expected }) => {
-        const result = engine['analyzeQuestionText'](text);
+        const result = (engine as any).analyzeQuestionText(text);
         expect(result).toBe(expected);
       });
     });
@@ -217,7 +220,7 @@ describe('BloomsAnalysisEngine', () => {
         CREATE: 10
       };
 
-      const depth = engine['calculateCognitiveDepth'](distribution);
+      const depth = (engine as any).calculateCognitiveDepth(distribution);
       expect(depth).toBeGreaterThan(40); // Higher levels should increase depth
       expect(depth).toBeLessThanOrEqual(100);
     });
@@ -232,7 +235,7 @@ describe('BloomsAnalysisEngine', () => {
         CREATE: 0
       };
 
-      const depth = engine['calculateCognitiveDepth'](distribution);
+      const depth = (engine as any).calculateCognitiveDepth(distribution);
       expect(depth).toBe(0);
     });
 
@@ -255,8 +258,8 @@ describe('BloomsAnalysisEngine', () => {
         CREATE: 35
       };
 
-      const basicDepth = engine['calculateCognitiveDepth'](basicDistribution);
-      const advancedDepth = engine['calculateCognitiveDepth'](advancedDistribution);
+      const basicDepth = (engine as any).calculateCognitiveDepth(basicDistribution);
+      const advancedDepth = (engine as any).calculateCognitiveDepth(advancedDistribution);
 
       expect(advancedDepth).toBeGreaterThan(basicDepth);
     });
@@ -273,7 +276,7 @@ describe('BloomsAnalysisEngine', () => {
         CREATE: 2
       };
 
-      const balance = engine['determineBalance'](bottomHeavyDistribution);
+      const balance = (engine as any).determineBalance(bottomHeavyDistribution);
       expect(balance).toBe('bottom-heavy');
     });
 
@@ -287,7 +290,7 @@ describe('BloomsAnalysisEngine', () => {
         CREATE: 10
       };
 
-      const balance = engine['determineBalance'](topHeavyDistribution);
+      const balance = (engine as any).determineBalance(topHeavyDistribution);
       expect(balance).toBe('top-heavy');
     });
 
@@ -301,7 +304,7 @@ describe('BloomsAnalysisEngine', () => {
         CREATE: 8
       };
 
-      const balance = engine['determineBalance'](balancedDistribution);
+      const balance = (engine as any).determineBalance(balancedDistribution);
       expect(balance).toBe('well-balanced');
     });
   });
@@ -327,7 +330,7 @@ describe('BloomsAnalysisEngine', () => {
         }
       ];
 
-      const pathway = engine['buildCurrentPath'](chapters);
+      const pathway = (engine as any).buildCurrentPath(chapters);
       
       expect(pathway.stages).toHaveLength(6); // Six Bloom's levels
       expect(pathway.currentStage).toBeDefined();
@@ -362,7 +365,7 @@ describe('BloomsAnalysisEngine', () => {
         completionPercentage: 0
       };
 
-      const gaps = engine['identifyLearningGaps'](currentPath, recommendedPath);
+      const gaps = (engine as any).identifyLearningGaps(currentPath, recommendedPath);
       
       expect(gaps).toHaveLength(2); // APPLY and ANALYZE should have gaps
       expect(gaps.some(gap => gap.level === 'APPLY')).toBe(true);
@@ -383,7 +386,7 @@ describe('BloomsAnalysisEngine', () => {
 
       const chapters = [];
 
-      const recommendations = engine['generateContentRecommendations'](chapters, distribution);
+      const recommendations = (engine as any).generateContentRecommendations(chapters, distribution);
       
       expect(recommendations.length).toBeGreaterThan(0);
       const levels = recommendations.map(rec => rec.bloomsLevel);
@@ -402,7 +405,7 @@ describe('BloomsAnalysisEngine', () => {
         CREATE: 1    // Under 10%
       };
 
-      const recommendations = engine['generateAssessmentRecommendations'](distribution);
+      const recommendations = (engine as any).generateAssessmentRecommendations(distribution);
       
       expect(recommendations.length).toBeGreaterThan(0);
       expect(recommendations.some(rec => rec.bloomsLevel === 'ANALYZE')).toBe(true);
@@ -419,7 +422,7 @@ describe('BloomsAnalysisEngine', () => {
         CREATE: 2
       };
 
-      const suggestions = engine['generateActivitySuggestions'](distribution);
+      const suggestions = (engine as any).generateActivitySuggestions(distribution);
       
       expect(suggestions.length).toBeGreaterThan(0);
       suggestions.forEach(suggestion => {
@@ -443,7 +446,7 @@ describe('BloomsAnalysisEngine', () => {
         CREATE: 4    // Below threshold
       };
 
-      const skills = engine['identifyDevelopedSkills'](distribution, []);
+      const skills = (engine as any).identifyDevelopedSkills(distribution, []);
       
       expect(skills.length).toBe(4); // Only skills above 10% threshold
       expect(skills.some(skill => skill.bloomsLevel === 'REMEMBER')).toBe(true);
@@ -466,7 +469,7 @@ describe('BloomsAnalysisEngine', () => {
         CREATE: 3
       };
 
-      const growth = engine['projectCognitiveGrowth'](distribution);
+      const growth = (engine as any).projectCognitiveGrowth(distribution);
       
       expect(growth.currentLevel).toBeDefined();
       expect(growth.projectedLevel).toBeGreaterThan(growth.currentLevel);
@@ -481,7 +484,7 @@ describe('BloomsAnalysisEngine', () => {
         { name: 'Creative Innovation', bloomsLevel: 'CREATE' as const, proficiency: 60, description: 'Test' }
       ];
 
-      const careerAlignment = engine['analyzeCareerAlignment'](skills);
+      const careerAlignment = (engine as any).analyzeCareerAlignment(skills);
       
       expect(careerAlignment).toBeInstanceOf(Array);
       expect(careerAlignment.length).toBeGreaterThan(0);
@@ -498,7 +501,7 @@ describe('BloomsAnalysisEngine', () => {
 
   describe('Error Handling', () => {
     it('should handle Anthropic API errors gracefully', async () => {
-      mockAnthropicClient.messages.create.mockRejectedValue(new Error('API Error'));
+      (mockAnthropicClient.messages.create as jest.Mock).mockRejectedValue(new Error('API Error'));
 
       const section = {
         id: 'test-section',
@@ -511,7 +514,7 @@ describe('BloomsAnalysisEngine', () => {
         Question: []
       };
 
-      await expect(engine['analyzeContent'](section)).rejects.toThrow('API Error');
+      await expect((engine as any).analyzeContent(section)).rejects.toThrow('API Error');
     });
 
     it('should handle empty course data', async () => {

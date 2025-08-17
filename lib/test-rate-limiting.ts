@@ -75,7 +75,11 @@ export async function testAllEndpoints(): Promise<Record<AuthEndpoint, RateLimit
     register: [],
     reset: [],
     verify: [],
-    twoFactor: []
+    twoFactor: [],
+    'mfa-recovery': [],
+    'mfa-disable': [],
+    'mfa-setup': [],
+    'mfa-verify': []
   };
   
   const testIdentifier = `test-user-${Date.now()}`;

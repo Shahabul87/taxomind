@@ -38,10 +38,10 @@ import {
 } from 'lucide-react';
 
 // Optional extensions
-let TextAlign;
-let Highlight;
-let TextStyle;
-let Color;
+let TextAlign: any;
+let Highlight: any;
+let TextStyle: any;
+let Color: any;
 
 try {
   TextAlign = require('@tiptap/extension-text-align').default;

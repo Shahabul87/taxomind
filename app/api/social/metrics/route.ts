@@ -62,13 +62,13 @@ export async function GET(req: NextRequest) {
       logger.error("Error fetching from Facebook metrics API:", fetchError);
       return NextResponse.json({ 
         error: "Error communicating with Facebook API service",
-        details: fetchError.message
+        details: fetchError instanceof Error ? fetchError.message : String(fetchError)
       }, { status: 500 });
     }
   } catch (error) {
     logger.error("API error in social metrics route:", error);
     return NextResponse.json(
-      { error: "Internal server error", details: error.message }, 
+      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) }, 
       { status: 500 }
     );
   }

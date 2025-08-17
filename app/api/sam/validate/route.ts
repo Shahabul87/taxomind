@@ -416,7 +416,7 @@ async function validateLearningGoals(goals: string[], context: any): Promise<Val
   });
 
   return {
-    isValid: issues.filter(i => i.type === 'error').length === 0,
+    isValid: issues.filter((i: any) => i.type === 'error').length === 0,
     score: Math.max(score, 30),
     issues,
     suggestions
@@ -480,7 +480,7 @@ async function validateCourseStructure(structure: any, context: any): Promise<Va
   });
 
   return {
-    isValid: issues.filter(i => i.type === 'error').length === 0,
+    isValid: issues.filter((i: any) => i.type === 'error').length === 0,
     score: Math.max(score, 40),
     issues,
     suggestions
@@ -544,7 +544,7 @@ async function validateBloomsAlignment(bloomsLevels: string[], context: any): Pr
   }
 
   return {
-    isValid: issues.filter(i => i.type === 'error').length === 0,
+    isValid: issues.filter((i: any) => i.type === 'error').length === 0,
     score: Math.max(score, 50),
     issues,
     suggestions

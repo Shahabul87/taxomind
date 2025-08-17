@@ -42,8 +42,10 @@ export async function POST(req: Request) {
           // Create enrollment
           const enrollment = await db.enrollment.create({
             data: {
-              userId: userId,
-              courseId: courseId,
+              id: `enroll_${userId}_${courseId}_${Date.now()}`,
+              userId,
+              courseId,
+              updatedAt: new Date(),
             }
           });
 
@@ -57,8 +59,8 @@ export async function POST(req: Request) {
     }
 
     return new Response(null, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     logger.error("Webhook construction error:", error);
-    return new Response(`Webhook Error: ${error.message}`, { status: 400 });
+    return new Response(`Webhook Error: ${error instanceof Error ? error.message : String(error)}`, { status: 400 });
   }
 }

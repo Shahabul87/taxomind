@@ -82,11 +82,6 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
       ],
     },
     {
-      title: "Profile Manager",
-      icon: <User className="w-5 h-5" />,
-      href: "/profile",
-    },
-    {
       title: "Settings",
       icon: <Settings className="w-5 h-5" />,
       href: "/settings",

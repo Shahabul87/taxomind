@@ -53,59 +53,20 @@ export class PermissionManager {
         // Admins have all permissions
         ...Object.values(Permission)
       ],
-      // New roles
-      INSTRUCTOR: [
-        Permission.COURSE_CREATE,
-        Permission.COURSE_EDIT_OWN,
-        Permission.COURSE_DELETE_OWN,
-        Permission.COURSE_PUBLISH,
-        Permission.COURSE_UNPUBLISH,
-        Permission.COURSE_PRICE_SET,
-        Permission.USER_VIEW_ANALYTICS,
-        Permission.USER_MANAGE_OWN,
-        Permission.PAYMENT_RECEIVE,
-        Permission.PAYMENT_WITHDRAW,
-        Permission.PAYMENT_VIEW_REPORTS,
-      ],
-      LEARNER: [
-        Permission.USER_MANAGE_OWN,
-        Permission.USER_VIEW_ANALYTICS,
-      ],
-      MODERATOR: [
-        Permission.CONTENT_MODERATE,
-        Permission.CONTENT_FLAG,
-        Permission.CONTENT_APPROVE,
-        Permission.USER_VIEW_ANALYTICS,
-        Permission.PLATFORM_ANALYTICS,
-      ],
-      AFFILIATE: [
-        Permission.USER_VIEW_ANALYTICS,
-        Permission.USER_MANAGE_OWN,
-        Permission.PAYMENT_RECEIVE,
-        Permission.PAYMENT_VIEW_REPORTS,
-      ],
-      // Backward compatibility - map old roles to new permissions
-      TEACHER: [
-        Permission.COURSE_CREATE,
-        Permission.COURSE_EDIT_OWN,
-        Permission.COURSE_DELETE_OWN,
-        Permission.COURSE_PUBLISH,
-        Permission.COURSE_UNPUBLISH,
-        Permission.COURSE_PRICE_SET,
-        Permission.USER_VIEW_ANALYTICS,
-        Permission.USER_MANAGE_OWN,
-        Permission.PAYMENT_RECEIVE,
-        Permission.PAYMENT_WITHDRAW,
-        Permission.PAYMENT_VIEW_REPORTS,
-      ],
+      // Users can be instructors with these permissions
       USER: [
-        Permission.USER_MANAGE_OWN,
+        Permission.COURSE_CREATE,
+        Permission.COURSE_EDIT_OWN,
+        Permission.COURSE_DELETE_OWN,
+        Permission.COURSE_PUBLISH,
+        Permission.COURSE_UNPUBLISH,
+        Permission.COURSE_PRICE_SET,
         Permission.USER_VIEW_ANALYTICS,
-      ],
-      STUDENT: [
         Permission.USER_MANAGE_OWN,
-        Permission.USER_VIEW_ANALYTICS,
-      ],
+        Permission.PAYMENT_RECEIVE,
+        Permission.PAYMENT_WITHDRAW,
+        Permission.PAYMENT_VIEW_REPORTS,
+      ]
     };
     
     return permissionMap[role] || [];

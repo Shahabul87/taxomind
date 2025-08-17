@@ -19,7 +19,7 @@ export const POST = withAuth(async (
       return createSuccessResponse({ 
         error: getRateLimitMessage('reaction', rateLimitResult.reset),
         rateLimitInfo: rateLimitResult
-      }, { status: 429 });
+      }, 429);
     }
 
     // Parse request body
@@ -29,18 +29,18 @@ export const POST = withAuth(async (
 
     } catch (err) {
       logger.error("[COMMENT_REACTION] Error parsing request:", err);
-      return createSuccessResponse({ error: "Invalid request format" }, { status: 400 });
+      return createSuccessResponse({ error: "Invalid request format" }, 400);
     }
 
     const { postId, commentId, replyId, type } = body;
     
     // Validate required fields
     if (!type) {
-      return createSuccessResponse({ error: "Reaction type is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Reaction type is required" }, 400);
     }
     
     if (!postId) {
-      return createSuccessResponse({ error: "Post ID is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Post ID is required" }, 400);
     }
     
     // Modified validation to allow either/or for testing purposes
@@ -49,7 +49,7 @@ export const POST = withAuth(async (
       return createSuccessResponse({ 
         error: "Either commentId or replyId is required",
         status: "VALIDATION_ERROR"
-      }, { status: 400 });
+      }, 400);
     }
 
     // For test/dev environment, allow dummy requests
@@ -78,7 +78,7 @@ export const POST = withAuth(async (
 
     if (!post) {
 
-      return createSuccessResponse({ error: "Post not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Post not found" }, 404);
     }
 
     // Handle comment reaction
@@ -91,12 +91,12 @@ export const POST = withAuth(async (
       return await handleReplyReaction(context.user.id, type, replyId, postId, commentId);
     }
 
-    return createSuccessResponse({ error: "Invalid parameters" }, { status: 400 });
+    return createSuccessResponse({ error: "Invalid parameters" }, 400);
   } catch (error) {
     logger.error("[COMMENT_REACTION] Error:", error);
     return createSuccessResponse(
       { error: "Error processing reaction" },
-      { status: 500 }
+      500
     );
   }
 });
@@ -114,7 +114,7 @@ async function handleCommentReaction(userId: string, type: string, commentId: st
 
     if (!comment) {
 
-      return createSuccessResponse({ error: "Comment not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Comment not found" }, 404);
     }
 
     // Process the reaction in a transaction
@@ -232,7 +232,7 @@ async function handleReplyReaction(userId: string, type: string, replyId: string
           commentId,
           timestamp: new Date().toISOString()
         }
-      }, { status: 404 });
+      }, 404);
     }
 
     // Process the reaction in a transaction

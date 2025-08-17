@@ -95,7 +95,7 @@ async function analyzeVideoContent(
     max_tokens: 2000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Analyze this video content:
         Title: ${title}
         Description: ${description}
@@ -149,7 +149,7 @@ async function analyzeTextContent(
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Analyze this text content:
         Title: ${title}
         Type: ${type}
@@ -203,7 +203,7 @@ async function analyzeCodeContent(
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Analyze this code:
         Title: ${title}
         Language: ${language}
@@ -259,7 +259,7 @@ async function analyzeImageContent(
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Analyze this image content:
         Title: ${title}
         Description: ${description}
@@ -310,7 +310,7 @@ async function analyzePDFContent(
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Analyze this PDF content:
         Title: ${title}
         Description: ${description}
@@ -360,7 +360,7 @@ async function analyzeQuizContent(
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Analyze this quiz content:
         Title: ${title}
         Description: ${description}
@@ -411,7 +411,7 @@ async function analyzeWebpageContent(
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Analyze this webpage content:
         URL: ${url}
         Title: ${title}

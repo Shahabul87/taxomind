@@ -4,8 +4,13 @@
  */
 
 import { db } from '../db';
-// import { headers } from 'next/headers'; // Removed - causes build error
-import { randomBytes, randomUUID, createCipheriv, createDecipheriv } from 'crypto';
+
+// Dynamic import for crypto to handle both server and client environments
+let crypto: any = null;
+if (typeof window === 'undefined') {
+  // Server-side only
+  crypto = require('crypto');
+}
 
 export enum AuditEventType {
   // Authentication Events
@@ -85,7 +90,7 @@ class SOC2AuditLogger {
   private constructor() {
     // Initialize encryption key for sensitive data
     this.encryptionKey = process.env.AUDIT_ENCRYPTION_KEY || 
-      randomBytes(32).toString('hex');
+      crypto?.randomBytes(32).toString('hex') || 'fallback-key';
   }
 
   static getInstance(): SOC2AuditLogger {
@@ -99,10 +104,10 @@ class SOC2AuditLogger {
    * Encrypt sensitive data in audit logs
    */
   private encryptSensitiveData(data: any): string {
-    if (!data) return '';
+    if (!data || !crypto) return '';
     
-    const iv = randomBytes(16);
-    const cipher = createCipheriv(
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(
       'aes-256-gcm',
       Buffer.from(this.encryptionKey, 'hex').slice(0, 32),
       iv
@@ -124,10 +129,12 @@ class SOC2AuditLogger {
    * Decrypt sensitive data from audit logs
    */
   private decryptSensitiveData(encryptedData: string): any {
+    if (!crypto) return null;
+    
     try {
       const { iv, authTag, data } = JSON.parse(encryptedData);
       
-      const decipher = createDecipheriv(
+      const decipher = crypto.createDecipheriv(
         'aes-256-gcm',
         Buffer.from(this.encryptionKey, 'hex').slice(0, 32),
         Buffer.from(iv, 'hex')
@@ -154,7 +161,7 @@ class SOC2AuditLogger {
     return {
       ipAddress: 'unknown',
       userAgent: 'unknown',
-      requestId: randomUUID(),
+      requestId: crypto?.randomUUID?.() || `req_${Date.now()}_${Math.random().toString(36).substring(7)}`,
     };
   }
 
@@ -162,7 +169,7 @@ class SOC2AuditLogger {
    * Generate unique audit trail ID
    */
   private generateAuditId(): string {
-    return `audit_${Date.now()}_${randomBytes(8).toString('hex')}`;
+    return crypto ? `audit_${Date.now()}_${crypto.randomBytes(8).toString('hex')}` : `audit_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   }
 
   /**
@@ -267,7 +274,7 @@ class SOC2AuditLogger {
           ipAddress: fullContext.ipAddress || 'unknown',
           userAgent: fullContext.userAgent || 'unknown',
           sessionId: fullContext.sessionId,
-          requestId: fullContext.requestId || randomUUID(),
+          requestId: fullContext.requestId || (crypto?.randomUUID?.() || `req_${Date.now()}_${Math.random().toString(36).substring(7)}`),
           organizationId: fullContext.organizationId,
           resourceType: metadata?.resourceType,
           resourceId: metadata?.resourceId,

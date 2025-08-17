@@ -47,14 +47,14 @@ export const verifyPassword = async (plainPassword: string, hashedPassword: stri
     
     // Check if it's a bcrypt format (starts with $2a$, $2b$, $2y$)
     if (hashedPassword.match(/^\$2[aby]\$/)) {
-      return verifyBcryptHash(plainPassword, hashedPassword);
+      return await verifyBcryptHash(plainPassword, hashedPassword);
     }
     
     // If format is unknown, try noble first, then bcrypt
     try {
       return verifyNobleHash(plainPassword, hashedPassword);
     } catch {
-      return verifyBcryptHash(plainPassword, hashedPassword);
+      return await verifyBcryptHash(plainPassword, hashedPassword);
     }
   } catch (error: any) {
     logger.error('Password verification failed:', error);

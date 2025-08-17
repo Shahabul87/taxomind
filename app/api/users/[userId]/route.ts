@@ -41,7 +41,10 @@ export async function GET(
  * Protected endpoint - users can only update their own profile
  */
 export const PATCH = withOwnership(
-  async (request: NextRequest, params?: any) => params?.userId,
+  async (request: NextRequest, props?: { params: Promise<{ userId: string }> }) => {
+    const params = await props?.params;
+    return params?.userId || "";
+  },
   async (request: NextRequest, context: APIAuthContext, props?: { params: Promise<{ userId: string }> }) => {
     const params = await props?.params;
     
@@ -66,7 +69,7 @@ export const PATCH = withOwnership(
         }
       });
 
-      return createSuccessResponse(updatedUser, "Profile updated successfully");
+      return createSuccessResponse(updatedUser);
     } catch (error) {
       logger.error("[USER_PATCH]", error);
       return createErrorResponse(ApiError.internal("Failed to update profile"));

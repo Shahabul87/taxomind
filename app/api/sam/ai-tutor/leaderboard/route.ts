@@ -116,7 +116,7 @@ async function getClassLeaderboard(courseId: string, period: string, limit: numb
       ...periodFilter
     },
     include: {
-      user: {
+      User: {
         select: {
           id: true,
           name: true,
@@ -130,9 +130,9 @@ async function getClassLeaderboard(courseId: string, period: string, limit: numb
   // Generate mock class leaderboard
   const classLeaderboard = enrollments.map((enrollment, index) => ({
     rank: index + 1,
-    userId: enrollment.user.id,
-    name: enrollment.user.name,
-    image: enrollment.user.image,
+    userId: enrollment.User.id,
+    name: enrollment.User.name,
+    image: enrollment.User.image,
     points: Math.floor(Math.random() * 3000) + 500,
     level: Math.floor(Math.random() * 15) + 1,
     streak: Math.floor(Math.random() * 50) + 1,

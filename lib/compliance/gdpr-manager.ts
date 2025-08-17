@@ -316,7 +316,7 @@ export class GDPRComplianceManager {
         await tx.activity.deleteMany({ where: { userId } });
         
         // Delete authentication data
-        await tx.session.deleteMany({ where: { userId } });
+        await tx.authSession.deleteMany({ where: { userId } });
         await tx.account.deleteMany({ where: { userId } });
         await tx.twoFactorConfirmation.deleteMany({ where: { userId } });
         
@@ -487,7 +487,7 @@ export class GDPRComplianceManager {
       include: {
         _count: {
           select: {
-            sessions: true,
+            authSessions: true,
             Activity: true,
           },
         },
@@ -497,7 +497,7 @@ export class GDPRComplianceManager {
     const recommendations = [];
 
     // Check for excessive session data
-    if (user?._count.sessions && user._count.sessions > 10) {
+    if (user?._count.authSessions && user._count.authSessions > 10) {
       recommendations.push('Consider cleaning up old session data');
     }
 
@@ -510,7 +510,7 @@ export class GDPRComplianceManager {
       compliant: recommendations.length === 0,
       recommendations,
       metrics: {
-        sessions: user?._count.sessions || 0,
+        sessions: user?._count.authSessions || 0,
         activities: user?._count.Activity || 0,
       },
     };

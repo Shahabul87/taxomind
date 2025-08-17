@@ -231,9 +231,8 @@ export function useSessionFingerprint(options: UseSessionFingerprintOptions = {}
 
   // Monitor session security metadata if available
   useEffect(() => {
-    if (session?.security) {
-      const sessionSecurity = session.security as any;
-      
+    const sessionSecurity = (session as any)?.security;
+    if (sessionSecurity) {
       setState(prev => ({
         ...prev,
         riskLevel: sessionSecurity.riskLevel || prev.riskLevel,
@@ -248,7 +247,7 @@ export function useSessionFingerprint(options: UseSessionFingerprintOptions = {}
         });
       }
     }
-  }, [session?.security, showNotifications]);
+  }, [(session as any)?.security, showNotifications]);
 
   return {
     // State

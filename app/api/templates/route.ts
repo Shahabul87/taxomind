@@ -53,10 +53,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Get templates with pagination
-    const templates = await db.contentTemplate.findMany({
+    const templates = await db.aIContentTemplate.findMany({
       where,
       include: {
-        author: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Get total count for pagination
-    const total = await db.contentTemplate.count({ where });
+    const total = await db.aIContentTemplate.count({ where });
 
     return NextResponse.json({
       templates,
@@ -121,20 +121,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create template
-    const template = await db.contentTemplate.create({
+    const template = await db.aIContentTemplate.create({
       data: {
+        id: `template_${Date.now()}_${user.id}`,
         name,
         description,
-        contentType,
+        templateType: contentType,
         category,
-        templateData: JSON.stringify(templateData),
-        authorId: user.id,
+        parameters: JSON.stringify(templateData),
+        promptTemplate: JSON.stringify(templateData), // Required field
+        creatorId: user.id,
         isPublic,
-        isOfficial: user.role === UserRole.ADMIN,
-        tags
+        updatedAt: new Date(),
       },
       include: {
-        author: {
+        User: {
           select: {
             id: true,
             name: true,

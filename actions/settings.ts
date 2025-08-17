@@ -61,7 +61,7 @@ export const settings = async (
       // Log failed password change attempt
       await authAuditHelpers.logSuspiciousActivity(
         user.id, 
-        user.email, 
+        user.email || undefined, 
         'PASSWORD_CHANGE_FAILED', 
         'Incorrect current password provided'
       );

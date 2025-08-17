@@ -156,13 +156,13 @@ export function TrackedVideoPlayer({
     if (videoRef.current) {
       const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
       handleSeek(newTime);
-      trackControlClick(seconds > 0 ? 'skip_forward' : 'skip_back', {
+      trackCustomEvent(seconds > 0 ? 'skip_forward' : 'skip_back', {
         skipAmount: Math.abs(seconds),
         fromTime: currentTime,
         toTime: newTime
       });
     }
-  }, [currentTime, duration, handleSeek, trackControlClick]);
+  }, [currentTime, duration, handleSeek, trackCustomEvent]);
 
   const changePlaybackRate = useCallback((rate: number) => {
     if (videoRef.current) {

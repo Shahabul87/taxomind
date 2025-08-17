@@ -35,10 +35,10 @@ import {
 } from 'lucide-react';
 
 // Optional extensions that we'll try to load
-let TextAlign;
-let Highlight;
-let TextStyle;
-let Color;
+let TextAlign: any;
+let Highlight: any;
+let TextStyle: any;
+let Color: any;
 
 // Try to dynamically import extensions if available
 try {

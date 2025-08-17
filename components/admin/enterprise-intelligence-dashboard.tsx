@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { logger } from '@/lib/logger';
+// Note: logger import removed - using console.error for error handling
 import {
   Shield,
   TrendingUp,
@@ -72,10 +72,7 @@ import {
   ClientLineChart,
   ClientBarChart,
   ClientPieChart,
-  ClientAreaChart,
-  ClientHeatmapChart,
-  ClientRadialChart,
-  ClientTreemapChart
+  ClientAreaChart
 } from "@/components/charts/client-charts";
 
 interface EnterpriseIntelligenceProps {
@@ -184,22 +181,6 @@ export const EnterpriseIntelligenceDashboard = ({ className }: EnterpriseIntelli
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(30); // seconds
 
-  // Load enterprise intelligence data
-  useEffect(() => {
-    loadEnterpriseData();
-  }, [timeRange, loadEnterpriseData]);
-
-  // Auto-refresh mechanism
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      loadEnterpriseData();
-    }, refreshInterval * 1000);
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, timeRange, loadEnterpriseData]);
-
   const loadEnterpriseData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -225,7 +206,7 @@ export const EnterpriseIntelligenceDashboard = ({ className }: EnterpriseIntelli
         setBusinessIntelligence(getDemoBusinessIntelligence());
       }
     } catch (error: any) {
-      logger.error("Failed to load enterprise intelligence data:", error);
+      console.error("Failed to load enterprise intelligence data:", error);
       // Use demo data as fallback
       setSecurityMetrics(getDemoSecurityMetrics());
       setPerformanceMetrics(getDemoPerformanceMetrics());
@@ -235,6 +216,22 @@ export const EnterpriseIntelligenceDashboard = ({ className }: EnterpriseIntelli
       setIsLoading(false);
     }
   }, [timeRange]);
+
+  // Load enterprise intelligence data
+  useEffect(() => {
+    loadEnterpriseData();
+  }, [timeRange, loadEnterpriseData]);
+
+  // Auto-refresh mechanism
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      loadEnterpriseData();
+    }, refreshInterval * 1000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, loadEnterpriseData]);
 
   const getThreatLevelColor = (level: string) => {
     switch (level) {

@@ -38,6 +38,26 @@ export const AUTH_RATE_LIMITS = {
     requests: 5,
     window: '5 m',
     endpoint: '/api/auth/2fa'
+  },
+  'mfa-recovery': {
+    requests: 3,
+    window: '15 m',
+    endpoint: '/api/auth/mfa/recovery-codes'
+  },
+  'mfa-disable': {
+    requests: 3,
+    window: '15 m',
+    endpoint: '/api/auth/mfa/totp/disable'
+  },
+  'mfa-setup': {
+    requests: 5,
+    window: '15 m',
+    endpoint: '/api/auth/mfa/totp/setup'
+  },
+  'mfa-verify': {
+    requests: 10,
+    window: '15 m',
+    endpoint: '/api/auth/mfa/totp/verify'
   }
 } as const;
 

@@ -209,6 +209,8 @@ model User {
   learningEvents                          LearningEvent[]
   userLearningPattern                     UserLearningPattern?
   sectionCompletionTracking               SectionCompletionTracking[]
+  userCapabilities                        UserCapability[]
+  userContext                             UserContext?
 }
 
 model Account {
@@ -5244,4 +5246,41 @@ model CourseCompletionAnalytics {
   @@index([completionRate])
   @@index([averageScore])
   @@index([lastAnalyzed])
+}
+
+// User Capability System - Google-style context management
+model UserCapability {
+  id                String              @id @default(cuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  capability        String              // "STUDENT", "TEACHER", "AFFILIATE", "MODERATOR", "CONTENT_CREATOR"
+  grantedAt         DateTime            @default(now())
+  grantedBy         String?             // User ID who granted this capability
+  expiresAt         DateTime?           // Optional expiration for temporary capabilities
+  isActive          Boolean             @default(true)
+  metadata          Json?               // Additional capability-specific data
+  requirements      Json?               // Requirements met to earn this capability
+  revokedAt         DateTime?
+  revokedBy         String?
+  revokeReason      String?
+  
+  @@unique([userId, capability])
+  @@index([userId])
+  @@index([capability])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+// User Context - Active context for Google-style switching
+model UserContext {
+  id                String              @id @default(cuid())
+  userId            String              @unique
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeCapability  String              @default("STUDENT") // Current active context
+  lastSwitchedAt    DateTime            @default(now())
+  preferences       Json?               // Context-specific preferences
+  sessionData       Json?               // Context-specific session data
+  
+  @@index([userId])
+  @@index([activeCapability])
 }

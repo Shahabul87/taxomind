@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         description: achievementDef?.description || badge.description,
         icon: achievementDef?.icon || '🏆',
         level: badge.level,
-        unlockedAt: badge.unlockedAt || badge.createdAt,
+        unlockedAt: badge.earnedAt,
         points: achievementDef?.points || 0,
       };
     });

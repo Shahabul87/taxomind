@@ -1,7 +1,6 @@
 import { getCourses } from '@/actions/get-courses';
 import { testDb, setupTestDatabase, teardownTestDatabase } from '../../utils/test-db';
 import { TestDataFactory } from '../../utils/test-factory';
-import { DatabaseTestHelpers } from '../../utils/test-helpers';
 
 // Mock the database and cache modules
 jest.mock('@/lib/db', () => ({
@@ -59,10 +58,10 @@ describe('getCourses', () => {
       // Mock cache miss - will call the database function
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(mockProgressMap);
 
       const result = await getCourses({
@@ -124,10 +123,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(new Map());
 
       const result = await getCourses({
@@ -167,10 +166,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(mockProgressMap);
 
       const result = await getCourses({
@@ -203,10 +202,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(new Map());
 
       await getCourses({
@@ -228,10 +227,10 @@ describe('getCourses', () => {
     it('should filter courses by category', async () => {
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue([]);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue([]);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(new Map());
 
       await getCourses({
@@ -251,10 +250,10 @@ describe('getCourses', () => {
     it('should handle undefined filters gracefully', async () => {
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue([]);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue([]);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(new Map());
 
       await getCourses({
@@ -286,7 +285,7 @@ describe('getCourses', () => {
       ];
 
       // Mock cache hit
-      mockServerActionCache.getCourseList.mockResolvedValue({ data: cachedData });
+      mockServerActionCache.getCourseList.mockResolvedValue({ data: cachedData, cached: true });
 
       const result = await getCourses({
         userId: mockUserId,
@@ -301,10 +300,10 @@ describe('getCourses', () => {
     it('should pass correct cache key parameters', async () => {
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue([]);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue([]);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(new Map());
 
       await getCourses({
@@ -328,10 +327,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockRejectedValue(new Error('Database connection error'));
+      (mockDb.course.findMany as jest.Mock).mockRejectedValue(new Error('Database connection error'));
 
       const result = await getCourses({
         userId: mockUserId,
@@ -354,10 +353,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockRejectedValue(new Error('Progress loading failed'));
 
       // The function should still return empty array due to error handling
@@ -378,7 +377,7 @@ describe('getCourses', () => {
       }];
 
       mockServerActionCache.getCourseList.mockRejectedValue(new Error('Cache error'));
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(new Map());
 
       // Should fallback to database even if cache fails
@@ -416,10 +415,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(new Map());
 
       const result = await getCourses({
@@ -462,10 +461,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(mockProgressMap);
 
       const result = await getCourses({
@@ -488,10 +487,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(largeCourseSet as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(largeCourseSet);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(new Map());
 
       const startTime = Date.now();
@@ -523,10 +522,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(mockProgressMap);
 
       const result = await getCourses({
@@ -547,10 +546,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(new Map());
 
       const result = await getCourses({
@@ -574,10 +573,10 @@ describe('getCourses', () => {
 
       mockServerActionCache.getCourseList.mockImplementation(async (userId, filters, fetchFunction) => {
         const data = await fetchFunction();
-        return { data };
+        return { data, cached: false };
       });
 
-      mockDb.course.findMany.mockResolvedValue(mockCourses as any);
+      (mockDb.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
       mockBatchQueryOptimizer.batchLoadUserProgress.mockResolvedValue(mockProgressMap);
 
       const result = await getCourses({

@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useCurrentRole, useHasPermission } from "@/hooks/use-enhanced-auth";
 import { AdminGuard, UserGuard, UserOrAdminGuard, PermissionGuard, RoleBadge } from "@/components/auth/enhanced-role-guard";
-import { UserRole, Permission } from "@/types/auth";
+import { UserRole as AppUserRole, Permission } from "@/types/auth";
 import { getRolePermissions } from "@/lib/auth/permissions";
 import Link from 'next/link';
 
@@ -31,14 +31,14 @@ export default function TestEnhancedAuth() {
     );
   }
 
-  const userPermissions = currentRole ? getRolePermissions(currentRole) : [];
+  const userPermissions = currentRole ? getRolePermissions(currentRole as AppUserRole) : [];
 
   return (
     <div className="container mx-auto p-8 space-y-8">
       <div className="bg-white rounded-lg shadow-lg p-6">
         <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
           🔐 Enhanced Role-Based Authentication Test
-          {currentRole && <RoleBadge role={currentRole} />}
+          {currentRole && <RoleBadge role={currentRole as AppUserRole} />}
         </h1>
         
         {/* User Information */}

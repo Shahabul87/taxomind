@@ -25,14 +25,6 @@ export default async function MyGroupsPage() {
     include: {
       Group: {
         include: {
-          _count: {
-            select: {
-              members: true,
-              GroupDiscussion: true,
-              GroupEvent: true,
-            },
-          },
-          categoryRef: true,
           creator: {
             select: {
               id: true,
@@ -57,7 +49,7 @@ export default async function MyGroupsPage() {
   );
 
   // Fetch group activity (recent discussions and events)
-  const groupIds = userGroups.map((membership) => membership.Group.id);
+  const groupIds = userGroups.map((membership) => membership.groupId);
   
   const recentDiscussions = await db.groupDiscussion.findMany({
     where: {
@@ -73,7 +65,7 @@ export default async function MyGroupsPage() {
           imageUrl: true,
         },
       },
-      author: {
+      User: {
         select: {
           id: true,
           name: true,
@@ -82,8 +74,8 @@ export default async function MyGroupsPage() {
       },
       _count: {
         select: {
-          comments: true,
-          likedBy: true,
+          GroupDiscussionComment: true,
+          GroupDiscussionLike: true,
         },
       },
     },
@@ -112,7 +104,7 @@ export default async function MyGroupsPage() {
       },
       _count: {
         select: {
-          attendees: true,
+          GroupEventAttendee: true,
         },
       },
     },
@@ -126,10 +118,10 @@ export default async function MyGroupsPage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <MyGroupsHero />
       <MyGroupsContent 
-        ownedGroups={ownedGroups} 
-        joinedGroups={joinedGroups} 
-        recentDiscussions={recentDiscussions}
-        upcomingEvents={upcomingEvents}
+        ownedGroups={ownedGroups as any} 
+        joinedGroups={joinedGroups as any} 
+        recentDiscussions={recentDiscussions as any}
+        upcomingEvents={upcomingEvents as any}
       />
     </div>
   );

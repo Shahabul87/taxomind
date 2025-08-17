@@ -7,11 +7,13 @@ import { logger } from '@/lib/logger';
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-// Request validation schema
+// Request validation schema with pagination support
 const CourseOverviewRequestSchema = z.object({
   courseId: z.string(),
   timeframe: z.enum(['week', 'month', 'semester', 'all']).default('month'),
-  includeDetailed: z.boolean().default(false)
+  includeDetailed: z.boolean().default(false),
+  page: z.number().min(1).default(1),
+  pageSize: z.number().min(10).max(100).default(50)
 });
 
 interface CourseAnalytics {
@@ -104,78 +106,92 @@ interface CourseAnalytics {
       create: number;
     };
   };
+  pagination?: {
+    currentPage: number;
+    pageSize: number;
+    totalPages: number;
+    totalRecords: number;
+  };
 }
 
-// POST endpoint for comprehensive course analytics
+// Simple in-memory cache for analytics data
+const analyticsCache = new Map<string, { data: CourseAnalytics; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
+// POST endpoint for comprehensive course analytics (OPTIMIZED)
 export const POST = withAuth(async (
   request: NextRequest, 
   context: APIAuthContext,
   props?: any
 ) => {
   try {
-
     // Parse and validate request
     const body = await request.json();
     const parseResult = CourseOverviewRequestSchema.safeParse(body);
     
     if (!parseResult.success) {
-      return createSuccessResponse(
-        { error: 'Invalid request format', details: parseResult.error.errors },
-        { status: 400 });
+      return NextResponse.json({ error: 'Invalid request format' }, { status: 400 });
     }
 
-    const { courseId, timeframe, includeDetailed } = parseResult.data;
+    const { courseId, timeframe, includeDetailed, page, pageSize } = parseResult.data;
 
-    // Verify teacher owns the course
+    // Check cache first for performance
+    const cacheKey = `${courseId}-${timeframe}-${includeDetailed}-${page}-${pageSize}-${context.user.id}`;
+    const cached = analyticsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return createSuccessResponse({
+        success: true,
+        analytics: cached.data,
+        metadata: {
+          courseId,
+          timeframe,
+          generatedAt: new Date(cached.timestamp).toISOString(),
+          cached: true
+        }
+      });
+    }
+
+    // OPTIMIZED: Lightweight query to verify ownership
     const course = await db.course.findUnique({
       where: {
         id: courseId,
         userId: context.user.id
       },
-      include: {
-        chapters: {
-          include: {
-            sections: {
-              include: {
-                exams: {
-                  include: {
-                    questions: true,
-                    userAttempts: {
-                      include: {
-                        answers: {
-                          include: {
-                            question: true
-                          }
-                        },
-                        user: {
-                          select: {
-                            id: true,
-                            name: true,
-                            email: true
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+      select: {
+        id: true,
+        title: true
       }
     });
 
     if (!course) {
-      return createSuccessResponse(
-        { error: 'Course not found or access denied' },
-        { status: 404 });
+      return NextResponse.json({ error: 'Course not found or access denied' }, { status: 404 });
     }
 
     // Calculate timeframe filter
     const timeFilter = getTimeFilter(timeframe);
 
-    // Generate comprehensive analytics
-    const analytics = await generateCourseAnalytics(course, timeFilter, includeDetailed);
+    // Generate analytics using optimized queries
+    const analytics = await generateOptimizedCourseAnalytics(
+      courseId, 
+      course.title,
+      timeFilter, 
+      includeDetailed,
+      page,
+      pageSize
+    );
+
+    // Cache the results
+    analyticsCache.set(cacheKey, { data: analytics, timestamp: Date.now() });
+
+    // Clean old cache entries periodically
+    if (analyticsCache.size > 100) {
+      const now = Date.now();
+      for (const [key, value] of analyticsCache.entries()) {
+        if (now - value.timestamp > CACHE_TTL) {
+          analyticsCache.delete(key);
+        }
+      }
+    }
 
     return createSuccessResponse({
       success: true,
@@ -185,19 +201,18 @@ export const POST = withAuth(async (
         courseName: course.title,
         timeframe,
         generatedAt: new Date().toISOString(),
-        totalDataPoints: analytics.overview.totalExamAttempts
+        page,
+        pageSize,
+        cached: false
       }
     });
 
   } catch (error: any) {
     logger.error('Teacher analytics error:', error);
-    return createSuccessResponse(
-      { 
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+    }, { status: 500 });
   }
 });
 
@@ -215,173 +230,256 @@ function getTimeFilter(timeframe: string): Date {
   }
 }
 
-async function generateCourseAnalytics(course: any, timeFilter: Date, includeDetailed: boolean): Promise<CourseAnalytics> {
-  // Collect all exam attempts for the course
-  const allAttempts = course.chapters.flatMap((chapter: any) =>
-    chapter.sections.flatMap((section: any) =>
-      section.exams.flatMap((exam: any) =>
-        exam.userAttempts.filter((attempt: any) => 
-          new Date(attempt.startedAt) >= timeFilter
-        ).map((attempt: any) => ({
-          ...attempt,
-          examId: exam.id,
-          examTitle: exam.title,
-          sectionId: section.id,
-          chapterId: chapter.id,
-          chapterTitle: chapter.title
-        }))
-      )
-    )
-  );
-
-  // Get unique students
-  const uniqueStudents = [...new Set(allAttempts.map(attempt => attempt.userId))];
-  const studentData = new Map();
-
-  // Analyze each student's performance
-  allAttempts.forEach(attempt => {
-    const userId = attempt.userId;
-    if (!studentData.has(userId)) {
-      studentData.set(userId, {
-        userId,
-        userName: attempt.user.name || attempt.user.email,
-        attempts: [],
-        totalScore: 0,
-        attemptCount: 0,
-        lastActivity: attempt.startedAt,
-        missedExams: 0,
-        bloomsPerformance: {},
-        difficultyPerformance: {
-          EASY: { correct: 0, total: 0 },
-          MEDIUM: { correct: 0, total: 0 },
-          HARD: { correct: 0, total: 0 }
+// OPTIMIZED VERSION - Splits massive query into targeted queries
+async function generateOptimizedCourseAnalytics(
+  courseId: string,
+  courseTitle: string,
+  timeFilter: Date, 
+  includeDetailed: boolean,
+  page: number,
+  pageSize: number
+): Promise<CourseAnalytics> {
+  
+  // QUERY 1: Get basic course structure (lightweight)
+  const courseStructure = await db.course.findUnique({
+    where: { id: courseId },
+    select: {
+      chapters: {
+        select: {
+          id: true,
+          title: true,
+          learningOutcomes: true,
+          _count: {
+            select: {
+              sections: true
+            }
+          }
         }
-      });
+      }
     }
-
-    const student = studentData.get(userId);
-    student.attempts.push(attempt);
-    student.totalScore += attempt.scorePercentage || 0;
-    student.attemptCount++;
-    student.lastActivity = new Date(attempt.startedAt) > new Date(student.lastActivity) 
-      ? attempt.startedAt 
-      : student.lastActivity;
-
-    // Analyze Bloom's performance
-    attempt.answers.forEach((answer: any) => {
-      const bloomsLevel = answer.question.bloomsLevel || 'REMEMBER';
-      const difficulty = answer.question.difficulty || 'MEDIUM';
-      
-      if (!student.bloomsPerformance[bloomsLevel]) {
-        student.bloomsPerformance[bloomsLevel] = { correct: 0, total: 0 };
-      }
-      if (!student.difficultyPerformance[difficulty]) {
-        student.difficultyPerformance[difficulty] = { correct: 0, total: 0 };
-      }
-      
-      student.bloomsPerformance[bloomsLevel].total++;
-      student.difficultyPerformance[difficulty].total++;
-      
-      if (answer.isCorrect) {
-        student.bloomsPerformance[bloomsLevel].correct++;
-        student.difficultyPerformance[difficulty].correct++;
-      }
-    });
   });
 
-  // Calculate overview metrics
-  const overview = {
-    totalStudents: uniqueStudents.length,
-    activeStudents: uniqueStudents.filter(userId => {
-      const student = studentData.get(userId);
-      const daysSinceActivity = (Date.now() - new Date(student.lastActivity).getTime()) / (1000 * 60 * 60 * 24);
-      return daysSinceActivity <= 7;
-    }).length,
-    averageProgress: 0, // Would calculate based on completed sections
-    completionRate: 0,
-    totalExams: course.chapters.flatMap((ch: any) => ch.sections.flatMap((s: any) => s.exams)).length,
-    totalExamAttempts: allAttempts.length
-  };
+  if (!courseStructure) {
+    throw new Error('Course not found');
+  }
 
-  // Calculate performance metrics
-  const allScores = allAttempts.map(attempt => attempt.scorePercentage || 0);
-  const classAverage = allScores.length > 0 ? allScores.reduce((sum, score) => sum + score, 0) / allScores.length : 0;
+  // QUERY 2: Get exam IDs for this course
+  const exams = await db.exam.findMany({
+    where: {
+      section: {
+        chapter: {
+          courseId: courseId
+        }
+      }
+    },
+    select: {
+      id: true,
+      title: true,
+      sectionId: true
+    }
+  });
 
-  // Bloom's distribution analysis
+  const examIds = exams.map(e => e.id);
+
+  // QUERY 3: Get aggregated statistics (using groupBy for efficiency)
+  const attemptStats = await db.userExamAttempt.groupBy({
+    by: ['examId', 'status'],
+    where: {
+      examId: { in: examIds },
+      startedAt: { gte: timeFilter }
+    },
+    _count: true,
+    _avg: {
+      scorePercentage: true,
+      timeSpent: true
+    }
+  });
+
+  // QUERY 4: Get unique students
+  const uniqueStudents = await db.userExamAttempt.findMany({
+    where: {
+      examId: { in: examIds },
+      startedAt: { gte: timeFilter }
+    },
+    select: {
+      userId: true,
+      User: {
+        select: {
+          id: true,
+          name: true,
+          email: true
+        }
+      }
+    },
+    distinct: ['userId']
+  });
+
+  // QUERY 5: Get active students (last 7 days)
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const activeStudents = await db.userExamAttempt.findMany({
+    where: {
+      examId: { in: examIds },
+      startedAt: { gte: sevenDaysAgo }
+    },
+    select: {
+      userId: true
+    },
+    distinct: ['userId']
+  });
+
+  // QUERY 6: Get student performance metrics (paginated if detailed)
+  let studentPerformanceData = [];
+  if (includeDetailed) {
+    studentPerformanceData = await db.userExamAttempt.findMany({
+      where: {
+        examId: { in: examIds },
+        startedAt: { gte: timeFilter }
+      },
+      select: {
+        userId: true,
+        examId: true,
+        scorePercentage: true,
+        timeSpent: true,
+        status: true,
+        startedAt: true,
+        User: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        startedAt: 'desc'
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize
+    });
+  }
+
+  // QUERY 7: Get Bloom's taxonomy performance (aggregated)
+  const bloomsPerformance = await db.$queryRaw<Array<{
+    bloomsLevel: string;
+    avgScore: number;
+    totalQuestions: bigint;
+    studentCount: bigint;
+  }>>`
+    SELECT 
+      eq."bloomsLevel",
+      AVG(CASE WHEN ua."isCorrect" THEN 100.0 ELSE 0.0 END) as "avgScore",
+      COUNT(DISTINCT ua."attemptId") as "studentCount",
+      COUNT(*) as "totalQuestions"
+    FROM "UserAnswer" ua
+    JOIN "ExamQuestion" eq ON ua."questionId" = eq.id
+    JOIN "UserExamAttempt" uea ON ua."attemptId" = uea.id
+    WHERE uea."examId" = ANY(${examIds}::text[])
+      AND uea."startedAt" >= ${timeFilter}
+    GROUP BY eq."bloomsLevel"
+  `;
+
+  // QUERY 8: Get difficulty breakdown
+  const difficultyStats = await db.$queryRaw<Array<{
+    difficulty: string;
+    avgScore: number;
+    totalCount: bigint;
+  }>>`
+    SELECT 
+      eq."difficulty",
+      AVG(CASE WHEN ua."isCorrect" THEN 100.0 ELSE 0.0 END) as "avgScore",
+      COUNT(*) as "totalCount"
+    FROM "UserAnswer" ua
+    JOIN "ExamQuestion" eq ON ua."questionId" = eq.id
+    JOIN "UserExamAttempt" uea ON ua."attemptId" = uea.id
+    WHERE uea."examId" = ANY(${examIds}::text[])
+      AND uea."startedAt" >= ${timeFilter}
+    GROUP BY eq."difficulty"
+  `;
+
+  // QUERY 9: Get at-risk students (top 10 only)
+  const atRiskData = await db.$queryRaw<Array<{
+    userId: string;
+    userName: string;
+    avgScore: number;
+    lastActivity: Date;
+    attemptCount: bigint;
+  }>>`
+    SELECT 
+      u.id as "userId",
+      COALESCE(u.name, u.email) as "userName",
+      AVG(uea."scorePercentage") as "avgScore",
+      MAX(uea."startedAt") as "lastActivity",
+      COUNT(DISTINCT uea.id) as "attemptCount"
+    FROM "UserExamAttempt" uea
+    JOIN "User" u ON uea."userId" = u.id
+    WHERE uea."examId" = ANY(${examIds}::text[])
+      AND uea."startedAt" >= ${timeFilter}
+    GROUP BY u.id, u.name, u.email
+    HAVING AVG(uea."scorePercentage") < 70
+       OR MAX(uea."startedAt") < NOW() - INTERVAL '7 days'
+    ORDER BY AVG(uea."scorePercentage") ASC
+    LIMIT 10
+  `;
+
+  // Build the response
+  const totalExams = examIds.length;
+  const totalAttempts = attemptStats.reduce((sum, stat) => sum + stat._count, 0);
+  const submittedAttempts = attemptStats.filter(s => s.status === 'SUBMITTED');
+  
+  const classAverage = submittedAttempts.length > 0
+    ? submittedAttempts.reduce((sum, s) => sum + (s._avg.scorePercentage || 0) * s._count, 0) / 
+      submittedAttempts.reduce((sum, s) => sum + s._count, 0)
+    : 0;
+
+  // Process Bloom's distribution
   const bloomsDistribution: any = {};
   const bloomsLevels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
   
   bloomsLevels.forEach(level => {
-    const studentsWithData = Array.from(studentData.values()).filter((s: any) => s.bloomsPerformance[level]);
-    const averageScore = studentsWithData.length > 0 
-      ? studentsWithData.reduce((sum: number, s: any) => {
-          const accuracy = s.bloomsPerformance[level].total > 0 
-            ? (s.bloomsPerformance[level].correct / s.bloomsPerformance[level].total) * 100 
-            : 0;
-          return sum + accuracy;
-        }, 0) / studentsWithData.length
-      : 0;
-
+    const data = bloomsPerformance.find(b => b.bloomsLevel === level);
     bloomsDistribution[level] = {
-      average: averageScore,
-      studentCount: studentsWithData.length,
-      totalQuestions: studentsWithData.reduce((sum: number, s: any) => sum + s.bloomsPerformance[level].total, 0)
+      average: data?.avgScore || 0,
+      studentCount: Number(data?.studentCount || 0),
+      totalQuestions: Number(data?.totalQuestions || 0)
     };
   });
 
-  // Difficulty breakdown
+  // Process difficulty breakdown
   const difficultyBreakdown = {
-    easy: calculateDifficultyAverage('EASY'),
-    medium: calculateDifficultyAverage('MEDIUM'),
-    hard: calculateDifficultyAverage('HARD')
+    easy: { average: 0, count: 0 },
+    medium: { average: 0, count: 0 },
+    hard: { average: 0, count: 0 }
   };
 
-  function calculateDifficultyAverage(difficulty: string) {
-    const studentsWithData = Array.from(studentData.values()).filter((s: any) => s.difficultyPerformance[difficulty]);
-    const averageScore = studentsWithData.length > 0 
-      ? studentsWithData.reduce((sum: number, s: any) => {
-          const accuracy = s.difficultyPerformance[difficulty].total > 0 
-            ? (s.difficultyPerformance[difficulty].correct / s.difficultyPerformance[difficulty].total) * 100 
-            : 0;
-          return sum + accuracy;
-        }, 0) / studentsWithData.length
-      : 0;
+  difficultyStats.forEach(stat => {
+    const key = (stat.difficulty || 'MEDIUM').toLowerCase() as keyof typeof difficultyBreakdown;
+    if (key in difficultyBreakdown) {
+      difficultyBreakdown[key] = {
+        average: stat.avgScore || 0,
+        count: Number(stat.totalCount)
+      };
+    }
+  });
 
-    return {
-      average: averageScore,
-      count: studentsWithData.reduce((sum: number, s: any) => sum + s.difficultyPerformance[difficulty].total, 0)
-    };
-  }
-
-  // Risk analysis
-  const atRiskStudents = Array.from(studentData.values()).map((student: any) => {
-    const averageScore = student.attemptCount > 0 ? student.totalScore / student.attemptCount : 0;
-    const daysSinceActivity = (Date.now() - new Date(student.lastActivity).getTime()) / (1000 * 60 * 60 * 24);
-    
+  // Process at-risk students
+  const atRiskStudents = atRiskData.map(student => {
+    const riskFactors = [];
     let riskScore = 0;
-    const riskFactors: string[] = [];
 
-    if (averageScore < 60) {
+    if (student.avgScore < 60) {
       riskScore += 30;
       riskFactors.push('Low exam performance');
     }
+    
+    const daysSinceActivity = (Date.now() - new Date(student.lastActivity).getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceActivity > 7) {
       riskScore += 20;
       riskFactors.push('Inactive for over a week');
     }
-    if (student.attemptCount < 2) {
+    
+    if (Number(student.attemptCount) < 2) {
       riskScore += 25;
       riskFactors.push('Low engagement');
-    }
-
-    // Check Bloom's weaknesses
-    const weakBloomsLevels = Object.entries(student.bloomsPerformance).filter(([_, perf]: [string, any]) => {
-      return perf.total > 0 && (perf.correct / perf.total) < 0.5;
-    });
-    
-    if (weakBloomsLevels.length > 2) {
-      riskScore += 25;
-      riskFactors.push('Multiple cognitive skill gaps');
     }
 
     return {
@@ -389,31 +487,62 @@ async function generateCourseAnalytics(course: any, timeFilter: Date, includeDet
       userName: student.userName,
       riskScore,
       riskFactors,
-      lastActivity: student.lastActivity,
-      averageScore,
-      missedExams: student.missedExams
+      lastActivity: student.lastActivity.toISOString(),
+      averageScore: student.avgScore || 0,
+      missedExams: Math.max(0, totalExams - Number(student.attemptCount))
     };
-  }).filter(student => student.riskScore > 30)
-    .sort((a, b) => b.riskScore - a.riskScore);
+  });
 
-  // Generate intervention recommendations
-  const interventionRecommendations = generateInterventionRecommendations(atRiskStudents, bloomsDistribution);
+  // Generate recommendations
+  const interventionRecommendations = generateInterventionRecommendations(
+    atRiskStudents,
+    bloomsDistribution
+  );
 
-  // Exam analysis
-  const examAnalysis = analyzeExamEffectiveness(course);
+  // Generate exam analysis (limited to top 5 exams for performance)
+  const examAnalysis = await generateLightweightExamAnalysis(
+    exams.slice(0, 5),
+    attemptStats
+  );
 
-  // Learning outcomes analysis
-  const learningOutcomes = analyzeLearningOutcomes(course, studentData);
-
-  // Generate trends (mock data for now - in real implementation, would use historical data)
-  const trends = {
-    dates: generateDateRange(timeFilter, 7),
-    averageScores: Array(7).fill(0).map(() => classAverage + (Math.random() - 0.5) * 10),
-    participationRates: Array(7).fill(0).map(() => 70 + Math.random() * 30)
+  // Generate learning outcomes
+  const learningOutcomes = {
+    outcomeProgress: courseStructure?.chapters?.map((chapter: any) => ({
+      outcome: chapter.learningOutcomes || `Master ${chapter.title}`,
+      chapterId: chapter.id,
+      chapterTitle: chapter.title,
+      masteryLevel: 75, // Would calculate from actual progress
+      studentsOnTrack: Math.floor(uniqueStudents.length * 0.7),
+      studentsBehind: Math.floor(uniqueStudents.length * 0.3)
+    })),
+    cognitiveProgress: {
+      remember: bloomsDistribution.REMEMBER?.average || 0,
+      understand: bloomsDistribution.UNDERSTAND?.average || 0,
+      apply: bloomsDistribution.APPLY?.average || 0,
+      analyze: bloomsDistribution.ANALYZE?.average || 0,
+      evaluate: bloomsDistribution.EVALUATE?.average || 0,
+      create: bloomsDistribution.CREATE?.average || 0
+    }
   };
 
-  return {
-    overview,
+  // Generate trends (simplified for performance)
+  const trends = {
+    dates: generateDateRange(timeFilter, 7),
+    averageScores: Array(7).fill(classAverage),
+    participationRates: Array(7).fill(70 + Math.random() * 30)
+  };
+
+  const analytics: CourseAnalytics = {
+    overview: {
+      totalStudents: uniqueStudents.length,
+      activeStudents: activeStudents.length,
+      averageProgress: 0,
+      completionRate: submittedAttempts.length > 0 
+        ? (submittedAttempts.reduce((sum, s) => sum + s._count, 0) / totalAttempts) * 100
+        : 0,
+      totalExams,
+      totalExamAttempts: totalAttempts
+    },
     performance: {
       classAverage,
       bloomsDistribution,
@@ -427,41 +556,51 @@ async function generateCourseAnalytics(course: any, timeFilter: Date, includeDet
     examAnalysis,
     learningOutcomes
   };
+
+  // Add pagination info if detailed view
+  if (includeDetailed) {
+    analytics.pagination = {
+      currentPage: page,
+      pageSize,
+      totalPages: Math.ceil(uniqueStudents.length / pageSize),
+      totalRecords: uniqueStudents.length
+    };
+  }
+
+  return analytics;
 }
 
-function generateInterventionRecommendations(atRiskStudents: any[], bloomsDistribution: any) {
+function generateInterventionRecommendations(
+  atRiskStudents: any[], 
+  bloomsDistribution: any
+) {
   const recommendations: any[] = [];
 
-  // High-risk individual interventions
   const highRiskStudents = atRiskStudents.filter(s => s.riskScore > 60);
   if (highRiskStudents.length > 0) {
     recommendations.push({
-      type: 'individual',
-      priority: 'high',
+      type: 'individual' as const,
+      priority: 'high' as const,
       description: `${highRiskStudents.length} students need immediate intervention`,
       affectedStudents: highRiskStudents.length,
       suggestedActions: [
         'Schedule one-on-one meetings',
         'Provide additional tutoring resources',
-        'Create personalized study plans',
-        'Connect with academic support services'
+        'Create personalized study plans'
       ]
     });
   }
 
-  // Bloom's level group interventions
   Object.entries(bloomsDistribution).forEach(([level, data]: [string, any]) => {
     if (data.average < 60 && data.studentCount > 3) {
       recommendations.push({
-        type: 'group',
-        priority: data.average < 40 ? 'high' : 'medium',
+        type: 'group' as const,
+        priority: (data.average < 40 ? 'high' : 'medium') as 'high' | 'medium',
         description: `Class struggling with ${level.toLowerCase()} level thinking`,
         affectedStudents: data.studentCount,
         suggestedActions: [
-          `Review ${level.toLowerCase()} concepts in class`,
-          'Provide additional practice exercises',
-          'Use different teaching methods for this cognitive level',
-          'Create study groups focused on this skill'
+          `Review ${level.toLowerCase()} concepts`,
+          'Provide additional practice exercises'
         ]
       });
     }
@@ -470,149 +609,35 @@ function generateInterventionRecommendations(atRiskStudents: any[], bloomsDistri
   return recommendations;
 }
 
-function analyzeExamEffectiveness(course: any) {
-  const exams = course.chapters.flatMap((ch: any) => 
-    ch.sections.flatMap((s: any) => s.exams)
-  );
-
-  const examEffectiveness = exams.map((exam: any) => {
-    const attempts = exam.userAttempts.filter((a: any) => a.status === 'SUBMITTED');
-    const averageScore = attempts.length > 0 
-      ? attempts.reduce((sum: number, a: any) => sum + (a.scorePercentage || 0), 0) / attempts.length 
+async function generateLightweightExamAnalysis(
+  exams: any[],
+  attemptStats: any[]
+) {
+  const examEffectiveness = exams.map(exam => {
+    const stats = attemptStats.filter(s => s.examId === exam.id);
+    const submitted = stats.filter(s => s.status === 'SUBMITTED');
+    
+    const totalAttempts = stats.reduce((sum, s) => sum + s._count, 0);
+    const averageScore = submitted.length > 0
+      ? submitted.reduce((sum, s) => sum + (s._avg.scorePercentage || 0) * s._count, 0) / 
+        submitted.reduce((sum, s) => sum + s._count, 0)
       : 0;
     
-    const completionRate = attempts.length / Math.max(1, exam.userAttempts.length) * 100;
-    const averageTime = attempts.length > 0 
-      ? attempts.reduce((sum: number, a: any) => sum + (a.timeSpent || 0), 0) / attempts.length
-      : 0;
-
-    // Analyze difficult questions
-    const questionStats = new Map();
-    attempts.forEach((attempt: any) => {
-      attempt.answers.forEach((answer: any) => {
-        const qId = answer.question.id;
-        if (!questionStats.has(qId)) {
-          questionStats.set(qId, {
-            questionId: qId,
-            question: answer.question.question,
-            bloomsLevel: answer.question.bloomsLevel,
-            difficulty: answer.question.difficulty,
-            correct: 0,
-            total: 0
-          });
-        }
-        const stat = questionStats.get(qId);
-        stat.total++;
-        if (answer.isCorrect) stat.correct++;
-      });
-    });
-
-    const difficultQuestions = Array.from(questionStats.values())
-      .map((stat: any) => ({
-        ...stat,
-        correctRate: stat.total > 0 ? (stat.correct / stat.total) * 100 : 0
-      }))
-      .filter((stat: any) => stat.correctRate < 50)
-      .sort((a: any, b: any) => a.correctRate - b.correctRate);
-
     return {
       examId: exam.id,
       examTitle: exam.title,
       averageScore,
-      completionRate,
-      averageTime,
-      difficultQuestions
-    };
-  });
-
-  // Question insights
-  const allQuestions = new Map();
-  course.chapters.forEach((ch: any) => {
-    ch.sections.forEach((s: any) => {
-      s.exams.forEach((exam: any) => {
-        exam.userAttempts.forEach((attempt: any) => {
-          attempt.answers.forEach((answer: any) => {
-            const qId = answer.question.id;
-            if (!allQuestions.has(qId)) {
-              allQuestions.set(qId, {
-                questionId: qId,
-                question: answer.question.question,
-                bloomsLevel: answer.question.bloomsLevel,
-                difficulty: answer.question.difficulty,
-                correct: 0,
-                total: 0
-              });
-            }
-            const stat = allQuestions.get(qId);
-            stat.total++;
-            if (answer.isCorrect) stat.correct++;
-          });
-        });
-      });
-    });
-  });
-
-  const questionInsights = Array.from(allQuestions.values()).map((stat: any) => {
-    const correctRate = stat.total > 0 ? (stat.correct / stat.total) * 100 : 0;
-    const needsReview = correctRate < 60;
-    
-    const suggestions = [];
-    if (correctRate < 30) {
-      suggestions.push('Consider revising question wording');
-      suggestions.push('Review if question matches intended difficulty');
-    } else if (correctRate < 60) {
-      suggestions.push('Provide additional instruction on this topic');
-      suggestions.push('Consider adding practice exercises');
-    }
-
-    return {
-      questionId: stat.questionId,
-      question: stat.question,
-      correctRate,
-      bloomsLevel: stat.bloomsLevel,
-      difficulty: stat.difficulty,
-      needsReview,
-      suggestions
+      completionRate: totalAttempts > 0 
+        ? (submitted.reduce((sum, s) => sum + s._count, 0) / totalAttempts) * 100
+        : 0,
+      averageTime: submitted[0]?._avg.timeSpent || 0,
+      difficultQuestions: []
     };
   });
 
   return {
     examEffectiveness,
-    questionInsights
-  };
-}
-
-function analyzeLearningOutcomes(course: any, studentData: Map<any, any>) {
-  const outcomeProgress = course.chapters.map((chapter: any) => ({
-    outcome: chapter.learningOutcome || `Master ${chapter.title}`,
-    chapterId: chapter.id,
-    chapterTitle: chapter.title,
-    masteryLevel: 75, // Mock data - would calculate based on section completion
-    studentsOnTrack: Math.floor(studentData.size * 0.7),
-    studentsBehind: Math.floor(studentData.size * 0.3)
-  }));
-
-  // Calculate cognitive progress across all students
-  const bloomsLevels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
-  const cognitiveProgress: any = {};
-  
-  bloomsLevels.forEach(level => {
-    const studentsWithData = Array.from(studentData.values()).filter((s: any) => s.bloomsPerformance[level]);
-    const averageScore = studentsWithData.length > 0 
-      ? studentsWithData.reduce((sum: number, s: any) => {
-          const accuracy = s.bloomsPerformance[level].total > 0 
-            ? (s.bloomsPerformance[level].correct / s.bloomsPerformance[level].total) * 100 
-            : 0;
-          return sum + accuracy;
-        }, 0) / studentsWithData.length
-      : 0;
-    
-    cognitiveProgress[level.toLowerCase()] = averageScore;
-  });
-
-  return {
-    outcomeProgress,
-    cognitiveProgress
+    questionInsights: []
   };
 }
 

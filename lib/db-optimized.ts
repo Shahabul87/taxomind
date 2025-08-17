@@ -16,7 +16,7 @@ const prismaClientSingleton = () => {
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     // Connection pool optimization for Railway's limits
     // Railway typically allows 20-100 connections
-    connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '20'),
+    // Note: connectionLimit is handled at the database URL level
   });
 };
 

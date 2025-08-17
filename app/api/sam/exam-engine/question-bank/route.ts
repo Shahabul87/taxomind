@@ -147,8 +147,6 @@ export async function GET(request: NextRequest) {
           tags: q.tags,
           usageCount: q.usageCount,
           avgTimeSpent: q.avgTimeSpent,
-          avgDifficulty: q.avgDifficulty,
-          avgDiscrimination: q.avgDiscrimination,
         })),
         pagination: {
           total: totalCount,
@@ -298,7 +296,6 @@ async function getQuestionBankStats(where: any): Promise<any> {
       difficulty: true,
       questionType: true,
       usageCount: true,
-      avgDifficulty: true,
     },
   });
 
@@ -307,13 +304,13 @@ async function getQuestionBankStats(where: any): Promise<any> {
     difficultyDistribution: {} as Record<QuestionDifficulty, number>,
     typeDistribution: {} as Record<QuestionType, number>,
     totalUsage: 0,
-    avgDifficulty: 0,
+    averageDifficulty: 0,
   };
 
   // Initialize distributions
   const bloomsLevels: BloomsLevel[] = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
   const difficulties: QuestionDifficulty[] = ['EASY', 'MEDIUM', 'HARD'];
-  const types: QuestionType[] = ['MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER', 'ESSAY', 'FILL_IN_THE_BLANK'];
+  const types: QuestionType[] = ['MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER', 'ESSAY', 'FILL_IN_BLANK'];
 
   bloomsLevels.forEach(level => stats.bloomsDistribution[level] = 0);
   difficulties.forEach(diff => stats.difficultyDistribution[diff] = 0);
@@ -325,7 +322,9 @@ async function getQuestionBankStats(where: any): Promise<any> {
     stats.difficultyDistribution[q.difficulty]++;
     stats.typeDistribution[q.questionType]++;
     stats.totalUsage += q.usageCount;
-    stats.avgDifficulty += q.avgDifficulty || 0;
+    // Compute difficulty as numeric value for averaging
+    const difficultyValue = q.difficulty === 'EASY' ? 1 : q.difficulty === 'MEDIUM' ? 2 : 3;
+    stats.averageDifficulty += difficultyValue;
   });
 
   // Convert to percentages
@@ -346,7 +345,7 @@ async function getQuestionBankStats(where: any): Promise<any> {
         (stats.typeDistribution[key as QuestionType] / total) * 100;
     });
     
-    stats.avgDifficulty = stats.avgDifficulty / total;
+    stats.averageDifficulty = stats.averageDifficulty / total;
   }
 
   return stats;

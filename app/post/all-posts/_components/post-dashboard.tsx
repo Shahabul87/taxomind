@@ -16,7 +16,7 @@ export const PostDashboard = async () => {
       userId: user.id
     },
     include: {
-      user: true
+      User: true
     },
     orderBy: {
       createdAt: 'desc'

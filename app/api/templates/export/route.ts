@@ -48,10 +48,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Get templates
-    const templates = await db.contentTemplate.findMany({
+    const templates = await db.aIContentTemplate.findMany({
       where,
       include: {
-        author: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Format for export
-    const exportData = templates.map(template => ({
+    const exportData = templates.map((template: any) => ({
       id: template.id,
       name: template.name,
       description: template.description,
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         "Updated At"
       ];
 
-      const csvRows = exportData.map(template => [
+      const csvRows = exportData.map((template: any) => [
         template.id,
         template.name,
         template.description || "",
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
       ]);
 
       const csvContent = [csvHeaders, ...csvRows]
-        .map(row => row.map(cell => `"${cell}"`).join(","))
+        .map(row => row.map((cell: any) => `"${cell}"`).join(","))
         .join("\n");
 
       return new NextResponse(csvContent, {

@@ -34,10 +34,10 @@ export async function POST(
     );
 
     // Get the template for response
-    const template = await db.contentTemplate.findUnique({
+    const template = await db.aIContentTemplate.findUnique({
       where: { id: templateId },
       include: {
-        author: {
+        User: {
           select: {
             id: true,
             name: true,

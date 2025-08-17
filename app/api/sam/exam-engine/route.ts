@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     } = await request.json();
 
     // Validate configuration
-    if (!config || !config.totalQuestions || !config.duration) {
+    if (!config || !config.totalQuestions || !config.timeLimit) {
       return NextResponse.json(
         { error: 'Invalid exam configuration' },
         { status: 400 }
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
 
     if (!hasAccess && user.role !== 'ADMIN') {
       // Check if user has taken the exam
-      const attempt = await db.examAttempt.findFirst({
+      const attempt = await db.userExamAttempt.findFirst({
         where: {
           examId,
           userId: user.id,
@@ -180,8 +180,8 @@ export async function GET(request: NextRequest) {
         exam: {
           id: exam.id,
           title: exam.title,
-          duration: exam.duration,
-          isAdaptive: exam.isAdaptive,
+          timeLimit: exam.timeLimit,
+          isActive: exam.isActive,
         },
         bloomsProfile: exam.ExamBloomsProfile ? {
           targetDistribution: exam.ExamBloomsProfile.targetDistribution,
@@ -251,9 +251,8 @@ async function recordSAMInteraction(
       data: {
         userId,
         courseId,
-        interactionType: 'CONTENT_GENERATED',
-        context: { type: interactionType },
-        result,
+        interactionType: 'CONTENT_GENERATE',
+        context: { type: interactionType, result },
       },
     });
   } catch (error) {

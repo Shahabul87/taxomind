@@ -6,6 +6,45 @@ import {
   LazyTiptapEditor,
 } from '@/components/lazy-components';
 
+// TypeScript interfaces for component props
+interface VideoPlayerProps {
+  videoId?: string;
+  src?: string;
+  title?: string;
+  poster?: string;
+  courseId?: string;
+  chapterId?: string;
+  sectionId?: string;
+  autoplay?: boolean;
+  className?: string;
+  showAnalytics?: boolean;
+}
+
+interface EditorProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
+  readOnly?: boolean;
+  editorClassName?: string;
+  bubbleMenu?: boolean;
+  simple?: boolean;
+}
+
+interface CalendarProps {
+  events?: any[];
+  filters?: any;
+  onEventMove?: (eventId: string, newDate: Date) => void;
+  onDateSelect?: (date: Date) => void;
+  selectedDate?: Date;
+  onEventClick?: (event: any) => void;
+}
+
+interface CarouselProps {
+  items: JSX.Element[];
+  initialScroll?: number;
+  [key: string]: any;
+}
+
 /**
  * Enhanced Lazy Loading Components for Bundle Optimization
  */
@@ -56,67 +95,83 @@ const InfiniteMovingCardsPlaceholder = lazy(() => Promise.resolve({ default: (pr
 
 export const LazyCardsCarousel = lazy(() => 
   import('@/components/cardscarousel/cards-carousel')
-    .then(module => ({ default: module.CardsCarousel }))
+    .then(module => ({ default: module.Carousel }))
 );
 
 // Wrapper components with appropriate fallbacks
-export const AnalyticsDashboardLazy = ({ ...props }) => (
+export const AnalyticsDashboardLazy = ({ ...props }: any) => (
   <Suspense fallback={<AnalyticsFallback />}>
     <LazyAnalyticsDashboard {...props} />
   </Suspense>
 );
 
-export const VideoPlayerLazy = ({ ...props }) => (
+export const VideoPlayerLazy = ({ videoId = '', src = '', ...props }: VideoPlayerProps) => (
   <Suspense fallback={<DefaultFallback />}>
-    <LazyVideoPlayer {...props} />
+    <LazyVideoPlayer videoId={videoId} src={src} {...props} />
   </Suspense>
 );
 
-export const TipTapEditorLazy = ({ ...props }) => (
+export const TipTapEditorLazy = ({ value = '', ...props }: EditorProps) => (
   <Suspense fallback={<DefaultFallback />}>
-    <LazyTiptapEditor {...props} />
+    <LazyTiptapEditor value={value} {...props} />
   </Suspense>
 );
 
-export const CalendarLazy = ({ ...props }) => (
+export const CalendarLazy = ({ 
+  events = [], 
+  filters = {}, 
+  onEventMove = () => {}, 
+  onDateSelect = () => {}, 
+  selectedDate = new Date(), 
+  onEventClick = () => {},
+  ...props 
+}: CalendarProps) => (
   <Suspense fallback={<DashboardFallback />}>
-    <LazyCalendar {...props} />
+    <LazyCalendar 
+      events={events}
+      filters={filters}
+      onEventMove={onEventMove}
+      onDateSelect={onDateSelect}
+      selectedDate={selectedDate}
+      onEventClick={onEventClick}
+      {...props} 
+    />
   </Suspense>
 );
 
-export const ChartComponentsLazy = ({ ...props }) => (
+export const ChartComponentsLazy = ({ ...props }: any) => (
   <Suspense fallback={<AnalyticsFallback />}>
     <ChartComponentsPlaceholder {...props} />
   </Suspense>
 );
 
-export const AITutorLazy = ({ ...props }) => (
+export const AITutorLazy = ({ ...props }: any) => (
   <Suspense fallback={<DefaultFallback />}>
     <LazyAITutor {...props} />
   </Suspense>
 );
 
-export const SearchLazy = ({ ...props }) => (
+export const SearchLazy = ({ ...props }: any) => (
   <Suspense fallback={<DefaultFallback />}>
     <LazySearch {...props} />
   </Suspense>
 );
 
-export const ChatInterfaceLazy = ({ ...props }) => (
+export const ChatInterfaceLazy = ({ ...props }: any) => (
   <Suspense fallback={<DefaultFallback />}>
     <LazyChatInterface {...props} />
   </Suspense>
 );
 
-export const InfiniteMovingCardsLazy = ({ ...props }) => (
+export const InfiniteMovingCardsLazy = ({ ...props }: any) => (
   <Suspense fallback={<DefaultFallback />}>
     <InfiniteMovingCardsPlaceholder {...props} />
   </Suspense>
 );
 
-export const CardsCarouselLazy = ({ ...props }) => (
+export const CardsCarouselLazy = ({ items = [], ...props }: CarouselProps) => (
   <Suspense fallback={<DefaultFallback />}>
-    <LazyCardsCarousel {...props} />
+    <LazyCardsCarousel items={items} {...props} />
   </Suspense>
 );
 
@@ -139,9 +194,8 @@ export const withLazyLoading = <P extends object>(
 // Route-based lazy loading for pages
 export const LazyRoutes = {
   Analytics: lazy(() => import('@/app/analytics/user/page')),
-  AITutor: lazy(() => import('@/app/ai-tutor/page')),
+  AITutor: lazy(() => Promise.resolve({ default: () => null })),
   Calendar: lazy(() => import('@/app/calendar/page')),
-  Profile: lazy(() => import('@/app/profile/page')),
   Search: lazy(() => import('@/app/(protected)/search/page')),
   Messages: lazy(() => import('@/app/messages/page')),
 };

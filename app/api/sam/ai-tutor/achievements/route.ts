@@ -17,28 +17,25 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status'); // 'unlocked' | 'locked' | 'all'
 
     // Get user's current achievements
-    const userAchievements = await db.userAchievement.findMany({
+    const userAchievements = await db.user_achievements.findMany({
       where: {
         userId: userId,
-        ...(category && { achievement: { category } })
-      },
-      include: {
-        achievement: true
+        ...(category && { achievementType: category as any })
       }
     });
 
     // Get all available achievements
-    const allAchievements = await getAvailableAchievements(category);
+    const allAchievements = await getAvailableAchievements(category || undefined);
     
     // Merge user achievements with all achievements
     const achievementsWithProgress = allAchievements.map(achievement => {
-      const userAchievement = userAchievements.find(ua => ua.achievementId === achievement.id);
+      const userAchievement = userAchievements.find(ua => ua.id === achievement.id);
       return {
         ...achievement,
         isUnlocked: !!userAchievement,
         unlockedAt: userAchievement?.unlockedAt || null,
-        progress: userAchievement?.progress || 0,
-        currentValue: userAchievement?.currentValue || 0
+        progress: userAchievement ? 100 : 0,
+        currentValue: userAchievement?.pointsEarned || 0
       };
     });
 
@@ -76,77 +73,46 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { achievementId, progress, currentValue } = await request.json();
-
-    // Check if achievement exists
-    const achievement = await getAchievementById(achievementId);
-    if (!achievement) {
-      return NextResponse.json({ error: 'Achievement not found' }, { status: 404 });
-    }
+    const { achievementType, title, description, pointsEarned, courseId } = await request.json();
 
     // Check if user already has this achievement
-    const existingUserAchievement = await db.userAchievement.findUnique({
+    const existingUserAchievement = await db.user_achievements.findFirst({
       where: {
-        userId_achievementId: {
-          userId: user.id,
-          achievementId: achievementId
-        }
+        userId: user.id,
+        achievementType: achievementType,
+        title: title
       }
     });
 
-    const isUnlocked = currentValue >= achievement.targetValue;
-
     if (existingUserAchievement) {
-      // Update existing achievement progress
-      const updated = await db.userAchievement.update({
-        where: {
-          userId_achievementId: {
-            userId: user.id,
-            achievementId: achievementId
-          }
-        },
-        data: {
-          progress: Math.min(progress || 0, 100),
-          currentValue: currentValue || 0,
-          ...(isUnlocked && !existingUserAchievement.unlockedAt && {
-            unlockedAt: new Date()
-          })
-        },
-        include: {
-          achievement: true
-        }
-      });
-
       return NextResponse.json({
-        userAchievement: updated,
-        isNewlyUnlocked: isUnlocked && !existingUserAchievement.unlockedAt,
-        message: isUnlocked && !existingUserAchievement.unlockedAt 
-          ? `Congratulations! You've unlocked "${achievement.name}"!`
-          : 'Achievement progress updated'
-      });
-    } else {
-      // Create new achievement progress
-      const newUserAchievement = await db.userAchievement.create({
-        data: {
-          userId: user.id,
-          achievementId: achievementId,
-          progress: Math.min(progress || 0, 100),
-          currentValue: currentValue || 0,
-          ...(isUnlocked && { unlockedAt: new Date() })
-        },
-        include: {
-          achievement: true
-        }
-      });
-
-      return NextResponse.json({
-        userAchievement: newUserAchievement,
-        isNewlyUnlocked: isUnlocked,
-        message: isUnlocked 
-          ? `Congratulations! You've unlocked "${achievement.name}"!`
-          : 'Achievement progress started'
+        userAchievement: existingUserAchievement,
+        isNewlyUnlocked: false,
+        message: 'Achievement already unlocked'
       });
     }
+
+    // Create new achievement
+    const newUserAchievement = await db.user_achievements.create({
+      data: {
+        id: `ach_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId: user.id,
+        achievementType: achievementType,
+        title: title,
+        description: description,
+        pointsEarned: pointsEarned || 0,
+        courseId: courseId || null,
+        iconUrl: null,
+        badgeLevel: 'BRONZE',
+        unlockedAt: new Date()
+      }
+    });
+
+    return NextResponse.json({
+      userAchievement: newUserAchievement,
+      isNewlyUnlocked: true,
+      message: `Congratulations! You've unlocked "${title}"!`
+    });
 
   } catch (error) {
     logger.error('Error updating achievement:', error);

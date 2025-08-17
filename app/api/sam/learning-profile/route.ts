@@ -51,10 +51,8 @@ export async function POST(req: NextRequest) {
 
     const profile = await updateSAMLearningProfile(session.user.id, {
       learningStyle,
-      preferredDifficulty,
       interactionPreferences,
       adaptiveSettings,
-      courseId,
     });
 
     return NextResponse.json({

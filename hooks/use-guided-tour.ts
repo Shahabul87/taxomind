@@ -47,6 +47,25 @@ export const useGuidedTour = (config: TourConfig) => {
     }
   }, [config.id, config.persistent]);
 
+  const startTour = useCallback(() => {
+    setIsActive(true);
+    setCurrentStep(0);
+    setHasBeenStarted(true);
+    
+    if (config.persistent) {
+      localStorage.setItem(`tour-started-${config.id}`, "true");
+    }
+  }, [config.id, config.persistent]);
+
+  const completeTour = useCallback(() => {
+    setIsActive(false);
+    setIsCompleted(true);
+    
+    if (config.persistent) {
+      localStorage.setItem(`tour-completed-${config.id}`, "true");
+    }
+  }, [config.id, config.persistent]);
+
   // Auto-start tour if configured and not completed
   useEffect(() => {
     if (config.autoStart && !isCompleted && !hasBeenStarted) {
@@ -57,16 +76,6 @@ export const useGuidedTour = (config: TourConfig) => {
       return () => clearTimeout(timer);
     }
   }, [config.autoStart, isCompleted, hasBeenStarted, startTour]);
-
-  const startTour = useCallback(() => {
-    setIsActive(true);
-    setCurrentStep(0);
-    setHasBeenStarted(true);
-    
-    if (config.persistent) {
-      localStorage.setItem(`tour-started-${config.id}`, "true");
-    }
-  }, [config.id, config.persistent]);
 
   const nextStep = useCallback(() => {
     if (currentStep < config.steps.length - 1) {
@@ -83,15 +92,6 @@ export const useGuidedTour = (config: TourConfig) => {
   }, [currentStep]);
 
   const skipTour = useCallback(() => {
-    setIsActive(false);
-    setIsCompleted(true);
-    
-    if (config.persistent) {
-      localStorage.setItem(`tour-completed-${config.id}`, "true");
-    }
-  }, [config.id, config.persistent]);
-
-  const completeTour = useCallback(() => {
     setIsActive(false);
     setIsCompleted(true);
     

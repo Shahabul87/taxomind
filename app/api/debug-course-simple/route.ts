@@ -15,11 +15,9 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get('courseId');
     
     if (!courseId) {
-      return createSuccessResponse({
-        error: "Missing courseId parameter",
-        usage: "Add ?courseId=your-course-id to the URL",
-        example: "/api/debug-course-simple?courseId=bc037619-84dc-4ef9-b8c8-cfa3d059b7c7"
-      }, { status: 400 });
+      return createErrorResponse(
+        new ApiError("Missing courseId parameter", 400, "MISSING_PARAMETER")
+      );
     }
     
     const user = await currentUser();
@@ -91,10 +89,12 @@ export async function GET(request: NextRequest) {
     return createSuccessResponse(debugInfo);
   } catch (error) {
     logger.error("[DEBUG_COURSE_SIMPLE] Error:", error);
-    return createSuccessResponse({ 
-      error: "Debug failed", 
-      details: error instanceof Error ? error.message : "Unknown error",
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    return createErrorResponse(
+      new ApiError(
+        "Debug failed: " + (error instanceof Error ? error.message : "Unknown error"),
+        500,
+        "DEBUG_ERROR"
+      )
+    );
   }
 } 

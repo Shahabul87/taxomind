@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
-import { currentUser, currentRole } from "@/lib/auth";
-import { hasPermission, Permission } from "@/lib/role-management";
-import { rateLimit, getClientIdentifier, getRateLimitHeaders } from "@/lib/rate-limit";
-import { logger } from "@/lib/logger";
+import { currentUser, currentRole } from "../auth";
+import { hasPermission, Permission } from "../role-management";
+import { rateLimit, getClientIdentifier, getRateLimitHeaders } from "../rate-limit";
+import { logger } from "../logger";
 import { ApiError, ApiResponse, createErrorResponse, createSuccessResponse } from "./api-responses";
 
 /**

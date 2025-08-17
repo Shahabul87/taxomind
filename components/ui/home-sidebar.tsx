@@ -176,11 +176,6 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
       href: user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard/user",
     },
     {
-      title: "Profile Manager",
-      icon: <IconUser className="w-5 h-5" />,
-      href: "/profile",
-    },
-    {
       title: "Settings",
       icon: <IconSettings className="w-5 h-5" />,
       href: "/settings",

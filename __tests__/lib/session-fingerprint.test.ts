@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import {
   extractServerFingerprint,
   generateFingerprintHash,
@@ -552,7 +552,7 @@ describe('Session Fingerprinting System', () => {
       
       // Check weight distribution
       const totalWeight = Object.values(defaultFingerprintConfig.weights)
-        .reduce((sum, weight) => sum + weight, 0);
+        .reduce((sum: number, weight: number) => sum + weight, 0);
       expect(totalWeight).toBe(1.0);
       
       // Check reasonable defaults

@@ -1,5 +1,6 @@
+"use server";
+
 import * as z from "zod";
-// import { headers } from "next/headers"; // Removed - causes build error in client components
 
 import { db } from "@/lib/db";
 import { RegisterSchema } from "@/schemas";
@@ -7,7 +8,7 @@ import { getUserByEmail } from "@/data/user";
 import { generateVerificationToken } from "@/lib/tokens";
 import { queueVerificationEmail } from "@/lib/queue/email-queue-simple";
 import { rateLimitAuth } from "@/lib/rate-limit";
-import bcrypt from "bcryptjs";
+import * as bcrypt from "bcryptjs";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
 
 export const register = async (values: z.infer<typeof RegisterSchema>) => {

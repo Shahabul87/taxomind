@@ -86,9 +86,7 @@ export async function GET(
       },
       select: {
         id: true,
-        title: true,
-        createdAt: true,
-        updatedAt: true,
+        startedAt: true,
         _count: {
           select: { messages: true },
         },
@@ -112,7 +110,7 @@ export async function GET(
       take: limit,
       select: {
         id: true,
-        role: true,
+        messageType: true,
         content: true,
         createdAt: true,
         ...(includeMetadata && { metadata: true }),
@@ -122,7 +120,7 @@ export async function GET(
     // Format response data
     const formattedMessages = messages.map(msg => ({
       id: msg.id,
-      role: msg.role,
+      role: msg.messageType,
       content: msg.content,
       timestamp: msg.createdAt,
       ...(includeMetadata && msg.metadata && { metadata: msg.metadata }),
@@ -139,9 +137,9 @@ export async function GET(
       metadata: {
         conversation: {
           id: conversation.id,
-          title: conversation.title,
-          createdAt: conversation.createdAt,
-          updatedAt: conversation.updatedAt,
+          title: `Conversation ${conversation.id}`,
+          createdAt: conversation.startedAt,
+          updatedAt: conversation.startedAt,
         },
         pagination: {
           total: totalMessages,

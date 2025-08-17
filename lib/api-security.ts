@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash, randomBytes } from 'crypto';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { db } from '@/lib/db';
 import { Permission } from '@/lib/permissions';
 

@@ -117,7 +117,7 @@ Make the plan practical, engaging, and aligned with modern educational best prac
     max_tokens: 3000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create a detailed lesson plan for ${topic} in ${subject}.` }
     ]
   });
@@ -196,7 +196,7 @@ Create a cohesive unit that builds understanding progressively and engages stude
     max_tokens: 3000,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create a comprehensive unit plan for ${topic} in ${subject}.` }
     ]
   });
@@ -273,7 +273,7 @@ Create activities that are engaging, educational, and practically feasible for t
     max_tokens: 2000,
     temperature: 0.8,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create engaging activities for ${topic} in ${subject}.` }
     ]
   });
@@ -349,7 +349,7 @@ Create assessments that are fair, comprehensive, and aligned with learning objec
     max_tokens: 2500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create comprehensive assessment strategies for ${topic} in ${subject}.` }
     ]
   });
@@ -425,7 +425,7 @@ Create a plan that ensures all students can access and engage with the content a
     max_tokens: 2500,
     temperature: 0.7,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `System Instructions: ${systemPrompt}` },
       { role: 'user', content: `Create a differentiated lesson plan for ${topic} in ${subject}.` }
     ]
   });

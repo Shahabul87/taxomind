@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
+import { 
+  optimizedCourseQueries, 
+  cacheInvalidation 
+} from '@/lib/db/query-optimizer';
+import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -70,6 +75,13 @@ export async function POST(req: Request) {
       }
     });
 
+    // Invalidate relevant caches after course creation
+    await Promise.all([
+      cacheInvalidation.invalidateUser(user.id),
+      cacheInvalidation.invalidateSearch(),
+      redisCache.invalidatePattern(`${CACHE_PREFIXES.COURSE}*`),
+    ]);
+
     return NextResponse.json(course);
     
   } catch (error) {
@@ -108,6 +120,26 @@ export const GET = async (req: Request) => {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const isFeatured = searchParams.get("featured") === "true" ? true : undefined;
+
+    // Generate cache key for this specific query
+    const cacheKey = `courses:list:${JSON.stringify({
+      categoryId,
+      search,
+      page,
+      limit,
+      isFeatured,
+      userId: user?.id || 'anonymous'
+    })}`;
+
+    // Try to get from cache first
+    const cached = await redisCache.get(cacheKey, {
+      prefix: CACHE_PREFIXES.COURSE,
+    });
+
+    if (cached.hit && cached.value) {
+      logger.info('[COURSES_API] Cache hit for courses list');
+      return NextResponse.json(cached.value);
+    }
 
     // Build where clause based on working schema
     const whereClause: any = {
@@ -217,6 +249,15 @@ export const GET = async (req: Request) => {
         isEnrolled: user?.id ? course.Enrollment.length > 0 : false,
       };
     });
+
+    // Cache the processed courses
+    await redisCache.set(cacheKey, processedCourses, {
+      prefix: CACHE_PREFIXES.COURSE,
+      ttl: search ? CACHE_TTL.SHORT : CACHE_TTL.MEDIUM, // Shorter TTL for search results
+      tags: ['courses', 'list'],
+    });
+
+    logger.info('[COURSES_API] Cached courses list');
 
     return NextResponse.json(processedCourses);
   } catch (error) {

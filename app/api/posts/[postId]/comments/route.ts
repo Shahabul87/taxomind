@@ -18,7 +18,7 @@ export const POST = withAuth(async (
       return createSuccessResponse({ 
         error: getRateLimitMessage('comment', rateLimitResult.reset),
         rateLimitInfo: rateLimitResult
-      }, { status: 429 });
+      }, 429);
     }
 
     const { content } = await request.json();
@@ -26,7 +26,7 @@ export const POST = withAuth(async (
     const { postId } = params;
 
     if (!content) {
-      return createSuccessResponse({ error: "Content is required" }, { status: 400 });
+      return createSuccessResponse({ error: "Content is required" }, 400);
     }
 
     // Verify that the post exists
@@ -36,7 +36,7 @@ export const POST = withAuth(async (
     });
 
     if (!post) {
-      return createSuccessResponse({ error: "Post not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Post not found" }, 404);
     }
 
     const comment = await db.comment.create({
@@ -70,10 +70,10 @@ export const POST = withAuth(async (
     // Invalidate cache for this post's comments
     await invalidateCache(`comments:${postId}:*`);
 
-    return createSuccessResponse(comment);
+    return createSuccessResponse(comment, 201);
   } catch (error) {
     logger.error("[COMMENT_POST]", error);
-    return createSuccessResponse({ error: "Internal server error" }, { status: 500 });
+    return createSuccessResponse({ error: "Internal server error" }, 500);
   }
 });
 
@@ -85,7 +85,7 @@ export const GET = withAuth(async (
   try {
     const params = await props.params;
     const { postId } = params;
-    const url = new URL(req.url);
+    const url = new URL(request.url);
     
     // Get pagination and sorting parameters
     const page = parseInt(url.searchParams.get('page') || '1');
@@ -97,11 +97,9 @@ export const GET = withAuth(async (
     
     if (cachedComments) {
 
-      return createSuccessResponse(cachedComments, {
-        headers: {
-          'X-Cache': 'HIT',
-          'Cache-Control': 'public, max-age=120' // 2 minutes
-        }
+      return createSuccessResponse(cachedComments, 200, undefined, {
+        'X-Cache': 'HIT',
+        'Cache-Control': 'public, max-age=120' // 2 minutes
       });
     }
 
@@ -112,7 +110,7 @@ export const GET = withAuth(async (
     });
 
     if (!post) {
-      return createSuccessResponse({ error: "Post not found" }, { status: 404 });
+      return createSuccessResponse({ error: "Post not found" }, 404);
     }
 
     // Calculate pagination
@@ -211,12 +209,10 @@ export const GET = withAuth(async (
 
     }
 
-    return createSuccessResponse(result, {
-      headers: {
+    return createSuccessResponse(result, 200, undefined, {
         'X-Cache': 'MISS',
         'Cache-Control': 'public, max-age=120' // 2 minutes
-      }
-    });
+      });
   } catch (error) {
     logger.error("[COMMENTS_GET]", error);
     return createErrorResponse(ApiError.internal("Internal Error"));

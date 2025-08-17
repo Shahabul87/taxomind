@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { logger } from '@/lib/logger';
+// Note: logger import removed - using console.error for error handling
 import {
   DollarSign,
   TrendingUp,
@@ -187,22 +187,6 @@ export const FinancialIntelligenceDashboard = ({ organizationId, className }: Fi
   const [isLoading, setIsLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
 
-  // Load financial intelligence data
-  useEffect(() => {
-    loadFinancialData();
-  }, [timeRange, organizationId, loadFinancialData]);
-
-  // Auto-refresh mechanism
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      loadFinancialData();
-    }, 60000); // Refresh every minute
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, timeRange, organizationId, loadFinancialData]);
-
   const loadFinancialData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -224,7 +208,7 @@ export const FinancialIntelligenceDashboard = ({ organizationId, className }: Fi
         toast.info("Using demo financial data");
       }
     } catch (error: any) {
-      logger.error("Failed to load financial data:", error);
+      console.error("Failed to load financial data:", error);
       // Use demo data as fallback
       setFinancialData(getDemoFinancialData());
       toast.error("Failed to load financial data, showing demo data");
@@ -232,6 +216,22 @@ export const FinancialIntelligenceDashboard = ({ organizationId, className }: Fi
       setIsLoading(false);
     }
   }, [timeRange, organizationId]);
+
+  // Load financial intelligence data
+  useEffect(() => {
+    loadFinancialData();
+  }, [loadFinancialData]);
+
+  // Auto-refresh mechanism
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      loadFinancialData();
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, loadFinancialData]);
 
   const getDateRangeFromSelection = (range: string) => {
     const end = new Date();
