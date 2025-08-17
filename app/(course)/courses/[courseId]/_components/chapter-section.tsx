@@ -2,10 +2,11 @@
 
 import { motion } from 'framer-motion';
 import { PlayCircle, BookOpen, Lock, CheckCircle, Eye, Unlock } from 'lucide-react';
-import Link from 'next/link';
-import { Section } from '@prisma/client';
-import { cn } from "@/lib/utils";
 import { useRouter } from 'next/navigation';
+
+import { Section } from '@prisma/client';
+
+import { cn } from "@/lib/utils";
 
 interface ChapterSectionProps {
   section: Section;
