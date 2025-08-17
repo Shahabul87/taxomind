@@ -3,8 +3,8 @@
 # TypeScript type checking with increased memory allocation
 echo "🔍 Running TypeScript type checking..."
 
-# Set Node options for increased memory
-export NODE_OPTIONS='--max-old-space-size=8192'
+# Set Node options for increased memory (16GB for large codebase)
+export NODE_OPTIONS='--max-old-space-size=16384'
 
 # Run TypeScript compiler in no-emit mode (only type checking)
 npx tsc --noEmit

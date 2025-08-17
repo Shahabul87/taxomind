@@ -52,6 +52,10 @@
     "dist/**",
     "__tests__/performance/**",
     "__tests__/unit/lib/auth/saml-provider.test.ts",
-    "__tests__/unit/lib/sam-blooms-engine.test.ts"
+    "__tests__/unit/lib/sam-blooms-engine.test.ts",
+    "**/*.spec.ts",
+    "**/*.e2e.ts",
+    "**/test-utils/**",
+    "**/mocks/**"
   ]
 }
