@@ -7,8 +7,8 @@ on:
     branches: [ staging ]
 
 env:
-  NODE_VERSION: '18.x'
-  NODE_OPTIONS: '--max-old-space-size=4096'
+  NODE_VERSION: '20.x'
+  NODE_OPTIONS: '--max-old-space-size=8192'
   DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
   NEXTAUTH_SECRET: ${{ secrets.STAGING_NEXTAUTH_SECRET }}
   NEXTAUTH_URL: ${{ secrets.STAGING_NEXTAUTH_URL }}
