@@ -1,12 +1,5 @@
-import { initSentry } from './lib/sentry-config';
+// Sentry Server Configuration
+// This file is intentionally empty for now
+// Sentry integration will be added when needed
 
-// Initialize Sentry with server-specific configuration
-initSentry({
-  // Add server-specific context
-  initialScope: {
-    tags: {
-      runtime: 'node',
-      server: true,
-    },
-  },
-});
+export {};

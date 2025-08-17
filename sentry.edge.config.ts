@@ -1,12 +1,5 @@
-import { initSentry } from './lib/sentry-config';
+// Sentry Edge Configuration
+// This file is intentionally empty for now
+// Sentry integration will be added when needed
 
-// Initialize Sentry with edge-specific configuration
-initSentry({
-  // Add edge-specific context
-  initialScope: {
-    tags: {
-      runtime: 'edge',
-      server: true,
-    },
-  },
-});
+export {};

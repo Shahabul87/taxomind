@@ -1,10 +1,11 @@
-// Edge-compatible auth configuration
-// This file is used by middleware which runs in Edge Runtime
 import type { NextAuthConfig } from "next-auth";
 import Github from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
+import { DefaultCookieConfig } from "@/lib/security/cookie-config";
 
-// Edge-compatible configuration without database calls
+// Edge-compatible auth config (no credentials provider)
+// This is used in middleware to avoid Node.js API issues
+// It shares the same OAuth providers as the main config
 export default {
   providers: [
     Google({
@@ -22,10 +23,14 @@ export default {
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
     }),
-    // Note: Credentials provider requires database access
-    // which is not available in Edge Runtime
-    // Authentication happens in auth.config.ts (Node runtime)
+    // Note: No Credentials provider here to avoid bcryptjs in Edge Runtime
   ],
-  // Secure cookie configuration
+  pages: {
+    signIn: "/auth/login",
+    error: "/auth/error",
+  },
+  trustHost: true,
+  // Include secure cookie configuration for edge runtime
+  cookies: DefaultCookieConfig,
   useSecureCookies: process.env.NODE_ENV === 'production',
-} satisfies NextAuthConfig
+} satisfies NextAuthConfig;

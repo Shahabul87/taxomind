@@ -35,7 +35,7 @@ jobs:
         run: npm run lint
         
       - name: 🎯 TypeScript Check
-        run: npx tsc --noEmit --skipLibCheck --incremental false
+        run: NODE_OPTIONS='--max-old-space-size=8192' npx tsc --noEmit --skipLibCheck --incremental false
         continue-on-error: true
         
       # Skip security audit and bundle analysis for faster builds
