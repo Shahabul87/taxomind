@@ -132,7 +132,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
 }) => {
   const colors = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#6366f1'];
 
-  const renderChart = () => {
+  const renderChart = (): React.ReactElement | null => {
     switch (type) {
       case 'line':
         return (
@@ -206,7 +206,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          {renderChart() as any}
+          {renderChart() || <div className="flex items-center justify-center h-full text-gray-500">No chart data available</div>}
         </ResponsiveContainer>
       </CardContent>
     </Card>
@@ -250,7 +250,7 @@ export const ProgressWidget: React.FC<ProgressWidgetProps> = ({ title, items, cl
                 <Progress 
                   value={percentage} 
                   className="h-2"
-                  style={{ '--progress-background': item.color || '#8b5cf6' } as any}
+                  style={{ '--progress-background': item.color || '#8b5cf6' } as React.CSSProperties}
                 />
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {percentage.toFixed(1)}% completed

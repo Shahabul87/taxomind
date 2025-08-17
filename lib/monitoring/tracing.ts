@@ -6,6 +6,7 @@
 import { 
   trace, 
   context, 
+  Context,
   SpanKind, 
   SpanStatusCode,
   Span,
@@ -132,8 +133,11 @@ export class TransactionTracer {
   public end(status?: { code: SpanStatusCode; message?: string }): void {
     // End all child spans
     this.childSpans.forEach(childSpan => {
-      if (!childSpan.ended) {
+      // Check if span is not ended (OpenTelemetry spans don't have 'ended' property)
+      try {
         childSpan.end();
+      } catch (error) {
+        // Span might already be ended
       }
     });
     
@@ -503,10 +507,9 @@ export class TracePropagation {
   public static inject(headers: Record<string, string>): Record<string, string> {
     const carrier = { ...headers };
     this.propagator.inject(context.active(), carrier, {
-      set: (carrier, key, value) => {
+      set: (carrier: any, key: string, value: string) => {
         carrier[key] = value;
       },
-      get: (carrier, key) => carrier[key],
     });
     return carrier;
   }
@@ -514,7 +517,7 @@ export class TracePropagation {
   /**
    * Extract trace context from headers
    */
-  public static extract(headers: Record<string, string>): context.Context {
+  public static extract(headers: Record<string, string>): Context {
     return this.propagator.extract(context.active(), headers, {
       get: (carrier, key) => {
         const value = carrier[key];

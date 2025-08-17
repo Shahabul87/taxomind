@@ -446,11 +446,13 @@ export class SessionManager {
     
     if (session) {
       // Update last accessed time
-      session.lastAccessed = Date.now();
-      await redisCache.setSession(sessionId, session);
+      const sessionData = session as SessionData;
+      sessionData.lastAccessed = Date.now();
+      await redisCache.setSession(sessionId, sessionData);
+      return sessionData;
     }
 
-    return session;
+    return null;
   }
 
   /**

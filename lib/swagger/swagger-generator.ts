@@ -293,8 +293,8 @@ function generateMarkdownSummary(spec: any): string {
   const pathsByTag: Record<string, Array<{ path: string; method: string; summary?: string }>> = {};
 
   for (const [path, pathItem] of Object.entries(spec.paths || {})) {
-    for (const [method, operation] of Object.entries(pathItem)) {
-      if (typeof operation === 'object' && 'summary' in operation) {
+    for (const [method, operation] of Object.entries(pathItem as Record<string, unknown>)) {
+      if (typeof operation === 'object' && operation !== null && 'summary' in operation) {
         const tags = (operation as any).tags || ['Other'];
         const summary = (operation as any).summary;
 

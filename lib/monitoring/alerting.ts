@@ -118,7 +118,7 @@ export class AlertManager {
   private async initializeNotificationChannels(): Promise<void> {
     // Email configuration
     if (process.env.SMTP_HOST) {
-      this.emailTransporter = nodemailer.createTransporter({
+      this.emailTransporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT || '587'),
         secure: process.env.SMTP_SECURE === 'true',
@@ -727,16 +727,18 @@ export class AlertManager {
     try {
       await redis.set(
         `alert:${alert.id}`,
-        JSON.stringify(alert),
-        'EX',
-        30 * 24 * 60 * 60 // 30 days retention
+        JSON.stringify(alert)
       );
+      await redis.expire(`alert:${alert.id}`, 30 * 24 * 60 * 60); // 30 days retention
       
       // Also store in sorted set for querying
-      await redis.zadd('alerts:timeline',
-        alert.timestamp.getTime(),
-        alert.id
-      );
+      // Store in sorted set for querying (if Redis supports it)
+      if ('zadd' in redis) {
+        (redis as any).zadd('alerts:timeline',
+          alert.timestamp.getTime(),
+          alert.id
+        );
+      }
     } catch (error) {
       console.error('Failed to store alert: ', error);
     }
@@ -800,11 +802,14 @@ export class AlertManager {
   ): Promise<Alert[]> {
     const alerts: Alert[] = [];
     
-    // Get alert IDs from timeline
-    const alertIds = await redis.zrangebyscore('alerts:timeline',
-      startTime.getTime(),
-      endTime.getTime()
-    );
+    // Get alert IDs from timeline (if Redis supports it)
+    let alertIds: string[] = [];
+    if ('zrangebyscore' in redis) {
+      alertIds = await (redis as any).zrangebyscore('alerts:timeline',
+        startTime.getTime(),
+        endTime.getTime()
+      );
+    }
     
     // Fetch alerts
     for (const alertId of alertIds) {

@@ -391,7 +391,7 @@ export function InfiniteVirtualScrollList<T extends VirtualScrollItem>({
       setIsLoading(true);
       await loadNextPage();
     } catch (error) {
-      logger.error(error as Error, "Error loading next page:");
+      logger.error("Error loading next page:", error as Error);
     } finally {
       setIsLoading(false);
     }

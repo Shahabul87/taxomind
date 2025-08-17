@@ -619,7 +619,12 @@ export class IncidentResponseManager {
   }
   
   private async clearCache(): Promise<string> {
-    await redis.flushdb();
+    if ('flushdb' in redis) {
+      await (redis as any).flushdb();
+    } else {
+      // Fallback for Redis clients without flushdb
+      console.warn('Redis flushdb not available');
+    }
     return 'Cache cleared successfully';
   }
   
@@ -862,10 +867,9 @@ export class IncidentResponseManager {
     try {
       await redis.set(
         `incident:${incident.id}`,
-        JSON.stringify(incident),
-        'EX',
-        90 * 24 * 60 * 60 // 90 days retention
+        JSON.stringify(incident)
       );
+      await redis.expire(`incident:${incident.id}`, 90 * 24 * 60 * 60); // 90 days retention
     } catch (error) {
       console.error('Failed to store incident:', error);
     }

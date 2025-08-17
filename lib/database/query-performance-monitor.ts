@@ -64,7 +64,7 @@ class QueryPerformanceMonitor {
   /**
    * Wrap Prisma client to monitor query performance
    */
-  wrapPrismaClient(prisma: PrismaClient): PrismaClient {
+  wrapPrismaClient(prisma: PrismaClient): any {
     if (!this.isEnabled) return prisma;
 
     const monitor = this;

@@ -108,7 +108,7 @@ export const GET = withErrorHandler(
       });
 
       // Calculate average rating
-      const reviews = await db.review.aggregate({
+      const reviews = await db.courseReview.aggregate({
         where: {
           courseId: params.courseId,
         },

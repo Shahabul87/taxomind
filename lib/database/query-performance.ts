@@ -102,7 +102,7 @@ export class OptimizedQueries {
       },
       select: {
         courseId: true,
-        completedChapterIds: true,
+        progress: true,
       }
     });
 
@@ -125,7 +125,7 @@ export class OptimizedQueries {
       )?._count.id || 0;
 
       if (totalChapters > 0) {
-        const progress = (record.completedChapterIds.length / totalChapters) * 100;
+        const progress = record.progress || 0;
         progressMap.set(record.courseId, Math.round(progress));
       }
     }
@@ -173,7 +173,7 @@ export class OptimizedQueries {
         where: { userId },
         select: {
           courseId: true,
-          completedChapterIds: true,
+          progress: true,
         }
       })
     ]);
@@ -317,7 +317,7 @@ export class OptimizedQueries {
         published: true,
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -362,11 +362,11 @@ export class OptimizedQueries {
       //   }
       // }); // PostLike model doesn't exist
 
-      const likedPostIds = new Set(userLikes.map((l: any) => l.postId));
+      const likedPostIds = new Set([]); // userLikes is not available since PostLike model doesn't exist
 
       return posts.map(post => ({
         ...post,
-        isLikedByUser: likedPostIds.has(post.id),
+        isLikedByUser: false, // Always false since PostLike model doesn't exist
       }));
     }
 

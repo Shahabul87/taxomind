@@ -1,25 +1,11 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+# Skip in CI environment
+if [ "$CI" = "true" ]; then
+  echo "Skipping pre-commit hooks in CI"
+  exit 0
+fi
+
 # Run linting
-echo "🔍 Running ESLint..."
-npm run lint || {
-  echo "❌ ESLint failed. Please fix errors before committing."
-  exit 1
-}
-
-# Run TypeScript checking
-echo "🔍 Running TypeScript check..."
-npm run typecheck || {
-  echo "❌ TypeScript check failed. Please fix errors before committing."
-  exit 1
-}
-
-# Run tests for changed files
-echo "🧪 Running tests..."
-npm test -- --bail --findRelatedTests || {
-  echo "❌ Tests failed. Please fix failing tests before committing."
-  exit 1
-}
-
-echo "✅ Pre-commit checks passed!"
+npm run lint

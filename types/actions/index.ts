@@ -63,7 +63,7 @@ export interface CourseWithRelations extends Course {
 /**
  * Post with relations for actions
  */
-export interface PostWithRelations extends Post {
+export interface PostWithRelations extends Omit<Post, 'category'> {
   user?: User;
   category?: {
     id: string;

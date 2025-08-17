@@ -163,15 +163,15 @@ export const LazyRoutes = {
   ),
 
   // Course routes
-  CourseOverview: createLazyComponent(
-    () => import('@/app/courses/[courseId]/page'),
-    { fallback: 'CourseContent', preload: true }
-  ),
+  // CourseOverview: createLazyComponent(
+  //   () => import('@/app/courses/[courseId]/page'),
+  //   { fallback: 'CourseContent', preload: true }
+  // ),
 
-  CourseLearning: createLazyComponent(
-    () => import('@/app/courses/[courseId]/chapters/[chapterId]/page'),
-    { fallback: 'CourseContent' }
-  ),
+  // CourseLearning: createLazyComponent(
+  //   () => import('@/app/courses/[courseId]/chapters/[chapterId]/page'),
+  //   { fallback: 'CourseContent' }
+  // ),
 
   // Analytics routes
   Analytics: createLazyComponent(
@@ -399,7 +399,7 @@ export class PreloadStrategy {
       const routeMap: Record<string, () => Promise<any>> = {
         '/dashboard': () => import('@/app/dashboard/page'),
         '/analytics': () => import('@/components/analytics/enhanced-analytics-dashboard'),
-        '/courses': () => import('@/app/courses/[courseId]/page'),
+        // '/courses': () => import('@/app/courses/[courseId]/page'), // Module doesn't exist
         '/profile': () => import('@/app/dashboard/user/page'),
       };
 

@@ -131,11 +131,11 @@ class DatabaseConnectionPool {
         min: config?.min || 2,
         max: config?.max || this.getOptimalMaxConnections(),
         // acquireTimeoutMillis: config?.acquireTimeoutMillis || 60000, // Not supported by pg Pool
-        createTimeoutMillis: config?.createTimeoutMillis || 30000,
-        destroyTimeoutMillis: config?.destroyTimeoutMillis || 5000,
+        // createTimeoutMillis: config?.createTimeoutMillis || 30000, // Not supported by pg Pool
+        // destroyTimeoutMillis: config?.destroyTimeoutMillis || 5000, // Not supported by pg Pool
         idleTimeoutMillis: config?.idleTimeoutMillis || 300000, // 5 minutes
-        reapIntervalMillis: config?.reapIntervalMillis || 10000,  // 10 seconds
-        createRetryIntervalMillis: config?.createRetryIntervalMillis || 200,
+        // reapIntervalMillis: config?.reapIntervalMillis || 10000,  // Not supported by pg Pool
+        // createRetryIntervalMillis: config?.createRetryIntervalMillis || 200, // Not supported by pg Pool
         
         // Advanced PostgreSQL settings
         connectionTimeoutMillis: config?.connectionTimeoutMillis || 10000,
@@ -160,12 +160,12 @@ class DatabaseConnectionPool {
       
       min: config?.min || 2,
       max: config?.max || this.getOptimalMaxConnections(),
-      acquireTimeoutMillis: config?.acquireTimeoutMillis || 60000,
-      createTimeoutMillis: config?.createTimeoutMillis || 30000,
-      destroyTimeoutMillis: config?.destroyTimeoutMillis || 5000,
+      // acquireTimeoutMillis: config?.acquireTimeoutMillis || 60000, // Not supported by pg Pool
+      // createTimeoutMillis: config?.createTimeoutMillis || 30000, // Not supported by pg Pool
+      // destroyTimeoutMillis: config?.destroyTimeoutMillis || 5000, // Not supported by pg Pool
       idleTimeoutMillis: config?.idleTimeoutMillis || 300000,
-      reapIntervalMillis: config?.reapIntervalMillis || 10000,
-      createRetryIntervalMillis: config?.createRetryIntervalMillis || 200,
+      // reapIntervalMillis: config?.reapIntervalMillis || 10000, // Not supported by pg Pool
+      // createRetryIntervalMillis: config?.createRetryIntervalMillis || 200, // Not supported by pg Pool
       
       connectionTimeoutMillis: config?.connectionTimeoutMillis || 10000,
       statement_timeout: config?.statement_timeout || 60000,

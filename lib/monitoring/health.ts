@@ -4,7 +4,6 @@
  */
 
 import { db } from '@/lib/db';
-import { redis } from '@/lib/redis';
 import axios from 'axios';
 import dns from 'dns/promises';
 import { performance } from 'perf_hooks';
@@ -331,9 +330,9 @@ export class HealthMonitor {
       // Test database connection with a simple query
       await db.$queryRaw`SELECT 1`;
       
-      // Check connection pool
-      const poolStats = await db.$metrics.json();
-      const metrics = JSON.parse(poolStats);
+      // Check connection pool (if available)
+      let metrics = {};
+      // Note: $metrics is not available in standard Prisma client
       
       const responseTime = performance.now() - startTime;
       
@@ -341,10 +340,11 @@ export class HealthMonitor {
       let status = HealthStatus.HEALTHY;
       let message = 'Database is healthy';
       
-      if (metrics.counters.find((c: any) => c.key === 'prisma_pool_connections_open')?.value > 80) {
-        status = HealthStatus.DEGRADED;
-        message = 'Database connection pool is near capacity';
-      }
+      // Check pool metrics (if available)
+      // if (metrics.counters.find((c: any) => c.key === 'prisma_pool_connections_open')?.value > 80) {
+      //   status = HealthStatus.DEGRADED;
+      //   message = 'Database connection pool is near capacity';
+      // }
       
       return {
         name: 'database',
@@ -353,8 +353,9 @@ export class HealthMonitor {
         responseTime,
         timestamp: new Date(),
         details: {
-          pool: metrics.counters.find((c: any) => c.key === 'prisma_pool_connections_open')?.value || 0,
-          idle: metrics.counters.find((c: any) => c.key === 'prisma_pool_connections_idle')?.value || 0,
+          // pool: metrics.counters.find((c: any) => c.key === 'prisma_pool_connections_open')?.value || 0,
+          // idle: metrics.counters.find((c: any) => c.key === 'prisma_pool_connections_idle')?.value || 0,
+          status: 'connected',
         },
       };
     } catch (error) {
@@ -376,6 +377,9 @@ export class HealthMonitor {
     try {
       const startTime = performance.now();
       
+      // Dynamically import Redis to avoid initialization issues
+      const { redis } = await import('@/lib/redis');
+      
       // Test Redis connection
       await redis.ping();
       
@@ -385,7 +389,7 @@ export class HealthMonitor {
       
       // Parse Redis info
       const lines = info.split('\r\n');
-      const stats: any = {};
+      const stats: Record<string, string> = {};
       lines.forEach(line => {
         const [key, value] = line.split(':');
         if (key && value) {

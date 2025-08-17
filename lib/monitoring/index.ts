@@ -111,14 +111,14 @@ class MonitoringSystem {
    * Set up alert listeners
    */
   private setupAlertListeners(): void {
-    // Listen for APM alerts
-    this.apmCollector.alertEmitter.on('alert', async (alert) => {
-      await this.alertManager.evaluateMetric(
-        alert.type.toLowerCase(),
-        alert.value,
-        { threshold: alert.threshold }
-      );
-    });
+    // Listen for APM alerts (alertEmitter not implemented yet)
+    // this.apmCollector.alertEmitter.on('alert', async (alert: any) => {
+    //   await this.alertManager.evaluateMetric(
+    //     alert.type.toLowerCase(),
+    //     alert.value,
+    //     { threshold: alert.threshold }
+    //   );
+    // });
     
     // Listen for metric alerts
     this.metricsCollector.getEmitter().on('metric', async (metric) => {

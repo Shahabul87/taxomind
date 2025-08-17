@@ -70,18 +70,20 @@ const instrumentations = [
   // HTTP instrumentation with custom configuration
   new HttpInstrumentation({
     requestHook: (span, request) => {
+      const req = request as any;
       span.setAttributes({
-        'http.request.body.size': request.headers['content-length'] || 0,
-        'http.request.user_agent': request.headers['user-agent'] || 'unknown',
+        'http.request.body.size': req.headers?.['content-length'] || 0,
+        'http.request.user_agent': req.headers?.['user-agent'] || 'unknown',
       });
     },
     responseHook: (span, response) => {
+      const res = response as any;
       span.setAttributes({
-        'http.response.body.size': response.headers['content-length'] || 0,
+        'http.response.body.size': res.headers?.['content-length'] || 0,
       });
     },
-    ignoreIncomingPaths: ['/health', '/metrics', '/favicon.ico'],
-    ignoreOutgoingUrls: [(url) => url.includes('telemetry')],
+    // ignoreIncomingPaths: ['/health', '/metrics', '/favicon.ico'], // Not supported in this version
+    // ignoreOutgoingUrls: [(url: string) => url.includes('telemetry')], // Not supported in this version
   }),
   
   // Prisma instrumentation for database queries
