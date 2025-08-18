@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+
 import { useRouter } from "next/navigation";
+
+import axios from "axios";
+import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import axios from "axios";
+
 import { logger } from '@/lib/logger';
 
 interface EnrollButtonProps {
@@ -14,11 +17,11 @@ interface EnrollButtonProps {
   userId?: string;
 }
 
-export const EnrollButton = ({ courseId, price, userId }: EnrollButtonProps) => {
+export const EnrollButton = ({ courseId, price, userId }: EnrollButtonProps): JSX.Element => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleEnroll = async () => {
+  const handleEnroll = async (): Promise<void> => {
     try {
       if (!userId) {
         router.push("/auth/login");
@@ -29,24 +32,25 @@ export const EnrollButton = ({ courseId, price, userId }: EnrollButtonProps) => 
       
       if (price === 0) {
 
-        const response = await axios.post(`/api/courses/${courseId}/enroll`);
+        await axios.post(`/api/courses/${courseId}/enroll`);
 
         toast.success("Successfully enrolled in the course!");
         router.refresh(); // Refresh the page data
         router.push(`/courses/${courseId}/success?success=1`);
       } else {
 
-        const response = await axios.post(`/api/courses/${courseId}/checkout`);
+        const response = await axios.post<{ url?: string }>(`/api/courses/${courseId}/checkout`);
 
-        if (response.data.url) {
+        if (response.data?.url) {
           window.location.href = response.data.url;
         } else {
           throw new Error("No checkout URL received");
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("Enrollment error:", error);
-      toast.error(error.response?.data || "Something went wrong. Please try again.");
+      const axiosError = error as { response?: { data?: string } };
+      toast.error(axiosError.response?.data ?? "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +58,10 @@ export const EnrollButton = ({ courseId, price, userId }: EnrollButtonProps) => 
 
   return (
     <motion.button
-      onClick={handleEnroll}
+      onClick={() => {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        handleEnroll();
+      }}
       disabled={isLoading}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}

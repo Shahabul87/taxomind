@@ -1,10 +1,13 @@
 "use client";
 
 import React from 'react';
+
 import Image from 'next/image';
+
+import { Course } from '@prisma/client';
 import { motion } from 'framer-motion';
 import { Star, Clock, User } from 'lucide-react';
-import { Course } from '@prisma/client';
+
 import { cleanHtmlContent } from '../utils/html-utils';
 
 interface CourseHeroSectionProps {
@@ -21,17 +24,17 @@ interface CourseHeroSectionProps {
   };
 }
 
-export const CourseHeroSection = ({ course }: CourseHeroSectionProps) => {
+export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Element => {
   // Calculate average rating
   const averageRating = course.reviews?.length 
     ? (course.reviews.reduce((acc, review) => acc + review.rating, 0) / course.reviews.length).toFixed(1)
     : "0.0";
 
   // Get total reviews count
-  const totalReviews = course.reviews?.length || 0;
+  const totalReviews = course.reviews?.length ?? 0;
 
   // Get total enrollments
-  const totalEnrollments = course._count?.enrollments || 0;
+  const totalEnrollments = course._count?.enrollments ?? 0;
 
   // Format last updated date
   const lastUpdated = new Date(course.updatedAt).toLocaleDateString('en-US', {
@@ -45,7 +48,7 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps) => {
       {/* Background Image with Gradient Overlay */}
       <div className="absolute inset-0">
         <Image
-          src={course.imageUrl || '/default-course.jpg'}
+          src={course.imageUrl ?? '/default-course.jpg'}
           alt={course.title}
           fill
           className="object-cover"
@@ -82,7 +85,7 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps) => {
               flex items-center gap-2
             ">
               <div className="w-2 h-2 rounded-full bg-purple-400" />
-              {course.category?.name || 'Category not specified'}
+              {course.category?.name ?? 'Category not specified'}
             </span>
           </motion.div>
 

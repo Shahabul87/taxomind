@@ -1,16 +1,19 @@
 "use client";
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+
 import { Course } from '@prisma/client';
-import { parseHtmlContent } from '../utils/html-utils';
+import { motion } from 'framer-motion';
+
 import { cn } from '@/lib/utils';
+
+import { parseHtmlContent } from '../utils/html-utils';
 
 interface CourseDescriptionProps {
   course: Course;
 }
 
-export const CourseDescription = ({ course }: CourseDescriptionProps) => {
+export const CourseDescription = ({ course }: CourseDescriptionProps): JSX.Element => {
   const [showFullDescription, setShowFullDescription] = useState(false);
 
   return (

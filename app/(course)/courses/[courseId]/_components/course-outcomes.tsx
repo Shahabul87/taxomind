@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
+
 import { motion } from "framer-motion";
 import { BookOpen, CheckCircle2, ChevronRight } from "lucide-react";
-import { useState } from "react";
+
 import { cn } from "@/lib/utils";
 
 interface CourseOutcomesProps {
@@ -14,7 +16,7 @@ interface CourseOutcomesProps {
   }[];
 }
 
-export const CourseOutcomes = ({ chapters }: CourseOutcomesProps) => {
+export const CourseOutcomes = ({ chapters }: CourseOutcomesProps): JSX.Element => {
   const [activeChapter, setActiveChapter] = useState(chapters[0]?.id);
 
   return (
@@ -98,9 +100,9 @@ export const CourseOutcomes = ({ chapters }: CourseOutcomesProps) => {
                   </p>
                 )}
                 <div className="space-y-4">
-                  {(chapter.learningOutcomes?.split(',') || []).map((outcome, index) => (
+                  {(chapter.learningOutcomes?.split(',') ?? []).map((outcome, index) => (
                     <motion.div
-                      key={index}
+                      key={`${chapter.id}-outcome-${outcome.trim().slice(0, 10)}-${index}`}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.1 }}

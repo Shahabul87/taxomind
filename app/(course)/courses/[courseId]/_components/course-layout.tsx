@@ -1,11 +1,13 @@
 "use client";
 
 import React from 'react';
+
 import { Course, Chapter } from '@prisma/client';
-import { CourseHeroSection } from './course-hero-section';
+
 import { CourseDescription } from './course-description';
-import { CourseLearningObjectives } from './course-learning-objectives';
+import { CourseHeroSection } from './course-hero-section';
 import { CourseInfoCard } from './course-info-card';
+import { CourseLearningObjectives } from './course-learning-objectives';
 
 interface CourseLayoutProps {
   course: Course & { 
@@ -25,7 +27,7 @@ interface CourseLayoutProps {
   isEnrolled?: boolean;
 }
 
-export const CourseLayout = ({ course, userId, isEnrolled = false }: CourseLayoutProps) => {
+export const CourseLayout = ({ course, userId, isEnrolled = false }: CourseLayoutProps): JSX.Element => {
   return (
     <div className="min-h-screen bg-white/10 dark:bg-gradient-to-b dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Hero Section */}

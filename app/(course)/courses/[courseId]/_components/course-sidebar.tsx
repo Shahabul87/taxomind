@@ -1,9 +1,10 @@
-import { currentUser } from "@/lib/auth";
-import { Chapter, Course, user_progress } from "@prisma/client"
 import { redirect } from "next/navigation";
 
-import { db } from "@/lib/db";
+import { Chapter, Course, user_progress } from "@prisma/client"
+
 import { CourseProgress } from "@/components/course-progress";
+import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 import { CourseSidebarItem } from "./course-sidebar-item";
 
@@ -19,7 +20,7 @@ interface CourseSidebarProps {
 export const CourseSidebar = async ({
   course,
   progressCount,
-}: CourseSidebarProps) => {
+}: CourseSidebarProps): Promise<JSX.Element> => {
     const user = await currentUser();
 
     if(!user?.id){

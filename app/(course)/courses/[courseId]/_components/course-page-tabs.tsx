@@ -1,18 +1,19 @@
 "use client";
 
 import React, { useState } from 'react';
+
+import { Chapter, Section } from '@prisma/client';
 import { motion } from 'framer-motion';
 import { 
-  BookOpen, 
-  List, 
-  Star,
   Grid3X3,
   FileText,
   MessageSquare
 } from 'lucide-react';
-import { Chapter, Section } from '@prisma/client';
+
+
 import { CourseCardsCarousel } from '../course-card-carousel';
 import { CourseContent } from '../course-content';
+
 import { CourseReviews } from './course-reviews';
 
 type CourseReview = {
@@ -79,7 +80,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
     }
   ];
 
-  const renderTabContent = () => {
+  const renderTabContent = (): JSX.Element | null => {
     switch (activeTab) {
       case 'breakdown':
         return (

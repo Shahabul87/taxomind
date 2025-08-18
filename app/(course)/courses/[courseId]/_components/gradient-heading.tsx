@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 
 interface GradientHeadingProps {
   text: string;
@@ -17,7 +17,7 @@ const GradientHeading = ({
   gradientVia, 
   gradientTo,
   iconColor 
-}: GradientHeadingProps) => {
+}: GradientHeadingProps): JSX.Element => {
   return (
     <div className="relative mb-4 sm:mb-6 md:mb-6 mt-6 sm:mt-8 md:mt-10">
       <div className="flex items-center gap-2 sm:gap-3 max-w-[1800px] mx-auto">

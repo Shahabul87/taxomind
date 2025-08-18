@@ -1,12 +1,16 @@
 "use client";
 
 import React from 'react';
+
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+
 import { Course } from '@prisma/client';
+import { motion } from 'framer-motion';
+
+import { CourseSocialMediaShare } from '../course-social-media-sharing';
+
 import { CourseEnrollButton } from './course-enroll-button';
 import { CourseFeaturesList } from './course-features-list';
-import { CourseSocialMediaShare } from '../course-social-media-sharing';
 
 interface CourseInfoCardProps {
   course: Course;
@@ -15,7 +19,7 @@ interface CourseInfoCardProps {
   features?: string[];
 }
 
-export const CourseInfoCard = ({ course, userId, isEnrolled = false, features }: CourseInfoCardProps) => {
+export const CourseInfoCard = ({ course, userId, isEnrolled = false, features }: CourseInfoCardProps): JSX.Element => {
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -27,7 +31,7 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false, features }:
         {/* Course Image */}
         <div className="aspect-video relative rounded-lg overflow-hidden">
           <Image
-            src={course.imageUrl || '/default-course.jpg'}
+            src={course.imageUrl ?? '/default-course.jpg'}
             alt={course.title}
             fill
             className="object-cover"

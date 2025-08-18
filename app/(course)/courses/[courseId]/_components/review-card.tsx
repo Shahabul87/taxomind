@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
+
 import { motion } from "framer-motion";
 import { Star, User } from "lucide-react";
+
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 
 interface ReviewCardProps {
   review: {
@@ -19,7 +21,7 @@ interface ReviewCardProps {
   index: number;
 }
 
-export const ReviewCard = ({ review, index }: ReviewCardProps) => {
+export const ReviewCard = ({ review, index }: ReviewCardProps): JSX.Element => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -33,7 +35,7 @@ export const ReviewCard = ({ review, index }: ReviewCardProps) => {
           {review.user.image ? (
             <Image
               src={review.user.image} 
-              alt={review.user.name || "User"}
+              alt={review.user.name ?? "User"}
               width={40}
               height={40}
               className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
@@ -45,12 +47,12 @@ export const ReviewCard = ({ review, index }: ReviewCardProps) => {
           )}
           <div>
             <p className="font-medium text-gray-900 dark:text-gray-200">
-              {review.user.name || "Anonymous User"}
+              {review.user.name ?? "Anonymous User"}
             </p>
             <div className="flex items-center gap-1 mt-1">
-              {[...Array(5)].map((_, i) => (
+              {Array.from({ length: 5 }, (_, i) => (
                 <Star
-                  key={i}
+                  key={`star-${review.id}-${i}`}
                   className={cn(
                     "w-4 h-4",
                     i < review.rating 

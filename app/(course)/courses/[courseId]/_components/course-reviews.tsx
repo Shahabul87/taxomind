@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import axios from "axios";
-import { Star, MessageSquare, User, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
+import { useRouter } from "next/navigation";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
+import { motion, AnimatePresence } from "framer-motion";
+import { Star, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
+
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -17,9 +20,9 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+
 import { ReviewCard } from "./review-card";
 
 const formSchema = z.object({
@@ -29,12 +32,23 @@ const formSchema = z.object({
   }),
 });
 
-interface CourseReviewsProps {
-  courseId: string;
-  initialReviews?: any[];
+interface CourseReview {
+  id: string;
+  rating: number;
+  comment: string;
+  user: {
+    name: string;
+    image?: string;
+  };
+  createdAt: Date;
 }
 
-export const CourseReviews = ({ courseId, initialReviews = [] }: CourseReviewsProps) => {
+interface CourseReviewsProps {
+  courseId: string;
+  initialReviews?: CourseReview[];
+}
+
+export const CourseReviews = ({ courseId, initialReviews = [] }: CourseReviewsProps): JSX.Element => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviews, setReviews] = useState(initialReviews);
   const [selectedRating, setSelectedRating] = useState(0);
@@ -48,18 +62,19 @@ export const CourseReviews = ({ courseId, initialReviews = [] }: CourseReviewsPr
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>): Promise<void> => {
     try {
       setIsSubmitting(true);
-      const response = await axios.post(`/api/courses/${courseId}/reviews`, values);
+      const response = await axios.post<CourseReview>(`/api/courses/${courseId}/reviews`, values);
       
       setReviews([response.data, ...reviews]);
       form.reset();
       setSelectedRating(0);
       toast.success("Review submitted successfully!");
       router.refresh();
-    } catch (error: any) {
-      toast.error(error.response?.data || "Something went wrong");
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: string } };
+      toast.error(axiosError.response?.data ?? "Something went wrong");
     } finally {
       setIsSubmitting(false);
     }
@@ -112,7 +127,15 @@ export const CourseReviews = ({ courseId, initialReviews = [] }: CourseReviewsPr
 
         {/* Review Form */}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              form.handleSubmit(onSubmit)(e).catch(() => {
+                // Handle form submission error silently
+              });
+            }}
+            className="space-y-4"
+          >
             <div className="flex items-center gap-2 mb-4">
               {[1, 2, 3, 4, 5].map((rating) => (
                 <motion.button

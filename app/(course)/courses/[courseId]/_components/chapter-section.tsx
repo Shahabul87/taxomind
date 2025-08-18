@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from 'framer-motion';
-import { PlayCircle, BookOpen, Lock, CheckCircle, Eye, Unlock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { Section } from '@prisma/client';
+import { motion } from 'framer-motion';
+import { PlayCircle, BookOpen, Lock, CheckCircle, Eye, Unlock } from 'lucide-react';
 
 import { cn } from "@/lib/utils";
 
@@ -20,11 +20,11 @@ export const ChapterSection = ({
   courseId, 
   chapterId, 
   isEnrolled = false 
-}: ChapterSectionProps) => {
+}: ChapterSectionProps): JSX.Element => {
   const router = useRouter();
   const isAccessible = isEnrolled || section.isFree || section.isPreview;
   
-  const handleSectionClick = () => {
+  const handleSectionClick = (): void => {
     if (!isAccessible || !courseId || !chapterId) {
       // Redirect to course enrollment page if not accessible or missing props
       if (courseId) {
@@ -42,7 +42,7 @@ export const ChapterSection = ({
     }
   };
 
-  const getSectionBadge = () => {
+  const getSectionBadge = (): JSX.Element | null => {
     if (section.isPreview) {
       return (
         <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-500/20 flex items-center gap-1">

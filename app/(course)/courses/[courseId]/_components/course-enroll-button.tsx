@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import axios from "axios";
-import { Loader2 } from "lucide-react";
+
 import { Course } from '@prisma/client';
+import axios from "axios";
+import { motion } from 'framer-motion';
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface CourseEnrollButtonProps {
   course: Course;
@@ -14,11 +16,11 @@ interface CourseEnrollButtonProps {
   isEnrolled?: boolean;
 }
 
-export const CourseEnrollButton = ({ course, userId, isEnrolled = false }: CourseEnrollButtonProps) => {
+export const CourseEnrollButton = ({ course, userId, isEnrolled = false }: CourseEnrollButtonProps): JSX.Element => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleEnroll = async () => {
+  const handleEnroll = async (): Promise<void> => {
     try {
       if (!userId) {
         // Store the current URL to redirect back after login
@@ -30,24 +32,30 @@ export const CourseEnrollButton = ({ course, userId, isEnrolled = false }: Cours
       
       if (!course.price || course.price === 0) {
         try {
-          const response = await axios.post(`/api/courses/${course.id}/enroll`);
+          await axios.post(`/api/courses/${course.id}/enroll`);
           toast.success("Successfully enrolled in the course!");
           router.refresh();
           router.push(`/courses/${course.id}/success?success=1`);
-        } catch (error: any) {
-          toast.error(error.response?.data || "Failed to enroll in the course");
+        } catch (error: unknown) {
+          const axiosError = error as { response?: { data?: string } };
+          toast.error(axiosError.response?.data ?? "Failed to enroll in the course");
         }
       } else {
         try {
-          const response = await axios.post(`/api/courses/${course.id}/checkout`);
-          if (response.data.url) {
-            window.location.href = response.data.url; // Stripe checkout URL
+          const response = await axios.post<{ url?: string }>(`/api/courses/${course.id}/checkout`);
+          const checkoutUrl = response.data?.url;
+          if (checkoutUrl) {
+            window.location.href = checkoutUrl; // Stripe checkout URL
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
+          // eslint-disable-next-line no-console
+          console.error('Payment initiation failed:', error);
           toast.error("Failed to initiate payment");
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
+      console.error('Enrollment failed:', error);
       toast.error("Something went wrong");
     } finally {
       setIsLoading(false);
@@ -73,7 +81,10 @@ export const CourseEnrollButton = ({ course, userId, isEnrolled = false }: Cours
       {isEnrolled ? (
         <button 
           className="w-full group relative px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-green-500/25"
-          onClick={() => router.push(`/courses/${course.id}/learn`)}
+          onClick={() => {
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            router.push(`/courses/${course.id}/learn`);
+          }}
           disabled={isLoading}
         >
           <span className="relative z-10 flex items-center justify-center gap-2">
@@ -94,7 +105,10 @@ export const CourseEnrollButton = ({ course, userId, isEnrolled = false }: Cours
       ) : (
         <button 
           className="w-full group relative px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-purple-500/25"
-          onClick={handleEnroll}
+          onClick={() => {
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            handleEnroll();
+          }}
           disabled={isLoading}
         >
           <span className="relative z-10 flex items-center justify-center gap-2">
