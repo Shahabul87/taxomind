@@ -98,7 +98,7 @@ declare module '@opentelemetry/instrumentation-redis-4' {
   }
 }
 
-declare namespace twilio {
+declare module 'twilio' {
   interface TwilioClient {
     messages: {
       create(options: {
@@ -108,4 +108,8 @@ declare namespace twilio {
       }): Promise<any>;
     };
   }
+  
+  function twilio(accountSid: string, authToken: string): TwilioClient;
+  export = twilio;
+  export type Twilio = TwilioClient;
 }

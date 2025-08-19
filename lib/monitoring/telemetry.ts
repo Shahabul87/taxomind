@@ -66,7 +66,7 @@ const prometheusExporter = new PrometheusExporter({
 /**
  * Custom instrumentation configuration
  */
-const instrumentations = [
+const instrumentations: any[] = [
   // HTTP instrumentation with custom configuration
   new HttpInstrumentation({
     requestHook: (span, request) => {
@@ -93,7 +93,7 @@ const instrumentations = [
   
   // Redis instrumentation for cache operations
   new RedisInstrumentation({
-    dbStatementSerializer: (cmdName, cmdArgs) => {
+    dbStatementSerializer: (cmdName: string, cmdArgs: string[]) => {
       // Sanitize sensitive data in Redis commands
       if (cmdName === 'auth') return 'AUTH [REDACTED]';
       return `${cmdName} ${cmdArgs.join(' ')}`;
@@ -131,7 +131,7 @@ export const initTelemetry = (): NodeSDK => {
 
   // Register custom instrumentations
   registerInstrumentations({
-    instrumentations,
+    instrumentations: instrumentations as any,
   });
 
   // Initialize the SDK

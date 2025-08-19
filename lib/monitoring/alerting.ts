@@ -663,9 +663,15 @@ export class AlertManager {
   private async sendSMSAlert(config: Record<string, unknown>, alert: Alert): Promise<void> {
     if (!this.smsChannel?.client || !this.smsChannel.enabled) return;
     
+    const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+    if (!fromNumber) {
+      console.error('TWILIO_PHONE_NUMBER not configured');
+      return;
+    }
+    
     await this.smsChannel.client.messages.create({
       body: `[${alert.severity.toUpperCase()}] ${alert.title}\n${alert.message}`,
-      from: process.env.TWILIO_PHONE_NUMBER,
+      from: fromNumber,
       to: config.to as string,
     });
   }

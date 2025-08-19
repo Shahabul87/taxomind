@@ -472,11 +472,12 @@ export class SessionManager {
       return false;
     }
 
+    const sessionData = session as SessionData;
     const updatedSession: SessionData = {
-      ...session,
+      ...sessionData,
       ...data,
       lastAccessed: Date.now(),
-      createdAt: session.createdAt || Date.now(),
+      createdAt: sessionData.createdAt || Date.now(),
     };
 
     return await redisCache.setSession(sessionId, updatedSession);
