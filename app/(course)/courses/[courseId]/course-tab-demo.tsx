@@ -116,7 +116,7 @@ const LearningOutcomes = ({
 
   const parseHtmlContent = (htmlString: string): React.ReactNode => {
     return parse(htmlString, {
-      replace: (domNode) => {
+      replace: (domNode: DOMNode) => {
         if (domNode.type === 'tag' && 'name' in domNode && domNode.name) {
           const children = 'children' in domNode ? domNode.children : [];
           const firstChild = children?.[0];
@@ -132,7 +132,7 @@ const LearningOutcomes = ({
             case 'u':
               return <span className="underline">{textContent}</span>;
             default:
-              return textContent;
+              return textContent as string;
           }
         }
         return undefined;

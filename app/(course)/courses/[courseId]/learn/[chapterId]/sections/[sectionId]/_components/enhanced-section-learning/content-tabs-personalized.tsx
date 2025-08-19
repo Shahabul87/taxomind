@@ -411,10 +411,10 @@ export const ContentTabsPersonalized = ({
                   id: video.id,
                   title: video.title,
                   url: '#', // Default URL since not available in schema
-                  duration: video.duration ?? null,
+                  duration: video.duration ?? undefined,
                   description: `Video: ${video.title}`, // Default description
-                  thumbnail: null,
-                  views: 0, // Default views
+                  thumbnail: undefined,
+                  views: undefined,
                   rating: undefined,
                   platform: undefined
                 }))} 
@@ -507,17 +507,7 @@ const VideoContentPersonalized = ({ videos, preferences }: { videos: VideoItem[]
           </CardContent>
         </Card>
       )}
-      <VideoContent videos={videos.map(video => ({
-        id: video.id,
-        title: video.title,
-        description: video.description,
-        url: video.url,
-        duration: video.duration,
-        thumbnail: video.thumbnail,
-        views: video.views,
-        rating: video.rating,
-        platform: video.platform
-      }))} />
+      <VideoContent videos={videos} />
     </div>
   );
 };

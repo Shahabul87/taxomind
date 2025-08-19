@@ -36,7 +36,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User } from "next-auth";
+// Import the SectionUser type from the local types file
+import type { SectionUser as User } from "./enhanced-section-learning/types";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
