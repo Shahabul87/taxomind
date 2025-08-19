@@ -37,8 +37,8 @@ interface CourseReview {
   rating: number;
   comment: string;
   user: {
-    name: string;
-    image?: string;
+    name: string | null;
+    image: string | null;
   };
   createdAt: Date;
 }

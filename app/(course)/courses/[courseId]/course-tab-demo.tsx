@@ -1,6 +1,6 @@
 "use client";
 
-import parse from 'html-react-parser';
+import parse, { DOMNode } from 'html-react-parser';
 import { motion } from 'framer-motion';
 import { BookOpen, CheckCircle2 } from 'lucide-react';
 import { Chapter } from '@prisma/client';
@@ -116,19 +116,22 @@ const LearningOutcomes = ({
 
   const parseHtmlContent = (htmlString: string): React.ReactNode => {
     return parse(htmlString, {
-      replace: (domNode: { type: string; name?: string; children?: { data?: string }[] }) => {
+      replace: (domNode: DOMNode) => {
         if (domNode.type === 'tag' && domNode.name) {
+          const children = domNode.children?.[0];
+          const textContent = children && 'data' in children ? children.data || '' : '';
+          
           switch (domNode.name) {
             case 'strong':
             case 'b':
-              return <span className="font-bold">{domNode.children?.[0]?.data || ''}</span>;
+              return <span className="font-bold">{textContent}</span>;
             case 'em':
             case 'i':
-              return <span className="italic">{domNode.children?.[0]?.data || ''}</span>;
+              return <span className="italic">{textContent}</span>;
             case 'u':
-              return <span className="underline">{domNode.children?.[0]?.data || ''}</span>;
+              return <span className="underline">{textContent}</span>;
             default:
-              return domNode.children?.[0]?.data || '';
+              return textContent;
           }
         }
       }

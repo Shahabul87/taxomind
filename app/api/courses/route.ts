@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
 import { currentUser } from "@/lib/auth";
 import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
@@ -141,19 +142,8 @@ export const GET = async (req: Request): Promise<NextResponse> => {
       return NextResponse.json(cached.value);
     }
 
-    // Build where clause based on working schema
-    interface WhereClause {
-      isPublished?: boolean;
-      categoryId?: string;
-      isFeatured?: boolean;
-      OR?: Array<{
-        title?: { contains: string; mode: string };
-        description?: { contains: string; mode: string };
-        cleanDescription?: { contains: string; mode: string };
-      }>;
-    }
-    
-    const whereClause: WhereClause = {
+    // Build where clause using proper Prisma types
+    const whereClause: Prisma.CourseWhereInput = {
       isPublished: true,
     };
     
@@ -163,9 +153,9 @@ export const GET = async (req: Request): Promise<NextResponse> => {
     
     if (search) {
       whereClause.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { cleanDescription: { contains: search, mode: 'insensitive' } },
+        { title: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        { description: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        { cleanDescription: { contains: search, mode: Prisma.QueryMode.insensitive } },
       ];
     }
     

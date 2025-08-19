@@ -20,12 +20,8 @@ type CourseReview = {
   id: string;
   rating: number;
   comment: string;
-  courseId: string;
-  userId: string;
   createdAt: Date;
-  updatedAt: Date;
   user: {
-    id: string;
     name: string | null;
     image: string | null;
   };

@@ -49,8 +49,8 @@ interface LearningPreferences {
 
 interface User {
   id: string;
-  name: string;
-  email: string;
+  name?: string | null;
+  email?: string | null;
 }
 
 interface ContentTabsPersonalizedProps {
@@ -407,7 +407,17 @@ export const ContentTabsPersonalized = ({
           >
             {activeContentTab === "videos" && (
               <VideoContentPersonalized 
-                videos={currentSection.videos ?? []} 
+                videos={(currentSection.videos ?? []).map(video => ({
+                  id: video.id,
+                  title: video.title,
+                  url: '#', // Default URL since not available in schema
+                  duration: video.duration ?? null,
+                  description: `Video: ${video.title}`, // Default description
+                  thumbnail: null,
+                  views: 0, // Default views
+                  rating: undefined,
+                  platform: undefined
+                }))} 
                 preferences={preferences}
               />
             )}
@@ -471,10 +481,12 @@ interface VideoItem {
   id: string;
   title: string;
   url: string;
-  duration?: string;
-  description: string;
+  duration?: number | null;
+  description?: string | null;
   thumbnail?: string | null;
-  views: number;
+  views?: number;
+  rating?: number;
+  platform?: string;
 }
 
 const VideoContentPersonalized = ({ videos, preferences }: { videos: VideoItem[], preferences: LearningPreferences }): JSX.Element => {
@@ -495,7 +507,17 @@ const VideoContentPersonalized = ({ videos, preferences }: { videos: VideoItem[]
           </CardContent>
         </Card>
       )}
-      <VideoContent videos={videos} />
+      <VideoContent videos={videos.map(video => ({
+        id: video.id,
+        title: video.title,
+        description: video.description,
+        url: video.url,
+        duration: video.duration,
+        thumbnail: video.thumbnail,
+        views: video.views,
+        rating: video.rating,
+        platform: video.platform
+      }))} />
     </div>
   );
 };

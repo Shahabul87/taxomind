@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { User } from "next-auth";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -55,10 +56,10 @@ import {
   SectionHeader,
   VideoPlayerSection,
   NavigationFooter,
-  EnhancedSectionLearningProps,
   ChapterWithProgress
 } from "./enhanced-section-learning/";
 import { ContentTabsPersonalized } from "./enhanced-section-learning/content-tabs-personalized";
+import { Section, Chapter, Course } from "./enhanced-section-learning/types";
 import { SocialLearningAnalytics } from "./social-learning-analytics";
 import { RealTimeCollaboration } from "./real-time-collaboration";
 
@@ -117,6 +118,21 @@ interface StudyBuddy {
   suggestions: string[];
 }
 
+interface EnhancedSectionLearningPersonalizedProps {
+  user: User & { id: string }; // Ensure id is required
+  course: Course;
+  currentChapter: Chapter;
+  currentSection: Section;
+  nextSection: Section | null;
+  prevSection: Section | null;
+  nextChapterSection: { section: Section; chapter: Chapter } | null;
+  totalSections: number;
+  completedSections: number;
+  courseId: string;
+  chapterId: string;
+  sectionId: string;
+}
+
 export const EnhancedSectionLearningPersonalized = ({
   user,
   course,
@@ -130,7 +146,7 @@ export const EnhancedSectionLearningPersonalized = ({
   courseId,
   chapterId,
   sectionId,
-}: EnhancedSectionLearningProps) => {
+}: EnhancedSectionLearningPersonalizedProps) => {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<"content" | "notes" | "discussion" | "exams" | "adaptive" | "resources" | "collaboration">("content");

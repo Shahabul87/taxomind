@@ -88,10 +88,10 @@ interface LazyComponentConfig {
 /**
  * Enhanced lazy loading with error boundaries and retry logic
  */
-export function createLazyComponent<T extends ComponentType<Record<string, unknown>>>(
-  importFn: () => Promise<{ default: T } | T>,
+export function createLazyComponent(
+  importFn: () => Promise<any>,
   config: LazyComponentConfig = {}
-): ComponentType<React.ComponentProps<T>> {
+): ComponentType<any> {
   const {
     fallback = 'Default',
     retryCount = 3,
@@ -102,14 +102,14 @@ export function createLazyComponent<T extends ComponentType<Record<string, unkno
 
   // Create lazy component with retry logic
   const LazyComponent = lazy(() => {
-    return new Promise<{ default: T }>((resolve, reject) => {
+    return new Promise<{ default: ComponentType<any> }>((resolve, reject) => {
       let attempts = 0;
 
       const attemptImport = async (): Promise<void> => {
         try {
           const moduleResult = await importFn();
           // Handle both default exports and module exports
-          const resolvedModule = 'default' in moduleResult ? moduleResult : { default: moduleResult as T };
+          const resolvedModule = 'default' in moduleResult ? moduleResult : { default: moduleResult };
           resolve(resolvedModule);
         } catch (error) {
           attempts++;
@@ -142,7 +142,7 @@ export function createLazyComponent<T extends ComponentType<Record<string, unkno
   }
 
   // Return wrapped component with suspense
-  return function WrappedLazyComponent(props: React.ComponentProps<T>) {
+  return function WrappedLazyComponent(props: any) {
     const LoadingComponent = LoadingComponents[fallback];
 
     return (
