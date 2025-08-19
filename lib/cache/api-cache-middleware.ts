@@ -476,6 +476,7 @@ export class SessionManager {
       ...session,
       ...data,
       lastAccessed: Date.now(),
+      createdAt: session.createdAt || Date.now(),
     };
 
     return await redisCache.setSession(sessionId, updatedSession);

@@ -1,4 +1,5 @@
-export interface User {
+// Use a more specific name to avoid conflicts with next-auth User
+export interface SectionUser {
   id: string;
   name?: string | null;
   email?: string | null;
@@ -42,7 +43,7 @@ export interface Course {
 }
 
 export interface EnhancedSectionLearningProps {
-  user: User;
+  user: SectionUser;
   course: Course;
   currentChapter: Chapter;
   currentSection: Section;

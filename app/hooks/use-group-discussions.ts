@@ -7,10 +7,15 @@ interface UseGroupDiscussionsProps {
   limit?: number;
 }
 
+interface DiscussionsResponse {
+  discussions: Array<any>;
+  metadata?: any;
+}
+
 export const useGroupDiscussions = ({ groupId, page = 1, limit = 10 }: UseGroupDiscussionsProps) => {
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, isLoading, mutate } = useSWR<DiscussionsResponse>(
     `/api/groups/${groupId}/discussions?page=${page}&limit=${limit}`,
-    fetcher
+    fetcher as (url: string) => Promise<DiscussionsResponse>
   );
 
   return {

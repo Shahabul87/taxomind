@@ -59,7 +59,7 @@ import {
   ChapterWithProgress
 } from "./enhanced-section-learning/";
 import { ContentTabsPersonalized } from "./enhanced-section-learning/content-tabs-personalized";
-import { Section, Chapter, Course } from "./enhanced-section-learning/types";
+import { SectionUser, Section, Chapter, Course } from "./enhanced-section-learning/types";
 import { SocialLearningAnalytics } from "./social-learning-analytics";
 import { RealTimeCollaboration } from "./real-time-collaboration";
 
@@ -119,7 +119,7 @@ interface StudyBuddy {
 }
 
 interface EnhancedSectionLearningPersonalizedProps {
-  user: User & { id: string }; // Ensure id is required
+  user: SectionUser;
   course: Course;
   currentChapter: Chapter;
   currentSection: Section;

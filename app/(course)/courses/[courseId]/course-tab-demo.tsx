@@ -116,10 +116,11 @@ const LearningOutcomes = ({
 
   const parseHtmlContent = (htmlString: string): React.ReactNode => {
     return parse(htmlString, {
-      replace: (domNode: DOMNode) => {
-        if (domNode.type === 'tag' && domNode.name) {
-          const children = domNode.children?.[0];
-          const textContent = children && 'data' in children ? children.data || '' : '';
+      replace: (domNode) => {
+        if (domNode.type === 'tag' && 'name' in domNode && domNode.name) {
+          const children = 'children' in domNode ? domNode.children : [];
+          const firstChild = children?.[0];
+          const textContent = firstChild && 'data' in firstChild ? firstChild.data || '' : '';
           
           switch (domNode.name) {
             case 'strong':
@@ -134,6 +135,7 @@ const LearningOutcomes = ({
               return textContent;
           }
         }
+        return undefined;
       }
     });
   };

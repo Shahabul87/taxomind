@@ -32,7 +32,7 @@ const formSchema = z.object({
   }),
 });
 
-interface CourseReview {
+export interface CourseReview {
   id: string;
   rating: number;
   comment: string;

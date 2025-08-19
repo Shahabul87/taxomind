@@ -164,7 +164,7 @@ export const GET = async (req: Request): Promise<NextResponse> => {
     }
     
     // Use direct Prisma queries following CLAUDE.md guidelines
-    const [courses, total] = await Promise.all([
+    const [coursesWithRelations, total] = await Promise.all([
       db.course.findMany({
         where: whereClause,
         include: {
@@ -207,12 +207,34 @@ export const GET = async (req: Request): Promise<NextResponse> => {
       })
     ]);
     
+    // Type assertion for courses with includes
+    const courses = coursesWithRelations as Array<{
+      id: string;
+      title: string;
+      subtitle: string | null;
+      description: string | null;
+      cleanDescription: string | null;
+      imageUrl: string | null;
+      price: number | null;
+      isPublished: boolean;
+      isFeatured: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+      categoryId: string | null;
+      userId: string;
+      category: { id: string; name: string; } | null;
+      user: { id: string; name: string | null; image: string | null; };
+      Enrollment: Array<{ createdAt: Date }> | false;
+      _count: { Enrollment: number; reviews: number; chapters: number; };
+      reviews: Array<{ rating: number }>;
+    }>;
+    
     // Process courses to add computed fields
     const processedCourses = courses.map(course => {
       // Calculate average rating
-      const ratings = course.reviews.map(r => r.rating);
+      const ratings = course.reviews.map((r: { rating: number }) => r.rating);
       const averageRating = ratings.length > 0 
-        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
+        ? ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratings.length 
         : 0;
       
       // Extract text from HTML description
@@ -247,7 +269,7 @@ export const GET = async (req: Request): Promise<NextResponse> => {
         averageRating: Math.round(averageRating * 10) / 10,
         reviewsCount: course.reviews.length,
         enrollmentsCount: course._count.Enrollment,
-        isEnrolled: user?.id ? course.Enrollment.length > 0 : false,
+        isEnrolled: user?.id && course.Enrollment !== false ? course.Enrollment.length > 0 : false,
       };
     });
 

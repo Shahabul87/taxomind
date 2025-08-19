@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { ArticleContent } from "./article-content";
 import { BlogContent } from "./blog-content";
 import { CodeContent } from "./code-content";
-import { Section } from "./types";
+import { SectionUser, Section } from "./types";
 import { VideoContent } from "./video-content";
 
 type ContentSubTab = "videos" | "blogs" | "articles" | "code";
@@ -55,7 +55,7 @@ interface User {
 
 interface ContentTabsPersonalizedProps {
   currentSection: Section;
-  user: User;
+  user: SectionUser;
   courseId: string;
   chapterId: string;
   sectionId: string;

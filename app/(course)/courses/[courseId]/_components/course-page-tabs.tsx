@@ -15,17 +15,7 @@ import { CourseCardsCarousel } from '../course-card-carousel';
 import { CourseContent } from '../course-content';
 
 import { CourseReviews } from './course-reviews';
-
-type CourseReview = {
-  id: string;
-  rating: number;
-  comment: string;
-  createdAt: Date;
-  user: {
-    name: string | null;
-    image: string | null;
-  };
-};
+import type { CourseReview } from './course-reviews';
 
 interface CoursePageTabsProps {
   chapters: (Chapter & {
