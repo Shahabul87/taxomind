@@ -1,14 +1,15 @@
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
-import { SectionSidebar } from "./section-sidebar";
-
 import { Chapter, Course, Section } from "@prisma/client";
+import { Menu } from "lucide-react";
+
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
+import { SectionSidebar } from "./section-sidebar";
 
 interface ChaptersFormProps {
     course: Course & { chapters: (Chapter & { sections: Section[] })[] };
   }
 
-export const SectionMobileSidebar = ({ course }: ChaptersFormProps) => {
+export const SectionMobileSidebar = ({ course }: ChaptersFormProps): JSX.Element => {
     return (
       <Sheet>
         <SheetTrigger>

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 // GET endpoint to retrieve all tasks for the authenticated user
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   try {
     const session = await auth();
     
@@ -29,7 +30,7 @@ export async function GET() {
 }
 
 // POST endpoint to create a new task
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<NextResponse> {
   try {
     const session = await auth();
     
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
 }
 
 // Route handler for individual task operations
-export async function DELETE(req: Request) {
+export async function DELETE(req: Request): Promise<NextResponse> {
   try {
     const session = await auth();
     
@@ -119,7 +120,7 @@ export async function DELETE(req: Request) {
 }
 
 // PATCH endpoint to update a task
-export async function PATCH(req: Request) {
+export async function PATCH(req: Request): Promise<NextResponse> {
   try {
     const session = await auth();
     

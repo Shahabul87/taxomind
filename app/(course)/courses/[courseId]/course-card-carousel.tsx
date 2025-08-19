@@ -1,12 +1,11 @@
 "use client";
 
-import Image from "next/image";
-import React, { useState } from "react";
-import { Carousel, Card } from "@/components/cardscarousel/cards-carousel";
-import { Chapter, Section } from "@prisma/client";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, BookOpen, Clock, ChevronRight, Layers, PlayCircle, CheckCircle2 } from "lucide-react";
+import { useState } from 'react';
 import parse from 'html-react-parser';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BookOpen, CheckCircle2, ChevronRight, Clock, Layers, X } from 'lucide-react';
+import { Chapter, Section } from '@prisma/client';
+import { Carousel } from '@/components/cardscarousel/cards-carousel';
 
 // Utility function to clean and format HTML content
 const cleanHtmlContent = (htmlString: string | null): string => {
@@ -28,7 +27,7 @@ const cleanHtmlContent = (htmlString: string | null): string => {
 };
 
 // Enhanced HTML parser for rich content
-const parseHtmlContent = (htmlString: string | null) => {
+const parseHtmlContent = (htmlString: string | null): React.ReactNode => {
   if (!htmlString) return null;
   
   // Clean up common HTML entities and formatting
@@ -60,7 +59,7 @@ const chapterGradients = [
   "from-amber-500/10 to-amber-900/10 dark:from-amber-500/20 dark:to-amber-900/20 border-amber-500/20 dark:border-amber-500/30",
 ];
 
-export const CourseCardsCarousel: React.FC<CourseContentProps> = ({ chapters }) => {
+export const CourseCardsCarousel = ({ chapters }: CourseContentProps): JSX.Element | null => {
   const [selectedChapter, setSelectedChapter] = useState<(Chapter & { sections: Section[] }) | null>(null);
 
   if (!chapters) return null;
@@ -104,10 +103,12 @@ export const CourseCardsCarousel: React.FC<CourseContentProps> = ({ chapters }) 
   );
 };
 
-const ChapterModal = ({ chapter, onClose }: { 
-  chapter: Chapter & { sections: Section[] }, 
-  onClose: () => void 
-}) => {
+interface ChapterModalProps {
+  chapter: Chapter & { sections: Section[] };
+  onClose: () => void;
+}
+
+const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -154,13 +155,15 @@ const ChapterModal = ({ chapter, onClose }: {
   );
 };
 
-// Updated Preview component for the card
-const ChapterPreview: React.FC<{ 
-  title: string; 
+interface ChapterPreviewProps {
+  title: string;
   description: string | null;
   sectionCount: number;
   colorIndex: number;
-}> = ({ title, description, sectionCount, colorIndex }) => {
+}
+
+// Updated Preview component for the card
+const ChapterPreview = ({ title, description, sectionCount, colorIndex }: ChapterPreviewProps): JSX.Element => {
   const cleanDescription = description
     ? cleanHtmlContent(description)
     : "No description available.";
@@ -233,7 +236,7 @@ interface DummyContentProps {
   };
 }
 
-const DummyContent: React.FC<DummyContentProps> = ({ description, sections, chapter }) => {
+const DummyContent = ({ description, sections, chapter }: DummyContentProps): JSX.Element => {
   return (
     <div>
       {/* Display the chapter description */}
@@ -286,9 +289,9 @@ const DummyContent: React.FC<DummyContentProps> = ({ description, sections, chap
               {chapter.learningOutcomes
                 .split(/(?<=[.!?])\s+/)  // Split on sentence endings
                 .filter(Boolean)  // Remove empty strings
-                .map((outcome: string, idx: number) => (
+                .map((outcome: string, outcomeIndex: number) => (
                   <li
-                    key={idx}
+                    key={`outcome-${chapter.id}-${outcomeIndex}`}
                     className="text-[15px] leading-[1.8] tracking-wide lg:text-[17px] text-slate-700 dark:text-slate-200 marker:text-purple-500 pl-2 py-2 break-normal hyphens-none"
                   >
                     <div className="prose dark:prose-invert prose-sm prose-slate prose-p:mb-2 prose-strong:text-slate-800 dark:prose-strong:text-slate-100">

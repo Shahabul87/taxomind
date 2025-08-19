@@ -1,4 +1,49 @@
 {
     "files.autoSave": "afterDelay",
-    "editor.fontSize": 13
+    "editor.fontSize": 13,
+    "eslint.enable": true,
+    "eslint.packageManager": "npm",
+    "eslint.codeActionsOnSave.mode": "problems",
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "eslint.validate": [
+        "javascript",
+        "javascriptreact",
+        "typescript",
+        "typescriptreact"
+    ],
+    "eslint.workingDirectories": [
+        {
+            "mode": "auto"
+        }
+    ],
+    "eslint.options": {
+        "cache": true,
+        "cacheLocation": ".next/cache/eslint/"
+    },
+    "eslint.lintTask.enable": true,
+    "eslint.lintTask.options": "--cache --cache-location .next/cache/eslint/",
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/**": true,
+        "**/.next/**": true,
+        "**/out/**": true,
+        "**/build/**": true,
+        "**/dist/**": true,
+        "**/.turbo/**": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/.next": true,
+        "**/out": true,
+        "**/build": true,
+        "**/dist": true,
+        "**/.turbo": true,
+        "**/coverage": true,
+        "**/.git": true
+    }
 }

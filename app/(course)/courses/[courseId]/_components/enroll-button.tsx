@@ -59,8 +59,9 @@ export const EnrollButton = ({ courseId, price, userId }: EnrollButtonProps): JS
   return (
     <motion.button
       onClick={() => {
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        handleEnroll();
+        handleEnroll().catch((error) => {
+          console.error('Enrollment failed:', error);
+        });
       }}
       disabled={isLoading}
       whileHover={{ scale: 1.05 }}

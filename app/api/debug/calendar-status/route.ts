@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   const debugInfo = {
     timestamp: new Date().toISOString(),
     auth: {

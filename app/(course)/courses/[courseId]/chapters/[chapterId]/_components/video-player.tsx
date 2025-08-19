@@ -1,13 +1,15 @@
 "use client";
 
-import axios from "axios";
 import { useState } from "react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { Loader2, Lock } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+
+import axios from "axios";
+import { Loader2, Lock } from "lucide-react";
+import { toast } from "sonner";
+
 import { useConfettiStore } from "@/hooks/use-confetti-store";
+import { cn } from "@/lib/utils";
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -27,12 +29,12 @@ export const VideoPlayer = ({
   isLocked,
   completeOnEnd,
   title,
-}: VideoPlayerProps) => {
+}: VideoPlayerProps): JSX.Element => {
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
   const confetti = useConfettiStore();
 
-  const onEnd = async () => {
+  const onEnd = async (): Promise<void> => {
     try {
       if (completeOnEnd) {
         await axios.put(`/api/courses/${courseId}/chapters/${chapterId}/progress`, {
@@ -78,7 +80,7 @@ export const VideoPlayer = ({
             !isReady && "hidden"
           )}
           onCanPlay={() => setIsReady(true)}
-          onEnded={onEnd}
+          onEnded={() => { onEnd().catch(() => {}); }}
           autoPlay
           controls
           src={videoUrl}

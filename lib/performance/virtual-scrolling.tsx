@@ -13,6 +13,7 @@ import React, {
   ReactNode,
   CSSProperties,
 } from 'react';
+import Image from 'next/image';
 import { logger } from '@/lib/logger';
 
 interface VirtualScrollItem {
@@ -448,9 +449,11 @@ export function VirtualCourseList({
     >
       <div className="flex items-center space-x-4">
         {course.thumbnail && (
-          <img
+          <Image
             src={course.thumbnail}
             alt={course.title}
+            width={64}
+            height={64}
             className="w-16 h-16 object-cover rounded-lg"
           />
         )}

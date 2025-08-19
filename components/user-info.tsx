@@ -1,10 +1,6 @@
-import { ExtendedUser } from "@/next-auth";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ExtendedUser } from "@/next-auth";
 
 interface UserInfoProps {
   user?: ExtendedUser;
@@ -14,7 +10,7 @@ interface UserInfoProps {
 export const UserInfo = ({
   user,
   label,
-}: UserInfoProps) => {
+}: UserInfoProps): JSX.Element => {
   return (
     <Card className="w-[600px] shadow-md">
       <CardHeader>

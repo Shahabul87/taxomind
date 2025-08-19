@@ -1,10 +1,7 @@
-import { currentUser } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { getCourse } from "@/actions/get-course";
-import { getChapter } from "@/actions/get-chapter";
-import { getSection } from "@/actions/get-section";
-import { db } from "@/lib/db";
-import { EnhancedSectionLearningPersonalized } from "./_components/enhanced-section-learning-personalized";
+import { redirect } from 'next/navigation';
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { EnhancedSectionLearningPersonalized } from './_components/enhanced-section-learning-personalized';
 
 interface SectionPageProps {
   params: Promise<{
@@ -14,7 +11,7 @@ interface SectionPageProps {
   }>;
 }
 
-const SectionPage = async (props: SectionPageProps) => {
+const SectionPage = async (props: SectionPageProps): Promise<JSX.Element> => {
   const params = await props.params;
   const user = await currentUser();
 
@@ -128,7 +125,7 @@ const SectionPage = async (props: SectionPageProps) => {
 
   return (
     <EnhancedSectionLearningPersonalized
-      user={user as any}
+      user={user}
       course={courseData}
       currentChapter={currentChapter}
       currentSection={currentSection}

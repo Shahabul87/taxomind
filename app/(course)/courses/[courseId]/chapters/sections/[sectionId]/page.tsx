@@ -1,8 +1,8 @@
-import { db } from "@/lib/db";
-import { redirect } from "next/navigation";
-import { SectionSidebar } from "./section-sidebar";
-import { currentUser } from '@/lib/auth'
-import { Metadata } from "next";
+import { redirect } from 'next/navigation';
+import { Metadata } from 'next';
+import { db } from '@/lib/db';
+import { currentUser } from '@/lib/auth';
+import { SectionSidebar } from './section-sidebar';
 
 interface SectionPageProps {
   params: Promise<{
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: SectionPageProps): Promise<Me
   if (!section) {
     return {
       title: "Not Found",
-      description: "The section you're looking for doesn't exist."
+      description: "The section you&apos;re looking for doesn&apos;t exist."
     };
   }
 
@@ -35,10 +35,9 @@ export async function generateMetadata({ params }: SectionPageProps): Promise<Me
   };
 }
 
-const sectionIdPage = async (props: {params: Promise<{courseId: string; sectionId: string}>}) => {
+const sectionIdPage = async (props: {params: Promise<{courseId: string; sectionId: string}>}): Promise<JSX.Element> => {
   const params = await props.params;
-  const courseId = await Promise.resolve(params.courseId);
-  const sectionId = await Promise.resolve(params.sectionId);
+  const { courseId, sectionId } = params;
 
   const user = await currentUser();
   const section = await db.section.findUnique({
@@ -73,7 +72,6 @@ const sectionIdPage = async (props: {params: Promise<{courseId: string; sectionI
     },
   });
 
-  //console.log(course)
 
   if (!section) {
      return redirect("/");
@@ -83,13 +81,6 @@ const sectionIdPage = async (props: {params: Promise<{courseId: string; sectionI
     return redirect("/");
   }
 
-  const handlePrev = () => {
-    // Logic to navigate to the previous video
-  };
-
-  const handleNext = () => {
-    // Logic to navigate to the next video
-  };
 
 
   return (
@@ -107,7 +98,7 @@ const sectionIdPage = async (props: {params: Promise<{courseId: string; sectionI
                     className="absolute top-0 left-0 w-full h-full "
                     src={`https://www.youtube.com/embed/${new URL(section.videoUrl).searchParams.get("v")}`}
                     title="YouTube video player"
-                    frameBorder="0"
+                    style={{ border: 'none' }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                 ></iframe>
@@ -118,10 +109,10 @@ const sectionIdPage = async (props: {params: Promise<{courseId: string; sectionI
             </div>
 
         <div className="flex items-center justify-between mt-1 pl-3 pr-3">
-          <button  className="bg-blue-500 text-white px-4 py-2 rounded">
+          <button className="bg-blue-500 text-white px-4 py-2 rounded">
             Prev
           </button>
-          <button  className="bg-blue-500 text-white px-4 py-2 rounded">
+          <button className="bg-blue-500 text-white px-4 py-2 rounded">
             Next
           </button>
         </div>
@@ -138,11 +129,3 @@ const sectionIdPage = async (props: {params: Promise<{courseId: string; sectionI
 }
  
 export default sectionIdPage;
-
-
-
-
-
-
-
-

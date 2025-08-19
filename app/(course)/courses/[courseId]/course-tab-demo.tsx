@@ -1,11 +1,10 @@
 "use client";
 
-import { CourseTabs } from "./course-tab";
-import { Chapter } from "@prisma/client";
-import { motion } from "framer-motion";
-import { BookOpen, CheckCircle2 } from "lucide-react";
-import React from 'react';
 import parse from 'html-react-parser';
+import { motion } from 'framer-motion';
+import { BookOpen, CheckCircle2 } from 'lucide-react';
+import { Chapter } from '@prisma/client';
+import { CourseTabs } from './course-tab';
 
 // Update color schemes for better contrast in both modes
 const cardThemes = [
@@ -43,7 +42,7 @@ interface CourseTabsDemoProps {
   chapters: Chapter[];
 }
 
-export function CourseTabsDemo({ chapters }: CourseTabsDemoProps) {
+export function CourseTabsDemo({ chapters }: CourseTabsDemoProps): JSX.Element {
   const tabs = chapters.map((chapter, index) => {
     const theme = cardThemes[index % cardThemes.length];
     
@@ -98,36 +97,38 @@ export function CourseTabsDemo({ chapters }: CourseTabsDemoProps) {
 }
 
 // Update LearningOutcomes component for better contrast
+interface LearningOutcomesProps {
+  outcomes?: string | null;
+  accentColor: string;
+  borderColor: string;
+  bgColor: string;
+}
+
 const LearningOutcomes = ({ 
   outcomes,
   accentColor,
   borderColor,
   bgColor
-}: { 
-  outcomes?: string | null;
-  accentColor: string;
-  borderColor: string;
-  bgColor: string;
-}) => {
+}: LearningOutcomesProps): JSX.Element => {
   if (!outcomes) return (
     <p className="text-gray-500 dark:text-white/60 italic">No specific learning outcomes provided.</p>
   );
 
-  const parseHtmlContent = (htmlString: string) => {
+  const parseHtmlContent = (htmlString: string): React.ReactNode => {
     return parse(htmlString, {
-      replace: (domNode: any) => {
-        if (domNode.type === 'tag') {
+      replace: (domNode: { type: string; name?: string; children?: { data?: string }[] }) => {
+        if (domNode.type === 'tag' && domNode.name) {
           switch (domNode.name) {
             case 'strong':
             case 'b':
-              return <span className="font-bold">{domNode.children[0].data}</span>;
+              return <span className="font-bold">{domNode.children?.[0]?.data || ''}</span>;
             case 'em':
             case 'i':
-              return <span className="italic">{domNode.children[0].data}</span>;
+              return <span className="italic">{domNode.children?.[0]?.data || ''}</span>;
             case 'u':
-              return <span className="underline">{domNode.children[0].data}</span>;
+              return <span className="underline">{domNode.children?.[0]?.data || ''}</span>;
             default:
-              return domNode.children[0]?.data || '';
+              return domNode.children?.[0]?.data || '';
           }
         }
       }
@@ -145,16 +146,16 @@ const LearningOutcomes = ({
       animate={{ opacity: 1 }}
       transition={{ staggerChildren: 0.1 }}
     >
-      {points.map((point, index) => (
+      {points.map((point, pointIndex) => (
         <motion.li 
-          key={index}
+          key={`outcome-${pointIndex}`}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.1 }}
+          transition={{ delay: pointIndex * 0.1 }}
           className="flex items-start gap-4 group"
         >
           <span className={`w-6 h-6 rounded-full ${bgColor} border ${borderColor} flex items-center justify-center flex-shrink-0 mt-1.5`}>
-            <span className={`text-sm font-medium ${accentColor}`}>{index + 1}</span>
+            <span className={`text-sm font-medium ${accentColor}`}>{pointIndex + 1}</span>
           </span>
           <p className="text-lg text-gray-700 dark:text-white/80 leading-[1.8] font-medium tracking-wide group-hover:text-gray-900 dark:group-hover:text-white/90 transition-colors duration-300">
             {parseHtmlContent(point)}

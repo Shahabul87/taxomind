@@ -5,6 +5,7 @@
  */
 
 import React, { memo, useMemo, useCallback, forwardRef } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -466,10 +467,11 @@ const MemoizedCourseItem = memo<{
       <CardContent className="p-4">
         {course.thumbnail && (
           <div className="aspect-video bg-muted rounded-lg mb-4 overflow-hidden">
-            <img
+            <Image
               src={course.thumbnail}
               alt={course.title}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
             />
           </div>
         )}

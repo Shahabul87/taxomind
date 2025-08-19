@@ -193,6 +193,7 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
         sizes={sizes}
         placeholder={placeholder}
         blurDataURL={memoizedBlurDataURL}
+        alt={alt}
       />
     );
   }
@@ -205,6 +206,7 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
       sizes={sizes}
       placeholder={placeholder}
       blurDataURL={memoizedBlurDataURL}
+      alt={alt}
     />
   );
 });

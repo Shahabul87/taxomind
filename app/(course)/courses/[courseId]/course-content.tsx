@@ -1,16 +1,27 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ChevronDown, ChevronUp, PlayCircle, BookOpen, 
-  Clock, Award, Lock, CheckCircle, Info, ExternalLink,
-  BookOpenCheck, Sparkles, GraduationCap, Eye, Unlock
+  Award,
+  BookOpen,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  ExternalLink,
+  Eye,
+  GraduationCap,
+  Info,
+  Lock,
+  PlayCircle,
+  Sparkles,
+  Unlock
 } from 'lucide-react';
-import Link from 'next/link';
 import { Chapter, Section } from '@prisma/client';
-import { cn } from "@/lib/utils";
-import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 // Utility function to clean HTML tags from text
 const cleanHtmlTags = (html: string | null): string => {
@@ -31,7 +42,7 @@ const cleanHtmlTags = (html: string | null): string => {
     '&nbsp;': ' ',
   };
   
-  text = text.replace(/&[#\w]+;/g, (entity) => {
+  text = text.replace(/&[#\w]+;/g, (entity: string): string => {
     return entityMap[entity] || entity;
   });
   
@@ -56,11 +67,11 @@ interface SectionItemProps {
   sectionIndex: number;
 }
 
-const SectionItem = ({ section, courseId, chapterId, isEnrolled, sectionIndex }: SectionItemProps) => {
+const SectionItem = ({ section, courseId, chapterId, isEnrolled, sectionIndex }: SectionItemProps): JSX.Element => {
   const router = useRouter();
   const isAccessible = isEnrolled || section.isFree || section.isPreview;
   
-  const handleSectionClick = () => {
+  const handleSectionClick = (): void => {
     if (!isAccessible) {
       // Redirect to course enrollment page
       router.push(`/courses/${courseId}`);
@@ -76,14 +87,14 @@ const SectionItem = ({ section, courseId, chapterId, isEnrolled, sectionIndex }:
     }
   };
 
-  const getSectionIcon = () => {
+  const getSectionIcon = (): JSX.Element => {
     if (section.type === 'Video') {
       return <PlayCircle className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />;
     }
     return <BookOpen className="w-5 h-5 text-violet-600 dark:text-violet-400" />;
   };
 
-  const getSectionBadge = () => {
+  const getSectionBadge = (): JSX.Element | null => {
     if (section.isPreview) {
       return (
         <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-500/20 flex items-center gap-1">
@@ -170,25 +181,25 @@ const SectionItem = ({ section, courseId, chapterId, isEnrolled, sectionIndex }:
   );
 };
 
-export const CourseContent: React.FC<CourseContentProps> = ({ 
+export const CourseContent = ({ 
   chapters, 
   courseId, 
   isEnrolled = false, 
   userId 
-}) => {
+}: CourseContentProps): JSX.Element => {
   const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
   const [expandAll, setExpandAll] = useState<boolean>(false);
 
-  const toggleChapter = (index: number) => {
+  const toggleChapter = (index: number): void => {
     setExpandedChapter(index === expandedChapter ? null : index);
   };
 
-  const toggleExpandAll = () => {
+  const toggleExpandAll = (): void => {
     setExpandAll(!expandAll);
     setExpandedChapter(expandAll ? null : -1);
   };
 
-  const getDifficultyColor = (difficulty: string | null | undefined) => {
+  const getDifficultyColor = (difficulty: string | null | undefined): string => {
     if (!difficulty) return "text-gray-500";
     
     switch (difficulty.toLowerCase()) {
@@ -424,8 +435,8 @@ export const CourseContent: React.FC<CourseContentProps> = ({
                               <span className="font-medium text-purple-900 dark:text-purple-100">Additional Resources</span>
                             </div>
                             <div className="space-y-2">
-                              {JSON.parse(chapter.resources).map((resource: string, i: number) => (
-                                <div key={i} className="flex items-center gap-2 text-purple-800 dark:text-purple-200 text-sm">
+                              {JSON.parse(chapter.resources).map((resource: string, resourceIndex: number) => (
+                                <div key={`resource-${chapter.id}-${resourceIndex}`} className="flex items-center gap-2 text-purple-800 dark:text-purple-200 text-sm">
                                   <Sparkles className="w-3 h-3 flex-shrink-0" />
                                   <span>{resource}</span>
                                 </div>

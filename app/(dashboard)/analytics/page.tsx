@@ -1,9 +1,10 @@
 // Role-based Analytics Redirect Page
 
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
-export default async function AnalyticsRedirectPage() {
+import { auth } from "@/auth";
+
+export default async function AnalyticsRedirectPage(): Promise<void> {
   const session = await auth();
   
   if (!session?.user) {

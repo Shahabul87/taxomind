@@ -1,15 +1,15 @@
 "use client"
-import Image from 'next/image';
+
 import ArrowIcon from '@/assets/arrow-right.svg'
 
-interface courseHeroProps {
+interface CourseHeroProps {
     title: string;
     description: string;
     imageSrc:string;
 }
 
 
-export const CourseHero = ({title, description, imageSrc}:courseHeroProps) => {
+export const CourseHero = ({title, description, imageSrc}:CourseHeroProps): JSX.Element => {
 
 
   return (

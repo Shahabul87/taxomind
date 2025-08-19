@@ -4,7 +4,17 @@
     "react-hooks/exhaustive-deps": "warn",
     "react/no-unescaped-entities": "warn",
     "@next/next/no-img-element": "warn",
-    "jsx-a11y/alt-text": "warn"
+    "jsx-a11y/alt-text": "warn",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-unused-vars": ["error", {
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_"
+    }]
+  },
+  "parserOptions": {
+    "babelOptions": {
+      "presets": [require.resolve("next/babel")]
+    }
   },
   "ignorePatterns": [
     "node_modules/",

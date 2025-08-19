@@ -1,5 +1,5 @@
-import { LucideIcon } from "lucide-react";
 import { cva, type VariantProps }  from "class-variance-authority";
+import { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -54,7 +54,7 @@ export const IconBadge = ({
   icon: Icon,
   variant,
   size,
-}: IconBadgeProps) => {
+}: IconBadgeProps): JSX.Element => {
   return (
     <div className={cn(backgroundVariants({ variant, size }))}>
       <Icon className={cn(iconVariants({ variant, size }))} />

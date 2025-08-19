@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { metricsRegistry } from '@/lib/observability/metrics';
-import { logger } from '@/lib/logger';
 
-export async function GET(req: NextRequest) {
+import { logger } from '@/lib/logger';
+import { metricsRegistry } from '@/lib/observability/metrics';
+
+export async function GET(req: NextRequest): Promise<NextResponse> {
   // Check for metrics authorization token if in production
   if (process.env.NODE_ENV === 'production') {
     const authHeader = req.headers.get('authorization');

@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Twitter,
-  Facebook,
+  Share,
+  Share2,
   Linkedin,
   MessageCircle,
-  Instagram,
+  Camera,
   Link,
 } from "lucide-react";
 
@@ -18,15 +18,15 @@ interface SocialShareProps {
 const socialIcons = [
   {
     name: "Twitter",
-    icon: Twitter,
+    icon: Share,
     color: "hover:bg-black",
     textColor: "group-hover:text-white",
     getUrl: (url: string, title: string) =>
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
+      `https://x.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
   },
   {
     name: "Facebook",
-    icon: Facebook,
+    icon: Share2,
     color: "hover:bg-blue-600",
     textColor: "group-hover:text-white",
     getUrl: (url: string) =>
@@ -50,14 +50,14 @@ const socialIcons = [
   },
   {
     name: "Instagram",
-    icon: Instagram,
+    icon: Camera,
     color: "hover:bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-500",
     textColor: "group-hover:text-white",
     getUrl: () => "https://www.instagram.com/",
   },
 ];
 
-export const CourseSocialMediaShare: React.FC<SocialShareProps> = ({ courseTitle }) => {
+export const CourseSocialMediaShare: React.FC<SocialShareProps> = ({ courseTitle }): JSX.Element => {
   const [currentUrl, setCurrentUrl] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
@@ -68,7 +68,7 @@ export const CourseSocialMediaShare: React.FC<SocialShareProps> = ({ courseTitle
     }
   }, []);
 
-  const handleCopyLink = async () => {
+  const handleCopyLink = async (): Promise<void> => {
     await navigator.clipboard.writeText(currentUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);

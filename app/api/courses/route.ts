@@ -11,7 +11,7 @@ import { logger } from '@/lib/logger';
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<NextResponse> {
   try {
 
     // Get current user
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
 }
 
 // Robust GET endpoint for courses listing - based on working homepage pattern
-export const GET = async (req: Request) => {
+export const GET = async (req: Request): Promise<NextResponse> => {
   try {
     const user = await currentUser();
     const { searchParams } = new URL(req.url);
@@ -142,7 +142,18 @@ export const GET = async (req: Request) => {
     }
 
     // Build where clause based on working schema
-    const whereClause: any = {
+    interface WhereClause {
+      isPublished?: boolean;
+      categoryId?: string;
+      isFeatured?: boolean;
+      OR?: Array<{
+        title?: { contains: string; mode: string };
+        description?: { contains: string; mode: string };
+        cleanDescription?: { contains: string; mode: string };
+      }>;
+    }
+    
+    const whereClause: WhereClause = {
       isPublished: true,
     };
     

@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
+
+import { useRouter } from "next/navigation";
+
 import axios from "axios";
 import { CheckCircle, XCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -21,12 +23,12 @@ export const CourseProgressButton = ({
   courseId,
   isCompleted,
   nextChapterId
-}: CourseProgressButtonProps) => {
+}: CourseProgressButtonProps): JSX.Element => {
   const router = useRouter();
   const confetti = useConfettiStore();
   const [isLoading, setIsLoading] = useState(false);
 
-  const onClick = async () => {
+  const onClick = async (): Promise<void> => {
     try {
       setIsLoading(true);
 
@@ -55,7 +57,7 @@ export const CourseProgressButton = ({
 
   return (
     <Button
-      onClick={onClick}
+      onClick={() => { onClick().catch(() => {}); }}
       disabled={isLoading}
       type="button"
       variant={isCompleted ? "outline" : "success"}

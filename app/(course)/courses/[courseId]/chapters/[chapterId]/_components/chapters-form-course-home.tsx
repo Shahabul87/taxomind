@@ -1,21 +1,23 @@
 "use client";
 
-import {ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
-import { Chapter, Course, Section } from "@prisma/client";
 import Link from "next/link";
+
+import { Chapter, Course, Section } from "@prisma/client";
+import {ChevronDown, ChevronUp } from "lucide-react";
+
 import { Separator } from "@/components/ui/separator";
 
 interface ChaptersFormProps {
   course: Course & { chapters: (Chapter & { sections: Section[] })[] };
 }
 
-export const ChaptersFormCourseHome = ({ course }: ChaptersFormProps) => {
+export const ChaptersFormCourseHome = ({ course }: ChaptersFormProps): JSX.Element => {
   const [visibleSections, setVisibleSections] = useState<{ [key: string]: boolean }>({});
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
 
 
-  const toggleSections = (chapterId: string) => {
+  const toggleSections = (chapterId: string): void => {
     setVisibleSections((prevState) => ({
       ...prevState,
       [chapterId]: !prevState[chapterId],
@@ -23,7 +25,7 @@ export const ChaptersFormCourseHome = ({ course }: ChaptersFormProps) => {
   };
 
 
-  const handleSectionClick = (sectionId: string) => {
+  const handleSectionClick = (sectionId: string): void => {
     setSelectedSectionId(sectionId);
   };
 
@@ -63,5 +65,5 @@ export const ChaptersFormCourseHome = ({ course }: ChaptersFormProps) => {
         </div>
       ))}
     </div>
-  );;
+  );
 };

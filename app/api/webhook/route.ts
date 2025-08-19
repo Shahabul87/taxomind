@@ -1,10 +1,12 @@
-import Stripe from "stripe";
 import { headers } from "next/headers";
-import { stripe } from "@/lib/stripe";
+
+import Stripe from "stripe";
+
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { stripe } from "@/lib/stripe";
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
   const body = await req.text();
   const signature = (await headers()).get("Stripe-Signature") as string;
 
@@ -14,7 +16,7 @@ export async function POST(req: Request) {
     event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_WEBHOOK_SECRET as string
     );
 
     const session = event.data.object as Stripe.Checkout.Session;
@@ -40,7 +42,7 @@ export async function POST(req: Request) {
 
         if (!existingEnrollment) {
           // Create enrollment
-          const enrollment = await db.enrollment.create({
+          await db.enrollment.create({
             data: {
               id: `enroll_${userId}_${courseId}_${Date.now()}`,
               userId,

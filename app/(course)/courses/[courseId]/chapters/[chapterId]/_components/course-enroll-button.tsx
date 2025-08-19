@@ -1,7 +1,8 @@
 "use client";
 
-import axios from "axios";
 import { useState } from "react";
+
+import axios from "axios";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -12,17 +13,21 @@ interface CourseEnrollButtonProps {
   courseId: string;
 }
 
+interface CheckoutResponse {
+  url: string;
+}
+
 export const CourseEnrollButton = ({
   price,
   courseId,
-}: CourseEnrollButtonProps) => {
+}: CourseEnrollButtonProps): JSX.Element => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const onClick = async () => {
+  const onClick = async (): Promise<void> => {
     try {
       setIsLoading(true);
 
-      const response = await axios.post(`/api/courses/${courseId}/checkout`)
+      const response = await axios.post<CheckoutResponse>(`/api/courses/${courseId}/checkout`)
 
       window.location.assign(response.data.url);
     } catch {
@@ -34,7 +39,7 @@ export const CourseEnrollButton = ({
 
   return (
     <Button
-      onClick={onClick}
+      onClick={() => { onClick().catch(() => {}); }}
       disabled={isLoading}
       size="sm"
       className="w-full md:w-auto"

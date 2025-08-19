@@ -1,14 +1,20 @@
-"use client"
+"use client";
+
+import { motion } from "framer-motion";
+import { twMerge } from "tailwind-merge";
 
 import CheckIcon from '@/assets/check.svg';
-import { twMerge } from "tailwind-merge";
-import { motion, useScroll, useTransform } from "framer-motion";
 
+interface PricingTier {
+  title: string;
+  monthlyPrice: number;
+  buttonText: string;
+  popular: boolean;
+  inverse: boolean;
+  features: string[];
+}
 
-
-
-
-const pricingTiers = [
+const pricingTiers: PricingTier[] = [
   {
     title: "Free",
     monthlyPrice: 0,
@@ -60,14 +66,14 @@ const pricingTiers = [
   },
 ];
 
-export const CourseObjectives = () => {
+export const CourseObjectives = (): JSX.Element => {
   return (
     <section className="py-20">
       <div className="container">
         <div className='flex flex-col gap-6 items-center mt-10 lg:flex-row lg:items-end lg:justify-center lg:gap-10' >
         {pricingTiers.map(
-            ({ title, monthlyPrice, buttonText, popular, inverse, features }, index) => (
-              <div key={index}  className={twMerge('p-10 border border-[#F1F1F1] rounded-3xl shadow-[0_7px_14px_#EAEAEA] max-w-xs w-full', inverse === true && "border-black bg-gray-900 text-white")}>
+            ({ title, monthlyPrice, buttonText, popular, inverse, features }) => (
+              <div key={`pricing-${title}`}  className={twMerge('p-10 border border-[#F1F1F1] rounded-3xl shadow-[0_7px_14px_#EAEAEA] max-w-xs w-full', inverse === true && "border-black bg-gray-900 text-white")}>
                 <div className='flex justify-between'>
                    <h3 className={twMerge("text-lg font-bold text-black/50", inverse === true && "text-white/60")}>{title}</h3>
                    {popular === true && 
@@ -95,8 +101,8 @@ export const CourseObjectives = () => {
                 </div>
                 <button className={twMerge("btn btn-primary w-full mt-[30px]", inverse === true && "bg-white text-black")}>{buttonText}</button>
                 <ul className="flex flex-col gap-5 mt-8">
-                    {features.map((feature, index) => (
-                      <li key={index} className='text-sm flex items-center gap-4'>
+                    {features.map((feature) => (
+                      <li key={`feature-${feature}`} className='text-sm flex items-center gap-4'>
                         <CheckIcon className="h-6 w-6" />
                         <span>{feature}</span>
                       </li>

@@ -1,7 +1,9 @@
-import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { Metadata } from "next";
+
+import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
-import { currentUser } from '@/lib/auth'
+import { currentUser } from '@/lib/auth';
 import CourseCard from "./course-feature";
 import { CourseTabsDemo } from "./course-tab-demo";
 import { Footer } from "@/app/(homepage)/footer";
@@ -11,7 +13,6 @@ import { CourseCardsCarousel } from "./course-card-carousel";
 import GradientHeading from "./_components/gradient-heading";
 import { CourseReviews } from "./_components/course-reviews";
 import { EnrollButton } from "./_components/enroll-button";
-import { Metadata } from "next";
 import { CourseOutcomes } from "./_components/course-outcomes";
 import { CoursePageTabs } from "./_components/course-page-tabs";
 
@@ -45,12 +46,12 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   });
 
   return {
-    title: course?.title || "Course Details | SkillHub",
-    description: course?.description || "Learn new skills with our detailed courses"
+    title: course?.title ?? "Course Details | SkillHub",
+    description: course?.description ?? "Learn new skills with our detailed courses"
   };
 }
 
-const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => {
+const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Promise<JSX.Element> => {
   const params = await props.params;
   const courseId = await Promise.resolve(params.courseId);
 
@@ -80,7 +81,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
     },
   });
 
-  const user:any = await currentUser();
+  const user = await currentUser();
 
   if (!course) {
     return redirect("/");
@@ -98,12 +99,12 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
           },
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("Error checking enrollment:", error);
     }
   }
 
-  const chapters = course?.chapters || [];
+  const chapters = course?.chapters ?? [];
 
   // Fetch initial reviews with error handling
   let reviews: CourseReview[] = [];
@@ -119,7 +120,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
         createdAt: "desc",
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error("Error fetching reviews:", error);
     // Continue with empty reviews array
   }

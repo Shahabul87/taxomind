@@ -1,15 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 
-type Tab = {
+interface Tab {
   title: string;
   value: string;
-  content?: string | React.ReactNode | any;
-};
+  content?: string | React.ReactNode;
+}
+
+interface CourseTabsProps {
+  tabs: Tab[];
+  containerClassName?: string;
+  activeTabClassName?: string;
+  tabClassName?: string;
+  contentClassName?: string;
+}
 
 export const CourseTabs = ({
   tabs: propTabs,
@@ -17,17 +25,11 @@ export const CourseTabs = ({
   activeTabClassName,
   tabClassName,
   contentClassName,
-}: {
-  tabs: Tab[];
-  containerClassName?: string;
-  activeTabClassName?: string;
-  tabClassName?: string;
-  contentClassName?: string;
-}) => {
+}: CourseTabsProps): JSX.Element => {
   const [active, setActive] = useState<Tab>(propTabs[0]);
   const [tabs, setTabs] = useState<Tab[]>(propTabs);
 
-  const moveSelectedTabToTop = (idx: number) => {
+  const moveSelectedTabToTop = (idx: number): void => {
     const newTabs = [...propTabs];
     const selectedTab = newTabs.splice(idx, 1);
     newTabs.unshift(selectedTab[0]);
@@ -89,18 +91,20 @@ export const CourseTabs = ({
   );
 };
 
-export const TabContent = ({
-  className,
-  tabs,
-  hovering,
-}: {
+interface TabContentProps {
   className?: string;
   key?: string;
   tabs: Tab[];
   active: Tab;
   hovering?: boolean;
-}) => {
-  const isActive = (tab: Tab) => {
+}
+
+export const TabContent = ({
+  className,
+  tabs,
+  hovering,
+}: TabContentProps): JSX.Element => {
+  const isActive = (tab: Tab): boolean => {
     return tab.value === tabs[0].value;
   };
   return (

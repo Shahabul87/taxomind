@@ -1,4 +1,10 @@
-'use client'
+'use client';
+
+import { Fragment } from "react";
+
+import Image from 'next/image';
+
+import { motion } from "framer-motion";
 
 import avatar1 from "@/assets/avatar-1.png";
 import avatar2 from "@/assets/avatar-2.png";
@@ -9,12 +15,16 @@ import avatar6 from "@/assets/avatar-6.png";
 import avatar7 from "@/assets/avatar-7.png";
 import avatar8 from "@/assets/avatar-8.png";
 import avatar9 from "@/assets/avatar-9.png";
-import Image from 'next/image';
-import { motion, useScroll, useTransform } from "framer-motion";
-import { Fragment } from "react";
-import { Heading } from "@/components/heading";
 import { GradientDivider } from "@/components/border";
-const testimonials = [
+import { Heading } from "@/components/heading";
+interface Testimonial {
+  text: string;
+  imageSrc: string;
+  name: string;
+  username: string;
+}
+
+const testimonials: Testimonial[] = [
   {
     text: "As a seasoned designer always on the lookout for innovative tools, Framer.com instantly grabbed my attention.",
     imageSrc: avatar1.src,
@@ -22,7 +32,7 @@ const testimonials = [
     username: "@jamietechguru00",
   },
   {
-    text: "Our team's productivity has skyrocketed since we started using this tool. ",
+    text: "Our team&apos;s productivity has skyrocketed since we started using this tool. ",
     imageSrc: avatar2.src,
     name: "Josh Smith",
     username: "@jjsmith",
@@ -76,11 +86,13 @@ const secondColumn = testimonials.slice(3, 6);
 const thirdColumn = testimonials.slice(6, 9);
 
 
-export const TestimonialsColumn = (props: {
+interface TestimonialsColumnProps {
   className?: string;
-  testimonials: typeof testimonials;
-  duration?:number;
-}) => {
+  testimonials: Testimonial[];
+  duration?: number;
+}
+
+export const TestimonialsColumn = (props: TestimonialsColumnProps): JSX.Element => {
   return (
     <div className={props.className}>
         <motion.div 
@@ -88,17 +100,17 @@ export const TestimonialsColumn = (props: {
             translateY: "-50%",
           }}
           transition={{
-            duration: props.duration||10,
+            duration: props.duration ?? 10,
             repeat: Infinity,
             ease: "linear",
             repeatType: "loop",
           }}
           
           className="flex flex-col gap-6 pb-6" >
-          {[...new Array(2)].fill(0).map((_, outerIndex) => (
-            <Fragment key={outerIndex}>
-              {props.testimonials.map(({ text, imageSrc, name, username }, index) => (
-                <div className="card" key={index}>
+          {Array.from({ length: 2 }, (_, outerIndex) => outerIndex).map((outerIndex) => (
+            <Fragment key={`testimonial-group-${outerIndex}`}>
+              {props.testimonials.map(({ text, imageSrc, name, username }) => (
+                <div className="card" key={`testimonial-${name}-${username}-${outerIndex}`}>
                   <div className="text-white/80">{text}</div>
                   <div className="flex items-center gap-2 mt-5">
                     <Image
@@ -122,7 +134,7 @@ export const TestimonialsColumn = (props: {
   );
 };
 
-export const CourseReviewPage = () => {
+export const CourseReviewPage = (): JSX.Element => {
   return (
     <section className="bg-gray-800">
       <div className="container">

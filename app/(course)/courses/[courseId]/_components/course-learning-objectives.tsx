@@ -42,7 +42,7 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
         <div className="grid md:grid-cols-2 gap-4">
           {initialObjectives.map((item, index) => (
             <div 
-              key={`initial-${item.slice(0, 20).replace(/\s+/g, '-')}-${index}`}
+              key={`initial-${item.slice(0, 20).replace(/\s+/g, '-')}`}
               className="flex items-start gap-4 p-4 bg-white/60 dark:bg-slate-700/30 rounded-xl border border-emerald-100/30 dark:border-slate-600/20 hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-200"
             >
               <div className="flex-shrink-0 mt-0.5">
@@ -74,7 +74,7 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
                 <div className="grid md:grid-cols-2 gap-4 mt-4">
                   {additionalObjectives.map((item, index) => (
                     <motion.div 
-                      key={`additional-${item.slice(0, 20).replace(/\s+/g, '-')}-${index}`}
+                      key={`additional-${item.slice(0, 20).replace(/\s+/g, '-')}`}
                       className="flex items-start gap-4 p-4 bg-white/60 dark:bg-slate-700/30 rounded-xl border border-emerald-100/30 dark:border-slate-600/20 hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-200"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}

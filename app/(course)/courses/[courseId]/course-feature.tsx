@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
 import { Course, Chapter } from '@prisma/client';
+
 import { CourseLayout } from './_components';
 
 interface CourseCardProps {
@@ -22,7 +22,7 @@ interface CourseCardProps {
   isEnrolled?: boolean;
 }
 
-const CourseCard = ({ course, userId, isEnrolled = false }: CourseCardProps) => {
+const CourseCard = ({ course, userId, isEnrolled = false }: CourseCardProps): JSX.Element => {
   return (
     <CourseLayout 
       course={course}

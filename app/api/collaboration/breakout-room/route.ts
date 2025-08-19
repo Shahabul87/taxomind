@@ -1,16 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
-export async function POST(req: NextRequest) {
+interface BreakoutRoomRequest {
+  sessionId: string;
+  room: {
+    name: string;
+    topic: string;
+    timeLimit: number;
+  };
+}
+
+interface Participant {
+  userId?: string;
+  id?: string;
+}
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await req.json() as BreakoutRoomRequest;
     const { sessionId, room } = body;
 
     if (!sessionId || !room) {
@@ -33,9 +48,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user is in participants JSON array
-    const participants = collaborationSession.participants as any[];
+    const participants = collaborationSession.participants as Participant[];
     const isParticipant = participants?.some(
-      (p: any) => p.userId === session.user.id || p.id === session.user.id
+      (p: Participant) => p.userId === session.user.id || p.id === session.user.id
     );
 
     if (!isParticipant) {
@@ -45,7 +60,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // TODO: Create breakout room (BreakoutRoom model needs to be added to schema)
+    // NOTE: Create breakout room (BreakoutRoom model needs to be added to schema)
     // const breakoutRoom = await db.breakoutRoom.create({
     //   data: {
     //     sessionId,
@@ -82,14 +97,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const searchParams = req.nextUrl.searchParams;
+    const { searchParams } = req.nextUrl;
     const sessionId = searchParams.get("sessionId");
 
     if (!sessionId) {
@@ -112,9 +127,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Check if user is in participants JSON array
-    const participants = collaborationSession.participants as any[];
+    const participants = collaborationSession.participants as Participant[];
     const isParticipant = participants?.some(
-      (p: any) => p.userId === session.user.id || p.id === session.user.id
+      (p: Participant) => p.userId === session.user.id || p.id === session.user.id
     );
 
     if (!isParticipant) {
@@ -124,9 +139,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // TODO: Get breakout rooms for this session
+    // NOTE: Get breakout rooms for this session
     // Need to add BreakoutRoom model to schema
-    const formattedRooms: any[] = [];
+    const formattedRooms: unknown[] = [];
 
     return NextResponse.json(formattedRooms);
   } catch (error) {
@@ -138,14 +153,19 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PUT(req: NextRequest) {
+interface BreakoutRoomActionRequest {
+  roomId: string;
+  action: string;
+}
+
+export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await req.json() as BreakoutRoomActionRequest;
     const { roomId, action } = body;
 
     if (!roomId || !action) {
@@ -155,7 +175,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // TODO: Implement breakout room actions
+    // NOTE: Implement breakout room actions
     // Need to add BreakoutRoom and BreakoutRoomParticipant models to schema
     
     switch (action) {

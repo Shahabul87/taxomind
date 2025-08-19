@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-
 import { useRouter } from "next/navigation";
-
-import { Course } from '@prisma/client';
 import axios from "axios";
 import { motion } from 'framer-motion';
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+import { Course } from '@prisma/client';
 
 interface CourseEnrollButtonProps {
   course: Course;
@@ -82,7 +81,6 @@ export const CourseEnrollButton = ({ course, userId, isEnrolled = false }: Cours
         <button 
           className="w-full group relative px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-green-500/25"
           onClick={() => {
-            // eslint-disable-next-line @typescript-eslint/no-floating-promises
             router.push(`/courses/${course.id}/learn`);
           }}
           disabled={isLoading}
@@ -106,8 +104,9 @@ export const CourseEnrollButton = ({ course, userId, isEnrolled = false }: Cours
         <button 
           className="w-full group relative px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-purple-500/25"
           onClick={() => {
-            // eslint-disable-next-line @typescript-eslint/no-floating-promises
-            handleEnroll();
+            handleEnroll().catch((error) => {
+              console.error('Enrollment failed:', error);
+            });
           }}
           disabled={isLoading}
         >

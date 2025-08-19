@@ -1,13 +1,11 @@
 "use client";
 
 import React from 'react';
-
 import Image from 'next/image';
-
-import { Course } from '@prisma/client';
 import { motion } from 'framer-motion';
 import { Star, Clock, User } from 'lucide-react';
 
+import { Course } from '@prisma/client';
 import { cleanHtmlContent } from '../utils/html-utils';
 
 interface CourseHeroSectionProps {

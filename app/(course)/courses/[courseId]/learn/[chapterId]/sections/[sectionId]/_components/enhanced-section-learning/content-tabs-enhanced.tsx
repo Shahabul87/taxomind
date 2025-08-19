@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   BookOpen, 
@@ -9,7 +10,6 @@ import {
   Video,
   Code,
   Lightbulb,
-  Play,
   StickyNote,
   GraduationCap,
   Brain,
@@ -17,25 +17,28 @@ import {
   Sparkles,
   Shield,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
+import { ResourceIntelligenceContent } from "@/components/sam/resource-intelligence-content";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+import { AdaptiveAssessmentContent } from "./adaptive-assessment-content";
+import { ArticleContent } from "./article-content";
+import { BlogContent } from "./blog-content";
+import { CodeContent } from "./code-content";
+import { ExamsContent } from "./exams-content";
+import { NotesContent } from "./notes-content";
 import { Section } from "./types";
 import { VideoContent } from "./video-content";
-import { BlogContent } from "./blog-content";
-import { ArticleContent } from "./article-content";
-import { CodeContent } from "./code-content";
-import { NotesContent } from "./notes-content";
-import { ExamsContent } from "./exams-content";
-import { AdaptiveAssessmentContent } from "./adaptive-assessment-content";
-import { ResourceIntelligenceContent } from "@/components/sam/resource-intelligence-content";
 
 type ContentSubTab = "videos" | "blogs" | "articles" | "code";
+type TabType = "content" | "notes" | "discussion" | "exams" | "adaptive" | "resources";
 
 interface ContentTabsEnhancedProps {
   currentSection: Section;
-  activeTab: "content" | "notes" | "discussion" | "exams" | "adaptive" | "resources";
-  setActiveTab: (tab: "content" | "notes" | "discussion" | "exams" | "adaptive" | "resources") => void;
+  activeTab: TabType;
+  setActiveTab: (tab: TabType) => void;
   courseId: string;
   chapterId: string;
   courseTitle?: string;
@@ -50,7 +53,7 @@ export const ContentTabsEnhanced = ({
   chapterId,
   courseTitle,
   chapterTitle,
-}: ContentTabsEnhancedProps) => {
+}: ContentTabsEnhancedProps): JSX.Element => {
   const [activeContentTab, setActiveContentTab] = useState<ContentSubTab>("videos");
 
   // Get available content types
@@ -153,7 +156,7 @@ export const ContentTabsEnhanced = ({
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as TabType)}
               className={cn(
                 "flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors border-b-2 whitespace-nowrap",
                 activeTab === tab.id
@@ -264,7 +267,7 @@ export const ContentTabsEnhanced = ({
                       >
                         <CodeContent codeExplanations={currentSection.codeExplanations.map(item => ({
                           ...item,
-                          title: item.heading || 'Untitled',
+                          title: item.heading ?? 'Untitled',
                           description: item.explanation
                         }))} />
                       </motion.div>

@@ -102,7 +102,7 @@ export const CourseOutcomes = ({ chapters }: CourseOutcomesProps): JSX.Element =
                 <div className="space-y-4">
                   {(chapter.learningOutcomes?.split(',') ?? []).map((outcome, index) => (
                     <motion.div
-                      key={`${chapter.id}-outcome-${outcome.trim().slice(0, 10)}-${index}`}
+                      key={`${chapter.id}-outcome-${outcome.trim().slice(0, 10)}`}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.1 }}

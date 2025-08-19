@@ -1,11 +1,12 @@
 "use client"
-import { useState } from 'react';
-import Link from 'next/link';
-import { MinusCircle, PlusCircle, ChevronDown,ChevronUp } from "lucide-react";
+
+import { useState, useCallback } from 'react';
+
+import { Chapter, Course, Section } from "@prisma/client";
+import { ChevronDown, ChevronUp } from "lucide-react";
+
 import { Separator } from "@/components/ui/separator"
 import Sections from './section';
-import { Chapter, Course, Section } from "@prisma/client";
-import { useCallback } from 'react';
 
 interface ChaptersFormProps {
     chapter: Chapter & { sections: Section[] };
@@ -14,12 +15,9 @@ interface ChaptersFormProps {
     handleSectionClick: (sectionId: string, event: React.MouseEvent) => void;
   }
 
-const Chapters = ({ chapter, course, selectedSectionId, handleSectionClick }:ChaptersFormProps) => {
+const Chapters = ({ chapter, course, selectedSectionId, handleSectionClick }:ChaptersFormProps): JSX.Element => {
   const [isVisible, setIsVisible] = useState(false);
 
-//   const toggleSections = () => {
-//     setIsVisible(!isVisible);
-//   };
 const toggleSections = useCallback(() => {
     setIsVisible((prevIsVisible) => !prevIsVisible);
   }, []);

@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+
 import { auth } from '@/auth';
+import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+
+interface ActivityUpdateData {
+  dueDate?: string;
+  completedDate?: string;
+  [key: string]: unknown;
+}
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
   try {
     const session = await auth();
     const { id: activityId } = await params;
@@ -16,7 +23,7 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    const body = await req.json();
+    const body = await req.json() as ActivityUpdateData;
     
     // Find the activity
     const existingActivity = await db.activity.findUnique({
@@ -33,7 +40,7 @@ export async function PATCH(
     }
     
     // Handle dueDate conversion
-    let updateData = { ...body };
+    const updateData: Record<string, unknown> = { ...body };
     
     if (body.dueDate) {
       updateData.dueDate = new Date(body.dueDate);
@@ -60,7 +67,7 @@ export async function PATCH(
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
   try {
     const session = await auth();
     const { id: activityId } = await params;

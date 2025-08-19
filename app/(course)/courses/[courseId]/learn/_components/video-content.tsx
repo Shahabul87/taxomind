@@ -1,9 +1,9 @@
 "use client";
 
 import { Video } from "@prisma/client";
-import { ExternalLink, Star, Calendar, PlayCircle } from "lucide-react";
-import { motion } from "framer-motion";
 import { format } from "date-fns";
+import { motion } from "framer-motion";
+import { Star, Calendar, PlayCircle } from "lucide-react";
 
 interface VideoContentProps {
   content: Video[];
@@ -12,8 +12,8 @@ interface VideoContentProps {
   sectionId: string;
 }
 
-export const VideoContent = ({ content }: VideoContentProps) => {
-  const handleVideoClick = (url: string) => {
+export const VideoContent = ({ content }: VideoContentProps): JSX.Element => {
+  const handleVideoClick = (url: string): void => {
     window.open(url, '_blank');
   };
 
@@ -26,7 +26,7 @@ export const VideoContent = ({ content }: VideoContentProps) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            onClick={() => handleVideoClick(video.url || video.youtubeUrl || '')}
+            onClick={() => handleVideoClick(video.url ?? video.youtubeUrl ?? '')}
             className="group cursor-pointer bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-100 dark:hover:border-purple-900/50"
           >
             <div className="p-6 space-y-4">
@@ -45,11 +45,11 @@ export const VideoContent = ({ content }: VideoContentProps) => {
 
               <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
                 <div className="flex items-center space-x-1">
-                  {[...Array(5)].map((_, i) => (
+                  {Array.from({ length: 5 }, (_, i) => i).map((i) => (
                     <Star
-                      key={i}
+                      key={`star-${video.id}-${i}`}
                       className={`h-4 w-4 ${
-                        i < (video.rating || 0)
+                        i < (video.rating ?? 0)
                           ? 'text-yellow-400 fill-yellow-400'
                           : 'text-gray-300 dark:text-gray-600'
                       }`}

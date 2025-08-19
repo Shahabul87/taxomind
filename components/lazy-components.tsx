@@ -1,23 +1,24 @@
 "use client";
 
 import { lazy, Suspense, ComponentType } from 'react';
-import { LoadingSpinner } from './ui/loading-spinner';
+
 import { ErrorBoundary } from './ui/error-boundary';
+import { LoadingSpinner } from './ui/loading-spinner';
 
 // Loading fallback components
-const ChartLoadingFallback = () => (
+const ChartLoadingFallback = (): JSX.Element => (
   <div className="h-64 w-full bg-slate-800/50 rounded-lg animate-pulse flex items-center justify-center">
     <div className="text-slate-400">Loading chart...</div>
   </div>
 );
 
-const EditorLoadingFallback = () => (
+const EditorLoadingFallback = (): JSX.Element => (
   <div className="h-40 w-full bg-slate-800/50 rounded-lg animate-pulse flex items-center justify-center">
     <div className="text-slate-400">Loading editor...</div>
   </div>
 );
 
-const AnalyticsLoadingFallback = () => (
+const AnalyticsLoadingFallback = (): JSX.Element => (
   <div className="space-y-4">
     {[1, 2, 3].map((i) => (
       <div key={i} className="h-24 w-full bg-slate-800/50 rounded-lg animate-pulse" />
@@ -25,13 +26,13 @@ const AnalyticsLoadingFallback = () => (
   </div>
 );
 
-const AILoadingFallback = () => (
+const AILoadingFallback = (): JSX.Element => (
   <div className="h-48 w-full bg-slate-800/50 rounded-lg animate-pulse flex items-center justify-center">
     <div className="text-slate-400">Loading AI assistant...</div>
   </div>
 );
 
-const DashboardLoadingFallback = () => (
+const DashboardLoadingFallback = (): JSX.Element => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {[1, 2, 3, 4, 5, 6].map((i) => (
       <div key={i} className="h-32 bg-slate-800/50 rounded-lg animate-pulse" />
@@ -39,7 +40,7 @@ const DashboardLoadingFallback = () => (
   </div>
 );
 
-const VideoLoadingFallback = () => (
+const VideoLoadingFallback = (): JSX.Element => (
   <div className="aspect-video w-full bg-slate-800/50 rounded-lg animate-pulse flex items-center justify-center">
     <div className="text-slate-400">Loading video player...</div>
   </div>
@@ -64,8 +65,8 @@ export const LazyConfetti = lazy(() => import('react-confetti'));
 function withLazyLoading<T extends object>(
   Component: ComponentType<T>,
   FallbackComponent: ComponentType = LoadingSpinner
-) {
-  return function LazyComponent(props: T) {
+): (props: T) => JSX.Element {
+  return function LazyComponent(props: T): JSX.Element {
     return (
       <ErrorBoundary>
         <Suspense fallback={<FallbackComponent />}>

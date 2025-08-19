@@ -1,49 +1,36 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+
 import { motion, AnimatePresence } from "framer-motion";
-import { logger } from '@/lib/logger';
 import { 
-  BookOpen, 
+  BookOpen,
   FileText, 
-  MessageCircle,
   Video,
   Code,
   Lightbulb,
-  Play,
-  StickyNote,
-  GraduationCap,
   Brain,
-  Globe,
-  Sparkles,
-  Shield,
   Eye,
   Volume2,
   Gamepad2,
-  Target,
   Award,
   Clock,
-  TrendingUp,
-  Zap,
   Info,
-  CheckCircle,
-  AlertCircle,
   X
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
+import { ResourceIntelligenceContent } from "@/components/sam/resource-intelligence-content";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { logger } from '@/lib/logger';
 import { cn } from "@/lib/utils";
+
+import { ArticleContent } from "./article-content";
+import { BlogContent } from "./blog-content";
+import { CodeContent } from "./code-content";
 import { Section } from "./types";
 import { VideoContent } from "./video-content";
-import { BlogContent } from "./blog-content";
-import { ArticleContent } from "./article-content";
-import { CodeContent } from "./code-content";
-import { NotesContent } from "./notes-content";
-import { ExamsContent } from "./exams-content";
-import { AdaptiveAssessmentContent } from "./adaptive-assessment-content";
-import { ResourceIntelligenceContent } from "@/components/sam/resource-intelligence-content";
 
 type ContentSubTab = "videos" | "blogs" | "articles" | "code";
 
@@ -60,9 +47,15 @@ interface LearningPreferences {
   enableGamification: boolean;
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
 interface ContentTabsPersonalizedProps {
   currentSection: Section;
-  user: any;
+  user: User;
   courseId: string;
   chapterId: string;
   sectionId: string;
@@ -72,15 +65,22 @@ interface ContentTabsPersonalizedProps {
 
 export const ContentTabsPersonalized = ({
   currentSection,
-  user,
   courseId,
   chapterId,
   sectionId,
   preferences,
   defaultTab = "content",
-}: ContentTabsPersonalizedProps) => {
+}: ContentTabsPersonalizedProps): JSX.Element => {
+  interface AdaptiveRecommendations {
+    suggestedOrder: string[];
+    estimatedTime: number;
+    difficultyLevel: string;
+    personalizedTips: string[];
+    nextActions: string[];
+  }
+
   const [activeContentTab, setActiveContentTab] = useState<ContentSubTab>("videos");
-  const [adaptiveRecommendations, setAdaptiveRecommendations] = useState<any>(null);
+  const [adaptiveRecommendations, setAdaptiveRecommendations] = useState<AdaptiveRecommendations | null>(null);
   const [showPersonalizedHints, setShowPersonalizedHints] = useState(preferences.showHints);
 
   // Get available content types with personalization
@@ -89,7 +89,7 @@ export const ContentTabsPersonalized = ({
       id: "videos",
       label: "Videos",
       icon: Video,
-      count: currentSection.videos?.length || 0,
+      count: currentSection.videos?.length ?? 0,
       color: "text-red-500",
       bgColor: "bg-red-50 text-red-700 border-red-200",
       recommended: preferences.contentFormat === 'visual' || preferences.contentFormat === 'auditory',
@@ -99,7 +99,7 @@ export const ContentTabsPersonalized = ({
       id: "blogs",
       label: "Blogs",
       icon: BookOpen,
-      count: currentSection.blogs?.length || 0,
+      count: currentSection.blogs?.length ?? 0,
       color: "text-green-500",
       bgColor: "bg-green-50 text-green-700 border-green-200",
       recommended: preferences.contentFormat === 'reading',
@@ -109,7 +109,7 @@ export const ContentTabsPersonalized = ({
       id: "articles",
       label: "Articles",
       icon: FileText,
-      count: currentSection.articles?.length || 0,
+      count: currentSection.articles?.length ?? 0,
       color: "text-blue-500",
       bgColor: "bg-blue-50 text-blue-700 border-blue-200",
       recommended: preferences.contentFormat === 'reading',
@@ -119,7 +119,7 @@ export const ContentTabsPersonalized = ({
       id: "code",
       label: "Code",
       icon: Code,
-      count: currentSection.codeExplanations?.length || 0,
+      count: currentSection.codeExplanations?.length ?? 0,
       color: "text-purple-500",
       bgColor: "bg-purple-50 text-purple-700 border-purple-200",
       recommended: preferences.contentFormat === 'kinesthetic',
@@ -137,7 +137,7 @@ export const ContentTabsPersonalized = ({
     }
   }, [preferences.contentFormat, currentSection.id, availableContent]);
 
-  const generateAdaptiveRecommendations = useCallback(() => {
+  const generateAdaptiveRecommendations = useCallback((): AdaptiveRecommendations => {
     const baseRecommendations = {
       suggestedOrder: [] as string[],
       estimatedTime: 0,
@@ -185,30 +185,35 @@ export const ContentTabsPersonalized = ({
     }
 
     // Adjust time estimates based on pace preference
-    const timeMultiplier = preferences.pacePreference === 'slow' ? 1.5 : 
-                          preferences.pacePreference === 'fast' ? 0.7 : 1;
+    let timeMultiplier = 1;
+    if (preferences.pacePreference === 'slow') {
+      timeMultiplier = 1.5;
+    } else if (preferences.pacePreference === 'fast') {
+      timeMultiplier = 0.7;
+    }
     baseRecommendations.estimatedTime = Math.round(45 * timeMultiplier);
 
     return baseRecommendations;
   }, [preferences.contentFormat, preferences.pacePreference]);
 
-  const loadAdaptiveRecommendations = useCallback(async () => {
+  const loadAdaptiveRecommendations = useCallback((): void => {
     try {
       // This would normally call the SAM personalization API
       // For now, we'll use demo data based on preferences
       const recommendations = generateAdaptiveRecommendations();
       setAdaptiveRecommendations(recommendations);
-    } catch (error: any) {
-      logger.error("Failed to load adaptive recommendations:", error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Failed to load adaptive recommendations:", errorMessage);
     }
   }, [generateAdaptiveRecommendations, setAdaptiveRecommendations]);
 
   // Load adaptive recommendations
   useEffect(() => {
     loadAdaptiveRecommendations();
-  }, [currentSection.id, preferences, loadAdaptiveRecommendations]);
+  }, [loadAdaptiveRecommendations]);
 
-  const getLearningStyleIcon = (style: string) => {
+  const getLearningStyleIcon = (style: string): JSX.Element => {
     if (style.includes('Visual')) return <Eye className="w-4 h-4" />;
     if (style.includes('Auditory')) return <Volume2 className="w-4 h-4" />;
     if (style.includes('Hands-on')) return <Gamepad2 className="w-4 h-4" />;
@@ -216,7 +221,7 @@ export const ContentTabsPersonalized = ({
     return <Brain className="w-4 h-4" />;
   };
 
-  const renderPersonalizedHints = () => {
+  const renderPersonalizedHints = (): JSX.Element | null => {
     if (!showPersonalizedHints || !adaptiveRecommendations) return null;
 
     return (
@@ -258,7 +263,7 @@ export const ContentTabsPersonalized = ({
                   const content = availableContent.find(c => c.id === contentType);
                   if (!content) return null;
                   
-                  const Icon = content.icon;
+                  const IconComponent = content.icon;
                   return (
                     <Badge
                       key={contentType}
@@ -270,7 +275,7 @@ export const ContentTabsPersonalized = ({
                       onClick={() => setActiveContentTab(contentType as ContentSubTab)}
                     >
                       <span className="mr-1">{index + 1}.</span>
-                      <Icon className="w-3 h-3 mr-1" />
+                      <IconComponent className="w-3 h-3 mr-1" />
                       {content.label}
                     </Badge>
                   );
@@ -284,8 +289,8 @@ export const ContentTabsPersonalized = ({
                   Tips for your learning style:
                 </p>
                 <div className="space-y-1">
-                  {adaptiveRecommendations.personalizedTips.slice(0, 2).map((tip: string, index: number) => (
-                    <div key={index} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+                  {adaptiveRecommendations.personalizedTips.slice(0, 2).map((tip: string, tipIndex: number) => (
+                    <div key={`tip-${tipIndex}-${tip.slice(0, 10)}`} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
                       <Lightbulb className="w-3 h-3 mt-0.5 text-purple-600" />
                       <span>{tip}</span>
                     </div>
@@ -299,7 +304,7 @@ export const ContentTabsPersonalized = ({
     );
   };
 
-  const renderGamificationElements = () => {
+  const renderGamificationElements = (): JSX.Element | null => {
     if (!preferences.enableGamification) return null;
 
     return (
@@ -335,7 +340,7 @@ export const ContentTabsPersonalized = ({
     );
   };
 
-  const renderContentTabs = () => {
+  const renderContentTabs = (): JSX.Element => {
     if (availableContent.length === 0) {
       return (
         <div className="text-center py-12">
@@ -350,7 +355,7 @@ export const ContentTabsPersonalized = ({
         {/* Content Type Selector */}
         <div className="flex flex-wrap gap-2">
           {availableContent.map((content) => {
-            const Icon = content.icon;
+            const IconComponent = content.icon;
             const isActive = activeContentTab === content.id;
             const isRecommended = content.recommended;
             
@@ -366,7 +371,7 @@ export const ContentTabsPersonalized = ({
                   isRecommended && !isActive && "border-purple-300 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20"
                 )}
               >
-                <Icon className="w-4 h-4" />
+                <IconComponent className="w-4 h-4" />
                 {content.label}
                 <Badge variant={isActive ? "secondary" : "outline"} className="text-xs">
                   {content.count}
@@ -384,9 +389,9 @@ export const ContentTabsPersonalized = ({
         {/* Learning Style Indicator */}
         {preferences.showHints && (
           <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-            {getLearningStyleIcon(availableContent.find(c => c.id === activeContentTab)?.learningStyle || '')}
+            {getLearningStyleIcon(availableContent.find(c => c.id === activeContentTab)?.learningStyle ?? '')}
             <span>
-              Recommended for {availableContent.find(c => c.id === activeContentTab)?.learningStyle} learners
+              Recommended for {availableContent.find(c => c.id === activeContentTab)?.learningStyle ?? ''} learners
             </span>
           </div>
         )}
@@ -402,32 +407,32 @@ export const ContentTabsPersonalized = ({
           >
             {activeContentTab === "videos" && (
               <VideoContentPersonalized 
-                videos={currentSection.videos || []} 
+                videos={currentSection.videos ?? []} 
                 preferences={preferences}
               />
             )}
             {activeContentTab === "blogs" && (
               <BlogContent 
-                blogs={currentSection.blogs || []} 
+                blogs={currentSection.blogs ?? []} 
               />
             )}
             {activeContentTab === "articles" && (
               <ArticleContent 
-                articles={currentSection.articles || []} 
+                articles={currentSection.articles ?? []} 
               />
             )}
             {activeContentTab === "code" && (
               <CodeContent 
-                codeExplanations={(currentSection.codeExplanations || []).map(code => ({
+                codeExplanations={(currentSection.codeExplanations ?? []).map(code => ({
                   id: code.id,
-                  title: code.heading || 'Code Example',
-                  description: code.explanation || undefined,
+                  title: code.heading ?? 'Code Example',
+                  description: code.explanation ?? undefined,
                   code: undefined,
                   language: undefined,
                   difficulty: undefined,
                   concepts: undefined,
                   author: undefined,
-                  explanation: code.explanation || undefined
+                  explanation: code.explanation ?? undefined
                 }))} 
               />
             )}
@@ -462,7 +467,17 @@ export const ContentTabsPersonalized = ({
 
 // Enhanced content components would need to accept preferences
 // For now, we'll extend the existing ones
-const VideoContentPersonalized = ({ videos, preferences }: { videos: any[], preferences: LearningPreferences }) => {
+interface VideoItem {
+  id: string;
+  title: string;
+  url: string;
+  duration?: string;
+  description: string;
+  thumbnail?: string | null;
+  views: number;
+}
+
+const VideoContentPersonalized = ({ videos, preferences }: { videos: VideoItem[], preferences: LearningPreferences }): JSX.Element => {
   return (
     <div className="space-y-4">
       {preferences.showHints && (
