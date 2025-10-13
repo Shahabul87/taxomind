@@ -87,6 +87,74 @@ npm run enterprise:health                  # System health check
 npm run enterprise:audit                   # View audit logs
 ```
 
+## 🎯 Custom Commands for AI Agents
+
+### /understand-sam - SAM AI Tutor Architecture Learning Path
+
+**Purpose**: Provides a structured learning path for AI agents to understand the SAM (Smart Adaptive Mentor) AI Tutor architecture.
+
+**Usage**:
+```
+/understand-sam
+```
+
+**What it does**:
+- Provides a comprehensive 5-step reading plan (80 minutes total)
+- Guides through SAM architecture documentation in optimal order
+- Includes key questions and practical exercises for each step
+- Provides self-assessment quiz to verify understanding
+- Includes quick reference guide and common workflows
+
+**Reading Order**:
+1. **System Overview** (15 min): `docs/architecture/sam-ai-tutor/00-OVERVIEW.md`
+2. **Core Engine Architecture** (20 min): `docs/architecture/sam-ai-tutor/02-CORE-ENGINES.md`
+3. **File Organization** (10 min): `docs/architecture/sam-ai-tutor/08-FILE-MAPPING.md`
+4. **System Workflows** (20 min): `docs/architecture/sam-ai-tutor/07-WORKFLOWS.md`
+5. **NPM Package Preparation** (15 min): `docs/architecture/sam-ai-tutor/09-NPM-PACKAGE-GUIDE.md`
+
+**When to use**:
+- When an AI agent needs to understand the SAM system
+- Before modifying SAM engines or components
+- When preparing the SAM system for npm package release
+- When onboarding new developers to the SAM codebase
+
+**Example scenarios**:
+```
+# Agent needs to understand SAM architecture
+User: "Can you explain how the SAM AI Tutor system works?"
+Agent: Let me use /understand-sam to learn the architecture first.
+
+# Agent needs to modify SAM engines
+User: "Add a new feature to the Personalization Engine"
+Agent: I'll use /understand-sam to understand the engine architecture.
+
+# Agent needs to prepare npm package
+User: "Help me prepare SAM for npm release"
+Agent: Using /understand-sam to review the npm preparation guide.
+```
+
+**Key Concepts Covered**:
+- SAM AI Tutor overview (35+ engines, 80+ API endpoints, 30+ components)
+- SAMBaseEngine foundation and inheritance pattern
+- Bloom's Taxonomy cognitive analysis (6 levels)
+- Personalization engine (learning styles, emotions, motivation)
+- File structure and organization
+- Complete user workflows (chat, analysis, personalization)
+- NPM package preparation roadmap
+
+**Success Criteria**:
+After completing the learning path, agents should be able to:
+- [ ] Explain the engine-based architecture
+- [ ] Locate any SAM file in the codebase
+- [ ] Trace complete user interaction workflows
+- [ ] Describe how engines coordinate for complex requests
+- [ ] Write example code using the published npm package
+
+**Documentation Location**:
+`.claude/commands/understand-sam.md`
+
+---
+
 ## Architecture Overview
 
 ### Next.js 15 App Router Structure
