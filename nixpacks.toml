@@ -1,0 +1,17 @@
+# nixpacks.toml
+# Railway deployment configuration
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "npm-10_9_2"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build:railway"]
+
+[start]
+cmd = "npm run start:railway"
+
+[variables]
+NODE_ENV = "production"
