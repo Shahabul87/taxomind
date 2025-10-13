@@ -240,17 +240,17 @@ export function getRateLimitHeaders(result: RateLimitResult): RateLimitHeaders {
 
 /**
  * Get client identifier from request (IP + optional user ID)
- * @param request - The request object
+ * @param request - The request object (supports both Request and NextRequest)
  * @param userId - Optional user ID for user-specific rate limiting
  */
-export function getClientIdentifier(request: Request, userId?: string): string {
+export function getClientIdentifier(request: Request | { headers: { get: (key: string) => string | null } }, userId?: string): string {
   // Get IP address from various headers
   const forwarded = request.headers.get('x-forwarded-for');
   const realIp = request.headers.get('x-real-ip');
   const cfConnectingIp = request.headers.get('cf-connecting-ip');
-  
+
   const ip = forwarded?.split(',')[0].trim() || realIp || cfConnectingIp || 'unknown';
-  
+
   // Combine IP with user ID if available for more precise rate limiting
   return userId ? `${ip}:${userId}` : ip;
 } 
