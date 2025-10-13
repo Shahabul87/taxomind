@@ -58,20 +58,44 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
       },
     });
 
-    // Log successful account creation
-    await authAuditHelpers.logAccountCreated(newUser.id, email, name);
+    console.log('[Register] User created successfully:', { userId: newUser.id, email });
 
-    const verificationToken = await generateVerificationToken(email);
+    // Log successful account creation (non-blocking)
+    try {
+      await authAuditHelpers.logAccountCreated(newUser.id, email, name);
+      console.log('[Register] Audit log created successfully');
+    } catch (auditError) {
+      console.error('[Register] Audit logging failed (non-critical):', auditError);
+      // Continue registration even if audit logging fails
+    }
 
-    // Queue verification email for background processing
-    await queueVerificationEmail({
-      userEmail: verificationToken.email,
-      userName: name,
-      verificationToken: verificationToken.token,
-      expiresAt: verificationToken.expires,
-      userId: newUser.id,
-      timestamp: new Date(),
-    });
+    // Generate verification token (non-blocking)
+    let verificationToken;
+    try {
+      verificationToken = await generateVerificationToken(email);
+      console.log('[Register] Verification token generated');
+    } catch (tokenError) {
+      console.error('[Register] Token generation failed (non-critical):', tokenError);
+      // Continue without verification token
+    }
+
+    // Queue verification email for background processing (non-blocking)
+    if (verificationToken) {
+      try {
+        await queueVerificationEmail({
+          userEmail: verificationToken.email,
+          userName: name,
+          verificationToken: verificationToken.token,
+          expiresAt: verificationToken.expires,
+          userId: newUser.id,
+          timestamp: new Date(),
+        });
+        console.log('[Register] Verification email queued successfully');
+      } catch (emailError) {
+        console.error('[Register] Email queueing failed (non-critical):', emailError);
+        // Continue even if email fails
+      }
+    }
 
     return {
       success: "Confirmation email sent!",
