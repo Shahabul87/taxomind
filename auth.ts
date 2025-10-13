@@ -216,7 +216,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       try {
         const existingUser = await getUserById(token.sub);
 
-        if (!existingUser) return token;
+        if (!existingUser) {
+          console.log('[JWT] User not found for token.sub:', token.sub);
+          return token;
+        }
 
         const existingAccount = await getAccountByUserId(
           existingUser.id
@@ -233,10 +236,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const crypto = require('crypto');
           token.sessionToken = crypto.randomUUID();
         }
-        
+
         return token;
       } catch (error) {
-        console.error("Error in JWT callback:", error);
+        console.error("[JWT Callback Error]:", {
+          error,
+          message: error instanceof Error ? error.message : 'Unknown error',
+          code: (error as any)?.code,
+          tokenSub: token.sub
+        });
+        // Return token even on error to prevent auth breakdown
         return token;
       }
     }
