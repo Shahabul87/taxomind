@@ -101,7 +101,7 @@ export const LoginForm = () => {
             setError("Something went wrong");
           });
       });
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Form submission error:", error);
       setError("An unexpected error occurred");
     }

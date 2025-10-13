@@ -123,7 +123,7 @@ export default function HowItWorksSection() {
   const benefitsInView = useInView(benefitsRef, { once: true, margin: "-100px" });
 
   return (
-    <div className="relative py-24 overflow-hidden bg-gradient-to-b from-slate-900 to-slate-800">
+    <div className="relative py-24 overflow-hidden bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-800">
       {/* Background elements */}
       <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-center opacity-5"></div>
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-full blur-3xl"></div>
@@ -152,10 +152,10 @@ export default function HowItWorksSection() {
               How TaxoMind
             </span>
             <br />
-            <span className="text-white">Transforms Learning</span>
+            <span className="text-slate-900 dark:text-white">Transforms Learning</span>
           </h2>
           
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-slate-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
             Our intelligent platform uses advanced AI algorithms to create personalized learning experiences 
             that adapt in real-time to optimize your educational journey.
           </p>
@@ -183,13 +183,13 @@ export default function HowItWorksSection() {
               >
                 {/* Step number indicator */}
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
-                  <div className={`w-12 h-12 bg-gradient-to-r ${step.gradient} rounded-full flex items-center justify-center shadow-xl border-4 border-slate-800 group-hover:scale-110 transition-transform duration-300`}>
+                  <div className={`w-12 h-12 bg-gradient-to-r ${step.gradient} rounded-full flex items-center justify-center shadow-xl border-4 border-white dark:border-slate-800 group-hover:scale-110 transition-transform duration-300`}>
                     <span className="text-white font-bold text-lg">{step.step}</span>
                   </div>
                 </div>
 
                 {/* Card */}
-                <div className="relative pt-8 p-8 rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl border border-slate-700/50 group-hover:border-purple-500/30 transition-all duration-300 shadow-xl hover:shadow-2xl">
+                <div className="relative pt-8 p-8 rounded-3xl backdrop-blur-xl border group-hover:border-purple-500/30 transition-all duration-300 shadow-xl hover:shadow-2xl bg-white border-slate-200 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 dark:border-slate-700/50">
                   <div className={`absolute -inset-1 bg-gradient-to-r ${step.gradient} rounded-3xl blur opacity-0 group-hover:opacity-20 transition duration-300`}></div>
                   
                   <div className="relative z-10">
@@ -199,18 +199,18 @@ export default function HowItWorksSection() {
                     </div>
 
                     {/* Content */}
-                    <h3 className="text-2xl font-bold text-white mb-4 text-center group-hover:text-purple-300 transition-colors">
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 text-center group-hover:text-purple-300 transition-colors">
                       {step.title}
                     </h3>
                     
-                    <p className="text-gray-300 text-center leading-relaxed mb-6">
+                    <p className="text-slate-600 dark:text-gray-300 text-center leading-relaxed mb-6">
                       {step.description}
                     </p>
 
                     {/* Features list */}
                     <div className="space-y-2">
                       {step.features.map((feature, featureIndex) => (
-                        <div key={featureIndex} className="flex items-center text-sm text-gray-400">
+                        <div key={featureIndex} className="flex items-center text-sm text-slate-500 dark:text-gray-400">
                           <CheckCircle className="w-4 h-4 text-purple-400 mr-2 flex-shrink-0" />
                           <span>{feature}</span>
                         </div>
@@ -245,10 +245,10 @@ export default function HowItWorksSection() {
             className="text-center mb-12"
             variants={stepVariants}
           >
-            <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">
               Proven Results with AI
             </h3>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-600 dark:text-gray-300 max-w-2xl mx-auto">
               Our intelligent learning approach delivers measurable improvements in learning outcomes
             </p>
           </motion.div>
@@ -258,7 +258,7 @@ export default function HowItWorksSection() {
               <motion.div
                 key={benefit.title}
                 variants={benefitVariants}
-                className="group text-center p-6 rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/30 hover:border-purple-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10"
+                className="group text-center p-6 rounded-2xl backdrop-blur-sm border transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10 bg-white/70 border-slate-200 dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 dark:border-slate-700/30 hover:border-purple-500/30"
                 whileHover={{ scale: 1.05 }}
               >
                 <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
@@ -269,11 +269,11 @@ export default function HowItWorksSection() {
                   {benefit.stat}
                 </div>
                 
-                <h4 className="text-lg font-semibold text-white mb-2">
+                <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
                   {benefit.title}
                 </h4>
                 
-                <p className="text-gray-400 text-sm leading-relaxed">
+                <p className="text-slate-500 dark:text-gray-400 text-sm leading-relaxed">
                   {benefit.description}
                 </p>
               </motion.div>

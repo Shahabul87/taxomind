@@ -230,36 +230,34 @@ export const CodeExplanationForm = ({
   };
 
   return (
-    <div className="w-full h-screen overflow-hidden">
+    <div className="w-full">
       {hasMounted && (
-        <div className="w-full h-full">
-          <div className="bg-gradient-to-br from-white via-gray-50 to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-900/20 rounded border border-gray-300 dark:border-gray-600 shadow-lg h-full flex flex-col">
+        <div className="w-full">
+          <div className="bg-gradient-to-br from-white via-gray-50 to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-900/20 rounded-lg border border-gray-300 dark:border-gray-600 shadow-md">
             <CodeFormHeader />
-            
+
             {/* Form Content */}
-            <div className="p-6 flex-1 overflow-hidden">
+            <div className="p-6">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="h-full flex flex-col">
-                  <div className="flex-1 overflow-hidden">
-                    <CodeBlockTabs
-                      codeBlocks={codeBlocks}
-                      activeBlockId={codeBlocks[0]?.id || ''}
-                      setActiveBlockId={() => {}}
-                      updateBlockCode={updateBlockCode}
-                      updateBlockExplanation={updateBlockExplanation}
-                      updateBlockLanguage={updateBlockLanguage}
-                      addCodeBlock={() => {}}
-                      removeCodeBlock={() => {}}
-                      moveBlockUp={() => {}}
-                      moveBlockDown={() => {}}
-                      isSubmitting={isSubmitting}
-                      title={title}
-                      setTitle={setTitle}
-                      onReset={handleManualReset}
-                      mode={mode}
-                      setMode={setMode}
-                    />
-                  </div>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                  <CodeBlockTabs
+                    codeBlocks={codeBlocks}
+                    activeBlockId={codeBlocks[0]?.id || ''}
+                    setActiveBlockId={() => {}}
+                    updateBlockCode={updateBlockCode}
+                    updateBlockExplanation={updateBlockExplanation}
+                    updateBlockLanguage={updateBlockLanguage}
+                    addCodeBlock={() => {}}
+                    removeCodeBlock={() => {}}
+                    moveBlockUp={() => {}}
+                    moveBlockDown={() => {}}
+                    isSubmitting={isSubmitting}
+                    title={title}
+                    setTitle={setTitle}
+                    onReset={handleManualReset}
+                    mode={mode}
+                    setMode={setMode}
+                  />
 
                   {/* Submit Button */}
                   <div className="flex justify-center pt-4 border-t border-gray-300 dark:border-gray-600 mt-4">

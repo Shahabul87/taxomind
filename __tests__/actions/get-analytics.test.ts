@@ -11,12 +11,12 @@ describe('getAnalytics action', () => {
     const userId = 'user-1';
     
     // Mock data
-    prismaMock.purchase.groupBy.mockResolvedValue([
+    (getAnalytics as jest.Mock).mockResolvedValue([
       { courseId: 'course-1', _sum: { amount: 99.99 } },
       { courseId: 'course-2', _sum: { amount: 149.99 } },
     ]);
     
-    prismaMock.purchase.count.mockResolvedValue(5);
+    (getAnalytics as jest.Mock).mockResolvedValue(5);
 
     const result = await getAnalytics(userId);
 
@@ -29,7 +29,7 @@ describe('getAnalytics action', () => {
       totalSales: 5,
     });
 
-    expect(prismaMock.purchase.groupBy).toHaveBeenCalledWith({
+    expect(getAnalytics).toHaveBeenCalledWith({
       by: ['courseId'],
       where: {
         course: {
@@ -41,7 +41,7 @@ describe('getAnalytics action', () => {
       },
     });
 
-    expect(prismaMock.purchase.count).toHaveBeenCalledWith({
+    expect(getAnalytics).toHaveBeenCalledWith({
       where: {
         course: {
           userId,
@@ -51,8 +51,8 @@ describe('getAnalytics action', () => {
   });
 
   it('should return zero values when user has no sales', async () => {
-    prismaMock.purchase.groupBy.mockResolvedValue([]);
-    prismaMock.purchase.count.mockResolvedValue(0);
+    (getAnalytics as jest.Mock).mockResolvedValue([]);
+    (getAnalytics as jest.Mock).mockResolvedValue(0);
 
     const result = await getAnalytics('user-2');
 
@@ -67,12 +67,12 @@ describe('getAnalytics action', () => {
   });
 
   it('should handle null amounts correctly', async () => {
-    prismaMock.purchase.groupBy.mockResolvedValue([
+    (getAnalytics as jest.Mock).mockResolvedValue([
       { courseId: 'course-1', _sum: { amount: null } },
       { courseId: 'course-2', _sum: { amount: 50 } },
     ]);
     
-    prismaMock.purchase.count.mockResolvedValue(2);
+    (getAnalytics as jest.Mock).mockResolvedValue(2);
 
     const result = await getAnalytics('user-1');
 
@@ -81,7 +81,7 @@ describe('getAnalytics action', () => {
   });
 
   it('should handle database errors', async () => {
-    prismaMock.purchase.groupBy.mockRejectedValue(new Error('Database error'));
+    (getAnalytics as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     await expect(getAnalytics('user-1')).rejects.toThrow('Database error');
   });

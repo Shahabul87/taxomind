@@ -131,7 +131,8 @@ describe('TOTP (Two-Factor Authentication) System', () => {
     it('should handle invalid JSON in encrypted data', async () => {
       const invalidEncryptedSecret = 'invalid-json';
       
-      await expect(decryptTOTPSecret(invalidEncryptedSecret)).rejects.toThrow('Failed to decrypt TOTP secret');
+      // The actual error message includes the JSON parse error details
+      await expect(decryptTOTPSecret(invalidEncryptedSecret)).rejects.toThrow('Failed to decrypt TOTP secret: Unexpected token');
     });
   });
 
@@ -249,12 +250,15 @@ describe('TOTP (Two-Factor Authentication) System', () => {
 
   describe('Recovery Codes Generation', () => {
     beforeEach(() => {
-      // Mock crypto.randomBytes to return predictable values
+      // Mock crypto.randomBytes to return unique predictable values for each call
+      let callCount = 0;
       (crypto.randomBytes as jest.Mock).mockImplementation((size: number) => {
         const buffer = Buffer.alloc(size);
+        // Create unique values for each call
         for (let i = 0; i < size; i++) {
-          buffer[i] = (i % 256); // Predictable pattern
+          buffer[i] = ((callCount * size + i) % 256);
         }
+        callCount++;
         return buffer;
       });
     });
@@ -266,9 +270,9 @@ describe('TOTP (Two-Factor Authentication) System', () => {
       expect(crypto.randomBytes).toHaveBeenCalledTimes(10);
       expect(crypto.randomBytes).toHaveBeenCalledWith(8); // 16 characters / 2 for hex
       
-      // Each code should be formatted as XXXX-XXXX
+      // Each code should be formatted as XXXX-XXXX-XXXX-XXXX (16 hex chars)
       codes.forEach(code => {
-        expect(code).toMatch(/^[0-9A-F]{4}-[0-9A-F]{4}$/);
+        expect(code).toMatch(/^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/);
       });
     });
 
@@ -284,7 +288,7 @@ describe('TOTP (Two-Factor Authentication) System', () => {
       (crypto.randomBytes as jest.Mock).mockReturnValue(Buffer.from([0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90]));
       
       const codes = generateRecoveryCodes();
-      expect(codes[0]).toBe('ABCD-EF12'); // First part of the hex string
+      expect(codes[0]).toBe('ABCD-EF12-3456-7890'); // Full 16-character hex string formatted
     });
   });
 
@@ -327,7 +331,7 @@ describe('TOTP (Two-Factor Authentication) System', () => {
 
     it('should handle decryption errors for recovery codes', async () => {
       (dataEncryption.decrypt as jest.Mock).mockRejectedValue(new Error('Decryption failed'));
-      const encryptedCodes = ['encrypted-code-1'];
+      const encryptedCodes = [JSON.stringify(mockEncryptedData)]; // Must be valid JSON
       
       await expect(decryptRecoveryCodes(encryptedCodes)).rejects.toThrow('Failed to decrypt recovery codes: Decryption failed');
     });
@@ -346,9 +350,7 @@ describe('TOTP (Two-Factor Authentication) System', () => {
     });
 
     it('should verify valid recovery code', async () => {
-      (decryptRecoveryCodes as any) = jest.fn().mockResolvedValue(mockRecoveryCodes);
-      
-      // Mock the entire decryptRecoveryCodes function since it&apos;s complex
+      // Mock the decrypt function to return the recovery codes in order
       (dataEncryption.decrypt as jest.Mock)
         .mockResolvedValueOnce(mockRecoveryCodes[0])
         .mockResolvedValueOnce(mockRecoveryCodes[1])
@@ -358,7 +360,7 @@ describe('TOTP (Two-Factor Authentication) System', () => {
       
       expect(result.isValid).toBe(true);
       expect(result.remainingCodes).toHaveLength(2);
-      expect(result.remainingCodes).not.toContain(mockEncryptedCodes[0]);
+      expect(result.remainingCodes).toEqual([mockEncryptedCodes[1], mockEncryptedCodes[2]]);
     });
 
     it('should verify recovery code with different formatting', async () => {
@@ -493,10 +495,16 @@ describe('TOTP (Two-Factor Authentication) System', () => {
 
   describe('Complete TOTP Setup Creation', () => {
     beforeEach(() => {
-      // Mock recovery code generation
-      (crypto.randomBytes as jest.Mock).mockImplementation((size: number) => 
-        Buffer.from('A'.repeat(size), 'ascii')
-      );
+      // Mock recovery code generation with unique values
+      let callCount = 0;
+      (crypto.randomBytes as jest.Mock).mockImplementation((size: number) => {
+        const buffer = Buffer.alloc(size);
+        for (let i = 0; i < size; i++) {
+          buffer[i] = ((callCount * 16 + i) % 256);
+        }
+        callCount++;
+        return buffer;
+      });
     });
 
     it('should create complete TOTP setup', async () => {
@@ -617,12 +625,19 @@ describe('TOTP (Two-Factor Authentication) System', () => {
       const isValidToken = verifyTOTPToken(currentToken, setup.secret);
       expect(isValidToken).toBe(true);
       
-      // 5. Use a recovery code
+      // 5. Use a recovery code - Mock the decryption to return the backup codes
+      (dataEncryption.decrypt as jest.Mock).mockReset();
+      for (let i = 0; i < setup.backupCodes.length; i++) {
+        (dataEncryption.decrypt as jest.Mock).mockResolvedValueOnce(setup.backupCodes[i]);
+      }
+      
       const recoveryResult = await verifyRecoveryCode(setup.backupCodes[0], encryptedCodes);
       expect(recoveryResult.isValid).toBe(true);
       expect(recoveryResult.remainingCodes).toHaveLength(9);
       
-      // 6. Decrypt the secret
+      // 6. Decrypt the secret - Reset mock and provide the secret
+      (dataEncryption.decrypt as jest.Mock).mockReset();
+      (dataEncryption.decrypt as jest.Mock).mockResolvedValue(setup.secret);
       const decryptedSecret = await decryptTOTPSecret(encryptedSecret);
       expect(decryptedSecret).toBe(setup.secret);
     });
@@ -667,6 +682,17 @@ describe('TOTP (Two-Factor Authentication) System', () => {
     });
 
     it('should handle concurrent operations safely', async () => {
+      // Mock crypto.randomBytes to generate unique codes for each call
+      let callCount = 0;
+      (crypto.randomBytes as jest.Mock).mockImplementation((size: number) => {
+        const buffer = Buffer.alloc(size);
+        for (let i = 0; i < size; i++) {
+          buffer[i] = ((callCount * 100 + i) % 256);
+        }
+        callCount++;
+        return buffer;
+      });
+      
       const promises = [];
       
       // Multiple concurrent secret generations
@@ -683,7 +709,7 @@ describe('TOTP (Two-Factor Authentication) System', () => {
         expect(result.backupCodes).toHaveLength(10);
       });
       
-      // Each should have unique recovery codes
+      // Each setup should have unique recovery codes
       const allCodes = results.flatMap(r => r.backupCodes);
       const uniqueCodes = new Set(allCodes);
       expect(uniqueCodes.size).toBe(allCodes.length);
@@ -725,7 +751,7 @@ describe('TOTP (Two-Factor Authentication) System', () => {
       const codes = generateRecoveryCodes();
       
       expect(crypto.randomBytes).toHaveBeenCalledWith(8); // 16 hex chars / 2
-      expect(codes[0]).toBe('1234-5678');
+      expect(codes[0]).toBe('1234-5678-ABCD-EF01'); // Full 16-character formatted code
     });
   });
 });

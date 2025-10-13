@@ -48,7 +48,7 @@ export default function PopularCategories() {
   return (
     <section>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
           Popular Categories
         </h2>
         <Link href="/groups">
@@ -66,15 +66,15 @@ export default function PopularCategories() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="group relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 hover:shadow-lg transition-shadow"
+            className="group relative overflow-hidden rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 hover:shadow-lg transition-shadow"
           >
             <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 ${category.color}`} />
             <div className="relative">
               <category.icon className={`w-8 h-8 ${category.color} text-white rounded-lg p-1.5`} />
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
                 {category.name}
               </h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              <p className="mt-2 text-sm text-slate-600 dark:text-gray-300">
                 {category.description}
               </p>
               <Button

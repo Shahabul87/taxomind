@@ -66,20 +66,20 @@ export const SectionTitleForm = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div className={cn(
-            "p-2.5 rounded-xl",
-            "bg-gradient-to-br from-blue-100 to-indigo-100",
-            "dark:from-blue-900/50 dark:to-indigo-900/50",
-            "border border-blue-200/50 dark:border-blue-700/50"
+            "p-2 rounded-lg",
+            "bg-gradient-to-br from-blue-500/10 to-indigo-500/10",
+            "dark:from-blue-500/20 dark:to-indigo-500/20",
+            "border border-blue-500/20 dark:border-blue-500/30"
           )}>
-            <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-sm font-medium text-foreground">
               Section Title
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Give your section a clear, descriptive title
             </p>
           </div>
@@ -89,35 +89,36 @@ export const SectionTitleForm = ({
           variant="ghost"
           size="sm"
           className={cn(
-            "bg-blue-50 dark:bg-blue-900/20",
-            "text-blue-700 dark:text-blue-300",
-            "hover:bg-blue-100 dark:hover:bg-blue-900/40",
-            "border border-blue-200/50 dark:border-blue-700/50",
+            "bg-blue-500/5 dark:bg-blue-500/10",
+            "text-blue-600 dark:text-blue-400",
+            "hover:bg-blue-500/10 dark:hover:bg-blue-500/20",
+            "border border-blue-500/20 dark:border-blue-500/30",
             "w-full sm:w-auto justify-center",
-            "transition-all duration-200"
+            "transition-all duration-200",
+            "h-8 px-3 text-xs font-medium"
           )}
         >
           {isEditing ? (
             <>Cancel</>
           ) : (
             <>
-              <Pencil className="h-4 w-4 mr-2" />
+              <Pencil className="h-3 w-3 mr-1.5" />
               Edit
             </>
           )}
         </Button>
       </div>
       {!isEditing && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            "p-4 rounded-lg",
-            "bg-gray-50 dark:bg-gray-900/50",
-            "border border-gray-200/50 dark:border-gray-700/50"
+            "px-3 py-2.5 rounded-lg",
+            "bg-muted/30",
+            "border border-border"
           )}
         >
-          <p className="text-gray-900 dark:text-gray-100 font-medium">
+          <p className="text-sm font-medium text-foreground">
             {initialData.title || "No title set"}
           </p>
         </motion.div>
@@ -140,17 +141,15 @@ export const SectionTitleForm = ({
                       placeholder="e.g. 'Introduction to the topic'"
                       data-form="section-title"
                       className={cn(
-                        "bg-white dark:bg-gray-900",
-                        "border-gray-200 dark:border-gray-700",
-                        "text-gray-900 dark:text-gray-200",
-                        "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-                        "focus:ring-2 focus:ring-gray-900 dark:focus:ring-white",
-                        "text-sm sm:text-base",
+                        "bg-background",
+                        "border-border",
+                        "text-sm",
+                        "h-9",
                         "transition-all duration-200"
                       )}
                     />
                   </FormControl>
-                  <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
@@ -166,16 +165,17 @@ export const SectionTitleForm = ({
                   "w-full sm:w-auto justify-center",
                   "transition-all duration-200",
                   "shadow-sm",
+                  "h-8 px-3 text-xs font-medium",
                   !isValid && "opacity-50 cursor-not-allowed"
                 )}
               >
                 {isSubmitting ? (
-                  <div className="flex items-center gap-x-2">
+                  <div className="flex items-center gap-x-1.5">
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     >
-                      <Loader2 className="h-4 w-4" />
+                      <Loader2 className="h-3 w-3" />
                     </motion.div>
                     <span>Saving...</span>
                   </div>

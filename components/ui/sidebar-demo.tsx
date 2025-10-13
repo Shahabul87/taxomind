@@ -53,12 +53,20 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
   // Update mobile detection to consider larger screens
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
+      const width = window.innerWidth;
+      const newIsMobile = width < 1024;
+      setIsMobile(newIsMobile);
+
+      // Emit sidebar state change event
+      const currentWidth = (open || (!newIsMobile && isHovered)) ? 280 : 80;
+      window.dispatchEvent(new CustomEvent('sidebar-state-change', {
+        detail: { expanded: (open || (!newIsMobile && isHovered)), width: currentWidth }
+      }));
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [open, isHovered]);
 
   // Handle hover effects only on desktop
   const handleMouseEnter = () => {

@@ -211,7 +211,7 @@ export class EmailMonitor {
    */
   public async getDashboardData(): Promise<any> {
     try {
-      const queueStats = await emailQueue.getStatistics();
+      const queueStats = await emailQueue.getQueueStatus();
       const recentMetrics = this.getRecentMetrics(15); // Last 15 minutes
       const aggregated = this.aggregateMetrics(recentMetrics, 'minute');
       const alerts = Array.from(this.activeAlerts.values());
@@ -380,7 +380,7 @@ export class EmailMonitor {
    */
   private async collectMetrics(): Promise<void> {
     try {
-      const queueStats = await emailQueue.getStatistics();
+      const queueStats = await emailQueue.getQueueStatus();
       const currentTime = new Date();
 
       // Create aggregated metric entry
@@ -424,7 +424,7 @@ export class EmailMonitor {
     }
 
     // Check queue depth
-    const queueStats = await emailQueue.getStatistics();
+    const queueStats = await emailQueue.getQueueStatus();
     const queueDepth = queueStats.inMemoryQueue?.pendingJobs || 0;
     if (queueDepth > thresholds.queueDepth) {
       this.createAlert('queue_depth', 'medium',

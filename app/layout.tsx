@@ -1,13 +1,11 @@
 import type { Metadata } from 'next'
-import { DM_Sans } from 'next/font/google'
 import './globals.css'
 import clsx from "clsx";
 import { logger } from '@/lib/logger';
+import { headers } from 'next/headers';
 
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
-});
+// NOTE: Disabled Google Fonts in build to support offline/restricted builds.
+// Use Tailwind's default font stack or self-host fonts via next/font/local if needed.
 
 import { auth } from '@/auth'
 import { ConfettiProvider } from '@/components/providers/confetti-provider';
@@ -23,8 +21,8 @@ import { SAMGlobalAssistant } from '@/components/sam/sam-global-assistant';
 import { SAMContextManager } from '@/components/sam/sam-context-manager';
 import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
 
-// Force dynamic rendering for the entire app
-export const dynamic = 'force-dynamic';
+// Use auto dynamic rendering (Next.js will determine optimal rendering)
+// export const dynamic = 'force-dynamic'; // Commented out to fix SSR bailout issue
 
 export const metadata: Metadata = {
   title: 'Taxomind - Intelligent Learning Platform',
@@ -118,7 +116,7 @@ export default async function RootLayout({
 }) {
   // Use try-catch to handle any errors with auth()
   let session;
-  
+
   try {
     session = await auth();
   } catch (error: any) {
@@ -126,12 +124,33 @@ export default async function RootLayout({
     session = null;
   }
 
+  // Check if this is an admin route
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") || "";
+  const isAdminRoute = pathname.startsWith("/dashboard/admin");
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Prevent theme flash by applying theme class before React hydrates */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const theme = localStorage.getItem('theme');
+                  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  const shouldBeDark = theme === 'dark' || (!theme && prefersDark);
+                  if (shouldBeDark) {
+                    document.documentElement.classList.add('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body className={clsx(
-        dmSans.className,
         "min-h-screen transition-colors duration-300",
         "bg-background text-foreground"
       )}>
@@ -142,29 +161,39 @@ export default async function RootLayout({
             <PageBackground>
               {/* SAM Context Manager - runs in background */}
               <SAMContextManager />
-              
-              {/* Fixed header with suspense boundary */}
-              <div className="fixed top-0 left-0 right-0 z-[50]">
-                <Suspense fallback={<HeaderFallback />}>
-                  <AsyncHeader />
-                </Suspense>
-              </div>
-              
-              {/* Main layout with sidebar and content */}
-              <Suspense fallback={
-                <div className="pt-14 sm:pt-16 min-h-screen bg-slate-900 flex items-center justify-center">
-                  <div className="text-white">Loading...</div>
+
+              {/* Only render header for non-admin routes */}
+              {!isAdminRoute && (
+                <div className="fixed top-0 left-0 right-0 z-[50]">
+                  <Suspense fallback={<HeaderFallback />}>
+                    <AsyncHeader />
+                  </Suspense>
                 </div>
-              }>
-                <AsyncLayoutWithSidebar>
+              )}
+
+              {/* Conditional layout rendering based on route */}
+              {isAdminRoute ? (
+                // Admin routes: No wrapper, full screen
+                <div className="min-h-screen">
                   {children}
-                </AsyncLayoutWithSidebar>
-              </Suspense>
+                </div>
+              ) : (
+                // Regular routes: Normal layout with sidebar
+                <Suspense fallback={
+                  <div className="pt-14 sm:pt-16 min-h-screen bg-slate-900 flex items-center justify-center">
+                    <div className="text-white">Loading...</div>
+                  </div>
+                }>
+                  <AsyncLayoutWithSidebar>
+                    {children}
+                  </AsyncLayoutWithSidebar>
+                </Suspense>
+              )}
             </PageBackground>
-            
+
             {/* Global SAM AI Tutor - Available across all authenticated pages */}
             <SAMGlobalAssistant />
-            
+
             {/* CSS Error Monitor - Only in development */}
             <CSSErrorMonitorClient />
           </SAMGlobalProvider>

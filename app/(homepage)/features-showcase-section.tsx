@@ -149,7 +149,7 @@ export default function FeaturesShowcaseSection() {
   const activeFeatures = featureCategories.find(cat => cat.id === activeCategory);
 
   return (
-    <div ref={sectionRef} className="relative py-24 overflow-hidden bg-gradient-to-b from-slate-800 to-slate-900">
+    <div ref={sectionRef} className="relative py-24 overflow-hidden bg-white dark:bg-gradient-to-b dark:from-slate-800 dark:to-slate-900">
       {/* Background elements */}
       <div className="absolute inset-0 bg-[url('/circuit-pattern.svg')] bg-center opacity-5"></div>
       <div className="absolute top-1/4 left-0 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 rounded-full blur-3xl"></div>
@@ -174,14 +174,14 @@ export default function FeaturesShowcaseSection() {
           </motion.div>
           
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            <span className="text-white">Powerful Features for</span>
+            <span className="text-slate-900 dark:text-white">Powerful Features for</span>
             <br />
             <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
               Intelligent Learning
             </span>
           </h2>
           
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-slate-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
             Discover the comprehensive suite of AI-powered tools designed to revolutionize 
             how you learn, teach, and manage educational experiences.
           </p>
@@ -198,7 +198,7 @@ export default function FeaturesShowcaseSection() {
             <motion.div
               key={stat.label}
               variants={featureVariants}
-              className="text-center p-6 rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/30 hover:border-indigo-500/30 transition-all duration-300 group"
+              className="text-center p-6 rounded-2xl backdrop-blur-sm border transition-all duration-300 group bg-white/70 border-slate-200 dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 dark:border-slate-700/30 hover:border-indigo-500/30"
               whileHover={{ scale: 1.05, y: -5 }}
             >
               <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
@@ -207,7 +207,7 @@ export default function FeaturesShowcaseSection() {
               <div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent mb-2">
                 {stat.value}
               </div>
-              <div className="text-sm text-gray-400 font-medium">
+              <div className="text-sm text-slate-500 dark:text-gray-400 font-medium">
                 {stat.label}
               </div>
             </motion.div>
@@ -227,7 +227,7 @@ export default function FeaturesShowcaseSection() {
               className={`relative px-8 py-4 rounded-2xl transition-all duration-300 border-2 ${
                 activeCategory === category.id
                   ? "border-indigo-500 bg-indigo-500/10"
-                  : "border-slate-600 hover:border-indigo-400 bg-slate-800/50"
+                  : "dark:border-slate-600 dark:hover:border-indigo-400 dark:bg-slate-800/50 border-slate-200 hover:border-indigo-300 bg-white/70"
               }`}
               onClick={() => setActiveCategory(category.id)}
               variants={tabVariants}
@@ -240,8 +240,8 @@ export default function FeaturesShowcaseSection() {
                   <category.icon className="w-5 h-5 text-white" />
                 </div>
                 <div className="text-left">
-                  <div className="font-semibold text-white">{category.title}</div>
-                  <div className="text-sm text-gray-400 hidden md:block">{category.description}</div>
+                  <div className="font-semibold text-slate-900 dark:text-white">{category.title}</div>
+                  <div className="text-sm text-slate-600 dark:text-gray-400 hidden md:block">{category.description}</div>
                 </div>
               </div>
               
@@ -276,18 +276,18 @@ export default function FeaturesShowcaseSection() {
               >
                 <div className={`absolute -inset-1 bg-gradient-to-r ${activeFeatures.gradient} rounded-3xl blur opacity-0 group-hover:opacity-25 transition duration-300`}></div>
                 
-                <div className="relative rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl p-8 shadow-2xl border border-slate-700/50 group-hover:border-indigo-500/30 transition-all duration-300 h-full">
+                <div className="relative rounded-3xl p-8 shadow-2xl border transition-all duration-300 h-full bg-white border-slate-200 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 dark:border-slate-700/50 group-hover:border-indigo-500/30 backdrop-blur-xl">
                   {/* Feature icon */}
                   <div className={`w-16 h-16 bg-gradient-to-r ${activeFeatures.gradient} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
                     <feature.icon className="w-8 h-8 text-white" />
                   </div>
 
                   {/* Feature content */}
-                  <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-indigo-300 transition-colors">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 group-hover:text-indigo-300 transition-colors">
                     {feature.title}
                   </h3>
-                  
-                  <p className="text-gray-300 leading-relaxed mb-6">
+                 
+                  <p className="text-slate-600 dark:text-gray-300 leading-relaxed mb-6">
                     {feature.description}
                   </p>
 
@@ -296,7 +296,7 @@ export default function FeaturesShowcaseSection() {
                     {feature.benefits.map((benefit, benefitIndex) => (
                       <motion.div
                         key={benefitIndex}
-                        className="flex items-center text-sm text-gray-400"
+                        className="flex items-center text-sm text-slate-500 dark:text-gray-400"
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 + benefitIndex * 0.05 }}
@@ -323,10 +323,10 @@ export default function FeaturesShowcaseSection() {
           transition={{ delay: 0.8, duration: 0.8 }}
         >
           <div className="max-w-3xl mx-auto">
-            <h3 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-6">
               Ready to Transform Your Learning Experience?
             </h3>
-            <p className="text-lg text-gray-300 mb-8">
+            <p className="text-lg text-slate-600 dark:text-gray-300 mb-8">
               Join thousands of learners and educators who are already experiencing 
               the power of AI-driven education.
             </p>
@@ -356,7 +356,7 @@ export default function FeaturesShowcaseSection() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="font-semibold py-4 px-8 rounded-2xl border-2 border-indigo-400/50 text-indigo-300 hover:bg-indigo-900/30 hover:border-indigo-400 backdrop-blur-sm transition-all duration-300"
+                  className="font-semibold py-4 px-8 rounded-2xl border-2 backdrop-blur-sm transition-all duration-300 text-indigo-700 border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 dark:text-indigo-300 dark:border-indigo-400/50 dark:hover:bg-indigo-900/30 dark:hover:border-indigo-400"
                 >
                   <span className="flex items-center text-lg">
                     <BookOpen className="mr-2 w-5 h-5" />

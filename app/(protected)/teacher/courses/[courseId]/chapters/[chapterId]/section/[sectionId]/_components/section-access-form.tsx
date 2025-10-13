@@ -76,25 +76,25 @@ export const SectionAccessForm = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div className={cn(
-            "p-2.5 rounded-xl transition-all duration-200",
+            "p-2 rounded-lg transition-all duration-200",
             form.getValues("isFree")
-              ? "bg-gradient-to-br from-emerald-100 to-cyan-100 dark:from-emerald-900/50 dark:to-cyan-900/50 border border-emerald-200/50 dark:border-emerald-700/50"
-              : "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50 border border-amber-200/50 dark:border-amber-700/50"
+              ? "bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 dark:from-emerald-500/20 dark:to-cyan-500/20 border border-emerald-500/20 dark:border-emerald-500/30"
+              : "bg-gradient-to-br from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20 border border-amber-500/20 dark:border-amber-500/30"
           )}>
             <Icon className={cn(
-              "h-5 w-5",
+              "h-4 w-4",
               form.getValues("isFree")
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-amber-600 dark:text-amber-400"
             )} />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-sm font-medium text-foreground">
               Access Settings
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Control who can access this section
             </p>
           </div>
@@ -107,49 +107,50 @@ export const SectionAccessForm = ({
             "transition-all duration-200",
             "w-full sm:w-auto justify-center",
             "border",
+            "h-8 px-3 text-xs font-medium",
             form.getValues("isFree")
-              ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border-emerald-200/50 dark:border-emerald-700/50"
-              : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 border-amber-200/50 dark:border-amber-700/50"
+              ? "bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 border-emerald-500/20 dark:border-emerald-500/30"
+              : "bg-amber-500/5 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 border-amber-500/20 dark:border-amber-500/30"
           )}
         >
           {isEditing ? "Cancel" : "Edit access"}
         </Button>
       </div>
       {!isEditing && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            "p-4 rounded-lg border",
+            "px-3 py-2.5 rounded-lg border",
             form.getValues("isFree")
-              ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200/50 dark:border-emerald-700/50"
-              : "bg-amber-50 dark:bg-amber-900/20 border-amber-200/50 dark:border-amber-700/50"
+              ? "bg-emerald-500/5 border-emerald-500/20"
+              : "bg-amber-500/5 border-amber-500/20"
           )}
         >
           <div className="flex items-center gap-2">
             <Icon className={cn(
-              "h-4 w-4",
+              "h-3.5 w-3.5",
               form.getValues("isFree")
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-amber-600 dark:text-amber-400"
             )} />
             <p className={cn(
-              "font-medium",
+              "text-sm font-medium",
               form.getValues("isFree")
-                ? "text-emerald-800 dark:text-emerald-200"
-                : "text-amber-800 dark:text-amber-200"
+                ? "text-emerald-700 dark:text-emerald-300"
+                : "text-amber-700 dark:text-amber-300"
             )}>
               {form.getValues("isFree") ? "Free Preview" : "Enrolled Students Only"}
             </p>
           </div>
           <p className={cn(
-            "text-sm mt-1",
+            "text-xs mt-1",
             form.getValues("isFree")
-              ? "text-emerald-700 dark:text-emerald-300"
-              : "text-amber-700 dark:text-amber-300"
+              ? "text-emerald-600/80 dark:text-emerald-400/80"
+              : "text-amber-600/80 dark:text-amber-400/80"
           )}>
-            {form.getValues("isFree") 
-              ? "This section is available for preview without enrollment" 
+            {form.getValues("isFree")
+              ? "This section is available for preview without enrollment"
               : "Students need to be enrolled to access this section"}
           </p>
         </motion.div>
@@ -165,11 +166,11 @@ export const SectionAccessForm = ({
               name="isFree"
               render={({ field }) => (
                 <FormItem className={cn(
-                  "p-4 rounded-lg space-y-3",
-                  "border border-gray-200 dark:border-gray-700/50",
-                  "bg-white/50 dark:bg-gray-900/50"
+                  "px-3 py-2.5 rounded-lg space-y-2",
+                  "border border-border",
+                  "bg-muted/30"
                 )}>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-x-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-x-3">
                     <FormControl>
                       <Switch
                         checked={field.value}
@@ -180,11 +181,11 @@ export const SectionAccessForm = ({
                         )}
                       />
                     </FormControl>
-                    <div className="space-y-1">
-                      <p className="font-medium text-gray-900 dark:text-gray-200">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium text-foreground">
                         Free Section Preview
                       </p>
-                      <FormDescription className="text-gray-600 dark:text-gray-400">
+                      <FormDescription className="text-xs text-muted-foreground">
                         Make this section free for preview
                       </FormDescription>
                     </div>
@@ -201,18 +202,19 @@ export const SectionAccessForm = ({
                   "transition-all duration-200",
                   "w-full sm:w-auto justify-center",
                   "shadow-sm",
+                  "h-8 px-3 text-xs font-medium",
                   form.getValues("isFree")
                     ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                     : "bg-amber-600 hover:bg-amber-700 text-white"
                 )}
               >
                 {isSubmitting ? (
-                  <div className="flex items-center gap-x-2">
+                  <div className="flex items-center gap-x-1.5">
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     >
-                      <Loader2 className="h-4 w-4" />
+                      <Loader2 className="h-3 w-3" />
                     </motion.div>
                     <span>Saving...</span>
                   </div>

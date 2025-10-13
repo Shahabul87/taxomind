@@ -87,18 +87,23 @@ export function getAppUrl() {
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL;
   }
-  
+
   // Check for Vercel deployment URL
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  
-  // Check for production environment
+
+  // SECURITY FIX: Fail fast in production instead of using hard-coded fallback
+  // This ensures proper configuration and prevents deployment issues
   const isProd = process.env.NODE_ENV === 'production';
   if (isProd) {
-    return 'https://bdgenai.com';
+    throw new Error(
+      'CRITICAL: NEXT_PUBLIC_APP_URL must be set in production environment. ' +
+      'Hard-coded fallbacks are not allowed for security and flexibility. ' +
+      'Set NEXT_PUBLIC_APP_URL in your environment variables.'
+    );
   }
-  
-  // Default to localhost for development
+
+  // Default to localhost for development only
   return 'http://localhost:3000';
 } 

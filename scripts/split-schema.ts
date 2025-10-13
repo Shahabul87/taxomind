@@ -1,0 +1,302 @@
+#!/usr/bin/env tsx
+/**
+ * Prisma Schema Splitter
+ *
+ * Splits the monolithic 5,544-line schema.prisma into domain-specific files
+ * while maintaining full Prisma compatibility.
+ *
+ * Strategy: Option 1 from ENTERPRISE_SCHEMA_ARCHITECTURE.md
+ * - Split into multiple files by domain
+ * - Keep single database (no schema changes needed)
+ * - Automated merging before build
+ * - Zero downtime, backward compatible
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { domains } from './categorize-schema-domains';
+
+interface SchemaSection {
+  type: 'generator' | 'datasource' | 'model' | 'enum' | 'comment';
+  name?: string;
+  content: string;
+  startLine: number;
+  endLine: number;
+}
+
+function parseSchema(schemaPath: string): SchemaSection[] {
+  const content = fs.readFileSync(schemaPath, 'utf-8');
+  const lines = content.split('\n');
+  const sections: SchemaSection[] = [];
+
+  let currentSection: SchemaSection | null = null;
+  let braceCount = 0;
+  let inBlock = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Skip empty lines when not in a block
+    if (!inBlock && trimmed === '') {
+      continue;
+    }
+
+    // Detect block start
+    if (!inBlock) {
+      if (trimmed.startsWith('generator ')) {
+        const name = trimmed.match(/generator\s+(\w+)/)?.[1];
+        currentSection = {
+          type: 'generator',
+          name,
+          content: line + '\n',
+          startLine: i + 1,
+          endLine: i + 1,
+        };
+        inBlock = true;
+        braceCount = (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+      } else if (trimmed.startsWith('datasource ')) {
+        const name = trimmed.match(/datasource\s+(\w+)/)?.[1];
+        currentSection = {
+          type: 'datasource',
+          name,
+          content: line + '\n',
+          startLine: i + 1,
+          endLine: i + 1,
+        };
+        inBlock = true;
+        braceCount = (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+      } else if (trimmed.startsWith('model ')) {
+        const name = trimmed.match(/model\s+(\w+)/)?.[1];
+        currentSection = {
+          type: 'model',
+          name,
+          content: line + '\n',
+          startLine: i + 1,
+          endLine: i + 1,
+        };
+        inBlock = true;
+        braceCount = (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+      } else if (trimmed.startsWith('enum ')) {
+        const name = trimmed.match(/enum\s+(\w+)/)?.[1];
+        currentSection = {
+          type: 'enum',
+          name,
+          content: line + '\n',
+          startLine: i + 1,
+          endLine: i + 1,
+        };
+        inBlock = true;
+        braceCount = (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+      } else if (trimmed.startsWith('//')) {
+        // Standalone comment
+        sections.push({
+          type: 'comment',
+          content: line + '\n',
+          startLine: i + 1,
+          endLine: i + 1,
+        });
+      }
+    } else if (currentSection) {
+      // Continue building current block
+      currentSection.content += line + '\n';
+      currentSection.endLine = i + 1;
+      braceCount += (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+
+      if (braceCount === 0) {
+        sections.push(currentSection);
+        currentSection = null;
+        inBlock = false;
+      }
+    }
+  }
+
+  return sections;
+}
+
+function splitSchemaByDomain() {
+  console.log('🔧 Prisma Schema Splitter\n');
+  console.log('=' .repeat(80) + '\n');
+
+  const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
+  const outputDir = path.join(process.cwd(), 'prisma', 'domains');
+
+  // Create output directory
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  console.log(`📖 Reading schema from: ${schemaPath}`);
+
+  // Parse the schema
+  const sections = parseSchema(schemaPath);
+  console.log(`✅ Parsed ${sections.length} sections\n`);
+
+  // Separate sections by type
+  const generators = sections.filter(s => s.type === 'generator');
+  const datasources = sections.filter(s => s.type === 'datasource');
+  const models = sections.filter(s => s.type === 'model');
+  const enums = sections.filter(s => s.type === 'enum');
+
+  console.log(`📊 Section breakdown:`);
+  console.log(`   Generators: ${generators.length}`);
+  console.log(`   Datasources: ${datasources.length}`);
+  console.log(`   Models: ${models.length}`);
+  console.log(`   Enums: ${enums.length}\n`);
+
+  // Create base file with generators and datasources
+  const baseContent = `// ==========================================
+// Base Configuration
+// ==========================================
+// This file contains the core Prisma configuration
+// that's shared across all domain schemas.
+//
+// DO NOT EDIT MANUALLY - Generated by split-schema.ts
+// ==========================================
+
+${generators.map(g => g.content).join('\n')}
+
+${datasources.map(d => d.content).join('\n')}
+`;
+
+  const baseFilePath = path.join(outputDir, '00-base.prisma');
+  fs.writeFileSync(baseFilePath, baseContent);
+  console.log(`✅ Created base configuration: ${baseFilePath}\n`);
+
+  // Create enums file
+  if (enums.length > 0) {
+    const enumsContent = `// ==========================================
+// Shared Enums
+// ==========================================
+// All enum definitions used across domains
+//
+// DO NOT EDIT MANUALLY - Generated by split-schema.ts
+// ==========================================
+
+${enums.map(e => e.content).join('\n')}
+`;
+
+    const enumsFilePath = path.join(outputDir, '01-enums.prisma');
+    fs.writeFileSync(enumsFilePath, enumsContent);
+    console.log(`✅ Created enums file: ${enumsFilePath}\n`);
+  }
+
+  // Create domain-specific files
+  console.log('📁 Creating domain-specific schema files:\n');
+
+  for (const [domainKey, domain] of Object.entries(domains)) {
+    const domainModels = models.filter(m => m.name && domain.models.includes(m.name));
+
+    if (domainModels.length === 0) {
+      console.log(`⚠️  ${domain.name}: No models found, skipping`);
+      continue;
+    }
+
+    const domainContent = `// ==========================================
+// ${domain.name}
+// ==========================================
+// ${domain.description}
+//
+// Total Models: ${domainModels.length}
+// Priority: ${domain.priority}
+//
+// DO NOT EDIT MANUALLY - Generated by split-schema.ts
+// ==========================================
+
+${domainModels.map(m => m.content).join('\n')}
+`;
+
+    const fileName = `${(domain.priority + 1).toString().padStart(2, '0')}-${domainKey}.prisma`;
+    const filePath = path.join(outputDir, fileName);
+    fs.writeFileSync(filePath, domainContent);
+
+    console.log(`✅ ${domain.name}: ${domainModels.length} models → ${fileName}`);
+  }
+
+  // Create index file to document the structure
+  const indexContent = `# Prisma Schema Domains
+
+This directory contains the split Prisma schema organized by domain.
+
+## 📊 Structure
+
+- **00-base.prisma**: Core Prisma configuration (generators, datasources)
+- **01-enums.prisma**: Shared enum definitions
+- **02-auth.prisma**: Authentication & Security (${domains.auth.models.length} models)
+- **03-learning.prisma**: Core Learning (${domains.learning.models.length} models)
+- **04-content.prisma**: Content Management (${domains.content.models.length} models)
+- **05-commerce.prisma**: Commerce & Billing (${domains.commerce.models.length} models)
+- **06-analytics.prisma**: Analytics & Reporting (${domains.analytics.models.length} models)
+- **07-social.prisma**: Social & Collaboration (${domains.social.models.length} models)
+- **08-ai.prisma**: AI & Machine Learning (${domains.ai.models.length} models)
+- **09-admin.prisma**: Admin & Audit (${domains.admin.models.length} models)
+- **10-gamification.prisma**: Gamification & Achievements (${domains.gamification.models.length} models)
+- **11-events.prisma**: Events & Calendar (${domains.events.models.length} models)
+
+## 🔄 Building
+
+These files are automatically merged into \`prisma/schema.prisma\` before builds.
+
+Run: \`npm run schema:merge\` to merge manually.
+
+## ⚠️ Important
+
+- DO NOT edit \`prisma/schema.prisma\` directly
+- Edit domain-specific files in this directory
+- Run \`npm run schema:merge\` after changes
+- Commit both domain files and merged schema
+
+---
+
+Generated: ${new Date().toISOString()}
+Total Models: ${models.length}
+Total Lines: ${sections.reduce((sum, s) => sum + (s.endLine - s.startLine + 1), 0)}
+`;
+
+  const indexPath = path.join(outputDir, 'README.md');
+  fs.writeFileSync(indexPath, indexContent);
+
+  console.log(`\n✅ Created documentation: ${indexPath}\n`);
+
+  // Summary
+  const totalModelsInDomains = Object.values(domains).reduce((sum, d) => sum + d.models.length, 0);
+  const uncategorizedModels = models.filter(m =>
+    m.name && !Object.values(domains).some(d => d.models.includes(m.name!))
+  );
+
+  console.log('\n📈 Split Summary:\n');
+  console.log(`   Total Models: ${models.length}`);
+  console.log(`   Categorized: ${totalModelsInDomains}`);
+  console.log(`   Domains: ${Object.keys(domains).length}`);
+  console.log(`   Files Created: ${Object.keys(domains).length + 2}`);
+
+  if (uncategorizedModels.length > 0) {
+    console.log(`\n   ⚠️  Uncategorized: ${uncategorizedModels.length}`);
+    console.log(`   Models: ${uncategorizedModels.map(m => m.name).join(', ')}`);
+  }
+
+  console.log(`\n✅ Schema split complete!`);
+  console.log(`\n📋 Next steps:`);
+  console.log(`   1. Review files in prisma/domains/`);
+  console.log(`   2. Run: npm run schema:merge`);
+  console.log(`   3. Run: npx prisma generate`);
+  console.log(`   4. Test your application\n`);
+
+  return {
+    totalFiles: Object.keys(domains).length + 2,
+    totalModels: models.length,
+    outputDir,
+  };
+}
+
+if (require.main === module) {
+  try {
+    splitSchemaByDomain();
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error splitting schema:', error);
+    process.exit(1);
+  }
+}
+
+export { splitSchemaByDomain, parseSchema };

@@ -23,10 +23,10 @@ describe('Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject short password', () => {
+    it('should reject empty password', () => {
       const invalidData = {
         email: 'test@example.com',
-        password: '123',
+        password: '',
       };
       
       const result = LoginSchema.safeParse(invalidData);
@@ -38,7 +38,7 @@ describe('Schemas', () => {
     it('should validate valid registration data', () => {
       const validData = {
         email: 'new@example.com',
-        password: 'password123',
+        password: 'Password123!', // Complex password with uppercase, lowercase, number, and special char
         name: 'Test User',
       };
       
@@ -46,14 +46,14 @@ describe('Schemas', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should allow registration without name', () => {
+    it('should reject registration without name', () => {
       const validData = {
         email: 'new@example.com',
-        password: 'password123',
+        password: 'Password123!',
       };
       
       const result = RegisterSchema.safeParse(validData);
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false); // Name is required in RegisterSchema
     });
   });
 

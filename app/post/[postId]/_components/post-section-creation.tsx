@@ -41,6 +41,7 @@ interface ChaptersFormProps {
     }[];
   };
   postId: string;
+  compact?: boolean;
 }
 
 const formSchema = z.object({
@@ -49,10 +50,13 @@ const formSchema = z.object({
 
 export const PostChaptersForm = ({
   initialData,
-  postId
+  postId,
+  compact = false,
 }: ChaptersFormProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [saveKey, setSaveKey] = useState(0);
   
   const router = useRouter();
 
@@ -77,6 +81,8 @@ export const PostChaptersForm = ({
       await axios.post(`/api/posts/${postId}/postchapters`, values);
       toast.success("Chapter created");
       setIsCreating(false);
+      setSavedAt(new Date());
+      setSaveKey((k) => k + 1);
       router.refresh();
     } catch (error: any) {
       toast.error("Something went wrong");
@@ -95,6 +101,8 @@ export const PostChaptersForm = ({
       });
       
       toast.success("Chapters reordered");
+      setSavedAt(new Date());
+      setSaveKey((k) => k + 1);
       router.refresh();
     } catch (error: any) {
       toast.error("Something went wrong");
@@ -111,6 +119,8 @@ export const PostChaptersForm = ({
     try {
       await axios.delete(`/api/posts/${postId}/postchapters/${postchapterId}`);
       toast.success("Chapter deleted");
+      setSavedAt(new Date());
+      setSaveKey((k) => k + 1);
       router.refresh();
     } catch (error: any) {
       toast.error("Something went wrong");
@@ -166,69 +176,104 @@ export const PostChaptersForm = ({
         </div>
       )}
       
-      <div className="relative z-10 p-6 sm:p-8">
+      <div className={cn("relative z-10", compact ? "p-0" : "p-6 sm:p-8")}> 
         {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
-          <div className="flex items-start gap-5">
-            <div className="relative group">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-400 to-indigo-400 blur-md opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
-              <div className="relative h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white shadow-lg transform perspective-800 group-hover:rotate-y-12 transition-transform duration-300">
-                <BookOpen className="h-7 w-7" />
-              </div>
+        {compact ? (
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {initialData.postchapter.length || 0} sections
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 dark:from-violet-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent">
-                  Post Chapters
-                </h2>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-300">
-                  {initialData.postchapter.length || 0} Sections
+            <div className="flex items-center gap-3">
+              {savedAt && (
+                <span key={saveKey} className="text-xs text-gray-500 dark:text-gray-400 animate-fade-in">
+                  {(() => { const d = savedAt; if (!d) return ""; const hh = d.getHours().toString().padStart(2, '0'); const mm = d.getMinutes().toString().padStart(2, '0'); return `Saved at ${hh}:${mm}`; })()}
                 </span>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md">
-                Craft your content narrative with interactive, drag-and-drop sections
-              </p>
+              )}
+              <Button onClick={toggleCreating} variant={isCreating ? "secondary" : "outline"} size="sm">
+                {isCreating ? "Cancel" : (
+                  <span className="inline-flex items-center"><PlusCircle className="h-4 w-4 mr-2" />Add Chapter</span>
+                )}
+              </Button>
             </div>
           </div>
-          <div className="relative group">
-            <div className={cn(
-              "absolute -inset-0.5 rounded-xl blur-sm group-hover:blur transition-all duration-300",
-              isCreating ? "bg-gray-300 dark:bg-gray-700" : "bg-gradient-to-r from-violet-400 to-indigo-400 opacity-70"
-            )}></div>
-            <Button
-              onClick={toggleCreating}
-              variant={isCreating ? "secondary" : "default"}
-              className={cn(
-                "relative rounded-xl transition-all duration-300 z-10 border-0",
-                isCreating 
-                  ? "bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-200" 
-                  : "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-500/20"
-              )}
-            >
-              <span className="relative flex items-center">
-                {isCreating ? (
-                  <>Cancel</>
-                ) : (
-                  <>
-                    <PlusCircle className="h-4 w-4 mr-2 group-hover:animate-pulse" />
-                    <span>Add Chapter</span>
-                  </>
+        ) : (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+            <div className="flex items-start gap-5">
+              <div className="relative group">
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-400 to-indigo-400 blur-md opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
+                <div className="relative h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white shadow-lg transform perspective-800 group-hover:rotate-y-12 transition-transform duration-300">
+                  <BookOpen className="h-7 w-7" />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 dark:from-violet-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                    Post Chapters
+                  </h2>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-300">
+                    {initialData.postchapter.length || 0} Sections
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md">
+                  Craft your content narrative with interactive, drag-and-drop sections
+                </p>
+              </div>
+            </div>
+            <div className="relative group">
+              <div className={cn(
+                "absolute -inset-0.5 rounded-xl blur-sm group-hover:blur transition-all duration-300",
+                isCreating ? "bg-gray-300 dark:bg-gray-700" : "bg-gradient-to-r from-violet-400 to-indigo-400 opacity-70"
+              )}></div>
+              <div className="flex items-center gap-3 relative z-10">
+                {savedAt && (
+                  <span key={saveKey} className="text-xs text-gray-500 dark:text-gray-400 animate-fade-in">
+                    {(() => { const d = savedAt; if (!d) return ""; const hh = d.getHours().toString().padStart(2, '0'); const mm = d.getMinutes().toString().padStart(2, '0'); return `Saved at ${hh}:${mm}`; })()}
+                  </span>
                 )}
-              </span>
-            </Button>
+                <Button
+                  onClick={toggleCreating}
+                  variant={isCreating ? "secondary" : "default"}
+                  className={cn(
+                    "relative rounded-xl transition-all duration-300 border-0",
+                    isCreating 
+                      ? "bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-200" 
+                      : "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-500/20"
+                  )}
+                >
+                  <span className="relative flex items-center">
+                    {isCreating ? (
+                      <>Cancel</>
+                    ) : (
+                      <>
+                        <PlusCircle className="h-4 w-4 mr-2 group-hover:animate-pulse" />
+                        <span>Add Chapter</span>
+                      </>
+                    )}
+                  </span>
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Creation Form */}
         {isCreating && (
-          <div className="mb-8 relative">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-300/20 via-purple-300/20 to-indigo-300/20 dark:from-violet-900/10 dark:via-purple-900/10 dark:to-indigo-900/10 blur-lg"></div>
-            <div className="relative backdrop-blur-sm rounded-2xl p-6 border border-violet-200/50 dark:border-violet-800/30 bg-white/80 dark:bg-gray-900/80 shadow-lg">
+          <div className={cn("mb-8", compact ? "rounded-lg border p-4 bg-white dark:bg-gray-900" : "relative")}> 
+            {!compact && (
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-300/20 via-purple-300/20 to-indigo-300/20 dark:from-violet-900/10 dark:via-purple-900/10 dark:to-indigo-900/10 blur-lg"></div>
+            )}
+            <div className={cn(
+              compact ? "rounded-lg" : "relative backdrop-blur-sm rounded-2xl p-6 border border-violet-200/50 dark:border-violet-800/30 bg-white/80 dark:bg-gray-900/80 shadow-lg"
+            )}>
               <div className="flex items-center gap-4 mb-5">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 dark:from-violet-500/20 dark:to-indigo-500/20 flex items-center justify-center border border-violet-200 dark:border-violet-800/50">
-                  <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                </div>
-                <h3 className="text-base font-medium bg-gradient-to-r from-violet-700 to-indigo-600 dark:from-violet-500 dark:to-indigo-400 bg-clip-text text-transparent">Create New Chapter</h3>
+                {!compact && (
+                  <>
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 dark:from-violet-500/20 dark:to-indigo-500/20 flex items-center justify-center border border-violet-200 dark:border-violet-800/50">
+                      <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <h3 className="text-base font-medium bg-gradient-to-r from-violet-700 to-indigo-600 dark:from-violet-500 dark:to-indigo-400 bg-clip-text text-transparent">Create New Chapter</h3>
+                  </>
+                )}
               </div>
               <Form {...form}>
                 <form
@@ -241,15 +286,19 @@ export const PostChaptersForm = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <div className="relative group">
-                            <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-violet-500/30 to-indigo-500/30 dark:from-violet-500/20 dark:to-indigo-500/20 opacity-0 group-focus-within:opacity-100 transition-opacity blur-sm"></div>
-                            <Input
-                              {...field}
-                              disabled={isSubmitting}
-                              placeholder="Enter chapter title..."
-                              className="relative border-violet-200 dark:border-violet-800/50 focus:border-violet-300 dark:focus:border-violet-700 focus:ring-2 focus:ring-violet-500/20 dark:focus:ring-violet-500/10 bg-white/90 dark:bg-gray-900/80 text-gray-900 dark:text-gray-200 rounded-lg py-2.5 px-4"
-                            />
-                          </div>
+                          {compact ? (
+                            <Input {...field} disabled={isSubmitting} placeholder="Enter chapter title..." />
+                          ) : (
+                            <div className="relative group">
+                              <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-violet-500/30 to-indigo-500/30 dark:from-violet-500/20 dark:to-indigo-500/20 opacity-0 group-focus-within:opacity-100 transition-opacity blur-sm"></div>
+                              <Input
+                                {...field}
+                                disabled={isSubmitting}
+                                placeholder="Enter chapter title..."
+                                className="relative border-violet-200 dark:border-violet-800/50 focus:border-violet-300 dark:focus:border-violet-700 focus:ring-2 focus:ring-violet-500/20 dark:focus:ring-violet-500/10 bg-white/90 dark:bg-gray-900/80 text-gray-900 dark:text-gray-200 rounded-lg py-2.5 px-4"
+                              />
+                            </div>
+                          )}
                         </FormControl>
                         <FormMessage className="text-rose-500 dark:text-rose-400 text-xs mt-1.5" />
                       </FormItem>
@@ -258,32 +307,38 @@ export const PostChaptersForm = ({
                   <div className="flex items-center justify-end gap-3 pt-1">
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant={compact ? "ghost" : "ghost"}
                       onClick={toggleCreating}
                       className="text-gray-600 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors duration-300"
                     >
                       Cancel
                     </Button>
-                    <div className="relative group">
-                      <div className={cn(
-                        "absolute -inset-0.5 rounded-md bg-gradient-to-r from-violet-500 to-indigo-500 blur-sm group-hover:blur-md transition-all duration-300",
-                        !isValid || isSubmitting ? "opacity-30" : "opacity-70"
-                      )}></div>
-                      <Button
-                        disabled={!isValid || isSubmitting}
-                        type="submit"
-                        className="relative bg-white dark:bg-gray-950 hover:bg-white dark:hover:bg-gray-950 text-violet-700 dark:text-violet-300 border-0 shadow-md z-10"
-                      >
-                        {isSubmitting ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <span className="flex items-center gap-1.5">
-                            <PlusCircle className="h-3.5 w-3.5" />
-                            <span>Create Chapter</span>
-                          </span>
-                        )}
+                    {compact ? (
+                      <Button disabled={!isValid || isSubmitting} type="submit">
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Chapter"}
                       </Button>
-                    </div>
+                    ) : (
+                      <div className="relative group">
+                        <div className={cn(
+                          "absolute -inset-0.5 rounded-md bg-gradient-to-r from-violet-500 to-indigo-500 blur-sm group-hover:blur-md transition-all duration-300",
+                          !isValid || isSubmitting ? "opacity-30" : "opacity-70"
+                        )}></div>
+                        <Button
+                          disabled={!isValid || isSubmitting}
+                          type="submit"
+                          className="relative bg-white dark:bg-gray-950 hover:bg-white dark:hover:bg-gray-950 text-violet-700 dark:text-violet-300 border-0 shadow-md z-10"
+                        >
+                          {isSubmitting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <span className="flex items-center gap-1.5">
+                              <PlusCircle className="h-3.5 w-3.5" />
+                              <span>Create Chapter</span>
+                            </span>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </form>
               </Form>
@@ -293,34 +348,21 @@ export const PostChaptersForm = ({
 
         {/* Chapters List */}
         <div className={cn(
-          "relative",
+          compact ? "" : "relative",
           !initialData.postchapter.length ? "text-sm italic text-gray-500 dark:text-gray-400 text-center py-10" : ""
         )}>
           {!initialData.postchapter.length ? (
-            <div className="relative">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-300/10 via-purple-300/10 to-indigo-300/10 dark:from-violet-900/5 dark:via-purple-900/5 dark:to-indigo-900/5 blur-lg"></div>
-              <div className="relative bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl py-12 px-8 border border-dashed border-violet-200 dark:border-violet-800/30 flex flex-col items-center justify-center">
-                <div className="relative mb-6">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-400/30 to-indigo-400/30 dark:from-violet-400/20 dark:to-indigo-400/20 blur-md animate-pulse"></div>
-                  <div className="relative rounded-full bg-gradient-to-br from-white to-violet-50 dark:from-gray-900 dark:to-violet-950/50 p-5 border border-violet-200/50 dark:border-violet-800/30 shadow-inner shadow-violet-200/30 dark:shadow-violet-900/10">
-                    <Sparkles className="h-12 w-12 text-violet-500 dark:text-violet-400" />
-                  </div>
-                </div>
+            <div className={cn("", compact ? "rounded-lg border border-dashed p-8 bg-white dark:bg-gray-900" : "relative")}> 
+              {!compact && (
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-300/10 via-purple-300/10 to-indigo-300/10 dark:from-violet-900/5 dark:via-purple-900/5 dark:to-indigo-900/5 blur-lg"></div>
+              )}
+              <div className={cn("flex flex-col items-center justify-center", compact ? "" : "relative bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl py-12 px-8 border border-dashed border-violet-200 dark:border-violet-800/30")}> 
                 <div className="text-center max-w-sm space-y-2">
-                  <h3 className="text-xl font-medium bg-gradient-to-r from-violet-700 to-indigo-600 dark:from-violet-500 dark:to-indigo-400 bg-clip-text text-transparent">
-                    Start Your Content Journey
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Create your first chapter to begin structuring your post content
-                  </p>
+                  <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">Start Your Content</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Create your first chapter to structure your post.</p>
                 </div>
-                <div className="relative mt-6 group">
-                  <div className="absolute -inset-0.5 rounded-md bg-gradient-to-r from-violet-500 to-indigo-500 opacity-70 blur-sm group-hover:blur-md transition-all duration-300"></div>
-                  <Button 
-                    onClick={toggleCreating}
-                    variant="outline" 
-                    className="relative bg-white dark:bg-gray-950 hover:bg-white/90 dark:hover:bg-gray-900/90 text-violet-700 dark:text-violet-300 border-0 shadow-md z-10"
-                  >
+                <div className="mt-4">
+                  <Button onClick={toggleCreating} variant="outline">
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Create First Chapter
                   </Button>
@@ -328,11 +370,13 @@ export const PostChaptersForm = ({
               </div>
             </div>
           ) : (
-            <div className="relative">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-300/10 via-purple-300/10 to-indigo-300/10 dark:from-violet-900/5 dark:via-purple-900/5 dark:to-indigo-900/5 blur-lg"></div>
-              <div className="relative backdrop-blur-sm rounded-2xl p-6 sm:p-7 border border-violet-200/50 dark:border-violet-800/30 bg-white/70 dark:bg-gray-900/70 shadow-lg">
-                <div className="flex items-center gap-4 mb-6 pb-4 border-b border-violet-100 dark:border-violet-900/20">
-                  <div className="h-9 w-9 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50">
+            <div className={cn("", compact ? "rounded-lg border p-4 bg-white dark:bg-gray-900" : "relative")}> 
+              {!compact && (
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-300/10 via-purple-300/10 to-indigo-300/10 dark:from-violet-900/5 dark:via-purple-900/5 dark:to-indigo-900/5 blur-lg"></div>
+              )}
+              <div className={cn("", compact ? "" : "relative backdrop-blur-sm rounded-2xl p-6 sm:p-7 border border-violet-200/50 dark:border-violet-800/30 bg-white/70 dark:bg-gray-900/70 shadow-lg")}> 
+                <div className="flex items-center gap-4 mb-4 sm:mb-6 pb-2 sm:pb-4 border-b border-gray-200 dark:border-gray-800">
+                  <div className="h-9 w-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
                     <GripVertical className="h-5 w-5" />
                   </div>
                   <div>

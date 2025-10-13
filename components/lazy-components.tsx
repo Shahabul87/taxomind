@@ -119,13 +119,15 @@ export const dynamicImport = {
 };
 
 // Route-based lazy loading
-export const LazyRouteComponents = {
-  TeacherCourses: lazy(() => import('@/app/(protected)/teacher/courses/page')),
-  StudentDashboard: lazy(() => import('@/app/dashboard/user/page')),
-  CourseLearn: lazy(() => import('@/app/(course)/courses/[courseId]/learn/[chapterId]/sections/[sectionId]/page')),
-  Analytics: lazy(() => import('@/app/analytics/user/page')),
-  Settings: lazy(() => import('@/app/(protected)/settings/page')),
-};
+// NOTE: Disabled - Next.js Server Components cannot be used with React.lazy()
+// These page components are async server components and cannot be lazy loaded this way
+// export const LazyRouteComponents = {
+//   TeacherCourses: lazy(() => import('@/app/(protected)/teacher/courses/page')),
+//   StudentDashboard: lazy(() => import('@/app/dashboard/user/page')),
+//   CourseLearn: lazy(() => import('@/app/(course)/courses/[courseId]/learn/[chapterId]/sections/[sectionId]/page')),
+//   Analytics: lazy(() => import('@/app/analytics/user/page')),
+//   Settings: lazy(() => import('@/app/(protected)/settings/page')),
+// };
 
 // Preload functions for critical routes
 export const preloadCriticalComponents = {} as const;

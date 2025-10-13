@@ -68,7 +68,7 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent hover:text-purple-600 dark:hover:text-purple-400 px-0 font-medium"
+          className="hover:bg-transparent hover:text-gray-900 dark:hover:text-white px-0 font-medium"
         >
           <BookOpen className="mr-2 h-4 w-4 text-gray-400" />
           Title
@@ -94,7 +94,7 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent hover:text-purple-600 dark:hover:text-purple-400 px-0 font-medium"
+            className="hover:bg-transparent hover:text-gray-900 dark:hover:text-white px-0 font-medium"
           >
             <Tag className="mr-2 h-4 w-4 text-gray-400" />
             Category
@@ -115,9 +115,9 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
         )}>
           <span className={cn(
             "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
-            "bg-purple-50 dark:bg-purple-500/10",
-            "text-purple-700 dark:text-purple-300",
-            "border border-purple-200 dark:border-purple-500/20"
+            "bg-gray-100 dark:bg-gray-700",
+            "text-gray-700 dark:text-gray-200",
+            "border border-gray-200 dark:border-gray-600"
           )}>
             {category}
           </span>
@@ -135,7 +135,7 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent hover:text-purple-600 dark:hover:text-purple-400 px-0 font-medium"
+          className="hover:bg-transparent hover:text-gray-900 dark:hover:text-white px-0 font-medium"
         >
           <DollarSign className="mr-2 h-4 w-4 text-gray-400" />
           Price
@@ -167,7 +167,7 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent hover:text-purple-600 dark:hover:text-purple-400 px-0 font-medium"
+          className="hover:bg-transparent hover:text-gray-900 dark:hover:text-white px-0 font-medium"
         >
           <BookCheck className="mr-2 h-4 w-4 text-gray-400" />
           Status
@@ -198,7 +198,7 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent hover:text-purple-600 dark:hover:text-purple-400 px-0 font-medium"
+          className="hover:bg-transparent hover:text-gray-900 dark:hover:text-white px-0 font-medium"
         >
           <Calendar className="mr-2 h-4 w-4 text-gray-400" />
           Created
@@ -242,9 +242,9 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="h-8 w-8 p-0 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                    className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
-                    <Pencil className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <Pencil className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                   </Button>
                 </Link>
               </TooltipTrigger>

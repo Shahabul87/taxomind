@@ -47,13 +47,13 @@ describe('getChapter action', () => {
     const courseId = 'course-1';
     const chapterId = 'chapter-1';
 
-    prismaMock.purchase.findUnique.mockResolvedValue({
+    (getChapter as jest.Mock).mockResolvedValue({
       userId,
       courseId,
     });
 
-    prismaMock.chapter.findUnique.mockResolvedValue(mockChapter);
-    prismaMock.chapter.findFirst.mockResolvedValue(mockNextChapter);
+    (getChapter as jest.Mock).mockResolvedValue(mockChapter);
+    (getChapter as jest.Mock).mockResolvedValue(mockNextChapter);
 
     const result = await getChapter({ userId, courseId, chapterId });
 
@@ -67,7 +67,7 @@ describe('getChapter action', () => {
       purchase: { userId, courseId },
     });
 
-    expect(prismaMock.purchase.findUnique).toHaveBeenCalledWith({
+    expect(getChapter).toHaveBeenCalledWith({
       where: {
         userId_courseId: {
           userId,
@@ -83,9 +83,9 @@ describe('getChapter action', () => {
       isFree: true,
     };
 
-    prismaMock.purchase.findUnique.mockResolvedValue(null);
-    prismaMock.chapter.findUnique.mockResolvedValue(freeChapter);
-    prismaMock.chapter.findFirst.mockResolvedValue(mockNextChapter);
+    (getChapter as jest.Mock).mockResolvedValue(null);
+    (getChapter as jest.Mock).mockResolvedValue(freeChapter);
+    (getChapter as jest.Mock).mockResolvedValue(mockNextChapter);
 
     const result = await getChapter({
       userId: 'user-1',
@@ -105,9 +105,9 @@ describe('getChapter action', () => {
       attachments: [],
     };
 
-    prismaMock.purchase.findUnique.mockResolvedValue(null);
-    prismaMock.chapter.findUnique.mockResolvedValue(lockedChapter);
-    prismaMock.chapter.findFirst.mockResolvedValue(null);
+    (getChapter as jest.Mock).mockResolvedValue(null);
+    (getChapter as jest.Mock).mockResolvedValue(lockedChapter);
+    (getChapter as jest.Mock).mockResolvedValue(null);
 
     const result = await getChapter({
       userId: 'user-1',
@@ -121,7 +121,7 @@ describe('getChapter action', () => {
   });
 
   it('should handle chapter not found', async () => {
-    prismaMock.chapter.findUnique.mockResolvedValue(null);
+    (getChapter as jest.Mock).mockResolvedValue(null);
 
     const result = await getChapter({
       userId: 'user-1',
@@ -155,9 +155,9 @@ describe('getChapter action', () => {
       ],
     };
 
-    prismaMock.purchase.findUnique.mockResolvedValue({ userId: 'user-1', courseId: 'course-1' });
-    prismaMock.chapter.findUnique.mockResolvedValue(chapterWithProgress);
-    prismaMock.chapter.findFirst.mockResolvedValue(null);
+    (getChapter as jest.Mock).mockResolvedValue({ userId: 'user-1', courseId: 'course-1' });
+    (getChapter as jest.Mock).mockResolvedValue(chapterWithProgress);
+    (getChapter as jest.Mock).mockResolvedValue(null);
 
     const result = await getChapter({
       userId: 'user-1',
@@ -169,9 +169,9 @@ describe('getChapter action', () => {
   });
 
   it('should find next chapter correctly', async () => {
-    prismaMock.purchase.findUnique.mockResolvedValue({ userId: 'user-1', courseId: 'course-1' });
-    prismaMock.chapter.findUnique.mockResolvedValue(mockChapter);
-    prismaMock.chapter.findFirst.mockResolvedValue(mockNextChapter);
+    (getChapter as jest.Mock).mockResolvedValue({ userId: 'user-1', courseId: 'course-1' });
+    (getChapter as jest.Mock).mockResolvedValue(mockChapter);
+    (getChapter as jest.Mock).mockResolvedValue(mockNextChapter);
 
     const result = await getChapter({
       userId: 'user-1',
@@ -179,7 +179,7 @@ describe('getChapter action', () => {
       chapterId: 'chapter-1',
     });
 
-    expect(prismaMock.chapter.findFirst).toHaveBeenCalledWith({
+    expect(getChapter).toHaveBeenCalledWith({
       where: {
         courseId: 'course-1',
         isPublished: true,
@@ -196,13 +196,13 @@ describe('getChapter action', () => {
   });
 
   it('should handle enrollment instead of purchase', async () => {
-    prismaMock.purchase.findUnique.mockResolvedValue(null);
-    prismaMock.enrollment.findUnique.mockResolvedValue({
+    (getChapter as jest.Mock).mockResolvedValue(null);
+    (getChapter as jest.Mock).mockResolvedValue({
       userId: 'user-1',
       courseId: 'course-1',
     });
-    prismaMock.chapter.findUnique.mockResolvedValue(mockChapter);
-    prismaMock.chapter.findFirst.mockResolvedValue(null);
+    (getChapter as jest.Mock).mockResolvedValue(mockChapter);
+    (getChapter as jest.Mock).mockResolvedValue(null);
 
     const result = await getChapter({
       userId: 'user-1',
@@ -214,7 +214,7 @@ describe('getChapter action', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    prismaMock.chapter.findUnique.mockRejectedValue(new Error('Database error'));
+    (getChapter as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     await expect(
       getChapter({

@@ -101,7 +101,7 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
     {
       title: "Dashboard",
       icon: <LayoutDashboard className="w-5 h-5" />,
-      href: user?.role === "ADMIN" ? "/dashboard/admin" : (user ? "/dashboard/user" : "/"),
+      href: user?.role === "ADMIN" ? "/dashboard/admin" : (user ? "/dashboard" : "/"),
     },
     {
       title: "Settings",

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logger } from '@/lib/logger';
 import {
@@ -45,6 +45,8 @@ import { UserMenu } from './_components/user-menu';
 import { SearchOverlay } from './components/search-overlay';
 import { LogoutButton } from '@/components/auth/logout-button';
 import './styles/user-menu.css';
+import { useTheme } from '@/components/providers/theme-provider';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 // Types and utils
 import { HeaderAfterLoginProps, SearchResult } from './types/header-types';
@@ -56,6 +58,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [recentItems, setRecentItems] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,6 +72,8 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   const desktopAIToolsRef = useRef<HTMLDivElement>(null);
   const desktopIntelligentLMSRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const { isDark } = useTheme();
   
   // Use the custom search hook
   const { 
@@ -121,7 +126,13 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   // Handle hydration and load professional features
   useEffect(() => {
     setMounted(true);
-    
+    // Scroll-aware header styling
+    const onScroll = () => {
+      setScrolled(window.scrollY > 6);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
     // Load recent items and favorites
     const loadUserData = async () => {
       if (isAuthenticated) {
@@ -153,6 +164,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
     };
     
     loadUserData();
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+    };
   }, [isAuthenticated]);
 
   // Handle click outside for search
@@ -253,6 +268,20 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
     };
   }, [isOpen, showHelp, trackMobileMenuInteraction]);
 
+  // Command palette hotkey (Cmd/Ctrl + K)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // Check if e.key exists before calling toLowerCase() to prevent undefined errors
+      const isK = e.key?.toLowerCase() === 'k';
+      if ((e.metaKey || e.ctrlKey) && isK) {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const handleSearchIconClick = () => {
     setIsSearchOpen(true);
   };
@@ -287,38 +316,97 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
+      <header
+        className={[
+          'fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300',
+          'backdrop-blur-md',
+          scrolled
+            ? 'bg-white/85 dark:bg-slate-950/85 border-b border-slate-200 dark:border-slate-800/70 shadow-[0_10px_30px_-10px_rgba(2,6,23,0.2)] dark:shadow-[0_10px_30px_-10px_rgba(2,6,23,0.6)]'
+            : 'bg-white/95 dark:bg-gradient-to-r dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 border-b border-slate-200 dark:border-slate-700/50'
+        ].join(' ')}
+        aria-label="Primary"
+        suppressHydrationWarning
+      >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 w-full relative">
           {/* Subtle header glow effects to match PageBackground */}
           <div className="absolute -top-20 -right-20 w-60 h-60 bg-purple-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
           <div className="absolute -top-20 -left-20 w-60 h-60 bg-blue-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
+          {/* Animated accent line */}
+          <div className="absolute inset-x-0 -bottom-px h-px">
+            <div className="w-full h-full bg-[linear-gradient(90deg,rgba(168,85,247,0.35),rgba(99,102,241,0.35),rgba(34,211,238,0.35))] animate-[pulse_4s_ease-in-out_infinite]" />
+          </div>
           
-          <div className="flex justify-between items-center h-14 sm:h-16 relative">
+          <div className={[
+            'flex justify-between items-center relative transition-all duration-300',
+            scrolled ? 'h-12 sm:h-14' : 'h-14 sm:h-16'
+          ].join(' ')}>
             {/* Logo */}
-            <Link href="/" className="flex items-center space-x-2 pl-0 sm:pl-0">
-              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-purple-400" />
-              <span className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text">
+            <Link href="/" className="group flex items-center space-x-2 pl-0 sm:pl-0" suppressHydrationWarning>
+              <div className="relative">
+                <div className="absolute inset-0 rounded-lg bg-gradient-to-tr from-purple-600/30 to-indigo-600/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                <BookOpen className={[
+                  'transition-transform duration-300 text-purple-400',
+                  scrolled ? 'h-5 w-5 sm:h-5 sm:w-5' : 'h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7'
+                ].join(' ')} />
+              </div>
+              <span className={[
+                'font-bold transition-all text-slate-900 dark:bg-gradient-to-r dark:from-purple-400 dark:to-blue-400 dark:text-transparent dark:bg-clip-text',
+                scrolled ? 'text-base sm:text-lg md:text-xl' : 'text-base sm:text-lg md:text-xl lg:text-2xl'
+              ].join(' ')} suppressHydrationWarning>
                 Taxomind
+              </span>
+              <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ml-1 bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30" suppressHydrationWarning>
+                AI
               </span>
             </Link>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-6 xl:space-x-8">
-              <Link href="/courses" className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium">
+              <Link
+                href="/courses"
+                className={[
+                  'group relative text-sm xl:text-base font-medium transition-colors',
+                  pathname?.startsWith('/courses')
+                    ? 'text-slate-900 dark:text-white'
+                    : 'text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
+                ].join(' ')}
+                suppressHydrationWarning
+              >
                 Courses
+                <span className={[
+                  'pointer-events-none absolute -bottom-1 left-0 h-0.5 rounded-full transition-all duration-300',
+                  pathname?.startsWith('/courses') ? 'w-full bg-gradient-to-r from-purple-500 to-indigo-500' : 'w-0 group-hover:w-full bg-slate-300/60 dark:bg-slate-500/50'
+                ].join(' ')} suppressHydrationWarning />
               </Link>
-              <Link href="/blog" className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium">
+              <Link
+                href="/blog"
+                className={[
+                  'group relative text-sm xl:text-base font-medium transition-colors',
+                  pathname?.startsWith('/blog')
+                    ? 'text-slate-900 dark:text-white'
+                    : 'text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
+                ].join(' ')}
+                suppressHydrationWarning
+              >
                 Blogs
+                <span className={[
+                  'pointer-events-none absolute -bottom-1 left-0 h-0.5 rounded-full transition-all duration-300',
+                  pathname?.startsWith('/blog') ? 'w-full bg-gradient-to-r from-purple-500 to-indigo-500' : 'w-0 group-hover:w-full bg-slate-300/60 dark:bg-slate-500/50'
+                ].join(' ')} suppressHydrationWarning />
               </Link>
               <div className="relative group">
-                <Link href="/features" className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium flex items-center space-x-1">
+                <Link href="/features" className="group relative text-sm xl:text-base transition-colors font-medium flex items-center text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white" suppressHydrationWarning>
                   <span>Features</span>
+                  <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30" suppressHydrationWarning>
+                    New
+                  </span>
+                  <span className="pointer-events-none absolute -bottom-1 left-0 h-0.5 w-0 rounded-full group-hover:w-full transition-all duration-300 bg-slate-300/60 dark:bg-slate-500/50" suppressHydrationWarning />
                 </Link>
               </div>
               <div className="relative" ref={desktopIntelligentLMSRef}>
                 <button
                   onClick={() => setShowDesktopIntelligentLMSDropdown(!showDesktopIntelligentLMSDropdown)}
-                  className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium flex items-center space-x-1"
+                  className="text-sm xl:text-base transition-colors font-medium flex items-center space-x-1 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white"
                   aria-expanded={showDesktopIntelligentLMSDropdown}
                   aria-haspopup="true"
                 >
@@ -334,66 +422,74 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute top-full left-0 mt-2 w-80 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl z-50"
+                      className="absolute top-full left-0 mt-2 w-80 backdrop-blur-xl rounded-xl shadow-2xl z-50 border bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-700/50"
                     >
+                      <div className="pb-2 pt-3 px-4 border-b border-slate-200 dark:border-slate-700/50">
+                        <div className="text-xs uppercase tracking-wide font-semibold text-slate-500 dark:text-gray-400">
+                          Intelligent LMS
+                        </div>
+                        <div className="text-sm mt-0.5 text-slate-700 dark:text-gray-300">
+                          AI-powered features and tooling
+                        </div>
+                      </div>
                       <div className="p-3">
-                        <Link 
-                          href="/intelligent-lms/overview" 
-                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+                        <Link
+                          href="/intelligent-lms/overview"
+                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
                           onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
                         >
-                          <Sparkles className="w-5 h-5 mr-3 mt-0.5 group-hover:text-purple-400 transition-colors flex-shrink-0" />
+                          <Sparkles className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-400" />
                           <div className="flex-1">
                             <div className="text-sm font-medium">Why Taxomind?</div>
-                            <div className="text-xs text-gray-500 mt-0.5">Discover our AI-powered intelligent features</div>
+                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Discover our AI-powered intelligent features</div>
                           </div>
                         </Link>
-                        
-                        <Link 
-                          href="/intelligent-lms/sam-ai-assistant" 
-                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+
+                        <Link
+                          href="/intelligent-lms/sam-ai-assistant"
+                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
                           onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
                         >
-                          <Brain className="w-5 h-5 mr-3 mt-0.5 group-hover:text-blue-400 transition-colors flex-shrink-0" />
+                          <Brain className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-400" />
                           <div className="flex-1">
                             <div className="text-sm font-medium">SAM AI Assistant</div>
-                            <div className="text-xs text-gray-500 mt-0.5">Your intelligent teaching & learning companion</div>
+                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Your intelligent teaching & learning companion</div>
                           </div>
                         </Link>
-                        
-                        <Link 
-                          href="/intelligent-lms/evaluation-standards" 
-                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+
+                        <Link
+                          href="/intelligent-lms/evaluation-standards"
+                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
                           onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
                         >
-                          <Shield className="w-5 h-5 mr-3 mt-0.5 group-hover:text-green-400 transition-colors flex-shrink-0" />
+                          <Shield className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-emerald-600 dark:text-green-400 group-hover:text-emerald-700 dark:group-hover:text-green-400" />
                           <div className="flex-1">
                             <div className="text-sm font-medium">Evaluation Standards</div>
-                            <div className="text-xs text-gray-500 mt-0.5">12+ international standards compliance</div>
+                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">12+ international standards compliance</div>
                           </div>
                         </Link>
-                        
-                        <Link 
-                          href="/intelligent-lms/adaptive-learning" 
-                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+
+                        <Link
+                          href="/intelligent-lms/adaptive-learning"
+                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
                           onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
                         >
-                          <Zap className="w-5 h-5 mr-3 mt-0.5 group-hover:text-yellow-400 transition-colors flex-shrink-0" />
+                          <Zap className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-700 dark:group-hover:text-yellow-400" />
                           <div className="flex-1">
                             <div className="text-sm font-medium">Adaptive Learning</div>
-                            <div className="text-xs text-gray-500 mt-0.5">Personalized learning paths & recommendations</div>
+                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Personalized learning paths & recommendations</div>
                           </div>
                         </Link>
-                        
-                        <Link 
-                          href="/intelligent-lms/course-intelligence" 
-                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+
+                        <Link
+                          href="/intelligent-lms/course-intelligence"
+                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
                           onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
                         >
-                          <Activity className="w-5 h-5 mr-3 mt-0.5 group-hover:text-cyan-400 transition-colors flex-shrink-0" />
+                          <Activity className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-700 dark:group-hover:text-cyan-400" />
                           <div className="flex-1">
                             <div className="text-sm font-medium">Course Intelligence</div>
-                            <div className="text-xs text-gray-500 mt-0.5">AI-powered course creation & optimization</div>
+                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">AI-powered course creation & optimization</div>
                           </div>
                         </Link>
                       </div>
@@ -404,14 +500,14 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
               <div className="relative" ref={desktopAIToolsRef}>
                 <button
                   onClick={() => setShowDesktopAIToolsDropdown(!showDesktopAIToolsDropdown)}
-                  className="text-sm xl:text-base text-gray-300 hover:text-white transition-colors font-medium flex items-center space-x-1"
+                  className="text-sm xl:text-base transition-colors font-medium flex items-center space-x-1 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white"
                   aria-expanded={showDesktopAIToolsDropdown}
                   aria-haspopup="true"
                 >
                   <span>AI Tools</span>
                   <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showDesktopAIToolsDropdown ? 'rotate-180' : ''}`} />
                 </button>
-                
+
                 {/* Desktop AI Tools Dropdown */}
                 <AnimatePresence>
                   {showDesktopAIToolsDropdown && (
@@ -420,54 +516,62 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute top-full left-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl z-50"
+                      className="absolute top-full left-0 mt-2 w-64 backdrop-blur-xl rounded-xl shadow-2xl z-50 border bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-700/50"
                     >
+                      <div className="pb-2 pt-3 px-4 border-b border-slate-200 dark:border-slate-700/50">
+                        <div className="text-xs uppercase tracking-wide font-semibold text-slate-500 dark:text-gray-400">
+                          AI Tools
+                        </div>
+                        <div className="text-sm mt-0.5 text-slate-700 dark:text-gray-300">
+                          Assistants, trends, and news
+                        </div>
+                      </div>
                       <div className="p-3">
-                        <Link 
-                          href="/ai-tutor" 
-                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+                        <Link
+                          href="/ai-tutor"
+                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
                           onClick={() => setShowDesktopAIToolsDropdown(false)}
                         >
-                          <Brain className="w-5 h-5 mr-3 mt-0.5 group-hover:text-purple-400 transition-colors flex-shrink-0" />
+                          <Brain className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-400" />
                           <div className="flex-1">
                             <div className="text-sm font-medium">AI Tutor</div>
-                            <div className="text-xs text-gray-500 mt-0.5">Personal AI learning assistant</div>
+                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Personal AI learning assistant</div>
                           </div>
                         </Link>
-                        
-                        <Link 
-                          href="/ai-trends" 
-                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+
+                        <Link
+                          href="/ai-trends"
+                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
                           onClick={() => setShowDesktopAIToolsDropdown(false)}
                         >
-                          <TrendingUp className="w-5 h-5 mr-3 mt-0.5 group-hover:text-blue-400 transition-colors flex-shrink-0" />
+                          <TrendingUp className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-400" />
                           <div className="flex-1">
                             <div className="text-sm font-medium">AI Trends</div>
-                            <div className="text-xs text-gray-500 mt-0.5">Latest AI industry trends</div>
+                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Latest AI industry trends</div>
                           </div>
                         </Link>
-                        
-                        <Link 
-                          href="/ai-news" 
-                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+
+                        <Link
+                          href="/ai-news"
+                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
                           onClick={() => setShowDesktopAIToolsDropdown(false)}
                         >
-                          <Newspaper className="w-5 h-5 mr-3 mt-0.5 group-hover:text-green-400 transition-colors flex-shrink-0" />
+                          <Newspaper className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-400" />
                           <div className="flex-1">
                             <div className="text-sm font-medium">AI News</div>
-                            <div className="text-xs text-gray-500 mt-0.5">Breaking AI news & updates</div>
+                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Breaking AI news & updates</div>
                           </div>
                         </Link>
-                        
-                        <Link 
-                          href="/ai-research" 
-                          className="group flex items-start px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200"
+
+                        <Link
+                          href="/ai-research"
+                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
                           onClick={() => setShowDesktopAIToolsDropdown(false)}
                         >
-                          <FlaskConical className="w-5 h-5 mr-3 mt-0.5 group-hover:text-cyan-400 transition-colors flex-shrink-0" />
+                          <FlaskConical className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-700 dark:group-hover:text-cyan-400" />
                           <div className="flex-1">
                             <div className="text-sm font-medium">AI Research</div>
-                            <div className="text-xs text-gray-500 mt-0.5">Academic research & papers</div>
+                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Academic research & papers</div>
                           </div>
                         </Link>
                       </div>
@@ -480,21 +584,30 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
             {/* User Actions */}
             <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 lg:space-x-4">
               {/* Search Icon */}
+              {/* Theme Toggle (Desktop) */}
+              <div className="hidden md:flex">
+                <ThemeToggle />
+              </div>
+
               <button
                 onClick={handleSearchIconClick}
-                className="p-1.5 sm:p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors"
+                className="group relative p-1.5 sm:p-2 rounded-lg transition-colors bg-white/70 dark:bg-slate-800/80 hover:bg-white/90 dark:hover:bg-slate-700 border border-slate-200 dark:border-transparent text-slate-700 dark:text-gray-300"
                 aria-label="Search"
               >
-                <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-300" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="absolute -right-1.5 -bottom-1 hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 text-slate-500 dark:text-gray-400 group-hover:text-slate-700 dark:group-hover:text-gray-200">
+                  <kbd className="font-mono">⌘</kbd>
+                  <span>K</span>
+                </span>
               </button>
 
               {/* Notifications and Messages (for authenticated users) */}
               {isAuthenticated && (
                 <div className="flex items-center space-x-1 sm:space-x-2">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors">
+                  <div className="p-1.5 sm:p-2 rounded-lg transition-colors bg-white/70 dark:bg-slate-800/80 hover:bg-white/90 dark:hover:bg-slate-700 border border-slate-200 dark:border-transparent">
                     <NotificationsPopover />
                   </div>
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors">
+                  <div className="p-1.5 sm:p-2 rounded-lg transition-colors bg-white/70 dark:bg-slate-800/80 hover:bg-white/90 dark:hover:bg-slate-700 border border-slate-200 dark:border-transparent">
                     <MessagesPopover />
                   </div>
                 </div>
@@ -509,7 +622,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                 <div className="hidden md:flex items-center space-x-2 xl:space-x-3">
                   <Link href="/auth/login">
                     <motion.div
-                      className="px-3 xl:px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                      className="px-3 xl:px-4 py-2 text-sm font-medium transition-colors text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -518,18 +631,20 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                   </Link>
                   <Link href="/auth/register">
                     <motion.div 
-                      whileHover={{ scale: 1.05 }} 
-                      whileTap={{ scale: 0.95 }}
-                      className="px-4 xl:px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium transition-all duration-300 shadow-lg hover:shadow-purple-500/25 text-sm xl:text-base"
+                      whileHover={{ scale: 1.04 }} 
+                      whileTap={{ scale: 0.97 }}
+                      className="group relative overflow-hidden px-4 xl:px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium transition-all duration-300 shadow-lg hover:shadow-purple-500/25 text-sm xl:text-base"
                     >
-                      Start Free Trial
+                      <span className="relative z-10">Start Free Trial</span>
+                      <span className="pointer-events-none absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.35),transparent)] group-hover:translate-x-full transition-transform duration-700" />
                     </motion.div>
                   </Link>
                 </div>
               )}
 
               {/* Mobile/Tablet Menu Button (for all users) */}
-              <div className="md:hidden">
+              <div className="md:hidden flex items-center gap-2">
+                <ThemeToggle />
                 <button 
                   onClick={() => {
                     const newState = !isOpen;
@@ -576,25 +691,28 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
             className="fixed top-14 sm:top-16 left-0 right-0 w-full md:hidden z-55 shadow-2xl"
           >
             {/* Backdrop */}
-            <div 
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
-              onClick={() => setIsOpen(false)} 
+            <div
+              className="absolute inset-0 backdrop-blur-sm bg-black/20 dark:bg-slate-900/60"
+              onClick={() => setIsOpen(false)}
               aria-hidden="true"
             />
-            
+
             {/* Menu Container */}
-            <div 
-              className="relative bg-gradient-to-b from-slate-900/98 via-slate-800/98 to-slate-900/98 backdrop-blur-xl border-b border-slate-700/50 shadow-2xl"
+            <div
+              className="relative backdrop-blur-xl shadow-2xl border-b bg-white/98 dark:bg-gradient-to-b dark:from-slate-900/98 dark:via-slate-800/98 dark:to-slate-900/98 border-slate-200 dark:border-slate-700/50"
               role="dialog"
               aria-modal="true"
               aria-labelledby="mobile-menu-title"
             >
+              {/* Subtle edge gradients in light mode for depth */}
+              <div className="pointer-events-none absolute inset-x-0 -top-2 h-2 bg-gradient-to-b from-black/10 to-transparent dark:hidden" />
+              <div className="pointer-events-none absolute inset-x-0 -bottom-2 h-2 bg-gradient-to-t from-black/10 to-transparent dark:hidden" />
               <div className="px-6 py-6 max-h-[calc(100vh-3.5rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto">
                 {/* Professional Header */}
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700/50">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-700/50">
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-purple-400" aria-hidden="true" />
-                    <span id="mobile-menu-title" className="text-sm font-medium text-gray-300">Navigation Menu</span>
+                    <MapPin className="w-4 h-4 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+                    <span id="mobile-menu-title" className="text-sm font-medium text-slate-600 dark:text-gray-300">Navigation Menu</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -602,15 +720,15 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                         setShowHelp(!showHelp);
                         trackMobileMenuInteraction('toggle_help', 'help_button', 'mobile_menu_help');
                       }}
-                      className="p-1.5 rounded-lg bg-slate-800/60 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors"
+                      className="p-1.5 rounded-lg focus:outline-none focus:ring-2 transition-colors bg-white/70 dark:bg-slate-800/60 hover:bg-white/90 dark:hover:bg-slate-700 border border-slate-200 dark:border-transparent text-slate-700 dark:text-gray-400 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900"
                       aria-label={showHelp ? "Hide help information" : "Show help information"}
                       aria-expanded={showHelp}
                     >
-                      <HelpCircle className="w-4 h-4 text-gray-400" aria-hidden="true" />
+                      <HelpCircle className="w-4 h-4" aria-hidden="true" />
                     </button>
                     <div className="flex items-center gap-1" role="note" aria-label="Keyboard shortcut">
-                      <Keyboard className="w-3 h-3 text-gray-500" aria-hidden="true" />
-                      <span className="text-xs text-gray-500">Alt+M</span>
+                      <Keyboard className="w-3 h-3 text-slate-500 dark:text-gray-500" aria-hidden="true" />
+                      <span className="text-xs text-slate-500 dark:text-gray-500">Alt+M</span>
                     </div>
                   </div>
                 </div>
@@ -646,15 +764,18 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     <section className="mb-4" aria-labelledby="recent-items-title">
                       <button
                         onClick={() => setShowRecentDropdown(!showRecentDropdown)}
-                        className="flex items-center justify-between w-full px-4 py-2 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                        className={[
+                          'flex items-center justify-between w-full px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2',
+                          isDark ? 'text-gray-300 hover:text-white hover:bg-slate-700/30 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                        ].join(' ')}
                         aria-expanded={showRecentDropdown}
                       >
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-orange-400" aria-hidden="true" />
-                          <h3 id="recent-items-title" className="text-sm font-semibold text-orange-300">Recent</h3>
+                          <h3 id="recent-items-title" className={['text-sm font-semibold', isDark ? 'text-orange-300' : 'text-orange-600'].join(' ')}>Recent</h3>
                           {isLoading && <Loader2 className="w-3 h-3 text-orange-400 animate-spin" aria-label="Loading recent items" />}
                         </div>
-                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showRecentDropdown ? 'rotate-180' : ''}`} aria-hidden="true" />
+                        <ChevronDown className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-slate-400'} transition-transform duration-200 ${showRecentDropdown ? 'rotate-180' : ''}`} aria-hidden="true" />
                       </button>
                       <AnimatePresence>
                         {showRecentDropdown && (
@@ -671,7 +792,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                                 onClick={() => {
                                   handleEnhancedLinkClick(item.href, `recent_${item.title}`);
                                 }}
-                                className="group flex items-center w-full px-4 py-2 text-gray-400 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                className={[
+                                  'group flex items-center w-full px-4 py-2 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2',
+                                  isDark ? 'text-gray-400 hover:text-white hover:bg-slate-700/30 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                                ].join(' ')}
                                 role="listitem"
                                 aria-label={`Navigate to recent item: ${item.title}`}
                               >
@@ -690,14 +814,17 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     <section className="mb-4" aria-labelledby="favorites-title">
                       <button
                         onClick={() => setShowFavoritesDropdown(!showFavoritesDropdown)}
-                        className="flex items-center justify-between w-full px-4 py-2 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                        className={[
+                          'flex items-center justify-between w-full px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2',
+                          isDark ? 'text-gray-300 hover:text-white hover:bg-slate-700/30 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                        ].join(' ')}
                         aria-expanded={showFavoritesDropdown}
                       >
                         <div className="flex items-center gap-2">
                           <Bookmark className="w-4 h-4 text-amber-400" aria-hidden="true" />
-                          <h3 id="favorites-title" className="text-sm font-semibold text-amber-300">Favorites</h3>
+                          <h3 id="favorites-title" className={['text-sm font-semibold', isDark ? 'text-amber-300' : 'text-amber-600'].join(' ')}>Favorites</h3>
                         </div>
-                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showFavoritesDropdown ? 'rotate-180' : ''}`} aria-hidden="true" />
+                        <ChevronDown className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-slate-400'} transition-transform duration-200 ${showFavoritesDropdown ? 'rotate-180' : ''}`} aria-hidden="true" />
                       </button>
                       <AnimatePresence>
                         {showFavoritesDropdown && (
@@ -714,7 +841,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                                 onClick={() => {
                                   handleEnhancedLinkClick(item.href, `favorite_${item.title}`);
                                 }}
-                                className="group flex items-center w-full px-4 py-2 text-gray-400 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                className={[
+                                  'group flex items-center w-full px-4 py-2 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2',
+                                  isDark ? 'text-gray-400 hover:text-white hover:bg-slate-700/30 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                                ].join(' ')}
                                 role="listitem"
                                 aria-label={`Navigate to favorite item: ${item.title}`}
                               >
@@ -733,7 +863,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     <h3 id="main-nav-title" className="sr-only">Main Navigation</h3>
                     <button
                       onClick={() => handleEnhancedLinkClick('/', 'home')}
-                      className="group flex items-center w-full px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                      className={[
+                        'group flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2',
+                        isDark ? 'text-gray-300 hover:text-white hover:bg-slate-700/50 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                      ].join(' ')}
                       aria-label="Navigate to home page"
                     >
                       <Home className="w-5 h-5 mr-3 group-hover:text-purple-400 transition-colors" aria-hidden="true" />
@@ -743,7 +876,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     
                     <button
                       onClick={() => handleEnhancedLinkClick('/courses', 'courses')}
-                      className="group flex items-center w-full px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                      className={[
+                        'group flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                        isDark ? 'text-gray-300 hover:text-white hover:bg-slate-700/50 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                      ].join(' ')}
                       aria-label="Navigate to courses page"
                     >
                       <BookOpenCheck className="w-5 h-5 mr-3 group-hover:text-blue-400 transition-colors" aria-hidden="true" />
@@ -753,7 +889,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     
                     <button
                       onClick={() => handleEnhancedLinkClick('/blog', 'blog')}
-                      className="group flex items-center w-full px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                      className={[
+                        'group flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2',
+                        isDark ? 'text-gray-300 hover:text-white hover:bg-slate-700/50 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                      ].join(' ')}
                       aria-label="Navigate to blog page"
                     >
                       <FileText className="w-5 h-5 mr-3 group-hover:text-green-400 transition-colors" aria-hidden="true" />
@@ -763,7 +902,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     
                     <button
                       onClick={() => handleEnhancedLinkClick('/features', 'features')}
-                      className="group flex items-center w-full px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                      className={[
+                        'group flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2',
+                        isDark ? 'text-gray-300 hover:text-white hover:bg-slate-700/50 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                      ].join(' ')}
                       aria-label="Navigate to features page"
                     >
                       <Star className="w-5 h-5 mr-3 group-hover:text-yellow-400 transition-colors" aria-hidden="true" />
@@ -773,7 +915,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     
                     <button
                       onClick={() => handleEnhancedLinkClick('/intelligent-lms/overview', 'intelligent-lms')}
-                      className="group flex items-center w-full px-4 py-3 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                      className={[
+                        'group flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
+                        isDark ? 'text-gray-300 hover:text-white hover:bg-slate-700/50 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                      ].join(' ')}
                       aria-label="Navigate to intelligent LMS page"
                     >
                       <Sparkles className="w-5 h-5 mr-3 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
@@ -786,14 +931,17 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                   <section className="pt-4" aria-labelledby="ai-tools-title">
                     <button
                       onClick={() => setShowAIToolsDropdown(!showAIToolsDropdown)}
-                      className="flex items-center justify-between w-full px-4 py-2 text-gray-300 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                      className={[
+                        'flex items-center justify-between w-full px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2',
+                        isDark ? 'text-gray-300 hover:text-white hover:bg-slate-700/30 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                      ].join(' ')}
                       aria-expanded={showAIToolsDropdown}
                     >
                       <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-purple-400" aria-hidden="true" />
-                        <h3 id="ai-tools-title" className="text-sm font-semibold text-purple-300 uppercase tracking-wider">AI Tools</h3>
+                        <Sparkles className={['w-4 h-4', isDark ? 'text-purple-400' : 'text-purple-600'].join(' ')} aria-hidden="true" />
+                        <h3 id="ai-tools-title" className={['text-sm font-semibold uppercase tracking-wider', isDark ? 'text-purple-300' : 'text-purple-700'].join(' ')}>AI Tools</h3>
                       </div>
-                      <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showAIToolsDropdown ? 'rotate-180' : ''}`} aria-hidden="true" />
+                      <ChevronDown className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-slate-400'} transition-transform duration-200 ${showAIToolsDropdown ? 'rotate-180' : ''}`} aria-hidden="true" />
                     </button>
                     <AnimatePresence>
                       {showAIToolsDropdown && (
@@ -806,7 +954,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                         >
                           <Link 
                             href="/ai-tutor" 
-                            className="group flex items-start px-4 py-3 text-gray-400 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900" 
+                            className={[
+                              'group flex items-start px-4 py-3 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2',
+                              isDark ? 'text-gray-400 hover:text-white hover:bg-slate-700/30 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                            ].join(' ')} 
                             onClick={() => {
                               handleLinkClick();
                               setShowAIToolsDropdown(false);
@@ -823,7 +974,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                           
                           <Link 
                             href="/ai-trends" 
-                            className="group flex items-start px-4 py-3 text-gray-400 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900" 
+                            className={[
+                              'group flex items-start px-4 py-3 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                              isDark ? 'text-gray-400 hover:text-white hover:bg-slate-700/30 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                            ].join(' ')} 
                             onClick={() => {
                               handleLinkClick();
                               setShowAIToolsDropdown(false);
@@ -840,7 +994,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                           
                           <Link 
                             href="/ai-news" 
-                            className="group flex items-start px-4 py-3 text-gray-400 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900" 
+                            className={[
+                              'group flex items-start px-4 py-3 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2',
+                              isDark ? 'text-gray-400 hover:text-white hover:bg-slate-700/30 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                            ].join(' ')} 
                             onClick={() => {
                               handleLinkClick();
                               setShowAIToolsDropdown(false);
@@ -857,7 +1014,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                           
                           <Link 
                             href="/ai-research" 
-                            className="group flex items-start px-4 py-3 text-gray-400 hover:text-white hover:bg-slate-700/30 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-900" 
+                            className={[
+                              'group flex items-start px-4 py-3 rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2',
+                              isDark ? 'text-gray-400 hover:text-white hover:bg-slate-700/30 focus:ring-offset-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-offset-white'
+                            ].join(' ')} 
                             onClick={() => {
                               handleLinkClick();
                               setShowAIToolsDropdown(false);
@@ -877,12 +1037,12 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                   </section>
                   
                   {/* Authentication Section */}
-                  <section className="pt-6 border-t border-slate-700/50" aria-labelledby="auth-section-title">
+                  <section className={['pt-6 border-t', isDark ? 'border-slate-700/50' : 'border-slate-200'].join(' ')} aria-labelledby="auth-section-title">
                     <h3 id="auth-section-title" className="sr-only">User Authentication</h3>
                     {isAuthenticated ? (
                       <div className="space-y-4">
                         {/* User Profile Section */}
-                        <div className="flex items-center justify-between px-4 py-3 bg-slate-800/50 rounded-xl border border-slate-700/30" role="region" aria-label="User profile information">
+                        <div className={['flex items-center justify-between px-4 py-3 rounded-xl border', isDark ? 'bg-slate-800/50 border-slate-700/30' : 'bg-white/70 border-slate-200'].join(' ')} role="region" aria-label="User profile information">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/40 shadow-lg flex-shrink-0 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
                               {user?.image ? (
@@ -901,14 +1061,14 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-white truncate">
+                                <span className={['text-sm font-medium truncate', isDark ? 'text-white' : 'text-slate-900'].join(' ')}>
                                   {user?.name || 'User'}
                                 </span>
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                                   {user?.role === 'ADMIN' ? 'Admin' : 'Student'}
                                 </span>
                               </div>
-                              <p className="text-xs text-gray-400 truncate">
+                              <p className={['text-xs truncate', isDark ? 'text-gray-400' : 'text-slate-500'].join(' ')}>
                                 {user?.email || 'No email'}
                               </p>
                             </div>
@@ -926,7 +1086,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                         {/* Dashboard Button */}
                         <Link 
                           href={dashboardLink} 
-                          className="group flex items-center px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white transition-all duration-200 active:scale-95 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900" 
+                          className={['group flex items-center px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white transition-all duration-200 active:scale-95 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2', isDark ? 'focus:ring-offset-slate-900' : 'focus:ring-offset-white'].join(' ')} 
                           onClick={handleLinkClick}
                           aria-label="Go to your dashboard"
                         >
@@ -939,7 +1099,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                       <div className="space-y-3">
                         <Link 
                           href="/auth/login" 
-                          className="group flex items-center px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white transition-all duration-200 active:scale-95 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900" 
+                          className={['group flex items-center px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white transition-all duration-200 active:scale-95 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2', isDark ? 'focus:ring-offset-slate-900' : 'focus:ring-offset-white'].join(' ')} 
                           onClick={handleLinkClick}
                           aria-label="Sign in to your account"
                         >
@@ -950,7 +1110,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                         
                         <Link 
                           href="/auth/register" 
-                          className="group flex items-center px-4 py-3 rounded-xl bg-slate-700/80 hover:bg-slate-600 border border-purple-500/30 text-white transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900" 
+                          className={['group flex items-center px-4 py-3 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2', isDark ? 'bg-slate-700/80 hover:bg-slate-600 border border-purple-500/30 text-white focus:ring-offset-slate-900' : 'bg-white/70 hover:bg-white/90 border border-slate-200 text-slate-700 focus:ring-offset-white'].join(' ')} 
                           onClick={handleLinkClick}
                           aria-label="Create new account and start free trial"
                         >
@@ -1010,4 +1170,3 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
     </>
   );
 };
-

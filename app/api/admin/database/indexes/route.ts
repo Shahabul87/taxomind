@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { adminAuth } from "@/auth.admin";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await adminAuth();
     if (!session?.user?.id || session.user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await adminAuth();
     if (!session?.user?.id || session.user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Unauthorized" },

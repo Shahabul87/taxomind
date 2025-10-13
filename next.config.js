@@ -1,10 +1,32 @@
 /** @type {import('next').NextConfig} */
 const { withSentryConfig } = require('@sentry/nextjs');
 
+// Toggle experimental optimizePackageImports for local builds if needed
+// Note: @tanstack/react-table is excluded from optimization due to ESM import issues
+const optimizeImports = process.env.DISABLE_OPTIMIZE_IMPORTS === 'true'
+  ? []
+  : [
+      'lucide-react',
+      '@radix-ui/react-*',
+      'framer-motion',
+      'date-fns',
+      'lodash',
+      '@tiptap/react',
+      '@tiptap/starter-kit',
+      'react-hook-form',
+      'zod',
+      'recharts',
+      '@headlessui/react',
+      'react-hot-toast',
+    ];
+
 const nextConfig = {
   reactStrictMode: true,
   trailingSlash: false,
-  
+
+  // Transpile packages that use ESM syntax
+  transpilePackages: ['@tanstack/react-table'],
+
   // Generate consistent build IDs to prevent CSS 404 errors
   generateBuildId: async () => {
     // Use environment variable if available, otherwise use timestamp
@@ -31,14 +53,14 @@ const nextConfig = {
     pagesBufferLength: 5,
   },
   
-  // TypeScript and ESLint validation - temporarily disabled for build optimization
+  // TypeScript and ESLint validation
+  // Industry practice: decouple checks from build. Keep strict in CI; allow skip locally.
+  // Use SKIP_TYPE_CHECK=true and/or SKIP_LINT=true to speed local builds.
   typescript: {
-    // Temporarily ignore TypeScript errors to allow build to complete
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
   },
   eslint: {
-    // Temporarily ignore ESLint errors during build
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: process.env.SKIP_LINT === 'true',
   },
   
   // Experimental settings for Next.js 15
@@ -48,19 +70,53 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000', 'localhost:3001', 'www.bdgenai.com', 'bdgenai.com']
     },
     // Optimize package imports for tree-shaking
-    optimizePackageImports: [
-      'lucide-react',
-      '@radix-ui/react-*',
-      'framer-motion',
-      'date-fns',
-      'lodash',
-      '@tiptap/react',
-      '@tiptap/starter-kit',
-    ],
+    optimizePackageImports: optimizeImports,
+    // Note: optimizeCss disabled - requires 'critters' package to be installed
+    // optimizeCss: true,
+    // Enable partial prerendering for faster builds
+    // ppr: true, // Disabled - requires Next.js canary version
   },
   
-  // Webpack configuration to fix chunking issues and CSS handling
+  // Enable SWC-based optimizations
+  compiler: {
+    // Remove console logs in production for smaller bundles
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+
+  // Module-level optimizations for faster builds
+  modularizeImports: {
+    'lodash': {
+      transform: 'lodash/{{member}}',
+    },
+    'date-fns': {
+      transform: 'date-fns/{{member}}',
+    },
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+    },
+  },
+
+  // Output standalone for smaller deployments
+  output: 'standalone',
+
+  // Webpack configuration - minimal, safe customizations
   webpack: (config, { isServer, dev }) => {
+    // ============================================
+    // CRITICAL FIX: Next.js 15 webpack chunk loading (GitHub issue #66526)
+    // ============================================
+    // Fix production chunk loading errors: "Cannot read properties of undefined (reading 'call')"
+    if (!dev && !isServer) {
+      config.output.publicPath = '/_next/';
+    }
+
+    // ============================================
+    // PART 1: CSS handling and chunking optimizations
+    // ============================================
+
+    // Rely on Next's SWC for minification; avoid custom Terser which slows builds.
+
     // CSS handling optimizations for development
     if (dev && !isServer) {
       // Ensure CSS files are properly handled in development
@@ -70,66 +126,117 @@ const nextConfig = {
         moduleIds: 'deterministic',
       };
     }
-    
-    // Fix for missing module errors
-    config.optimization = {
-      ...config.optimization,
-      splitChunks: {
-        chunks: 'all',
-        cacheGroups: {
-          default: false,
-          vendors: false,
-          // CSS specific cache group
-          styles: {
-            name: 'styles',
-            test: /\.(css|scss|sass)$/,
-            chunks: 'all',
-            enforce: true,
-            priority: 50,
-          },
-          framework: {
-            chunks: 'all',
-            name: 'framework',
-            test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
-            priority: 40,
-            enforce: true,
-          },
-          lib: {
-            test(module) {
-              return module.size() > 160000 &&
-                /node_modules[/\\]/.test(module.identifier());
+
+    // Avoid heavy custom splitChunks logic; keep Next defaults unless explicitly enabled.
+    if (process.env.ENABLE_CUSTOM_SPLITTING === 'true') {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            styles: {
+              name: 'styles',
+              test: /\.(css|scss|sass)$/,
+              chunks: 'all',
+              enforce: true,
+              priority: 50,
             },
-            name(module) {
-              const hash = require('crypto').createHash('sha1');
-              hash.update(module.identifier());
-              return hash.digest('hex').substring(0, 8);
-            },
-            priority: 30,
-            minChunks: 1,
-            reuseExistingChunk: true,
           },
-          commons: {
-            name: 'commons',
-            minChunks: 2,
-            priority: 20,
-          },
-          shared: {
-            name(module, chunks) {
-              return require('crypto')
-                .createHash('sha1')
-                .update(chunks.reduce((acc, chunk) => acc + chunk.name, ''))
-                .digest('hex') + (isServer ? '-server' : '-client');
-            },
-            priority: 10,
-            minChunks: 2,
-            reuseExistingChunk: true,
-          },
+          maxAsyncRequests: 30,
+          maxInitialRequests: 30,
         },
-        maxAsyncRequests: 30,
-        maxInitialRequests: 30,
+      };
+    }
+
+    // ============================================
+    // PART 2: OpenTelemetry and instrumentation handling
+    // ============================================
+
+    // Suppress critical dependency warnings from OpenTelemetry instrumentation
+    config.module = config.module || {};
+    config.module.exprContextCritical = false;
+
+    // Ignore specific OpenTelemetry warnings
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      {
+        module: /@opentelemetry\/instrumentation/,
+        message: /Critical dependency/,
       },
-    };
-    
+      {
+        module: /@prisma\/instrumentation/,
+        message: /Critical dependency/,
+      },
+    ];
+
+    // Exclude gRPC and OpenTelemetry packages from client-side bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'stream': false,
+        'util': false,
+        'buffer': false,
+        'crypto': false,
+        'fs': false,
+        'path': false,
+        'child_process': false,
+      };
+
+      // Exclude OpenTelemetry and Prisma instrumentation packages from client bundle
+      config.externals = config.externals || [];
+      config.externals.push({
+        '@grpc/grpc-js': 'commonjs @grpc/grpc-js',
+        '@opentelemetry/exporter-logs-otlp-grpc': 'commonjs @opentelemetry/exporter-logs-otlp-grpc',
+        '@opentelemetry/otlp-grpc-exporter-base': 'commonjs @opentelemetry/otlp-grpc-exporter-base',
+        '@opentelemetry/instrumentation': 'commonjs @opentelemetry/instrumentation',
+        '@prisma/instrumentation': 'commonjs @prisma/instrumentation',
+      });
+
+      // Optional bundle analysis
+      if (process.env.ANALYZE === 'true') {
+        try {
+          const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+          config.plugins.push(
+            new BundleAnalyzerPlugin({
+              analyzerMode: 'static',
+              openAnalyzer: false,
+              reportFilename: 'analyze.html',
+              generateStatsFile: true,
+              statsFilename: 'stats.json',
+            })
+          );
+        } catch (e) {
+          // Analyzer is optional; ignore if not installed
+        }
+      }
+    } else {
+      // Server-side: properly handle externals
+      if (typeof config.externals === 'function') {
+        // Wrap the existing function
+        const originalExternals = config.externals;
+        config.externals = async (ctx, callback) => {
+          // Check for OpenTelemetry packages
+          if (ctx.request && (
+            ctx.request.includes('@opentelemetry/instrumentation') ||
+            ctx.request.includes('@prisma/instrumentation')
+          )) {
+            return callback(null, ctx.request);
+          }
+          // Call original externals function
+          return originalExternals(ctx, callback);
+        };
+      } else {
+        // Add to existing externals array
+        config.externals = config.externals || [];
+        config.externals.push({
+          '@opentelemetry/instrumentation': '@opentelemetry/instrumentation',
+          '@prisma/instrumentation': '@prisma/instrumentation',
+        });
+      }
+    }
+
     return config;
   },
   
@@ -144,11 +251,7 @@ const nextConfig = {
         hostname: 'res.cloudinary.com',
         pathname: '/**',
       },
-      {
-        protocol: 'http',
-        hostname: 'res.cloudinary.com',
-        pathname: '/**',
-      },
+      // SECURITY FIX: Removed HTTP protocol - HTTPS only for security
       {
         protocol: 'https',
         hostname: 'utfs.io',
@@ -216,7 +319,13 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '**.medium.com',
+        hostname: 'medium.com',
+        pathname: '/**',
+      },
+      // SECURITY FIX: Removed wildcard pattern **.medium.com - use explicit hostnames only
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
         pathname: '/**',
       },
       // Security: Removed wildcard pattern - specify exact domains only
@@ -226,90 +335,28 @@ const nextConfig = {
     // Optimized device sizes for better performance
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
+    // SECURITY: SVG support enabled with strict CSP to prevent XSS attacks
+    // CSP blocks all scripts and sandboxes SVG content
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days cache
     // unoptimized: false, // Enable optimization (this is the default)
   },
 
-  // Webpack configuration to handle OpenTelemetry packages
-  webpack: (config, { isServer }) => {
-    // Suppress critical dependency warnings from OpenTelemetry instrumentation
-    config.module = config.module || {};
-    config.module.exprContextCritical = false;
-    
-    // Ignore specific OpenTelemetry warnings
-    config.ignoreWarnings = [
-      ...(config.ignoreWarnings || []),
-      {
-        module: /@opentelemetry\/instrumentation/,
-        message: /Critical dependency/,
-      },
-      {
-        module: /@prisma\/instrumentation/,
-        message: /Critical dependency/,
-      },
-    ];
-
-    // Exclude gRPC and OpenTelemetry packages from client-side bundle
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        'stream': false,
-        'util': false,
-        'buffer': false,
-        'crypto': false,
-        'fs': false,
-        'path': false,
-        'child_process': false,
-      };
-
-      // Exclude OpenTelemetry and Prisma instrumentation packages from client bundle
-      config.externals = config.externals || [];
-      config.externals.push({
-        '@grpc/grpc-js': 'commonjs @grpc/grpc-js',
-        '@opentelemetry/exporter-logs-otlp-grpc': 'commonjs @opentelemetry/exporter-logs-otlp-grpc',
-        '@opentelemetry/otlp-grpc-exporter-base': 'commonjs @opentelemetry/otlp-grpc-exporter-base',
-        '@opentelemetry/instrumentation': 'commonjs @opentelemetry/instrumentation',
-        '@prisma/instrumentation': 'commonjs @prisma/instrumentation',
-      });
-    } else {
-      // Server-side: properly handle externals
-      if (typeof config.externals === 'function') {
-        // Wrap the existing function
-        const originalExternals = config.externals;
-        config.externals = async (ctx, callback) => {
-          // Check for OpenTelemetry packages
-          if (ctx.request && (
-            ctx.request.includes('@opentelemetry/instrumentation') ||
-            ctx.request.includes('@prisma/instrumentation')
-          )) {
-            return callback(null, ctx.request);
-          }
-          // Call original externals function
-          return originalExternals(ctx, callback);
-        };
-      } else {
-        // Add to existing externals array
-        config.externals = config.externals || [];
-        config.externals.push({
-          '@opentelemetry/instrumentation': '@opentelemetry/instrumentation',
-          '@prisma/instrumentation': '@prisma/instrumentation',
-        });
-      }
-    }
-
-    return config;
-  },
-
   // Essential headers
   async headers() {
+    // SECURITY FIX: Use specific allowed origins instead of wildcard
+    // Cannot use Access-Control-Allow-Origin: * with credentials: true (CORS spec violation)
+    const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL ||
+                         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                         'http://localhost:3000';
+
     return [
       {
         source: '/api/:path*',
         headers: [
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Origin', value: allowedOrigin },
           { key: 'Access-Control-Allow-Methods', value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT' },
           { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization' },
         ]

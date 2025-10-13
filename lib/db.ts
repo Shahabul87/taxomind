@@ -1,11 +1,12 @@
-import { PrismaClient } from "@prisma/client"
+/**
+ * Database Client Export
+ *
+ * This file now exports the enhanced database client with connection pooling,
+ * monitoring, and performance tracking.
+ */
 
-declare global {
-  var prisma: PrismaClient | undefined;
-}
+// Re-export the enhanced database client
+export { db, getDbMetrics, checkDatabaseHealth } from './db-pooled';
 
-export const db = globalThis.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalThis.prisma = db;
-} 
+// For backward compatibility, also export as default
+export { db as default } from './db-pooled'; 

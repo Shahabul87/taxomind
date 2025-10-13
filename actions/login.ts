@@ -102,7 +102,13 @@ export const login = async (
       let verificationMethod = '';
       
       // Check if user has TOTP enabled
-      const userWithTotp = existingUser as any;
+      type UserWithTotp = typeof existingUser & {
+        totpEnabled?: boolean;
+        totpVerified?: boolean;
+        totpSecret?: string;
+        recoveryCodes?: string[];
+      };
+      const userWithTotp = existingUser as UserWithTotp;
       if (userWithTotp.totpEnabled && userWithTotp.totpVerified && userWithTotp.totpSecret) {
         try {
           // First try TOTP verification (6 digits)
@@ -130,8 +136,8 @@ export const login = async (
               console.log('[login] recovery code used');
             }
           }
-        } catch (error: any) {
-          console.log('[login] totp/recovery code error:', error.message);
+        } catch (error) {
+          console.log('[login] totp/recovery code error:', error instanceof Error ? error.message : String(error));
           // Continue to try email-based 2FA as fallback
         }
       }

@@ -105,7 +105,7 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
   const completionPercentage = Math.round((completedSections / totalSections) * 100);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Enhanced SAM Context Injection */}
       <SimpleCourseContext
         course={{
@@ -134,12 +134,6 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
         completionStatus={completionStatus}
       />
 
-      {/* Floating Background Orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 right-10 w-72 h-72 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-10 left-10 w-80 h-80 bg-gradient-to-br from-blue-400/15 to-cyan-400/15 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-indigo-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse delay-2000" />
-      </div>
       
       <div className="pt-6 pb-16 relative">
         {/* Full-Width Course Setup Header with Glass Effects */}
@@ -170,12 +164,9 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
           {/* Main Course Setup Header - Full Width */}
           <div className="w-full">
             <div className="mx-4 md:mx-6 lg:mx-8">
-              <div className="relative group w-full">
-                {/* Floating background orb for the header */}
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/40 via-purple-600/40 to-pink-600/40 rounded-3xl blur-2xl group-hover:blur-xl transition-all duration-500"></div>
-                
+              <div className="w-full">
                 {/* Main glass container */}
-                <div className="relative w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl border border-slate-300/60 dark:border-slate-600/60 shadow-xl p-6 md:p-8 lg:p-10">
+                <div className="w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl border border-slate-300/60 dark:border-slate-600/60 shadow-xl p-6 md:p-8 lg:p-10">
                   {/* Header Section */}
                   <div className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-8">
                     {/* Left: Icon and Title */}

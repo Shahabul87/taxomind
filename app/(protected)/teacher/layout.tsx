@@ -12,7 +12,7 @@ type Props = {
   }: Props) => {
     return (
       <ComprehensiveSAMProvider>
-        <div className="">
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
           <TeacherPageContextInjector />
           {children}
           <SamAITutorAssistant />

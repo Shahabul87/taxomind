@@ -26,6 +26,7 @@ import {
   FormItem,
   FormMessage,
   FormLabel,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -312,8 +313,15 @@ export const BlogSectionForm = ({
   };
 
   return (
-    <div className="relative">
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2 mb-6">
+    <div className={cn(
+      "p-4 mt-4 rounded-xl",
+      "border border-gray-200 dark:border-gray-700/50",
+      "bg-white/50 dark:bg-gray-800/40",
+      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
+      "transition-all duration-200",
+      "backdrop-blur-sm"
+    )}>
+      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
         <div className="flex items-center gap-x-2">
           <div className={cn(
             "p-2 w-fit rounded-lg",
@@ -322,10 +330,10 @@ export const BlogSectionForm = ({
             <BookOpen className="h-5 w-5 text-pink-600 dark:text-pink-400" />
           </div>
           <div>
-            <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-pink-600 to-purple-600 dark:from-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
-              Blog Resources
+            <h3 className="text-sm font-medium text-foreground">
+              Additional Blog Resources
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Add helpful blog articles for deeper understanding
             </p>
           </div>
@@ -362,64 +370,69 @@ export const BlogSectionForm = ({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="overflow-hidden mb-6"
+            className="overflow-hidden mt-4"
           >
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4 bg-white dark:bg-gray-800/50 rounded-xl border border-pink-100 dark:border-pink-800/30">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">Enter Blog URL</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2 mb-2">We&apos;ll automatically fetch the blog&apos;s metadata</p>
-                
-                <FormField
-                  control={form.control}
-                  name="blogUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            {...field}
-                            disabled={isSubmitting}
-                            placeholder="Enter blog URL (https://...)"
-                            className={cn(
-                              "bg-white dark:bg-gray-900/50",
-                              "border-gray-200 dark:border-gray-700/50",
-                              "text-gray-900 dark:text-gray-200",
-                              "pl-10 pr-20",
-                              "focus:ring-pink-500/20",
-                              "transition-all duration-200"
-                            )}
-                          />
-                        </FormControl>
-                        <Globe className="absolute left-3 top-3 h-4 w-4 text-pink-500 dark:text-pink-400" />
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={pasteFromClipboard}
-                            className="h-7 px-2 text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400"
-                          >
-                            <Clipboard className="h-4 w-4 mr-1" />
-                            <span className="text-xs">Paste</span>
-                          </Button>
-                          {field.value && (
-                            <button
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="blogUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Blog URL <span className="text-pink-500">*</span>
+                        </FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              {...field}
+                              disabled={isSubmitting}
+                              placeholder="Enter blog or article URL"
+                              className={cn(
+                                "bg-white dark:bg-gray-900/50",
+                                "border-gray-200 dark:border-gray-700/50",
+                                "text-gray-900 dark:text-gray-200",
+                                "pl-10 pr-20",
+                                "focus:ring-pink-500/20",
+                                "text-sm",
+                                "transition-all duration-200"
+                              )}
+                            />
+                          </FormControl>
+                          <Globe className="absolute left-3 top-3 h-4 w-4 text-pink-500 dark:text-pink-400" />
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                            <Button
                               type="button"
-                              onClick={() => {
-                                field.onChange("");
-                                setPreviewData(null);
-                              }}
-                              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                              size="sm"
+                              variant="ghost"
+                              onClick={pasteFromClipboard}
+                              className="h-7 px-2 text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400"
                             >
-                              <X className="h-4 w-4" />
-                            </button>
-                          )}
+                              <Clipboard className="h-4 w-4 mr-1" />
+                              <span className="text-xs">Paste</span>
+                            </Button>
+                            {field.value && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  field.onChange("");
+                                  setPreviewData(null);
+                                }}
+                                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
+                        <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
+                          Enter a URL from Medium, Dev.to, or other blog platforms
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
 
                 {isLoadingMetadata && (
                   <div className="flex justify-center py-8">
@@ -555,11 +568,12 @@ export const BlogSectionForm = ({
                   </motion.div>
                 )}
 
-                {!previewData && !isLoadingMetadata && blogUrl && z.string().url().safeParse(blogUrl).success && (
-                  <p className="text-sm text-rose-500 dark:text-rose-400 italic">
-                    We couldn&apos;t fetch metadata for this URL. Please check if the URL is correct and accessible.
-                  </p>
-                )}
+                  {!previewData && !isLoadingMetadata && blogUrl && z.string().url().safeParse(blogUrl).success && (
+                    <p className="text-sm text-rose-500 dark:text-rose-400 italic">
+                      We couldn&apos;t fetch metadata for this URL. Please check if the URL is correct and accessible.
+                    </p>
+                  )}
+                </div>
               </form>
             </Form>
           </motion.div>
@@ -568,7 +582,7 @@ export const BlogSectionForm = ({
 
       {/* Blog list with sorting and view toggle */}
       {blogs.length > 0 && (
-        <div className="mb-4">
+        <div className="mt-6">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {blogs.length} Blog Resources

@@ -103,7 +103,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
       </div>
       <SidebarDemo>
         <div className="min-h-screen pt-16 sm:pt-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-          <div className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          <div className="w-full py-4 sm:py-6 lg:py-8">
             {/* Header Section */}
             <div className="mb-6 sm:mb-8">
               <Heading 

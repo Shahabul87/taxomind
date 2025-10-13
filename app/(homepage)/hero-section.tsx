@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { useInView } from "framer-motion";
+import { useTheme } from "@/components/providers/theme-provider";
 
 // Bloom's Taxonomy levels with enhanced interactive content
 const taxonomyLevels = [
@@ -182,6 +183,7 @@ export default function HeroSection() {
   const [showPyramid, setShowPyramid] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { isDark } = useTheme();
 
   const activeLevel = selectedLevel || hoveredLevel || 1;
 
@@ -210,13 +212,14 @@ export default function HeroSection() {
   return (
     <section 
       ref={sectionRef}
-      className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center"
+      className="relative min-h-screen min-h-[100svh] overflow-hidden flex items-center bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"
     >
       {/* Animated background pattern - Optimized for mobile */}
       <div className="absolute inset-0">
         {/* Neural network pattern - Hidden on mobile for performance */}
         {mounted && !prefersReducedMotion && (
-          <div className="absolute inset-0 opacity-20 hidden lg:block">
+          <div className={`absolute inset-0 ${isDark ? 'opacity-20' : 'opacity-60'} hidden md:block`}
+          >
             <svg className="w-full h-full" viewBox="0 0 1200 800">
               <defs>
                 <linearGradient id="neuralGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -244,14 +247,14 @@ export default function HeroSection() {
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-16 sm:py-20">
+      <div className="relative z-10 w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 pt-24 sm:pt-28 pb-16">
         <div className="max-w-7xl mx-auto">
-          {/* Header section */}
+          {/* Header section (left-aligned variant) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8 }}
-            className="text-center mb-12 sm:mb-16"
+            className="text-left mb-12 sm:mb-16"
           >
             {/* Brand with icon */}
             <motion.div 
@@ -271,7 +274,7 @@ export default function HeroSection() {
             {/* Main headline */}
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 leading-tight">
               <motion.span 
-                className="block text-white mb-2"
+                className="block text-slate-900 dark:text-white mb-2"
                 initial={{ opacity: 0, x: -20 }}
                 animate={isInView ? { opacity: 1, x: 0 } : {}}
                 transition={{ delay: 0.3 }}
@@ -289,7 +292,7 @@ export default function HeroSection() {
             </h1>
 
             <motion.p 
-              className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-4 sm:px-0 leading-relaxed"
+              className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-gray-300 max-w-3xl mb-6 sm:mb-8 leading-relaxed"
               initial={{ opacity: 0 }}
               animate={isInView ? { opacity: 1 } : {}}
               transition={{ delay: 0.5 }}
@@ -300,7 +303,7 @@ export default function HeroSection() {
 
             {/* CTA Buttons */}
             <motion.div 
-              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0"
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-start"
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.6 }}
@@ -329,7 +332,7 @@ export default function HeroSection() {
                 <Button 
                   size="lg"
                   variant="outline"
-                  className="group w-full sm:w-auto font-semibold px-6 sm:px-8 py-4 sm:py-6 rounded-xl sm:rounded-2xl border-2 border-purple-400/50 text-purple-300 hover:bg-purple-900/30 hover:border-purple-400 backdrop-blur-sm"
+                  className="group w-full sm:w-auto font-semibold px-6 sm:px-8 py-4 sm:py-6 rounded-xl sm:rounded-2xl border-2 text-purple-700 border-purple-300 hover:bg-purple-50 hover:border-purple-400 dark:text-purple-300 dark:border-purple-400/50 dark:hover:bg-purple-900/30 dark:hover:border-purple-400 backdrop-blur-sm"
                 >
                   <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   <span className="text-base sm:text-lg">Watch Demo</span>
@@ -347,7 +350,7 @@ export default function HeroSection() {
               transition={{ duration: 0.8 }}
               className="relative"
             >
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 text-center lg:text-left">
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6 text-center lg:text-left">
                 <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
                   Your Interactive Cognitive Journey
                 </span>
@@ -401,8 +404,8 @@ export default function HeroSection() {
                               <level.icon className="w-5 h-5 sm:w-6 sm:h-6" />
                             </motion.div>
                             <div>
-                              <h4 className="font-semibold text-base sm:text-lg">{level.name}</h4>
-                              <p className="text-xs sm:text-sm text-white/80">Level {level.level}</p>
+                  <h4 className="font-semibold text-base sm:text-lg">{level.name}</h4>
+                  <p className="text-xs sm:text-sm text-white/80">Level {level.level}</p>
                             </div>
                           </div>
                           <motion.div
@@ -477,7 +480,7 @@ export default function HeroSection() {
                 animate={showPyramid ? { opacity: 1 } : {}}
                 transition={{ delay: 2 }}
               >
-                <p className="text-sm text-gray-400 italic">
+                <p className="text-sm text-slate-500 dark:text-gray-400 italic">
                   💡 <span className="md:hidden">Tap</span><span className="hidden md:inline">Hover over</span> each level to see detailed explanations
                 </p>
               </motion.div>
@@ -493,7 +496,7 @@ export default function HeroSection() {
                 className="relative"
               >
                 <div className="sticky top-4">
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-6 text-center lg:text-left">
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-6 text-center lg:text-left">
                     <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
                       Cognitive Level Deep Dive
                     </span>
@@ -514,7 +517,7 @@ export default function HeroSection() {
                         >
                           {/* Enhanced Floating Level Card */}
                           <motion.div 
-                            className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-3xl p-8 border-2 border-slate-700/50 shadow-2xl relative overflow-hidden"
+                            className="rounded-3xl p-8 border-2 shadow-2xl relative overflow-hidden bg-white border-slate-200 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 dark:border-slate-700/50 backdrop-blur-xl"
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ duration: 0.5 }}
@@ -594,7 +597,7 @@ export default function HeroSection() {
                                   <Brain className="w-4 h-4 text-purple-400" />
                                   <span className="text-purple-300 font-semibold text-sm">What It Is</span>
                                 </div>
-                                <p className="text-gray-300 text-sm leading-relaxed">{level.whatItIs}</p>
+                                <p className="text-slate-600 dark:text-gray-300 text-sm leading-relaxed">{level.whatItIs}</p>
                               </div>
 
                               {/* How It Works */}
@@ -603,16 +606,16 @@ export default function HeroSection() {
                                   <Zap className="w-4 h-4 text-blue-400" />
                                   <span className="text-blue-300 font-semibold text-sm">How AI Helps</span>
                                 </div>
-                                <p className="text-gray-300 text-sm leading-relaxed">{level.howItWorks}</p>
+                                <p className="text-slate-600 dark:text-gray-300 text-sm leading-relaxed">{level.howItWorks}</p>
                               </div>
 
                               {/* What It Tests */}
                               <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-xl p-4 border border-emerald-500/20">
                                 <div className="flex items-center gap-2 mb-3">
                                   <Target className="w-4 h-4 text-emerald-400" />
-                                  <span className="text-emerald-300 font-semibold text-sm">What It Tests</span>
+                                  <span className="font-semibold text-sm text-emerald-700 dark:text-emerald-300">What It Tests</span>
                                 </div>
-                                <p className="text-gray-300 text-sm leading-relaxed">{level.whatItTests}</p>
+                                <p className="text-slate-600 dark:text-gray-300 text-sm leading-relaxed">{level.whatItTests}</p>
                               </div>
                             </div>
 
@@ -643,7 +646,7 @@ export default function HeroSection() {
                                       </motion.div>
                                     ))}
                                     <motion.div
-                                      className="text-yellow-400"
+                                      className="text-yellow-300"
                                       animate={!prefersReducedMotion ? { opacity: [0.5, 1, 0.5] } : {}}
                                       transition={!prefersReducedMotion ? { duration: 1.5, repeat: Infinity } : {}}
                                     >
@@ -851,19 +854,19 @@ export default function HeroSection() {
           >
             <div className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-purple-400" />
-              <span className="text-gray-300 font-medium">Research-Based</span>
+              <span className="font-medium text-slate-500 dark:text-gray-300">Research-Based</span>
             </div>
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-emerald-400" />
-              <span className="text-gray-300 font-medium">Secure Platform</span>
+              <span className="font-medium text-slate-500 dark:text-gray-300">Secure Platform</span>
             </div>
             <div className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-blue-400" />
-              <span className="text-gray-300 font-medium">Real-Time Analytics</span>
+              <span className="font-medium text-slate-500 dark:text-gray-300">Real-Time Analytics</span>
             </div>
             <div className="flex items-center gap-2">
               <Award className="w-5 h-5 text-yellow-400" />
-              <span className="text-gray-300 font-medium">Award Winning</span>
+              <span className="font-medium text-slate-500 dark:text-gray-300">Award Winning</span>
             </div>
           </motion.div>
         </div>

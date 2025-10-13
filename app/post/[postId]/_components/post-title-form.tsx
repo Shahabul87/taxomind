@@ -5,7 +5,7 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { logger } from '@/lib/logger';
@@ -39,6 +39,16 @@ export const PostTitleForm = ({
 }: TitleFormProps) => {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [saveKey, setSaveKey] = useState(0);
+
+  const savedText = useMemo(() => {
+    if (!savedAt) return "";
+    const d = savedAt;
+    const hh = d.getHours().toString().padStart(2, "0");
+    const mm = d.getMinutes().toString().padStart(2, "0");
+    return `Saved at ${hh}:${mm}`;
+  }, [savedAt]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -52,6 +62,8 @@ export const PostTitleForm = ({
       await axios.patch(`/api/posts/${postId}`, values);
       toast.success("Post updated");
       setIsEditing(false);
+      setSavedAt(new Date());
+      setSaveKey((k) => k + 1);
       router.refresh();
     } catch (error: any) {
       logger.error("Error updating post:", error);
@@ -76,14 +88,21 @@ export const PostTitleForm = ({
               {initialData.title || "No title set"}
             </p>
           </div>
-          <Button
-            onClick={() => setIsEditing(true)}
-            variant="ghost"
-            className="w-full sm:w-auto text-purple-600 dark:text-purple-400 hover:text-purple-700 hover:bg-purple-50 dark:hover:text-purple-300 dark:hover:bg-purple-500/10"
-          >
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
+          <div className="flex items-center gap-3">
+            {savedAt && (
+              <span key={saveKey} className="text-xs text-gray-500 dark:text-gray-400 animate-fade-in">
+                {savedText}
+              </span>
+            )}
+            <Button
+              onClick={() => setIsEditing(true)}
+              variant="ghost"
+              className="w-full sm:w-auto text-purple-600 dark:text-purple-400 hover:text-purple-700 hover:bg-purple-50 dark:hover:text-purple-300 dark:hover:bg-purple-500/10"
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          </div>
         </div>
       ) : (
         <Form {...form}>
@@ -125,6 +144,11 @@ export const PostTitleForm = ({
               >
                 Cancel
               </Button>
+              {savedAt && (
+                <span key={`edit-${saveKey}`} className="text-xs text-gray-500 dark:text-gray-400 animate-fade-in">
+                  {savedText}
+                </span>
+              )}
             </div>
           </form>
         </Form>

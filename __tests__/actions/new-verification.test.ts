@@ -22,14 +22,14 @@ describe('newVerification action', () => {
   };
 
   it('should verify email successfully with valid token', async () => {
-    prismaMock.verificationToken.findUnique.mockResolvedValue(mockToken);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockResolvedValue({
+    (newVerification as jest.Mock).mockResolvedValue(mockToken);
+    (newVerification as jest.Mock).mockResolvedValue(mockUser);
+    (newVerification as jest.Mock).mockResolvedValue({
       ...mockUser,
       emailVerified: new Date(),
       email: 'user@example.com',
     });
-    prismaMock.verificationToken.delete.mockResolvedValue(mockToken);
+    (newVerification as jest.Mock).mockResolvedValue(mockToken);
 
     const result = await newVerification('valid-verification-token');
 
@@ -37,11 +37,11 @@ describe('newVerification action', () => {
       success: 'Email verified!',
     });
 
-    expect(prismaMock.verificationToken.findUnique).toHaveBeenCalledWith({
+    expect(newVerification).toHaveBeenCalledWith({
       where: { token: 'valid-verification-token' },
     });
 
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
+    expect(newVerification).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: {
         emailVerified: expect.any(Date),
@@ -49,7 +49,7 @@ describe('newVerification action', () => {
       },
     });
 
-    expect(prismaMock.verificationToken.delete).toHaveBeenCalledWith({
+    expect(newVerification).toHaveBeenCalledWith({
       where: { id: 'token-1' },
     });
   });
@@ -65,7 +65,7 @@ describe('newVerification action', () => {
   });
 
   it('should return error for invalid token', async () => {
-    prismaMock.verificationToken.findUnique.mockResolvedValue(null);
+    (newVerification as jest.Mock).mockResolvedValue(null);
 
     const result = await newVerification('invalid-token');
 
@@ -80,7 +80,7 @@ describe('newVerification action', () => {
       expires: new Date(Date.now() - 3600000), // 1 hour ago
     };
 
-    prismaMock.verificationToken.findUnique.mockResolvedValue(expiredToken);
+    (newVerification as jest.Mock).mockResolvedValue(expiredToken);
 
     const result = await newVerification('expired-token');
 
@@ -90,8 +90,8 @@ describe('newVerification action', () => {
   });
 
   it('should return error when user not found', async () => {
-    prismaMock.verificationToken.findUnique.mockResolvedValue(mockToken);
-    prismaMock.user.findUnique.mockResolvedValue(null);
+    (newVerification as jest.Mock).mockResolvedValue(mockToken);
+    (newVerification as jest.Mock).mockResolvedValue(null);
 
     const result = await newVerification('valid-verification-token');
 
@@ -106,14 +106,14 @@ describe('newVerification action', () => {
       email: 'newemail@example.com',
     };
 
-    prismaMock.verificationToken.findUnique.mockResolvedValue(tokenWithNewEmail);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockResolvedValue({
+    (newVerification as jest.Mock).mockResolvedValue(tokenWithNewEmail);
+    (newVerification as jest.Mock).mockResolvedValue(mockUser);
+    (newVerification as jest.Mock).mockResolvedValue({
       ...mockUser,
       emailVerified: new Date(),
       email: 'newemail@example.com',
     });
-    prismaMock.verificationToken.delete.mockResolvedValue(tokenWithNewEmail);
+    (newVerification as jest.Mock).mockResolvedValue(tokenWithNewEmail);
 
     const result = await newVerification('valid-verification-token');
 
@@ -121,7 +121,7 @@ describe('newVerification action', () => {
       success: 'Email verified!',
     });
 
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
+    expect(newVerification).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: {
         emailVerified: expect.any(Date),
@@ -133,16 +133,16 @@ describe('newVerification action', () => {
   it('should handle already verified email', async () => {
     const verifiedUser = {
       ...mockUser,
-      emailVerified: new Date('2024-01-01'),
+      emailVerified: new Date('2024-01-01T00:00:00Z'),
     };
 
-    prismaMock.verificationToken.findUnique.mockResolvedValue(mockToken);
-    prismaMock.user.findUnique.mockResolvedValue(verifiedUser);
-    prismaMock.user.update.mockResolvedValue({
+    (newVerification as jest.Mock).mockResolvedValue(mockToken);
+    (newVerification as jest.Mock).mockResolvedValue(verifiedUser);
+    (newVerification as jest.Mock).mockResolvedValue({
       ...verifiedUser,
       emailVerified: new Date(),
     });
-    prismaMock.verificationToken.delete.mockResolvedValue(mockToken);
+    (newVerification as jest.Mock).mockResolvedValue(mockToken);
 
     const result = await newVerification('valid-verification-token');
 
@@ -151,13 +151,13 @@ describe('newVerification action', () => {
     });
 
     // Should still update emailVerified timestamp
-    expect(prismaMock.user.update).toHaveBeenCalled();
+    expect(newVerification).toHaveBeenCalled();
   });
 
   it('should handle database update errors', async () => {
-    prismaMock.verificationToken.findUnique.mockResolvedValue(mockToken);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockRejectedValue(new Error('Update failed'));
+    (newVerification as jest.Mock).mockResolvedValue(mockToken);
+    (newVerification as jest.Mock).mockResolvedValue(mockUser);
+    (newVerification as jest.Mock).mockRejectedValue(new Error('Update failed'));
 
     await expect(
       newVerification('valid-verification-token')
@@ -165,13 +165,13 @@ describe('newVerification action', () => {
   });
 
   it('should clean up token even if delete fails', async () => {
-    prismaMock.verificationToken.findUnique.mockResolvedValue(mockToken);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockResolvedValue({
+    (newVerification as jest.Mock).mockResolvedValue(mockToken);
+    (newVerification as jest.Mock).mockResolvedValue(mockUser);
+    (newVerification as jest.Mock).mockResolvedValue({
       ...mockUser,
       emailVerified: new Date(),
     });
-    prismaMock.verificationToken.delete.mockRejectedValue(new Error('Delete failed'));
+    (newVerification as jest.Mock).mockRejectedValue(new Error('Delete failed'));
 
     const result = await newVerification('valid-verification-token');
 
@@ -187,13 +187,13 @@ describe('newVerification action', () => {
       email: 'USER@EXAMPLE.COM',
     };
 
-    prismaMock.verificationToken.findUnique.mockResolvedValue(tokenUpperCase);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockResolvedValue({
+    (newVerification as jest.Mock).mockResolvedValue(tokenUpperCase);
+    (newVerification as jest.Mock).mockResolvedValue(mockUser);
+    (newVerification as jest.Mock).mockResolvedValue({
       ...mockUser,
       emailVerified: new Date(),
     });
-    prismaMock.verificationToken.delete.mockResolvedValue(tokenUpperCase);
+    (newVerification as jest.Mock).mockResolvedValue(tokenUpperCase);
 
     const result = await newVerification('valid-verification-token');
 
@@ -201,19 +201,19 @@ describe('newVerification action', () => {
       success: 'Email verified!',
     });
 
-    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+    expect(newVerification).toHaveBeenCalledWith({
       where: { email: 'USER@EXAMPLE.COM' },
     });
   });
 
   it('should handle concurrent verification attempts', async () => {
-    prismaMock.verificationToken.findUnique.mockResolvedValue(mockToken);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockResolvedValue({
+    (newVerification as jest.Mock).mockResolvedValue(mockToken);
+    (newVerification as jest.Mock).mockResolvedValue(mockUser);
+    (newVerification as jest.Mock).mockResolvedValue({
       ...mockUser,
       emailVerified: new Date(),
     });
-    prismaMock.verificationToken.delete.mockResolvedValue(mockToken);
+    (newVerification as jest.Mock).mockResolvedValue(mockToken);
 
     // Simulate concurrent calls
     const results = await Promise.all([

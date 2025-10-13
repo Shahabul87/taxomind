@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth } from "@/auth";
+import { adminAuth } from "@/auth.admin";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
@@ -41,7 +41,7 @@ export async function getAdminDashboardDataSecure(
 ) {
   try {
     // Authentication check
-    const session = await auth();
+    const session = await adminAuth();
     
     if (!session?.user?.id || !canAccessAdminDashboard(session.user.role as UserRole)) {
       throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
@@ -305,7 +305,7 @@ function maskEmail(email: string): string {
 // Check if current user is a secure admin
 export async function isAdminSecure() {
   try {
-    const session = await auth();
+    const session = await adminAuth();
     
     // Check session validity
     if (!session?.user?.id || !session.user.role) {
@@ -371,7 +371,7 @@ export async function exportUserDataSecure(
   filters?: any
 ) {
   try {
-    const session = await auth();
+    const session = await adminAuth();
     
     if (!session?.user?.id || session.user.role !== UserRole.ADMIN) {
       throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
@@ -412,7 +412,7 @@ export async function performBulkActionSecure(
   reason?: string
 ) {
   try {
-    const session = await auth();
+    const session = await adminAuth();
     
     if (!session?.user?.id || session.user.role !== UserRole.ADMIN) {
       throw new Error(ERROR_MESSAGES.UNAUTHORIZED);

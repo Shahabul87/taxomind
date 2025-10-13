@@ -1,0 +1,4 @@
+
+> taxomind@1.0.0 test:ci
+> NODE_OPTIONS='--max-old-space-size=2048' jest --config jest.config.ci.js --ci --watchAll=false --runInBand
+

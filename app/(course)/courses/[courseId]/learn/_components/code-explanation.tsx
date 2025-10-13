@@ -5,7 +5,11 @@ import { CodeExplanation as CodeExplanationType } from "@prisma/client";
 import { Code, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import dynamic from 'next/dynamic';
+const SyntaxHighlighter: any = dynamic(() =>
+  import('react-syntax-highlighter').then((m: any) => m.Prism),
+  { ssr: false }
+);
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import parse from 'html-react-parser';
 

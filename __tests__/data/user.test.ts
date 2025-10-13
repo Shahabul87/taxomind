@@ -23,6 +23,20 @@ describe('User Data Functions', () => {
       expect(result).toEqual(mockUser);
       expect(db.user.findUnique).toHaveBeenCalledWith({
         where: { email: 'test@example.com' },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          role: true,
+          isTwoFactorEnabled: true,
+          emailVerified: true,
+          image: true,
+          totpEnabled: true,
+          totpVerified: true,
+          totpSecret: true,
+          recoveryCodes: true
+        }
       });
     });
 
@@ -36,8 +50,16 @@ describe('User Data Functions', () => {
 
     it('should handle database errors', async () => {
       (db.user.findUnique as jest.Mock).mockRejectedValue(new Error('DB Error'));
+      
+      // Mock console.error to avoid noise in test output
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      await expect(getUserByEmail('test@example.com')).rejects.toThrow('DB Error');
+      const result = await getUserByEmail('test@example.com');
+      
+      expect(result).toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error in getUserByEmail:', expect.any(Error));
+      
+      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -56,6 +78,17 @@ describe('User Data Functions', () => {
       expect(result).toEqual(mockUser);
       expect(db.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-1' },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          emailVerified: true,
+          image: true,
+          isTwoFactorEnabled: true,
+          totpEnabled: true,
+          totpVerified: true
+        }
       });
     });
   });

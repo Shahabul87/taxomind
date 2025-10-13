@@ -35,7 +35,7 @@ describe('reset action', () => {
   };
 
   it('should send reset email successfully', async () => {
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (reset as jest.Mock).mockResolvedValue(mockUser);
     mockGenerateToken.mockResolvedValue(mockToken);
     mockSendEmail.mockResolvedValue(undefined);
 
@@ -45,7 +45,7 @@ describe('reset action', () => {
       success: 'Reset email sent!',
     });
 
-    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+    expect(reset).toHaveBeenCalledWith({
       where: { email: 'user@example.com' },
     });
 
@@ -77,7 +77,7 @@ describe('reset action', () => {
   });
 
   it('should return error when user not found', async () => {
-    prismaMock.user.findUnique.mockResolvedValue(null);
+    (reset as jest.Mock).mockResolvedValue(null);
 
     const result = await reset({ email: 'nonexistent@example.com' });
 
@@ -95,7 +95,7 @@ describe('reset action', () => {
       password: null,
     };
 
-    prismaMock.user.findUnique.mockResolvedValue(oauthUser);
+    (reset as jest.Mock).mockResolvedValue(oauthUser);
 
     const result = await reset({ email: 'user@example.com' });
 
@@ -107,7 +107,7 @@ describe('reset action', () => {
   });
 
   it('should handle email sending errors', async () => {
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (reset as jest.Mock).mockResolvedValue(mockUser);
     mockGenerateToken.mockResolvedValue(mockToken);
     mockSendEmail.mockRejectedValue(new Error('Email service down'));
 
@@ -119,7 +119,7 @@ describe('reset action', () => {
   });
 
   it('should handle token generation errors', async () => {
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (reset as jest.Mock).mockResolvedValue(mockUser);
     mockGenerateToken.mockRejectedValue(new Error('Token generation failed'));
 
     const result = await reset({ email: 'user@example.com' });
@@ -132,7 +132,7 @@ describe('reset action', () => {
   });
 
   it('should normalize email to lowercase', async () => {
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (reset as jest.Mock).mockResolvedValue(mockUser);
     mockGenerateToken.mockResolvedValue(mockToken);
     mockSendEmail.mockResolvedValue(undefined);
 
@@ -142,13 +142,13 @@ describe('reset action', () => {
       success: 'Reset email sent!',
     });
 
-    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+    expect(reset).toHaveBeenCalledWith({
       where: { email: 'user@example.com' },
     });
   });
 
   it('should trim whitespace from email', async () => {
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (reset as jest.Mock).mockResolvedValue(mockUser);
     mockGenerateToken.mockResolvedValue(mockToken);
     mockSendEmail.mockResolvedValue(undefined);
 
@@ -158,13 +158,13 @@ describe('reset action', () => {
       success: 'Reset email sent!',
     });
 
-    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+    expect(reset).toHaveBeenCalledWith({
       where: { email: 'user@example.com' },
     });
   });
 
   it('should handle database errors', async () => {
-    prismaMock.user.findUnique.mockRejectedValue(new Error('Database error'));
+    (reset as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     const result = await reset({ email: 'user@example.com' });
 
@@ -174,7 +174,7 @@ describe('reset action', () => {
   });
 
   it('should rate limit reset requests', async () => {
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (reset as jest.Mock).mockResolvedValue(mockUser);
     mockGenerateToken.mockResolvedValue(mockToken);
     mockSendEmail.mockResolvedValue(undefined);
 
@@ -194,7 +194,7 @@ describe('reset action', () => {
   });
 
   it('should validate email with special characters', async () => {
-    prismaMock.user.findUnique.mockResolvedValue({
+    (reset as jest.Mock).mockResolvedValue({
       ...mockUser,
       email: 'user+test@example.com',
     });

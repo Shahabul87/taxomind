@@ -11,47 +11,30 @@ export const publicRoutes = [
   "/portfolio",
   "/blog",
   "/blog/[postId]",
-  "/courses",
-  "/courses/[courseId]",
-  "/courses/[courseId]/learn",
-  "/courses/[courseId]/learn/[chapterId]",
-  "/courses/[courseId]/learn/[chapterId]/sections/[sectionId]",
-  "/courses/[courseId]/chapters/sections/[sectionId]",
+  "/courses", // Course listing - public for browsing
+  // SECURITY FIX: Removed course learning routes - moved to protected
+  // Course content requires authentication and purchase verification
   "/post",
   "/post/[postId]",
-  "/post/all-posts",
   "/articles/[articleId]",
   "/about",
-  "/dashboard",
   "/features",
   "/solutions",
   "/get-started",
   "/discover",
-  "/resources",
-  "/support",
-  "/ai-tutor",
-  "/ai-trends", 
+  "/ai-trends",
   "/ai-news",
   "/ai-research",
   "/api/search",
   "/api/search/mock",
-  "/api/db-check",
-  "/api-test",
-  "/api/simple-test",
-  "/api/debug-course-update",
-  "/api/env-check",
-  "/api/minimal-test",
-  "/api/auth-test",
-  "/api/course-update",
-  "/api/test-dynamic-routes",
-  "/api/debug-dynamic-routes",
-  "/test-dynamic/[testId]",
-  "/test-css",
-  "/simple-test",
-  "/minimal-test",
-  "/basic-test",
-  "/simple-css-test",
-  "/css-debug",
+  // SECURITY FIX: Debug/test endpoints removed from public routes
+  // These should only be accessible in development or to admins
+  // Moved to development-only or removed entirely
+  // Phase 3: Admin auth routes must be public (accessible before login)
+  "/admin/auth/login",
+  "/admin/auth/error",
+  "/admin/auth/reset",
+  "/admin/auth/new-password",
 ];
 
 /**
@@ -66,6 +49,18 @@ export const authRoutes: string[] = [
   "/auth/error",
   "/auth/reset",
   "/auth/new-password",
+];
+
+/**
+ * Admin authentication routes - SEPARATE from user auth routes
+ * These routes are specifically for administrator authentication
+ * @type {string[]}
+ */
+export const adminAuthRoutes: string[] = [
+  "/admin/auth/login",
+  "/admin/auth/error",
+  "/admin/auth/reset",
+  "/admin/auth/new-password",
 ];
 
 /**
@@ -93,7 +88,10 @@ export const adminRoutes: string[] = [
  * @type {string[]}
  */
 export const protectedRoutes: string[] = [
+  "/dashboard",
   "/dashboard/user",
+  "/dashboard/admin",
+  "/become-instructor",
   "/my-courses",
   "/my-posts",
   "/profile",
@@ -105,6 +103,14 @@ export const protectedRoutes: string[] = [
   "/groups/[groupId]/settings",
   "/groups/create",
   "/groups/my-groups",
+  // SECURITY FIX: Course learning routes now require authentication
+  // These routes will also check for purchase/enrollment in the page component
+  "/courses/[courseId]", // Course details page - requires auth to view full details
+  "/courses/[courseId]/learn",
+  "/courses/[courseId]/learn/[chapterId]",
+  "/courses/[courseId]/learn/[chapterId]/sections/[sectionId]",
+  "/courses/[courseId]/chapters/sections/[sectionId]",
+  // Teacher routes
   "/teacher/courses",
   "/teacher/courses/[courseId]",
   "/teacher/courses/[courseId]/chapters/[chapterId]",
@@ -116,8 +122,13 @@ export const protectedRoutes: string[] = [
   "/teacher/analytics",
   "/teacher/allposts",
   "/post/create-post",
+  "/post/all-posts",
+  "/analytics",
   "/analytics/user",
   "/analytics/admin",
+  "/resources",
+  "/support",
+  "/ai-tutor",
 ];
 
 /**
@@ -178,10 +189,39 @@ export const isProtectedRoute = (pathname: string): boolean => {
   if (pathname.startsWith('/api/')) {
     return false;
   }
-  
+
   return protectedRoutes.some(route => {
     // Convert route pattern to regex for dynamic routes
     const pattern = new RegExp(`^${route.replace(/\[.*?\]/g, '[^/]+')}$`);
     return pattern.test(pathname);
   });
+};
+
+/**
+ * Check if a route is an admin auth route
+ * @param pathname - The pathname to check
+ * @returns {boolean} Whether the route is an admin auth route
+ */
+export const isAdminAuthRoute = (pathname: string): boolean => {
+  return adminAuthRoutes.includes(pathname);
+};
+
+/**
+ * Check if a route is an admin route (requires ADMIN role)
+ * IMPORTANT: Admin auth routes (/admin/auth/*) are NOT admin routes
+ * They must be accessible to non-admins attempting to log in
+ * @param pathname - The pathname to check
+ * @returns {boolean} Whether the route is an admin route
+ */
+export const isAdminRoute = (pathname: string): boolean => {
+  // Admin auth routes should NOT be classified as admin routes
+  // They need to be accessible to non-admins trying to log in
+  if (isAdminAuthRoute(pathname)) {
+    return false;
+  }
+
+  return adminRoutes.some(route => {
+    const pattern = new RegExp(`^${route.replace(/\[.*?\]/g, '[^/]+')}$`);
+    return pattern.test(pathname);
+  }) || pathname.startsWith('/admin/') || pathname.startsWith('/dashboard/admin/');
 };

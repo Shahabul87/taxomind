@@ -2,7 +2,9 @@ import React from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Editor } from '@monaco-editor/react';
+import dynamic from 'next/dynamic';
+// Lazy-load Monaco editor on client only to keep bundles lean
+const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 import {
   Select,
   SelectContent,
@@ -11,7 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RotateCcw, Eye } from "lucide-react";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+const SyntaxHighlighter: any = dynamic(() =>
+  import('react-syntax-highlighter').then((m: any) => m.Prism),
+  { ssr: false }
+);
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -54,9 +59,9 @@ export const CodeBlockTabs = ({
   const block = codeBlocks[0] || { id: '', code: '', explanation: '', language: 'typescript' };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Fixed Header with title input and action buttons */}
-      <div className="flex-shrink-0 pb-4 border-b border-gray-200 dark:border-gray-700 mb-4">
+    <div className="space-y-6">
+      {/* Header with title input and action buttons */}
+      <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 max-w-md">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
@@ -95,13 +100,13 @@ export const CodeBlockTabs = ({
         </div>
       </div>
 
-      {/* Content Area - takes remaining space */}
-      <div className="flex-1 overflow-hidden">
+      {/* Content Area */}
+      <div>
         {mode === 'edit' ? (
           /* Edit Mode - Two Column Layout: Code and Explanation */
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-full">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Left Column - Code Section */}
-            <div className="flex flex-col space-y-3 h-full">
+            <div className="flex flex-col space-y-3 min-h-[500px]">
               {/* Code header with language selector */}
               <div className="flex items-center justify-between flex-shrink-0">
                 <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -122,9 +127,9 @@ export const CodeBlockTabs = ({
               </div>
 
               {/* Code Editor */}
-              <div className="flex-1 border rounded border-gray-300 dark:border-gray-600 overflow-hidden">
+              <div className="flex-1 min-h-[450px] border rounded border-gray-300 dark:border-gray-600 overflow-hidden">
                 <Editor
-                  height="100%"
+                  height="450px"
                   language={block.language}
                   value={block.code}
                   onChange={(value) => updateBlockCode(block.id, value || '')}
@@ -163,12 +168,12 @@ export const CodeBlockTabs = ({
             </div>
 
             {/* Right Column - Explanation Section */}
-            <div className="flex flex-col space-y-3 h-full">
-              <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-shrink-0">
+            <div className="flex flex-col space-y-3 min-h-[500px]">
+              <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200">
                 Explanation
               </h4>
-              
-              <div className="flex-1">
+
+              <div className="flex-1 min-h-[450px]">
                 <CodeExplanationEditor
                   content={block.explanation}
                   onUpdate={(content) => updateBlockExplanation(block.id, content)}
@@ -180,18 +185,18 @@ export const CodeBlockTabs = ({
           </div>
         ) : (
           /* Preview Mode - Formatted display */
-          <div className="h-full border rounded border-gray-300 dark:border-gray-600 bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-800 dark:via-gray-800 dark:to-indigo-900/20 overflow-hidden">
+          <div className="border rounded-lg border-gray-300 dark:border-gray-600 bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-800 dark:via-gray-800 dark:to-indigo-900/20">
             {/* Preview Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex-shrink-0">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30">
               <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 text-center">
                 {title || "Untitled Code Block"}
               </h3>
             </div>
 
             {/* Preview Content */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-0 divide-y xl:divide-y-0 xl:divide-x divide-gray-200 dark:divide-gray-700 h-[calc(100%-60px)]">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-0 divide-y xl:divide-y-0 xl:divide-x divide-gray-200 dark:divide-gray-700">
               {/* Code Preview */}
-              <div className="h-full overflow-auto">
+              <div className="max-h-[600px] overflow-auto">
                 <div className="p-3 bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                   <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                     Code ({block.language})
@@ -226,7 +231,7 @@ export const CodeBlockTabs = ({
               </div>
 
               {/* Explanation Preview */}
-              <div className="h-full overflow-auto bg-gradient-to-br from-white via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/10 dark:to-pink-900/10">
+              <div className="max-h-[600px] overflow-auto bg-gradient-to-br from-white via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/10 dark:to-pink-900/10">
                 <div className="p-3 bg-purple-100 dark:bg-purple-900/30 border-b border-gray-200 dark:border-gray-600">
                   <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                     Explanation

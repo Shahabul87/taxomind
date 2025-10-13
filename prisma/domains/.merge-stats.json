@@ -1,0 +1,19 @@
+{
+  "filesProcessed": 12,
+  "totalLines": 5646,
+  "timestamp": "2025-10-12T17:53:46.105Z",
+  "domains": [
+    "base",
+    "enums",
+    "auth",
+    "learning",
+    "content",
+    "commerce",
+    "analytics",
+    "social",
+    "ai",
+    "admin",
+    "gamification",
+    "events"
+  ]
+}

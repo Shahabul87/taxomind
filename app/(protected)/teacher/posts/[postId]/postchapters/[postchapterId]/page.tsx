@@ -65,7 +65,7 @@ const PostChapterIdPage = async (props: PageProps) => {
       <ConditionalHeader user={userForHeader} />
       <SidebarDemo>
         <div className="min-h-screen pt-20 bg-gradient-to-b from-gray-50 via-gray-100 to-white dark:from-gray-900 dark:via-gray-900/80 dark:to-gray-950">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="max-w-7xl mx-auto py-6 sm:py-8">
             {/* Header & Actions */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 mb-8">
               <BackButton />

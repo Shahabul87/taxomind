@@ -292,10 +292,10 @@ export const VideoSectionForm = ({
             <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">
+            <h3 className="text-sm font-medium text-foreground">
               Additional Video Resources
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Add helpful video resources for better understanding
             </p>
           </div>

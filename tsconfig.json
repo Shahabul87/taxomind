@@ -23,6 +23,9 @@
     "incremental": true,
     "tsBuildInfoFile": ".tsbuildinfo",
     "assumeChangesOnlyAffectDirectDependencies": true,
+    "disableSourceOfProjectReferenceRedirect": true,
+    "disableSolutionSearching": true,
+    "disableReferencedProjectLoad": true,
     "plugins": [
       {
         "name": "next"

@@ -20,7 +20,7 @@ export const NotificationsPopover = () => {
     <div className="relative">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-lg dark:bg-gray-800 bg-gray-100 dark:hover:bg-gray-700 hover:bg-gray-200 transition-colors dark:text-white text-gray-900 relative"
+        className="p-2 rounded-lg transition-colors text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-gray-700 relative"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -36,27 +36,27 @@ export const NotificationsPopover = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute right-0 mt-2 w-80 rounded-lg dark:bg-gray-900 bg-white border dark:border-gray-800 border-gray-200 shadow-lg overflow-hidden"
+            className="absolute right-0 mt-2 w-80 rounded-xl backdrop-blur-xl dark:bg-slate-900/95 bg-white/95 border dark:border-slate-700/50 border-slate-200 shadow-2xl overflow-hidden"
           >
-            <div className="p-4 border-b dark:border-gray-800 border-gray-200">
-              <h3 className="font-semibold">Notifications</h3>
+            <div className="p-4 border-b dark:border-slate-700/50 border-slate-200">
+              <h3 className="font-semibold text-slate-900 dark:text-white">Notifications</h3>
             </div>
             <div className="max-h-[300px] overflow-y-auto">
               {notifications.map(notification => (
                 <div
                   key={notification.id}
-                  className={`p-4 border-b dark:border-gray-800 border-gray-200 ${
-                    !notification.read ? 'bg-gray-50 dark:bg-gray-800/50' : ''
+                  className={`p-4 border-b dark:border-slate-700/50 border-slate-200 ${
+                    !notification.read ? 'bg-slate-50 dark:bg-gray-800/50' : ''
                   }`}
                   onClick={() => markAsRead(notification.id)}
                 >
                   <div className="flex justify-between items-start">
-                    <h4 className="font-medium text-sm">{notification.title}</h4>
-                    <span className="text-xs text-gray-500">
+                    <h4 className="font-medium text-sm text-slate-900 dark:text-white">{notification.title}</h4>
+                    <span className="text-xs text-slate-500 dark:text-gray-500">
                       {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-sm text-slate-600 dark:text-gray-400 mt-1">
                     {notification.message}
                   </p>
                 </div>
@@ -67,4 +67,4 @@ export const NotificationsPopover = () => {
       </AnimatePresence>
     </div>
   )
-} 
+}

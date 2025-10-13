@@ -142,10 +142,10 @@ describe('Simple Utility Tests', () => {
     });
 
     it('should format date parts', () => {
-      const date = new Date('2024-01-15');
-      expect(date.getFullYear()).toBe(2024);
-      expect(date.getMonth()).toBe(0); // January is 0
-      expect(date.getDate()).toBe(15);
+      const date = new Date('2024-01-15T00:00:00Z');
+      expect(date.getUTCFullYear()).toBe(2024);
+      expect(date.getUTCMonth()).toBe(0); // January is 0
+      expect(date.getUTCDate()).toBe(15);
     });
   });
 

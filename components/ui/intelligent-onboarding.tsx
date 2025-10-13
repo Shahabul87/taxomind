@@ -257,7 +257,7 @@ const studentOnboarding: OnboardingFlow = {
         </div>
       ),
       actionText: "View Dashboard",
-      actionUrl: "/dashboard/user"
+      actionUrl: "/dashboard"
     }
   ]
 };

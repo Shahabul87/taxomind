@@ -156,7 +156,7 @@ export default function TestimonialsSection() {
   const statsInView = useInView(statsRef, { once: true, margin: "-100px" });
 
   return (
-    <div className="relative py-24 overflow-hidden bg-gradient-to-b from-slate-900 to-slate-800">
+    <div className="relative py-24 overflow-hidden bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-800">
       {/* Background elements */}
       <div className="absolute inset-0 bg-[url('/testimonial-bg.svg')] bg-center opacity-5"></div>
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 rounded-full blur-3xl"></div>
@@ -171,24 +171,24 @@ export default function TestimonialsSection() {
           transition={{ duration: 0.8 }}
         >
           <motion.div
-            className="inline-flex items-center space-x-2 bg-emerald-500/10 rounded-full px-6 py-2 border border-emerald-500/20 mb-6"
+            className="inline-flex items-center space-x-2 rounded-full px-6 py-2 mb-6 border bg-emerald-100/50 text-emerald-700 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={isInView ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Star className="w-5 h-5 text-emerald-400" />
-            <span className="text-emerald-300 font-medium">Trusted by Millions</span>
+            <Star className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <span className="font-medium">Trusted by Millions</span>
           </motion.div>
           
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            <span className="text-white">Transforming Education</span>
+            <span className="text-slate-900 dark:text-white">Transforming Education</span>
             <br />
             <span className="bg-gradient-to-r from-emerald-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
               Worldwide
             </span>
           </h2>
           
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-slate-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
             See how students, educators, and organizations are achieving remarkable 
             results with TaxoMind&apos;s intelligent learning platform.
           </p>
@@ -206,7 +206,7 @@ export default function TestimonialsSection() {
             <motion.div
               key={stat.label}
               variants={statVariants}
-              className="text-center p-6 rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/30 hover:border-emerald-500/30 transition-all duration-300 group"
+              className="text-center p-6 rounded-2xl backdrop-blur-sm border transition-all duration-300 group bg-white/70 border-slate-200 dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 dark:border-slate-700/30 hover:border-emerald-500/30"
               whileHover={{ scale: 1.05, y: -5 }}
             >
               <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-xl flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
@@ -215,10 +215,10 @@ export default function TestimonialsSection() {
               <div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent mb-2">
                 {stat.value}
               </div>
-              <div className="text-sm font-semibold text-white mb-1">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
                 {stat.label}
               </div>
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-slate-500 dark:text-gray-400">
                 {stat.description}
               </div>
             </motion.div>
@@ -242,7 +242,7 @@ export default function TestimonialsSection() {
             >
               <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-3xl blur opacity-0 group-hover:opacity-25 transition duration-300"></div>
               
-              <div className="relative rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl p-8 shadow-2xl border border-slate-700/50 group-hover:border-emerald-500/30 transition-all duration-300 h-full">
+              <div className="relative rounded-3xl p-8 shadow-2xl border transition-all duration-300 h-full bg-white border-slate-200 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 dark:border-slate-700/50 group-hover:border-emerald-500/30 backdrop-blur-xl">
                 {/* Quote icon */}
                 <div className="absolute top-6 right-6 w-8 h-8 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full flex items-center justify-center opacity-20">
                   <Quote className="w-4 h-4 text-white" />
@@ -256,7 +256,7 @@ export default function TestimonialsSection() {
                 </div>
 
                 {/* Testimonial text */}
-                <p className="text-gray-300 leading-relaxed mb-6 text-lg">
+                <p className="text-slate-600 dark:text-gray-300 leading-relaxed mb-6 text-lg">
                   &quot;{testimonial.text}&quot;
                 </p>
 
@@ -278,7 +278,7 @@ export default function TestimonialsSection() {
                     </span>
                   </div>
                   <div>
-                    <div className="font-semibold text-white">{testimonial.name}</div>
+                    <div className="font-semibold text-slate-900 dark:text-white">{testimonial.name}</div>
                     <div className="text-sm text-gray-400">{testimonial.role}</div>
                     <div className="text-xs text-emerald-400">{testimonial.company}</div>
                   </div>
@@ -303,22 +303,22 @@ export default function TestimonialsSection() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.8, duration: 0.8 }}
         >
-          <h3 className="text-2xl md:text-3xl font-bold text-white mb-8">
+          <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-8">
             Trusted by Leading Institutions
           </h3>
           
-          <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
+          <div className="flex flex-wrap justify-center items-center gap-8 opacity-100 dark:opacity-60">
             {logos.map((logo, index) => (
               <motion.div
                 key={logo.name}
-                className="p-4 rounded-xl bg-slate-800/30 backdrop-blur-sm border border-slate-700/30 hover:border-emerald-500/30 transition-all duration-300 group"
+                className="p-4 rounded-xl backdrop-blur-sm border transition-all duration-300 group bg-white/70 border-slate-200 dark:bg-slate-800/30 dark:border-slate-700/30 hover:border-emerald-500/30"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 0.6, scale: 1 }}
                 transition={{ delay: 1 + index * 0.1, duration: 0.5 }}
                 whileHover={{ scale: 1.05, opacity: 1 }}
               >
-                <div className="w-24 h-8 bg-gradient-to-r from-gray-400 to-gray-600 rounded flex items-center justify-center">
-                  <span className="text-white text-xs font-semibold">{logo.name}</span>
+                <div className="w-24 h-8 bg-gradient-to-r from-slate-300 to-slate-500 dark:from-gray-400 dark:to-gray-600 rounded flex items-center justify-center">
+                  <span className="text-slate-700 dark:text-white text-xs font-semibold">{logo.name}</span>
                 </div>
               </motion.div>
             ))}
@@ -333,10 +333,10 @@ export default function TestimonialsSection() {
           transition={{ delay: 1.2, duration: 0.8 }}
         >
           <div className="p-8 rounded-3xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 backdrop-blur-sm">
-            <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">
               Join the Future of Learning
             </h3>
-            <p className="text-lg text-gray-300 mb-8">
+            <p className="text-lg text-slate-600 dark:text-gray-300 mb-8">
               Experience the same transformative results that millions of learners 
               and thousands of organizations already enjoy.
             </p>
@@ -354,7 +354,7 @@ export default function TestimonialsSection() {
               
               <motion.a
                 href="/case-studies"
-                className="inline-flex items-center px-8 py-4 border-2 border-emerald-400/50 text-emerald-300 hover:bg-emerald-900/30 hover:border-emerald-400 font-semibold rounded-2xl backdrop-blur-sm transition-all duration-300 group"
+                className="inline-flex items-center px-8 py-4 border-2 font-semibold rounded-2xl backdrop-blur-sm transition-all duration-300 group text-emerald-700 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400 dark:text-emerald-300 dark:border-emerald-400/50 dark:hover:bg-emerald-900/30 dark:hover:border-emerald-400"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >

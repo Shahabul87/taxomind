@@ -115,9 +115,11 @@ const verifyBcryptHash = async (plainPassword: string, hashedPassword: string): 
       // Use dynamic import instead of require to avoid exports error
       const bcrypt = await import('bcryptjs');
       const isValid = await bcrypt.compare(plainPassword, hashedPassword);
-      
+
       if (isValid) {
-}
+        logger.info('Legacy bcrypt password verified successfully. Consider migrating to noble/hashes format.');
+      }
+
       return isValid;
     } catch (importError) {
       logger.warn('bcryptjs not available. Installing it temporarily for migration...');
@@ -140,7 +142,7 @@ const verifyBcryptHash = async (plainPassword: string, hashedPassword: string): 
  * Utility to check if a password needs rehashing (bcrypt to noble)
  */
 export const needsRehashing = (hashedPassword: string): boolean => {
-  return !hashedPassword.startsWith('noble:');
+  return !hashedPassword || !hashedPassword.startsWith('noble:');
 };
 
 /**

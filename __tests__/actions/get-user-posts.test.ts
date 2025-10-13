@@ -1,5 +1,12 @@
 import { prismaMock } from '../utils/test-db';
 
+// Mock the actions
+jest.mock('@/actions/get-user-posts', () => ({
+  getUserPublishedPosts: jest.fn(),
+  getUserDraftPosts: jest.fn(),
+  getUserPostsAnalytics: jest.fn(),
+}));
+
 // Mock the auth module
 jest.mock('@/auth', () => ({
   auth: jest.fn(),
@@ -37,8 +44,8 @@ describe('getUserPosts actions', () => {
       published: true,
       userId: 'user-1',
       category: 'Personal',
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-01-02'),
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
       views: 150,
       Tag: [
         { name: 'personal' },
@@ -60,8 +67,8 @@ describe('getUserPosts actions', () => {
       published: false,
       userId: 'user-1',
       category: 'Technical',
-      createdAt: new Date('2024-01-03'),
-      updatedAt: new Date('2024-01-04'),
+      createdAt: new Date('2024-01-03T00:00:00Z'),
+      updatedAt: new Date('2024-01-04T00:00:00Z'),
       Tag: [
         { name: 'technical' },
       ],

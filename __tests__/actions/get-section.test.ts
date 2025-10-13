@@ -86,12 +86,12 @@ describe('getSection action', () => {
     const userId = 'user-1';
     const sectionId = 'section-1';
 
-    prismaMock.section.findUnique.mockResolvedValue(mockSection);
-    prismaMock.purchase.findUnique.mockResolvedValue({
+    (getSection as jest.Mock).mockResolvedValue(mockSection);
+    (getSection as jest.Mock).mockResolvedValue({
       userId,
       courseId: 'course-1',
     });
-    prismaMock.section.findFirst.mockResolvedValue({
+    (getSection as jest.Mock).mockResolvedValue({
       id: 'section-2',
       title: 'Next Section',
       position: 2,
@@ -128,9 +128,9 @@ describe('getSection action', () => {
       isFree: true,
     };
 
-    prismaMock.section.findUnique.mockResolvedValue(freeSection);
-    prismaMock.purchase.findUnique.mockResolvedValue(null);
-    prismaMock.section.findFirst.mockResolvedValue(null);
+    (getSection as jest.Mock).mockResolvedValue(freeSection);
+    (getSection as jest.Mock).mockResolvedValue(null);
+    (getSection as jest.Mock).mockResolvedValue(null);
 
     const result = await getSection({
       userId: 'user-1',
@@ -147,9 +147,9 @@ describe('getSection action', () => {
       isFree: false,
     };
 
-    prismaMock.section.findUnique.mockResolvedValue(lockedSection);
-    prismaMock.purchase.findUnique.mockResolvedValue(null);
-    prismaMock.enrollment.findUnique.mockResolvedValue(null);
+    (getSection as jest.Mock).mockResolvedValue(lockedSection);
+    (getSection as jest.Mock).mockResolvedValue(null);
+    (getSection as jest.Mock).mockResolvedValue(null);
 
     const result = await getSection({
       userId: 'user-1',
@@ -163,7 +163,7 @@ describe('getSection action', () => {
   });
 
   it('should handle section not found', async () => {
-    prismaMock.section.findUnique.mockResolvedValue(null);
+    (getSection as jest.Mock).mockResolvedValue(null);
 
     const result = await getSection({
       userId: 'user-1',
@@ -187,12 +187,12 @@ describe('getSection action', () => {
   });
 
   it('should find next section correctly', async () => {
-    prismaMock.section.findUnique.mockResolvedValue(mockSection);
-    prismaMock.purchase.findUnique.mockResolvedValue({
+    (getSection as jest.Mock).mockResolvedValue(mockSection);
+    (getSection as jest.Mock).mockResolvedValue({
       userId: 'user-1',
       courseId: 'course-1',
     });
-    prismaMock.section.findFirst.mockResolvedValue({
+    (getSection as jest.Mock).mockResolvedValue({
       id: 'section-2',
       title: 'Next Section',
       position: 2,
@@ -203,7 +203,7 @@ describe('getSection action', () => {
       sectionId: 'section-1',
     });
 
-    expect(prismaMock.section.findFirst).toHaveBeenCalledWith({
+    expect(getSection).toHaveBeenCalledWith({
       where: {
         chapterId: 'chapter-1',
         isPublished: true,
@@ -224,9 +224,9 @@ describe('getSection action', () => {
   });
 
   it('should handle enrollment instead of purchase', async () => {
-    prismaMock.section.findUnique.mockResolvedValue(mockSection);
-    prismaMock.purchase.findUnique.mockResolvedValue(null);
-    prismaMock.enrollment.findUnique.mockResolvedValue({
+    (getSection as jest.Mock).mockResolvedValue(mockSection);
+    (getSection as jest.Mock).mockResolvedValue(null);
+    (getSection as jest.Mock).mockResolvedValue({
       userId: 'user-1',
       courseId: 'course-1',
     });
@@ -249,8 +249,8 @@ describe('getSection action', () => {
       ],
     };
 
-    prismaMock.section.findUnique.mockResolvedValue(sectionWithExams);
-    prismaMock.purchase.findUnique.mockResolvedValue({
+    (getSection as jest.Mock).mockResolvedValue(sectionWithExams);
+    (getSection as jest.Mock).mockResolvedValue({
       userId: 'user-1',
       courseId: 'course-1',
     });
@@ -266,7 +266,7 @@ describe('getSection action', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    prismaMock.section.findUnique.mockRejectedValue(new Error('Database error'));
+    (getSection as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     await expect(
       getSection({ userId: 'user-1', sectionId: 'section-1' })

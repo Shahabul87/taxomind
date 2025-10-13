@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { auth } from "@/auth";
+import { adminAuth } from "@/auth.admin";
 import { UserRole } from "@prisma/client";
 import { logger } from '@/lib/logger';
 
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const session = await auth();
+    const session = await adminAuth();
     
     // Check if user is authenticated and is an admin
     if (!session || !session.user || session.user.role !== UserRole.ADMIN) {

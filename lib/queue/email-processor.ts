@@ -97,7 +97,7 @@ export class EmailProcessor {
       this.startStatsReporting();
 
       // Ensure email queue is initialized
-      await this.emailQueue.getStatistics(); // This will trigger initialization if needed
+      await this.emailQueue.getQueueStatus(); // This will trigger initialization if needed
 
       logger.info('[EMAIL_PROCESSOR] Email job processor started successfully', {
         pid: process.pid,
@@ -181,7 +181,7 @@ export class EmailProcessor {
    */
   public async getMetrics(): Promise<ProcessorMetrics> {
     const status = this.getStatus();
-    const queueStats = await this.emailQueue.getStatistics();
+    const queueStats = await this.emailQueue.getQueueStatus();
 
     return {
       ...status,
@@ -289,7 +289,7 @@ export class EmailProcessor {
 
     // Check queue health
     try {
-      const queueStats = await this.emailQueue.getStatistics();
+      const queueStats = await this.emailQueue.getQueueStatus();
       if (queueStats.error) {
         logger.error('[EMAIL_PROCESSOR] Queue health check failed:', queueStats.error);
       }

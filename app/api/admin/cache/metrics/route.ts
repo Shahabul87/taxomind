@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { adminAuth } from "@/auth.admin";
 import { redis } from "@/lib/redis/config";
 import { ServerActionCache } from "@/lib/redis/server-action-cache";
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await adminAuth();
     if (!session?.user?.id || session.user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await adminAuth();
     if (!session?.user?.id || session.user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Unauthorized" },

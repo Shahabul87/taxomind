@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarContainer } from "@/components/ui/sidebar-container";
+import { useLayoutDimensions } from "@/hooks/use-layout-dimensions";
 import clsx from "clsx";
 
 interface LayoutWithSidebarProps {
@@ -28,6 +29,7 @@ const SIDEBAR_HIDDEN_ROUTES = [
   "/intelligent-lms/evaluation-standards",
   "/intelligent-lms/adaptive-learning",
   "/intelligent-lms/course-intelligence",
+  "/dashboard/admin", // Admin dashboard - has its own sidebar
 ];
 
 // Routes that need full-width layout (no padding)
@@ -47,21 +49,31 @@ const FULL_WIDTH_ROUTES = [
   "/intelligent-lms/evaluation-standards",
   "/intelligent-lms/adaptive-learning",
   "/intelligent-lms/course-intelligence",
+  "/dashboard/admin", // Admin dashboard - uses full width with its own layout
 ];
 
 // Patterns for routes where the sidebar should be hidden
 const SIDEBAR_HIDDEN_PATTERNS = [
   /^\/courses\/[^\/]+$/, // Course detail pages
-  /^\/blog\/[^\/]+$/, 
+  /^\/blog\/[^\/]+$/,
   /^\/courses\/[^\/]+\/learn\/[^\/]+\/sections\/[^\/]+$/, // Course learning section pages
   /^\/intelligent-lms\/.*$/, // All intelligent-lms pages
+  /^\/dashboard\/admin.*$/, // Admin dashboard and all subroutes - has its own sidebar
+];
+
+// Patterns for routes that need full-width layout (no padding/gaps)
+const FULL_WIDTH_PATTERNS = [
+  /^\/teacher\/.*$/, // All teacher routes - no gaps to show grid background
 ];
 
 export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarProps) {
   const pathname = usePathname();
   const [isSmallMobile, setIsSmallMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
-  
+
+  // Get dynamic layout dimensions (sidebar width, header height)
+  const { sidebarWidth, headerHeight, isSidebarExpanded } = useLayoutDimensions();
+
   // Responsive detection
   useEffect(() => {
     const checkScreenSize = () => {
@@ -88,10 +100,14 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
   // - Desktop (≥1024px): Fixed sidebar
   const showSidebar = hasUser && shouldShowSidebar && !isSmallMobile;
   
-  // Determine if we're on a course page or full-width page
+  // Determine if we're on a course page, teacher page, or full-width page
   const isCoursePage = pathname ? /^\/courses\/[^\/]+$/.test(pathname) : false;
+  const isTeacherPage = pathname ? /^\/teacher\/.*$/.test(pathname) : false;
   const isIntelligentLMSPage = pathname ? /^\/intelligent-lms\/.*$/.test(pathname) : false;
-  const isFullWidthPage = pathname ? (FULL_WIDTH_ROUTES.includes(pathname) || isIntelligentLMSPage) : false;
+  const matchesFullWidthPattern = pathname ?
+    FULL_WIDTH_PATTERNS.some(pattern => pattern.test(pathname)) : false;
+  // Note: isFullWidthPage excludes teacher pages - they need sidebar margin
+  const isFullWidthPage = pathname ? (FULL_WIDTH_ROUTES.includes(pathname) || isIntelligentLMSPage || (matchesFullWidthPattern && !isTeacherPage)) : false;
 
   return (
     <div className={clsx(
@@ -107,17 +123,24 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
           <SidebarContainer user={user} />
         </div>
       )}
-      
+
       {/* Main content with conditional margin and padding */}
       <main
         className={clsx(
-          "flex-1",
-          isCoursePage ? "h-screen pt-0 px-0 overflow-y-auto" : 
+          "flex-1 transition-all duration-300",
+          // Course pages: Full screen, no padding
+          isCoursePage ? "h-screen pt-0 px-0 overflow-y-auto" :
+          // Teacher pages: No padding gaps, but keep space for sidebar
+          isTeacherPage ? "min-h-screen pt-0 px-0 overflow-y-auto" :
+          // Full-width pages: No padding
           isFullWidthPage ? "min-h-screen pt-0 px-0" :
-          "h-[calc(100vh-4rem)] pt-2 px-4 overflow-y-auto",
-          // Only add margin on desktop when sidebar is fixed
-          showSidebar && !isFullWidthPage && !isTablet ? "ml-[94px]" : ""
+          // Regular pages: Standard padding
+          "h-[calc(100vh-4rem)] pt-2 px-4 overflow-y-auto"
         )}
+        style={{
+          // Dynamic margin based on actual sidebar width
+          marginLeft: showSidebar && !isFullWidthPage && !isTablet ? `${sidebarWidth}px` : '0',
+        }}
       >
         {children}
       </main>

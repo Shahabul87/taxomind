@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
+import { debugGuard } from "@/lib/debug-guard";
 
 export const runtime = 'nodejs';
 
+/**
+ * SECURITY FIX: Debug endpoint - only accessible in development or to admins
+ * This endpoint is for testing purposes and should not be available in production
+ */
 export async function GET() {
+  // SECURITY: Gate debug endpoint
+  const guardResult = await debugGuard();
+  if (guardResult) return guardResult;
+
   return NextResponse.json({
     message: "Simple test endpoint working",
     timestamp: new Date().toISOString(),
@@ -12,6 +21,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  // SECURITY: Gate debug endpoint
+  const guardResult = await debugGuard();
+  if (guardResult) return guardResult;
+
   try {
     const body = await req.json();
     return NextResponse.json({

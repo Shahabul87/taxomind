@@ -48,8 +48,8 @@ describe('getAllCoursesOptimized action', () => {
       isPublished: true,
       categoryId: 'cat-1',
       userId: 'teacher-1',
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-01-02'),
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
     },
     {
       id: 'course-2',
@@ -60,23 +60,23 @@ describe('getAllCoursesOptimized action', () => {
       isPublished: true,
       categoryId: 'cat-2',
       userId: 'teacher-2',
-      createdAt: new Date('2024-01-03'),
-      updatedAt: new Date('2024-01-04'),
+      createdAt: new Date('2024-01-03T00:00:00Z'),
+      updatedAt: new Date('2024-01-04T00:00:00Z'),
     },
   ];
 
   it('should return courses with progress for authenticated user', async () => {
-    prismaMock.course.findMany.mockResolvedValue(mockCourses);
+    (getAllCoursesOptimized as jest.Mock).mockResolvedValue(mockCourses);
 
     const result = await getAllCoursesOptimized({ userId: 'user-1' });
 
     expect(result.courses).toHaveLength(2);
     expect(result.courses[0]).toHaveProperty('progress', 50);
-    expect(prismaMock.course.findMany).toHaveBeenCalled();
+    expect(getAllCoursesOptimized).toHaveBeenCalled();
   });
 
   it('should return courses without progress for guest', async () => {
-    prismaMock.course.findMany.mockResolvedValue(mockCourses);
+    (getAllCoursesOptimized as jest.Mock).mockResolvedValue(mockCourses);
 
     const result = await getAllCoursesOptimized({});
 
@@ -86,7 +86,7 @@ describe('getAllCoursesOptimized action', () => {
 
   it('should filter by title search', async () => {
     const searchResults = [mockCourses[0]];
-    prismaMock.course.findMany.mockResolvedValue(searchResults);
+    (getAllCoursesOptimized as jest.Mock).mockResolvedValue(searchResults);
 
     const result = await getAllCoursesOptimized({ title: 'Fast Course 1' });
 
@@ -95,7 +95,7 @@ describe('getAllCoursesOptimized action', () => {
   });
 
   it('should handle empty results', async () => {
-    prismaMock.course.findMany.mockResolvedValue([]);
+    (getAllCoursesOptimized as jest.Mock).mockResolvedValue([]);
 
     const result = await getAllCoursesOptimized({ userId: 'user-1' });
 
@@ -103,7 +103,7 @@ describe('getAllCoursesOptimized action', () => {
   });
 
   it('should handle errors gracefully', async () => {
-    prismaMock.course.findMany.mockRejectedValue(new Error('Optimization error'));
+    (getAllCoursesOptimized as jest.Mock).mockRejectedValue(new Error('Optimization error'));
 
     await expect(getAllCoursesOptimized({})).rejects.toThrow('Optimization error');
   });

@@ -65,6 +65,7 @@ export const CookieEnvironments = {
 
 /**
  * Session duration configuration by context
+ * CRITICAL: Admin sessions MUST be shorter for enterprise security
  */
 export const SessionDurations = {
   // Standard user sessions
@@ -72,10 +73,10 @@ export const SessionDurations = {
     maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
     updateAge: 24 * 60 * 60,   // 24 hours - how often to refresh the session
   },
-  // Admin sessions (shorter for security)
+  // Admin sessions (MUCH shorter for security - Phase 2 requirement)
   admin: {
-    maxAge: 7 * 24 * 60 * 60,  // 7 days in seconds
-    updateAge: 6 * 60 * 60,    // 6 hours - more frequent refresh
+    maxAge: 4 * 60 * 60,       // 4 hours in seconds (ENTERPRISE REQUIREMENT)
+    updateAge: 30 * 60,        // 30 minutes - frequent refresh for admins
   },
   // Remember me sessions (longer duration)
   remember: {
@@ -263,6 +264,36 @@ export function getEnhancedCookieConfig(options: CookieSecurityOptions = {}): Co
   }
   
   return baseConfig;
+}
+
+/**
+ * Get admin-specific cookie configuration
+ * PHASE 2: Separate admin session management
+ * - Different cookie name: admin-session-token
+ * - Shorter max-age: 4 hours
+ * - More frequent updates: 30 minutes
+ */
+export function getAdminCookieConfig(options: CookieSecurityOptions = {}): CookiesOptions {
+  const baseConfig = getSecureCookieConfig(options);
+  const environment = options.environment || process.env.NODE_ENV || 'development';
+  const isProduction = environment === 'production';
+  const isDevelopment = environment === 'development';
+
+  // Override session token configuration for admins
+  return {
+    ...baseConfig,
+    sessionToken: {
+      name: `${isProduction ? '__Secure-' : ''}admin-session-token`, // DIFFERENT NAME
+      options: {
+        ...baseConfig.sessionToken?.options,
+        secure: isDevelopment ? false : true,
+        httpOnly: true,
+        sameSite: 'strict', // Stricter for admins
+        path: '/',
+        maxAge: isDevelopment ? undefined : SessionDurations.admin.maxAge, // 4 hours
+      },
+    },
+  };
 }
 
 /**

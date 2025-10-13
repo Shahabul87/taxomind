@@ -43,7 +43,7 @@ export default {
             );
 
             if (passwordsMatch) return user;
-          } catch (error: any) {
+          } catch (error) {
             console.error("Password verification failed:", error);
             return null;
           }
@@ -53,8 +53,21 @@ export default {
       }
     })
   ],
+  // Session configuration to match across auth.ts and edge config
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days matching session
+  },
   // Secure cookie configuration
   cookies: DefaultCookieConfig,
   // Configure for secure environments
   useSecureCookies: process.env.NODE_ENV === 'production',
+  // Trust host
+  trustHost: true,
+  // Secret for JWT signing
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 } satisfies NextAuthConfig

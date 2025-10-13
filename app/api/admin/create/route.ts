@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { adminAuth } from "@/auth.admin";
 import { 
   needsInitialAdmin,
   createFirstAdmin,
@@ -55,7 +55,7 @@ const acceptInvitationSchema = z.object({
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
+    const session = await adminAuth();
     
     // Check if system needs initial admin (public check)
     const needsAdmin = await needsInitialAdmin();
@@ -175,7 +175,7 @@ async function handleCreateFirstAdmin(body: any) {
  * Handle user promotion to admin (requires admin auth)
  */
 async function handlePromoteUser(req: NextRequest, body: any) {
-  const session = await auth();
+  const session = await adminAuth();
   
   if (!session?.user?.id || session.user.role !== "ADMIN") {
     return NextResponse.json(
@@ -217,7 +217,7 @@ async function handlePromoteUser(req: NextRequest, body: any) {
  * Handle admin demotion (requires admin auth)
  */
 async function handleDemoteAdmin(req: NextRequest, body: any) {
-  const session = await auth();
+  const session = await adminAuth();
   
   if (!session?.user?.id || session.user.role !== "ADMIN") {
     return NextResponse.json(
@@ -259,7 +259,7 @@ async function handleDemoteAdmin(req: NextRequest, body: any) {
  * Handle admin invitation creation (requires admin auth)
  */
 async function handleCreateInvitation(req: NextRequest, body: any) {
-  const session = await auth();
+  const session = await adminAuth();
   
   if (!session?.user?.id || session.user.role !== "ADMIN") {
     return NextResponse.json(

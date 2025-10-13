@@ -1,174 +1,281 @@
-// scripts/dev-seed.ts
-import { PrismaClient } from "@prisma/client";
+/**
+ * Development Database Seed Script
+ * 
+ * SIMPLE AUTHENTICATION STRUCTURE:
+ * - ADMIN: Platform administrators (manage everything)
+ * - USER: Regular users (students, teachers, etc.)
+ * 
+ * No complex role hierarchies - just two clear levels
+ */
 
-const database = new PrismaClient();
+import { PrismaClient, UserRole } from "@prisma/client";
+import { hash } from "bcryptjs";
+
+const prisma = new PrismaClient();
 
 async function main() {
+  console.log("🌱 Seeding development database with simple role structure...");
+
   try {
-    console.log("🌱 Seeding development database...");
-
-    // Only allow in development
-    if (process.env.NODE_ENV !== 'development') {
-      console.log("❌ This script only runs in development environment");
-      return;
-    }
-
-    // Clear existing data (safe in development only)
+    // Clear existing data
     console.log("🗑️ Clearing existing data...");
-    await database.user.deleteMany({});
-    await database.course.deleteMany({});
-    await database.category.deleteMany({});
-
+    
+    // Delete in correct order to respect foreign key constraints
+    await prisma.enrollment.deleteMany();
+    await prisma.purchase.deleteMany();
+    await prisma.stripeCustomer.deleteMany();
+    await prisma.userSubscription.deleteMany();
+    await prisma.post.deleteMany();
+    await prisma.course.deleteMany();
+    await prisma.category.deleteMany();
+    await prisma.auditLog.deleteMany();
+    await prisma.twoFactorConfirmation.deleteMany();
+    await prisma.twoFactorToken.deleteMany();
+    await prisma.passwordResetToken.deleteMany();
+    await prisma.verificationToken.deleteMany();
+    await prisma.account.deleteMany();
+    await prisma.user.deleteMany();
     console.log("✅ Cleared existing data");
 
-    // Seed categories
-    const categories = await database.category.createMany({
-      data: [
-        { name: "Computer Science" },
-        { name: "Artificial Intelligence" },
-        { name: "Data Science" },
-        { name: "Machine Learning" },
-        { name: "Web Development" },
-        { name: "Mobile Development" },
-        { name: "Cybersecurity" },
-        { name: "Mathematics" },
-        { name: "Physics" },
-        { name: "Psychology" },
-        { name: "Philosophy" },
-        { name: "Business" },
-        { name: "Design" },
-        { name: "Photography" },
-        { name: "Music" },
-        { name: "Accounting" },
-        { name: "Engineering" },
-        { name: "Filming" },
-        { name: "Chemistry" },
-        { name: "Biology" },
-        { name: "Literature" },
-        { name: "History" },
-        { name: "Economics" },
-        { name: "Political Science" },
-        { name: "Sociology" },
-        { name: "Environmental Science" },
-        { name: "Art History" },
-        { name: "Graphic Design" },
-        { name: "Culinary Arts" },
-        { name: "Fashion Design" },
-      ]
+    // Create categories
+    console.log("📚 Creating categories...");
+    const categories = [
+      // Main categories
+      { name: "Web Development" },
+      { name: "Mobile Development" },
+      { name: "Data Science" },
+      { name: "Machine Learning" },
+      { name: "Cloud Computing" },
+      { name: "DevOps" },
+      { name: "Cybersecurity" },
+      { name: "UI/UX Design" },
+      { name: "Database" },
+      { name: "Programming Languages" },
+    ];
+
+    await prisma.category.createMany({
+      data: categories,
     });
+    console.log(`✅ Created ${categories.length} categories`);
 
-    console.log(`✅ Created ${categories.count} categories`);
+    // Create simple user structure
+    console.log("👥 Creating users with simple roles...");
+    
+    const defaultPassword = await hash("password123", 12);
 
-    // Create development users with hashed passwords
-    const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash('password123', 12);
+    // ========================================
+    // ADMIN USERS (Platform Administrators)
+    // ========================================
+    const adminUsers = [
+      {
+        id: "admin001",
+        email: "admin@taxomind.com",
+        name: "Platform Admin",
+        role: UserRole.ADMIN,
+        password: defaultPassword,
+        emailVerified: new Date(),
+        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin",
+      },
+      {
+        id: "admin002",
+        email: "superadmin@taxomind.com",
+        name: "Super Admin",
+        role: UserRole.ADMIN,
+        password: defaultPassword,
+        emailVerified: new Date(),
+        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=superadmin",
+      },
+    ];
 
-    const devUsers = await database.user.createMany({
-      data: [
-        {
-          name: "Dev Teacher",
-          email: "teacher@dev.local",
-          role: "USER", isTeacher: true,
-          emailVerified: new Date(),
-          password: hashedPassword,
-        },
-        {
-          name: "Dev Student",
-          email: "student@dev.local",
-          role: "USER", 
-          emailVerified: new Date(),
-          password: hashedPassword,
-        },
-        {
-          name: "Dev Admin",
-          email: "admin@dev.local",
-          role: "ADMIN",
-          emailVerified: new Date(),
-          password: hashedPassword,
-        },
-        {
-          name: "John Doe",
-          email: "john@dev.local",
-          role: "USER", isTeacher: true,
-          emailVerified: new Date(),
-          password: hashedPassword,
-        },
-        {
-          name: "Jane Smith",
-          email: "jane@dev.local",
-          role: "USER",
-          emailVerified: new Date(),
-          password: hashedPassword,
-        }
-      ]
-    });
+    for (const admin of adminUsers) {
+      await prisma.user.create({ data: admin });
+    }
+    console.log(`✅ Created ${adminUsers.length} ADMIN users`);
 
-    console.log(`✅ Created ${devUsers.count} development users`);
-    console.log(`📧 Login credentials: email: teacher@dev.local, password: password123`);
+    // ========================================
+    // REGULAR USERS (Students, Teachers, etc.)
+    // ========================================
+    const regularUsers = [
+      // Teachers (still USER role, but with teaching capability)
+      {
+        id: "user001",
+        email: "john.teacher@taxomind.com",
+        name: "John Teacher",
+        role: UserRole.USER,
+        password: defaultPassword,
+        emailVerified: new Date(),
+        isTeacher: true,
+        teacherActivatedAt: new Date(),
+        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=john",
+      },
+      {
+        id: "user002",
+        email: "sarah.instructor@taxomind.com",
+        name: "Sarah Instructor",
+        role: UserRole.USER,
+        password: defaultPassword,
+        emailVerified: new Date(),
+        isTeacher: true,
+        teacherActivatedAt: new Date(),
+        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah",
+      },
+      
+      // Students (regular users)
+      {
+        id: "user003",
+        email: "alice.student@taxomind.com",
+        name: "Alice Student",
+        role: UserRole.USER,
+        password: defaultPassword,
+        emailVerified: new Date(),
+        isTeacher: false,
+        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=alice",
+      },
+      {
+        id: "user004",
+        email: "bob.learner@taxomind.com",
+        name: "Bob Learner",
+        role: UserRole.USER,
+        password: defaultPassword,
+        emailVerified: new Date(),
+        isTeacher: false,
+        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=bob",
+      },
+      {
+        id: "user005",
+        email: "charlie.user@taxomind.com",
+        name: "Charlie User",
+        role: UserRole.USER,
+        password: defaultPassword,
+        emailVerified: new Date(),
+        isTeacher: false,
+        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=charlie",
+      },
+      
+      // Affiliate users (still USER role)
+      {
+        id: "user006",
+        email: "david.affiliate@taxomind.com",
+        name: "David Affiliate",
+        role: UserRole.USER,
+        password: defaultPassword,
+        emailVerified: new Date(),
+        isAffiliate: true,
+        affiliateActivatedAt: new Date(),
+        affiliateCode: "DAVID2024",
+        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=david",
+      },
+    ];
 
-    // Get created teacher for course creation
-    const teacher = await database.user.findFirst({
-      where: { email: "teacher@dev.local" }
-    });
+    for (const user of regularUsers) {
+      await prisma.user.create({ data: user });
+    }
+    console.log(`✅ Created ${regularUsers.length} USER accounts`);
 
-    const aiCategory = await database.category.findFirst({
-      where: { name: "Artificial Intelligence" }
-    });
-
-    const webDevCategory = await database.category.findFirst({
+    // Create sample courses by teachers
+    console.log("📖 Creating sample courses...");
+    
+    const webDevCategory = await prisma.category.findFirst({
       where: { name: "Web Development" }
     });
 
-    // Create sample courses
-    if (teacher && aiCategory && webDevCategory) {
-      const courses = await database.course.createMany({
-        data: [
-          {
-            userId: teacher.id,
-            title: "Introduction to AI & Machine Learning",
-            description: "Learn the fundamentals of AI and ML with hands-on projects using Python, TensorFlow, and real-world datasets.",
-            imageUrl: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800",
-            price: 99.99,
-            isPublished: true,
-            categoryId: aiCategory.id,
-          },
-          {
-            userId: teacher.id,
-            title: "Full Stack Web Development with Next.js",
-            description: "Master modern web development with Next.js, React, TypeScript, and deployment strategies.",
-            imageUrl: "https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800",
-            price: 149.99,
-            isPublished: true,
-            categoryId: webDevCategory.id,
-          },
-          {
-            userId: teacher.id,
-            title: "Advanced Neural Networks",
-            description: "Deep dive into neural network architectures, backpropagation, and advanced optimization techniques.",
-            imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800",
-            price: 199.99,
-            isPublished: false, // Draft course
-            categoryId: aiCategory.id,
-          }
-        ]
-      });
+    const mlCategory = await prisma.category.findFirst({
+      where: { name: "Machine Learning" }
+    });
 
-      console.log(`✅ Created ${courses.count} sample courses`);
+    const courses = [
+      {
+        title: "Complete Next.js 15 Masterclass",
+        description: "Learn to build production-ready applications with Next.js 15, React, and TypeScript",
+        imageUrl: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
+        price: 99.99,
+        isPublished: true,
+        userId: "user001", // John Teacher
+        categoryId: webDevCategory?.id,
+      },
+      {
+        title: "Python for Data Science",
+        description: "Master Python programming for data analysis, visualization, and machine learning",
+        imageUrl: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4",
+        price: 79.99,
+        isPublished: true,
+        userId: "user002", // Sarah Instructor
+        categoryId: mlCategory?.id,
+      },
+      {
+        title: "Free Web Development Basics",
+        description: "Get started with HTML, CSS, and JavaScript fundamentals",
+        imageUrl: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
+        price: 0,
+        isPublished: true,
+        userId: "user001", // John Teacher
+        categoryId: webDevCategory?.id,
+      },
+    ];
+
+    for (const course of courses) {
+      await prisma.course.create({ data: course });
     }
+    console.log(`✅ Created ${courses.length} sample courses`);
 
-    console.log("🎉 Development database seeded successfully!");
+    // Summary
+    console.log("\n🎉 Development database seeded successfully!");
     console.log("\n📝 Summary:");
-    console.log("- 30 course categories");
-    console.log("- 5 test users (teacher@dev.local, student@dev.local, etc.)");
-    console.log("- 3 sample courses");
-    console.log("- Default password for all users: password123");
+    console.log("============================================");
+    console.log("ADMIN ACCOUNTS (Platform Management):");
+    console.log("--------------------------------------------");
+    adminUsers.forEach(admin => {
+      console.log(`  📧 ${admin.email}`);
+      console.log(`     Password: password123`);
+      console.log(`     Role: ADMIN (Full platform control)`);
+      console.log("");
+    });
+    
+    console.log("USER ACCOUNTS (Regular Platform Users):");
+    console.log("--------------------------------------------");
+    console.log("Teachers (can create courses):");
+    regularUsers.filter(u => u.isTeacher).forEach(teacher => {
+      console.log(`  📧 ${teacher.email}`);
+      console.log(`     Password: password123`);
+      console.log(`     Role: USER with teaching capability`);
+    });
+    
+    console.log("\nStudents (can enroll in courses):");
+    regularUsers.filter(u => !u.isTeacher && !u.isAffiliate).forEach(student => {
+      console.log(`  📧 ${student.email}`);
+      console.log(`     Password: password123`);
+      console.log(`     Role: USER (student)`);
+    });
+    
+    console.log("\nAffiliate:");
+    regularUsers.filter(u => u.isAffiliate).forEach(affiliate => {
+      console.log(`  📧 ${affiliate.email}`);
+      console.log(`     Password: password123`);
+      console.log(`     Role: USER with affiliate capability`);
+      console.log(`     Affiliate Code: ${affiliate.affiliateCode}`);
+    });
+    
+    console.log("\n============================================");
+    console.log("🔑 Authentication Flow:");
+    console.log("  - ADMIN users → /dashboard/admin");
+    console.log("  - USER users → /dashboard");
+    console.log("  - Teachers can switch to teacher context");
+    console.log("  - Students stay in learning context");
+    console.log("============================================");
+    
     console.log("\n🚀 Start development: npm run dev");
 
-  } catch (error: any) {
-    console.error("❌ Error seeding development database:", error);
-  } finally {
-    await database.$disconnect();
+  } catch (error) {
+    console.error("❌ Error seeding database:", error);
+    throw error;
   }
 }
 
-main();
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

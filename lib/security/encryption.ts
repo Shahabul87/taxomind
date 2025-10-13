@@ -47,11 +47,33 @@ export class DataEncryption {
       iterations: 100000, // PBKDF2 iterations
     };
 
-    // Use environment variable or provided key
-    this.masterKey = masterKey || process.env.ENCRYPTION_MASTER_KEY || this.generateMasterKey();
-    
+    // SECURITY FIX: Fail fast if encryption key is missing
+    // Never use a random key as fallback - this makes encrypted data unrecoverable on restart
+    const envKey = process.env.ENCRYPTION_MASTER_KEY;
+    this.masterKey = masterKey || envKey || '';
+
     if (!this.masterKey) {
-      throw new Error('ENCRYPTION_MASTER_KEY environment variable is required');
+      throw new Error(
+        'CRITICAL: ENCRYPTION_MASTER_KEY environment variable is required. ' +
+        'Generate one with: openssl rand -hex 32'
+      );
+    }
+
+    // Validate key length (must be 64 hex characters = 32 bytes = 256 bits)
+    if (this.masterKey.length !== 64) {
+      throw new Error(
+        `CRITICAL: ENCRYPTION_MASTER_KEY must be 64 hex characters (32 bytes). ` +
+        `Current length: ${this.masterKey.length}. ` +
+        `Generate a valid key with: openssl rand -hex 32`
+      );
+    }
+
+    // Validate key is valid hex
+    if (!/^[0-9a-fA-F]{64}$/.test(this.masterKey)) {
+      throw new Error(
+        'CRITICAL: ENCRYPTION_MASTER_KEY must contain only hexadecimal characters (0-9, a-f, A-F). ' +
+        'Generate a valid key with: openssl rand -hex 32'
+      );
     }
   }
 

@@ -3,7 +3,7 @@
 import * as z from "zod";
 import axios from "axios";
 import { Pencil, PlusCircle, ImageIcon } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Post } from "@prisma/client";
@@ -38,6 +38,16 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
   const [uploadResponse, setUploadResponse] = useState<UploadedFile[] | null>(null);
   const router = useRouter();
   const [urlsArray, setUrlsArray] = useState<string[]>([]);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [saveKey, setSaveKey] = useState(0);
+
+  const savedText = useMemo(() => {
+    if (!savedAt) return "";
+    const d = savedAt;
+    const hh = d.getHours().toString().padStart(2, "0");
+    const mm = d.getMinutes().toString().padStart(2, "0");
+    return `Saved at ${hh}:${mm}`;
+  }, [savedAt]);
 
   // State to manage form values based on Zod schema
   const [formValues, setFormValues] = useState<z.infer<typeof formSchema>>({
@@ -105,6 +115,8 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
         // Clear files and toggle edit state after successful operations
         setFiles([]);
         toggleEdit();
+        setSavedAt(new Date());
+        setSaveKey((k) => k + 1);
         router.refresh();
       } else {
         toast.error("Failed to upload files.");
@@ -120,19 +132,25 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
   return (
     <div className="p-4 sm:p-6 bg-white/50 dark:bg-gray-800/40 rounded-lg sm:rounded-xl border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/60 dark:hover:bg-gray-800/50 transition-all duration-200">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 mb-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-xl">
-            <ImageIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
-          </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-              Post Image
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Upload a cover image for your post
-            </p>
-          </div>
+      <div className="flex items-center gap-4">
+        <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-xl">
+          <ImageIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
         </div>
+        <div>
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+            Post Image
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Upload a cover image for your post
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        {savedAt && (
+          <span key={saveKey} className="text-xs text-gray-500 dark:text-gray-400 animate-fade-in">
+            {savedText}
+          </span>
+        )}
         <Button 
           onClick={toggleEdit} 
           variant="ghost"
@@ -147,6 +165,7 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
             </>
           )}
         </Button>
+      </div>
       </div>
 
       {!isEditing && (

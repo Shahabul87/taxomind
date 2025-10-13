@@ -17,17 +17,18 @@ const customJestConfig = {
   // PERFORMANCE OPTIMIZATIONS FOR CI
   // ============================================
   
-  // Limit parallel workers to prevent CPU starvation
-  maxWorkers: 2,
+  // Limit parallel workers to prevent CPU starvation and memory issues
+  // Using runInBand is more memory efficient than maxWorkers: 1
+  maxWorkers: process.env.TEST_WORKERS || 1,
   
   // Maximum number of concurrent test files
-  maxConcurrency: 5,
+  maxConcurrency: 1,
   
   // Test timeout to prevent hanging tests (30 seconds)
   testTimeout: 30000,
   
-  // Fail fast on first test failure
-  bail: 1,
+  // Don't fail fast - run all tests
+  bail: false,
   
   // Disable coverage collection for speed (run separately if needed)
   collectCoverage: false,
@@ -52,17 +53,17 @@ const customJestConfig = {
   
   // Ignore patterns - exclude performance tests and stress tests
   testPathIgnorePatterns: [
-    '<rootDir>/.next/',
-    '<rootDir>/node_modules/',
-    '<rootDir>/coverage/',
-    '<rootDir>/dist/',
-    '<rootDir>/backups/',
-    '<rootDir>/e2e/',
-    '<rootDir>/**/*.performance.test.*',
-    '<rootDir>/**/*.stress.test.*',
-    '<rootDir>/**/*.integration.test.*',
-    '<rootDir>/__tests__/performance/',
-    '<rootDir>/__tests__/stress/'
+    '/node_modules/',
+    '/.next/',
+    '/coverage/',
+    '/dist/',
+    '/backups/',
+    '/e2e/',
+    '\\.performance\\.test\\.',
+    '\\.stress\\.test\\.',
+    '\\.integration\\.test\\.',
+    '/__tests__/performance/',
+    '/__tests__/stress/'
   ],
   
   // Module name mapper for path aliases
@@ -77,6 +78,10 @@ const customJestConfig = {
   clearMocks: true,
   restoreMocks: true,
   resetMocks: true,
+  resetModules: true, // Clear module registry between tests
+  
+  // Memory optimization settings
+  workerIdleMemoryLimit: '512MB', // Restart workers if they exceed memory
   
   // Garbage collection settings for Node
   globals: {
@@ -89,9 +94,9 @@ const customJestConfig = {
     }
   },
   
-  // Transform ignore patterns
+  // Transform ignore patterns - include modules that need transformation
   transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$))'
+    'node_modules/(?!(.*\\.mjs$|uncrypto|@upstash|next-auth|@auth|jose|uuid|nanoid|@panva))'
   ],
   
   // Module paths to ignore
@@ -116,6 +121,9 @@ const customJestConfig = {
   
   // Cache directory
   cacheDirectory: '/tmp/jest_cache',
+  
+  // Disable cache in CI to reduce memory usage
+  cache: false,
   
   // Disable watch mode
   watch: false,

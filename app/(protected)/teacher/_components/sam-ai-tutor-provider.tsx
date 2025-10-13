@@ -9,17 +9,8 @@ import { logger } from '@/lib/logger';
 // Import Global SAM AI Tutor instead
 import { useSAMGlobal } from '@/components/sam/sam-global-provider';
 
-// Import database functions - Note: These should only be used in server actions/API routes
-import {
-  awardSAMPoints,
-  unlockSAMBadge,
-  updateSAMStreak,
-  recordSAMInteraction,
-  updateSAMLearningProfile,
-  getSAMLearningProfile
-} from '@/lib/sam-database';
+// Import only types from Prisma - these are safe for client components
 import { SAMBadgeType, BadgeLevel, SAMInteractionType } from '@prisma/client';
-import { trackAchievementProgress } from '@/lib/sam-achievement-engine';
 
 // Educational context types
 interface LearningContext {
@@ -676,50 +667,59 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
     return [];
   }, [learningContext, learningStyle]);
   
-  // Progress tracking with achievement engine
+  // Progress tracking via API route (not direct database access)
   const trackInteraction = useCallback(async (type: string, data: any) => {
     if (!user?.id) return;
-    
+
     try {
-      // Track achievements and get rewards
-      const result = await trackAchievementProgress(
-        user.id,
-        type,
-        data,
-        {
-          courseId: learningContext.currentCourse?.id,
-          chapterId: learningContext.currentChapter?.id,
-          sectionId: learningContext.currentSection?.id,
+      // Track achievements via API endpoint
+      const response = await fetch('/api/sam/track-achievement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: type,
+          metadata: data,
+          context: {
+            courseId: learningContext.currentCourse?.id,
+            chapterId: learningContext.currentChapter?.id,
+            sectionId: learningContext.currentSection?.id,
+          }
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+
+        // Update local gamification state with new points and achievements
+        if (result.pointsAwarded > 0) {
+          setGamificationState(prev => ({
+            ...prev,
+            points: prev.points + result.pointsAwarded,
+            level: Math.floor((prev.points + result.pointsAwarded) / 1000) + 1,
+          }));
         }
-      );
-      
-      // Update local gamification state with new points and achievements
-      if (result.pointsAwarded > 0) {
-        setGamificationState(prev => ({
-          ...prev,
-          points: prev.points + result.pointsAwarded,
-          level: Math.floor((prev.points + result.pointsAwarded) / 1000) + 1,
-        }));
-      }
-      
-      // Show notifications for achievements and level ups
-      if (result.achievementsUnlocked.length > 0) {
-        result.achievementsUnlocked.forEach(achievement => {
 
-        });
-      }
-      
-      if (result.challengesCompleted.length > 0) {
-        result.challengesCompleted.forEach(challenge => {
+        // Show notifications for achievements and level ups
+        if (result.achievementsUnlocked && result.achievementsUnlocked.length > 0) {
+          // Handle achievement notifications here
+          logger.info('Achievements unlocked:', result.achievementsUnlocked);
+        }
 
-        });
+        if (result.challengesCompleted && result.challengesCompleted.length > 0) {
+          // Handle challenge completion notifications here
+          logger.info('Challenges completed:', result.challengesCompleted);
+        }
+
+        if (result.levelUp) {
+          // Handle level up notification here
+          logger.info('Level up!', result.levelUp);
+        }
+      } else {
+        throw new Error('Failed to track achievement progress');
       }
-      
-      if (result.levelUp) {
-}
     } catch (error: any) {
       logger.error('Error tracking interaction with achievement engine:', error);
-      
+
       // Fallback to basic interaction recording
       const interactionTypeMap: Record<string, SAMInteractionType> = {
         'question_asked': SAMInteractionType.CHAT_MESSAGE,

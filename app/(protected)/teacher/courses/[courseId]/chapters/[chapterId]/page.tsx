@@ -1,7 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { ChapterPageClient } from "./_components/chapter-page-client";
+import { EnterpriseChapterPageClient } from "./_components/enterprise-chapter-page-client";
 import { logger } from '@/lib/logger';
 
 const ChapterIdPage = async (
@@ -26,6 +26,11 @@ const ChapterIdPage = async (
         orderBy:{
           position:"asc"
         }
+      },
+      course: {
+        select: {
+          title: true
+        }
       }
     }
   });
@@ -35,7 +40,7 @@ const ChapterIdPage = async (
     return redirect("/");
   }
 
-  return <ChapterPageClient chapter={chapter} params={params} />;
+  return <EnterpriseChapterPageClient chapter={chapter} params={params} />;
 }
  
 export default ChapterIdPage;

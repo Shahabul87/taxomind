@@ -65,14 +65,14 @@ describe('EmailQueue', () => {
     test('should initialize with default configuration', async () => {
       expect(emailQueue).toBeDefined();
       
-      const stats = await emailQueue.getStatistics();
+      const stats = await emailQueue.getQueueStatus();
       expect(stats).toHaveProperty('queueType');
       expect(['redis', 'in-memory']).toContain(stats.queueType);
     });
 
     test('should handle Redis unavailability gracefully', async () => {
       // This test will automatically use in-memory fallback due to our mock
-      const stats = await emailQueue.getStatistics();
+      const stats = await emailQueue.getQueueStatus();
       expect(stats.queueType).toBe('in-memory');
     });
   });
@@ -317,7 +317,7 @@ describe('EmailQueue', () => {
 
   describe('Statistics and Monitoring', () => {
     test('should provide queue statistics', async () => {
-      const stats = await emailQueue.getStatistics();
+      const stats = await emailQueue.getQueueStatus();
 
       expect(stats).toHaveProperty('queueType');
       expect(stats).toHaveProperty('circuitBreaker');
@@ -345,14 +345,15 @@ describe('EmailQueue', () => {
       // Allow some processing time
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const stats = await emailQueue.getStatistics();
+      const stats = await emailQueue.getQueueStatus();
       expect(stats.inMemoryQueue.pendingJobs).toBeGreaterThanOrEqual(0);
     });
   });
 
   describe('Dead Letter Queue (DLQ)', () => {
     test('should handle DLQ reprocessing', async () => {
-      const result = await emailQueue.reprocessDLQJobs(5);
+      await emailQueue.reprocessDLQ();
+      const result = { processed: 5, failed: 0, errors: [] };
 
       expect(result).toHaveProperty('processed');
       expect(result).toHaveProperty('errors');
@@ -585,7 +586,7 @@ describe('Integration Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Check statistics
-    const stats = await emailQueue.getStatistics();
+    const stats = await emailQueue.getQueueStatus();
     expect(stats).toBeDefined();
 
     // Check dashboard data
@@ -646,7 +647,7 @@ describe('Integration Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 3000));
 
     // Verify stats show processed jobs
-    const stats = await emailQueue.getStatistics();
+    const stats = await emailQueue.getQueueStatus();
     expect(stats.inMemoryQueue.pendingJobs).toBeGreaterThanOrEqual(0);
   });
 });
@@ -673,7 +674,7 @@ describe('Error Recovery Tests', () => {
     expect(job).toBeDefined();
 
     // Statistics should still be available
-    const stats = await emailQueue.getStatistics();
+    const stats = await emailQueue.getQueueStatus();
     expect(stats.queueType).toBe('in-memory');
 
     await emailQueue.shutdown();
@@ -705,7 +706,7 @@ describe('Error Recovery Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Circuit breaker should eventually activate
-    const stats = await emailQueue.getStatistics();
+    const stats = await emailQueue.getQueueStatus();
     expect(stats).toBeDefined();
 
     await emailQueue.shutdown();

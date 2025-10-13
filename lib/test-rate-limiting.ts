@@ -72,6 +72,7 @@ export async function testRateLimit(
 export async function testAllEndpoints(): Promise<Record<AuthEndpoint, RateLimitTestResult[]>> {
   const results: Record<AuthEndpoint, RateLimitTestResult[]> = {
     login: [],
+    'admin-login': [],
     register: [],
     reset: [],
     verify: [],

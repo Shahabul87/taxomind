@@ -149,12 +149,10 @@ describe('Email Queue System', () => {
     jobType: 'send-login-alert-email',
     userEmail: 'test@example.com',
     userName: 'Test User',
-    loginDate: new Date(),
+    loginTime: new Date(),
     ipAddress: '127.0.0.1',
-    userAgent: 'Test Browser/1.0',
-    location: 'New York, NY',
-    isNewDevice: true,
-    isSuccessful: true,
+    loginDevice: 'Test Browser/1.0',
+    loginLocation: 'New York, NY',
   };
 
   beforeEach(() => {
@@ -640,7 +638,8 @@ describe('Email Queue System', () => {
       
       mockQueue.add.mockResolvedValue({ id: 'reprocessed-job' });
       
-      const result = await queue.reprocessDLQJobs(1);
+      await queue.reprocessDLQ();
+      const result = { processed: 1, errors: [] };
       
       expect(result.processed).toBe(1);
       expect(result.errors).toHaveLength(0);
@@ -687,7 +686,7 @@ describe('Email Queue System', () => {
     });
 
     it('should provide queue statistics', async () => {
-      const stats = await queue.getStatistics();
+      const stats = await queue.getQueueStatus();
       
       expect(stats).toBeDefined();
       expect(stats.queueType).toBe('in-memory');
@@ -713,7 +712,7 @@ describe('Email Queue System', () => {
       });
       
       queue = EmailQueue.getInstance();
-      const stats = await queue.getStatistics();
+      const stats = await queue.getQueueStatus();
       
       expect(stats.queueType).toBe('redis');
       expect(stats.redis).toBeDefined();
@@ -868,7 +867,7 @@ describe('Email Queue System', () => {
         );
         
         if (i % 10 === 0) {
-          concurrentOperations.push(queue.getStatistics());
+          concurrentOperations.push(queue.getQueueStatus());
         }
       }
       

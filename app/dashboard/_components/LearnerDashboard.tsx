@@ -89,11 +89,11 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 rounded-xl shadow-md p-6 text-white">
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-2xl font-bold mb-2">Welcome back, {user.name}!</h2>
-            <p className="text-blue-100 mb-4">
+            <p className="text-indigo-100 mb-4">
               You&apos;re on a {learningStreak}-day learning streak! Keep it up! 🔥
             </p>
             <div className="flex gap-4">
@@ -113,57 +113,65 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
           </div>
           <div className="text-right">
             <div className="text-3xl font-bold">{completedCourses}</div>
-            <div className="text-sm text-blue-100">Courses Completed</div>
+            <div className="text-sm text-indigo-100">Courses Completed</div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Enrolled Courses</p>
-                <p className="text-2xl font-bold">{enrolledCourses}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Enrolled Courses</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{enrolledCourses}</p>
               </div>
-              <BookOpen className="h-8 w-8 text-blue-600" />
+              <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        
-        <Card>
+
+        <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Certificates</p>
-                <p className="text-2xl font-bold">{certificates}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Certificates</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{certificates}</p>
               </div>
-              <Award className="h-8 w-8 text-green-600" />
+              <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500">
+                <Award className="h-6 w-6 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        
-        <Card>
+
+        <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Learning Hours</p>
-                <p className="text-2xl font-bold">124</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Learning Hours</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">124</p>
               </div>
-              <Clock className="h-8 w-8 text-purple-600" />
+              <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500">
+                <Clock className="h-6 w-6 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        
-        <Card>
+
+        <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg. Score</p>
-                <p className="text-2xl font-bold">89%</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Avg. Score</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">89%</p>
               </div>
-              <BarChart3 className="h-8 w-8 text-orange-600" />
+              <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -181,10 +189,10 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Recent Courses */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Continue Learning</CardTitle>
-                <CardDescription>Pick up where you left off</CardDescription>
+            <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
+              <CardHeader className="border-b border-gray-200/70 dark:border-gray-800/70">
+                <CardTitle className="text-gray-900 dark:text-white">Continue Learning</CardTitle>
+                <CardDescription className="text-gray-500 dark:text-gray-400">Pick up where you left off</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {recentCourses.map((course) => (
@@ -214,10 +222,10 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
             </Card>
 
             {/* Upcoming Deadlines */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Deadlines</CardTitle>
-                <CardDescription>Don&apos;t miss these important dates</CardDescription>
+            <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
+              <CardHeader className="border-b border-gray-200/70 dark:border-gray-800/70">
+                <CardTitle className="text-gray-900 dark:text-white">Upcoming Deadlines</CardTitle>
+                <CardDescription className="text-gray-500 dark:text-gray-400">Don&apos;t miss these important dates</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {upcomingDeadlines.map((deadline, index) => (
@@ -248,25 +256,39 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
           </div>
 
           {/* Learning Progress */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Learning Progress This Week</CardTitle>
-              <CardDescription>Your daily study time and activities</CardDescription>
+          <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
+            <CardHeader className="border-b border-gray-200/70 dark:border-gray-800/70">
+              <CardTitle className="text-gray-900 dark:text-white">Learning Progress This Week</CardTitle>
+              <CardDescription className="text-gray-500 dark:text-gray-400">Your daily study time and activities</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, index) => (
-                  <div key={day} className="flex items-center gap-4">
-                    <span className="text-sm font-medium w-10">{day}</span>
-                    <Progress 
-                      value={index < 5 ? Math.random() * 100 : 0} 
-                      className="flex-1 h-3" 
-                    />
-                    <span className="text-sm text-muted-foreground w-16">
-                      {index < 5 ? `${Math.floor(Math.random() * 3 + 1)}h` : "0h"}
-                    </span>
-                  </div>
-                ))}
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, index) => {
+                  // Use deterministic values based on index
+                  const progressValue = index === 0 ? 100 : 
+                                       index === 1 ? 80 : 
+                                       index === 2 ? 60 :
+                                       index === 3 ? 40 :
+                                       index === 4 ? 20 : 0;
+                  const hoursValue = index === 0 ? "3h" :
+                                    index === 1 ? "3h" :
+                                    index === 2 ? "2h" :
+                                    index === 3 ? "2h" :
+                                    index === 4 ? "1h" : "0h";
+                  
+                  return (
+                    <div key={day} className="flex items-center gap-4">
+                      <span className="text-sm font-medium w-10">{day}</span>
+                      <Progress 
+                        value={progressValue} 
+                        className="flex-1 h-3" 
+                      />
+                      <span className="text-sm text-muted-foreground w-16">
+                        {hoursValue}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -275,8 +297,8 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
         <TabsContent value="courses" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {recentCourses.map((course) => (
-              <Card key={course.id} className="hover:shadow-lg transition-shadow">
-                <div className="h-40 bg-gradient-to-br from-blue-500 to-purple-600 rounded-t-lg" />
+              <Card key={course.id} className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md hover:shadow-lg transition-shadow">
+                <div className="h-40 bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-500 rounded-t-xl" />
                 <CardContent className="p-4">
                   <h3 className="font-semibold mb-1">{course.title}</h3>
                   <p className="text-sm text-muted-foreground mb-3">{course.instructor}</p>
@@ -300,8 +322,10 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
               const Icon = achievement.icon;
               return (
                 <Card key={achievement.id} className={cn(
-                  "transition-all",
-                  achievement.earned ? "border-green-500" : "opacity-50"
+                  "shadow-md rounded-xl backdrop-blur-md transition-all",
+                  achievement.earned
+                    ? "border-green-500 bg-white/70 dark:bg-gray-900/70"
+                    : "opacity-50 border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70"
                 )}>
                   <CardContent className="p-6 text-center">
                     <div className={cn(
@@ -326,10 +350,10 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
         </TabsContent>
 
         <TabsContent value="schedule" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Learning Schedule</CardTitle>
-              <CardDescription>Your upcoming classes and study sessions</CardDescription>
+          <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
+            <CardHeader className="border-b border-gray-200/70 dark:border-gray-800/70">
+              <CardTitle className="text-gray-900 dark:text-white">Learning Schedule</CardTitle>
+              <CardDescription className="text-gray-500 dark:text-gray-400">Your upcoming classes and study sessions</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

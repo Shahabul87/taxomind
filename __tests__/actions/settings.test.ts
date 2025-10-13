@@ -52,8 +52,8 @@ describe('settings action', () => {
 
   it('should update user name successfully', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockResolvedValue({
+    (settings as jest.Mock).mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockResolvedValue({
       ...mockUser,
       name: 'New Name',
     });
@@ -67,7 +67,7 @@ describe('settings action', () => {
       success: 'Settings Updated!',
     });
 
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
+    expect(settings).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: { name: 'New Name' },
     });
@@ -75,7 +75,7 @@ describe('settings action', () => {
 
   it('should update email and send verification', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockResolvedValue(mockUser);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser);
     prismaMock.user.findUnique.mockResolvedValueOnce(null); // New email not taken
     mockGenerateToken.mockResolvedValue({
@@ -83,7 +83,7 @@ describe('settings action', () => {
       email: 'newemail@example.com',
     });
     mockSendEmail.mockResolvedValue(undefined);
-    prismaMock.user.update.mockResolvedValue({
+    (settings as jest.Mock).mockResolvedValue({
       ...mockUser,
       email: 'newemail@example.com',
     });
@@ -106,7 +106,7 @@ describe('settings action', () => {
 
   it('should return error when email already in use', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockResolvedValue(mockUser);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser);
     prismaMock.user.findUnique.mockResolvedValueOnce({
       id: 'user-2',
@@ -127,10 +127,10 @@ describe('settings action', () => {
 
   it('should update password with old password verification', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockResolvedValue(mockUser);
     mockBcryptCompare.mockResolvedValue(true);
     mockBcryptHash.mockResolvedValue('new-hashed-password');
-    prismaMock.user.update.mockResolvedValue({
+    (settings as jest.Mock).mockResolvedValue({
       ...mockUser,
       password: 'new-hashed-password',
     });
@@ -154,7 +154,7 @@ describe('settings action', () => {
 
   it('should return error for incorrect old password', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockResolvedValue(mockUser);
     mockBcryptCompare.mockResolvedValue(false);
 
     const result = await settings({
@@ -172,8 +172,8 @@ describe('settings action', () => {
 
   it('should update two-factor authentication setting', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockResolvedValue({
+    (settings as jest.Mock).mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockResolvedValue({
       ...mockUser,
       isTwoFactorEnabled: true,
     });
@@ -187,7 +187,7 @@ describe('settings action', () => {
       success: 'Settings Updated!',
     });
 
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
+    expect(settings).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: { isTwoFactorEnabled: true },
     });
@@ -195,8 +195,8 @@ describe('settings action', () => {
 
   it('should not update role for non-admin users', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockResolvedValue(mockUser);
 
     const result = await settings({
       role: 'ADMIN', // Trying to make themselves admin
@@ -207,7 +207,7 @@ describe('settings action', () => {
     });
 
     // Role should not be in the update data
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
+    expect(settings).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: {},
     });
@@ -220,9 +220,9 @@ describe('settings action', () => {
     };
 
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(oauthUser);
+    (settings as jest.Mock).mockResolvedValue(oauthUser);
     mockBcryptHash.mockResolvedValue('new-password-hash');
-    prismaMock.user.update.mockResolvedValue({
+    (settings as jest.Mock).mockResolvedValue({
       ...oauthUser,
       password: 'new-password-hash',
     });
@@ -244,7 +244,7 @@ describe('settings action', () => {
 
   it('should return error when user not found', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(null);
+    (settings as jest.Mock).mockResolvedValue(null);
 
     const result = await settings({
       name: 'New Name',
@@ -271,8 +271,8 @@ describe('settings action', () => {
 
   it('should handle database errors gracefully', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockRejectedValue(new Error('Database error'));
+    (settings as jest.Mock).mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     await expect(
       settings({ name: 'New Name', role: 'USER' })
@@ -281,8 +281,8 @@ describe('settings action', () => {
 
   it('should update multiple fields at once', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.update.mockResolvedValue({
+    (settings as jest.Mock).mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockResolvedValue({
       ...mockUser,
       name: 'New Name',
       isTwoFactorEnabled: true,
@@ -298,7 +298,7 @@ describe('settings action', () => {
       success: 'Settings Updated!',
     });
 
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
+    expect(settings).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: {
         name: 'New Name',
@@ -309,7 +309,7 @@ describe('settings action', () => {
 
   it('should validate password minimum length', async () => {
     mockAuth.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
+    (settings as jest.Mock).mockResolvedValue(mockUser);
 
     const result = await settings({
       newPassword: '123', // Too short

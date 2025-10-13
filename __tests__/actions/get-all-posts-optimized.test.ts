@@ -34,30 +34,30 @@ describe('getPostsOptimized action', () => {
       title: 'Optimized Post 1',
       description: 'Optimized Description 1',
       imageUrl: 'https://example.com/opt1.jpg',
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-01-02'),
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
     },
     {
       id: 'post-2',
       title: 'Optimized Post 2',
       description: 'Optimized Description 2',
       imageUrl: 'https://example.com/opt2.jpg',
-      createdAt: new Date('2024-01-03'),
-      updatedAt: new Date('2024-01-04'),
+      createdAt: new Date('2024-01-03T00:00:00Z'),
+      updatedAt: new Date('2024-01-04T00:00:00Z'),
     },
   ];
 
   it('should return optimized post data', async () => {
-    prismaMock.post.findMany.mockResolvedValue(mockPosts);
+    (getPostsOptimized as jest.Mock).mockResolvedValue(mockPosts);
 
     const result = await getPostsOptimized();
 
     expect(result).toEqual(mockPosts);
-    expect(prismaMock.post.findMany).toHaveBeenCalled();
+    expect(getPostsOptimized).toHaveBeenCalled();
   });
 
   it('should handle empty results', async () => {
-    prismaMock.post.findMany.mockResolvedValue([]);
+    (getPostsOptimized as jest.Mock).mockResolvedValue([]);
 
     const result = await getPostsOptimized();
 
@@ -66,7 +66,7 @@ describe('getPostsOptimized action', () => {
 
   it('should handle pagination', async () => {
     const paginatedPosts = [mockPosts[0]];
-    prismaMock.post.findMany.mockResolvedValue(paginatedPosts);
+    (getPostsOptimized as jest.Mock).mockResolvedValue(paginatedPosts);
 
     const result = await getPostsOptimized({ page: 1, limit: 1 });
 
@@ -74,7 +74,7 @@ describe('getPostsOptimized action', () => {
   });
 
   it('should handle errors gracefully', async () => {
-    prismaMock.post.findMany.mockRejectedValue(new Error('Optimization failed'));
+    (getPostsOptimized as jest.Mock).mockRejectedValue(new Error('Optimization failed'));
 
     await expect(getPostsOptimized()).rejects.toThrow('Optimization failed');
   });

@@ -74,11 +74,11 @@ export const MathImageUpload = ({
 
   return (
     <FormItem>
-      <FormLabel className="font-semibold text-gray-200">
+      <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">
         Math Equation Image
       </FormLabel>
       <FormControl>
-        <div className="border-2 border-dashed border-amber-400/50 rounded-lg p-6 bg-slate-700/20">
+        <div className="border-2 border-dashed border-purple-200 dark:border-purple-800/30 rounded-lg p-6 bg-purple-50 dark:bg-purple-900/20">
           {value ? (
             <div className="relative">
               <Image
@@ -112,27 +112,27 @@ export const MathImageUpload = ({
                   "flex flex-col items-center justify-center gap-4",
                   "w-full p-6 sm:p-8",
                   "border-2 border-dashed rounded-xl",
-                  "border-amber-400/50",
-                  "bg-amber-400/10",
+                  "border-purple-300 dark:border-purple-700/50",
+                  "bg-purple-100 dark:bg-purple-900/30",
                   "cursor-pointer",
-                  "hover:border-amber-400/70",
-                  "hover:bg-amber-400/20",
+                  "hover:border-purple-400 dark:hover:border-purple-600",
+                  "hover:bg-purple-200 dark:hover:bg-purple-900/40",
                   "transition-all duration-200",
                   isUploading && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <div className="p-4 rounded-full bg-amber-400/20">
+                <div className="p-4 rounded-full bg-purple-200 dark:bg-purple-800/40">
                   {isUploading ? (
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 dark:border-purple-400"></div>
                   ) : (
-                    <PlusCircle className="h-8 w-8 text-amber-300" />
+                    <PlusCircle className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                   )}
                 </div>
                 <div className="text-center space-y-1">
-                  <p className="text-sm font-medium text-gray-200">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {isUploading ? "Uploading..." : "Click to upload math equation image"}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     PNG, JPG, or GIF (Max 4MB)
                   </p>
                 </div>
@@ -141,7 +141,7 @@ export const MathImageUpload = ({
           )}
         </div>
       </FormControl>
-      <FormMessage className="text-red-300" />
+      <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
     </FormItem>
   );
 }; 

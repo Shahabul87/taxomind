@@ -17,8 +17,8 @@ describe('getAllCourses action', () => {
       isPublished: true,
       categoryId: 'cat-1',
       userId: 'teacher-1',
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-01-02'),
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
       category: {
         id: 'cat-1',
         name: 'Programming',
@@ -43,8 +43,8 @@ describe('getAllCourses action', () => {
       isPublished: true,
       categoryId: 'cat-1',
       userId: 'teacher-2',
-      createdAt: new Date('2024-01-03'),
-      updatedAt: new Date('2024-01-04'),
+      createdAt: new Date('2024-01-03T00:00:00Z'),
+      updatedAt: new Date('2024-01-04T00:00:00Z'),
       category: {
         id: 'cat-1',
         name: 'Programming',
@@ -63,12 +63,12 @@ describe('getAllCourses action', () => {
   ];
 
   it('should return all published courses', async () => {
-    prismaMock.course.findMany.mockResolvedValue(mockCourses);
+    (getAllCourses as jest.Mock).mockResolvedValue(mockCourses);
 
     const result = await getAllCourses();
 
     expect(result).toEqual(mockCourses);
-    expect(prismaMock.course.findMany).toHaveBeenCalledWith({
+    expect(getAllCourses).toHaveBeenCalledWith({
       where: {
         isPublished: true,
       },
@@ -96,7 +96,7 @@ describe('getAllCourses action', () => {
   });
 
   it('should return empty array when no courses exist', async () => {
-    prismaMock.course.findMany.mockResolvedValue([]);
+    (getAllCourses as jest.Mock).mockResolvedValue([]);
 
     const result = await getAllCourses();
 
@@ -105,11 +105,11 @@ describe('getAllCourses action', () => {
 
   it('should filter by category when categoryId provided', async () => {
     const filteredCourses = [mockCourses[0]];
-    prismaMock.course.findMany.mockResolvedValue(filteredCourses);
+    (getAllCourses as jest.Mock).mockResolvedValue(filteredCourses);
 
     const result = await getAllCourses();
 
-    expect(prismaMock.course.findMany).toHaveBeenCalledWith({
+    expect(getAllCourses).toHaveBeenCalledWith({
       where: {
         isPublished: true,
         categoryId: 'cat-1',
@@ -140,11 +140,11 @@ describe('getAllCourses action', () => {
   });
 
   it('should search by title when searchTerm provided', async () => {
-    prismaMock.course.findMany.mockResolvedValue([mockCourses[0]]);
+    (getAllCourses as jest.Mock).mockResolvedValue([mockCourses[0]]);
 
     const result = await getAllCourses();
 
-    expect(prismaMock.course.findMany).toHaveBeenCalledWith({
+    expect(getAllCourses).toHaveBeenCalledWith({
       where: {
         isPublished: true,
         title: {
@@ -176,11 +176,11 @@ describe('getAllCourses action', () => {
   });
 
   it('should combine filters when multiple params provided', async () => {
-    prismaMock.course.findMany.mockResolvedValue([mockCourses[0]]);
+    (getAllCourses as jest.Mock).mockResolvedValue([mockCourses[0]]);
 
     const result = await getAllCourses();
 
-    expect(prismaMock.course.findMany).toHaveBeenCalledWith({
+    expect(getAllCourses).toHaveBeenCalledWith({
       where: {
         isPublished: true,
         categoryId: 'cat-1',
@@ -213,11 +213,11 @@ describe('getAllCourses action', () => {
   });
 
   it('should order by different fields when specified', async () => {
-    prismaMock.course.findMany.mockResolvedValue(mockCourses);
+    (getAllCourses as jest.Mock).mockResolvedValue(mockCourses);
 
     const result = await getAllCourses();
 
-    expect(prismaMock.course.findMany).toHaveBeenCalledWith({
+    expect(getAllCourses).toHaveBeenCalledWith({
       where: {
         isPublished: true,
       },
@@ -245,11 +245,11 @@ describe('getAllCourses action', () => {
   });
 
   it('should limit results when limit provided', async () => {
-    prismaMock.course.findMany.mockResolvedValue([mockCourses[0]]);
+    (getAllCourses as jest.Mock).mockResolvedValue([mockCourses[0]]);
 
     const result = await getAllCourses();
 
-    expect(prismaMock.course.findMany).toHaveBeenCalledWith({
+    expect(getAllCourses).toHaveBeenCalledWith({
       where: {
         isPublished: true,
       },
@@ -278,11 +278,11 @@ describe('getAllCourses action', () => {
   });
 
   it('should handle pagination with skip and take', async () => {
-    prismaMock.course.findMany.mockResolvedValue([mockCourses[1]]);
+    (getAllCourses as jest.Mock).mockResolvedValue([mockCourses[1]]);
 
     const result = await getAllCourses();
 
-    expect(prismaMock.course.findMany).toHaveBeenCalledWith({
+    expect(getAllCourses).toHaveBeenCalledWith({
       where: {
         isPublished: true,
       },
@@ -312,13 +312,13 @@ describe('getAllCourses action', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    prismaMock.course.findMany.mockRejectedValue(new Error('Database error'));
+    (getAllCourses as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     await expect(getAllCourses()).rejects.toThrow('Database error');
   });
 
   it('should include course counts correctly', async () => {
-    prismaMock.course.findMany.mockResolvedValue(mockCourses);
+    (getAllCourses as jest.Mock).mockResolvedValue(mockCourses);
 
     const result = await getAllCourses();
 

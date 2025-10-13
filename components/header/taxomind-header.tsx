@@ -332,7 +332,7 @@ export const TaxomindHeader = ({ user }: TaxomindHeaderProps) => {
 
                           {/* Menu Items */}
                           <div className="p-2">
-                            <Link href="/dashboard/user" className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors group">
+                            <Link href="/dashboard" className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors group">
                               <BarChart3 className="w-4 h-4 text-gray-400 group-hover:text-purple-400" />
                               <span className="text-sm text-gray-300 group-hover:text-white">Dashboard</span>
                             </Link>
@@ -503,7 +503,7 @@ export const TaxomindHeader = ({ user }: TaxomindHeaderProps) => {
                       <span className="text-gray-300">AI Tutor</span>
                     </Link>
                     <hr className="border-slate-800" />
-                    <Link href="/dashboard/user" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800/50 transition-colors">
+                    <Link href="/dashboard" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800/50 transition-colors">
                       <BarChart3 className="w-5 h-5 text-gray-400" />
                       <span className="text-gray-300">Dashboard</span>
                     </Link>

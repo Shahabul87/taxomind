@@ -64,8 +64,8 @@ export const getUserById = async (id: string) => {
     if (process.env.NODE_ENV === 'development') {
       console.log(`Looking up user with id: ${id}`);
     }
-    
-    const user = await db.user.findUnique({ 
+
+    const user = await db.user.findUnique({
       where: { id },
       select: {
         id: true,
@@ -76,10 +76,11 @@ export const getUserById = async (id: string) => {
         image: true,
         isTwoFactorEnabled: true,
         totpEnabled: true,
-        totpVerified: true
+        totpVerified: true,
+        createdAt: true  // Required for MFA enforcement calculations
       }
     });
-    
+
     // Cache the result
     if (user) {
       userCache.set(id, { user, timestamp: Date.now() });
@@ -90,14 +91,76 @@ export const getUserById = async (id: string) => {
         console.warn('This might indicate a stale session. Try clearing browser cookies or logging out/in.');
       }
     }
-    
+
     if (process.env.NODE_ENV === 'development') {
       console.log(`User id lookup result: ${user ? 'Found' : 'Not found'}`);
     }
-    
+
     return user;
   } catch (error: any) {
     console.error("Error in getUserById:", error);
+    return null;
+  }
+};
+
+/**
+ * Get admin user by ID with all necessary fields for admin authentication
+ * This is separate from getUserById to maintain clear separation between
+ * admin and regular user data access patterns
+ */
+export const getAdminById = async (id: string) => {
+  try {
+    // Only log in development to reduce noise
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[ADMIN] Looking up admin user with id: ${id}`);
+    }
+
+    const admin = await db.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        emailVerified: true,
+        image: true,
+        isTwoFactorEnabled: true,
+        totpEnabled: true,
+        totpVerified: true,
+        createdAt: true,           // Required for MFA enforcement calculations
+        lastLoginAt: true,          // Track admin login patterns
+        totpSecret: true,           // For 2FA verification
+        recoveryCodes: true         // For account recovery
+      }
+    });
+
+    // Verify this is actually an admin user
+    if (admin && admin.role !== 'ADMIN') {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[ADMIN] SECURITY WARNING: Non-admin user accessed via getAdminById: ${id}`);
+      }
+      return null;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[ADMIN] Admin lookup result: ${admin ? 'Found' : 'Not found'}`);
+      if (admin) {
+        console.log(`[ADMIN] Admin details:`, {
+          id: admin.id,
+          email: admin.email,
+          role: admin.role,
+          emailVerified: !!admin.emailVerified,
+          isTwoFactorEnabled: admin.isTwoFactorEnabled,
+          totpEnabled: admin.totpEnabled,
+          totpVerified: admin.totpVerified,
+          hasCreatedAt: !!admin.createdAt
+        });
+      }
+    }
+
+    return admin;
+  } catch (error: any) {
+    console.error("[ADMIN] Error in getAdminById:", error);
     return null;
   }
 };

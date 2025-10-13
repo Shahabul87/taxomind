@@ -27,18 +27,18 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
 
   return (
     <div 
-      className="fixed top-16 left-0 right-0 z-60 w-full dark:bg-gray-900/95 bg-white/95 backdrop-blur-md border-b dark:border-gray-800 border-gray-200 shadow-lg transition-all"
+      className="fixed top-16 left-0 right-0 z-60 w-full dark:bg-slate-900/95 bg-white/95 backdrop-blur-md border-b dark:border-slate-700/50 border-slate-200 shadow-lg transition-all"
       ref={searchContainerRef}
     >
       <div className="max-w-3xl mx-auto px-4 py-4">
         <div className="relative">
-          <div className="flex items-center border-b-2 dark:border-gray-700 border-gray-300 pb-2">
-            <Search className="mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" />
+          <div className="flex items-center border-b-2 dark:border-slate-700 border-slate-300 pb-2">
+            <Search className="mr-2 h-5 w-5 text-slate-500 dark:text-gray-400" />
             <input
               ref={searchInputRef}
               type="text"
               placeholder="Search courses, blogs, and more..."
-              className="flex-1 bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="flex-1 bg-transparent outline-none text-slate-900 dark:text-gray-100 placeholder-slate-500 dark:placeholder-gray-400"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -49,14 +49,14 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                 onClick={() => setSearchQuery('')}
                 className="mr-2"
               >
-                <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <X className="h-4 w-4 text-slate-500 dark:text-gray-400" />
               </button>
             )}
             <button 
               onClick={handleCloseSearch}
-              className="ml-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800"
+              className="ml-2 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800"
             >
-              <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <X className="h-5 w-5 text-slate-500 dark:text-gray-400" />
             </button>
           </div>
           
@@ -65,14 +65,14 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
             {isSearching ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
-                <span className="ml-2 text-gray-600 dark:text-gray-300">Searching...</span>
+                <span className="ml-2 text-slate-600 dark:text-gray-300">Searching...</span>
               </div>
             ) : searchError ? (
               <div className="flex flex-col items-center justify-center py-8 text-red-500">
                 <AlertCircle className="h-8 w-8 mb-2" />
                 <div className="text-center mb-4">
                   <p className="font-medium">Error: {searchError}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Something went wrong with the search</p>
+                  <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Something went wrong with the search</p>
                 </div>
                 <div className="flex space-x-3">
                   <button 
@@ -94,7 +94,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                 </div>
               </div>
             ) : searchQuery.length >= 2 && searchResults.length === 0 ? (
-              <div className="text-center py-8 text-gray-600 dark:text-gray-300">
+              <div className="text-center py-8 text-slate-600 dark:text-gray-300">
                 <div>No results found for &quot;{searchQuery}&quot;</div>
                 {/* Debug button - only visible in development */}
                 {process.env.NODE_ENV === 'development' && (
@@ -109,7 +109,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                       Debug: Force Search
                     </button>
                     
-                    <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-md text-left">
+                    <div className="mt-3 p-3 bg-slate-100 dark:bg-gray-800 rounded-md text-left">
                       <h4 className="text-sm font-semibold mb-1">Developer Tools:</h4>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <a 
@@ -143,7 +143,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                 {searchResults.map((result) => (
                   <div 
                     key={`${result.type}-${result.id}`}
-                    className="flex items-start p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                    className="flex items-start p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
                     onClick={() => navigateToResult(result)}
                   >
                     {result.thumbnail && (
@@ -166,7 +166,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center mb-1">
                         <h4 
-                          className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
+                          className="text-sm font-medium text-slate-900 dark:text-gray-100 truncate"
                           dangerouslySetInnerHTML={{
                             __html: highlightMatches(result.title, searchQuery)
                           }}
@@ -182,7 +182,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                         </Badge>
                       </div>
                       <div 
-                        className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 prose-sm"
+                        className="text-xs text-slate-500 dark:text-gray-400 line-clamp-3 prose-sm"
                         dangerouslySetInnerHTML={{
                           __html: highlightMatches(result.snippet, searchQuery)
                         }}

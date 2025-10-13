@@ -23,8 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getAdminDashboardData } from "@/actions/admin";
-import { UserRole } from "@/lib/prisma-types";
+// Fetch data via API to avoid bundling server-only Prisma code in client
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
@@ -51,15 +50,44 @@ export function ClientAdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await getAdminDashboardData();
-        setData(result);
+        const res = await fetch('/api/admin/dashboard', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Failed to load admin dashboard: ${res.status}`);
+        const payload = await res.json();
+        const stats = payload?.stats || {};
+        const recentUsers = payload?.recentUsers || [];
+
+        const usersStats = {
+          totalUsers: stats.totalUsers || 0,
+          lastMonthUsers: 0,
+          lastWeekUsers: stats.lastWeekUsers || 0,
+          verifiedUsers: stats.verifiedUsers || 0,
+          unverifiedUsers: stats.unverifiedUsers || Math.max((stats.totalUsers || 0) - (stats.verifiedUsers || 0), 0),
+          monthlyGrowthRate: 0,
+          weeklyGrowthRate: (stats.totalUsers || 0) > 0 ? ((stats.lastWeekUsers || 0) / stats.totalUsers) * 100 : 0,
+          verificationRate: (stats.totalUsers || 0) > 0 ? ((stats.verifiedUsers || 0) / stats.totalUsers) * 100 : 0,
+        };
+
+        const additionalStats = {
+          totalCourses: stats.totalCourses || 0,
+          totalGroups: stats.totalGroups || 0,
+          totalResources: stats.totalResources || 0,
+          totalMessages: 0,
+        };
+
+        setData({
+          usersStats,
+          authProviders: [],
+          userGrowth: [],
+          recentUsers,
+          additionalStats,
+        });
       } catch (error: any) {
         logger.error("Error fetching admin data:", error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
 
@@ -265,7 +293,7 @@ export function ClientAdminDashboard() {
                         <td className="py-3">{user.email}</td>
                         <td className="py-3">
                           <span className={`px-2 py-1 rounded-md text-xs ${
-                            user.role === UserRole.ADMIN ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
+                            user.role === 'ADMIN' ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
                           }`}>
                             {user.role}
                           </span>

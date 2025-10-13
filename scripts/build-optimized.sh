@@ -1,11 +1,14 @@
 #!/bin/bash
 
 # ============================================
-# Optimized Production Build Script
-# Fixes memory issues and improves build performance
+# Optimized Production Build Script (safer, faster)
+# - Avoids destructive cache wipes by default
+# - Restores next.config.js reliably
+# - Allows opt-in config swap and cleaning via env flags
+#   USE_OPTIMIZED_CONFIG=true CLEAN=true ANALYZE=true START_SERVER=true
 # ============================================
 
-set -e  # Exit on error
+set -euo pipefail  # Strict mode
 
 echo "🚀 Starting optimized production build..."
 echo "================================================"
@@ -16,7 +19,7 @@ echo "================================================"
 echo "📦 Step 1: Setting up environment..."
 
 # Set Node.js memory to 8GB (adjust based on your system)
-export NODE_OPTIONS='--max-old-space-size=8192'
+export NODE_OPTIONS="--max-old-space-size=${NODE_MEM:-8192}"
 
 # Disable telemetry for faster builds
 export NEXT_TELEMETRY_DISABLED=1
@@ -24,19 +27,22 @@ export NEXT_TELEMETRY_DISABLED=1
 # Set production environment
 export NODE_ENV=production
 
-# Skip Sentry uploads in development
-if [ "$CI" != "true" ]; then
-  export SKIP_SENTRY=true
-fi
+# Skip Sentry uploads locally to avoid network work
+export SKIP_SENTRY=true
 
 # ============================================
 # STEP 2: Clean Previous Builds
 # ============================================
-echo "🧹 Step 2: Cleaning previous builds..."
-rm -rf .next
-rm -rf out
-rm -rf node_modules/.cache
-rm -rf .swc
+echo "🧹 Step 2: Cleaning previous builds (opt-in)..."
+if [[ "${CLEAN:-false}" == "true" ]]; then
+  echo "🧽 CLEAN=true - clearing caches"
+  rm -rf .next
+  rm -rf out
+  rm -rf node_modules/.cache
+  rm -rf .swc
+else
+  echo "Skipping cache cleanup. Set CLEAN=true to force."
+fi
 
 # ============================================
 # STEP 3: Generate Prisma Client
@@ -70,15 +76,31 @@ echo "🏗️ Step 6: Building application..."
 # Track build time
 START_TIME=$(date +%s)
 
-# Use the optimized config
-cp next.config.optimized.js next.config.js.backup
-cp next.config.optimized.js next.config.js
+RESTORE_CONFIG="false"
+if [[ "${USE_OPTIMIZED_CONFIG:-false}" == "true" ]]; then
+  echo "🧩 Using optimized Next config (opt-in)"
+  if [[ -f next.config.js ]]; then
+    cp next.config.js next.config.js.backup
+    RESTORE_CONFIG="true"
+  fi
+  cp next.config.optimized.js next.config.js
+else
+  echo "Using existing next.config.js"
+fi
+
+# Always restore config on exit if we backed it up
+cleanup() {
+  if [[ "$RESTORE_CONFIG" == "true" && -f next.config.js.backup ]]; then
+    mv -f next.config.js.backup next.config.js || true
+    echo "🔙 Restored original next.config.js"
+  fi
+}
+trap cleanup EXIT
 
 # Build with optimizations
 npx next build
 
-# Restore original config if needed
-# mv next.config.js.backup next.config.js
+# Config restored automatically by trap on exit
 
 END_TIME=$(date +%s)
 BUILD_TIME=$((END_TIME - START_TIME))

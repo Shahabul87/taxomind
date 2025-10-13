@@ -35,8 +35,6 @@ export interface QuickTemplateComponentProps {
   className?: string;
   /** Title of the component */
   title?: string;
-  /** Theme */
-  theme?: "light" | "dark";
 }
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -49,9 +47,9 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 const difficultyColors = {
-  beginner: "bg-green-100 text-green-700 border-green-200",
-  intermediate: "bg-yellow-100 text-yellow-700 border-yellow-200", 
-  advanced: "bg-red-100 text-red-700 border-red-200"
+  beginner: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+  intermediate: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
+  advanced: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
 };
 
 export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
@@ -61,8 +59,7 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
   showCategoryFilter = true,
   maxHeight = "400px",
   className = "",
-  title = "Quick Templates",
-  theme = "light"
+  title = "Quick Templates"
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -77,35 +74,26 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
   // Filter templates
   const filteredTemplates = useMemo(() => {
     return templates.filter(template => {
-      const matchesSearch = searchQuery === "" || 
+      const matchesSearch = searchQuery === "" ||
         template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
         template.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
       const matchesCategory = selectedCategory === "all" || template.category === selectedCategory;
-      
+
       return matchesSearch && matchesCategory;
     });
   }, [templates, searchQuery, selectedCategory]);
 
-  const isDark = theme === "dark";
-
   return (
     <Card className={cn(
-      "border shadow-sm overflow-hidden",
-      isDark ? "bg-slate-800 border-slate-700" : "bg-white border-gray-200",
+      "border shadow-sm overflow-hidden bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700",
       className
     )}>
-      <CardHeader className={cn(
-        "py-3 px-4 border-b",
-        isDark ? "bg-slate-900/50 border-slate-700" : "bg-gray-50 border-gray-200"
-      )}>
+      <CardHeader className="py-3 px-4 border-b bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
-          <CardTitle className={cn(
-            "text-sm font-bold flex items-center gap-2",
-            isDark ? "text-white" : "text-gray-900"
-          )}>
-            <Sparkles className="h-4 w-4 text-amber-400" />
+          <CardTitle className="text-sm font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+            <Sparkles className="h-4 w-4 text-purple-500 dark:text-purple-400" />
             {title}
           </CardTitle>
           <Badge variant="secondary" className="text-xs">
@@ -116,15 +104,12 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
         {/* Search */}
         {showSearch && (
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
             <Input
               placeholder="Search templates..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn(
-                "pl-10 text-sm",
-                isDark ? "bg-slate-800 border-slate-600 text-white" : "bg-white border-gray-300"
-              )}
+              className="pl-10 text-sm bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
             />
           </div>
         )}
@@ -139,10 +124,8 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
                 className={cn(
                   "text-xs px-2 py-1 rounded-full border transition-colors flex items-center gap-1",
                   selectedCategory === category
-                    ? "bg-blue-100 text-blue-700 border-blue-200"
-                    : isDark 
-                      ? "bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600"
-                      : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
+                    ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700"
                 )}
               >
                 {category !== "all" && categoryIcons[category]}
@@ -157,10 +140,7 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
         <ScrollArea style={{ height: maxHeight }}>
           <div className="p-3 space-y-2">
             {filteredTemplates.length === 0 ? (
-              <div className={cn(
-                "text-center py-8 text-sm",
-                isDark ? "text-gray-400" : "text-gray-500"
-              )}>
+              <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
                 <Calculator className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 No templates found
               </div>
@@ -170,14 +150,12 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
                   key={template.id}
                   className={cn(
                     "group rounded-lg border transition-all duration-200 overflow-hidden",
-                    isDark 
-                      ? "border-slate-600 bg-slate-800/50 hover:bg-slate-700/50" 
-                      : "border-gray-200 bg-gray-50/50 hover:bg-gray-100/50",
-                    expandedTemplate === template.id && "ring-2 ring-blue-500/20"
+                    "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-100/50 dark:hover:bg-gray-700/50",
+                    expandedTemplate === template.id && "ring-2 ring-purple-500/20 dark:ring-purple-500/30"
                   )}
                 >
                   {/* Template Header */}
-                  <div 
+                  <div
                     className="p-3 cursor-pointer"
                     onClick={() => setExpandedTemplate(
                       expandedTemplate === template.id ? null : template.id
@@ -186,27 +164,21 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className={cn(
-                            "font-medium text-sm truncate",
-                            isDark ? "text-white" : "text-gray-900"
-                          )}>
+                          <h4 className="font-medium text-sm truncate text-gray-900 dark:text-white">
                             {template.title}
                           </h4>
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className={cn("text-xs", difficultyColors[template.difficulty])}
                           >
                             {template.difficulty}
                           </Badge>
                         </div>
-                        
+
                         {/* Compact equation preview */}
-                        <div className={cn(
-                          "text-xs font-mono p-2 rounded border text-center",
-                          isDark ? "bg-slate-900 border-slate-600 text-slate-300" : "bg-white border-gray-200 text-gray-700"
-                        )}>
-                          {template.equation.length > 50 
-                            ? template.equation.substring(0, 50) + "..." 
+                        <div className="text-xs font-mono p-2 rounded border text-center bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300">
+                          {template.equation.length > 50
+                            ? template.equation.substring(0, 50) + "..."
                             : template.equation
                           }
                         </div>
@@ -217,12 +189,7 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
                           e.stopPropagation();
                           onApplyTemplate(template);
                         }}
-                        className={cn(
-                          "px-3 py-1 text-xs rounded transition-colors",
-                          isDark
-                            ? "bg-blue-600 text-white hover:bg-blue-700"
-                            : "bg-blue-500 text-white hover:bg-blue-600"
-                        )}
+                        className="px-3 py-1 text-xs rounded transition-colors bg-purple-500 dark:bg-purple-600 text-white hover:bg-purple-600 dark:hover:bg-purple-700"
                       >
                         Use
                       </button>
@@ -233,19 +200,13 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
                       {template.tags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
-                          className={cn(
-                            "text-xs px-2 py-0.5 rounded-full",
-                            isDark ? "bg-slate-700 text-slate-300" : "bg-gray-200 text-gray-600"
-                          )}
+                          className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                         >
                           {tag}
                         </span>
                       ))}
                       {template.tags.length > 3 && (
-                        <span className={cn(
-                          "text-xs px-2 py-0.5 rounded-full",
-                          isDark ? "bg-slate-700 text-slate-300" : "bg-gray-200 text-gray-600"
-                        )}>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                           +{template.tags.length - 3}
                         </span>
                       )}
@@ -254,23 +215,17 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
 
                   {/* Expanded Content */}
                   {expandedTemplate === template.id && (
-                    <div className={cn(
-                      "border-t p-3 space-y-3",
-                      isDark ? "border-slate-600 bg-slate-900/30" : "border-gray-200 bg-white/50"
-                    )}>
+                    <div className="border-t p-3 space-y-3 border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-900/30">
                       {/* Rendered Equation */}
                       <div>
-                        <div className={cn(
-                          "text-xs font-medium mb-2",
-                          isDark ? "text-gray-300" : "text-gray-600"
-                        )}>
+                        <div className="text-xs font-medium mb-2 text-gray-600 dark:text-gray-300">
                           Rendered Equation:
                         </div>
                         <MathRenderer
                           equation={template.equation}
                           mode="block"
                           size="small"
-                          theme={theme}
+                          theme="light"
                           className="border-0 shadow-none"
                         />
                       </div>
@@ -278,16 +233,10 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
                       {/* Description */}
                       {template.description && (
                         <div>
-                          <div className={cn(
-                            "text-xs font-medium mb-1",
-                            isDark ? "text-gray-300" : "text-gray-600"
-                          )}>
+                          <div className="text-xs font-medium mb-1 text-gray-600 dark:text-gray-300">
                             Description:
                           </div>
-                          <p className={cn(
-                            "text-xs leading-relaxed",
-                            isDark ? "text-gray-300" : "text-gray-600"
-                          )}>
+                          <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
                             {template.description}
                           </p>
                         </div>
@@ -295,17 +244,11 @@ export const QuickTemplateComponent: React.FC<QuickTemplateComponentProps> = ({
 
                       {/* Explanation Preview */}
                       <div>
-                        <div className={cn(
-                          "text-xs font-medium mb-1",
-                          isDark ? "text-gray-300" : "text-gray-600"
-                        )}>
+                        <div className="text-xs font-medium mb-1 text-gray-600 dark:text-gray-300">
                           Explanation Preview:
                         </div>
-                        <p className={cn(
-                          "text-xs leading-relaxed",
-                          isDark ? "text-gray-300" : "text-gray-600"
-                        )}>
-                          {template.explanation.length > 100 
+                        <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+                          {template.explanation.length > 100
                             ? template.explanation.substring(0, 100) + "..."
                             : template.explanation
                           }

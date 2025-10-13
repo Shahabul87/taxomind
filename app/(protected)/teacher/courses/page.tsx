@@ -48,7 +48,8 @@ const CoursesPage = async () => {
   return (
     <div className={cn(
       "min-h-screen",
-      "bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800",
+      "bg-gradient-to-b from-gray-50 to-white",
+      "dark:from-gray-900 dark:via-gray-900 dark:to-gray-950",
       "transition-colors duration-300"
     )}>
       <div className={cn(
@@ -58,7 +59,7 @@ const CoursesPage = async () => {
         "max-w-[2000px]"
       )}>
         <Suspense fallback={<CoursesSkeleton />}>
-          <CoursesDashboard 
+          <CoursesDashboard
             courses={courses}
             stats={{
               total: courses.length,

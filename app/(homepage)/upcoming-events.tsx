@@ -73,7 +73,7 @@ export const UpcomingEvents = () => {
   return (
     <section>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
           Upcoming Events
         </h2>
         <Link href="/events">
@@ -91,7 +91,7 @@ export const UpcomingEvents = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6"
+            className="bg-white dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6"
           >
             <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
               <Calendar className="w-4 h-4" />
@@ -100,7 +100,7 @@ export const UpcomingEvents = () => {
               </span>
             </div>
             
-            <h3 className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
               {event.title}
             </h3>
             
@@ -111,7 +111,7 @@ export const UpcomingEvents = () => {
               {event.groupName}
             </Link>
 
-            <div className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+            <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-gray-300">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
                 <span>{event.time}</span>

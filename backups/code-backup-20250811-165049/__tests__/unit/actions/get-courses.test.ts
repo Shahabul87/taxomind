@@ -398,14 +398,14 @@ describe('getCourses', () => {
         imageUrl: 'https://example.com/image.jpg',
         price: 99.99,
         isPublished: true,
-        createdAt: new Date('2024-01-01'),
-        updatedAt: new Date('2024-01-01'),
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        updatedAt: new Date('2024-01-01T00:00:00Z'),
         categoryId: 'cat-1',
         category: { 
           id: 'cat-1', 
           name: 'Programming',
-          createdAt: new Date('2024-01-01'),
-          updatedAt: new Date('2024-01-01'),
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+          updatedAt: new Date('2024-01-01T00:00:00Z'),
         },
         chapters: [
           { id: 'chapter-1' },

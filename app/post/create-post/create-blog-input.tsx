@@ -1,15 +1,15 @@
 "use client";
 
-import * as z from "zod";
-import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Edit3, ArrowRight, Loader2, Tag, X, Sparkles } from "lucide-react";
+import { Edit3, ArrowRight, Loader2, Tag, X, Sparkles, AlertCircle } from "lucide-react";
 import { logger } from '@/lib/logger';
+import { CreatePostClientSchema, type CreatePostClientInput } from "@/lib/schemas/post.schemas";
+import type { ApiResponse, CreatePostResponse } from "@/lib/types/post.types";
 
 import {
   Form,
@@ -34,15 +34,8 @@ const categories = [
   "Technology", "UI/UX Design", "Web Development", "Writing"
 ].sort();
 
-const formSchema = z.object({
-  title: z.string().min(3, {
-    message: "Title must be at least 3 characters long",
-  }).max(100, {
-    message: "Title cannot exceed 100 characters"
-  }),
-  categories: z.array(z.string()).optional(),
-  customCategory: z.string().optional(),
-});
+// Use the enterprise schema from the schemas file
+const formSchema = CreatePostClientSchema;
 
 export const CreateBlogInputSection = () => {
   const router = useRouter();
@@ -53,8 +46,12 @@ export const CreateBlogInputSection = () => {
   const [categoryInput, setCategoryInput] = useState("");
   const [filteredCategories, setFilteredCategories] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const DRAFT_KEY = "create-post-draft";
+  const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
+  const [draftSaveKey, setDraftSaveKey] = useState(0);
   
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<CreatePostClientInput>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
@@ -73,6 +70,24 @@ export const CreateBlogInputSection = () => {
     setIsInputValid(title.length >= 3 && title.length <= 100);
   }, [title]);
 
+  // Notify parent about validity state
+  useEffect(() => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent("create-post-validity", { detail: { valid: isInputValid } })
+      );
+    } catch {}
+  }, [isInputValid]);
+
+  // Notify parent about submitting state
+  useEffect(() => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent("create-post-submitting", { detail: { submitting: isSubmitting } })
+      );
+    } catch {}
+  }, [isSubmitting]);
+
   useEffect(() => {
     if (categoryInput) {
       const filtered = categories.filter(cat => 
@@ -85,36 +100,153 @@ export const CreateBlogInputSection = () => {
     }
   }, [categoryInput, selectedCategories]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  // Load draft on mount
+  useEffect(() => {
     try {
-      // Simple loading toast
-      const loadingToast = toast.loading("Creating blog...");
-      
-      // Make the API call to create post
-      const response = await axios.post("/api/posts", values);
-      
+      const raw = typeof window !== "undefined" ? localStorage.getItem(DRAFT_KEY) : null;
+      if (raw) {
+        const draft = JSON.parse(raw) as Partial<CreatePostClientInput>;
+        form.reset({
+          title: draft.title ?? "",
+          categories: draft.categories ?? [],
+          customCategory: draft.customCategory ?? "",
+        });
+        setCharCount((draft.title ?? "").length);
+      }
+    } catch (e) {
+      logger.warn("[CreateBlogForm] Failed to load draft", { error: e });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Autosave draft on changes (debounced)
+  useEffect(() => {
+    const values = form.getValues();
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+        }
+        setDraftSavedAt(new Date());
+        setDraftSaveKey((k) => k + 1);
+      } catch (e) {
+        logger.warn("[CreateBlogForm] Autosave failed", { error: e });
+      }
+    }, 600);
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+    // Watching relevant fields
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.watch("title"), form.watch("categories"), form.watch("customCategory")]);
+
+  // Handle external save/clear draft commands (from parent header actions)
+  useEffect(() => {
+    const handleSaveDraft = () => {
+      try {
+        const values = form.getValues();
+        if (typeof window !== "undefined") {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+        }
+        toast.success("Draft saved", { description: "Your draft is saved locally." });
+        setDraftSavedAt(new Date());
+        setDraftSaveKey((k) => k + 1);
+      } catch (e) {
+        toast.error("Failed to save draft");
+      }
+    };
+    const handleClearDraft = () => {
+      try {
+        if (typeof window !== "undefined") localStorage.removeItem(DRAFT_KEY);
+        form.reset({ title: "", categories: [], customCategory: "" });
+        setCharCount(0);
+        toast.success("Draft cleared");
+      } catch (e) {
+        toast.error("Failed to clear draft");
+      }
+    };
+
+    window.addEventListener("save-create-post-draft", handleSaveDraft);
+    window.addEventListener("clear-create-post-draft", handleClearDraft);
+    return () => {
+      window.removeEventListener("save-create-post-draft", handleSaveDraft);
+      window.removeEventListener("clear-create-post-draft", handleClearDraft);
+    };
+  }, [form]);
+
+  /**
+   * Handle form submission with enterprise error handling
+   * Uses Next.js router instead of window.location for better UX
+   */
+  const onSubmit = useCallback(async (values: CreatePostClientInput) => {
+    const loadingToast = toast.loading("Creating blog post...");
+
+    try {
+      logger.info("[CreateBlogForm] Submitting post creation", { title: values.title });
+
+      // Make API call with fetch instead of axios for better Next.js integration
+      const response = await fetch("/api/posts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      });
+
+      // Parse response
+      const data: ApiResponse<CreatePostResponse> = await response.json();
+
       // Dismiss loading toast
       toast.dismiss(loadingToast);
-      
-      // Check if the request was successful
-      if (response.data.success && response.data.id) {
-        // Get post ID from response
-        const postId = response.data.id;
-        
-        // Success message
-        toast.success("Blog created successfully");
-        
-        // Use direct location change for simplicity
-        window.location.href = `/post/${postId}`;
-      } else {
-        toast.error("Failed to create blog");
-        logger.error("API response error:", response.data);
+
+      // Handle error responses
+      if (!response.ok || !data.success) {
+        const errorMessage = data.error?.message || "Failed to create blog post";
+
+        logger.error("[CreateBlogForm] Post creation failed", {
+          status: response.status,
+          error: data.error,
+        });
+
+        toast.error(errorMessage, {
+          description: data.error?.code,
+          duration: 5000,
+        });
+
+        return;
       }
-    } catch (error: any) {
-      toast.error("Failed to create blog");
-      logger.error("Blog creation error:", error);
+
+      // Handle success
+      if (data.data?.id) {
+        logger.info("[CreateBlogForm] Post created successfully", {
+          postId: data.data.id,
+        });
+
+        toast.success("Blog post created successfully!", {
+          description: "Redirecting to your new post...",
+          duration: 3000,
+        });
+
+        // Use Next.js router for better client-side navigation
+        try {
+          if (typeof window !== "undefined") localStorage.removeItem(DRAFT_KEY);
+        } catch {}
+        router.push(`/post/${data.data.id}`);
+      } else {
+        throw new Error("No post ID returned from API");
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast);
+
+      logger.error("[CreateBlogForm] Unexpected error", { error });
+
+      toast.error("An unexpected error occurred", {
+        description: "Please try again or contact support if the problem persists.",
+        duration: 5000,
+      });
     }
-  };
+  }, [router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -194,26 +326,46 @@ export const CreateBlogInputSection = () => {
                       onFocus={() => setIsFocused(true)}
                       onBlur={() => setIsFocused(false)}
                       onChange={handleInputChange}
+                      aria-label="Blog post title"
+                      aria-required="true"
+                      aria-invalid={!!form.formState.errors.title}
+                      aria-describedby={form.formState.errors.title ? "title-error" : "title-description"}
+                      autoComplete="off"
                     />
                   </FormControl>
                 </div>
                 
                 <div className="flex items-center justify-between px-1">
-                  <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
-                  <div className={cn(
-                    "text-xs font-medium px-2 py-1 rounded-full transition-all duration-300",
-                    charCount > 0 ? (
-                      charCount > 80 ? 
-                        "text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30" : 
-                        "text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30"
-                    ) : "text-gray-500 dark:text-gray-400"
-                  )}>
+                  <div id="title-error" role="alert" aria-live="polite">
+                    <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
+                  </div>
+                  <div
+                    className={cn(
+                      "text-xs font-medium px-2 py-1 rounded-full transition-all duration-300",
+                      charCount > 0 ? (
+                        charCount > 80 ?
+                          "text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30" :
+                          "text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30"
+                      ) : "text-gray-500 dark:text-gray-400"
+                    )}
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
                     {charCount} / 100 characters
                   </div>
                 </div>
-                
+
+                <div id="title-description" className="sr-only">
+                  Enter a title for your blog post between 3 and 100 characters
+                </div>
+
                 {!isInputValid && field.value && field.value.length > 0 && (
-                  <div className="text-center text-xs text-indigo-600 dark:text-indigo-400 animate-pulse">
+                  <div
+                    className="text-center text-xs text-indigo-600 dark:text-indigo-400 animate-pulse"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <AlertCircle className="w-3 h-3 inline mr-1" aria-hidden="true" />
                     {field.value.length < 3 ? "Title must be at least 3 characters long" : "Title cannot exceed 100 characters"}
                   </div>
                 )}
@@ -275,20 +427,40 @@ export const CreateBlogInputSection = () => {
                     }}
                     onFocus={() => setShowSuggestions(true)}
                     className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 relative rounded-xl"
+                    role="combobox"
+                    aria-label="Search categories"
+                    aria-expanded={showSuggestions && filteredCategories.length > 0}
+                    aria-controls="category-suggestions"
+                    aria-autocomplete="list"
+                    autoComplete="off"
                   />
-                  
+
                   {showSuggestions && filteredCategories.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg max-h-60 rounded-xl overflow-auto border border-gray-200 dark:border-gray-700">
-                      {filteredCategories.map((category) => (
-                        <div 
+                    <ul
+                      id="category-suggestions"
+                      role="listbox"
+                      className="absolute z-10 mt-1 w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg max-h-60 rounded-xl overflow-auto border border-gray-200 dark:border-gray-700"
+                      aria-label="Category suggestions"
+                    >
+                      {filteredCategories.map((category, index) => (
+                        <li
                           key={category}
-                          className="px-4 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer text-gray-800 dark:text-gray-200 transition-colors duration-200"
+                          role="option"
+                          aria-selected={false}
+                          tabIndex={0}
+                          className="px-4 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer text-gray-800 dark:text-gray-200 transition-colors duration-200 focus:bg-indigo-50 dark:focus:bg-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           onClick={() => handleAddCategory(category)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleAddCategory(category);
+                            }
+                          }}
                         >
                           {category}
-                        </div>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   )}
                 </div>
 
@@ -317,6 +489,7 @@ export const CreateBlogInputSection = () => {
           
           <div className="mt-8">
             <Button
+              id="create-post-submit"
               type="submit"
               disabled={!isInputValid || isSubmitting}
               className={cn(
@@ -347,6 +520,11 @@ export const CreateBlogInputSection = () => {
               )}
             </Button>
             <div className="clear-both"></div>
+            {draftSavedAt && (
+              <div key={draftSaveKey} className="mt-2 text-xs text-gray-500 dark:text-gray-400 animate-fade-in">
+                {(() => { const d = draftSavedAt; if (!d) return ""; const hh = d.getHours().toString().padStart(2, '0'); const mm = d.getMinutes().toString().padStart(2, '0'); return `Draft saved at ${hh}:${mm}`; })()}
+              </div>
+            )}
           </div>
         </form>
       </Form>

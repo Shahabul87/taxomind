@@ -1,13 +1,13 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth } from "@/auth";
+import { adminAuth } from "@/auth.admin";
 import { UserRole } from "@prisma/client";
 import { logger } from '@/lib/logger';
 
 export async function getAdminDashboardData() {
   try {
-    const session = await auth();
+    const session = await adminAuth();
     
     // Check if user is authenticated and is an admin
     if (!session?.user || session.user.role !== UserRole.ADMIN) {
@@ -140,7 +140,7 @@ export async function getAdminDashboardData() {
 }
 
 export async function admin() {
-  const session = await auth();
+  const session = await adminAuth();
 
   if (session?.user?.role !== UserRole.ADMIN) {
     return {

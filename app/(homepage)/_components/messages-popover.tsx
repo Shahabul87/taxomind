@@ -22,7 +22,7 @@ export const MessagesPopover = () => {
     <div className="relative">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-lg dark:bg-gray-800 bg-gray-100 dark:hover:bg-gray-700 hover:bg-gray-200 transition-colors dark:text-white text-gray-900 relative"
+        className="p-2 rounded-lg transition-colors text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-gray-700 relative"
       >
         <MessageSquare className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -38,11 +38,11 @@ export const MessagesPopover = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute right-0 mt-2 w-80 rounded-lg dark:bg-gray-900 bg-white border dark:border-gray-800 border-gray-200 shadow-lg overflow-hidden"
+            className="absolute right-0 mt-2 w-80 rounded-xl backdrop-blur-xl dark:bg-slate-900/95 bg-white/95 border dark:border-slate-700/50 border-slate-200 shadow-2xl overflow-hidden"
           >
-            <div className="p-4 border-b dark:border-gray-800 border-gray-200 flex justify-between items-center">
-              <h3 className="font-semibold">Messages</h3>
-              <Link href="/messages" className="text-sm text-purple-500 hover:text-purple-600">
+            <div className="p-4 border-b dark:border-slate-700/50 border-slate-200 flex justify-between items-center">
+              <h3 className="font-semibold text-slate-900 dark:text-white">Messages</h3>
+              <Link href="/messages" className="text-sm text-purple-600 hover:text-purple-700">
                 View All
               </Link>
             </div>
@@ -50,8 +50,8 @@ export const MessagesPopover = () => {
               {messages.map(message => (
                 <div
                   key={message.id}
-                  className={`p-4 border-b dark:border-gray-800 border-gray-200 ${
-                    !message.read ? 'bg-gray-50 dark:bg-gray-800/50' : ''
+                  className={`p-4 border-b dark:border-slate-700/50 border-slate-200 ${
+                    !message.read ? 'bg-slate-50 dark:bg-gray-800/50' : ''
                   }`}
                   onClick={() => markAsRead(message.id)}
                 >
@@ -62,12 +62,12 @@ export const MessagesPopover = () => {
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex justify-between items-start">
-                        <h4 className="font-medium text-sm">{message.User_Message_senderIdToUser?.name || 'Unknown'}</h4>
-                        <span className="text-xs text-gray-500">
+                        <h4 className="font-medium text-sm text-slate-900 dark:text-white">{message.User_Message_senderIdToUser?.name || 'Unknown'}</h4>
+                        <span className="text-xs text-slate-500 dark:text-gray-500">
                           {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-sm text-slate-600 dark:text-gray-400 mt-1">
                         {message.content}
                       </p>
                     </div>
@@ -80,4 +80,4 @@ export const MessagesPopover = () => {
       </AnimatePresence>
     </div>
   )
-} 
+}

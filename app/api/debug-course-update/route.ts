@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { debugGuard } from "@/lib/debug-guard";
 
 export const runtime = 'nodejs';
 
+/**
+ * SECURITY FIX: Debug endpoint - only accessible in development or to admins
+ * This endpoint is for diagnostic purposes and should not be available in production
+ */
 export async function GET() {
+  // SECURITY: Gate debug endpoint
+  const guardResult = await debugGuard();
+  if (guardResult) return guardResult;
+
   try {
     const diagnostics: any = {
       timestamp: new Date().toISOString(),
@@ -66,6 +75,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  // SECURITY: Gate debug endpoint
+  const guardResult = await debugGuard();
+  if (guardResult) return guardResult;
+
   try {
     const body = await req.json();
     const courseId = body.courseId || '0de92129-c605-4d0e-80c3-2d44790a501b';

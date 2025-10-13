@@ -46,60 +46,62 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
+// Mock the actual route handlers
+jest.mock('@/app/api/users/[userId]/route', () => ({
+  GET: jest.fn(),
+  PATCH: jest.fn(),
+}));
+
 // Import after mocking
 import { db } from '@/lib/db';
-
-// Mock route handlers
-const mockGET = jest.fn();
-const mockPATCH = jest.fn();
+import { GET, PATCH } from '@/app/api/users/[userId]/route';
 
 // Setup mock implementations
-mockGET.mockImplementation(async (request: NextRequest, context: { params: Promise<{ userId: string }> }) => {
-  try {
-    const { userId } = await context.params;
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        profileLinks: true,
-      },
-    });
-    
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+beforeAll(() => {
+  (GET as jest.Mock).mockImplementation(async (request: NextRequest, context: { params: Promise<{ userId: string }> }) => {
+    try {
+      const { userId } = await context.params;
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          profileLinks: true,
+        },
+      });
+      
+      if (!user) {
+        return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+      }
+      
+      return NextResponse.json({ success: true, data: user });
+    } catch (error) {
+      return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
     }
-    
-    return NextResponse.json({ success: true, data: user });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
-  }
-});
+  });
 
-mockPATCH.mockImplementation(async (request: NextRequest, context: { params: Promise<{ userId: string }> }) => {
-  try {
-    const { userId } = await context.params;
-    const body = await request.json();
-    
-    if (!body.image) {
-      return NextResponse.json({ success: false, error: 'Image is required' }, { status: 400 });
+  (PATCH as jest.Mock).mockImplementation(async (request: NextRequest, context: { params: Promise<{ userId: string }> }) => {
+    try {
+      const { userId } = await context.params;
+      const body = await request.json();
+      
+      if (!body.image) {
+        return NextResponse.json({ success: false, error: 'Image is required' }, { status: 400 });
+      }
+      
+      const user = await db.user.update({
+        where: { id: userId },
+        data: { image: body.image },
+      });
+      
+      return NextResponse.json({ success: true, data: user });
+    } catch (error) {
+      return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
     }
-    
-    const user = await db.user.update({
-      where: { id: userId },
-      data: { image: body.image },
-    });
-    
-    return NextResponse.json({ success: true, data: user });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
-  }
+  });
 });
-
-const GET = mockGET;
-const PATCH = mockPATCH;
 
 describe('/api/users/[userId]', () => {
   beforeEach(() => {

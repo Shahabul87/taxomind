@@ -58,7 +58,7 @@ interface CompactCourseCard {
 // Compact Course Card Component (similar to blog CompactCard)
 const CompactCard = ({ course }: { course: CompactCourseCard }) => {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 group overflow-hidden">
+    <div className="bg-white/70 dark:bg-gray-900/70 rounded-xl shadow-sm border border-gray-200/70 dark:border-gray-800/70 hover:shadow-lg transition-all duration-300 group overflow-hidden">
       <div className="relative aspect-[16/10] overflow-hidden">
         <Image 
           src={course.imageUrl || "/placeholder.svg"} 
@@ -76,7 +76,7 @@ const CompactCard = ({ course }: { course: CompactCourseCard }) => {
       
       <div className="p-3 sm:p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded-full">
+          <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30 px-2 py-1 rounded-full">
             {course.category || 'General'}
           </span>
           <div className="flex items-center gap-1">
@@ -87,7 +87,7 @@ const CompactCard = ({ course }: { course: CompactCourseCard }) => {
           </div>
         </div>
         
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
           {course.title}
         </h3>
         
@@ -113,7 +113,7 @@ const CompactCard = ({ course }: { course: CompactCourseCard }) => {
 // Wide Course Card Component with Enhanced Mobile Responsiveness
 const WideCard = ({ course }: { course: CompactCourseCard }) => {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 group overflow-hidden">
+    <div className="bg-white/70 dark:bg-gray-900/70 rounded-xl shadow-sm border border-gray-200/70 dark:border-gray-800/70 hover:shadow-lg transition-all duration-300 group overflow-hidden">
       <div className="flex flex-col sm:flex-row">
         {/* Image Section - Responsive sizing */}
         <div className="relative w-full sm:w-48 md:w-56 lg:w-80 aspect-[16/10] sm:aspect-[4/3] lg:aspect-auto overflow-hidden">
@@ -186,7 +186,7 @@ const WideCard = ({ course }: { course: CompactCourseCard }) => {
             
             {/* Action button - Mobile optimized */}
             <Link href={`/courses/${course.id}`} className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base">
+              <button className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base">
                 <span className="sm:hidden">View</span>
                 <span className="hidden sm:inline">View Course</span>
                 <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -463,7 +463,7 @@ export default function CoursePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Fixed Category Tabs - Positioned to connect seamlessly with header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 fixed left-0 right-0 z-40" style={{top: headerHeight}}>
+      <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-b border-gray-200/70 dark:border-gray-800/70 fixed left-0 right-0 z-40" style={{top: headerHeight}}>
         <div className="w-full px-2 sm:px-3 md:px-4 lg:px-6">
           <div ref={tabsContainerRef} className="flex items-center justify-between">
             <div ref={tabsRef} className="flex items-center space-x-1 overflow-hidden">
@@ -514,17 +514,50 @@ export default function CoursePage() {
 
       {/* Scrollable Content */}
       <div className="max-w-full py-2" style={{paddingTop: contentTopPadding}}>
+        {/* Enterprise Header */}
+        <div className="px-2 sm:px-3 md:px-4 lg:px-6 xl:px-8 2xl:px-12 mb-4 sm:mb-6 md:mb-8">
+          <div className="max-w-[1920px] mx-auto bg-white/70 dark:bg-gray-900/70 border border-gray-200/70 dark:border-gray-800/70 rounded-xl shadow-md backdrop-blur-md p-4 sm:p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Explore Courses</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Find the right course by category, popularity, or rating.</p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+                <div className="relative flex-1 min-w-[220px]">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search courses..."
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                    onChange={(e) => {
+                      const q = e.target.value.trim().toLowerCase();
+                      setActiveTab('All');
+                      if (!q) return;
+                    }}
+                  />
+                </div>
+                <select className="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100">
+                  <option>Relevance</option>
+                  <option>Newest</option>
+                  <option>Most Popular</option>
+                  <option>Top Rated</option>
+                  <option>Price: Low to High</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
         {/* 4-Column Layout for Main Page */}
         <section id="main-section" className="mb-6 sm:mb-8 md:mb-16 px-2 sm:px-3 md:px-4 lg:px-6 xl:px-8 2xl:px-12">
           <div className="grid grid-cols-12 gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 2xl:gap-8 max-w-[1920px] mx-auto">
             {/* Left Column - Recent Courses */}
             <div className="col-span-12 md:col-span-3 lg:col-span-3 xl:col-span-3 md:border-r border-gray-200 dark:border-gray-700 px-2 sm:px-3 md:pr-3 lg:pr-4 xl:pr-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 md:p-6">
-                <div className="flex items-center mb-3 sm:mb-4 md:mb-6 p-2 sm:p-3 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-100 dark:border-purple-800/30">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 mr-2 sm:mr-3">
+              <div className="bg-white/70 dark:bg-gray-900/70 rounded-lg shadow-sm border border-gray-200/70 dark:border-gray-800/70 p-3 sm:p-4 md:p-6">
+                <div className="flex items-center mb-3 sm:mb-4 md:mb-6 p-2 sm:p-3 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800/30">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 mr-2 sm:mr-3">
                     <Clock className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
                   </div>
-                  <h3 className="text-sm sm:text-base md:text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 text-transparent bg-clip-text">Recent Courses</h3>
+                  <h3 className="text-sm sm:text-base md:text-lg font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 dark:from-indigo-400 dark:via-purple-400 dark:to-indigo-400 text-transparent bg-clip-text">Recent Courses</h3>
                 </div>
                 <div className="space-y-3 sm:space-y-4">
                   {recentCourses.map((course) => (
@@ -552,7 +585,7 @@ export default function CoursePage() {
                               <span>{course.enrollmentsCount} students</span>
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2 mt-1">
-                              <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                              <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
                                 ${course.price || 0}
                               </span>
                               <div className="flex items-center gap-1">
@@ -574,15 +607,15 @@ export default function CoursePage() {
             {/* Middle Section - Main Content */}
             <div className="col-span-12 md:col-span-6 lg:col-span-6 xl:col-span-6 px-2 sm:px-3 md:px-3 lg:px-4 xl:px-6">
               <div className="mb-4 sm:mb-6 md:mb-8 relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-100 via-blue-100 to-indigo-100 dark:from-purple-900/10 dark:via-blue-900/10 dark:to-indigo-900/10 rounded-xl sm:rounded-2xl blur-xl opacity-50"></div>
-                <div className="relative p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl bg-gradient-to-r from-white/80 to-gray-50/80 dark:from-gray-800/80 dark:to-gray-900/80 backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/30">
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 via-purple-100 to-indigo-100 dark:from-indigo-900/10 dark:via-purple-900/10 dark:to-indigo-900/10 rounded-xl sm:rounded-2xl blur-xl opacity-50"></div>
+                <div className="relative p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl bg-gradient-to-r from-white/80 to-gray-50/80 dark:from-gray-800/80 dark:to-gray-900/80 backdrop-blur-sm border border-indigo-200/50 dark:border-indigo-700/30">
                   <div className="flex items-center mb-2 sm:mb-3">
-                    <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 mr-2 sm:mr-3 md:mr-4">
+                    <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 mr-2 sm:mr-3 md:mr-4">
                       <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                       </svg>
                     </div>
-                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 dark:from-purple-400 dark:via-blue-400 dark:to-indigo-400 text-transparent bg-clip-text">
+                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 dark:from-indigo-400 dark:via-purple-400 dark:to-indigo-400 text-transparent bg-clip-text">
                       Featured Courses
                     </h2>
                   </div>
@@ -607,12 +640,12 @@ export default function CoursePage() {
             <div className="col-span-12 md:col-span-3 lg:col-span-3 xl:col-span-3 md:border-l lg:border-l border-gray-200 dark:border-gray-700 px-2 sm:px-3 md:pl-3 lg:pl-4 xl:pl-6 md:mt-0 lg:mt-0">
               <div className="space-y-3 sm:space-y-4 md:space-y-6">
                 {/* Most Enrolled */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 md:p-6">
-                  <div className="flex items-center mb-3 sm:mb-4 md:mb-6 p-2 sm:p-3 rounded-lg bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-100 dark:border-blue-800/30">
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 mr-2 sm:mr-3">
+                <div className="bg-white/70 dark:bg-gray-900/70 rounded-lg shadow-sm border border-gray-200/70 dark:border-gray-800/70 p-3 sm:p-4 md:p-6">
+                  <div className="flex items-center mb-3 sm:mb-4 md:mb-6 p-2 sm:p-3 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800/30">
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 mr-2 sm:mr-3">
                       <Eye className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
                     </div>
-                    <h3 className="text-sm sm:text-base md:text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 text-transparent bg-clip-text">Most Enrolled</h3>
+                    <h3 className="text-sm sm:text-base md:text-lg font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 dark:from-indigo-400 dark:via-purple-400 dark:to-indigo-400 text-transparent bg-clip-text">Most Enrolled</h3>
                   </div>
                   <div className="space-y-3 sm:space-y-4">
                     {popularCourses.map((course, index) => (
@@ -620,7 +653,7 @@ export default function CoursePage() {
                         <div className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-b-0">
                           <div className="flex items-start gap-2 sm:gap-3">
                             {/* Ranking Number */}
-                            <span className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold flex items-center justify-center mt-1">
+                            <span className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-bold flex items-center justify-center mt-1">
                               {index + 1}
                             </span>
                             
@@ -637,14 +670,14 @@ export default function CoursePage() {
                             
                             {/* Course Content */}
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 line-clamp-2 mb-1">
+                              <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-2 mb-1">
                                 {course.title}
                               </h4>
                               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                                 {course.enrollmentsCount} students
                               </p>
                               <div className="flex items-center gap-1 sm:gap-2">
-                                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
                                   ${course.price || 0}
                                 </span>
                                 <div className="flex items-center gap-1">
@@ -663,12 +696,12 @@ export default function CoursePage() {
                 </div>
 
                 {/* Trending */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 md:p-6">
-                  <div className="flex items-center mb-3 sm:mb-4 md:mb-6 p-2 sm:p-3 rounded-lg bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-100 dark:border-orange-800/30">
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 mr-2 sm:mr-3">
+                <div className="bg-white/70 dark:bg-gray-900/70 rounded-lg shadow-sm border border-gray-200/70 dark:border-gray-800/70 p-3 sm:p-4 md:p-6">
+                  <div className="flex items-center mb-3 sm:mb-4 md:mb-6 p-2 sm:p-3 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800/30">
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 mr-2 sm:mr-3">
                       <Flame className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
                     </div>
-                    <h3 className="text-sm sm:text-base md:text-lg font-bold bg-gradient-to-r from-orange-600 to-red-600 dark:from-orange-400 dark:to-red-400 text-transparent bg-clip-text">Trending</h3>
+                    <h3 className="text-sm sm:text-base md:text-lg font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 dark:from-indigo-400 dark:via-purple-400 dark:to-indigo-400 text-transparent bg-clip-text">Trending</h3>
                   </div>
                   <div className="space-y-3 sm:space-y-4">
                     {excitingCourses.map((course) => (
@@ -686,13 +719,13 @@ export default function CoursePage() {
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                               {/* Trending Badge */}
                               <div className="absolute top-1 right-1">
-                                <TrendingUp className="w-3 h-3 text-orange-500" />
+                                <TrendingUp className="w-3 h-3 text-indigo-500" />
                               </div>
                             </div>
                             
                             {/* Course Content */}
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-orange-600 dark:group-hover:text-orange-400 line-clamp-2 mb-1 sm:mb-2">
+                              <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-2 mb-1 sm:mb-2">
                                 {course.title}
                               </h4>
                               <div className="flex flex-col sm:flex-row sm:items-center text-xs text-gray-500 dark:text-gray-400 mb-1 gap-1 sm:gap-0">
@@ -701,7 +734,7 @@ export default function CoursePage() {
                                 <span>{course.reviewsCount} reviews</span>
                               </div>
                               <div className="flex items-center gap-1 sm:gap-2">
-                                <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                                <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
                                   ${course.price || 0}
                                 </span>
                                 <div className="flex items-center gap-1">

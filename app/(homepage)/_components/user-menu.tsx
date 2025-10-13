@@ -43,7 +43,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const dashboardLink = user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard/user";
+  const dashboardLink = user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard";
 
   // Mobile detection
   useEffect(() => {
@@ -189,7 +189,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
               transition={{ duration: 0.2, ease: [0.4, 0.0, 0.2, 1] }}
               className="fixed right-4 top-16 w-72 z-[99999] pointer-events-none"
             >
-              <div className="p-4 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/60 shadow-2xl">
+              <div className="p-4 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-slate-200 dark:border-gray-700/60 shadow-2xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/60 shadow-lg flex-shrink-0">
                     {user?.image ? (
@@ -207,8 +207,8 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-gray-900 dark:text-white font-semibold text-sm truncate">{user?.name || "User"}</p>
-                    <p className="text-gray-600 dark:text-gray-300 text-xs truncate">{user?.email || "No email"}</p>
+                    <p className="text-slate-900 dark:text-white font-semibold text-sm truncate">{user?.name || "User"}</p>
+                    <p className="text-slate-600 dark:text-gray-300 text-xs truncate">{user?.email || "No email"}</p>
                     <div className="flex items-center mt-1">
                       <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-500/30">
                         {user?.role === "ADMIN" ? (
@@ -227,7 +227,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                   </div>
                 </div>
                 {/* Elegant arrow pointer */}
-                <div className="absolute -top-2 right-6 w-4 h-4 bg-white/95 dark:bg-gray-900/95 border-l border-t border-gray-200/60 dark:border-gray-700/60 transform rotate-45"></div>
+                <div className="absolute -top-2 right-6 w-4 h-4 bg-white/95 dark:bg-gray-900/95 border-l border-t border-slate-200 dark:border-gray-700/60 transform rotate-45"></div>
               </div>
             </motion.div>
           )}
@@ -256,16 +256,16 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                 isMobile 
                   ? "inset-x-4 top-16 bottom-4 w-auto" 
                   : "right-4 top-16 w-96"
-              } rounded-3xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/60 shadow-2xl overflow-hidden z-[99999]`}
+              } rounded-3xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-slate-200 dark:border-gray-700/60 shadow-2xl overflow-hidden z-[99999]`}
             >
               {/* Modal Header with User Info */}
-              <div className="relative p-6 bg-gradient-to-br from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b border-gray-200/50 dark:border-gray-700/50">
+              <div className="relative p-6 bg-gradient-to-br from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b border-slate-200 dark:border-gray-700/50">
                 {/* Close button */}
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="absolute top-4 right-4 p-2 rounded-xl bg-gray-200/80 hover:bg-gray-300 dark:bg-gray-700/80 dark:hover:bg-gray-600 transition-colors"
+                  className="absolute top-4 right-4 p-2 rounded-xl bg-slate-200/80 hover:bg-slate-300 dark:bg-gray-700/80 dark:hover:bg-gray-600 transition-colors"
                 >
-                  <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                  <X className="w-4 h-4 text-slate-600 dark:text-gray-300" />
                 </button>
                 
                 <div className="flex items-center gap-4">
@@ -285,8 +285,8 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-gray-900 dark:text-white font-bold text-xl truncate">{user?.name || "User"}</h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-sm truncate mt-1">{user?.email || ""}</p>
+                    <h3 className="text-slate-900 dark:text-white font-bold text-xl truncate">{user?.name || "User"}</h3>
+                    <p className="text-slate-600 dark:text-gray-300 text-sm truncate mt-1">{user?.email || ""}</p>
                     <div className="flex items-center mt-3">
                       <span className="inline-flex items-center text-xs px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-500/30 font-medium">
                         {user?.role === "ADMIN" ? (
@@ -311,8 +311,8 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                 isMobile ? "flex-1" : "max-h-[420px]"
               } overflow-y-auto py-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm`}>
                 {menuSections.map((section, sectionIndex) => (
-                  <div key={section.title} className={sectionIndex !== 0 ? "mt-6 pt-4 border-t border-gray-200/50 dark:border-gray-700/50" : ""}>
-                    <h4 className="px-6 pb-3 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">
+                  <div key={section.title} className={sectionIndex !== 0 ? "mt-6 pt-4 border-t border-slate-200 dark:border-gray-700/50" : ""}>
+                    <h4 className="px-6 pb-3 text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider font-semibold">
                       {section.title}
                     </h4>
                     
@@ -322,14 +322,14 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                           <motion.div
                             whileHover={{ x: 4, scale: 1.01 }}
                             whileTap={{ scale: 0.98 }}
-                            className="flex items-center px-6 py-3 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white transition-all cursor-pointer group mx-3 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-800/60"
+                            className="flex items-center px-6 py-3 text-slate-700 dark:text-gray-200 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer group mx-3 rounded-xl hover:bg-slate-100/80 dark:hover:bg-gray-800/60"
                           >
-                            <div className="w-10 h-10 mr-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-gradient-to-br group-hover:from-purple-500/20 group-hover:to-indigo-500/20 transition-all">
-                              <item.icon className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400" />
+                            <div className="w-10 h-10 mr-4 rounded-xl bg-slate-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-gradient-to-br group-hover:from-purple-500/20 group-hover:to-indigo-500/20 transition-all">
+                              <item.icon className="w-5 h-5 text-slate-600 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400" />
                             </div>
                             <div className="flex-1">
                               <div className="font-semibold text-sm">{item.label}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.description}</div>
+                              <div className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">{item.description}</div>
                             </div>
                           </motion.div>
                         </Link>
@@ -340,7 +340,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
               </div>
 
               {/* Logout Section */}
-              <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-red-50/50 to-pink-50/50 dark:from-red-900/10 dark:to-pink-900/10">
+              <div className="p-4 border-t border-slate-200 dark:border-gray-700/50 bg-gradient-to-r from-red-50/50 to-pink-50/50 dark:from-red-900/10 dark:to-pink-900/10">
                 <LogoutButton className="w-full">
                   <motion.div
                     whileHover={{ x: 4, scale: 1.01 }}

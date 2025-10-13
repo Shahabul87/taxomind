@@ -1,124 +1,30 @@
 /**
  * Capability Management System
- * 
+ *
  * This module implements a Google-style capability system where users have a single role
  * (ADMIN or USER) but can have multiple capabilities/contexts based on their activities.
- * 
- * Similar to Google Workspace where users can be:
- * - Students in Google Classroom
- * - Content creators in YouTube
- * - Sellers in Google Merchant Center
- * 
- * In Taxomind:
- * - Users can be students (default)
- * - Users can become teachers (create courses)
- * - Users can become affiliates (promote courses)
- * - Admins manage the platform
+ *
+ * NOTE: This file contains database operations and cannot be imported in Edge Runtime (middleware).
+ * For Edge-safe types and enums, import from './capability-types' instead.
  */
 
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 import { cache } from "react";
+import {
+  UserCapability,
+  CAPABILITY_DEFINITIONS,
+  type CapabilityMetadata,
+  type UserCapabilityState,
+} from "./capability-types";
 
-/**
- * User capability types - what a user can do in the platform
- */
-export enum UserCapability {
-  // Core capabilities
-  STUDENT = "STUDENT",           // Can enroll in courses, learn
-  TEACHER = "TEACHER",           // Can create and manage courses
-  AFFILIATE = "AFFILIATE",       // Can promote courses and earn commissions
-  
-  // Extended capabilities (future expansion)
-  CONTENT_CREATOR = "CONTENT_CREATOR",  // Can create blog posts, articles
-  MODERATOR = "MODERATOR",               // Can moderate content
-  REVIEWER = "REVIEWER",                 // Can review courses
-}
-
-/**
- * Capability metadata - additional information about each capability
- */
-export interface CapabilityMetadata {
-  id: UserCapability;
-  label: string;
-  description: string;
-  icon: string;
-  requiresApproval: boolean;
-  requiresVerification: boolean;
-  defaultEnabled: boolean;
-}
-
-/**
- * Capability definitions with metadata
- */
-export const CAPABILITY_DEFINITIONS: Record<UserCapability, CapabilityMetadata> = {
-  [UserCapability.STUDENT]: {
-    id: UserCapability.STUDENT,
-    label: "Student",
-    description: "Learn from courses and track progress",
-    icon: "GraduationCap",
-    requiresApproval: false,
-    requiresVerification: false,
-    defaultEnabled: true, // Everyone is a student by default
-  },
-  [UserCapability.TEACHER]: {
-    id: UserCapability.TEACHER,
-    label: "Instructor",
-    description: "Create and manage courses, track student progress",
-    icon: "BookOpen",
-    requiresApproval: false, // Can be changed to true for stricter control
-    requiresVerification: true, // Requires email verification
-    defaultEnabled: false,
-  },
-  [UserCapability.AFFILIATE]: {
-    id: UserCapability.AFFILIATE,
-    label: "Affiliate",
-    description: "Promote courses and earn commissions",
-    icon: "DollarSign",
-    requiresApproval: false,
-    requiresVerification: true,
-    defaultEnabled: false,
-  },
-  [UserCapability.CONTENT_CREATOR]: {
-    id: UserCapability.CONTENT_CREATOR,
-    label: "Content Creator",
-    description: "Create blog posts and articles",
-    icon: "PenTool",
-    requiresApproval: true,
-    requiresVerification: true,
-    defaultEnabled: false,
-  },
-  [UserCapability.MODERATOR]: {
-    id: UserCapability.MODERATOR,
-    label: "Moderator",
-    description: "Moderate user-generated content",
-    icon: "Shield",
-    requiresApproval: true,
-    requiresVerification: true,
-    defaultEnabled: false,
-  },
-  [UserCapability.REVIEWER]: {
-    id: UserCapability.REVIEWER,
-    label: "Reviewer",
-    description: "Review and rate courses",
-    icon: "Star",
-    requiresApproval: false,
-    requiresVerification: true,
-    defaultEnabled: false,
-  },
-};
-
-/**
- * User capability state
- */
-export interface UserCapabilityState {
-  userId: string;
-  capability: UserCapability;
-  isActive: boolean;
-  activatedAt?: Date | null;
-  deactivatedAt?: Date | null;
-  metadata?: Record<string, any>;
-}
+// Re-export types from capability-types for backwards compatibility
+export {
+  UserCapability,
+  CAPABILITY_DEFINITIONS,
+  type CapabilityMetadata,
+  type UserCapabilityState,
+} from "./capability-types";
 
 /**
  * Get user capabilities from database

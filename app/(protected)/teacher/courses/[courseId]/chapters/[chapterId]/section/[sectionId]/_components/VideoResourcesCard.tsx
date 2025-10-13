@@ -31,38 +31,25 @@ export const VideoResourcesCard = ({
   sectionId
 }: VideoResourcesCardProps) => {
   return (
-    <div className="lg:pr-10 lg:transform lg:translate-y-5">
-      <div className={cn(
-        "rounded-2xl overflow-hidden",
-        "shadow-lg hover:shadow-xl transition-all duration-300",
-        "border border-blue-100 dark:border-blue-900/50",
-        "bg-gradient-to-br from-white/90 to-blue-50/50 dark:from-gray-800/90 dark:to-blue-900/20",
-        "backdrop-blur-sm"
-      )}>
-        {/* Card Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 dark:from-blue-600 dark:to-cyan-600 p-4">
-          <div className="flex items-center">
-            <div className={cn(
-              "mr-4 p-3 rounded-lg",
-              "bg-white/20 dark:bg-white/10",
-              "shadow-inner"
-            )}>
-              <Video className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">
-                Video Resources
-              </h2>
-              <p className="text-blue-50 text-sm">
-                Visual learning materials to help you master concepts
-              </p>
-            </div>
+    <div className="space-y-4">
+      <div className="relative bg-card/50 backdrop-blur-sm p-5 rounded-lg border border-border shadow-md">
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="p-2 bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-lg">
+            <Video className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+          </div>
+          <div>
+            <h2 className="text-sm font-medium text-foreground">
+              Video Resources
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Visual learning materials to help you master concepts
+            </p>
           </div>
         </div>
-        
+
         {/* Card Content */}
-        <div className="p-5">
-          <VideoSectionForm 
+        <div className="mt-3">
+          <VideoSectionForm
             chapter={chapter}
             courseId={courseId}
             chapterId={chapterId}

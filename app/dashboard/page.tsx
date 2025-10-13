@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import { UnifiedDashboard } from "./_components/UnifiedDashboard";
+import { SimpleDashboard } from "./_components/SimpleDashboard";
 
 const DashboardPage = async () => {
   const user = await currentUser();
@@ -14,7 +14,8 @@ const DashboardPage = async () => {
     redirect("/dashboard/admin");
   }
 
-  return <UnifiedDashboard user={user} />;
+  // Regular users see the simplified dashboard with tabs (no context switching)
+  return <SimpleDashboard user={user} />;
 };
 
 export default DashboardPage;

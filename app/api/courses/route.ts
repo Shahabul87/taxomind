@@ -30,18 +30,17 @@ export async function POST(req: Request): Promise<NextResponse> {
       select: { id: true, email: true, role: true }
     });
     console.log("[COURSES] Database user:", JSON.stringify(dbUser, null, 2));
-    
+
     // Use database role as source of truth
     const userRole = dbUser?.role;
 
     if (!userRole) {
-
       return new NextResponse("User role not found", { status: 403 });
     }
-    
-    if (userRole !== 'ADMIN') {
 
-      return new NextResponse(`Forbidden - Admin access required. Your role: ${userRole}`, { status: 403 });
+    // Both USER and ADMIN roles can create courses
+    if (userRole !== 'USER' && userRole !== 'ADMIN') {
+      return new NextResponse(`Forbidden - Invalid user role: ${userRole}`, { status: 403 });
     }
 
     // Parse request body

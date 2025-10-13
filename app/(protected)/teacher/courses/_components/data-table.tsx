@@ -108,13 +108,14 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
           animate={{ opacity: 1, y: 0 }}
           className={cn(
             "flex items-center justify-between",
-            "bg-purple-50 dark:bg-purple-900/20",
-            "border border-purple-200 dark:border-purple-800",
-            "rounded-lg p-4"
+            "bg-white/60 dark:bg-gray-900/60",
+            "border border-gray-200/70 dark:border-gray-800/70",
+            "backdrop-blur-md",
+            "rounded-lg p-4 shadow-sm"
           )}
         >
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {selectedRowCount} course{selectedRowCount > 1 ? 's' : ''} selected
             </span>
           </div>
@@ -122,7 +123,7 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
             <Button
               size="sm"
               variant="outline"
-              className="bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/30"
             >
               <Eye className="h-4 w-4 mr-2" />
               Bulk Publish
@@ -130,7 +131,7 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
             <Button
               size="sm"
               variant="outline"
-              className="bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/30"
             >
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -152,9 +153,9 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
           <div className={cn(
             "flex flex-col sm:flex-row items-center gap-4",
             "p-4 rounded-lg",
-            "bg-white/50 dark:bg-gray-800/50",
-            "backdrop-blur-sm",
-            "border border-gray-100 dark:border-gray-700"
+            "bg-white/70 dark:bg-gray-900/70",
+            "border border-gray-200/70 dark:border-gray-800/70",
+            "backdrop-blur-md shadow-sm"
           )}>
             {/* Search Input */}
             <div className="relative flex-1 w-full">
@@ -186,11 +187,11 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
                   onValueChange={handleCategoryChange}
                 >
                   <SelectTrigger className={cn(
-                    "w-full sm:w-[180px]",
-                    "bg-white dark:bg-gray-800",
-                    "border-gray-200 dark:border-gray-700",
-                    "text-gray-900 dark:text-white",
-                    "transition-all duration-200"
+                  "w-full sm:w-[180px]",
+                  "bg-white dark:bg-gray-800",
+                  "border-gray-200 dark:border-gray-700",
+                  "text-gray-900 dark:text-white",
+                  "transition-all duration-200"
                   )}>
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
@@ -308,12 +309,12 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
       </Card>
 
       {/* Table Section */}
-      <div className="rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="rounded-lg overflow-hidden border border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md shadow-md">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <TableRow key={headerGroup.id} className="border-gray-200/70 dark:border-gray-800/70 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md sticky top-0 z-10">
                   {headerGroup.headers.map((header) => (
                     <TableHead 
                       key={header.id} 
@@ -335,7 +336,7 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24">
                     <div className="flex items-center justify-center">
-                      <Loader2 className="h-6 w-6 animate-spin text-purple-600 dark:text-purple-400" />
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400 dark:text-gray-500" />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -348,16 +349,15 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
                     transition={{ duration: 0.2, delay: index * 0.05 }}
                     className={cn(
                       "border-gray-200 dark:border-gray-700",
-                      "transition-all duration-200",
-                      "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-                      "group",
-                      "data-[state=selected]:bg-purple-100 dark:data-[state=selected]:bg-purple-800/20"
+                      "transition-colors duration-150",
+                      "hover:bg-gray-50 dark:hover:bg-gray-700",
+                      "data-[state=selected]:bg-gray-100 dark:data-[state=selected]:bg-gray-800/40"
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell 
                         key={cell.id} 
-                        className="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white py-4 transition-colors"
+                        className="text-gray-700 dark:text-gray-300 py-4"
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>

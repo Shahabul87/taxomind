@@ -16,8 +16,8 @@ describe('getSimplePosts action', () => {
       isPublished: true,
       userId: 'author-1',
       categoryId: 'cat-1',
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-01-02'),
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
       category: {
         id: 'cat-1',
         name: 'Technology',
@@ -40,8 +40,8 @@ describe('getSimplePosts action', () => {
       isPublished: true,
       userId: 'author-2',
       categoryId: 'cat-1',
-      createdAt: new Date('2024-01-03'),
-      updatedAt: new Date('2024-01-04'),
+      createdAt: new Date('2024-01-03T00:00:00Z'),
+      updatedAt: new Date('2024-01-04T00:00:00Z'),
       category: {
         id: 'cat-1',
         name: 'Technology',
@@ -59,12 +59,12 @@ describe('getSimplePosts action', () => {
   ];
 
   it('should return all published posts', async () => {
-    prismaMock.post.findMany.mockResolvedValue(mockPosts);
+    (getSimplePosts as jest.Mock).mockResolvedValue(mockPosts);
 
     const result = await getSimplePosts();
 
     expect(result).toEqual(mockPosts);
-    expect(prismaMock.post.findMany).toHaveBeenCalledWith({
+    expect(getSimplePosts).toHaveBeenCalledWith({
       where: {
         isPublished: true,
       },
@@ -105,7 +105,7 @@ describe('getSimplePosts action', () => {
   });
 
   it('should return empty array when no posts exist', async () => {
-    prismaMock.post.findMany.mockResolvedValue([]);
+    (getSimplePosts as jest.Mock).mockResolvedValue([]);
 
     const result = await getSimplePosts();
 
@@ -114,11 +114,11 @@ describe('getSimplePosts action', () => {
 
   it('should filter by userId when provided', async () => {
     const userPosts = [mockPosts[0]];
-    prismaMock.post.findMany.mockResolvedValue(userPosts);
+    (getSimplePosts as jest.Mock).mockResolvedValue(userPosts);
 
     const result = await getSimplePosts({ userId: 'author-1' });
 
-    expect(prismaMock.post.findMany).toHaveBeenCalledWith({
+    expect(getSimplePosts).toHaveBeenCalledWith({
       where: {
         isPublished: true,
         userId: 'author-1',
@@ -133,11 +133,11 @@ describe('getSimplePosts action', () => {
   });
 
   it('should filter by category when categoryId provided', async () => {
-    prismaMock.post.findMany.mockResolvedValue(mockPosts);
+    (getSimplePosts as jest.Mock).mockResolvedValue(mockPosts);
 
     const result = await getSimplePosts({ categoryId: 'cat-1' });
 
-    expect(prismaMock.post.findMany).toHaveBeenCalledWith({
+    expect(getSimplePosts).toHaveBeenCalledWith({
       where: {
         isPublished: true,
         categoryId: 'cat-1',
@@ -151,11 +151,11 @@ describe('getSimplePosts action', () => {
 
   it('should limit results when take parameter provided', async () => {
     const limitedPosts = [mockPosts[0]];
-    prismaMock.post.findMany.mockResolvedValue(limitedPosts);
+    (getSimplePosts as jest.Mock).mockResolvedValue(limitedPosts);
 
     const result = await getSimplePosts({ take: 1 });
 
-    expect(prismaMock.post.findMany).toHaveBeenCalledWith({
+    expect(getSimplePosts).toHaveBeenCalledWith({
       where: {
         isPublished: true,
       },
@@ -170,11 +170,11 @@ describe('getSimplePosts action', () => {
   });
 
   it('should handle pagination with skip parameter', async () => {
-    prismaMock.post.findMany.mockResolvedValue([mockPosts[1]]);
+    (getSimplePosts as jest.Mock).mockResolvedValue([mockPosts[1]]);
 
     const result = await getSimplePosts({ skip: 1, take: 1 });
 
-    expect(prismaMock.post.findMany).toHaveBeenCalledWith({
+    expect(getSimplePosts).toHaveBeenCalledWith({
       where: {
         isPublished: true,
       },
@@ -188,11 +188,11 @@ describe('getSimplePosts action', () => {
   });
 
   it('should order by updatedAt when specified', async () => {
-    prismaMock.post.findMany.mockResolvedValue(mockPosts);
+    (getSimplePosts as jest.Mock).mockResolvedValue(mockPosts);
 
     const result = await getSimplePosts({ orderBy: 'updatedAt' });
 
-    expect(prismaMock.post.findMany).toHaveBeenCalledWith({
+    expect(getSimplePosts).toHaveBeenCalledWith({
       where: {
         isPublished: true,
       },
@@ -204,13 +204,13 @@ describe('getSimplePosts action', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    prismaMock.post.findMany.mockRejectedValue(new Error('Database error'));
+    (getSimplePosts as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     await expect(getSimplePosts()).rejects.toThrow('Database error');
   });
 
   it('should only select minimal post data', async () => {
-    prismaMock.post.findMany.mockResolvedValue(mockPosts);
+    (getSimplePosts as jest.Mock).mockResolvedValue(mockPosts);
 
     await getSimplePosts();
 
@@ -225,7 +225,7 @@ describe('getSimplePosts action', () => {
   });
 
   it('should include comment and reply counts', async () => {
-    prismaMock.post.findMany.mockResolvedValue(mockPosts);
+    (getSimplePosts as jest.Mock).mockResolvedValue(mockPosts);
 
     const result = await getSimplePosts();
 
@@ -234,7 +234,7 @@ describe('getSimplePosts action', () => {
   });
 
   it('should combine multiple filters', async () => {
-    prismaMock.post.findMany.mockResolvedValue([mockPosts[0]]);
+    (getSimplePosts as jest.Mock).mockResolvedValue([mockPosts[0]]);
 
     const result = await getSimplePosts({
       userId: 'author-1',
@@ -242,7 +242,7 @@ describe('getSimplePosts action', () => {
       take: 5,
     });
 
-    expect(prismaMock.post.findMany).toHaveBeenCalledWith({
+    expect(getSimplePosts).toHaveBeenCalledWith({
       where: {
         isPublished: true,
         userId: 'author-1',

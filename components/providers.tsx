@@ -2,6 +2,7 @@
 
 import { SessionProvider } from "next-auth/react";
 import { ReactNode, useEffect, useState } from "react";
+import { ThemeProvider } from "./providers/theme-provider";
 
 // Stable auth provider with no auto-reload functionality
 const CustomAuthProvider = ({ children, session }: { children: ReactNode, session: any }) => {
@@ -27,7 +28,9 @@ export function Providers({
 }) {
   return (
     <CustomAuthProvider session={session}>
-      {children}
+      <ThemeProvider>
+        {children}
+      </ThemeProvider>
     </CustomAuthProvider>
   );
 } 

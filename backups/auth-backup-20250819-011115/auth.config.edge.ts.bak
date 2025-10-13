@@ -1,0 +1,89 @@
+// Edge-compatible auth configuration
+// This file is used by middleware which runs in Edge Runtime
+import type { NextAuthConfig } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import Github from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
+
+// Edge-compatible configuration
+// IMPORTANT: This must match the configuration in auth.ts for session continuity
+export default {
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
+    Github({
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    }),
+    // Credentials provider for edge runtime checking
+    Credentials({
+      async authorize() {
+        // Edge runtime can't do DB calls, actual auth happens in auth.ts
+        return null;
+      }
+    })
+  ],
+  // Session configuration - MUST match auth.ts
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  // JWT configuration - MUST match auth.ts
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  // Callbacks for Edge Runtime
+  callbacks: {
+    async jwt({ token, user }) {
+      // In edge runtime, we need to ensure the token has the necessary data
+      // If this is a new sign-in, user will be present
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        // The role will be enriched in the main auth.ts, but we need basic data here
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      // Pass ALL token data to session for middleware to work properly
+      if (token && session.user) {
+        // Essential fields for middleware authentication check
+        session.user.id = token.sub || token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        
+        // Role is critical for middleware routing logic
+        if (token.role) {
+          session.user.role = token.role as string;
+        }
+        
+        // Additional fields that might be in the token
+        if (token.isTwoFactorEnabled !== undefined) {
+          session.user.isTwoFactorEnabled = token.isTwoFactorEnabled as boolean;
+        }
+        if (token.isOAuth !== undefined) {
+          session.user.isOAuth = token.isOAuth as boolean;
+        }
+      }
+      return session;
+    },
+    async authorized({ auth, request }) {
+      // This callback helps verify if a user is authorized
+      // Return true if authorized, false otherwise
+      const isLoggedIn = !!auth?.user;
+      return isLoggedIn;
+    }
+  },
+  // Auth pages
+  pages: {
+    signIn: "/auth/login",
+    error: "/auth/error",
+  },
+  // Trust host for production
+  trustHost: true,
+  // CRITICAL: Use the same secret as auth.ts for JWT decryption
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+} satisfies NextAuthConfig

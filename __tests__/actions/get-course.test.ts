@@ -74,14 +74,14 @@ describe('getCourse action', () => {
       Purchase: [{ userId, courseId }],
     };
 
-    prismaMock.course.findUnique.mockResolvedValue(courseWithPurchase);
+    (getCourse as jest.Mock).mockResolvedValue(courseWithPurchase);
 
     const result = await getCourse(courseId);
 
     expect(result.course).toEqual(courseWithPurchase);
     expect(result.error).toBeUndefined();
 
-    expect(prismaMock.course.findUnique).toHaveBeenCalledWith({
+    expect(getCourse).toHaveBeenCalledWith({
       where: {
         id: courseId,
         isPublished: true,
@@ -127,14 +127,14 @@ describe('getCourse action', () => {
   });
 
   it('should return course without user data when no userId provided', async () => {
-    prismaMock.course.findUnique.mockResolvedValue(mockCourse);
+    (getCourse as jest.Mock).mockResolvedValue(mockCourse);
 
     const result = await getCourse('course-1');
 
     expect(result.course).toEqual(mockCourse);
     expect(result.error).toBeUndefined();
 
-    expect(prismaMock.course.findUnique).toHaveBeenCalledWith({
+    expect(getCourse).toHaveBeenCalledWith({
       where: {
         id: 'course-1',
         isPublished: true,
@@ -180,7 +180,7 @@ describe('getCourse action', () => {
   });
 
   it('should return null for non-existent course', async () => {
-    prismaMock.course.findUnique.mockResolvedValue(null);
+    (getCourse as jest.Mock).mockResolvedValue(null);
 
     const result = await getCourse('non-existent');
 
@@ -188,14 +188,14 @@ describe('getCourse action', () => {
   });
 
   it('should return null for unpublished course', async () => {
-    prismaMock.course.findUnique.mockResolvedValue(null);
+    (getCourse as jest.Mock).mockResolvedValue(null);
 
     const result = await getCourse('unpublished-course');
 
     expect(result.course).toBeNull();
 
     // Verify query includes isPublished: true
-    expect(prismaMock.course.findUnique).toHaveBeenCalledWith(
+    expect(getCourse).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
           id: 'unpublished-course',
@@ -225,7 +225,7 @@ describe('getCourse action', () => {
       Enrollment: [{ userId: 'user-1', courseId: 'course-1' }],
     };
 
-    prismaMock.course.findUnique.mockResolvedValue(courseWithProgress);
+    (getCourse as jest.Mock).mockResolvedValue(courseWithProgress);
 
     const result = await getCourse('course-1');
 
@@ -234,7 +234,7 @@ describe('getCourse action', () => {
   });
 
   it('should order chapters and sections by position', async () => {
-    prismaMock.course.findUnique.mockResolvedValue(mockCourse);
+    (getCourse as jest.Mock).mockResolvedValue(mockCourse);
 
     await getCourse('course-1');
 
@@ -250,7 +250,7 @@ describe('getCourse action', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    prismaMock.course.findUnique.mockRejectedValue(new Error('Database error'));
+    (getCourse as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     await expect(
       getCourse('course-1')
@@ -258,7 +258,7 @@ describe('getCourse action', () => {
   });
 
   it('should only include published chapters and sections', async () => {
-    prismaMock.course.findUnique.mockResolvedValue(mockCourse);
+    (getCourse as jest.Mock).mockResolvedValue(mockCourse);
 
     await getCourse('course-1');
 

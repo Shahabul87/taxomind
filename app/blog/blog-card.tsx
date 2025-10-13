@@ -52,9 +52,9 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
   // Get category color scheme based on category name
   const getCategoryColors = (category: string | null) => {
     if (!category) return {
-      bg: 'bg-gray-100/90 dark:bg-gray-800/90',
-      text: 'text-gray-700 dark:text-gray-300',
-      border: 'border-gray-200/50 dark:border-gray-700/50'
+      bg: 'bg-slate-100/90 dark:bg-gray-800/90',
+      text: 'text-slate-700 dark:text-gray-300',
+      border: 'border-slate-200/50 dark:border-gray-700/50'
     };
 
     const categoryLower = category.toLowerCase();
@@ -118,7 +118,7 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
   const categoryColors = getCategoryColors(post.category);
 
   return (
-    <Link href={`/blog/${post.id}`} className="group block h-full">
+    <Link href={`/blog/${post.id}`} prefetch={false} className="group block h-full">
       <article className="h-full bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-white/5 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all duration-300 overflow-hidden flex flex-col group-hover:scale-[1.02] transform">
         
         {/* Image Section */}
@@ -132,12 +132,12 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center group-hover:from-gray-200 group-hover:to-gray-300 dark:group-hover:from-gray-600 dark:group-hover:to-gray-700 transition-all duration-300">
+            <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center group-hover:from-slate-200 group-hover:to-slate-300 dark:group-hover:from-gray-600 dark:group-hover:to-gray-700 transition-all duration-300">
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-3 bg-gray-300 dark:bg-gray-600 rounded-xl flex items-center justify-center group-hover:bg-gray-400 dark:group-hover:bg-gray-500 transition-colors duration-300">
-                  <User className="w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-300" />
+                <div className="w-16 h-16 mx-auto mb-3 bg-slate-300 dark:bg-gray-600 rounded-xl flex items-center justify-center group-hover:bg-slate-400 dark:group-hover:bg-gray-500 transition-colors duration-300">
+                  <User className="w-8 h-8 text-slate-500 dark:text-gray-400 group-hover:text-slate-600 dark:group-hover:text-gray-300 transition-colors duration-300" />
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">No Image</p>
+                <p className="text-sm text-slate-500 dark:text-gray-400 font-medium">No Image</p>
               </div>
             </div>
           )}
@@ -170,12 +170,12 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
         <div className="flex-1 p-6 flex flex-col">
           
           {/* Elegant Title with Gradient Effect */}
-          <h3 className="text-xl font-bold mb-3 line-clamp-2 leading-tight transition-all duration-300 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-100 dark:to-white bg-clip-text text-transparent group-hover:from-blue-600 group-hover:via-purple-600 group-hover:to-blue-600 dark:group-hover:from-blue-400 dark:group-hover:via-purple-400 dark:group-hover:to-blue-400">
+          <h3 className="text-xl font-bold mb-3 line-clamp-2 leading-tight transition-all duration-300 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-gray-100 dark:to-white bg-clip-text text-transparent group-hover:from-blue-600 group-hover:via-purple-600 group-hover:to-blue-600 dark:group-hover:from-blue-400 dark:group-hover:via-purple-400 dark:group-hover:to-blue-400">
             {post.title}
           </h3>
 
           {/* Description */}
-          <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1 mb-5 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-300">
+          <p className="text-slate-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1 mb-5 group-hover:text-slate-700 dark:group-hover:text-gray-300 transition-colors duration-300">
                 {getCleanDescription(post.description)}
               </p>
 
@@ -183,7 +183,7 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
           <div className="mt-auto space-y-3">
             
             {/* Stats Row */}
-            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-300">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 group-hover:text-slate-600 dark:group-hover:text-gray-300 transition-colors duration-300">
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-1.5">
                   <Clock className="w-3.5 h-3.5" />

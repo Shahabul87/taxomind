@@ -45,7 +45,7 @@ const customJestConfig = {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]
   },
   transformIgnorePatterns: [
-    '/node_modules/',
+    '/node_modules/(?!(next-auth|@auth/core|oauth4webapi)/)',
     '^.+\\.module\\.(css|sass|scss)$'
   ],
   moduleNameMapper: {
@@ -53,6 +53,11 @@ const customJestConfig = {
     '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
     '^.+\\.(css|sass|scss)$': 'identity-obj-proxy',
     '^.+\\.(png|jpg|jpeg|gif|webp|avif|ico|bmp|svg)$/i': 'jest-transform-stub',
+    // Mock next-auth
+    '^next-auth$': '<rootDir>/__mocks__/next-auth.js',
+    '^next-auth/providers/(.*)$': '<rootDir>/__mocks__/next-auth-providers.js',
+    '^next-auth/providers/google$': '<rootDir>/__mocks__/next-auth-providers.js',
+    '^next-auth/providers/github$': '<rootDir>/__mocks__/next-auth-providers.js',
     // Path aliases
     '^@/components/(.*)$': '<rootDir>/components/$1',
     '^@/app/(.*)$': '<rootDir>/app/$1',

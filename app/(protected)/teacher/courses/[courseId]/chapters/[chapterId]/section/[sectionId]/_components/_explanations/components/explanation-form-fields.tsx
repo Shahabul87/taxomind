@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { UseFormReturn } from "react-hook-form";
-import { Editor } from '@monaco-editor/react';
+import dynamic from 'next/dynamic';
+// Lazy-load Monaco editor on client only to reduce initial bundle size
+const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 import { useState, useEffect, useRef, useMemo } from "react";
 import NextImage from "next/image";
 import { logger } from '@/lib/logger';

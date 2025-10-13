@@ -1,22 +1,20 @@
-import { getCoursesForHomepage } from "@/actions/get-all-courses";
-import { getPostsForHomepage } from "@/actions/get-all-posts";
+import { getHomepageFeaturedCourses, getHomepageFeaturedPosts } from "@/actions/get-homepage-content";
 import HeroSection from "./hero-section";
 import HowItWorksSection from "./how-it-works-section";
-import TestimonialsSection from "./testimonials-section";
 import { HomeFooter } from "./HomeFooter";
-import { FeaturedCoursesSection } from "./featured-courses-section";
-import { FeaturedBlogPostsSection } from "./featured-blog-posts-section";
+import { FeaturedCoursesSection } from './featured-courses-section';
+import { FeaturedBlogPostsSection } from './featured-blog-posts-section';
+import TestimonialsSection from './testimonials-section';
+
+export const dynamic = 'force-static';
+export const revalidate = 180; // Re-generate homepage every 3 minutes
 
 const Home = async () => {
-  const courses = await getCoursesForHomepage();
-  const posts = await getPostsForHomepage();
-
-  console.log("Home page courses:", courses.map(course => ({ 
-    id: course.id, 
-    title: course.title,
-    cleanDescription: course.cleanDescription?.substring(0, 30),
-    description: course.description?.substring(0, 30)
-  })));
+  // Fetch in parallel for lower TTFB
+  const [courses, posts] = await Promise.all([
+    getHomepageFeaturedCourses(8),
+    getHomepageFeaturedPosts(6),
+  ]);
 
   return (
     <>

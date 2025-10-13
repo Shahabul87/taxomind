@@ -27,8 +27,6 @@ export interface LatexEnabledEditorProps {
   className?: string;
   /** Show live preview */
   showPreview?: boolean;
-  /** Editor theme */
-  theme?: "light" | "dark";
 }
 
 export const LatexEnabledEditor: React.FC<LatexEnabledEditorProps> = ({
@@ -40,8 +38,7 @@ export const LatexEnabledEditor: React.FC<LatexEnabledEditorProps> = ({
   showHelp = true,
   disabled = false,
   className = "",
-  showPreview = true,
-  theme = "light"
+  showPreview = true
 }) => {
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
 
@@ -67,7 +64,7 @@ export const LatexEnabledEditor: React.FC<LatexEnabledEditorProps> = ({
   const renderPreview = useMemo(() => {
     if (!value.trim()) {
       return (
-        <div className="text-gray-400 italic p-4">
+        <div className="text-gray-400 dark:text-gray-500 italic p-4">
           No content to preview
         </div>
       );
@@ -75,9 +72,9 @@ export const LatexEnabledEditor: React.FC<LatexEnabledEditorProps> = ({
 
     // Split content by LaTeX patterns
     const parts = value.split(/(\$[^$]+\$|\\\([^\\]+\\\))/g);
-    
+
     return (
-      <div className="prose prose-sm max-w-none p-4">
+      <div className="prose prose-sm dark:prose-invert max-w-none p-4">
         {parts.map((part, index) => {
           // Check if this part is LaTeX
           if (part.startsWith('$') && part.endsWith('$')) {
@@ -88,7 +85,7 @@ export const LatexEnabledEditor: React.FC<LatexEnabledEditorProps> = ({
                   equation={equation}
                   mode="inline"
                   size="small"
-                  theme={theme}
+                  theme="light"
                   className="border-0 shadow-none bg-transparent p-0"
                 />
               </span>
@@ -101,7 +98,7 @@ export const LatexEnabledEditor: React.FC<LatexEnabledEditorProps> = ({
                   equation={equation}
                   mode="inline"
                   size="small"
-                  theme={theme}
+                  theme="light"
                   className="border-0 shadow-none bg-transparent p-0"
                 />
               </span>
@@ -122,35 +119,24 @@ export const LatexEnabledEditor: React.FC<LatexEnabledEditorProps> = ({
         })}
       </div>
     );
-  }, [value, theme]);
-
-  const isDark = theme === "dark";
+  }, [value]);
 
   return (
     <div className={cn("space-y-3", className)}>
       {/* Editor Tabs */}
       {showPreview ? (
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "write" | "preview")}>
-          <TabsList className={cn(
-            "grid w-full grid-cols-2",
-            isDark ? "bg-slate-800" : "bg-gray-100"
-          )}>
+          <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-800">
             <TabsTrigger
               value="write"
-              className={cn(
-                "flex items-center gap-2",
-                activeTab === "write" && (isDark ? "bg-slate-700 text-white" : "bg-white text-gray-900")
-              )}
+              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
             >
               <Edit className="h-4 w-4" />
               Write
             </TabsTrigger>
             <TabsTrigger
               value="preview"
-              className={cn(
-                "flex items-center gap-2",
-                activeTab === "preview" && (isDark ? "bg-slate-700 text-white" : "bg-white text-gray-900")
-              )}
+              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
             >
               <Eye className="h-4 w-4" />
               Preview
@@ -164,30 +150,21 @@ export const LatexEnabledEditor: React.FC<LatexEnabledEditorProps> = ({
               onChange={(e) => onChange(e.target.value)}
               placeholder={placeholder}
               disabled={disabled}
-              className={cn(
-                "font-mono text-sm resize-none",
-                isDark ? "bg-slate-800 border-slate-600 text-white" : "bg-white border-gray-300"
-              )}
+              className="font-mono text-sm resize-none bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               style={{
                 minHeight,
                 maxHeight,
                 height: minHeight
               }}
             />
-            <div className={cn(
-              "text-xs mt-1",
-              isDark ? "text-gray-400" : "text-gray-500"
-            )}>
+            <div className="text-xs mt-1 text-gray-500 dark:text-gray-400">
               Use $equation$ for inline LaTeX or regular text for explanations
             </div>
           </TabsContent>
 
           <TabsContent value="preview" className="mt-3">
             <div
-              className={cn(
-                "border rounded-md overflow-y-auto",
-                isDark ? "bg-slate-800 border-slate-600" : "bg-white border-gray-300"
-              )}
+              className="border rounded-md overflow-y-auto bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600"
               style={{
                 minHeight,
                 maxHeight
@@ -205,20 +182,14 @@ export const LatexEnabledEditor: React.FC<LatexEnabledEditorProps> = ({
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             disabled={disabled}
-            className={cn(
-              "font-mono text-sm resize-none",
-              isDark ? "bg-slate-800 border-slate-600 text-white" : "bg-white border-gray-300"
-            )}
+            className="font-mono text-sm resize-none bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             style={{
               minHeight,
               maxHeight,
               height: minHeight
             }}
           />
-          <div className={cn(
-            "text-xs mt-1",
-            isDark ? "text-gray-400" : "text-gray-500"
-          )}>
+          <div className="text-xs mt-1 text-gray-500 dark:text-gray-400">
             Use $equation$ for inline LaTeX or regular text for explanations
           </div>
         </div>

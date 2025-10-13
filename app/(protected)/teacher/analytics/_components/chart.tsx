@@ -21,7 +21,7 @@ export const Chart = ({
   data
 }: ChartProps) => {
   return (
-    <Card>
+    <Card className="rounded-xl border border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md shadow-md p-2">
       <ResponsiveContainer width="100%" height={350}>
         <BarChart data={data}>
           <XAxis
@@ -40,7 +40,7 @@ export const Chart = ({
           />
           <Bar
             dataKey="total"
-            fill="#0369a1"
+            fill="#6366F1"
             radius={[4, 4, 0, 0]}
           />
         </BarChart>

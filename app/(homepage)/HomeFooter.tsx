@@ -11,7 +11,7 @@ export const HomeFooter = () => {
   return (
     <>
       {/* Call to Action Section with Angled Design */}
-      <section className="relative py-24 overflow-hidden bg-gradient-to-b from-slate-800 to-slate-900">
+      <section className="relative py-24 overflow-hidden bg-white dark:bg-gradient-to-b dark:from-slate-800 dark:to-slate-900">
         {/* Angled divider at top */}
         <div className="absolute top-0 left-0 w-full h-16 bg-slate-800" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 0)" }}></div>
         
@@ -35,14 +35,14 @@ export const HomeFooter = () => {
               transition={{ duration: 0.5 }}
               className="mb-6 inline-block"
             >
-              <span className="inline-block py-2 px-4 bg-slate-800/60 rounded-full text-sm font-medium text-cyan-400 border border-cyan-500/20">
+              <span className="inline-block py-2 px-4 rounded-full text-sm font-medium border dark:bg-slate-800/60 text-cyan-700 dark:text-cyan-400 border-cyan-300 dark:border-cyan-500/20">
                 Join Our Community
               </span>
             </motion.div>
             <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-6">
               Start Your Learning Journey Today
             </h2>
-            <p className="text-gray-300 text-lg mb-8 leading-relaxed">
+            <p className="text-slate-600 dark:text-gray-300 text-lg mb-8 leading-relaxed">
               Join thousands of learners who have already transformed their careers through our platform.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4 items-center relative z-20 mt-8">
@@ -60,7 +60,7 @@ export const HomeFooter = () => {
               </Link>
               <Link href="/courses" className="relative z-20 w-full sm:w-auto">
                 <motion.button
-                  className="w-full sm:w-auto bg-transparent border-2 border-cyan-500 text-cyan-400 font-bold py-4 px-8 rounded-lg hover:bg-cyan-500/10 transition-colors duration-300"
+                  className="w-full sm:w-auto bg-transparent border-2 font-bold py-4 px-8 rounded-lg transition-colors duration-300 text-cyan-700 border-cyan-300 hover:bg-cyan-50 dark:text-cyan-400 dark:border-cyan-500 dark:hover:bg-cyan-500/10"
                   whileHover={{ y: -5 }}
                   whileTap={{ y: 0 }}
                 >
@@ -80,7 +80,7 @@ export const HomeFooter = () => {
       </section>
 
       {/* Main Footer Section */}
-      <footer className="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-gray-300 pt-20 pb-10 relative overflow-hidden">
+      <footer className="bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-600 dark:text-gray-300 pt-20 pb-10 relative overflow-hidden">
         {/* Subtle background effects */}
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-center opacity-5"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-[150px] opacity-10"></div>
@@ -134,11 +134,11 @@ export const HomeFooter = () => {
 
             {/* Quick Links */}
             <div>
-              <h3 className="text-white font-semibold mb-6 pl-2 border-l-2 border-cyan-400">Quick Links</h3>
+              <h3 className="font-semibold mb-6 pl-2 border-l-2 border-cyan-400 text-slate-900 dark:text-white">Quick Links</h3>
               <ul className="space-y-4">
                 {['Courses', 'About Us', 'Contact', 'Blog', 'Enterprise', 'API'].map((item) => (
                   <motion.li key={item} whileHover={{ x: 3 }}>
-                    <Link href="#" className="text-gray-400 hover:text-cyan-400 transition-colors flex items-center group">
+                    <Link href="#" className="text-slate-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center group">
                       <span className="w-1 h-1 bg-cyan-400 rounded-full mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></span>
                       {item}
                     </Link>
@@ -149,11 +149,11 @@ export const HomeFooter = () => {
 
             {/* Resources */}
             <div>
-              <h3 className="text-white font-semibold mb-6 pl-2 border-l-2 border-purple-400">Resources</h3>
+              <h3 className="font-semibold mb-6 pl-2 border-l-2 border-purple-400 text-slate-900 dark:text-white">Resources</h3>
               <ul className="space-y-4">
                 {['Documentation', 'Support', 'Terms of Service', 'Privacy Policy', 'Security', 'Status'].map((item) => (
                   <motion.li key={item} whileHover={{ x: 3 }}>
-                    <Link href="#" className="text-gray-400 hover:text-purple-400 transition-colors flex items-center group">
+                    <Link href="#" className="text-slate-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center group">
                       <span className="w-1 h-1 bg-purple-400 rounded-full mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></span>
                       {item}
                     </Link>
@@ -163,35 +163,35 @@ export const HomeFooter = () => {
             </div>
 
             {/* Newsletter */}
-            <div className="bg-slate-800/30 p-6 rounded-2xl border border-slate-700/50 shadow-xl">
-              <h3 className="text-white font-semibold mb-6 pl-2 border-l-2 border-gradient-to-r from-cyan-400 to-purple-400">Stay Updated</h3>
-              <p className="text-sm mb-4">Subscribe to our newsletter for the latest updates.</p>
+            <div className="p-6 rounded-2xl border shadow-xl bg-white/70 border-slate-200 dark:bg-slate-800/30 dark:border-slate-700/50">
+              <h3 className="font-semibold mb-6 pl-2 border-l-2 border-gradient-to-r from-cyan-400 to-purple-400 text-slate-900 dark:text-white">Stay Updated</h3>
+              <p className="text-sm text-slate-600 dark:text-gray-300 mb-4">Subscribe to our newsletter for the latest updates.</p>
               <div className="space-y-3">
                 <input
                   type="email"
                   placeholder="Enter your email"
-                  className="w-full bg-slate-800/50 border border-slate-700 text-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full bg-white/60 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500"
                 />
                 <button className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-cyan-500 hover:to-purple-500 transition-all duration-300">
                   Subscribe
                 </button>
               </div>
-              <div className="mt-4 text-xs text-gray-500">
+              <div className="mt-4 text-xs text-slate-500 dark:text-gray-500">
                 By subscribing, you agree to our Privacy Policy and consent to receive updates.
               </div>
             </div>
           </div>
 
           {/* Bottom Bar */}
-          <div className="border-t border-slate-700 pt-8 mt-8">
+          <div className="border-t border-slate-200 dark:border-slate-700 pt-8 mt-8">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               <div className="text-sm space-y-2 md:space-y-0 text-center md:text-left">
                 <p>© 2024 TaxoMind. All rights reserved.</p>
-                <div className="flex flex-wrap gap-4 text-gray-400 justify-center md:justify-start">
-                  <Link href="/terms" className="hover:text-purple-400 transition-colors">Terms</Link>
-                  <Link href="/privacy" className="hover:text-purple-400 transition-colors">Privacy</Link>
-                  <Link href="/cookies" className="hover:text-purple-400 transition-colors">Cookies</Link>
-                  <Link href="/security" className="hover:text-purple-400 transition-colors">Security</Link>
+                <div className="flex flex-wrap gap-4 text-slate-500 dark:text-gray-400 justify-center md:justify-start">
+                  <Link href="/terms" className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Terms</Link>
+                  <Link href="/privacy" className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Privacy</Link>
+                  <Link href="/cookies" className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Cookies</Link>
+                  <Link href="/security" className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Security</Link>
                 </div>
               </div>
               <p className="text-sm flex items-center">

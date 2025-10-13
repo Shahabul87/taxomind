@@ -447,6 +447,201 @@ Proceed? (yes/no)
 - **Coverage**: 70% minimum threshold for branches, functions, lines, statements
 - **Path Mapping**: Matches application path aliases
 
+## 🔧 SYSTEMATIC TEST FAILURE RESOLUTION FRAMEWORK
+
+**CRITICAL**: When tests fail in this project, ALWAYS follow this systematic debugging approach:
+
+### Phase 1: Project-Specific Error Analysis
+
+1. **Taxomind Test Environment Assessment**:
+   ```bash
+   # Check which Jest config is being used
+   npm test -- --showConfig
+   
+   # Run failing tests with project-specific verbose output
+   npm test __tests__/[failing-file] -- --verbose
+   ```
+
+2. **Common Taxomind Test Failure Categories**:
+   - **NextAuth Issues**: ES module imports causing Jest failures
+   - **Prisma Mocking**: Database relations and schema mismatches
+   - **NextResponse**: Middleware and API route mocking issues
+   - **React Hook Forms**: Complex form validation in Jest environment
+   - **Path Aliases**: `@/` imports not resolving correctly
+
+3. **Project-Specific Root Cause Mapping**:
+   ```typescript
+   // Common Taxomind-specific errors and solutions:
+   
+   // ❌ Error: "jest.mock('@/lib/auth-audit')" not found
+   // ✅ Solution: Check actual file location
+   find . -name "*auth-audit*" -type f
+   // Result: ./lib/audit/auth-audit.ts
+   
+   // ❌ Error: "Invalid hook call" in login form tests
+   // ✅ Solution: Use proper React Testing Library import
+   import { render } from '@testing-library/react';
+   
+   // ❌ Error: NextResponse.redirect returns undefined
+   // ✅ Solution: Fix Jest mock return value
+   const mockNextResponse = {
+     redirect: jest.fn().mockReturnValue({ status: 307, headers: { Location: 'test' } })
+   };
+   ```
+
+### Phase 2: Taxomind-Specific Investigation
+
+1. **Database Schema Verification**:
+   ```bash
+   # Always verify Prisma relations before writing tests
+   cat prisma/schema.prisma | grep -A 10 "model User"
+   cat prisma/schema.prisma | grep -A 10 "model Course"
+   
+   # Check relation naming (capitalize Model names in relations)
+   # ✅ Correct: user.Enrollment, course.Purchase
+   # ❌ Wrong: user.enrollment, course.purchase
+   ```
+
+2. **NextAuth Module Resolution**:
+   ```typescript
+   // ❌ Problem: NextAuth provider imports causing ES module errors
+   import { providers } from 'next-auth';
+   
+   // ✅ Solution: Avoid NextAuth imports in tests, create simplified mocks
+   const mockAuth = jest.fn();
+   const middlewareLogic = async (pathname: string, session: MockSession | null) => {
+     // Direct implementation without NextAuth imports
+   };
+   ```
+
+3. **API Route Testing Pattern**:
+   ```typescript
+   // ✅ Taxomind standard: Simplified API handlers for testing
+   const POST = async (body: Record<string, unknown>) => {
+     const user = await currentUser();
+     if (!user) {
+       return { status: 401, json: () => Promise.resolve({ error: 'Unauthorized' }) };
+     }
+     // ... API logic
+   };
+   ```
+
+### Phase 3: Taxomind Resolution Strategies
+
+1. **Middleware Testing Approach**:
+   ```typescript
+   // ✅ Proven pattern for Taxomind middleware tests
+   const mockNextResponse = {
+     redirect: jest.fn().mockReturnValue({
+       status: 307,
+       headers: { Location: 'mocked-redirect' },
+     }),
+   };
+   
+   // Reset mocks properly in beforeEach
+   beforeEach(() => {
+     mockNextResponse.redirect.mockClear();
+     mockNextResponse.redirect.mockReturnValue({
+       status: 307,
+       headers: { Location: 'mocked-redirect' },
+     });
+   });
+   ```
+
+2. **Auth Action Testing Pattern**:
+   ```typescript
+   // ✅ Correct auth-audit mock path for Taxomind
+   jest.mock('@/lib/audit/auth-audit', () => ({
+     authAuditHelpers: {
+       logSignInSuccess: jest.fn(),
+       logSignInFailed: jest.fn(),
+     },
+   }));
+   ```
+
+3. **React Component Testing**:
+   ```typescript
+   // ✅ Simplified component approach for complex forms
+   const MockLoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
+     const [email, setEmail] = React.useState('');
+     // Simplified state management without React Hook Form complexity
+     return (
+       <form onSubmit={handleSubmit}>
+         <input data-testid="email-input" value={email} onChange={(e) => setEmail(e.target.value)} />
+       </form>
+     );
+   };
+   ```
+
+### Phase 4: Taxomind Quality Gates
+
+1. **Project-Specific Test Validation**:
+   ```bash
+   # Run tests using working config
+   npm test -- --config jest.config.working.js
+   
+   # Validate specific test categories
+   npm test __tests__/api/          # API tests
+   npm test __tests__/components/   # Component tests
+   npm test __tests__/actions/      # Server action tests
+   npm test __tests__/middleware.test.ts  # Middleware tests
+   ```
+
+2. **Taxomind Code Quality Checks**:
+   ```bash
+   # MANDATORY after fixing tests
+   npx tsc --noEmit                 # TypeScript validation
+   npm run lint                     # Project ESLint rules
+   npx eslint __tests__/[modified-files]  # Specific file linting
+   ```
+
+### 🚨 TAXOMIND-SPECIFIC TEST RULES
+
+1. **NEVER use jest.clearAllMocks() without resetting implementations**
+2. **ALWAYS verify Prisma relation names match schema exactly**
+3. **NEVER import NextAuth providers directly in tests**
+4. **ALWAYS use data-testid for component element selection**
+5. **NEVER assume module paths - always verify with find command**
+
+### Taxomind Test Debugging Commands
+
+```bash
+# Project-specific debugging toolkit
+npm test [file] -- --config jest.config.working.js --verbose
+find . -name "*auth*" -type f | grep -E "(test|spec)"
+grep -r "jest.mock" __tests__/ --include="*.ts" --include="*.tsx"
+npx prisma studio  # Verify database schema visually
+npm run dev:db:seed && npm test  # Reset test data and run tests
+```
+
+### Common Taxomind Test Patterns
+
+```typescript
+// 1. API Route Testing Pattern
+const API_HANDLER = async (body: Record<string, unknown>, params?: Record<string, string>) => {
+  // Simplified implementation that mirrors actual API behavior
+};
+
+// 2. Database Mock Pattern
+jest.mock('@/lib/db', () => ({
+  db: {
+    user: { findUnique: jest.fn(), create: jest.fn() },
+    course: { findFirst: jest.fn(), update: jest.fn() }
+  }
+}));
+
+// 3. Auth Mock Pattern
+jest.mock('@/lib/auth', () => ({
+  currentUser: jest.fn()
+}));
+
+// 4. Component Testing Pattern
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+// Use explicit imports, proper data-testid attributes
+```
+
+**Remember**: These patterns are battle-tested specifically for the Taxomind codebase and prevent recurring test failures.
+
 ## Lucide React Icon Import Best Practices
 
 ### ✅ CORRECT Icon Names

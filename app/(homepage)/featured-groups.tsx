@@ -22,7 +22,7 @@ export const FeaturedGroups = () => {
   return (
     <section>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
           Featured Study Groups
         </h2>
         <Link href="/groups">
@@ -40,7 +40,7 @@ export const FeaturedGroups = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-slate-200 dark:border-gray-700"
           >
             <div className="h-48 relative">
               <Image
@@ -62,7 +62,7 @@ export const FeaturedGroups = () => {
               </div>
             </div>
             <div className="p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+              <p className="text-sm text-slate-600 dark:text-gray-300 mb-4">
                 {group.description}
               </p>
               <Link href={`/groups/${group.id}`}>

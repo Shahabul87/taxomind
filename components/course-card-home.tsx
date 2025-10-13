@@ -27,14 +27,14 @@ export const CourseCardHome = ({
   category,
 }: CourseCardProps) => {
   return (
-    <Link href={`/courses/${id}`} prefetch={true}>
+    <Link href={`/courses/${id}`} prefetch={false}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         whileHover={{ y: -5 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="group relative overflow-hidden rounded-xl bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/50 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 h-[400px] sm:h-[420px] md:h-[450px] lg:h-[420px] xl:h-[430px] w-full"
+        className="group relative overflow-hidden rounded-xl bg-white dark:bg-gray-900/60 border border-slate-200 dark:border-gray-800/50 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 h-[400px] sm:h-[420px] md:h-[450px] lg:h-[420px] xl:h-[430px] w-full"
       >
         {/* Image Container with Parallax Effect */}
         <div className="w-full h-40 sm:h-44 md:h-48 lg:h-44 relative overflow-hidden rounded-t-xl">
@@ -42,6 +42,7 @@ export const CourseCardHome = ({
             src={imageUrl || "/placeholder.svg"}
             alt={title}
             fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-60" />
@@ -74,20 +75,20 @@ export const CourseCardHome = ({
         {/* Content */}
         <div className="p-4 sm:p-5 flex flex-col h-[calc(400px-160px)] sm:h-[calc(420px-176px)] md:h-[calc(450px-192px)] lg:h-[calc(420px-176px)] xl:h-[calc(430px-176px)]">
           {/* Title with animated underline */}
-          <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-gray-900 dark:text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-blue-600 transition-all duration-300 line-clamp-2 relative">
+          <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-slate-900 dark:text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-blue-600 transition-all duration-300 line-clamp-2 relative">
             {title}
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-600 to-blue-600 transition-all duration-300 group-hover:w-full"></span>
           </h3>
 
           {/* Description as plain text with dimmer color */}
           <div className="mb-3 sm:mb-4 flex-grow">
-            <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-relaxed line-clamp-3">
+            <p className="text-slate-600 dark:text-gray-400 text-xs sm:text-sm leading-relaxed line-clamp-3">
               {cleanDescription ? cleanDescription : "No description available for this course."}
             </p>
           </div>
 
           {/* Course Details */}
-          <div className="grid grid-cols-2 gap-y-2 gap-x-3 mb-3 sm:mb-4 text-xs text-gray-500 dark:text-gray-400">
+          <div className="grid grid-cols-2 gap-y-2 gap-x-3 mb-3 sm:mb-4 text-xs text-slate-600 dark:text-gray-400">
             <motion.div 
               className="flex items-center gap-1.5"
               whileHover={{ scale: 1.05, color: "#8b5cf6" }}

@@ -12,12 +12,7 @@ import {
   FingerprintAnalysis
 } from '@/lib/security/session-fingerprint';
 
-// Mock Next.js headers
-jest.mock('next/headers', () => ({
-  headers: jest.fn(),
-}));
-
-import { headers } from 'next/headers';
+// No need to mock Next.js headers since the function uses Request object
 
 describe('Session Fingerprinting System', () => {
   const mockHeaders = new Map([
@@ -39,16 +34,18 @@ describe('Session Fingerprinting System', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Mock headers function
-    (headers as jest.Mock).mockReturnValue({
-      get: jest.fn((name: string) => mockHeaders.get(name) || null),
-    });
   });
 
   describe('Server-side fingerprint extraction', () => {
     it('should extract fingerprint from server headers', async () => {
-      const fingerprint = await extractServerFingerprint();
+      // Create a mock Request object
+      const mockRequest = {
+        headers: {
+          get: jest.fn((name: string) => mockHeaders.get(name) || null),
+        },
+      } as unknown as Request;
+      
+      const fingerprint = await extractServerFingerprint(mockRequest);
       
       expect(fingerprint.userAgent).toBe(mockHeaders.get('user-agent'));
       expect(fingerprint.acceptHeader).toBe(mockHeaders.get('accept'));
@@ -57,11 +54,14 @@ describe('Session Fingerprinting System', () => {
     });
 
     it('should handle missing headers gracefully', async () => {
-      (headers as jest.Mock).mockReturnValue({
-        get: jest.fn(() => null), // All headers return null
-      });
+      // Create a mock Request with no headers
+      const mockRequest = {
+        headers: {
+          get: jest.fn(() => null), // All headers return null
+        },
+      } as unknown as Request;
       
-      const fingerprint = await extractServerFingerprint();
+      const fingerprint = await extractServerFingerprint(mockRequest);
       
       expect(fingerprint.userAgent).toBe('');
       expect(fingerprint.acceptHeader).toBe('');
@@ -70,12 +70,8 @@ describe('Session Fingerprinting System', () => {
     });
 
     it('should handle headers() function errors', async () => {
-      (headers as jest.Mock).mockImplementation(() => {
-        throw new Error('Headers not available');
-      });
-      
-      // Should not crash
-      const fingerprint = await extractServerFingerprint();
+      // Pass undefined to trigger default empty response
+      const fingerprint = await extractServerFingerprint(undefined);
       
       expect(fingerprint.userAgent).toBe('');
       expect(fingerprint.acceptHeader).toBe('');
@@ -89,11 +85,13 @@ describe('Session Fingerprinting System', () => {
         ['accept', 'application/json'],
       ]);
       
-      (headers as jest.Mock).mockReturnValue({
-        get: jest.fn((name: string) => specificHeaders.get(name) || null),
-      });
+      const mockRequest = {
+        headers: {
+          get: jest.fn((name: string) => specificHeaders.get(name) || null),
+        },
+      } as unknown as Request;
       
-      const fingerprint = await extractServerFingerprint();
+      const fingerprint = await extractServerFingerprint(mockRequest);
       
       expect(fingerprint.userAgent).toBe('Custom-Browser/1.0');
       expect(fingerprint.acceptHeader).toBe('application/json');

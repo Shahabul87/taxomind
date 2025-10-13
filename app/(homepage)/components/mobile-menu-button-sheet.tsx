@@ -28,7 +28,7 @@ export const MobileMenuButton = ({ dashboardLink, isOpen, setIsOpen }: MobileMen
     <Sheet>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+          <Menu className="h-6 w-6 text-slate-600 dark:text-gray-300" />
         </Button>
       </SheetTrigger>
       <SheetContent 
@@ -36,13 +36,13 @@ export const MobileMenuButton = ({ dashboardLink, isOpen, setIsOpen }: MobileMen
         className="w-[85vw] sm:w-[400px] p-0"
       >
         <div className="flex flex-col h-full">
-          <SheetHeader className="px-6 border-b border-gray-200 dark:border-gray-800">
+          <SheetHeader className="px-6 border-b border-slate-200 dark:border-gray-800">
             <SheetTitle className="flex items-center">
               <SheetClose asChild>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="hover:bg-slate-100 dark:hover:bg-gray-800"
                 >
                   Menu
                 </Button>
@@ -68,8 +68,8 @@ export const MobileMenuButton = ({ dashboardLink, isOpen, setIsOpen }: MobileMen
                   href={item.href}
                   className={cn(
                     "flex items-center px-4 py-2.5 text-sm rounded-lg",
-                    "text-gray-700 dark:text-gray-300",
-                    "hover:bg-gray-100 dark:hover:bg-gray-800",
+                    "text-slate-700 dark:text-gray-300",
+                    "hover:bg-slate-100 dark:hover:bg-gray-800",
                     "transition-all duration-200"
                   )}
                 >
@@ -79,13 +79,13 @@ export const MobileMenuButton = ({ dashboardLink, isOpen, setIsOpen }: MobileMen
             </nav>
           </div>
 
-          <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-2">
+          <div className="mt-auto border-t border-slate-200 dark:border-gray-800 p-2">
             <Link
               href="/profile"
               className={cn(
                 "flex items-center px-4 py-2.5 text-sm rounded-lg mb-2",
-                "text-gray-700 dark:text-gray-300",
-                "hover:bg-gray-100 dark:hover:bg-gray-800",
+                "text-slate-700 dark:text-gray-300",
+                "hover:bg-slate-100 dark:hover:bg-gray-800",
                 "transition-all duration-200"
               )}
             >

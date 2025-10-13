@@ -19,6 +19,11 @@ export const AUTH_RATE_LIMITS = {
     window: '15 m',
     endpoint: '/api/auth/login'
   },
+  'admin-login': {
+    requests: 3,
+    window: '15 m',
+    endpoint: '/admin/auth/login'
+  },
   register: {
     requests: 3,
     window: '1 h',

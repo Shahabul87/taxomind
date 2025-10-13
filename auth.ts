@@ -1,6 +1,11 @@
+// CRITICAL: Mark this file as server-only to prevent client-side bundling
+import "server-only";
+
 import NextAuth from "next-auth"
 import { UserRole } from "@prisma/client";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import type { JWT } from "next-auth/jwt";
+import type { Session, User } from "next-auth";
 
 import { db } from "@/lib/db";
 import authConfig from "@/auth.config";
@@ -23,12 +28,11 @@ if (!validateCookieConfig(DefaultCookieConfig)) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   pages: {
     signIn: "/auth/login",
     error: "/auth/error",
   },
-  trustHost: true,
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   events: {
     async linkAccount({ user, account }) {
       await db.user.update({
@@ -56,12 +60,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ).catch(console.error); // Don't fail auth if logging fails
       }
     },
-    async signOut({ session, token }: { session?: any; token?: any }) {
+    async signOut(message) {
       // Log sign-out events
-      if (token?.sub && token?.email) {
+      if ('token' in message && message.token?.sub && message.token?.email) {
         await authAuditHelpers.logSignOut(
-          token.sub, 
-          token.email as string, 
+          message.token.sub, 
+          message.token.email as string, 
           false
         ).catch(console.error); // Don't fail auth if logging fails
       }
@@ -99,7 +103,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: user?.email 
       });
       
-      if (account?.provider !== "credentials") {
+      // For OAuth providers, always allow
+      if (account?.provider && account.provider !== "credentials") {
         console.log("OAuth login, allowing sign in");
         return true;
       }
@@ -171,12 +176,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         console.log("Authentication successful, allowing sign in");
         return true;
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error in signIn callback:", error);
         return false;
       }
     },
-    async session({ token, session, req }: { token: any; session: any; req?: any }) {
+    async session({ token, session }) {
       if (!token || !session) {
         console.error("Missing token or session in session callback");
         return session;
@@ -185,44 +190,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.sub && session.user) {
         session.user.id = token.sub;
 
-        // Validate session fingerprint if we have a session token
-        try {
-          if (req && token.sessionToken) {
-            const validation = await SessionManager.validateSessionFingerprint(
-              token.sessionToken as string,
-              token.sub
-            );
-
-            // Add security metadata to session
-            (session as any).security = {
-              riskLevel: validation.riskLevel,
-              fingerprintValid: validation.isValid,
-              lastCheck: new Date().toISOString(),
-            };
-
-            // If fingerprint validation fails critically, mark session as invalid
-            if (validation.shouldForceReauth) {
-              console.warn(`Session fingerprint validation failed for user ${token.sub}: ${validation.changes.join(', ')}`);
-              return { ...session, user: null }; // This will force re-authentication
-            }
-
-            // Store validation result for middleware use
-            if (validation.shouldAlert && validation.changes.length > 0) {
-              console.warn(`Session fingerprint changes detected for user ${token.sub}:`, validation.changes);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to validate session fingerprint:', error);
-          // Don&apos;t fail the entire session for fingerprint validation errors
-          // but log it for monitoring
-        }
+        // Skip session fingerprint validation for now (req parameter not available)
+        // This can be re-enabled when NextAuth provides request context
       }
       
       if (token.role && session.user) {
         session.user.role = token.role as UserRole;
         
         // Store role in session for dynamic session config
-        (session as any).expires = new Date(Date.now() + getSessionConfig(token.role as string).maxAge * 1000).toISOString();
+        // Session expiry is handled by NextAuth based on jwt.maxAge
       }
 
       if (session.user) {
@@ -259,29 +235,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         
         return token;
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error in JWT callback:", error);
         return token;
       }
     }
   },
   adapter: PrismaAdapter(db),
-  session: { 
-    strategy: "jwt",
-    // Default session configuration - will be overridden per-user based on role
-    maxAge: getSessionConfig().maxAge,
-    updateAge: getSessionConfig().updateAge,
-    // Generate new session ID on role change
-    generateSessionToken: () => {
-      const crypto = require('crypto');
-      return crypto.randomUUID();
-    },
-  },
-  // Enhanced security settings
-  jwt: {
-    // JWT token expiration should match session maxAge
-    maxAge: getSessionConfig().maxAge,
-  },
   // Override debug in production
   debug: process.env.NODE_ENV === 'development',
   // Additional security configuration
@@ -289,5 +249,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Enable WebAuthn for future use
     enableWebAuthn: true,
   },
-  ...authConfig,
 });

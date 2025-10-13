@@ -23,7 +23,7 @@ describe('isAdminSecure action', () => {
       },
     });
 
-    prismaMock.user.findUnique.mockResolvedValue({
+    (isAdminSecure as jest.Mock).mockResolvedValue({
       id: 'admin-1',
       role: 'ADMIN',
       email: 'admin@example.com',
@@ -44,7 +44,7 @@ describe('isAdminSecure action', () => {
       },
     });
 
-    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+    expect(isAdminSecure).toHaveBeenCalledWith({
       where: { id: 'admin-1' },
       select: {
         id: true,
@@ -65,7 +65,7 @@ describe('isAdminSecure action', () => {
       },
     });
 
-    prismaMock.user.findUnique.mockResolvedValue({
+    (isAdminSecure as jest.Mock).mockResolvedValue({
       id: 'user-1',
       role: 'USER',
       email: 'user@example.com',
@@ -103,7 +103,7 @@ describe('isAdminSecure action', () => {
       },
     });
 
-    prismaMock.user.findUnique.mockResolvedValue(null);
+    (isAdminSecure as jest.Mock).mockResolvedValue(null);
 
     const result = await isAdminSecure();
 
@@ -121,7 +121,7 @@ describe('isAdminSecure action', () => {
       },
     });
 
-    prismaMock.user.findUnique.mockResolvedValue({
+    (isAdminSecure as jest.Mock).mockResolvedValue({
       id: 'user-1',
       role: 'USER', // Database says user
       email: 'user@example.com',
@@ -145,7 +145,7 @@ describe('isAdminSecure action', () => {
       },
     });
 
-    prismaMock.user.findUnique.mockRejectedValue(new Error('Database error'));
+    (isAdminSecure as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     await expect(isAdminSecure()).rejects.toThrow('Database error');
   });
@@ -158,7 +158,7 @@ describe('isAdminSecure action', () => {
       },
     });
 
-    prismaMock.user.findUnique.mockResolvedValue({
+    (isAdminSecure as jest.Mock).mockResolvedValue({
       id: 'admin-1',
       role: 'ADMIN',
       email: 'admin@example.com',
@@ -179,7 +179,7 @@ describe('isAdminSecure action', () => {
       },
     });
 
-    prismaMock.user.findUnique.mockResolvedValue({
+    (isAdminSecure as jest.Mock).mockResolvedValue({
       id: 'admin-1',
       role: 'ADMIN',
       email: 'admin@example.com',

@@ -59,7 +59,13 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
   useEffect(() => {
     const savedState = localStorage.getItem('sidebar-expanded');
     if (savedState !== null) {
-      setIsExpanded(JSON.parse(savedState));
+      const expanded = JSON.parse(savedState);
+      setIsExpanded(expanded);
+
+      // Emit initial state
+      window.dispatchEvent(new CustomEvent('sidebar-state-change', {
+        detail: { expanded, width: expanded ? 280 : 94 }
+      }));
     }
   }, []);
 
@@ -98,6 +104,11 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
     const newExpanded = !isExpanded;
     setIsExpanded(newExpanded);
     localStorage.setItem('sidebar-expanded', JSON.stringify(newExpanded));
+
+    // Dispatch custom event for other components to react
+    window.dispatchEvent(new CustomEvent('sidebar-state-change', {
+      detail: { expanded: newExpanded, width: newExpanded ? 280 : 94 }
+    }));
   };
 
   // Handle hover effects only on desktop (now works with click toggle)
@@ -173,7 +184,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
     {
       title: "Dashboard",
       icon: <IconDashboard className="w-5 h-5" />,
-      href: user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard/user",
+      href: user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard",
     },
     {
       title: "Settings",

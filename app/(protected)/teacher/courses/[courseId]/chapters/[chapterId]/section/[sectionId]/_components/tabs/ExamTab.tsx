@@ -22,20 +22,19 @@ export const ExamTab = ({
 }: ExamTabProps) => {
   return (
     <div className="animate-fadeIn">
-      <div className="relative group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-500 to-rose-600 rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition duration-300"></div>
-        <div className="relative bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-red-50 dark:bg-red-900/30 rounded-lg">
-              <FileQuestion className="h-6 w-6 text-red-600 dark:text-red-400" />
+      <div className="space-y-4">
+        <div className="relative bg-card/50 backdrop-blur-sm p-5 rounded-lg border border-border shadow-md">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="p-2 bg-gradient-to-br from-red-500/10 to-rose-500/10 border border-red-500/20 rounded-lg">
+              <FileQuestion className="h-4 w-4 text-red-600 dark:text-red-400" />
             </div>
-            <h2 className="text-xl font-bold bg-gradient-to-r from-red-600 to-rose-600 dark:from-red-400 dark:to-rose-400 bg-clip-text text-transparent">
+            <h2 className="text-sm font-medium text-foreground">
               Exam Creator
             </h2>
           </div>
-          
-          <div className="mt-4">
-            <ExamCreationForm 
+
+          <div className="mt-3">
+            <ExamCreationForm
               courseId={courseId}
               chapterId={chapterId}
               sectionId={sectionId}
