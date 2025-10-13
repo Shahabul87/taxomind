@@ -1,9 +1,18 @@
 import { db } from "@/lib/db";
 import { UserRole } from "@/lib/prisma-types";
 
+// Force dynamic rendering to avoid build-time database queries
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboard() {
-  const stats = await db.user.count();
-  
+  let stats = 0;
+  try {
+    stats = await db.user.count();
+  } catch (error) {
+    console.error("Database error in User.count:", error);
+    // Return 0 during build if database is not ready
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>

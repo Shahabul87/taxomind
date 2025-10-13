@@ -6,7 +6,9 @@ import { FeaturedCoursesSection } from './featured-courses-section';
 import { FeaturedBlogPostsSection } from './featured-blog-posts-section';
 import TestimonialsSection from './testimonials-section';
 
-export const dynamic = 'force-static';
+// Use dynamic rendering to avoid build-time database queries
+// This prevents build failures when database is not yet migrated
+export const dynamic = 'force-dynamic';
 export const revalidate = 180; // Re-generate homepage every 3 minutes
 
 const Home = async () => {

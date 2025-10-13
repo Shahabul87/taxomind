@@ -1,6 +1,9 @@
 import { db } from "@/lib/db";
 import { UsersClient } from "./users-client";
 
+// Force dynamic rendering to avoid build-time database queries
+export const dynamic = 'force-dynamic';
+
 // Response type
 interface UserData {
   id: string;
@@ -98,7 +101,8 @@ async function getUsersData(): Promise<UserData[]> {
 
     return transformedUsers;
   } catch (error) {
-    console.error("Error fetching users:", error);
+    console.error("Database error in User.findMany:", error);
+    // Return empty array during build if database is not ready
     return [];
   }
 }

@@ -51,29 +51,35 @@ const extractTextFromHtml = (html: string | null): string => {
  */
 export const getHomepageFeaturedCourses = cacheWrapper(
   async (limit: number = 8): Promise<HomepageCourse[]> => {
-    const courses = await db.course.findMany({
-      where: { isPublished: true, isFeatured: true },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        imageUrl: true,
-        price: true,
-        isPublished: true,
-        isFeatured: true,
-        category: { select: { name: true } },
-        chapters: { select: { id: true }, where: { isPublished: true } },
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: limit,
-    });
+    try {
+      const courses = await db.course.findMany({
+        where: { isPublished: true, isFeatured: true },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          imageUrl: true,
+          price: true,
+          isPublished: true,
+          isFeatured: true,
+          category: { select: { name: true } },
+          chapters: { select: { id: true }, where: { isPublished: true } },
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      });
 
-    return courses.map((c) => ({
-      ...c,
-      cleanDescription: extractTextFromHtml(c.description),
-    }));
+      return courses.map((c) => ({
+        ...c,
+        cleanDescription: extractTextFromHtml(c.description),
+      }));
+    } catch (error) {
+      console.error("Database error in Course.findMany:", error);
+      // Return empty array during build if database is not ready
+      return [];
+    }
   },
   ["homepage-featured-courses"],
   { revalidate: CACHE_REVALIDATE_TIMES.COURSES, tags: [CACHE_TAGS.COURSES] }
@@ -84,34 +90,40 @@ export const getHomepageFeaturedCourses = cacheWrapper(
  */
 export const getHomepageFeaturedPosts = cacheWrapper(
   async (limit: number = 6): Promise<HomepagePost[]> => {
-    const posts = await db.post.findMany({
-      where: { published: true, isArchived: false },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        imageUrl: true,
-        published: true,
-        category: true,
-        createdAt: true,
-        updatedAt: true,
-        authorId: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: limit,
-    });
+    try {
+      const posts = await db.post.findMany({
+        where: { published: true, isArchived: false },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          imageUrl: true,
+          published: true,
+          category: true,
+          createdAt: true,
+          updatedAt: true,
+          authorId: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      });
 
-    return posts.map((p) => ({
-      id: p.id,
-      title: p.title || "Untitled Post",
-      description: p.description || null,
-      imageUrl: p.imageUrl || null,
-      published: true,
-      category: p.category || null,
-      createdAt: (p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt as any)).toISOString(),
-      updatedAt: p.updatedAt as Date,
-      userId: p.authorId || '',
-    }));
+      return posts.map((p) => ({
+        id: p.id,
+        title: p.title || "Untitled Post",
+        description: p.description || null,
+        imageUrl: p.imageUrl || null,
+        published: true,
+        category: p.category || null,
+        createdAt: (p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt as any)).toISOString(),
+        updatedAt: p.updatedAt as Date,
+        userId: p.authorId || '',
+      }));
+    } catch (error) {
+      console.error("Database error in Post.findMany:", error);
+      // Return empty array during build if database is not ready
+      return [];
+    }
   },
   ["homepage-featured-posts"],
   { revalidate: CACHE_REVALIDATE_TIMES.POSTS, tags: [CACHE_TAGS.POSTS] }
