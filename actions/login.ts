@@ -23,7 +23,7 @@ import {
   verifyTOTPToken,
   verifyRecoveryCode
 } from "@/lib/auth/totp";
-import { rateLimitAuth } from "@/lib/rate-limit";
+import { rateLimitAuth } from "@/lib/rate-limit-server";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
 
 export const login = async (

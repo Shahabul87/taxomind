@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { getUserByEmail } from "@/data/user";
 import { getVerificationTokenByToken } from "@/data/verification-token";
-import { rateLimitAuth } from "@/lib/rate-limit";
+import { rateLimitAuth } from "@/lib/rate-limit-server";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
 
 export const newVerification = async (token: string) => {

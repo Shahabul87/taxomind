@@ -7,7 +7,7 @@ import { ResetSchema } from "@/schemas";
 import { getUserByEmail } from "@/data/user";
 import { generatePasswordResetToken } from "@/lib/tokens";
 import { queuePasswordResetEmail } from "@/lib/queue/email-queue-simple";
-import { rateLimitAuth } from "@/lib/rate-limit";
+import { rateLimitAuth } from "@/lib/rate-limit-server";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
 
 export const reset = async (values: z.infer<typeof ResetSchema>) => {

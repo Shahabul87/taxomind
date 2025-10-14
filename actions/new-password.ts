@@ -7,7 +7,7 @@ import { NewPasswordSchema } from "@/schemas";
 import { getPasswordResetTokenByToken } from "@/data/password-reset-token";
 import { getUserByEmail } from "@/data/user";
 import { db } from "@/lib/db";
-import { rateLimitAuth } from "@/lib/rate-limit";
+import { rateLimitAuth } from "@/lib/rate-limit-server";
 import * as bcrypt from "bcryptjs";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
 

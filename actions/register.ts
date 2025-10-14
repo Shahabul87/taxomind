@@ -7,7 +7,7 @@ import { RegisterSchema } from "@/schemas";
 import { getUserByEmail } from "@/data/user";
 import { generateVerificationToken } from "@/lib/tokens";
 import { queueVerificationEmail } from "@/lib/queue/email-queue-simple";
-import { rateLimitAuth } from "@/lib/rate-limit";
+import { rateLimitAuth } from "@/lib/rate-limit-server";
 import * as bcrypt from "bcryptjs";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
 
