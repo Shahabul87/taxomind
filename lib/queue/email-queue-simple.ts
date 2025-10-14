@@ -57,22 +57,41 @@ export interface TwoFactorEmailData {
 
 export async function queueVerificationEmail(data: VerificationEmailData): Promise<void> {
   try {
-    // In production, this would send to the actual queue
-    // For now, log the intent
     logger.info('Queueing verification email', {
       email: data.userEmail,
       userId: data.userId,
       isResend: data.isResend
     });
-    
-    // In development/simple mode, could send directly via API
-    if (process.env.NODE_ENV === 'development') {
-      // Direct send logic could go here
-      console.log('[Email Queue] Would send verification email to:', data.userEmail);
+
+    // Send email using SMTP
+    const { sendEmail, isSmtpConfigured } = await import('@/lib/email/smtp-service');
+    const { getVerificationEmailTemplate } = await import('@/lib/email/templates');
+
+    if (!isSmtpConfigured()) {
+      console.warn('[Email Queue] SMTP not configured - email not sent to:', data.userEmail);
+      return;
+    }
+
+    const emailTemplate = getVerificationEmailTemplate({
+      userName: data.userName,
+      verificationToken: data.verificationToken,
+    });
+
+    const sent = await sendEmail({
+      to: data.userEmail,
+      subject: emailTemplate.subject,
+      html: emailTemplate.html,
+    });
+
+    if (sent) {
+      console.log('[Email Queue] ✅ Verification email sent successfully to:', data.userEmail);
+    } else {
+      console.error('[Email Queue] ❌ Failed to send verification email to:', data.userEmail);
     }
   } catch (error) {
     logger.error('Failed to queue verification email', error);
-    throw error;
+    // Don't throw - we don't want registration to fail if email fails
+    console.error('[Email Queue] Error sending verification email:', error);
   }
 }
 
@@ -82,13 +101,35 @@ export async function queuePasswordResetEmail(data: PasswordResetEmailData): Pro
       email: data.userEmail,
       userId: data.userId
     });
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Email Queue] Would send password reset email to:', data.userEmail);
+
+    // Send email using SMTP
+    const { sendEmail, isSmtpConfigured } = await import('@/lib/email/smtp-service');
+    const { getPasswordResetEmailTemplate } = await import('@/lib/email/templates');
+
+    if (!isSmtpConfigured()) {
+      console.warn('[Email Queue] SMTP not configured - email not sent to:', data.userEmail);
+      return;
+    }
+
+    const emailTemplate = getPasswordResetEmailTemplate({
+      userName: data.userName,
+      resetToken: data.resetToken,
+    });
+
+    const sent = await sendEmail({
+      to: data.userEmail,
+      subject: emailTemplate.subject,
+      html: emailTemplate.html,
+    });
+
+    if (sent) {
+      console.log('[Email Queue] ✅ Password reset email sent successfully to:', data.userEmail);
+    } else {
+      console.error('[Email Queue] ❌ Failed to send password reset email to:', data.userEmail);
     }
   } catch (error) {
     logger.error('Failed to queue password reset email', error);
-    throw error;
+    console.error('[Email Queue] Error sending password reset email:', error);
   }
 }
 
@@ -98,13 +139,35 @@ export async function queue2FAEmail(data: TwoFactorEmailData): Promise<void> {
       email: data.userEmail,
       userId: data.userId
     });
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Email Queue] Would send 2FA code to:', data.userEmail, 'Code:', data.code);
+
+    // Send email using SMTP
+    const { sendEmail, isSmtpConfigured } = await import('@/lib/email/smtp-service');
+    const { getTwoFactorEmailTemplate } = await import('@/lib/email/templates');
+
+    if (!isSmtpConfigured()) {
+      console.warn('[Email Queue] SMTP not configured - email not sent to:', data.userEmail);
+      return;
+    }
+
+    const emailTemplate = getTwoFactorEmailTemplate({
+      userName: data.userName,
+      code: data.code,
+    });
+
+    const sent = await sendEmail({
+      to: data.userEmail,
+      subject: emailTemplate.subject,
+      html: emailTemplate.html,
+    });
+
+    if (sent) {
+      console.log('[Email Queue] ✅ 2FA email sent successfully to:', data.userEmail);
+    } else {
+      console.error('[Email Queue] ❌ Failed to send 2FA email to:', data.userEmail);
     }
   } catch (error) {
     logger.error('Failed to queue 2FA email', error);
-    throw error;
+    console.error('[Email Queue] Error sending 2FA email:', error);
   }
 }
 

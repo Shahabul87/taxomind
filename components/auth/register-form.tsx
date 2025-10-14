@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Github, Facebook, Twitter, Eye, EyeOff, Mail, User } from "lucide-react";
 import { GoogleIcon } from "@/components/icons/custom-icons";
 import { signIn } from "next-auth/react";
@@ -27,6 +28,7 @@ import { FormSuccess } from "@/components/form-success";
 import { register } from "@/actions/register";
 
 export const RegisterForm = () => {
+  const router = useRouter();
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
@@ -45,7 +47,7 @@ export const RegisterForm = () => {
   const onSubmit = (values: z.infer<typeof RegisterSchema>) => {
     setError("");
     setSuccess("");
-    
+
     startTransition(() => {
       register(values)
         .then((data) => {
@@ -56,6 +58,10 @@ export const RegisterForm = () => {
           if (data.success) {
             form.reset();
             setSuccess(data.success);
+            // Redirect to check-email page after successful registration
+            setTimeout(() => {
+              router.push('/auth/check-email');
+            }, 1500); // Short delay to show success message
           }
         });
     });
