@@ -1,0 +1,115 @@
+# ============================================
+# Railway-Compatible Next.js Dockerfile
+# ============================================
+#
+# This Dockerfile replicates the build process that Railway's Nixpacks
+# automatically generates for Next.js 15 applications.
+#
+# To build locally: docker build -f Dockerfile.railway -t taxomind-railway .
+# To run: docker run -p 3000:3000 --env-file .env.production taxomind-railway
+#
+
+# ============================================
+# Stage 1: Base Image (Dependencies)
+# ============================================
+FROM node:20-alpine AS base
+
+# Install required system dependencies (matching Railway/Nixpacks)
+RUN apk add --no-cache \
+    libc6-compat \
+    openssl \
+    ca-certificates
+
+WORKDIR /app
+
+# ============================================
+# Stage 2: Dependencies Installation
+# ============================================
+FROM base AS deps
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install dependencies with npm ci (exactly like Railway)
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Also create a dev dependencies install for the builder stage
+FROM base AS deps-dev
+COPY package.json package-lock.json* ./
+RUN npm ci && \
+    npm cache clean --force
+
+# ============================================
+# Stage 3: Builder (Build Application)
+# ============================================
+FROM base AS builder
+
+WORKDIR /app
+
+# Copy all dependencies (including dev dependencies for building)
+COPY --from=deps-dev /app/node_modules ./node_modules
+
+# Copy application source code
+COPY . .
+
+# Set production environment for build
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Railway's build command from railway.json:
+# "npx prisma generate && (npx prisma migrate deploy || npx prisma db push) && npm run build"
+
+# Step 1: Generate Prisma Client
+RUN npx prisma generate
+
+# Step 2: Build Next.js application
+# Note: Database migrations are skipped in build stage - they run at startup
+RUN npm run build
+
+# ============================================
+# Stage 4: Runner (Production Runtime)
+# ============================================
+FROM base AS runner
+
+WORKDIR /app
+
+# Set production environment
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Create a non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy built application files
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
+# Copy Prisma schema and generated client
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy production dependencies
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Copy scripts directory (if needed for startup)
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
+# Switch to non-root user
+USER nextjs
+
+# Expose the port Next.js runs on
+EXPOSE 3000
+
+# Health check (matching Railway's expectations)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
+
+# Start command (matching railway.json)
+# Railway runs: npm run start
+CMD ["npm", "run", "start"]

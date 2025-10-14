@@ -26,7 +26,7 @@
     "dev:clean": "node scripts/fix-css-dev.js && node scripts/load-env.js && next dev --turbo",
     "fix-css": "node scripts/fix-css-dev.js",
     "build": "NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && NODE_OPTIONS='--max-old-space-size=8192' next build",
-    "build:clean": "./scripts/clean-before-build.sh && npm run build",
+    "build:clean:basic": "./scripts/clean-before-build.sh && npm run build",
     "build:turbo": "NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && NODE_OPTIONS='--max-old-space-size=8192' next build --turbopack",
     "build:local:fast": "NEXT_TELEMETRY_DISABLED=1 SKIP_SENTRY=true SKIP_LINT=true SKIP_TYPE_CHECK=true NODE_OPTIONS='--max-old-space-size=8192' next build --no-lint",
     "build:optimized": "bash scripts/build-optimized.sh",

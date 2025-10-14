@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
         const verificationToken = await db.verificationToken.create({
           data: {
-            identifier: email,
+            email,
             token,
             expires
           }
@@ -81,11 +81,12 @@ export async function POST(request: Request) {
         try {
           await db.authAudit.create({
             data: {
+              id: `audit-${Date.now()}-${Math.random().toString(36).substring(7)}`,
               userId: newUser.id,
               email: email,
-              eventType: 'ACCOUNT_CREATED',
-              success: true,
-              metadata: { name },
+              action: 'ACCOUNT_CREATED',
+              status: 'success',
+              details: JSON.stringify({ name }),
               ipAddress: 'test',
               userAgent: 'test'
             }
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
         // Cleanup test data
         logs.push('16. Cleaning up test data...');
         await db.verificationToken.delete({
-          where: { identifier_token: { identifier: email, token } }
+          where: { email_token: { email, token } }
         });
         await db.user.delete({
           where: { id: newUser.id }
