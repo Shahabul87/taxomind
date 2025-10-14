@@ -69,15 +69,24 @@ export const AUTH_RATE_LIMITS = {
 // In-memory storage for rate limiting when Redis is not available
 const inMemoryStore = new Map<string, { count: number; resetTime: number }>();
 
-// Clean up expired entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of inMemoryStore.entries()) {
-    if (now > value.resetTime) {
-      inMemoryStore.delete(key);
+// Track if cleanup interval has been started
+let cleanupIntervalStarted = false;
+
+// Start cleanup interval lazily (only when in-memory store is actually used)
+function startCleanupInterval() {
+  if (cleanupIntervalStarted || typeof setInterval === 'undefined') return;
+  cleanupIntervalStarted = true;
+
+  // Clean up expired entries every 5 minutes
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of inMemoryStore.entries()) {
+      if (now > value.resetTime) {
+        inMemoryStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  }, 5 * 60 * 1000);
+}
 
 export type RateLimitResult = {
   success: boolean;
@@ -134,12 +143,14 @@ export async function rateLimit(
   }
 
   // In-memory fallback
+  startCleanupInterval(); // Start cleanup interval if not already started
+
   const key = `${identifier}:${limit}:${windowMs}`;
   const now = Date.now();
   const resetTime = now + windowMs;
-  
+
   const existing = inMemoryStore.get(key);
-  
+
   if (!existing || now > existing.resetTime) {
     // Reset or initialize counter
     inMemoryStore.set(key, { count: 1, resetTime });
