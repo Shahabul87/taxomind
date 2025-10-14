@@ -75,6 +75,12 @@ export const RegisterSchema = z.object({
   name: z.string().min(1, {
     message: "Name is required",
   }),
+  acceptTerms: z.boolean().refine((val) => val === true, {
+    message: "You must accept the terms and conditions",
+  }),
+  acceptPrivacy: z.boolean().refine((val) => val === true, {
+    message: "You must accept the privacy policy",
+  }),
 });
 
 export const RegisterTeacherSchema = z.object({
