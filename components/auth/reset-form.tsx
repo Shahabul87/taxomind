@@ -138,8 +138,9 @@ export const ResetForm = () => {
                               onBlur={() => setFocusedField(null)}
                             />
                           </FormControl>
-                          <div className={`absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 transition-all duration-300 
-                            ${field.value || focusedField === 'email' ? 'opacity-0 -translate-x-2' : 'opacity-100'}`}>
+                          <div className={`absolute left-4 top-1/2 transform -translate-y-1/2 transition-all duration-300
+                            ${field.value || focusedField === 'email' ? 'opacity-0 -translate-x-2' : 'opacity-100'}
+                            ${form.formState.errors.email ? 'text-red-500' : 'text-gray-500'}`}>
                             <Mail className="w-5 h-5" />
                           </div>
                           <div className={`absolute top-0 left-0 h-full w-2 rounded-l-xl transition-all duration-300 ${field.value ? 'bg-gradient-to-b from-cyan-400 to-purple-400' : 'bg-transparent'}`}></div>
