@@ -1,5 +1,4 @@
 #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
 
 # Skip in CI environment
 if [ "$CI" = "true" ]; then
@@ -7,7 +6,18 @@ if [ "$CI" = "true" ]; then
   exit 0
 fi
 
-# Temporarily skip linting due to memory issues
-echo "⚠️ ESLint temporarily disabled in pre-commit due to memory constraints"
-echo "📝 To run linting manually: NODE_OPTIONS='--max-old-space-size=12288' npm run lint"
+echo "🔍 Running ESLint checks..."
+
+# Run ESLint with increased memory allocation
+NODE_OPTIONS='--max-old-space-size=12288' npm run lint
+
+# Capture exit code
+LINT_EXIT_CODE=$?
+
+if [ $LINT_EXIT_CODE -ne 0 ]; then
+  echo "❌ ESLint check failed! Please fix the errors before committing."
+  exit 1
+fi
+
+echo "✅ ESLint check passed!"
 exit 0
