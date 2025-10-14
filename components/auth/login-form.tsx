@@ -6,7 +6,8 @@ import { useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { Github, Mail, Lock, Eye, EyeOff, Sparkles, Shield, Zap, Users } from "lucide-react";
+import Image from "next/image";
+import { Github, Facebook, Twitter, Eye, EyeOff, Mail } from "lucide-react";
 import { GoogleIcon } from "@/components/icons/custom-icons";
 import { toast } from "react-hot-toast";
 import { signIn } from "next-auth/react";
@@ -15,8 +16,18 @@ import { logger } from '@/lib/logger';
 
 import { LoginSchema } from "@/schemas";
 import { Input } from "@/components/ui/input";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { CardWrapper } from "@/components/auth/card-wrapper";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { FormError } from "@/components/form-error";
+import { FormSuccess } from "@/components/form-success";
 import { login } from "@/actions/login";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 
@@ -32,7 +43,7 @@ export const LoginForm = () => {
   const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -51,6 +62,7 @@ export const LoginForm = () => {
       startTransition(() => {
         login(values, callbackUrl)
           .then(async (data) => {
+
             if (data?.error) {
               form.reset();
               setError(data.error);
@@ -58,17 +70,19 @@ export const LoginForm = () => {
             if (data?.success) {
               form.reset();
               setSuccess(data.success);
-
+              
+              // If server validated credentials, now sign in on client
               if (data?.requiresSignIn && data?.email) {
                 const result = await signIn("credentials", {
                   email: data.email,
                   password: values.password,
-                  redirect: false,
+                  redirect: false,  // Don't let NextAuth redirect
                 });
-
+                
                 if (result?.error) {
                   setError("Failed to sign in");
                 } else if (result?.ok) {
+                  // Manually redirect to dashboard
                   window.location.href = callbackUrl || "/dashboard";
                 }
               }
@@ -79,6 +93,7 @@ export const LoginForm = () => {
             }
           })
           .catch((error) => {
+            // Ignore NEXT_REDIRECT error as it's expected
             if (error?.message?.includes("NEXT_REDIRECT")) {
               return;
             }
@@ -92,369 +107,300 @@ export const LoginForm = () => {
     }
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { 
+      y: 0, 
+      opacity: 1,
+      transition: { type: "spring" as const, stiffness: 100 }
+    }
+  };
+  
+  const buttonVariants = {
+    hover: { 
+      scale: 1.03,
+      boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
+      transition: { type: "spring" as const, stiffness: 400 }
+    },
+    tap: { scale: 0.97 }
+  };
+
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 via-purple-50/30 to-pink-50 dark:from-gray-900 dark:via-purple-900/10 dark:to-gray-900 relative overflow-hidden">
-      {/* Animated Background Blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute top-0 left-0 w-96 h-96 bg-purple-300/30 dark:bg-purple-500/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute top-1/4 right-0 w-96 h-96 bg-blue-300/30 dark:bg-blue-500/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.3, 1],
-            x: [0, -50, 0],
-            y: [0, 50, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2,
-          }}
-        />
-        <motion.div
-          className="absolute bottom-0 left-1/4 w-96 h-96 bg-pink-300/30 dark:bg-pink-500/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.1, 1],
-            x: [0, 30, 0],
-            y: [0, -30, 0],
-          }}
-          transition={{
-            duration: 22,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 4,
-          }}
-        />
-      </div>
+    <div className="w-full max-w-6xl mx-auto px-4">
+      <motion.div 
+        className="flex flex-col items-center justify-center mb-12"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h2 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+          Welcome Back
+        </h2>
+        <p className="mt-4 text-lg text-gray-400 font-medium">
+          Don&apos;t have an account?{' '}
+          <Link href="/auth/register" className="text-cyan-400 hover:text-cyan-300 transition-colors">
+            Sign Up
+          </Link>
+        </p>
+      </motion.div>
 
-      <div className="relative z-10 container mx-auto px-4 py-12">
-        <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
-          {/* Left Side - Branding & Features */}
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-8"
-          >
-            {/* Logo with Glow */}
-            <motion.div
-              className="flex items-center gap-3"
-              whileHover={{ scale: 1.05 }}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 max-w-5xl mx-auto relative">
+        {/* Left side - Credentials login */}
+        <motion.div 
+          className="space-y-8 md:pr-12 md:border-r md:border-gray-700"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <Form {...form}>
+            <form 
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-8 w-full"
             >
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur-xl opacity-50" />
-                <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-xl">
-                  <Sparkles className="w-8 h-8 text-white" />
-                </div>
-              </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                TaxoMind
-              </h1>
-            </motion.div>
-
-            {/* Welcome Heading */}
-            <div className="space-y-4">
-              <h2 className="text-5xl font-bold text-gray-900 dark:text-white">
-                Welcome Back!
-              </h2>
-              <p className="text-xl text-gray-600 dark:text-gray-300">
-                Sign in to continue your learning journey
-              </p>
-            </div>
-
-            {/* Feature Highlights */}
-            <div className="space-y-4">
-              {[
-                {
-                  icon: Shield,
-                  title: "Secure & Private",
-                  description: "Your data is protected with enterprise-grade security",
-                },
-                {
-                  icon: Zap,
-                  title: "Lightning Fast",
-                  description: "Access your courses instantly from anywhere",
-                },
-                {
-                  icon: Users,
-                  title: "Collaborative Learning",
-                  description: "Join thousands of learners worldwide",
-                },
-              ].map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + index * 0.1 }}
-                  className="flex items-start gap-4 p-4 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm"
-                >
-                  <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg">
-                    <feature.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
-                      {feature.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {feature.description}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Social Proof */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="flex items-center gap-6 pt-4"
-            >
-              <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 border-2 border-white dark:border-gray-900"
+              {showTwoFactor ? (
+                <motion.div variants={itemVariants}>
+                  <FormField
+                    control={form.control}
+                    name="code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Two Factor Code</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            disabled={isPending}
+                            placeholder="123456"
+                            type="text"
+                            className="w-full h-14 bg-transparent border-2 border-gray-700/50 dark:border-gray-700/50 
+                              rounded-xl text-gray-900 dark:text-gray-100 text-lg
+                              focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/20 
+                              transition-all duration-300
+                              placeholder:text-gray-500 dark:placeholder:text-gray-500"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                ))}
-              </div>
-              <div className="text-sm">
-                <p className="font-semibold text-gray-900 dark:text-white">
-                  50,000+ learners
-                </p>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Already joined us
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-
-          {/* Right Side - Login Form Card */}
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="relative"
-          >
-            {/* Loading Overlay */}
-            {isPending && (
-              <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="relative">
-                    <div className="h-16 w-16 rounded-full border-4 border-gray-200 dark:border-gray-700" />
-                    <div className="absolute top-0 h-16 w-16 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+                </motion.div>
+              ) : (
+                <>
+                  <div className="space-y-6 w-full min-w-[320px]">
+                    <motion.div variants={itemVariants}>
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem className="w-full relative">
+                            <FormLabel className="text-gray-700 dark:text-gray-300 text-lg">Email</FormLabel>
+                            <div className="relative">
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  disabled={isPending}
+                                  placeholder="john.doe@example.com"
+                                  type="email"
+                                  className="w-full h-14 bg-transparent border-2 border-gray-700/50 dark:border-gray-700/50 
+                                    rounded-xl text-gray-900 dark:text-gray-100 text-lg pl-12
+                                    focus:border-cyan-400/80 focus:ring-2 focus:ring-cyan-400/20 
+                                    transition-all duration-300
+                                    placeholder:text-gray-500 dark:placeholder:text-gray-500
+                                    focus:pl-5"
+                                  onFocus={() => setFocusedField('email')}
+                                  onBlur={() => setFocusedField(null)}
+                                />
+                              </FormControl>
+                              <div className={`absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 transition-all duration-300 
+                                ${field.value || focusedField === 'email' ? 'opacity-0 -translate-x-2' : 'opacity-100'}`}>
+                                <Mail className="w-5 h-5" />
+                              </div>
+                              <div className={`absolute top-0 left-0 h-full w-2 rounded-l-xl transition-all duration-300 ${field.value ? 'bg-gradient-to-b from-cyan-400 to-purple-400' : 'bg-transparent'}`}></div>
+                            </div>
+                            <FormMessage className="text-red-400 absolute -bottom-6 left-0 text-sm" />
+                          </FormItem>
+                        )}
+                      />
+                    </motion.div>
+                    <motion.div variants={itemVariants}>
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem className="w-full relative">
+                            <FormLabel className="text-gray-700 dark:text-gray-300 text-lg">Password</FormLabel>
+                            <div className="relative">
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  disabled={isPending}
+                                  placeholder="******"
+                                  type={showPassword ? "text" : "password"}
+                                  className="w-full h-14 bg-transparent border-2 border-gray-700/50 dark:border-gray-700/50 
+                                    rounded-xl text-gray-900 dark:text-gray-100 text-lg pr-12 pl-12
+                                    focus:border-cyan-400/80 focus:ring-2 focus:ring-cyan-400/20 
+                                    transition-all duration-300
+                                    placeholder:text-gray-500 dark:placeholder:text-gray-500
+                                    focus:pl-5"
+                                  onFocus={() => setFocusedField('password')}
+                                  onBlur={() => setFocusedField(null)}
+                                />
+                              </FormControl>
+                              <div className={`absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 transition-all duration-300
+                                ${field.value || focusedField === 'password' ? 'opacity-0 -translate-x-2' : 'opacity-100'}`}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                              </div>
+                              <button 
+                                type="button"
+                                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors focus:outline-none"
+                                onClick={() => setShowPassword(!showPassword)}
+                              >
+                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                              </button>
+                              <div className={`absolute top-0 left-0 h-full w-2 rounded-l-xl transition-all duration-300 ${field.value ? 'bg-gradient-to-b from-cyan-400 to-purple-400' : 'bg-transparent'}`}></div>
+                            </div>
+                            <FormMessage className="text-red-400 absolute -bottom-6 left-0 text-sm" />
+                          </FormItem>
+                        )}
+                      />
+                    </motion.div>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 animate-pulse font-medium">
-                    Signing you in...
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700">
-              <div className="space-y-6">
-                {/* Form Header */}
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Sign In
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                    Don&apos;t have an account?{" "}
-                    <Link
-                      href="/auth/register"
-                      className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                    >
-                      Sign Up
-                    </Link>
-                  </p>
-                </div>
-
-                {/* Email Field */}
-                <div className="relative">
-                  <label
-                    htmlFor="email"
-                    className={`absolute left-12 transition-all duration-200 pointer-events-none ${
-                      form.watch("email") || form.formState.errors.email
-                        ? "-top-2 left-3 text-xs bg-white dark:bg-gray-800 px-2 text-blue-600 dark:text-blue-400"
-                        : "top-4 text-gray-500 dark:text-gray-400"
-                    }`}
-                  >
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail
-                      className={`absolute left-4 top-4 w-5 h-5 transition-colors ${
-                        form.formState.errors.email
-                          ? "text-red-500"
-                          : form.watch("email")
-                          ? "text-blue-600 dark:text-blue-400"
-                          : "text-gray-400"
-                      }`}
-                    />
-                    <Input
-                      {...form.register("email")}
-                      id="email"
-                      type="email"
-                      placeholder=" "
-                      disabled={isPending}
-                      className={`h-14 pl-12 pr-4 rounded-xl border-2 transition-all ${
-                        form.formState.errors.email
-                          ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                          : "border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
-                      }`}
-                    />
-                  </div>
-                  {form.formState.errors.email && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {form.formState.errors.email.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Password Field */}
-                <div className="relative">
-                  <label
-                    htmlFor="password"
-                    className={`absolute left-12 transition-all duration-200 pointer-events-none ${
-                      form.watch("password") || form.formState.errors.password
-                        ? "-top-2 left-3 text-xs bg-white dark:bg-gray-800 px-2 text-blue-600 dark:text-blue-400"
-                        : "top-4 text-gray-500 dark:text-gray-400"
-                    }`}
-                  >
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock
-                      className={`absolute left-4 top-4 w-5 h-5 transition-colors ${
-                        form.formState.errors.password
-                          ? "text-red-500"
-                          : form.watch("password")
-                          ? "text-blue-600 dark:text-blue-400"
-                          : "text-gray-400"
-                      }`}
-                    />
-                    <Input
-                      {...form.register("password")}
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder=" "
-                      disabled={isPending}
-                      className={`h-14 pl-12 pr-12 rounded-xl border-2 transition-all ${
-                        form.formState.errors.password
-                          ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                          : "border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-5 h-5" />
-                      ) : (
-                        <Eye className="w-5 h-5" />
-                      )}
-                    </button>
-                  </div>
-                  {form.formState.errors.password && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {form.formState.errors.password.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Remember Me & Forgot Password */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="remember"
-                      checked={rememberMe}
-                      onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                    />
-                    <label
-                      htmlFor="remember"
-                      className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer"
-                    >
-                      Remember me
-                    </label>
-                  </div>
-                  <Link
+                </>
+              )}
+              <motion.div variants={itemVariants}>
+                <FormError message={error || urlError} />
+                <FormSuccess message={success} />
+                <div className="flex justify-end">
+                  <Link 
                     href="/auth/reset"
-                    className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                    className="text-base text-cyan-400 hover:text-cyan-300 transition-colors"
                   >
                     Forgot password?
                   </Link>
                 </div>
-
-                {/* Error/Success Messages */}
-                {(error || urlError) && (
-                  <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400">
-                    {error || urlError}
-                  </div>
-                )}
-                {success && (
-                  <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-sm text-green-600 dark:text-green-400">
-                    {success}
-                  </div>
-                )}
-
-                {/* Submit Button */}
-                <Button
-                  onClick={form.handleSubmit(onSubmit)}
+              </motion.div>
+              <motion.div 
+                variants={itemVariants}
+                className="pt-2"
+              >
+                <motion.button
                   disabled={isPending}
-                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium text-base shadow-lg hover:shadow-xl transition-all"
+                  type="submit"
+                  className="w-full h-14 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 
+                    hover:to-purple-400 text-white rounded-xl text-lg font-medium tracking-wide 
+                    transition-all duration-300 shadow-lg relative overflow-hidden group"
+                  variants={buttonVariants}
+                  whileHover="hover"
+                  whileTap="tap"
                 >
-                  {isPending ? "Signing in..." : "Sign In"}
-                </Button>
+                  <span className="relative z-10">{isPending ? "Signing in..." : "Sign In"}</span>
+                  <span className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-r from-cyan-400 to-purple-400 
+                    transform scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500"></span>
+                </motion.button>
+              </motion.div>
+            </form>
+          </Form>
+        </motion.div>
 
-                {/* Divider */}
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+        {/* Right side - OAuth */}
+        <motion.div 
+          className="flex flex-col gap-6 md:pl-12"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          <div className="text-center">
+            <h3 className="text-2xl font-semibold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-6">Social Login</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <motion.div whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 500 }}>
+              <Button
+                variant="outline"
+                role="button"
+                onClick={() => signIn("google", { callbackUrl: DEFAULT_LOGIN_REDIRECT })}
+                className="w-full flex items-center justify-start px-4 h-12 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm"
+              >
+                <div className="mr-auto"></div>
+                <div className="flex items-center mx-auto">
+                  <div className="flex items-center justify-center bg-white rounded-full w-8 h-8 mr-3 shadow-sm">
+                    <GoogleIcon className="h-5 w-5" />
                   </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white dark:bg-gray-800 text-gray-500">
-                      Or continue with
-                    </span>
+                  <span className="text-gray-800 dark:text-gray-200 font-medium">Sign in with Google</span>
+                </div>
+                <div className="ml-auto"></div>
+              </Button>
+            </motion.div>
+            
+            <motion.div whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 500 }}>
+              <Button
+                variant="outline"
+                role="button"
+                onClick={() => signIn("github", { callbackUrl: DEFAULT_LOGIN_REDIRECT })}
+                className="w-full flex items-center justify-start px-4 h-12 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm"
+              >
+                <div className="mr-auto"></div>
+                <div className="flex items-center mx-auto">
+                  <div className="flex items-center justify-center bg-black rounded-full w-8 h-8 mr-3 shadow-sm">
+                    <Github className="h-5 w-5 text-white" />
                   </div>
+                  <span className="text-gray-800 dark:text-gray-200 font-medium">Sign in with GitHub</span>
                 </div>
-
-                {/* Social Login Buttons */}
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={() => signIn("google", { callbackUrl: DEFAULT_LOGIN_REDIRECT })}
-                    variant="outline"
-                    className="h-12 border-2 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <GoogleIcon className="w-5 h-5 mr-2" />
-                    Google
-                  </Button>
-                  <Button
-                    onClick={() => signIn("github", { callbackUrl: DEFAULT_LOGIN_REDIRECT })}
-                    variant="outline"
-                    className="h-12 border-2 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <Github className="w-5 h-5 mr-2" />
-                    GitHub
-                  </Button>
+                <div className="ml-auto"></div>
+              </Button>
+            </motion.div>
+            
+            <motion.div whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 500 }}>
+              <Button
+                variant="outline"
+                role="button"
+                onClick={() => signIn("facebook", { callbackUrl: DEFAULT_LOGIN_REDIRECT })}
+                className="w-full flex items-center justify-start px-4 h-12 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm"
+              >
+                <div className="mr-auto"></div>
+                <div className="flex items-center mx-auto">
+                  <div className="flex items-center justify-center bg-[#1877F2] rounded-full w-8 h-8 mr-3 shadow-sm">
+                    <Facebook className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-gray-800 dark:text-gray-200 font-medium">Sign in with Facebook</span>
                 </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+                <div className="ml-auto"></div>
+              </Button>
+            </motion.div>
+            
+            <motion.div whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 500 }}>
+              <Button
+                variant="outline"
+                role="button"
+                onClick={() => signIn("twitter", { callbackUrl: DEFAULT_LOGIN_REDIRECT })}
+                className="w-full flex items-center justify-start px-4 h-12 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm"
+              >
+                <div className="mr-auto"></div>
+                <div className="flex items-center mx-auto">
+                  <div className="flex items-center justify-center bg-[#1DA1F2] rounded-full w-8 h-8 mr-3 shadow-sm">
+                    <Twitter className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-gray-800 dark:text-gray-200 font-medium">Sign in with Twitter</span>
+                </div>
+                <div className="ml-auto"></div>
+              </Button>
+            </motion.div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
