@@ -39,7 +39,7 @@ export function SimpleDashboard({ user }: SimpleDashboardProps) {
   if (!user.isTeacher && !user.isAffiliate) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto px-6">
           <div className="mb-8">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">
@@ -79,7 +79,7 @@ export function SimpleDashboard({ user }: SimpleDashboardProps) {
   if (user.isTeacher && !user.isAffiliate) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto px-6">
           <div className="mb-8">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">
@@ -130,7 +130,7 @@ export function SimpleDashboard({ user }: SimpleDashboardProps) {
   if (user.isAffiliate && !user.isTeacher) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto px-6">
           <div className="mb-8">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">
@@ -167,7 +167,7 @@ export function SimpleDashboard({ user }: SimpleDashboardProps) {
   if (user.isTeacher && user.isAffiliate) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto px-6">
           <div className="mb-8">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">

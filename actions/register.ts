@@ -79,22 +79,26 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
       // Continue without verification token
     }
 
-    // Queue verification email for background processing (non-blocking)
+    // Queue verification email for background processing (TRULY non-blocking)
     if (verificationToken) {
-      try {
-        await queueVerificationEmail({
-          userEmail: verificationToken.email,
-          userName: name,
-          verificationToken: verificationToken.token,
-          expiresAt: verificationToken.expires,
+      // Fire-and-forget: don't await email sending to prevent registration delays
+      queueVerificationEmail({
+        userEmail: verificationToken.email,
+        userName: name,
+        verificationToken: verificationToken.token,
+        expiresAt: verificationToken.expires,
+        userId: newUser.id,
+        timestamp: new Date(),
+      }).then(() => {
+        console.log('[Register] Verification email sent in background');
+      }).catch((emailError) => {
+        console.error('[Register] Background email failed (non-critical):', {
+          error: emailError instanceof Error ? emailError.message : emailError,
           userId: newUser.id,
-          timestamp: new Date(),
+          email: verificationToken.email
         });
-        console.log('[Register] Verification email queued successfully');
-      } catch (emailError) {
-        console.error('[Register] Email queueing failed (non-critical):', emailError);
-        // Continue even if email fails
-      }
+      });
+      console.log('[Register] Verification email queued for background sending');
     }
 
     return {

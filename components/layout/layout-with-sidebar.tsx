@@ -49,7 +49,15 @@ const FULL_WIDTH_ROUTES = [
   "/intelligent-lms/evaluation-standards",
   "/intelligent-lms/adaptive-learning",
   "/intelligent-lms/course-intelligence",
+  "/dashboard", // User dashboard - no gaps between sidebar and content
   "/dashboard/admin", // Admin dashboard - uses full width with its own layout
+  "/search", // Search page - has own container padding
+  "/learn/analytics", // Learning analytics - has own container padding
+  "/teacher/courses", // Teacher courses list - has own container padding
+  "/teacher/analytics", // Teacher analytics - has own container padding
+  "/teacher/create", // Course creation - has own container padding
+  "/teacher/create/ai-creator", // AI course creator - has own container padding
+  "/teacher/create/enhanced", // Enhanced course creator - has own container padding
 ];
 
 // Patterns for routes where the sidebar should be hidden
@@ -63,7 +71,9 @@ const SIDEBAR_HIDDEN_PATTERNS = [
 
 // Patterns for routes that need full-width layout (no padding/gaps)
 const FULL_WIDTH_PATTERNS = [
-  /^\/teacher\/.*$/, // All teacher routes - no gaps to show grid background
+  /^\/teacher\/.*$/, // All teacher routes - have own container padding
+  /^\/learn\/.*$/, // All learning routes - have own container padding
+  /^\/search.*$/, // Search routes - have own container padding
 ];
 
 export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarProps) {
@@ -106,8 +116,8 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
   const isIntelligentLMSPage = pathname ? /^\/intelligent-lms\/.*$/.test(pathname) : false;
   const matchesFullWidthPattern = pathname ?
     FULL_WIDTH_PATTERNS.some(pattern => pattern.test(pathname)) : false;
-  // Note: isFullWidthPage excludes teacher pages - they need sidebar margin
-  const isFullWidthPage = pathname ? (FULL_WIDTH_ROUTES.includes(pathname) || isIntelligentLMSPage || (matchesFullWidthPattern && !isTeacherPage)) : false;
+  // Full-width pages have no horizontal padding from layout (pages have their own container padding)
+  const isFullWidthPage = pathname ? (FULL_WIDTH_ROUTES.includes(pathname) || isIntelligentLMSPage || matchesFullWidthPattern) : false;
 
   return (
     <div className={clsx(

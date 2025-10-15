@@ -34,6 +34,14 @@ function getTransporter(): Transporter {
     port: SMTP_CONFIG.port,
     secure: SMTP_CONFIG.secure,
     auth: SMTP_CONFIG.auth,
+    // CRITICAL: Add connection timeout to prevent hanging
+    connectionTimeout: 10000, // 10 seconds
+    socketTimeout: 10000, // 10 seconds
+    greetingTimeout: 5000, // 5 seconds
+    // Pool connections for better performance
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
   });
 
   logger.info('SMTP transporter created', {
@@ -66,7 +74,15 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
       text: options.text || options.html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    // Add timeout wrapper to prevent indefinite hanging
+    const sendWithTimeout = Promise.race([
+      transporter.sendMail(mailOptions),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Email send timeout after 15 seconds')), 15000)
+      )
+    ]);
+
+    const info = await sendWithTimeout as any;
 
     logger.info('Email sent successfully', {
       to: options.to,
@@ -76,11 +92,30 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
 
     return true;
   } catch (error) {
-    logger.error('Failed to send email', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = {
+      error: errorMessage,
       to: options.to,
       subject: options.subject,
-    });
+      smtpHost: SMTP_CONFIG.host,
+      smtpPort: SMTP_CONFIG.port,
+      smtpUser: SMTP_CONFIG.auth.user,
+      timestamp: new Date().toISOString(),
+    };
+
+    logger.error('Failed to send email', errorDetails);
+
+    // Log specific error types for debugging
+    if (errorMessage.includes('timeout')) {
+      console.error('[SMTP] Email send timeout - check SMTP server connectivity');
+    } else if (errorMessage.includes('auth')) {
+      console.error('[SMTP] Authentication failed - check SMTP credentials (SMTP_USER/SMTP_PASSWORD)');
+    } else if (errorMessage.includes('ECONNREFUSED')) {
+      console.error('[SMTP] Connection refused - check SMTP_HOST and SMTP_PORT');
+    } else {
+      console.error('[SMTP] Email send error:', errorDetails);
+    }
+
     return false;
   }
 }
