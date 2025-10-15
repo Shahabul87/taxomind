@@ -10,7 +10,7 @@ import { headers } from 'next/headers';
 import { auth } from '@/auth'
 import { ConfettiProvider } from '@/components/providers/confetti-provider';
 import { Providers } from "@/components/providers";
-import { PageBackground } from '@/components/ui/page-background';
+// PageBackground removed - using direct bg-background on body
 import { MainHeader } from './(homepage)/main-header';
 import { currentUser } from '@/lib/auth';
 import LayoutWithSidebar from '@/components/layout/layout-with-sidebar';
@@ -124,10 +124,30 @@ export default async function RootLayout({
     session = null;
   }
 
-  // Check if this is an admin route
+  // Check if this is an admin or auth route
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
-  const isAdminRoute = pathname.startsWith("/dashboard/admin");
+
+  // ROBUST AUTH ROUTE DETECTION: Check multiple sources
+  const isAdminRoute = pathname.startsWith("/dashboard/admin") || pathname.startsWith("/admin");
+
+  // Check both x-pathname header AND x-url fallback
+  const xUrl = headersList.get("x-url") || "";
+  const pathToCheck = pathname || xUrl;
+  const isAuthRoute = pathToCheck.startsWith("/auth") ||
+                      pathToCheck.includes("/auth/login") ||
+                      pathToCheck.includes("/auth/register") ||
+                      pathToCheck.includes("/auth/error");
+
+  // DEBUG: Log route detection
+  if (pathToCheck.includes('auth')) {
+    console.log('[ROOT LAYOUT] Auth Route Detected:', {
+      pathname,
+      xUrl,
+      pathToCheck,
+      isAuthRoute
+    });
+  }
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -158,38 +178,39 @@ export default async function RootLayout({
           <ConfettiProvider />
           <ClientToaster />
           <SAMGlobalProvider>
-            <PageBackground>
-              {/* SAM Context Manager - runs in background */}
-              <SAMContextManager />
-
-              {/* Only render header for non-admin routes */}
-              {!isAdminRoute && (
-                <div className="fixed top-0 left-0 right-0 z-[50]">
-                  <Suspense fallback={<HeaderFallback />}>
-                    <AsyncHeader />
-                  </Suspense>
-                </div>
-              )}
-
-              {/* Conditional layout rendering based on route */}
-              {isAdminRoute ? (
-                // Admin routes: No wrapper, full screen
-                <div className="min-h-screen">
-                  {children}
-                </div>
-              ) : (
-                // Regular routes: Normal layout with sidebar
-                <Suspense fallback={
-                  <div className="pt-14 sm:pt-16 min-h-screen bg-slate-900 flex items-center justify-center">
-                    <div className="text-white">Loading...</div>
-                  </div>
-                }>
-                  <AsyncLayoutWithSidebar>
-                    {children}
-                  </AsyncLayoutWithSidebar>
+            {/* Render header for auth routes AND non-admin routes */}
+            {!isAdminRoute && (
+              <div className="fixed top-0 left-0 right-0 z-[50]">
+                <Suspense fallback={<HeaderFallback />}>
+                  <AsyncHeader />
                 </Suspense>
-              )}
-            </PageBackground>
+              </div>
+            )}
+
+            {/* Content rendering - all routes use direct background */}
+            <SAMContextManager />
+
+            {/* Conditional layout rendering based on route */}
+            {isAuthRoute ? (
+              // Auth routes: Simple direct rendering
+              <>{children}</>
+            ) : isAdminRoute ? (
+              // Admin routes: No wrapper, full screen
+              <div className="min-h-screen">
+                {children}
+              </div>
+            ) : (
+              // Regular routes: Normal layout with sidebar
+              <Suspense fallback={
+                <div className="pt-14 sm:pt-16 min-h-screen flex items-center justify-center">
+                  <div>Loading...</div>
+                </div>
+              }>
+                <AsyncLayoutWithSidebar>
+                  {children}
+                </AsyncLayoutWithSidebar>
+              </Suspense>
+            )}
 
             {/* Global SAM AI Tutor - Available across all authenticated pages */}
             <SAMGlobalAssistant />

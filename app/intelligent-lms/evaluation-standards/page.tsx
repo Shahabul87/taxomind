@@ -148,7 +148,7 @@ const evaluationProcess = [
 
 export default function EvaluationStandardsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 -mt-14 sm:-mt-16 pt-14 sm:pt-16">
+    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 -mt-14 sm:-mt-16 pt-14 sm:pt-16">
       {/* Hero Section */}
       <section className="relative pt-24 pb-12 px-4">
         <div className="max-w-7xl mx-auto">
@@ -159,8 +159,8 @@ export default function EvaluationStandardsPage() {
             className="text-center"
           >
             <div className="flex justify-center mb-6">
-              <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-2xl backdrop-blur-sm border border-green-500/30">
-                <Shield className="w-12 h-12 text-green-400" />
+              <div className="p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 rounded-2xl backdrop-blur-sm border border-green-300/40 dark:border-green-500/30">
+                <Shield className="w-12 h-12 text-green-600 dark:text-green-400" />
               </div>
             </div>
             
@@ -168,7 +168,7 @@ export default function EvaluationStandardsPage() {
               World-Class Educational Standards
             </h1>
             
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+            <p className="text-xl text-slate-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
               Taxomind is the only LMS that combines 12+ international educational standards 
               to ensure the highest quality learning experience backed by research and best practices.
             </p>
@@ -207,8 +207,8 @@ export default function EvaluationStandardsPage() {
                 <div className="text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
                   {item.value}
                 </div>
-                <div className="text-sm text-gray-300 font-medium mt-1">{item.metric}</div>
-                <div className="text-xs text-gray-500 mt-1">{item.description}</div>
+                <div className="text-sm text-slate-500 dark:text-gray-300 font-medium mt-1">{item.metric}</div>
+                <div className="text-xs text-slate-400 dark:text-gray-500 mt-1">{item.description}</div>
               </motion.div>
             ))}
           </div>
@@ -224,10 +224,10 @@ export default function EvaluationStandardsPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Our Standards Framework
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Each standard is carefully integrated into our platform&apos;s core
             </p>
           </motion.div>
@@ -241,15 +241,15 @@ export default function EvaluationStandardsPage() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700 hover:border-green-500/50 transition-all duration-300 h-full">
+                <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 hover:border-green-300 dark:hover:border-green-500/50 transition-all duration-300 h-full shadow-sm dark:shadow-none">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-500/20 rounded-lg">
-                        <standard.icon className="w-6 h-6 text-green-400" />
+                      <div className="p-2 bg-green-500/15 dark:bg-green-500/20 rounded-lg">
+                        <standard.icon className="w-6 h-6 text-green-600 dark:text-green-400" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-white">{standard.name}</h3>
-                        <p className="text-xs text-gray-500">{standard.category}</p>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{standard.name}</h3>
+                        <p className="text-xs text-slate-500 dark:text-gray-500">{standard.category}</p>
                       </div>
                     </div>
                     <Badge 
@@ -260,13 +260,13 @@ export default function EvaluationStandardsPage() {
                     </Badge>
                   </div>
                   
-                  <p className="text-gray-400 text-sm mb-4">{standard.description}</p>
+                  <p className="text-slate-600 dark:text-gray-400 text-sm mb-4">{standard.description}</p>
                   
                   <div className="space-y-2">
                     {standard.benefits.map((benefit) => (
                       <div key={benefit} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                        <span className="text-xs text-gray-300">{benefit}</span>
+                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                        <span className="text-xs text-slate-700 dark:text-gray-300">{benefit}</span>
                       </div>
                     ))}
                   </div>
@@ -278,7 +278,7 @@ export default function EvaluationStandardsPage() {
       </section>
 
       {/* Evaluation Process */}
-      <section className="py-20 px-4 bg-slate-800/30">
+      <section className="py-20 px-4 bg-slate-50 dark:bg-slate-800/30">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -286,10 +286,10 @@ export default function EvaluationStandardsPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               How We Evaluate Courses
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Our AI-powered evaluation process ensures comprehensive quality assessment
             </p>
           </motion.div>
@@ -310,13 +310,13 @@ export default function EvaluationStandardsPage() {
                   </div>
                 )}
                 
-                <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700 h-full">
+                <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 h-full shadow-sm dark:shadow-none">
                   <div className="flex items-center justify-center w-12 h-12 bg-green-500/20 rounded-full mb-4">
-                    <span className="text-lg font-bold text-green-400">{process.step}</span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400">{process.step}</span>
                   </div>
-                  <process.icon className="w-8 h-8 text-green-400 mb-3" />
-                  <h3 className="text-lg font-semibold text-white mb-2">{process.title}</h3>
-                  <p className="text-sm text-gray-400">{process.description}</p>
+                  <process.icon className="w-8 h-8 text-green-600 dark:text-green-400 mb-3" />
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{process.title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-gray-400">{process.description}</p>
                 </Card>
               </motion.div>
             ))}
@@ -331,10 +331,10 @@ export default function EvaluationStandardsPage() {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 backdrop-blur-sm border border-green-500/30 rounded-2xl p-8 md:p-12"
+            className="bg-gradient-to-r from-green-600/10 to-emerald-600/10 dark:from-green-600/20 dark:to-emerald-600/20 backdrop-blur-sm border border-green-300/40 dark:border-green-500/30 rounded-2xl p-8 md:p-12"
           >
             <div className="text-center mb-8">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900 dark:text-white">
                 Why Standards Matter
               </h2>
             </div>
@@ -342,36 +342,36 @@ export default function EvaluationStandardsPage() {
             <div className="grid md:grid-cols-3 gap-8">
               <div className="text-center">
                 <div className="flex justify-center mb-4">
-                  <div className="p-3 bg-green-500/20 rounded-full">
-                    <Users className="w-8 h-8 text-green-400" />
+                  <div className="p-3 bg-green-500/15 dark:bg-green-500/20 rounded-full">
+                    <Users className="w-8 h-8 text-green-600 dark:text-green-400" />
                   </div>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">For Educators</h3>
-                <p className="text-gray-400">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">For Educators</h3>
+                <p className="text-slate-600 dark:text-gray-400">
                   Create courses that meet global quality standards and deliver measurable outcomes
                 </p>
               </div>
               
               <div className="text-center">
                 <div className="flex justify-center mb-4">
-                  <div className="p-3 bg-emerald-500/20 rounded-full">
-                    <BookOpen className="w-8 h-8 text-emerald-400" />
+                  <div className="p-3 bg-emerald-500/15 dark:bg-emerald-500/20 rounded-full">
+                    <BookOpen className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
                   </div>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">For Learners</h3>
-                <p className="text-gray-400">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">For Learners</h3>
+                <p className="text-slate-600 dark:text-gray-400">
                   Experience education that&apos;s proven effective and recognized worldwide
                 </p>
               </div>
               
               <div className="text-center">
                 <div className="flex justify-center mb-4">
-                  <div className="p-3 bg-teal-500/20 rounded-full">
-                    <Award className="w-8 h-8 text-teal-400" />
+                  <div className="p-3 bg-teal-500/15 dark:bg-teal-500/20 rounded-full">
+                    <Award className="w-8 h-8 text-teal-600 dark:text-teal-400" />
                   </div>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">For Institutions</h3>
-                <p className="text-gray-400">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">For Institutions</h3>
+                <p className="text-slate-600 dark:text-gray-400">
                   Ensure compliance, quality, and credibility with internationally recognized standards
                 </p>
               </div>
@@ -381,7 +381,7 @@ export default function EvaluationStandardsPage() {
       </section>
 
       {/* Real Impact */}
-      <section className="py-20 px-4 bg-slate-800/30">
+      <section className="py-20 px-4 bg-slate-50 dark:bg-slate-800/30">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -389,36 +389,36 @@ export default function EvaluationStandardsPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               The Impact of Standards-Based Learning
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Real results from institutions using Taxomind
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-8">
-            <Card className="p-8 bg-slate-800/50 backdrop-blur-sm border-slate-700">
-              <Star className="w-8 h-8 text-yellow-400 mb-4" />
-              <blockquote className="text-gray-300 mb-4">
+            <Card className="p-8 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Star className="w-8 h-8 text-yellow-500 dark:text-yellow-400 mb-4" />
+              <blockquote className="text-slate-700 dark:text-gray-300 mb-4">
                 &ldquo;Since implementing Taxomind&apos;s standards-based approach, our course completion rates 
                 increased by 45% and student satisfaction scores reached an all-time high.&rdquo;
               </blockquote>
               <div>
-                <p className="font-semibold text-white">Dr. Sarah Chen</p>
-                <p className="text-sm text-gray-500">Director of Online Learning, Tech University</p>
+                <p className="font-semibold text-slate-900 dark:text-white">Dr. Sarah Chen</p>
+                <p className="text-sm text-slate-500 dark:text-gray-500">Director of Online Learning, Tech University</p>
               </div>
             </Card>
             
-            <Card className="p-8 bg-slate-800/50 backdrop-blur-sm border-slate-700">
-              <Star className="w-8 h-8 text-yellow-400 mb-4" />
-              <blockquote className="text-gray-300 mb-4">
+            <Card className="p-8 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Star className="w-8 h-8 text-yellow-500 dark:text-yellow-400 mb-4" />
+              <blockquote className="text-slate-700 dark:text-gray-300 mb-4">
                 &ldquo;The Bloom&apos;s Taxonomy integration helped us create more balanced curricula. 
                 Our students now demonstrate deeper understanding and better critical thinking skills.&rdquo;
               </blockquote>
               <div>
-                <p className="font-semibold text-white">Prof. Michael Roberts</p>
-                <p className="text-sm text-gray-500">Dean of Education, Global Institute</p>
+                <p className="font-semibold text-slate-900 dark:text-white">Prof. Michael Roberts</p>
+                <p className="text-sm text-slate-500 dark:text-gray-500">Dean of Education, Global Institute</p>
               </div>
             </Card>
           </div>
@@ -434,10 +434,10 @@ export default function EvaluationStandardsPage() {
             viewport={{ once: true }}
           >
             <Shield className="w-12 h-12 text-green-400 mx-auto mb-6" />
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Join the Standards Revolution
             </h2>
-            <p className="text-xl text-gray-300 mb-8">
+            <p className="text-xl text-slate-600 dark:text-gray-300 mb-8">
               Create and experience education that meets the highest global standards
             </p>
             <div className="flex flex-wrap justify-center gap-4">
@@ -448,7 +448,7 @@ export default function EvaluationStandardsPage() {
                 </Button>
               </Link>
               <Link href="/intelligent-lms/course-intelligence">
-                <Button size="lg" variant="outline" className="border-gray-500 hover:border-gray-400">
+                <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:border-slate-400 dark:border-gray-500 dark:text-gray-200">
                   Learn About Course Intelligence
                 </Button>
               </Link>

@@ -67,6 +67,9 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   const [showAIToolsDropdown, setShowAIToolsDropdown] = useState(false);
   const [showDesktopAIToolsDropdown, setShowDesktopAIToolsDropdown] = useState(false);
   const [showDesktopIntelligentLMSDropdown, setShowDesktopIntelligentLMSDropdown] = useState(false);
+  // One-time spotlight for first-time visitors to draw attention
+  const [hasSeenDropdownSpotlight, setHasSeenDropdownSpotlight] = useState(true);
+  const [showDropdownSpotlight, setShowDropdownSpotlight] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const desktopAIToolsRef = useRef<HTMLDivElement>(null);
@@ -233,6 +236,27 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
     };
   }, [showDesktopIntelligentLMSDropdown]);
 
+  // First-visit spotlight for dropdown menus
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('tm_nav_spotlight_seen') === '1';
+      setHasSeenDropdownSpotlight(seen);
+      if (!seen) {
+        setShowDropdownSpotlight(true);
+        const t = setTimeout(() => setShowDropdownSpotlight(false), 5000);
+        return () => clearTimeout(t);
+      }
+    } catch {}
+  }, []);
+
+  const dismissDropdownSpotlight = useCallback(() => {
+    if (!hasSeenDropdownSpotlight) {
+      setHasSeenDropdownSpotlight(true);
+      setShowDropdownSpotlight(false);
+      try { localStorage.setItem('tm_nav_spotlight_seen', '1'); } catch {}
+    }
+  }, [hasSeenDropdownSpotlight]);
+
   // Close mobile menu when route changes
   useEffect(() => {
     setIsOpen(false);
@@ -328,7 +352,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
         suppressHydrationWarning
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 w-full relative">
-          {/* Subtle header glow effects to match PageBackground */}
+          {/* Subtle header glow effects */}
           <div className="absolute -top-20 -right-20 w-60 h-60 bg-purple-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
           <div className="absolute -top-20 -left-20 w-60 h-60 bg-blue-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
           {/* Animated accent line */}
@@ -403,177 +427,294 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                   <span className="pointer-events-none absolute -bottom-1 left-0 h-0.5 w-0 rounded-full group-hover:w-full transition-all duration-300 bg-slate-300/60 dark:bg-slate-500/50" suppressHydrationWarning />
                 </Link>
               </div>
-              <div className="relative" ref={desktopIntelligentLMSRef}>
+              <div
+                className="relative"
+                ref={desktopIntelligentLMSRef}
+                onMouseEnter={() => { setShowDesktopIntelligentLMSDropdown(true); dismissDropdownSpotlight(); }}
+                onMouseLeave={() => setShowDesktopIntelligentLMSDropdown(false)}
+              >
                 <button
-                  onClick={() => setShowDesktopIntelligentLMSDropdown(!showDesktopIntelligentLMSDropdown)}
-                  className="text-sm xl:text-base transition-colors font-medium flex items-center space-x-1 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white"
+                  className={[
+                    'relative text-sm xl:text-base transition-colors font-medium flex items-center space-x-1',
+                    'text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white',
+                    !hasSeenDropdownSpotlight && showDropdownSpotlight ? 'ring-2 ring-purple-400/40 rounded-md ring-offset-2 ring-offset-transparent' : ''
+                  ].join(' ')}
                   aria-expanded={showDesktopIntelligentLMSDropdown}
                   aria-haspopup="true"
+                  onFocus={() => { setShowDesktopIntelligentLMSDropdown(true); dismissDropdownSpotlight(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setShowDesktopIntelligentLMSDropdown((v) => !v);
+                      dismissDropdownSpotlight();
+                    }
+                  }}
                 >
                   <span>Intelligent LMS</span>
                   <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showDesktopIntelligentLMSDropdown ? 'rotate-180' : ''}`} />
+                  {!hasSeenDropdownSpotlight && showDropdownSpotlight && (
+                    <motion.span
+                      aria-hidden
+                      className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full shadow-[0_0_0_6px_rgba(168,85,247,0.15)]"
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 1.6, repeat: Infinity }}
+                    />
+                  )}
                 </button>
                 
                 {/* Desktop Intelligent LMS Dropdown */}
                 <AnimatePresence>
                   {showDesktopIntelligentLMSDropdown && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute top-full left-0 mt-2 w-80 backdrop-blur-xl rounded-xl shadow-2xl z-50 border bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-700/50"
+                      exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                      transition={{ duration: 0.18 }}
+                      className="absolute top-full left-0 mt-3 z-50"
                     >
-                      <div className="pb-2 pt-3 px-4 border-b border-slate-200 dark:border-slate-700/50">
-                        <div className="text-xs uppercase tracking-wide font-semibold text-slate-500 dark:text-gray-400">
-                          Intelligent LMS
+                      <div className="relative">
+                        {/* Gradient frame */}
+                        <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-purple-500/50 via-indigo-500/40 to-blue-500/50 opacity-60 blur-md pointer-events-none" />
+                        {/* Panel */}
+                        <div className="relative w-[720px] max-w-[92vw] backdrop-blur-xl backdrop-saturate-150 rounded-xl shadow-[0_16px_40px_-10px_rgba(2,6,23,0.5)] dark:shadow-[0_20px_50px_-12px_rgba(2,6,23,0.9)] border bg-white/90 dark:bg-slate-900/92 border-slate-200/80 dark:border-slate-700/70 overflow-hidden">
+                          {/* Accent line */}
+                          <div className="pointer-events-none absolute top-0 inset-x-0 h-0.5 bg-[linear-gradient(90deg,rgba(168,85,247,0.7),rgba(79,70,229,0.7),rgba(14,165,233,0.7))] opacity-80" />
+                          {/* Decorative glows */}
+                          <div className="pointer-events-none absolute -top-16 -right-20 w-56 h-56 bg-purple-500/20 blur-[90px] rounded-full" />
+                          <div className="pointer-events-none absolute -bottom-20 -left-24 w-64 h-64 bg-indigo-500/20 blur-[100px] rounded-full" />
+                          <div className="grid grid-cols-12 gap-3 p-4">
+                            {/* Feature card */}
+                            <div className="col-span-12 md:col-span-5">
+                              <Link
+                                href="/intelligent-lms/overview"
+                                onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
+                                className="group relative block overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700/60 bg-gradient-to-br from-purple-600/10 via-indigo-600/10 to-blue-600/10 p-4 hover:from-purple-600/15 hover:via-indigo-600/15 hover:to-blue-600/15 transition-colors"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-md">
+                                    <Sparkles className="w-5 h-5" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-gray-400">Overview</p>
+                                    <h3 className="mt-0.5 text-base font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">The Intelligent LMS</h3>
+                                    <p className="mt-1 text-sm leading-snug text-slate-700 dark:text-gray-300 line-clamp-2">Adaptive pathways, rigorous evaluation, and AI‑driven course intelligence.</p>
+                                  </div>
+                                </div>
+                                <div className="mt-4 flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300">
+                                  <span>Learn more</span>
+                                  <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
+                                </div>
+                                {/* Subtle shine */}
+                                <span className="pointer-events-none absolute -left-1 -top-1 h-[140%] w-24 rotate-12 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)] opacity-0 group-hover:opacity-60 translate-x-[-80%] group-hover:translate-x-[220%] transition-transform duration-700" />
+                              </Link>
+                            </div>
+                            {/* Links grid */}
+                            <div className="col-span-12 md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <Link
+                                href="/intelligent-lms/sam-ai-assistant"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 dark:hover:from-blue-900/20 dark:hover:to-cyan-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
+                              >
+                                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                  <Brain className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold flex items-center gap-2">SAM — AI Assistant
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">New</span>
+                                  </div>
+                                  <div className="text-xs mt-0.5 text-slate-600 dark:text-gray-400">Always‑available AI learning support</div>
+                                </div>
+                              </Link>
+
+                              <Link
+                                href="/intelligent-lms/evaluation-standards"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 dark:hover:from-emerald-900/20 dark:hover:to-green-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
+                              >
+                                <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                  <Shield className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold">Global Evaluation Standards</div>
+                                  <div className="text-xs mt-0.5 text-slate-600 dark:text-gray-400">Aligned with 12+ international frameworks</div>
+                                </div>
+                              </Link>
+
+                              <Link
+                                href="/intelligent-lms/adaptive-learning"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-yellow-50 hover:to-amber-50 dark:hover:from-yellow-900/20 dark:hover:to-amber-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
+                              >
+                                <div className="p-2 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                  <Zap className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold">Adaptive Learning</div>
+                                  <div className="text-xs mt-0.5 text-slate-600 dark:text-gray-400">Personalized paths and recommendations</div>
+                                </div>
+                              </Link>
+
+                              <Link
+                                href="/intelligent-lms/course-intelligence"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-cyan-50 hover:to-sky-50 dark:hover:from-cyan-900/20 dark:hover:to-sky-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
+                              >
+                                <div className="p-2 bg-gradient-to-br from-cyan-500 to-sky-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                  <Activity className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold">Course Intelligence</div>
+                                  <div className="text-xs mt-0.5 text-slate-600 dark:text-gray-400">Design, optimize, and analyze courses with AI</div>
+                                </div>
+                              </Link>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm mt-0.5 text-slate-700 dark:text-gray-300">
-                          AI-powered features and tooling
-                        </div>
-                      </div>
-                      <div className="p-3">
-                        <Link
-                          href="/intelligent-lms/overview"
-                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
-                          onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
-                        >
-                          <Sparkles className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-400" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">Why Taxomind?</div>
-                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Discover our AI-powered intelligent features</div>
-                          </div>
-                        </Link>
-
-                        <Link
-                          href="/intelligent-lms/sam-ai-assistant"
-                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
-                          onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
-                        >
-                          <Brain className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-400" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">SAM AI Assistant</div>
-                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Your intelligent teaching & learning companion</div>
-                          </div>
-                        </Link>
-
-                        <Link
-                          href="/intelligent-lms/evaluation-standards"
-                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
-                          onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
-                        >
-                          <Shield className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-emerald-600 dark:text-green-400 group-hover:text-emerald-700 dark:group-hover:text-green-400" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">Evaluation Standards</div>
-                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">12+ international standards compliance</div>
-                          </div>
-                        </Link>
-
-                        <Link
-                          href="/intelligent-lms/adaptive-learning"
-                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
-                          onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
-                        >
-                          <Zap className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-700 dark:group-hover:text-yellow-400" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">Adaptive Learning</div>
-                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Personalized learning paths & recommendations</div>
-                          </div>
-                        </Link>
-
-                        <Link
-                          href="/intelligent-lms/course-intelligence"
-                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
-                          onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
-                        >
-                          <Activity className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-700 dark:group-hover:text-cyan-400" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">Course Intelligence</div>
-                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">AI-powered course creation & optimization</div>
-                          </div>
-                        </Link>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-              <div className="relative" ref={desktopAIToolsRef}>
+              <div
+                className="relative"
+                ref={desktopAIToolsRef}
+                onMouseEnter={() => { setShowDesktopAIToolsDropdown(true); dismissDropdownSpotlight(); }}
+                onMouseLeave={() => setShowDesktopAIToolsDropdown(false)}
+              >
                 <button
-                  onClick={() => setShowDesktopAIToolsDropdown(!showDesktopAIToolsDropdown)}
-                  className="text-sm xl:text-base transition-colors font-medium flex items-center space-x-1 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white"
+                  className={[
+                    'relative text-sm xl:text-base transition-colors font-medium flex items-center space-x-1',
+                    'text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white',
+                    !hasSeenDropdownSpotlight && showDropdownSpotlight ? 'ring-2 ring-purple-400/40 rounded-md ring-offset-2 ring-offset-transparent' : ''
+                  ].join(' ')}
                   aria-expanded={showDesktopAIToolsDropdown}
                   aria-haspopup="true"
+                  onFocus={() => { setShowDesktopAIToolsDropdown(true); dismissDropdownSpotlight(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setShowDesktopAIToolsDropdown((v) => !v);
+                      dismissDropdownSpotlight();
+                    }
+                  }}
                 >
                   <span>AI Tools</span>
                   <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showDesktopAIToolsDropdown ? 'rotate-180' : ''}`} />
+                  {!hasSeenDropdownSpotlight && showDropdownSpotlight && (
+                    <motion.span
+                      aria-hidden
+                      className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full shadow-[0_0_0_6px_rgba(168,85,247,0.15)]"
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 1.6, repeat: Infinity }}
+                    />
+                  )}
                 </button>
 
                 {/* Desktop AI Tools Dropdown */}
                 <AnimatePresence>
                   {showDesktopAIToolsDropdown && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute top-full left-0 mt-2 w-64 backdrop-blur-xl rounded-xl shadow-2xl z-50 border bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-700/50"
+                      exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                      transition={{ duration: 0.18 }}
+                      className="absolute top-full left-0 mt-3 z-50"
                     >
-                      <div className="pb-2 pt-3 px-4 border-b border-slate-200 dark:border-slate-700/50">
-                        <div className="text-xs uppercase tracking-wide font-semibold text-slate-500 dark:text-gray-400">
-                          AI Tools
+                      <div className="relative">
+                        {/* Gradient frame */}
+                        <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-purple-500/50 via-indigo-500/40 to-blue-500/50 opacity-60 blur-md pointer-events-none" />
+                        {/* Panel */}
+                        <div className="relative w-[640px] max-w-[92vw] backdrop-blur-xl backdrop-saturate-150 rounded-xl shadow-[0_16px_40px_-10px_rgba(2,6,23,0.5)] dark:shadow-[0_20px_50px_-12px_rgba(2,6,23,0.9)] border bg-white/90 dark:bg-slate-900/92 border-slate-200/80 dark:border-slate-700/70 overflow-hidden">
+                          {/* Accent line */}
+                          <div className="pointer-events-none absolute top-0 inset-x-0 h-0.5 bg-[linear-gradient(90deg,rgba(79,70,229,0.7),rgba(147,51,234,0.7),rgba(6,182,212,0.7))] opacity-80" />
+                          {/* Decorative glows */}
+                          <div className="pointer-events-none absolute -top-16 -right-16 w-52 h-52 bg-blue-500/20 blur-[90px] rounded-full" />
+                          <div className="pointer-events-none absolute -bottom-20 -left-24 w-64 h-64 bg-cyan-500/20 blur-[100px] rounded-full" />
+                          <div className="grid grid-cols-12 gap-3 p-4">
+                            {/* Feature card */}
+                            <div className="col-span-12 md:col-span-5">
+                              <Link
+                                href="/ai-tools"
+                                onClick={() => setShowDesktopAIToolsDropdown(false)}
+                                className="group relative block overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700/60 bg-gradient-to-br from-indigo-600/10 via-purple-600/10 to-cyan-600/10 p-4 hover:from-indigo-600/15 hover:via-purple-600/15 hover:to-cyan-600/15 transition-colors"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="p-3 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 text-white shadow-md">
+                                    <Cpu className="w-5 h-5" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-gray-400">Directory</p>
+                                    <h3 className="mt-0.5 text-base font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">AI Tools Directory</h3>
+                                    <p className="mt-1 text-sm leading-snug text-slate-700 dark:text-gray-300 line-clamp-2">Curated assistants, market trends, news, and research.</p>
+                                  </div>
+                                </div>
+                                <div className="mt-4 flex items-center gap-2 text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                                  <span>View directory</span>
+                                  <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
+                                </div>
+                                <span className="pointer-events-none absolute -left-1 -top-1 h-[140%] w-24 rotate-12 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)] opacity-0 group-hover:opacity-60 translate-x-[-80%] group-hover:translate-x-[220%] transition-transform duration-700" />
+                              </Link>
+                            </div>
+                            {/* Links grid */}
+                            <div className="col-span-12 md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <Link
+                                href="/ai-tutor"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/20 dark:hover:to-blue-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                onClick={() => setShowDesktopAIToolsDropdown(false)}
+                              >
+                                <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                  <Brain className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold">AI Tutor</div>
+                                  <div className="text-xs mt-0.5 text-slate-600 dark:text-gray-400">Personalized AI tutoring</div>
+                                </div>
+                              </Link>
+
+                              <Link
+                                href="/ai-trends"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 dark:hover:from-blue-900/20 dark:hover:to-cyan-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                onClick={() => setShowDesktopAIToolsDropdown(false)}
+                              >
+                                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                  <TrendingUp className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold">AI Trends</div>
+                                  <div className="text-xs mt-0.5 text-slate-600 dark:text-gray-400">Industry trends</div>
+                                </div>
+                              </Link>
+
+                              <Link
+                                href="/ai-news"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 dark:hover:from-emerald-900/20 dark:hover:to-green-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                onClick={() => setShowDesktopAIToolsDropdown(false)}
+                              >
+                                <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                  <Newspaper className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold">AI News</div>
+                                  <div className="text-xs mt-0.5 text-slate-600 dark:text-gray-400">News and updates</div>
+                                </div>
+                              </Link>
+
+                              <Link
+                                href="/ai-research"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-cyan-50 hover:to-sky-50 dark:hover:from-cyan-900/20 dark:hover:to-sky-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                onClick={() => setShowDesktopAIToolsDropdown(false)}
+                              >
+                                <div className="p-2 bg-gradient-to-br from-cyan-500 to-sky-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                  <FlaskConical className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold">AI Research</div>
+                                  <div className="text-xs mt-0.5 text-slate-600 dark:text-gray-400">Academic research and papers</div>
+                                </div>
+                              </Link>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm mt-0.5 text-slate-700 dark:text-gray-300">
-                          Assistants, trends, and news
-                        </div>
-                      </div>
-                      <div className="p-3">
-                        <Link
-                          href="/ai-tutor"
-                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
-                          onClick={() => setShowDesktopAIToolsDropdown(false)}
-                        >
-                          <Brain className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-400" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">AI Tutor</div>
-                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Personal AI learning assistant</div>
-                          </div>
-                        </Link>
-
-                        <Link
-                          href="/ai-trends"
-                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
-                          onClick={() => setShowDesktopAIToolsDropdown(false)}
-                        >
-                          <TrendingUp className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-400" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">AI Trends</div>
-                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Latest AI industry trends</div>
-                          </div>
-                        </Link>
-
-                        <Link
-                          href="/ai-news"
-                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
-                          onClick={() => setShowDesktopAIToolsDropdown(false)}
-                        >
-                          <Newspaper className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-400" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">AI News</div>
-                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Breaking AI news & updates</div>
-                          </div>
-                        </Link>
-
-                        <Link
-                          href="/ai-research"
-                          className="group flex items-start px-4 py-3 rounded-lg transition-all duration-200 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/30"
-                          onClick={() => setShowDesktopAIToolsDropdown(false)}
-                        >
-                          <FlaskConical className="w-5 h-5 mr-3 mt-0.5 transition-colors flex-shrink-0 text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-700 dark:group-hover:text-cyan-400" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">AI Research</div>
-                            <div className="text-xs mt-0.5 text-slate-500 dark:text-gray-500">Academic research & papers</div>
-                          </div>
-                        </Link>
                       </div>
                     </motion.div>
                   )}
@@ -630,12 +771,12 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     </motion.div>
                   </Link>
                   <Link href="/auth/register">
-                    <motion.div 
-                      whileHover={{ scale: 1.04 }} 
+                    <motion.div
+                      whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.97 }}
                       className="group relative overflow-hidden px-4 xl:px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium transition-all duration-300 shadow-lg hover:shadow-purple-500/25 text-sm xl:text-base"
                     >
-                      <span className="relative z-10">Start Free Trial</span>
+                      <span className="relative z-10">Sign Up</span>
                       <span className="pointer-events-none absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.35),transparent)] group-hover:translate-x-full transition-transform duration-700" />
                     </motion.div>
                   </Link>
@@ -1108,14 +1249,14 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                           <ChevronRight className="w-4 h-4 ml-auto" aria-hidden="true" />
                         </Link>
                         
-                        <Link 
-                          href="/auth/register" 
-                          className={['group flex items-center px-4 py-3 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2', isDark ? 'bg-slate-700/80 hover:bg-slate-600 border border-purple-500/30 text-white focus:ring-offset-slate-900' : 'bg-white/70 hover:bg-white/90 border border-slate-200 text-slate-700 focus:ring-offset-white'].join(' ')} 
+                        <Link
+                          href="/auth/register"
+                          className={['group flex items-center px-4 py-3 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2', isDark ? 'bg-slate-700/80 hover:bg-slate-600 border border-purple-500/30 text-white focus:ring-offset-slate-900' : 'bg-white/70 hover:bg-white/90 border border-slate-200 text-slate-700 focus:ring-offset-white'].join(' ')}
                           onClick={handleLinkClick}
-                          aria-label="Create new account and start free trial"
+                          aria-label="Create new account and sign up"
                         >
                           <UserPlus className="w-5 h-5 mr-3" aria-hidden="true" />
-                          <span className="font-semibold">Start Free Trial</span>
+                          <span className="font-semibold">Sign Up</span>
                           <ChevronRight className="w-4 h-4 ml-auto" aria-hidden="true" />
                         </Link>
                       </div>

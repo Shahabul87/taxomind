@@ -227,27 +227,30 @@ export const login = async (
   });
 
   // PHASE 2: Call adminSignIn to establish admin session
-  // NextAuth v5 signIn throws NEXT_REDIRECT on success
+  // NextAuth v5 signIn throws NEXT_REDIRECT on success - let it propagate
   try {
     await adminSignIn("credentials", {
       email,
       password,
-      redirect: false,  // We'll handle redirect in the form
+      redirectTo: callbackUrl || "/dashboard/admin",  // Let NextAuth handle redirect
     });
 
     console.log('[admin-login] Admin session established successfully');
+
+    // This line should not be reached if redirect is successful
+    return {
+      success: "Admin authenticated!",
+      redirectTo: callbackUrl || "/dashboard/admin",
+      rateLimitInfo: {
+        remaining: rateLimitResult.remaining,
+        reset: rateLimitResult.reset
+      }
+    };
   } catch (error: any) {
-    // NextAuth throws NEXT_REDIRECT on successful signin - this is expected
+    // Re-throw NEXT_REDIRECT errors - they should bubble up to Next.js
     if (error?.message?.includes("NEXT_REDIRECT") || error?.digest?.includes("NEXT_REDIRECT")) {
       console.log('[admin-login] Admin signin successful (redirect thrown)');
-      return {
-        success: "Admin authenticated!",
-        redirectTo: callbackUrl || "/dashboard/admin",
-        rateLimitInfo: {
-          remaining: rateLimitResult.remaining,
-          reset: rateLimitResult.reset
-        }
-      };
+      throw error;  // Let Next.js handle the redirect
     }
 
     console.error('[admin-login] Failed to establish admin session:', error);
@@ -263,14 +266,4 @@ export const login = async (
     // Other unexpected errors
     return { error: "An unexpected error occurred during admin login" };
   }
-
-  // If we reach here (no redirect thrown), session was established
-  return {
-    success: "Admin authenticated!",
-    redirectTo: callbackUrl || "/dashboard/admin",
-    rateLimitInfo: {
-      remaining: rateLimitResult.remaining,
-      reset: rateLimitResult.reset
-    }
-  };
 };

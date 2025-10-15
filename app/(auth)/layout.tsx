@@ -1,4 +1,4 @@
-export default function AuthLayout({
+export default function AuthGroupLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -11,7 +11,7 @@ export default function AuthLayout({
       <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full blur-2xl opacity-70 dark:hidden bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12),rgba(99,102,241,0))]" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full blur-2xl opacity-70 dark:hidden bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12),rgba(6,182,212,0))]" />
 
-      {/* Dark mode: keep existing elegant slate gradient */}
+      {/* Dark mode: elegant slate gradient */}
       <div className="absolute inset-0 hidden dark:block bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
 
       <div className="relative flex items-center justify-center min-h-screen w-full px-4 py-16">
@@ -20,3 +20,4 @@ export default function AuthLayout({
     </div>
   );
 }
+

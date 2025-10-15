@@ -281,7 +281,7 @@ export default function AIResearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-16 sm:pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pt-16 sm:pt-20">
       {/* Hero Section */}
       <motion.div 
         className="relative overflow-hidden bg-gradient-to-r from-indigo-900/20 via-purple-900/20 to-blue-900/20 py-12 sm:py-16"
@@ -307,7 +307,7 @@ export default function AIResearchPage() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <span className="text-white">Academic</span>
+            <span className="text-slate-900 dark:text-white">Academic</span>
             <br />
             <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
               Research Hub
@@ -315,7 +315,7 @@ export default function AIResearchPage() {
           </motion.h1>
 
           <motion.p
-            className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2"
+            className="text-lg sm:text-xl text-slate-600 dark:text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
@@ -333,7 +333,7 @@ export default function AIResearchPage() {
             {globalStats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className={`text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
-                <div className="text-gray-400 text-sm">{stat.label}</div>
+                <div className="text-slate-500 dark:text-gray-400 text-sm">{stat.label}</div>
               </div>
             ))}
           </motion.div>
@@ -355,20 +355,20 @@ export default function AIResearchPage() {
             {/* Search */}
             <div className="flex flex-col sm:flex-row flex-1 gap-4 max-w-3xl w-full">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400 dark:text-gray-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search papers, authors, institutions, or keywords..."
-                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 text-sm sm:text-base"
+                  className="w-full bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-400 focus:outline-none focus:border-indigo-500 text-sm sm:text-base"
                 />
               </div>
               
               <Button
                 variant="outline"
                 onClick={() => setIsAdvancedSearch(!isAdvancedSearch)}
-                className="w-full sm:w-auto border-slate-700 text-gray-300"
+                className="w-full sm:w-auto border-slate-200 text-slate-700 dark:border-slate-700 dark:text-gray-300"
               >
                 <Filter className="w-4 h-4 mr-2" />
                 Advanced
@@ -381,7 +381,7 @@ export default function AIResearchPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full sm:w-auto bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 text-sm sm:text-base"
+                className="w-full sm:w-auto bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 text-sm sm:text-base"
               >
                 {sortOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -400,13 +400,13 @@ export default function AIResearchPage() {
                 transition={{ duration: 0.3 }}
                 className="overflow-hidden"
               >
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-6 bg-slate-800/30 rounded-2xl border border-slate-700">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-200 dark:border-slate-700">
                   <div>
-                    <label className="text-sm font-medium text-gray-300 mb-2 block">Category</label>
+                    <label className="text-sm font-medium text-slate-700 dark:text-gray-300 mb-2 block">Category</label>
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm sm:text-base"
+                      className="w-full bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-sm sm:text-base"
                     >
                       <option value="all">All Categories</option>
                       {researchCategories.map(category => (
@@ -416,11 +416,11 @@ export default function AIResearchPage() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-300 mb-2 block">Difficulty</label>
+                    <label className="text-sm font-medium text-slate-700 dark:text-gray-300 mb-2 block">Difficulty</label>
                     <select
                       value={selectedDifficulty}
                       onChange={(e) => setSelectedDifficulty(e.target.value)}
-                      className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm sm:text-base"
+                      className="w-full bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-sm sm:text-base"
                     >
                       {difficultyOptions.map(option => (
                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -429,8 +429,8 @@ export default function AIResearchPage() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-300 mb-2 block">Publication Year</label>
-                    <select className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm sm:text-base">
+                    <label className="text-sm font-medium text-slate-700 dark:text-gray-300 mb-2 block">Publication Year</label>
+                    <select className="w-full bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-sm sm:text-base">
                       <option value="all">All Years</option>
                       <option value="2024">2024</option>
                       <option value="2023">2023</option>
@@ -450,20 +450,20 @@ export default function AIResearchPage() {
           <div className="space-y-4 sm:space-y-6">
             
             {/* Research Categories */}
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Research Areas</h3>
+            <Card className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl p-4 sm:p-6 shadow-sm dark:shadow-none">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4">Research Areas</h3>
               <div className="space-y-3">
                 <button
                   onClick={() => setSelectedCategory('all')}
-                  className={`w-full text-left p-2 sm:p-3 rounded-xl transition-colors ${
+                  className={`w-full text-left p-2 sm:p-3 rounded-xl transition-colors border ${
                     selectedCategory === 'all' 
-                      ? 'bg-slate-700/50 border border-slate-600' 
-                      : 'hover:bg-slate-700/30'
+                      ? 'bg-slate-100 border-slate-300 dark:bg-slate-700/50 dark:border-slate-600' 
+                      : 'bg-white/70 hover:bg-white border-slate-200 dark:hover:bg-slate-700/30 dark:border-transparent'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-white font-medium text-sm sm:text-base">All Research</span>
-                    <span className="text-xs sm:text-sm text-gray-400">{researchPapers.length}</span>
+                    <span className="text-slate-900 dark:text-white font-medium text-sm sm:text-base">All Research</span>
+                    <span className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">{researchPapers.length}</span>
                   </div>
                 </button>
 
@@ -474,22 +474,22 @@ export default function AIResearchPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 * index }}
                     onClick={() => setSelectedCategory(category.name)}
-                    className={`w-full text-left p-2 sm:p-3 rounded-xl transition-colors ${
+                    className={`w-full text-left p-2 sm:p-3 rounded-xl transition-colors border ${
                       selectedCategory === category.name 
-                        ? 'bg-slate-700/50 border border-slate-600' 
-                        : 'hover:bg-slate-700/30'
+                        ? 'bg-slate-100 border-slate-300 dark:bg-slate-700/50 dark:border-slate-600' 
+                        : 'bg-white/70 hover:bg-white border-slate-200 dark:hover:bg-slate-700/30 dark:border-transparent'
                     }`}
                   >
                     <div className="flex items-center space-x-2 sm:space-x-3 mb-1 sm:mb-2">
-                      <category.icon className={`w-3 h-3 sm:w-4 sm:h-4 ${category.color}`} />
-                      <span className="text-white font-medium text-sm sm:text-base">{category.name}</span>
-                      <span className="text-xs sm:text-sm text-gray-400 ml-auto">{category.count}</span>
+                      <category.icon className={`w-3 h-3 sm:w-4 sm:h-4 ${category.color.replace('text-', 'text-')} dark:${category.color}`} />
+                      <span className="text-slate-900 dark:text-white font-medium text-sm sm:text-base">{category.name}</span>
+                      <span className="text-xs sm:text-sm text-slate-500 dark:text-gray-400 ml-auto">{category.count}</span>
                     </div>
                     <div className="flex items-center justify-between pl-5 sm:pl-7">
-                      <p className="text-xs text-gray-400 hidden sm:block">{category.description}</p>
+                      <p className="text-xs text-slate-500 dark:text-gray-400 hidden sm:block">{category.description}</p>
                       <div className="flex items-center space-x-1">
-                        <TrendingUp className="w-3 h-3 text-emerald-400" />
-                        <span className="text-xs text-emerald-400">+{category.growth}%</span>
+                        <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400">+{category.growth}%</span>
                       </div>
                     </div>
                   </motion.button>
@@ -498,31 +498,31 @@ export default function AIResearchPage() {
             </Card>
 
             {/* Top Institutions */}
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Top Institutions</h3>
+            <Card className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl p-4 sm:p-6 shadow-sm dark:shadow-none">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4">Top Institutions</h3>
               <div className="space-y-3">
                 {researchMetrics.topInstitutions.map((institution, index) => (
-                  <div key={institution} className="flex items-center justify-between p-2 hover:bg-slate-700/30 rounded-lg cursor-pointer">
+                  <div key={institution} className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-slate-700/30 rounded-lg cursor-pointer">
                     <div className="flex items-center space-x-2 sm:space-x-3">
                       <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white">
                         {index + 1}
                       </div>
-                      <span className="text-gray-300 text-sm sm:text-base">{institution}</span>
+                      <span className="text-slate-700 dark:text-gray-300 text-sm sm:text-base">{institution}</span>
                     </div>
-                    <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+                    <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 dark:text-gray-400" />
                   </div>
                 ))}
               </div>
             </Card>
 
             {/* Emerging Topics */}
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Emerging Topics</h3>
+            <Card className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl p-4 sm:p-6 shadow-sm dark:shadow-none">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4">Emerging Topics</h3>
               <div className="space-y-2">
                 {researchMetrics.emergingTopics.map((topic, index) => (
-                  <div key={topic} className="flex items-center justify-between p-2 hover:bg-slate-700/30 rounded-lg cursor-pointer">
-                    <span className="text-gray-300 text-sm sm:text-base">{topic}</span>
-                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
+                  <div key={topic} className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-slate-700/30 rounded-lg cursor-pointer">
+                    <span className="text-slate-700 dark:text-gray-300 text-sm sm:text-base">{topic}</span>
+                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600 dark:text-yellow-400" />
                   </div>
                 ))}
               </div>
@@ -541,7 +541,7 @@ export default function AIResearchPage() {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ delay: 0.1 * index }}
                   >
-                    <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-4 sm:p-6 hover:bg-slate-800/60 transition-colors group cursor-pointer">
+                    <Card className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl p-4 sm:p-6 hover:bg-white dark:hover:bg-slate-800/60 transition-colors group cursor-pointer shadow-sm dark:shadow-none">
                       <div className="space-y-3 sm:space-y-4">
                         
                         {/* Header */}
@@ -556,11 +556,11 @@ export default function AIResearchPage() {
                               <span className="text-xs text-gray-400">{formatDate(paper.publishedDate)}</span>
                             </div>
                             
-                            <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 group-hover:text-indigo-400 transition-colors line-clamp-2">
+                            <h3 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
                               {paper.title}
                             </h3>
                             
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400 mb-3">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-500 dark:text-gray-400 mb-3">
                               <span className="break-words">{paper.authors.slice(0, 2).join(', ')}{paper.authors.length > 2 ? ' et al.' : ''}</span>
                               <span className="hidden sm:inline">•</span>
                               <span className="break-words">{paper.institution}</span>
@@ -571,31 +571,31 @@ export default function AIResearchPage() {
                           
                           <div className="text-center sm:text-right sm:ml-6 flex-shrink-0">
                             <div className="flex items-center justify-center sm:justify-end space-x-1 mb-1">
-                              <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
-                              <span className="text-base sm:text-lg font-bold text-white">{paper.impactScore}</span>
+                              <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600 dark:text-yellow-400" />
+                              <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{paper.impactScore}</span>
                             </div>
-                            <div className="text-xs text-gray-400">Impact Score</div>
+                            <div className="text-xs text-slate-500 dark:text-gray-400">Impact Score</div>
                           </div>
                         </div>
                         
                         {/* Abstract */}
-                        <p className="text-gray-300 text-sm sm:text-base line-clamp-2 sm:line-clamp-3">{paper.abstract}</p>
+                        <p className="text-slate-700 dark:text-gray-300 text-sm sm:text-base line-clamp-2 sm:line-clamp-3">{paper.abstract}</p>
                         
                         {/* Tags */}
                         <div className="flex flex-wrap gap-1 sm:gap-2">
                           {paper.tags.slice(0, 4).map((tag, tagIndex) => (
-                            <span key={tagIndex} className="text-xs bg-slate-700/50 text-gray-300 px-2 py-1 rounded-full">
+                            <span key={tagIndex} className="text-xs bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-gray-300 px-2 py-1 rounded-full">
                               #{tag}
                             </span>
                           ))}
                           {paper.tags.length > 4 && (
-                            <span className="text-xs text-gray-500">+{paper.tags.length - 4}</span>
+                            <span className="text-xs text-slate-500 dark:text-gray-500">+{paper.tags.length - 4}</span>
                           )}
                         </div>
                         
                         {/* Metrics and Actions */}
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-3 sm:pt-4 border-t border-slate-700/50 gap-3 sm:gap-0">
-                          <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-400">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-3 sm:pt-4 border-t border-slate-200 dark:border-slate-700/50 gap-3 sm:gap-0">
+                          <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-slate-500 dark:text-gray-400">
                             <div className="flex items-center space-x-1">
                               <Quote className="w-3 h-3 sm:w-4 sm:h-4" />
                               <span>{paper.citations.toLocaleString()}</span>
@@ -612,22 +612,22 @@ export default function AIResearchPage() {
                           
                           <div className="flex items-center space-x-1 sm:space-x-2">
                             <button className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
-                              paper.isLiked ? 'bg-red-500/20 text-red-400' : 'hover:bg-slate-700 text-gray-400'
+                              paper.isLiked ? 'bg-red-500/20 text-red-600 dark:text-red-400' : 'hover:bg-slate-100 text-slate-500 dark:hover:bg-slate-700 dark:text-gray-400'
                             }`}>
                               <ThumbsUp className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                             <button className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
-                              paper.isBookmarked ? 'bg-yellow-500/20 text-yellow-400' : 'hover:bg-slate-700 text-gray-400'
+                              paper.isBookmarked ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' : 'hover:bg-slate-100 text-slate-500 dark:hover:bg-slate-700 dark:text-gray-400'
                             }`}>
                               <Bookmark className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
-                            <button className="p-1.5 sm:p-2 rounded-lg hover:bg-slate-700 text-gray-400 transition-colors">
+                            <button className="p-1.5 sm:p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-gray-400 transition-colors">
                               <Share className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
-                            <button className="p-1.5 sm:p-2 rounded-lg hover:bg-slate-700 text-gray-400 transition-colors">
+                            <button className="p-1.5 sm:p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-gray-400 transition-colors">
                               <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
-                            <button className="p-1.5 sm:p-2 rounded-lg hover:bg-slate-700 text-gray-400 transition-colors">
+                            <button className="p-1.5 sm:p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-gray-400 transition-colors">
                               <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                           </div>
@@ -640,9 +640,9 @@ export default function AIResearchPage() {
 
               {filteredPapers.length === 0 && (
                 <div className="text-center py-8 sm:py-12">
-                  <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">No papers found</h3>
-                  <p className="text-sm sm:text-base text-gray-400 px-4">Try adjusting your search criteria or filters</p>
+                  <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-slate-600 dark:text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white mb-2">No papers found</h3>
+                  <p className="text-sm sm:text-base text-slate-500 dark:text-gray-400 px-4">Try adjusting your search criteria or filters</p>
                 </div>
               )}
             </div>

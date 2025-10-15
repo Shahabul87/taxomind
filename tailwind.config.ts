@@ -100,6 +100,11 @@ const config = {
         'pulse-slow': {
           '0%, 100%': { opacity: '0.3' },
           '50%': { opacity: '0.5' }
+        },
+        'shimmer': {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' }
         }
   		},
   		animation: {

@@ -174,7 +174,7 @@ export default function AITrendsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-16 sm:pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pt-16 sm:pt-20">
       {/* Hero Section */}
       <motion.div 
         className="relative overflow-hidden bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-emerald-900/20 py-12 sm:py-16"
@@ -200,7 +200,7 @@ export default function AITrendsPage() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <span className="text-white">AI Education</span>
+            <span className="text-slate-900 dark:text-white">AI Education</span>
             <br />
             <span className="bg-gradient-to-r from-emerald-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
               Trend Intelligence
@@ -208,7 +208,7 @@ export default function AITrendsPage() {
           </motion.h1>
 
           <motion.p
-            className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2"
+            className="text-lg sm:text-xl text-slate-600 dark:text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
@@ -226,7 +226,7 @@ export default function AITrendsPage() {
             {globalStats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className={`text-2xl sm:text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
-                <div className="text-gray-400 text-xs sm:text-sm">{stat.label}</div>
+                <div className="text-slate-500 dark:text-gray-400 text-xs sm:text-sm">{stat.label}</div>
               </div>
             ))}
           </motion.div>
@@ -248,20 +248,20 @@ export default function AITrendsPage() {
             {/* Search and Filter */}
             <div className="flex flex-col sm:flex-row flex-1 gap-4 max-w-2xl w-full">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400 dark:text-gray-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search trends, keywords, or topics..."
-                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500 text-sm sm:text-base"
+                  className="w-full bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-400 focus:outline-none focus:border-emerald-500 text-sm sm:text-base"
                 />
               </div>
               
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full sm:w-auto bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 text-sm sm:text-base"
+                className="w-full sm:w-auto bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 text-sm sm:text-base"
               >
                 <option value="all">All Categories</option>
                 {trendCategories.map(category => (
@@ -272,7 +272,7 @@ export default function AITrendsPage() {
 
             {/* Timeframe and Live Update */}
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
-              <div className="flex bg-slate-800/50 rounded-xl border border-slate-700 w-full sm:w-auto overflow-hidden">
+              <div className="flex bg-white/80 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 w-full sm:w-auto overflow-hidden">
                 {timeframeOptions.map(option => (
                   <button
                     key={option.value}
@@ -280,7 +280,7 @@ export default function AITrendsPage() {
                     className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition-colors flex-1 sm:flex-none ${
                       selectedTimeframe === option.value 
                         ? 'bg-emerald-600 text-white' 
-                        : 'text-gray-400 hover:text-white'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white'
                     }`}
                   >
                     {option.label}
@@ -293,10 +293,10 @@ export default function AITrendsPage() {
                 className={`flex items-center space-x-2 px-4 py-2 rounded-xl border transition-colors ${
                   isLiveUpdating 
                     ? 'bg-emerald-600 border-emerald-500 text-white' 
-                    : 'bg-slate-800/50 border-slate-700 text-gray-400 hover:text-white'
+                    : 'bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-800/50 dark:border-slate-700 dark:text-gray-400 dark:hover:text-white'
                 }`}
               >
-                <div className={`w-2 h-2 rounded-full ${isLiveUpdating ? 'bg-white animate-pulse' : 'bg-gray-400'}`}></div>
+                <div className={`w-2 h-2 rounded-full ${isLiveUpdating ? 'bg-white animate-pulse' : 'bg-slate-400 dark:bg-gray-400'}`}></div>
                 <span className="text-sm">Live</span>
               </button>
             </div>
@@ -307,8 +307,8 @@ export default function AITrendsPage() {
           
           {/* Category Overview */}
           <div className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Trend Categories</h3>
+            <Card className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl p-6 shadow-sm dark:shadow-none">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Trend Categories</h3>
               <div className="space-y-4">
                 {trendCategories.map((category, index) => (
                   <motion.div
@@ -316,19 +316,19 @@ export default function AITrendsPage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 * index }}
-                    className={`p-4 rounded-xl transition-colors cursor-pointer ${
+                    className={`p-4 rounded-xl transition-colors cursor-pointer border ${
                       selectedCategory === category.name 
-                        ? 'bg-slate-700/50 border border-slate-600' 
-                        : 'bg-slate-700/20 hover:bg-slate-700/30'
+                        ? 'bg-slate-100 border-slate-300 dark:bg-slate-700/50 dark:border-slate-600' 
+                        : 'bg-white/70 border-slate-200 hover:bg-white dark:bg-slate-700/20 dark:border-transparent dark:hover:bg-slate-700/30'
                     }`}
                     onClick={() => setSelectedCategory(category.name)}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
-                        <category.icon className={`w-4 h-4 ${category.color}`} />
-                        <span className="text-white font-medium">{category.name}</span>
+                        <category.icon className={`w-4 h-4 ${category.color.replace('text-', 'text-')} dark:${category.color}`} />
+                        <span className="text-slate-900 dark:text-white font-medium">{category.name}</span>
                       </div>
-                      <span className="text-sm text-gray-400">{category.count}</span>
+                      <span className="text-sm text-slate-500 dark:text-gray-400">{category.count}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <div className={`text-sm font-medium ${getTrendColor(category.growth)}`}>
@@ -342,15 +342,15 @@ export default function AITrendsPage() {
             </Card>
 
             {/* Quick Insights */}
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Quick Insights</h3>
+            <Card className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl p-6 shadow-sm dark:shadow-none">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quick Insights</h3>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0">
                     <Sparkles className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-300">Large Language Models dominate education trends with 156% growth this month.</p>
+                    <p className="text-sm text-slate-700 dark:text-gray-300">Large Language Models dominate education trends with 156% growth this month.</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -358,7 +358,7 @@ export default function AITrendsPage() {
                     <Target className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-300">AI assessment tools gaining traction in academic institutions worldwide.</p>
+                    <p className="text-sm text-slate-700 dark:text-gray-300">AI assessment tools gaining traction in academic institutions worldwide.</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -366,7 +366,7 @@ export default function AITrendsPage() {
                     <Eye className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-300">Ethics and responsible AI implementation becoming priority focus areas.</p>
+                    <p className="text-sm text-slate-700 dark:text-gray-300">Ethics and responsible AI implementation becoming priority focus areas.</p>
                   </div>
                 </div>
               </div>
@@ -375,15 +375,15 @@ export default function AITrendsPage() {
 
           {/* Main Trends List */}
           <div className="lg:col-span-3">
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6">
+            <Card className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl p-6 shadow-sm dark:shadow-none">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-white">Trending Topics</h3>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Trending Topics</h3>
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" className="border-slate-700 text-gray-300">
+                  <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 dark:border-slate-700 dark:text-gray-300">
                     <Download className="w-4 h-4 mr-2" />
                     Export
                   </Button>
-                  <Button variant="outline" size="sm" className="border-slate-700 text-gray-300">
+                  <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 dark:border-slate-700 dark:text-gray-300">
                     <Share className="w-4 h-4 mr-2" />
                     Share
                   </Button>
@@ -401,27 +401,27 @@ export default function AITrendsPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ delay: 0.1 * index }}
-                        className="bg-slate-700/30 rounded-xl p-6 hover:bg-slate-700/40 transition-colors cursor-pointer group"
+                        className="rounded-xl p-6 transition-colors cursor-pointer group border bg-white/80 hover:bg-white dark:bg-slate-700/30 dark:hover:bg-slate-700/40 border-slate-200 dark:border-transparent"
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <h4 className="text-lg font-semibold text-white group-hover:text-emerald-400 transition-colors">
+                              <h4 className="text-lg font-semibold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                                 {trend.title}
                               </h4>
                               <span className={`text-xs px-2 py-1 rounded-full ${getImpactColor(trend.impact)}`}>
                                 {trend.impact} Impact
                               </span>
                             </div>
-                            <p className="text-gray-300 text-sm mb-3">{trend.description}</p>
+                            <p className="text-slate-700 dark:text-gray-300 text-sm mb-3">{trend.description}</p>
                             <div className="flex flex-wrap gap-1 mb-3">
                               {trend.keywords.map((keyword, keyIndex) => (
-                                <span key={keyIndex} className="text-xs bg-slate-600/50 text-gray-300 px-2 py-1 rounded-full">
+                                <span key={keyIndex} className="text-xs bg-slate-100 text-slate-700 dark:bg-slate-600/50 dark:text-gray-300 px-2 py-1 rounded-full">
                                   {keyword}
                                 </span>
                               ))}
                             </div>
-                            <div className="flex items-center space-x-4 text-xs text-gray-400">
+                            <div className="flex items-center space-x-4 text-xs text-slate-500 dark:text-gray-400">
                               <span>{trend.sources} sources</span>
                               <span>•</span>
                               <span>{trend.category}</span>
@@ -442,13 +442,13 @@ export default function AITrendsPage() {
                         </div>
                         
                         <div className="flex items-center justify-between">
-                          <div className="w-full bg-slate-600 rounded-full h-2 mr-4">
+                          <div className="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2 mr-4">
                             <div 
                               className="bg-gradient-to-r from-emerald-500 to-blue-500 h-2 rounded-full transition-all duration-300"
                               style={{ width: `${Math.min(Math.abs(trend.growth), 100)}%` }}
                             ></div>
                           </div>
-                          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+                          <ChevronRight className="w-5 h-5 text-slate-400 dark:text-gray-400 group-hover:text-slate-700 dark:group-hover:text-white transition-colors" />
                         </div>
                       </motion.div>
                     );
@@ -458,9 +458,9 @@ export default function AITrendsPage() {
 
               {filteredTrends.length === 0 && (
                 <div className="text-center py-12">
-                  <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">No trends found</h3>
-                  <p className="text-gray-400">Try adjusting your filters or search query</p>
+                  <Search className="w-16 h-16 text-slate-600 dark:text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">No trends found</h3>
+                  <p className="text-slate-500 dark:text-gray-400">Try adjusting your filters or search query</p>
                 </div>
               )}
             </Card>

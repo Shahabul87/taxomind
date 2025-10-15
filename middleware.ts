@@ -155,6 +155,7 @@ async function handleAdminRoute(req: NextRequest) {
 
       // Allow access to admin auth pages
       const response = NextResponse.next();
+      response.headers.set('x-pathname', pathname);
       return applySecurityHeaders(response);
     }
 
@@ -240,8 +241,10 @@ async function handleUserRoute(req: NextRequest) {
         return applySecurityHeaders(response);
       }
 
-      // Allow access to auth pages
+      // Allow access to auth pages - SET BOTH HEADERS for reliable detection
       const response = NextResponse.next();
+      response.headers.set('x-pathname', pathname);
+      response.headers.set('x-url', nextUrl.pathname);
       return applySecurityHeaders(response);
     }
 
@@ -250,6 +253,7 @@ async function handleUserRoute(req: NextRequest) {
     if (isPublic) {
       const response = NextResponse.next();
       response.headers.set('x-pathname', pathname);
+      response.headers.set('x-url', nextUrl.pathname);
       return applySecurityHeaders(response);
     }
 
@@ -366,6 +370,7 @@ async function handleUserRoute(req: NextRequest) {
     // Apply security headers and user context
     const response = NextResponse.next();
     response.headers.set('x-pathname', pathname);
+    response.headers.set('x-url', nextUrl.pathname);
 
     if (isLoggedIn) {
       response.headers.set('X-User-Role', userRole || 'USER');

@@ -35,7 +35,7 @@ import {
   Heart
 } from 'lucide-react';
 import Link from 'next/link';
-import { PageBackground } from '@/components/ui/page-background';
+// PageBackground removed - using direct bg-background on body
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -565,8 +565,7 @@ export default function AIToolsPage() {
   };
 
   return (
-    <PageBackground>
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-background">
         {/* Hero Section */}
         <section className="relative py-20 px-4">
           <div className="max-w-7xl mx-auto text-center">
@@ -853,6 +852,5 @@ export default function AIToolsPage() {
           </div>
         </section>
       </div>
-    </PageBackground>
   );
 }

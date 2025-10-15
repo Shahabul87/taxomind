@@ -122,7 +122,7 @@ const stats = [
 
 export default function IntelligentLMSOverview() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 -mt-14 sm:-mt-16 pt-14 sm:pt-16">
+    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 -mt-14 sm:-mt-16 pt-14 sm:pt-16">
       {/* Hero Section */}
       <section className="relative pt-24 pb-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
@@ -132,8 +132,8 @@ export default function IntelligentLMSOverview() {
             transition={{ duration: 0.5 }}
           >
             <div className="flex justify-center mb-6">
-              <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-purple-500/30">
-                <Sparkles className="w-8 h-8 text-purple-400" />
+              <div className="p-3 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 dark:from-purple-500/20 dark:to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-purple-300/40 dark:border-purple-500/30">
+                <Sparkles className="w-8 h-8 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
             
@@ -141,7 +141,7 @@ export default function IntelligentLMSOverview() {
               The World&apos;s Most Intelligent LMS
             </h1>
             
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+            <p className="text-xl text-slate-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
               Taxomind isn&apos;t just another learning platform. It&apos;s the first LMS built from the ground up 
               with AI intelligence, international standards compliance, and adaptive learning at its core.
             </p>
@@ -154,7 +154,7 @@ export default function IntelligentLMSOverview() {
                 </Button>
               </Link>
               <Link href="#comparison">
-                <Button size="lg" variant="outline" className="border-gray-600 hover:border-gray-500">
+                <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:border-slate-400 dark:border-gray-600 dark:text-gray-200 dark:hover:border-gray-500">
                   See How We Compare
                 </Button>
               </Link>
@@ -200,10 +200,10 @@ export default function IntelligentLMSOverview() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               What Makes Taxomind Unique
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Four revolutionary pillars that set us apart from every other LMS
             </p>
           </motion.div>
@@ -217,23 +217,23 @@ export default function IntelligentLMSOverview() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700 hover:border-slate-600 transition-all duration-300 h-full">
+                <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 h-full shadow-sm dark:shadow-none">
                   <div className="flex items-start gap-4">
                     <div className={`p-3 rounded-lg bg-gradient-to-r ${feature.color} bg-opacity-20`}>
-                      <feature.icon className="w-6 h-6 text-white" />
+                      <feature.icon className="w-6 h-6 text-slate-900 dark:text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-2xl font-semibold text-white mb-2">
+                      <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">
                         {feature.title}
                       </h3>
-                      <p className="text-gray-400 mb-4">
+                      <p className="text-slate-600 dark:text-gray-400 mb-4">
                         {feature.description}
                       </p>
                       <ul className="space-y-2 mb-6">
                         {feature.highlights.map((highlight) => (
                           <li key={highlight} className="flex items-start gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                            <span className="text-gray-300 text-sm">{highlight}</span>
+                            <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-700 dark:text-gray-300 text-sm">{highlight}</span>
                           </li>
                         ))}
                       </ul>
@@ -253,7 +253,7 @@ export default function IntelligentLMSOverview() {
       </section>
 
       {/* Comparison Section */}
-      <section id="comparison" className="py-20 px-4 bg-slate-800/30">
+      <section id="comparison" className="py-20 px-4 bg-slate-50 dark:bg-slate-800/30">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -261,10 +261,10 @@ export default function IntelligentLMSOverview() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Taxomind vs Traditional LMS
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               See why educators and learners are switching to intelligent learning
             </p>
           </motion.div>
@@ -273,31 +273,31 @@ export default function IntelligentLMSOverview() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="overflow-hidden rounded-xl border border-slate-700"
+            className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700"
           >
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-800/50">
-                  <th className="px-6 py-4 text-left text-gray-400 font-medium">Feature</th>
-                  <th className="px-6 py-4 text-left text-gray-400 font-medium">Traditional LMS</th>
-                  <th className="px-6 py-4 text-left text-white font-medium bg-gradient-to-r from-purple-600/20 to-indigo-600/20">
+                <tr className="bg-slate-100 dark:bg-slate-800/50">
+                  <th className="px-6 py-4 text-left text-slate-600 dark:text-gray-400 font-medium">Feature</th>
+                  <th className="px-6 py-4 text-left text-slate-600 dark:text-gray-400 font-medium">Traditional LMS</th>
+                  <th className="px-6 py-4 text-left text-slate-900 dark:text-white font-medium bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-600/20 dark:to-indigo-600/20">
                     Taxomind
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {comparisons.map((item, index) => (
-                  <tr key={item.feature} className="border-t border-slate-700">
-                    <td className="px-6 py-4 text-gray-300 font-medium">{item.feature}</td>
-                    <td className="px-6 py-4 text-gray-500">
+                  <tr key={item.feature} className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-6 py-4 text-slate-700 dark:text-gray-300 font-medium">{item.feature}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-gray-500">
                       <div className="flex items-center gap-2">
-                        <X className="w-4 h-4 text-red-400" />
+                        <X className="w-4 h-4 text-red-500 dark:text-red-400" />
                         {item.traditional}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-white bg-gradient-to-r from-purple-600/10 to-indigo-600/10">
+                    <td className="px-6 py-4 text-slate-900 dark:text-white bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-600/10 dark:to-indigo-600/10">
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
                         {item.taxomind}
                       </div>
                     </td>
@@ -318,35 +318,35 @@ export default function IntelligentLMSOverview() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Built with Cutting-Edge Technology
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Enterprise-grade infrastructure meets innovative AI
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700">
-              <Cpu className="w-8 h-8 text-purple-400 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">AI Foundation</h3>
-              <p className="text-gray-400">
+            <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Cpu className="w-8 h-8 text-purple-600 dark:text-purple-400 mb-4" />
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">AI Foundation</h3>
+              <p className="text-slate-600 dark:text-gray-400">
                 Powered by Claude 3.5 Sonnet and GPT-4 for unmatched intelligence
               </p>
             </Card>
             
-            <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700">
-              <GitBranch className="w-8 h-8 text-blue-400 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Modern Architecture</h3>
-              <p className="text-gray-400">
+            <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <GitBranch className="w-8 h-8 text-blue-600 dark:text-blue-400 mb-4" />
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Modern Architecture</h3>
+              <p className="text-slate-600 dark:text-gray-400">
                 Next.js 15, TypeScript, and Prisma for blazing-fast performance
               </p>
             </Card>
             
-            <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700">
-              <Globe className="w-8 h-8 text-green-400 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Global Scale</h3>
-              <p className="text-gray-400">
+            <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Globe className="w-8 h-8 text-green-600 dark:text-green-400 mb-4" />
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Global Scale</h3>
+              <p className="text-slate-600 dark:text-gray-400">
                 Cloud-native infrastructure supporting millions of learners worldwide
               </p>
             </Card>
@@ -361,12 +361,12 @@ export default function IntelligentLMSOverview() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-r from-purple-600/20 to-indigo-600/20 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-12"
+            className="bg-gradient-to-r from-purple-600/10 to-indigo-600/10 dark:from-purple-600/20 dark:to-indigo-600/20 backdrop-blur-sm border border-purple-300/40 dark:border-purple-500/30 rounded-2xl p-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Ready to Experience Intelligent Learning?
             </h2>
-            <p className="text-xl text-gray-300 mb-8">
+            <p className="text-xl text-slate-600 dark:text-gray-300 mb-8">
               Join thousands of educators and learners already using the future of education
             </p>
             <div className="flex flex-wrap justify-center gap-4">
@@ -377,7 +377,7 @@ export default function IntelligentLMSOverview() {
                 </Button>
               </Link>
               <Link href="/demo">
-                <Button size="lg" variant="outline" className="border-gray-500 hover:border-gray-400">
+                <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:border-slate-400 dark:border-gray-500 dark:text-gray-200">
                   Request a Demo
                 </Button>
               </Link>

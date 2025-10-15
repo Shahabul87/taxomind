@@ -249,6 +249,7 @@ export async function POST(request: Request) {
           email: testEmail,
           password: 'Test123!',
           name: 'Test User',
+          acceptTermsAndPrivacy: true,
         });
 
         return NextResponse.json({

@@ -10,8 +10,13 @@ interface DashboardLayoutProps {
 const DashboardLayout = async ({ children }: DashboardLayoutProps) => {
   // Check if this is an admin route by examining the URL
   const headersList = await headers();
-  const pathname = headersList.get("x-pathname") || "";
-  const isAdminRoute = pathname.startsWith("/dashboard/admin");
+  const pathname = headersList.get("x-pathname") || headersList.get("x-invoke-path") || "";
+
+  // Also check referer and current URL as fallback
+  const referer = headersList.get("referer") || "";
+  const isAdminRoute = pathname.startsWith("/dashboard/admin") ||
+                       referer.includes("/dashboard/admin") ||
+                       referer.includes("/admin/auth");
 
   // For admin routes, check admin session with error handling
   if (isAdminRoute) {

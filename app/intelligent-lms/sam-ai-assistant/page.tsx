@@ -134,7 +134,7 @@ const samEngines = [
 
 export default function SamAIAssistantPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 -mt-14 sm:-mt-16 pt-14 sm:pt-16">
+    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 -mt-14 sm:-mt-16 pt-14 sm:pt-16">
       {/* Hero Section */}
       <section className="relative pt-24 pb-12 px-4">
         <div className="max-w-7xl mx-auto">
@@ -146,8 +146,8 @@ export default function SamAIAssistantPage() {
           >
             <div className="flex justify-center mb-6">
               <div className="relative">
-                <div className="p-4 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-purple-500/30">
-                  <Brain className="w-12 h-12 text-purple-400" />
+                <div className="p-4 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 dark:from-purple-500/20 dark:to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-purple-300/40 dark:border-purple-500/30">
+                  <Brain className="w-12 h-12 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="absolute -top-1 -right-1">
                   <Badge className="bg-green-500 text-white border-0">LIVE</Badge>
@@ -159,7 +159,7 @@ export default function SamAIAssistantPage() {
               Meet SAM: Your AI Teaching & Learning Companion
             </h1>
             
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+            <p className="text-xl text-slate-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
               SAM (Smart Academic Mentor) is not just another chatbot. It&apos;s a revolutionary AI assistant that 
               understands your context, adapts to your needs, and helps you achieve educational excellence.
             </p>
@@ -171,7 +171,7 @@ export default function SamAIAssistantPage() {
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="border-gray-600 hover:border-gray-500">
+              <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:border-slate-400 dark:border-gray-600 dark:text-gray-200 dark:hover:border-gray-500">
                 <MessageSquare className="w-5 h-5 mr-2" />
                 Watch SAM in Action
               </Button>
@@ -195,10 +195,10 @@ export default function SamAIAssistantPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               SAM Adapts to Your Every Need
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Intelligent assistance for teachers and students at every step
             </p>
           </motion.div>
@@ -214,21 +214,21 @@ export default function SamAIAssistantPage() {
               >
                 <div className="flex items-center gap-3 mb-6">
                   <div className={`p-2 rounded-lg bg-gradient-to-r ${category.color} bg-opacity-20`}>
-                    <category.icon className="w-6 h-6 text-white" />
+                    <category.icon className="w-6 h-6 text-slate-900 dark:text-white" />
                   </div>
-                  <h3 className="text-2xl font-semibold text-white">{category.category}</h3>
+                  <h3 className="text-2xl font-semibold text-slate-900 dark:text-white">{category.category}</h3>
                 </div>
                 
                 <div className="grid md:grid-cols-3 gap-6">
                   {category.capabilities.map((capability, index) => (
-                    <Card key={capability.title} className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700">
-                      <h4 className="text-xl font-semibold text-white mb-2">{capability.title}</h4>
-                      <p className="text-gray-400 mb-4">{capability.description}</p>
+                    <Card key={capability.title} className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
+                      <h4 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">{capability.title}</h4>
+                      <p className="text-slate-600 dark:text-gray-400 mb-4">{capability.description}</p>
                       <ul className="space-y-2">
                         {capability.features.map((feature) => (
                           <li key={feature} className="flex items-start gap-2">
                             <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                            <span className="text-sm text-gray-300">{feature}</span>
+                            <span className="text-sm text-slate-700 dark:text-gray-300">{feature}</span>
                           </li>
                         ))}
                       </ul>
@@ -242,7 +242,7 @@ export default function SamAIAssistantPage() {
       </section>
 
       {/* Contextual Intelligence */}
-      <section className="py-20 px-4 bg-slate-800/30">
+      <section className="py-20 px-4 bg-slate-50 dark:bg-slate-800/30">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -250,10 +250,10 @@ export default function SamAIAssistantPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Contextual Intelligence: SAM Knows Where You Are
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               SAM understands your current context and provides relevant assistance automatically
             </p>
           </motion.div>
@@ -267,19 +267,19 @@ export default function SamAIAssistantPage() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700 h-full">
+                <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none h-full">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-purple-500/20 rounded-lg">
-                      <Activity className="w-5 h-5 text-purple-400" />
+                    <div className="p-2 bg-purple-500/15 dark:bg-purple-500/20 rounded-lg">
+                      <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <h3 className="text-xl font-semibold text-white">{context.context}</h3>
+                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white">{context.context}</h3>
                   </div>
-                  <p className="text-gray-400 mb-4">{context.description}:</p>
+                  <p className="text-slate-600 dark:text-gray-400 mb-4">{context.description}:</p>
                   <div className="grid grid-cols-2 gap-3">
                     {context.features.map((feature) => (
                       <div key={feature} className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-yellow-400" />
-                        <span className="text-sm text-gray-300">{feature}</span>
+                        <Zap className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+                        <span className="text-sm text-slate-700 dark:text-gray-300">{feature}</span>
                       </div>
                     ))}
                   </div>
@@ -299,10 +299,10 @@ export default function SamAIAssistantPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Powered by 6 Intelligent Engines
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Each engine works together to create a seamless AI experience
             </p>
           </motion.div>
@@ -316,10 +316,10 @@ export default function SamAIAssistantPage() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700 hover:border-purple-500/50 transition-all duration-300">
-                  <engine.icon className="w-8 h-8 text-purple-400 mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">{engine.name}</h3>
-                  <p className="text-gray-400 text-sm">{engine.description}</p>
+                <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-500/50 transition-all duration-300 shadow-sm dark:shadow-none">
+                  <engine.icon className="w-8 h-8 text-purple-600 dark:text-purple-400 mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{engine.name}</h3>
+                  <p className="text-slate-600 dark:text-gray-400 text-sm">{engine.description}</p>
                 </Card>
               </motion.div>
             ))}
@@ -328,7 +328,7 @@ export default function SamAIAssistantPage() {
       </section>
 
       {/* Real Examples */}
-      <section className="py-20 px-4 bg-slate-800/30">
+      <section className="py-20 px-4 bg-slate-50 dark:bg-slate-800/30">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -336,32 +336,32 @@ export default function SamAIAssistantPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               See SAM in Action
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Real examples of how SAM helps users every day
             </p>
           </motion.div>
 
           <div className="space-y-6">
-            <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700">
+            <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
               <div className="flex items-start gap-4">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <MessageSquare className="w-5 h-5 text-blue-400" />
+                <div className="p-2 bg-blue-500/15 dark:bg-blue-500/20 rounded-lg">
+                  <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-gray-400">Teacher</span>
+                    <span className="text-sm font-medium text-slate-500 dark:text-gray-400">Teacher</span>
                     <Badge variant="outline" className="text-xs">Course Creation</Badge>
                   </div>
-                  <p className="text-gray-300 mb-3">&ldquo;Help me create a course on Machine Learning for beginners&rdquo;</p>
-                  <div className="pl-4 border-l-2 border-purple-500">
+                  <p className="text-slate-700 dark:text-gray-300 mb-3">&ldquo;Help me create a course on Machine Learning for beginners&rdquo;</p>
+                  <div className="pl-4 border-l-2 border-purple-300 dark:border-purple-500">
                     <div className="flex items-center gap-2 mb-2">
-                      <Brain className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm font-medium text-purple-400">SAM</span>
+                      <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="text-sm font-medium text-purple-600 dark:text-purple-400">SAM</span>
                     </div>
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-slate-700 dark:text-gray-300 text-sm">
                       &ldquo;I&apos;ll help you create a comprehensive ML course! Based on current market demand and Bloom&apos;s Taxonomy, 
                       here&apos;s a structured outline with 8 modules, starting with fundamentals and progressing to hands-on projects. 
                       I&apos;ve included interactive exercises, assessments aligned with learning objectives, and suggested prerequisites...&rdquo;
@@ -371,23 +371,23 @@ export default function SamAIAssistantPage() {
               </div>
             </Card>
 
-            <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700">
+            <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
               <div className="flex items-start gap-4">
-                <div className="p-2 bg-green-500/20 rounded-lg">
-                  <MessageSquare className="w-5 h-5 text-green-400" />
+                <div className="p-2 bg-green-500/15 dark:bg-green-500/20 rounded-lg">
+                  <MessageSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-gray-400">Student</span>
+                    <span className="text-sm font-medium text-slate-500 dark:text-gray-400">Student</span>
                     <Badge variant="outline" className="text-xs">Learning Session</Badge>
                   </div>
-                  <p className="text-gray-300 mb-3">&ldquo;I don&apos;t understand how neural networks work&rdquo;</p>
-                  <div className="pl-4 border-l-2 border-purple-500">
+                  <p className="text-slate-700 dark:text-gray-300 mb-3">&ldquo;I don&apos;t understand how neural networks work&rdquo;</p>
+                  <div className="pl-4 border-l-2 border-purple-300 dark:border-purple-500">
                     <div className="flex items-center gap-2 mb-2">
-                      <Brain className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm font-medium text-purple-400">SAM</span>
+                      <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="text-sm font-medium text-purple-600 dark:text-purple-400">SAM</span>
                     </div>
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-slate-700 dark:text-gray-300 text-sm">
                       &ldquo;Let me explain neural networks using a simple analogy! Think of it like a team making decisions. 
                       I&apos;ll break it down into 3 parts: 1) Input layer (your eyes seeing), 2) Hidden layers (your brain processing), 
                       3) Output layer (your decision). Here&apos;s an interactive visualization...&rdquo;
@@ -407,13 +407,13 @@ export default function SamAIAssistantPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-r from-purple-600/20 to-indigo-600/20 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-12"
+            className="bg-gradient-to-r from-purple-600/10 to-indigo-600/10 dark:from-purple-600/20 dark:to-indigo-600/20 backdrop-blur-sm border border-purple-300/40 dark:border-purple-500/30 rounded-2xl p-12"
           >
             <Sparkles className="w-12 h-12 text-purple-400 mx-auto mb-6" />
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Ready to Meet SAM?
             </h2>
-            <p className="text-xl text-gray-300 mb-8">
+            <p className="text-xl text-slate-600 dark:text-gray-300 mb-8">
               Join thousands of teachers and students already benefiting from AI-powered education
             </p>
             <div className="flex flex-wrap justify-center gap-4">
@@ -424,7 +424,7 @@ export default function SamAIAssistantPage() {
                 </Button>
               </Link>
               <Link href="/intelligent-lms/overview">
-                <Button size="lg" variant="outline" className="border-gray-500 hover:border-gray-400">
+                <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:border-slate-400 dark:border-gray-500 dark:text-gray-200">
                   Learn More About Taxomind
                 </Button>
               </Link>

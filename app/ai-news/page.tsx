@@ -235,7 +235,7 @@ export default function AINewsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-16 sm:pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pt-16 sm:pt-20">
       {/* Hero Section */}
       <motion.div 
         className="relative overflow-hidden bg-gradient-to-r from-blue-900/20 via-purple-900/20 to-emerald-900/20 py-12 sm:py-16"
@@ -261,7 +261,7 @@ export default function AINewsPage() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <span className="text-white">Stay Informed with</span>
+            <span className="text-slate-900 dark:text-white">Stay Informed with</span>
             <br />
             <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
               AI News Feed
@@ -269,7 +269,7 @@ export default function AINewsPage() {
           </motion.h1>
 
           <motion.p
-            className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2"
+            className="text-lg sm:text-xl text-slate-600 dark:text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
@@ -287,7 +287,7 @@ export default function AINewsPage() {
             {quickStats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className={`text-2xl sm:text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
-                <div className="text-gray-400 text-xs sm:text-sm">{stat.label}</div>
+                <div className="text-slate-500 dark:text-gray-400 text-xs sm:text-sm">{stat.label}</div>
               </div>
             ))}
           </motion.div>
@@ -309,20 +309,20 @@ export default function AINewsPage() {
             {/* Search and Filters */}
             <div className="flex flex-1 gap-4 max-w-2xl">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400 dark:text-gray-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search news, topics, or sources..."
-                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500"
                 />
               </div>
               
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
               >
                 <option value="all">All Categories</option>
                 {newsCategories.map(category => (
@@ -333,7 +333,7 @@ export default function AINewsPage() {
               <select
                 value={selectedImportance}
                 onChange={(e) => setSelectedImportance(e.target.value)}
-                className="bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
               >
                 {importanceOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -343,7 +343,7 @@ export default function AINewsPage() {
 
             {/* Controls */}
             <div className="flex items-center gap-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-400">
+              <div className="flex items-center space-x-2 text-sm text-slate-500 dark:text-gray-400">
                 <Clock className="w-4 h-4" />
                 <span>Updated {formatTimeAgo(lastUpdated)}</span>
               </div>
@@ -353,7 +353,7 @@ export default function AINewsPage() {
                 className={`flex items-center space-x-2 px-4 py-2 rounded-xl border transition-colors ${
                   useRealData 
                     ? 'bg-emerald-600 border-emerald-500 text-white' 
-                    : 'bg-slate-800/50 border-slate-700 text-gray-400 hover:text-white'
+                    : 'bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-800/50 dark:border-slate-700 dark:text-gray-400 dark:hover:text-white'
                 }`}
               >
                 {useRealData ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
@@ -365,10 +365,10 @@ export default function AINewsPage() {
                 className={`flex items-center space-x-2 px-4 py-2 rounded-xl border transition-colors ${
                   isAutoRefresh 
                     ? 'bg-blue-600 border-blue-500 text-white' 
-                    : 'bg-slate-800/50 border-slate-700 text-gray-400 hover:text-white'
+                    : 'bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-800/50 dark:border-slate-700 dark:text-gray-400 dark:hover:text-white'
                 }`}
               >
-                <div className={`w-2 h-2 rounded-full ${isAutoRefresh ? 'bg-white animate-pulse' : 'bg-gray-400'}`}></div>
+                <div className={`w-2 h-2 rounded-full ${isAutoRefresh ? 'bg-white animate-pulse' : 'bg-slate-400 dark:bg-gray-400'}`}></div>
                 <span className="text-sm">Auto-refresh</span>
               </button>
 
@@ -376,7 +376,7 @@ export default function AINewsPage() {
                 onClick={fetchNews} 
                 variant="outline" 
                 size="sm" 
-                className="border-slate-700 text-gray-300"
+                className="border-slate-200 text-slate-700 dark:border-slate-700 dark:text-gray-300"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -404,7 +404,7 @@ export default function AINewsPage() {
           
           {/* Category Sidebar */}
           <div className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6">
+            <Card className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl p-6 shadow-sm dark:shadow-none">
               <h3 className="text-lg font-semibold text-white mb-4">News Categories</h3>
               <div className="space-y-3">
                 <button
@@ -446,7 +446,7 @@ export default function AINewsPage() {
             </Card>
 
             {/* Trending Topics */}
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6">
+            <Card className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl p-6 shadow-sm dark:shadow-none">
               <h3 className="text-lg font-semibold text-white mb-4">Trending Topics</h3>
               <div className="space-y-3">
                 {['GPT-5', 'AI Education', 'Machine Learning', 'Neural Networks', 'EdTech'].map((topic, index) => (
@@ -486,7 +486,7 @@ export default function AINewsPage() {
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ delay: 0.1 * index }}
                     >
-                      <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-xl p-6 hover:bg-slate-800/60 transition-colors group">
+                      <Card className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl p-6 hover:bg-white dark:hover:bg-slate-800/60 transition-colors group shadow-sm dark:shadow-none">
                         <div className="flex items-start space-x-4">
                           
                           {/* Content */}
@@ -536,23 +536,23 @@ export default function AINewsPage() {
                             rel="noopener noreferrer"
                             className="block mb-3"
                           >
-                            <h3 className="text-xl font-semibold text-white group-hover:text-blue-400 transition-colors">
+                            <h3 className="text-xl font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                               {article.title}
                             </h3>
                           </a>
                           
-                          <p className="text-gray-300 mb-4 line-clamp-3">{article.summary}</p>
+                          <p className="text-slate-700 dark:text-gray-300 mb-4 line-clamp-3">{article.summary}</p>
                           
                           <div className="flex flex-wrap gap-2 mb-4">
                             {article.tags.map((tag, tagIndex) => (
-                              <span key={tagIndex} className="text-xs bg-slate-700/50 text-gray-300 px-2 py-1 rounded-full">
+                              <span key={tagIndex} className="text-xs bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-gray-300 px-2 py-1 rounded-full">
                                 #{tag}
                               </span>
                             ))}
                             
                             {/* Quality badges */}
                             {article.qualityBadges && article.qualityBadges.map((badge, badgeIndex) => (
-                              <span key={`badge-${badgeIndex}`} className="flex items-center space-x-1 text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30">
+                              <span key={`badge-${badgeIndex}`} className="flex items-center space-x-1 text-xs bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-full border border-emerald-300/40 dark:border-emerald-500/30">
                                 <Award className="w-3 h-3" />
                                 <span>{badge}</span>
                               </span>
@@ -560,12 +560,12 @@ export default function AINewsPage() {
                           </div>
                           
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4 text-sm text-gray-400">
+                            <div className="flex items-center space-x-4 text-sm text-slate-500 dark:text-gray-400">
                               <a 
                                 href={article.source.url} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="hover:text-blue-400 transition-colors"
+                                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                               >
                                 {article.source.name}
                               </a>
@@ -581,23 +581,23 @@ export default function AINewsPage() {
                             
                             <div className="flex items-center space-x-2">
                               <button className={`p-2 rounded-lg transition-colors ${
-                                article.isLiked ? 'bg-red-500/20 text-red-400' : 'hover:bg-slate-700 text-gray-400'
+                                article.isLiked ? 'bg-red-500/20 text-red-600 dark:text-red-400' : 'hover:bg-slate-100 text-slate-500 dark:hover:bg-slate-700 dark:text-gray-400'
                               }`}>
                                 <ThumbsUp className="w-4 h-4" />
                               </button>
                               <button className={`p-2 rounded-lg transition-colors ${
-                                article.isBookmarked ? 'bg-yellow-500/20 text-yellow-400' : 'hover:bg-slate-700 text-gray-400'
+                                article.isBookmarked ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' : 'hover:bg-slate-100 text-slate-500 dark:hover:bg-slate-700 dark:text-gray-400'
                               }`}>
                                 <Bookmark className="w-4 h-4" />
                               </button>
-                              <button className="p-2 rounded-lg hover:bg-slate-700 text-gray-400 transition-colors">
+                              <button className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-gray-400 transition-colors">
                                 <Share className="w-4 h-4" />
                               </button>
                               <a 
                                 href={article.articleUrl} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="p-2 rounded-lg hover:bg-slate-700 text-blue-400 transition-colors"
+                                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 transition-colors"
                                 title="Read full article"
                               >
                                 <ExternalLink className="w-4 h-4" />
@@ -614,9 +614,9 @@ export default function AINewsPage() {
 
               {filteredArticles.length === 0 && (
                 <div className="text-center py-12">
-                  <Newspaper className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">No articles found</h3>
-                  <p className="text-gray-400">Try adjusting your filters or search query</p>
+                  <Newspaper className="w-16 h-16 text-slate-600 dark:text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">No articles found</h3>
+                  <p className="text-slate-500 dark:text-gray-400">Try adjusting your filters or search query</p>
                 </div>
               )}
             </div>

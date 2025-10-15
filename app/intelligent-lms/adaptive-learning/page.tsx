@@ -116,7 +116,7 @@ const adaptationProcess = [
 
 export default function AdaptiveLearningPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 -mt-14 sm:-mt-16 pt-14 sm:pt-16">
+    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 -mt-14 sm:-mt-16 pt-14 sm:pt-16">
       {/* Hero Section */}
       <section className="relative pt-24 pb-12 px-4">
         <div className="max-w-7xl mx-auto">
@@ -127,8 +127,8 @@ export default function AdaptiveLearningPage() {
             className="text-center"
           >
             <div className="flex justify-center mb-6">
-              <div className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-2xl backdrop-blur-sm border border-yellow-500/30">
-                <Zap className="w-12 h-12 text-yellow-400" />
+              <div className="p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 dark:from-yellow-500/20 dark:to-orange-500/20 rounded-2xl backdrop-blur-sm border border-yellow-300/40 dark:border-yellow-500/30">
+                <Zap className="w-12 h-12 text-yellow-600 dark:text-yellow-400" />
               </div>
             </div>
             
@@ -136,7 +136,7 @@ export default function AdaptiveLearningPage() {
               Learning That Adapts to You
             </h1>
             
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+            <p className="text-xl text-slate-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
               Every student is unique. Taxomind&apos;s adaptive learning engine creates personalized 
               learning experiences that evolve in real-time based on individual needs, preferences, and progress.
             </p>
@@ -148,7 +148,7 @@ export default function AdaptiveLearningPage() {
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="border-gray-600 hover:border-gray-500">
+              <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:border-slate-400 dark:border-gray-600 dark:text-gray-200 dark:hover:border-gray-500">
                 Watch Demo
               </Button>
             </div>
@@ -194,10 +194,10 @@ export default function AdaptiveLearningPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               How Adaptive Learning Works
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               AI-powered personalization at every step of the learning journey
             </p>
           </motion.div>
@@ -211,19 +211,19 @@ export default function AdaptiveLearningPage() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700 h-full">
+                <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 h-full shadow-sm dark:shadow-none">
                   <div className="flex items-start gap-4">
-                    <div className="p-3 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg">
-                      <feature.icon className="w-6 h-6 text-yellow-400" />
+                    <div className="p-3 bg-gradient-to-r from-yellow-500/15 to-orange-500/15 dark:from-yellow-500/20 dark:to-orange-500/20 rounded-lg">
+                      <feature.icon className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
-                      <p className="text-gray-400 mb-4">{feature.description}</p>
+                      <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">{feature.title}</h3>
+                      <p className="text-slate-600 dark:text-gray-400 mb-4">{feature.description}</p>
                       <div className="grid grid-cols-2 gap-2">
                         {feature.details.map((detail) => (
                           <div key={detail} className="flex items-start gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                            <span className="text-sm text-gray-300">{detail}</span>
+                            <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-sm text-slate-700 dark:text-gray-300">{detail}</span>
                           </div>
                         ))}
                       </div>
@@ -237,7 +237,7 @@ export default function AdaptiveLearningPage() {
       </section>
 
       {/* Live Example */}
-      <section className="py-20 px-4 bg-slate-800/30">
+      <section className="py-20 px-4 bg-slate-50 dark:bg-slate-800/30">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -245,30 +245,30 @@ export default function AdaptiveLearningPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               See Adaptive Learning in Action
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Real example of how our system adapts to a student&apos;s journey
             </p>
           </motion.div>
 
-          <Card className="p-8 bg-slate-800/50 backdrop-blur-sm border-slate-700">
+          <Card className="p-8 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl font-semibold text-white">{learningPathExample.student}</h3>
-                <p className="text-gray-400">Course: {learningPathExample.course}</p>
+                <h3 className="text-2xl font-semibold text-slate-900 dark:text-white">{learningPathExample.student}</h3>
+                <p className="text-slate-600 dark:text-gray-400">Course: {learningPathExample.course}</p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-yellow-400">{learningPathExample.currentLevel}%</div>
-                <p className="text-sm text-gray-400">Current Progress</p>
+                <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{learningPathExample.currentLevel}%</div>
+                <p className="text-sm text-slate-500 dark:text-gray-400">Current Progress</p>
               </div>
             </div>
 
             <Progress value={learningPathExample.currentLevel} className="mb-8 h-3" />
 
             <div className="space-y-4">
-              <h4 className="text-lg font-semibold text-white mb-4">Adaptive Journey Timeline</h4>
+              <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Adaptive Journey Timeline</h4>
               {learningPathExample.adaptations.map((adaptation, index) => (
                 <motion.div
                   key={adaptation.week}
@@ -278,13 +278,13 @@ export default function AdaptiveLearningPage() {
                   transition={{ delay: index * 0.1 }}
                   className="flex items-start gap-4"
                 >
-                  <div className="flex items-center justify-center w-10 h-10 bg-yellow-500/20 rounded-full flex-shrink-0">
-                    <span className="text-sm font-semibold text-yellow-400">W{adaptation.week}</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-gray-300">{adaptation.action}</p>
-                    <p className="text-sm text-green-400 mt-1">Impact: {adaptation.impact}</p>
-                  </div>
+                    <div className="flex items-center justify-center w-10 h-10 bg-yellow-500/15 dark:bg-yellow-500/20 rounded-full flex-shrink-0">
+                      <span className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">W{adaptation.week}</span>
+                    </div>
+                    <div className="flex-1">
+                    <p className="text-slate-700 dark:text-gray-300">{adaptation.action}</p>
+                    <p className="text-sm text-green-600 dark:text-green-400 mt-1">Impact: {adaptation.impact}</p>
+                    </div>
                 </motion.div>
               ))}
             </div>
@@ -301,10 +301,10 @@ export default function AdaptiveLearningPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Continuous Adaptation Cycle
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Our AI never stops learning about how you learn
             </p>
           </motion.div>
@@ -326,10 +326,10 @@ export default function AdaptiveLearningPage() {
                     </div>
                   )}
                   
-                  <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700 text-center h-full">
-                    <phase.icon className="w-10 h-10 text-yellow-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-white mb-2">{phase.phase}</h3>
-                    <p className="text-sm text-gray-400">{phase.description}</p>
+                  <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-center h-full shadow-sm dark:shadow-none">
+                    <phase.icon className="w-10 h-10 text-yellow-600 dark:text-yellow-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{phase.phase}</h3>
+                    <p className="text-sm text-slate-600 dark:text-gray-400">{phase.description}</p>
                   </Card>
                 </motion.div>
               ))}
@@ -344,7 +344,7 @@ export default function AdaptiveLearningPage() {
       </section>
 
       {/* Benefits for Different Users */}
-      <section className="py-20 px-4 bg-slate-800/30">
+      <section className="py-20 px-4 bg-slate-50 dark:bg-slate-800/30">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -352,68 +352,68 @@ export default function AdaptiveLearningPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Benefits for Everyone
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-slate-500 dark:text-gray-400">
               Adaptive learning transforms education for all stakeholders
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700">
-              <Users className="w-8 h-8 text-yellow-400 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-3">For Students</h3>
+            <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Users className="w-8 h-8 text-yellow-600 dark:text-yellow-400 mb-4" />
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">For Students</h3>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-300 text-sm">Learn at your perfect pace</span>
+                  <Sparkles className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-700 dark:text-gray-300 text-sm">Learn at your perfect pace</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-300 text-sm">Get help exactly when needed</span>
+                  <Sparkles className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-700 dark:text-gray-300 text-sm">Get help exactly when needed</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-300 text-sm">Stay motivated with personalized challenges</span>
+                  <Sparkles className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-700 dark:text-gray-300 text-sm">Stay motivated with personalized challenges</span>
                 </li>
               </ul>
             </Card>
 
-            <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700">
-              <Brain className="w-8 h-8 text-orange-400 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-3">For Teachers</h3>
+            <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Brain className="w-8 h-8 text-orange-600 dark:text-orange-400 mb-4" />
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">For Teachers</h3>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-300 text-sm">Identify struggling students early</span>
+                  <Sparkles className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-700 dark:text-gray-300 text-sm">Identify struggling students early</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-300 text-sm">Personalize instruction at scale</span>
+                  <Sparkles className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-700 dark:text-gray-300 text-sm">Personalize instruction at scale</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-300 text-sm">Data-driven teaching decisions</span>
+                  <Sparkles className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-700 dark:text-gray-300 text-sm">Data-driven teaching decisions</span>
                 </li>
               </ul>
             </Card>
 
-            <Card className="p-6 bg-slate-800/50 backdrop-blur-sm border-slate-700">
-              <Target className="w-8 h-8 text-red-400 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-3">For Institutions</h3>
+            <Card className="p-6 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Target className="w-8 h-8 text-red-600 dark:text-red-400 mb-4" />
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">For Institutions</h3>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-300 text-sm">Improve completion rates</span>
+                  <Sparkles className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-700 dark:text-gray-300 text-sm">Improve completion rates</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-300 text-sm">Reduce dropout rates</span>
+                  <Sparkles className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-700 dark:text-gray-300 text-sm">Reduce dropout rates</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-300 text-sm">Better learning outcomes</span>
+                  <Sparkles className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-700 dark:text-gray-300 text-sm">Better learning outcomes</span>
                 </li>
               </ul>
             </Card>
@@ -428,13 +428,13 @@ export default function AdaptiveLearningPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 backdrop-blur-sm border border-yellow-500/30 rounded-2xl p-12"
+            className="bg-gradient-to-r from-yellow-600/10 to-orange-600/10 dark:from-yellow-600/20 dark:to-orange-600/20 backdrop-blur-sm border border-yellow-300/40 dark:border-yellow-500/30 rounded-2xl p-12"
           >
             <Zap className="w-12 h-12 text-yellow-400 mx-auto mb-6" />
-            <h2 className="text-4xl font-bold mb-4 text-white">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
               Ready for Personalized Learning?
             </h2>
-            <p className="text-xl text-gray-300 mb-8">
+            <p className="text-xl text-slate-600 dark:text-gray-300 mb-8">
               Join thousands experiencing the future of adaptive education
             </p>
             <div className="flex flex-wrap justify-center gap-4">
@@ -445,7 +445,7 @@ export default function AdaptiveLearningPage() {
                 </Button>
               </Link>
               <Link href="/intelligent-lms/course-intelligence">
-                <Button size="lg" variant="outline" className="border-gray-500 hover:border-gray-400">
+                <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:border-slate-400 dark:border-gray-500 dark:text-gray-200">
                   Explore Course Intelligence
                 </Button>
               </Link>
