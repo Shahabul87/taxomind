@@ -73,8 +73,10 @@ const getDomain = () => {
 const domain = getDomain();
 
 // Helper function to determine if we should use the queue
+// DISABLED: Queue causes circular dependency issues
+// Always send directly via Resend HTTP API for reliability
 const shouldUseQueue = () => {
-  return process.env.NODE_ENV === 'production';
+  return false; // Disabled - send directly via Resend HTTP API
 };
 
 // Helper function to safely attempt queue sending with fallback
