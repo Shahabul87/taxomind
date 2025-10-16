@@ -11,6 +11,10 @@ interface LayoutWithSidebarProps {
   children: React.ReactNode;
 }
 
+// Behavior toggle: set to `true` to keep sidebar fixed (always visible) on mobile
+// Set to `false` to use overlay behavior on mobile
+const MOBILE_SIDEBAR_FIXED = true;
+
 // Routes where the sidebar should be hidden
 const SIDEBAR_HIDDEN_ROUTES = [
   "/", // Homepage
@@ -120,7 +124,8 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
   // - Small mobile (<768px): No sidebar (user menu handles navigation)
   // - Tablet (768px-1023px): Sidebar as overlay
   // - Desktop (≥1024px): Fixed sidebar
-  const showSidebar = hasUser && shouldShowSidebar && !isSmallMobile;
+  // Render sidebar container on all screen sizes; HomeSidebar handles overlay/fixed specifics
+  const showSidebar = hasUser && shouldShowSidebar;
   
   // Determine if we're on a course page, teacher page, or full-width page
   const isCoursePage = pathname ? /^\/courses\/[^\/]+$/.test(pathname) : false;
@@ -134,13 +139,13 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
   return (
     <div className={clsx(
       "flex h-screen",
-      isCoursePage ? "" : "pt-14 sm:pt-16"
+      isCoursePage ? "" : "pt-14 xl:pt-16"
     )}>
       {/* Conditional sidebar */}
       {showSidebar && (
         <div className={clsx(
           "fixed left-0 bottom-0 z-40",
-          isCoursePage ? "top-0 h-screen" : "top-14 sm:top-16 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]"
+          isCoursePage ? "top-0 h-screen" : "top-14 xl:top-16 h-[calc(100vh-3.5rem)] xl:h-[calc(100vh-4rem)]"
         )}>
           <SidebarContainer user={user} />
         </div>
@@ -157,12 +162,18 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
           // Full-width pages: No padding
           isFullWidthPage ? "min-h-screen pt-0 px-0" :
           // Regular pages: Standard padding
-          "h-[calc(100vh-4rem)] pt-2 px-4 overflow-y-auto"
+          "h-[calc(100vh-3.5rem)] xl:h-[calc(100vh-4rem)] pt-2 px-4 overflow-y-auto"
         )}
         style={{
-          // Fixed 94px margin for all full-width pages (collapsed sidebar width), dynamic for regular pages
-          marginLeft: showSidebar && !isTablet ?
-            (isFullWidthPage ? '94px' : `${sidebarWidth}px`)
+          // Reserve space for sidebar depending on behavior
+          marginLeft: showSidebar
+            ? (isSmallMobile
+                ? (MOBILE_SIDEBAR_FIXED
+                    ? (isFullWidthPage ? '94px' : `${sidebarWidth}px`)
+                    : '0'
+                  )
+                : (!isTablet ? (isFullWidthPage ? '94px' : `${sidebarWidth}px`) : '0')
+              )
             : '0',
         }}
       >

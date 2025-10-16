@@ -134,7 +134,7 @@ const samEngines = [
 
 export default function SamAIAssistantPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 -mt-14 sm:-mt-16 pt-14 sm:pt-16">
+    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 -mt-14 xl:-mt-16 pt-14 xl:pt-16">
       {/* Hero Section */}
       <section className="relative pt-24 pb-12 px-4">
         <div className="max-w-7xl mx-auto">

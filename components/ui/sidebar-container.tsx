@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { HomeSidebar } from "./home-sidebar";
+import { LayoutSideBar } from "../layout/LayoutSideBar";
 
 // More flexible typing that accepts any user-like object
 interface SidebarContainerProps {
@@ -12,14 +12,10 @@ interface SidebarContainerProps {
 }
 
 export function SidebarContainer({ user, children, onDashboardTabChange, currentDashboardTab }: SidebarContainerProps) {
-  // Only render the sidebar if there's a logged-in user
+  // Only render the sidebar if there&apos;s a logged-in user
   if (user) {
-    // If children are provided, render them inside the sidebar
-    if (children) {
-      return <HomeSidebar>{children}</HomeSidebar>;
-    }
-    // Otherwise just render the sidebar without content
-    return <HomeSidebar />;
+    // Render the new slim rail sidebar
+    return <LayoutSideBar user={user} />;
   }
 
   // Otherwise just render the children

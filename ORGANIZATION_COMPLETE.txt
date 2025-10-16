@@ -9,7 +9,7 @@
 Total Files Processed:    88 files
 Documentation Files:      59 files → docs/
 Screenshot Files:         11 files → screenshots/
-Cleanup Files:            19 files → _cleanup/
+Cleanup Files:            19 files → backups/_cleanup/
 Test Files:              111 files (already organized in __tests__/)
 
 Root Directory Status:    ✅ CLEAN (only 2 essential .md files)
@@ -47,11 +47,12 @@ taxomind/
 ├── config/                        ← Additional configuration
 │   └── auth/                      (3 files)   Auth config references
 │
-├── _cleanup/                      ← 19 obsolete files (safe to delete)
-│   ├── jest-configs/             (11 files)   Old Jest configs
-│   ├── test-scripts/              (3 files)   Temp test scripts
-│   ├── logs/                      (4 files)   Log files & HTML dumps
-│   └── temp-configs/              (1 file)    Temp config files
+├── backups/
+│   └── _cleanup/                  ← 19 obsolete files (archived)
+│       ├── jest-configs/         (11 files)   Old Jest configs
+│       ├── test-scripts/          (3 files)   Temp test scripts
+│       ├── logs/                  (4 files)   Log files & HTML dumps
+│       └── temp-configs/          (1 file)    Temp config files
 │
 ├── .claude/                       ← Claude Code commands
 │   └── commands/
@@ -147,7 +148,7 @@ taxomind/
    • Admin docs:         ls -la docs/admin/
    • Screenshots:        ls -la screenshots/
    • Tests:              ls -la __tests__/
-   • Cleanup:            ls -la _cleanup/
+   • Cleanup:            ls -la backups/_cleanup/
 
 4. Navigate Tests
    ──────────────
@@ -163,7 +164,7 @@ taxomind/
 1. DO NOT move essential root config files
    (package.json, tsconfig.json, next.config.js, auth.ts, etc.)
 
-2. _cleanup/ folder can be deleted after verification
+2. backups/_cleanup/ folder can be deleted after verification
    (Verify files are truly obsolete before deletion)
 
 3. Auth configs in config/auth/ are COPIES only
@@ -173,7 +174,7 @@ taxomind/
    (Some tests live next to components - don't move them)
 
 5. Use jest.config.working.js for development
-   (Other Jest configs in _cleanup/ are obsolete)
+   (Other Jest configs in backups/_cleanup/ are obsolete)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -203,10 +204,10 @@ taxomind/
    /find-docs auth
 
 3. Verify cleanup files are obsolete:
-   ls -la _cleanup/
+   ls -la backups/_cleanup/
 
 4. Delete cleanup folder (after verification):
-   rm -rf _cleanup/
+   rm -rf backups/_cleanup/
 
 5. Update team documentation:
    Share ROOT_DIRECTORY_ORGANIZATION.md with team

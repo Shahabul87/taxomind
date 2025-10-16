@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { IconButton } from '@/components/ui/icon-button';
 import {
   BookOpen,
   Search,
@@ -169,26 +170,27 @@ export const TaxomindHeader = ({ user }: TaxomindHeaderProps) => {
             {/* Right Section */}
             <div className="flex items-center space-x-3">
               {/* Search */}
-              <button
+              <IconButton
                 onClick={() => setIsSearchOpen(true)}
-                className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-gray-400 hover:text-white"
+                variant="subtle"
+                size="md"
                 aria-label="Search"
               >
                 <Search className="w-5 h-5" />
-              </button>
+              </IconButton>
 
 
               {isAuthenticated ? (
                 <>
                   {/* Notifications */}
-                  <div className="relative">
-                    <button className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-gray-400 hover:text-white relative">
-                      <Bell className="w-5 h-5" />
-                      {notifications.length > 0 && (
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                      )}
-                    </button>
-                  </div>
+                  <IconButton
+                    variant="subtle"
+                    size="md"
+                    notification={notifications.length > 0}
+                    aria-label="Notifications"
+                  >
+                    <Bell className="w-5 h-5" />
+                  </IconButton>
 
                   {/* User Profile Dropdown */}
                   <div className="relative" ref={profileRef}>
@@ -257,7 +259,7 @@ export const TaxomindHeader = ({ user }: TaxomindHeaderProps) => {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 10, scale: 0.95 }}
                           transition={{ duration: 0.2 }}
-                          className="absolute right-0 mt-2 w-80 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden"
+                          className="absolute right-0 mt-2 w-[95vw] max-w-[320px] sm:w-80 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden"
                         >
                           {/* User Header in Dropdown */}
                           <div className="p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-b border-slate-800">
@@ -420,12 +422,15 @@ export const TaxomindHeader = ({ user }: TaxomindHeaderProps) => {
               )}
 
               {/* Mobile Menu Button */}
-              <button
+              <IconButton
                 onClick={() => setIsOpen(!isOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-gray-400 hover:text-white"
+                variant="subtle"
+                size="md"
+                className="lg:hidden"
+                aria-label={isOpen ? "Close menu" : "Open menu"}
               >
                 {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
+              </IconButton>
             </div>
           </div>
         </div>

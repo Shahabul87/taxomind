@@ -17,6 +17,8 @@ export function MyCoursesError({ error, onRetry }: MyCoursesErrorProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="max-w-2xl mx-auto text-center"
+        role="alert"
+        aria-live="polite"
       >
         {/* Error Icon */}
         <motion.div

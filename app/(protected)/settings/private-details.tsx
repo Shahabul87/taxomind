@@ -81,13 +81,13 @@ export const PrivateDetailsSettingsPage = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className={cn(
-            "rounded-2xl",
+            "rounded-xl sm:rounded-2xl",
             "bg-white/80 dark:bg-slate-800/80",
             "backdrop-blur-sm",
             "border border-slate-200/50 dark:border-slate-700/50",
@@ -96,31 +96,31 @@ export const PrivateDetailsSettingsPage = () => {
         >
           {/* Header Section */}
           <div className={cn(
-            "px-6 py-8 sm:px-8",
+            "px-4 py-6 sm:px-6 sm:py-8 lg:px-8",
             "bg-gradient-to-r from-blue-50/50 to-indigo-50/30 dark:from-blue-900/30 dark:to-indigo-900/20",
             "border-b border-slate-200/50 dark:border-slate-700/50",
             "backdrop-blur-sm"
           )}>
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-12 w-12 rounded-full bg-blue-100/80 dark:bg-blue-900/40 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <Settings className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-blue-100/80 dark:bg-blue-900/40 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                <Settings className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Account Settings</h1>
-                <p className="text-slate-600 dark:text-slate-400">Manage your account preferences and security</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100">Account Settings</h1>
+                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">Manage your account preferences and security</p>
               </div>
             </div>
           </div>
 
           {/* Form Section */}
-          <div className="p-6 sm:p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <Form {...form}>
-              <form className="space-y-8 max-w-4xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="grid gap-6 lg:grid-cols-2">
+              <form className="space-y-6 sm:space-y-8 max-w-4xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
+                <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                   {/* Basic Info Section */}
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     <div className={cn(
-                      "p-6 rounded-xl",
+                      "p-4 sm:p-6 rounded-xl",
                       "bg-white/60 dark:bg-slate-800/60",
                       "backdrop-blur-sm",
                       "border border-slate-200/30 dark:border-slate-700/30",
@@ -128,7 +128,7 @@ export const PrivateDetailsSettingsPage = () => {
                       "hover:bg-white/70 dark:hover:bg-slate-800/70",
                       "transition-all duration-300"
                     )}>
-                      <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Basic Information</h3>
+                      <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3 sm:mb-4">Basic Information</h3>
                       <div className="space-y-4">
                         <FormField
                           control={form.control}
@@ -190,9 +190,9 @@ export const PrivateDetailsSettingsPage = () => {
                   </div>
 
                   {/* Security Section */}
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     <div className={cn(
-                      "p-6 rounded-xl",
+                      "p-4 sm:p-6 rounded-xl",
                       "bg-white/60 dark:bg-slate-800/60",
                       "backdrop-blur-sm",
                       "border border-slate-200/30 dark:border-slate-700/30",
@@ -200,7 +200,7 @@ export const PrivateDetailsSettingsPage = () => {
                       "hover:bg-white/70 dark:hover:bg-slate-800/70",
                       "transition-all duration-300"
                     )}>
-                      <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Security</h3>
+                      <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3 sm:mb-4">Security</h3>
                       <div className="space-y-4">
                         {user?.isOAuth === false && (
                           <>
@@ -267,7 +267,7 @@ export const PrivateDetailsSettingsPage = () => {
 
                 {/* Role & 2FA Section */}
                 <div className={cn(
-                  "p-6 rounded-xl",
+                  "p-4 sm:p-6 rounded-xl",
                   "bg-white/60 dark:bg-slate-800/60",
                   "backdrop-blur-sm",
                   "border border-slate-200/30 dark:border-slate-700/30",
@@ -275,14 +275,14 @@ export const PrivateDetailsSettingsPage = () => {
                   "hover:bg-white/70 dark:hover:bg-slate-800/70",
                   "transition-all duration-300"
                 )}>
-                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Account Preferences</h3>
-                  <div className="grid gap-6 sm:grid-cols-2">
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3 sm:mb-4">Account Preferences</h3>
+                  <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                     {/* Only show Role selection for admin users */}
                     {/* Role Display - Only editable by admins */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Account Role</label>
+                      <label className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Account Role</label>
                       <div className={cn(
-                        "flex items-center justify-between p-3 rounded-lg",
+                        "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg",
                         "bg-white/50 dark:bg-slate-900/50",
                         "border border-slate-200/50 dark:border-slate-700/50"
                       )}>
@@ -290,9 +290,9 @@ export const PrivateDetailsSettingsPage = () => {
                           {user?.role?.charAt(0).toUpperCase()}{user?.role?.slice(1).toLowerCase()}
                         </span>
                         {user?.role !== "ADMIN" && !user?.isTeacher && (
-                          <Link 
-                            href="/auth/register-teacher" 
-                            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                          <Link
+                            href="/auth/register-teacher"
+                            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap"
                           >
                             Apply to become an instructor →
                           </Link>
@@ -317,16 +317,16 @@ export const PrivateDetailsSettingsPage = () => {
                         name="isTwoFactorEnabled"
                         render={({ field }) => (
                           <FormItem className={cn(
-                            "flex items-center justify-between p-4 rounded-lg",
+                            "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg",
                             "bg-white/50 dark:bg-slate-900/50",
                             "backdrop-blur-sm",
                             "border border-slate-200/50 dark:border-slate-700/50",
                             "hover:bg-white/60 dark:hover:bg-slate-900/60",
                             "transition-all duration-300"
                           )}>
-                            <div>
-                              <FormLabel className="text-slate-700 dark:text-slate-300">Two Factor Authentication</FormLabel>
-                              <FormDescription className="text-slate-500 dark:text-slate-400">
+                            <div className="flex-1">
+                              <FormLabel className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">Two Factor Authentication</FormLabel>
+                              <FormDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                                 Add an extra layer of security to your account
                               </FormDescription>
                             </div>
@@ -351,17 +351,17 @@ export const PrivateDetailsSettingsPage = () => {
                 </div>
 
                 {/* Submit Button */}
-                <div className="flex justify-end">
+                <div className="flex flex-col sm:flex-row justify-end gap-3">
                   <Button
                     disabled={isPending}
                     type="submit"
                     className={cn(
-                      "px-8 py-3",
+                      "w-full sm:w-auto px-6 sm:px-8 py-3",
                       "bg-gradient-to-r from-blue-600 to-indigo-600",
                       "hover:from-blue-700 hover:to-indigo-700",
                       "dark:from-blue-500 dark:to-indigo-500",
                       "dark:hover:from-blue-600 dark:hover:to-indigo-600",
-                      "text-white font-medium",
+                      "text-white font-medium text-sm sm:text-base",
                       "backdrop-blur-sm shadow-lg",
                       "border border-blue-200/20 dark:border-blue-700/30",
                       "hover:shadow-xl hover:scale-105",

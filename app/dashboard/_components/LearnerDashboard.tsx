@@ -87,23 +87,23 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 rounded-xl shadow-md p-6 text-white">
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Welcome back, {user.name}!</h2>
-            <p className="text-indigo-100 mb-4">
+      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 rounded-xl shadow-md p-4 sm:p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div className="flex-1">
+            <h2 className="text-xl sm:text-2xl font-bold mb-2">Welcome back, {user.name}!</h2>
+            <p className="text-sm sm:text-base text-indigo-100 mb-4">
               You&apos;re on a {learningStreak}-day learning streak! Keep it up! 🔥
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Button variant="secondary" size="sm" asChild>
                 <Link href="/courses">
                   <Play className="h-4 w-4 mr-2" />
                   Continue Learning
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" className="text-white border-white hover:bg-white/20" asChild>
+              <Button variant="outline" size="sm" className="w-full sm:w-auto text-white border-white hover:bg-white/20" asChild>
                 <Link href="/my-courses">
                   <BookOpen className="h-4 w-4 mr-2" />
                   My Courses
@@ -111,15 +111,15 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
               </Button>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold">{completedCourses}</div>
-            <div className="text-sm text-indigo-100">Courses Completed</div>
+          <div className="text-center sm:text-right shrink-0">
+            <div className="text-2xl sm:text-3xl font-bold">{completedCourses}</div>
+            <div className="text-xs sm:text-sm text-indigo-100">Courses Completed</div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -179,15 +179,15 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="courses">My Courses</TabsTrigger>
-          <TabsTrigger value="achievements">Achievements</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="courses" className="text-xs sm:text-sm">My Courses</TabsTrigger>
+          <TabsTrigger value="achievements" className="text-xs sm:text-sm">Achievements</TabsTrigger>
+          <TabsTrigger value="schedule" className="text-xs sm:text-sm">Schedule</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Recent Courses */}
             <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
               <CardHeader className="border-b border-gray-200/70 dark:border-gray-800/70">
@@ -212,7 +212,7 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
                       </p>
                     </div>
                     <Button size="sm" variant="ghost" asChild>
-                      <Link href={`/courses/${course.id}/learn`}>
+                      <Link href={`/courses/${course.id}/learn`} aria-label={`Continue ${course.title}`}>
                         <ChevronRight className="h-4 w-4" />
                       </Link>
                     </Button>
@@ -295,7 +295,7 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
         </TabsContent>
 
         <TabsContent value="courses" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {recentCourses.map((course) => (
               <Card key={course.id} className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md hover:shadow-lg transition-shadow">
                 <div className="h-40 bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-500 rounded-t-xl" />
@@ -317,7 +317,7 @@ export function LearnerDashboard({ user }: LearnerDashboardProps) {
         </TabsContent>
 
         <TabsContent value="achievements" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {achievements.map((achievement) => {
               const Icon = achievement.icon;
               return (

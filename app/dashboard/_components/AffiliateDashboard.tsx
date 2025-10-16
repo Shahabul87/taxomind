@@ -23,7 +23,8 @@ import {
   MousePointer,
   ShoppingCart,
   ChevronRight,
-  Download
+  Download,
+  FileText
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -116,31 +117,32 @@ export function AffiliateDashboard({ user }: AffiliateDashboardProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg p-6 text-white">
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Affiliate Dashboard</h2>
-            <p className="text-green-100 mb-4">
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg p-4 sm:p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div className="flex-1">
+            <h2 className="text-xl sm:text-2xl font-bold mb-2">Affiliate Dashboard</h2>
+            <p className="text-sm sm:text-base text-green-100 mb-4">
               Your affiliate code: <span className="font-mono font-bold">{affiliateCode}</span>
               <Button
                 size="sm"
                 variant="ghost"
                 className="ml-2 text-white hover:bg-white/20"
                 onClick={() => copyToClipboard(affiliateCode)}
+                aria-label="Copy affiliate code"
               >
                 <Copy className="h-3 w-3" />
               </Button>
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Button variant="secondary" size="sm" asChild>
                 <Link href="/affiliate/links">
                   <LinkIcon className="h-4 w-4 mr-2" />
                   Generate Links
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" className="text-white border-white hover:bg-white/20" asChild>
+              <Button variant="outline" size="sm" className="w-full sm:w-auto text-white border-white hover:bg-white/20" asChild>
                 <Link href="/affiliate/materials">
                   <Package className="h-4 w-4 mr-2" />
                   Marketing Materials
@@ -148,10 +150,10 @@ export function AffiliateDashboard({ user }: AffiliateDashboardProps) {
               </Button>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold">${stats.totalEarnings.toFixed(2)}</div>
-            <div className="text-sm text-green-100">Total Earnings</div>
-            <Badge className="mt-2 bg-white/20 text-white">
+          <div className="text-center sm:text-right shrink-0">
+            <div className="text-2xl sm:text-3xl font-bold">${stats.totalEarnings.toFixed(2)}</div>
+            <div className="text-xs sm:text-sm text-green-100">Total Earnings</div>
+            <Badge className="mt-2 bg-white/20 text-white text-xs sm:text-sm">
               ${stats.pendingEarnings.toFixed(2)} pending
             </Badge>
           </div>
@@ -159,7 +161,7 @@ export function AffiliateDashboard({ user }: AffiliateDashboardProps) {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -218,16 +220,16 @@ export function AffiliateDashboard({ user }: AffiliateDashboardProps) {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="links">Links</TabsTrigger>
-          <TabsTrigger value="conversions">Conversions</TabsTrigger>
-          <TabsTrigger value="payouts">Payouts</TabsTrigger>
-          <TabsTrigger value="tools">Tools</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="links" className="text-xs sm:text-sm">Links</TabsTrigger>
+          <TabsTrigger value="conversions" className="text-xs sm:text-sm">Conversions</TabsTrigger>
+          <TabsTrigger value="payouts" className="text-xs sm:text-sm">Payouts</TabsTrigger>
+          <TabsTrigger value="tools" className="text-xs sm:text-sm">Tools</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Top Performing Links */}
             <Card>
               <CardHeader>
@@ -362,10 +364,11 @@ export function AffiliateDashboard({ user }: AffiliateDashboardProps) {
                             size="sm" 
                             variant="secondary"
                             onClick={() => copyToClipboard(affiliateLink)}
+                            aria-label={`Copy affiliate link for ${link.course}`}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="secondary">
+                          <Button size="sm" variant="secondary" aria-label={`Share affiliate link for ${link.course}`}>
                             <Share2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -380,7 +383,7 @@ export function AffiliateDashboard({ user }: AffiliateDashboardProps) {
 
         <TabsContent value="conversions" className="space-y-4">
           <Card>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -418,7 +421,7 @@ export function AffiliateDashboard({ user }: AffiliateDashboardProps) {
         </TabsContent>
 
         <TabsContent value="payouts" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
             <Card>
               <CardContent className="p-6">
                 <p className="text-sm text-muted-foreground">Available Balance</p>
@@ -483,7 +486,7 @@ export function AffiliateDashboard({ user }: AffiliateDashboardProps) {
         </TabsContent>
 
         <TabsContent value="tools" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <Card>
               <CardHeader>
                 <CardTitle>Marketing Materials</CardTitle>
@@ -532,5 +535,4 @@ export function AffiliateDashboard({ user }: AffiliateDashboardProps) {
   );
 }
 
-// Add this import at the top
-import { FileText } from "lucide-react";
+// Removed stray duplicate import footer

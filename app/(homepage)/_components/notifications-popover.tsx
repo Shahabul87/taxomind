@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { formatDistanceToNow } from "date-fns"
 import { useNotifications } from "@/store/use-notifications"
+import { IconButton } from "@/components/ui/icon-button"
 
 export const NotificationsPopover = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,17 +19,15 @@ export const NotificationsPopover = () => {
 
   return (
     <div className="relative">
-      <button 
+      <IconButton
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-lg transition-colors text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-gray-700 relative"
+        variant="ghost"
+        size="md"
+        notification={unreadCount > 0 ? unreadCount : false}
+        aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-            {unreadCount}
-          </span>
-        )}
-      </button>
+      </IconButton>
 
       <AnimatePresence>
         {isOpen && (
@@ -36,27 +35,27 @@ export const NotificationsPopover = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute right-0 mt-2 w-80 rounded-xl backdrop-blur-xl dark:bg-slate-900/95 bg-white/95 border dark:border-slate-700/50 border-slate-200 shadow-2xl overflow-hidden"
+            className="absolute right-0 mt-2 w-[95vw] max-w-[320px] sm:w-80 rounded-xl backdrop-blur-xl dark:bg-slate-900/95 bg-white/95 border dark:border-slate-700/50 border-slate-200 shadow-2xl overflow-hidden"
           >
-            <div className="p-4 border-b dark:border-slate-700/50 border-slate-200">
-              <h3 className="font-semibold text-slate-900 dark:text-white">Notifications</h3>
+            <div className="p-3 sm:p-4 border-b dark:border-slate-700/50 border-slate-200">
+              <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">Notifications</h3>
             </div>
-            <div className="max-h-[300px] overflow-y-auto">
+            <div className="max-h-[50vh] sm:max-h-[300px] overflow-y-auto">
               {notifications.map(notification => (
                 <div
                   key={notification.id}
-                  className={`p-4 border-b dark:border-slate-700/50 border-slate-200 ${
+                  className={`p-3 sm:p-4 border-b dark:border-slate-700/50 border-slate-200 ${
                     !notification.read ? 'bg-slate-50 dark:bg-gray-800/50' : ''
                   }`}
                   onClick={() => markAsRead(notification.id)}
                 >
                   <div className="flex justify-between items-start">
-                    <h4 className="font-medium text-sm text-slate-900 dark:text-white">{notification.title}</h4>
-                    <span className="text-xs text-slate-500 dark:text-gray-500">
+                    <h4 className="font-medium text-xs sm:text-sm text-slate-900 dark:text-white">{notification.title}</h4>
+                    <span className="text-[10px] sm:text-xs text-slate-500 dark:text-gray-500">
                       {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-600 dark:text-gray-400 mt-1">
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-gray-400 mt-1 line-clamp-2">
                     {notification.message}
                   </p>
                 </div>

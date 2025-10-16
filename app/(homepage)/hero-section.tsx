@@ -358,7 +358,14 @@ export default function HeroSection() {
 
               <div className="space-y-3 sm:space-y-4">
                 {taxonomyLevels.map((level, index) => {
-                  const width = 100 - (index * 12);
+                  const mdWidths = [
+                    'md:w-[100%]',
+                    'md:w-[88%]',
+                    'md:w-[76%]',
+                    'md:w-[64%]',
+                    'md:w-[52%]',
+                    'md:w-[40%]'
+                  ];
                   const isActive = activeLevel === level.level;
                   const isHovered = hoveredLevel === level.level;
                   
@@ -379,10 +386,9 @@ export default function HeroSection() {
                         // Keep hover state for mobile to show details
                         setTimeout(() => setHoveredLevel(null), 3000);
                       }}
-                      style={{ width: `${width}%` }}
                       className={`
-                        relative cursor-pointer transition-all duration-500 group mx-auto lg:mx-0
-                        ${isActive ? 'scale-105 z-20' : isHovered ? 'scale-102 z-10' : ''}
+                        relative cursor-pointer transition-all duration-500 group mx-auto lg:mx-0 w-full ${mdWidths[index]}
+                        ${isActive ? 'scale-105 z-20' : isHovered ? 'scale-[1.02] z-10' : ''}
                       `}
                     >
                       {/* Compact Level Card */}
@@ -495,7 +501,7 @@ export default function HeroSection() {
                 transition={{ duration: 0.8 }}
                 className="relative"
               >
-                <div className="sticky top-4">
+                <div className="md:sticky md:top-4">
                   <h3 className="text-xl sm:text-2xl font-bold mb-6 text-center lg:text-left">
                     <span className="bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400 bg-clip-text text-transparent">
                       Cognitive Level Deep Dive

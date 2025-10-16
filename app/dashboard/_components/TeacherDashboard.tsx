@@ -21,7 +21,8 @@ import {
   Package,
   ChevronRight,
   Upload,
-  PlayCircle
+  PlayCircle,
+  CheckCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -104,23 +105,23 @@ export function TeacherDashboard({ user }: TeacherDashboardProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-6 text-white">
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Instructor Dashboard</h2>
-            <p className="text-purple-100 mb-4">
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-4 sm:p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div className="flex-1">
+            <h2 className="text-xl sm:text-2xl font-bold mb-2">Instructor Dashboard</h2>
+            <p className="text-sm sm:text-base text-purple-100 mb-4">
               You have {stats.totalStudents} students across {stats.publishedCourses} published courses
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Button variant="secondary" size="sm" asChild>
                 <Link href="/teacher/create">
                   <Plus className="h-4 w-4 mr-2" />
                   Create Course
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" className="text-white border-white hover:bg-white/20" asChild>
+              <Button variant="outline" size="sm" className="w-full sm:w-auto text-white border-white hover:bg-white/20" asChild>
                 <Link href="/teacher/courses">
                   <Package className="h-4 w-4 mr-2" />
                   Manage Courses
@@ -128,15 +129,15 @@ export function TeacherDashboard({ user }: TeacherDashboardProps) {
               </Button>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold">${stats.totalRevenue}</div>
-            <div className="text-sm text-purple-100">Total Revenue</div>
+          <div className="text-center sm:text-right shrink-0">
+            <div className="text-2xl sm:text-3xl font-bold">${stats.totalRevenue}</div>
+            <div className="text-xs sm:text-sm text-purple-100">Total Revenue</div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -192,15 +193,15 @@ export function TeacherDashboard({ user }: TeacherDashboardProps) {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="courses">Courses</TabsTrigger>
-          <TabsTrigger value="students">Students</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="courses" className="text-xs sm:text-sm">Courses</TabsTrigger>
+          <TabsTrigger value="students" className="text-xs sm:text-sm">Students</TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs sm:text-sm">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Course Performance */}
             <Card>
               <CardHeader>
@@ -307,18 +308,18 @@ export function TeacherDashboard({ user }: TeacherDashboardProps) {
         </TabsContent>
 
         <TabsContent value="courses" className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Manage Your Courses</h3>
-            <Button asChild>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+            <h3 className="text-base sm:text-lg font-semibold">Manage Your Courses</h3>
+            <Button className="w-full sm:w-auto" asChild>
               <Link href="/teacher/create">
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Course
               </Link>
             </Button>
           </div>
-          
+
           <Card>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -350,19 +351,19 @@ export function TeacherDashboard({ user }: TeacherDashboardProps) {
                       </TableCell>
                       <TableCell>${course.revenue}</TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                      <div className="flex gap-2">
                           <Button size="sm" variant="ghost" asChild>
-                            <Link href={`/teacher/courses/${course.id}`}>
+                            <Link href={`/teacher/courses/${course.id}`} aria-label={`Edit course ${course.title}`}>
                               <Edit className="h-4 w-4" />
                             </Link>
                           </Button>
                           <Button size="sm" variant="ghost" asChild>
-                            <Link href={`/teacher/courses/${course.id}/analytics`}>
+                            <Link href={`/teacher/courses/${course.id}/analytics`} aria-label={`View analytics for ${course.title}`}>
                               <BarChart3 className="h-4 w-4" />
                             </Link>
                           </Button>
                           <Button size="sm" variant="ghost" asChild>
-                            <Link href={`/courses/${course.id}`}>
+                            <Link href={`/courses/${course.id}`} aria-label={`Preview course ${course.title}`}>
                               <Eye className="h-4 w-4" />
                             </Link>
                           </Button>
@@ -395,7 +396,7 @@ export function TeacherDashboard({ user }: TeacherDashboardProps) {
                   </Button>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <Card>
                     <CardContent className="p-4">
                       <p className="text-sm text-muted-foreground">New This Month</p>
@@ -455,6 +456,3 @@ export function TeacherDashboard({ user }: TeacherDashboardProps) {
     </div>
   );
 }
-
-// Add this import at the top
-import { CheckCircle } from "lucide-react";

@@ -240,7 +240,7 @@ We follow a **hybrid approach**:
 - `jest.config.working.js` - Current working config (recommended)
 - `jest.setup.js` - Test setup file
 
-### Obsolete Configurations (Moved to `_cleanup/`)
+### Obsolete Configurations (Archived in `backups/_cleanup/`)
 - `jest.config.all.js` ❌
 - `jest.config.final.js` ❌
 - `jest.config.integration.js` ❌

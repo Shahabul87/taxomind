@@ -84,6 +84,7 @@ export const CoursesFilterMenu = ({
         <button
           onClick={onClose}
           className="p-1 rounded-full hover:bg-gray-800/50 text-gray-400 hover:text-white"
+          aria-label="Close filters"
         >
           <X className="h-4 w-4" />
         </button>

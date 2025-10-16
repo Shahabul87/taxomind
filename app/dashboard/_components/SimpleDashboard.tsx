@@ -20,9 +20,20 @@ import {
 import Link from "next/link";
 
 // Import existing dashboard components
-import { LearnerDashboard } from "./LearnerDashboard";
-import { TeacherDashboard } from "./TeacherDashboard";
-import { AffiliateDashboard } from "./AffiliateDashboard";
+import dynamic from "next/dynamic";
+// Code-split heavy dashboards to reduce initial route payload
+const LearnerDashboard = dynamic(
+  () => import("./LearnerDashboard").then((m) => m.LearnerDashboard),
+  { ssr: false, loading: () => <div className="sr-only">Loading learner dashboard…</div> }
+);
+const TeacherDashboard = dynamic(
+  () => import("./TeacherDashboard").then((m) => m.TeacherDashboard),
+  { ssr: false, loading: () => <div className="sr-only">Loading teacher dashboard…</div> }
+);
+const AffiliateDashboard = dynamic(
+  () => import("./AffiliateDashboard").then((m) => m.AffiliateDashboard),
+  { ssr: false, loading: () => <div className="sr-only">Loading affiliate dashboard…</div> }
+);
 
 interface SimpleDashboardProps {
   user: User & {
@@ -39,10 +50,10 @@ export function SimpleDashboard({ user }: SimpleDashboardProps) {
   if (!user.isTeacher && !user.isAffiliate) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        <div className="container mx-auto px-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2">
               Continue your learning journey
             </p>
           </div>
@@ -79,16 +90,16 @@ export function SimpleDashboard({ user }: SimpleDashboardProps) {
   if (user.isTeacher && !user.isAffiliate) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        <div className="container mx-auto px-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2">
               Manage your courses and continue learning
             </p>
           </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-2 w-[400px]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <TabsList className="grid grid-cols-2 w-full max-w-[400px]">
             <TabsTrigger value="learning" className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
               My Learning
@@ -103,16 +114,16 @@ export function SimpleDashboard({ user }: SimpleDashboardProps) {
             <LearnerDashboard user={user} />
           </TabsContent>
 
-          <TabsContent value="teaching" className="space-y-6">
-            <div className="flex justify-between items-center mb-6">
+          <TabsContent value="teaching" className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4 sm:mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Instructor Dashboard</h2>
-                <p className="text-gray-500 dark:text-gray-400">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Instructor Dashboard</h2>
+                <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
                   Create and manage your courses
                 </p>
               </div>
-              <Link href="/teacher/create">
-                <Button className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-700 hover:via-purple-700 hover:to-indigo-700">
+              <Link href="/teacher/create" className="shrink-0">
+                <Button className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-700 hover:via-purple-700 hover:to-indigo-700">
                   <Plus className="h-4 w-4 mr-2" />
                   Create New Course
                 </Button>
@@ -130,16 +141,16 @@ export function SimpleDashboard({ user }: SimpleDashboardProps) {
   if (user.isAffiliate && !user.isTeacher) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        <div className="container mx-auto px-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2">
               Track your earnings and continue learning
             </p>
           </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-2 w-[400px]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <TabsList className="grid grid-cols-2 w-full max-w-[400px]">
             <TabsTrigger value="learning" className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
               My Learning
@@ -167,16 +178,16 @@ export function SimpleDashboard({ user }: SimpleDashboardProps) {
   if (user.isTeacher && user.isAffiliate) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        <div className="container mx-auto px-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Welcome back, {user.name}!</h1>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2">
               Your complete dashboard for learning, teaching, and earning
             </p>
           </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-[600px]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <TabsList className="grid grid-cols-3 w-full max-w-[600px]">
             <TabsTrigger value="learning" className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
               My Learning
@@ -195,16 +206,16 @@ export function SimpleDashboard({ user }: SimpleDashboardProps) {
             <LearnerDashboard user={user} />
           </TabsContent>
 
-          <TabsContent value="teaching" className="space-y-6">
-            <div className="flex justify-between items-center mb-6">
+          <TabsContent value="teaching" className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4 sm:mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Instructor Dashboard</h2>
-                <p className="text-gray-500 dark:text-gray-400">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Instructor Dashboard</h2>
+                <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
                   Create and manage your courses
                 </p>
               </div>
-              <Link href="/teacher/create">
-                <Button className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-700 hover:via-purple-700 hover:to-indigo-700">
+              <Link href="/teacher/create" className="shrink-0">
+                <Button className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-700 hover:via-purple-700 hover:to-indigo-700">
                   <Plus className="h-4 w-4 mr-2" />
                   Create New Course
                 </Button>

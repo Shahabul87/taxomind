@@ -24,6 +24,20 @@ const config = {
   		}
   	},
   	extend: {
+  		screens: {
+  			'xs': '475px',
+  			'3xl': '1920px',
+  		},
+  		spacing: {
+  			'4.5': '1.125rem',
+  			'13': '3.25rem',
+  			'15': '3.75rem',
+  			'18': '4.5rem',
+  		},
+  		maxWidth: {
+  			'8xl': '88rem',
+  			'9xl': '96rem',
+  		},
   		colors: {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',

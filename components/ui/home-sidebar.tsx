@@ -36,6 +36,11 @@ interface MenuItem {
 }
 
 export function HomeSidebar({ children }: HomeSidebarProps) {
+  // Behavior toggle: 'fixed' keeps sidebar visible on mobile; 'overlay' slides in from left
+  type MobileSidebarBehavior = 'overlay' | 'fixed';
+  const MOBILE_SIDEBAR_BEHAVIOR: MobileSidebarBehavior = 'fixed';
+  const isOverlay = (mode: MobileSidebarBehavior) => mode === 'overlay';
+  const overlayOnMobile = isOverlay(MOBILE_SIDEBAR_BEHAVIOR);
   const user = useCurrentUser();
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -94,10 +99,8 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // On small mobile (<768px), hide sidebar entirely - user menu handles navigation
-  // On tablet (768px-1023px), show sidebar as overlay
-  // On desktop (≥1024px), show sidebar normally
-  const shouldShowSidebar = isTablet || !isMobile;
+  // Overlay on mobile when configured; otherwise always show (fixed)
+  const shouldShowSidebar = overlayOnMobile ? (isTablet || !isMobile) : true;
 
   // Toggle sidebar expansion
   const toggleExpansion = () => {
@@ -178,7 +181,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
   }, [open, isExpanded, isMobile]);
 
   // Determine if sidebar should show expanded content
-  const shouldShowExpanded = isExpanded || (open && isMobile) || (!isMobile && isHovered);
+  const shouldShowExpanded = isExpanded || (overlayOnMobile && open && isMobile) || (!isMobile && isHovered);
 
   const menuItems: MenuItem[] = [
     {
@@ -254,15 +257,13 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
     setActiveSubmenu(activeSubmenu === title ? null : title);
   };
 
-  // Don't render sidebar on small mobile - user menu handles navigation
-  if (!shouldShowSidebar) {
-    return children ? <div className="flex-1 overflow-x-hidden">{children}</div> : null;
-  }
+  // Always render shell so mobile menu button and overlay are available.
+  // Visibility/positioning is handled responsively below.
 
   return (
     <>
       {/* Mobile Menu Button */}
-      {isMobile && (
+      {overlayOnMobile && isMobile && (
         <button
           onClick={() => setOpen(!open)}
           className="fixed top-20 left-4 z-50 p-3 rounded-xl shadow-lg backdrop-blur-sm
@@ -286,7 +287,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
       )}
 
       {/* Backdrop */}
-      {isMobile && open && (
+      {overlayOnMobile && isMobile && open && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -303,7 +304,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
         initial={false}
         animate={{ 
           width: shouldShowExpanded ? "280px" : "94px",
-          x: isMobile && !open ? "-100%" : 0 
+          x: overlayOnMobile && isMobile && !open ? "-100%" : 0 
         }}
         transition={{
           duration: prefersReducedMotion ? 0.1 : 0.3,

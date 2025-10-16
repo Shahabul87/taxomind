@@ -90,7 +90,7 @@ export const CourseCard = ({ course, type }: CourseCardProps) => {
         )}
         
         {/* Continue / Edit Button */}
-        <Link href={courseLink} className="absolute bottom-3 right-3">
+        <Link href={courseLink} className="absolute bottom-3 right-3" aria-label={`Open course ${course.title}`}>
           <div className="p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 transition-colors group-hover:scale-110 transform duration-300">
             <Play className="h-4 w-4 fill-current" />
           </div>

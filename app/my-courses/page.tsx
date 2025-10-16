@@ -46,7 +46,6 @@ async function MyCoursesContent() {
     return (
       <MyCoursesError 
         error="Failed to load courses. Please try again later."
-        onRetry={() => window.location.reload()}
       />
     );
   }

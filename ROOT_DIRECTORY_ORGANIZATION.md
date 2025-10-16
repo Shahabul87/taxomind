@@ -18,9 +18,9 @@ This document provides a comprehensive map of the root directory organization af
 |----------|-------------|-------------|
 | Documentation | 59 files | `docs/` (multiple subdirectories) |
 | Screenshots | 11 files | `screenshots/` |
-| Obsolete Configs | 11 files | `_cleanup/jest-configs/` |
-| Test Scripts | 3 files | `_cleanup/test-scripts/` |
-| Logs & Temp Files | 4 files | `_cleanup/logs/` |
+| Obsolete Configs | 11 files | `backups/_cleanup/jest-configs/` |
+| Test Scripts | 3 files | `backups/_cleanup/test-scripts/` |
+| Logs & Temp Files | 4 files | `backups/_cleanup/logs/` |
 | **TOTAL** | **88 files** | Organized into structured folders |
 
 ---
@@ -47,11 +47,12 @@ taxomind/
 ├── config/                        # Additional configuration
 │   └── auth/                      # Auth config copies (reference only)
 │
-├── _cleanup/                      # Obsolete/temporary files (19 files)
-│   ├── jest-configs/              # Old jest configurations (11 files)
-│   ├── test-scripts/              # Temporary test scripts (3 files)
-│   ├── logs/                      # Log files & HTML dumps (4 files)
-│   └── temp-configs/              # Temporary config files (1 file)
+├── backups/
+│   └── _cleanup/                  # Obsolete/temporary files (archived, 19 files)
+│       ├── jest-configs/          # Old jest configurations (11 files)
+│       ├── test-scripts/          # Temporary test scripts (3 files)
+│       ├── logs/                  # Log files & HTML dumps (4 files)
+│       └── temp-configs/          # Temporary config files (1 file)
 │
 └── [root files]                   # Essential config files (kept in root)
 ```
@@ -203,30 +204,30 @@ Step-by-step UI flow screenshots.
 
 ---
 
-### 3. Cleanup Files (`_cleanup/`)
+### 3. Cleanup Files (`backups/_cleanup/`)
 
-#### 3.1 Obsolete Jest Configs (`_cleanup/jest-configs/`) - 11 files
+#### 3.1 Obsolete Jest Configs (`backups/_cleanup/jest-configs/`) - 11 files
 Old Jest configuration files no longer in use.
 
 **Files**: `jest.config.all.js`, `jest.config.final.js`, `jest.config.integration.js`, `jest.config.memory-optimized.js`, `jest.config.optimized.js`, `jest.config.unit.js`, `jest.setup.complete.js`, `jest.setup.comprehensive.js`, `jest.setup.enhanced.js`, `jest.setup.integration.js`, `jest.setup.minimal.js`
 
 **Reason for Cleanup**: Multiple experimental Jest configurations were created during testing optimization. The project now uses `jest.config.working.js` and `jest.config.ci.js` as the primary configs.
 
-#### 3.2 Test Scripts (`_cleanup/test-scripts/`) - 3 files
+#### 3.2 Test Scripts (`backups/_cleanup/test-scripts/`) - 3 files
 Temporary test scripts used for debugging.
 
 **Files**: `test-admin-dashboard-auth.js`, `test-admin-login-flow.js`, `test-delete-user.js`
 
 **Reason for Cleanup**: One-off test scripts used for debugging specific issues. Functionality now covered by proper test suites.
 
-#### 3.3 Logs & Temp Files (`_cleanup/logs/`) - 4 files
+#### 3.3 Logs & Temp Files (`backups/_cleanup/logs/`) - 4 files
 Log files and temporary HTML dumps.
 
 **Files**: `test-output.log`, `eslint-compact.txt`, `eslint-issues.txt`, `page-content-after-login.html`
 
 **Reason for Cleanup**: Temporary debugging files and log outputs that are no longer needed.
 
-#### 3.4 Temporary Configs (`_cleanup/temp-configs/`) - 1 file
+#### 3.4 Temporary Configs (`backups/_cleanup/temp-configs/`) - 1 file
 Experimental configuration files.
 
 **Files**: `next.config.optimized.js`
@@ -324,7 +325,7 @@ These files **must remain in the root** directory as they are directly reference
 
 ### Finding Old Files
 
-All obsolete files are in `_cleanup/` subdirectories. These can be safely deleted after verification.
+All obsolete files are in `backups/_cleanup/` subdirectories. These can be safely deleted after verification.
 
 ---
 
@@ -352,14 +353,14 @@ find screenshots/ -type f -name "*.png"
 ### Find Cleanup Candidates
 ```bash
 # List all cleanup files
-find _cleanup/ -type f
+find backups/_cleanup/ -type f
 ```
 
 ---
 
 ## ⚠️ Important Notes
 
-1. **Do NOT delete files in `_cleanup/` immediately** - Verify they're truly unnecessary first
+1. **Do NOT delete files in `backups/_cleanup/` immediately** - Verify they're truly unnecessary first
 2. **Root config files are essential** - Moving them will break the build
 3. **Auth configs in `config/auth/` are copies** - Originals in root are used by the build system
 4. **Screenshot organization** - Helps with documentation and onboarding
@@ -379,7 +380,7 @@ find _cleanup/ -type f
 ## 📞 Need Help?
 
 - **Finding a specific doc?** Check the "Quick Reference Guide" section above
-- **Want to delete cleanup files?** Review `_cleanup/` contents first
+- **Want to delete cleanup files?** Review `backups/_cleanup/` contents first
 - **Need to add new docs?** Place them in the appropriate `docs/` subdirectory
 - **Have questions?** Consult `CLAUDE.md` for project-specific guidelines
 

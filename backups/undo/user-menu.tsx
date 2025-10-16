@@ -339,7 +339,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                   </button>
 
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-purple-500/30 dark:border-purple-400/40 shadow-sm">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-purple-500/30 dark:border-purple-400/40 shadow-sm flex-shrink-0">
                       {user?.image ? (
                         <Image
                           src={user.image}
@@ -349,17 +349,16 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                           className="object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 flex items-center justify-center text-white font-semibold">
+                        <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 flex items-center justify-center text-white font-semibold text-lg">
                           {getAvatarFallback(user?.name)}
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-slate-900 dark:text-white font-semibold text-sm truncate max-w-[12rem]">
-                          {user?.name || "User"}
-                        </h3>
-                        <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300">
+                    <div className="flex-1 min-w-0 pr-6">
+                      <h3 className="text-slate-900 dark:text-white font-semibold text-base truncate">{user?.name || "User"}</h3>
+                      <p className="text-slate-500 dark:text-gray-400 text-xs truncate mt-0.5">{user?.email || ""}</p>
+                      <div className="flex items-center mt-1.5">
+                        <span className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 font-medium">
                           {user?.role === "ADMIN" ? (
                             <>
                               <ShieldCheck className="w-3 h-3 mr-1" />
@@ -373,9 +372,6 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                           )}
                         </span>
                       </div>
-                      <p className="text-slate-500 dark:text-gray-400 text-xs truncate max-w-[14rem]">
-                        {user?.email || "No email"}
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -442,4 +438,3 @@ export const UserMenu = ({ user }: UserMenuProps) => {
     </div>
   );
 };
-

@@ -122,9 +122,9 @@ const stats = [
 
 export default function IntelligentLMSOverview() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 -mt-14 sm:-mt-16 pt-14 sm:pt-16">
+    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 -mt-14 xl:-mt-16 pt-14 xl:pt-16">
       {/* Hero Section */}
-      <section className="relative pt-24 pb-12 px-4">
+      <section className="relative pt-24 pb-12 px-6 sm:px-8 lg:px-12">
         <div className="max-w-7xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -170,7 +170,7 @@ export default function IntelligentLMSOverview() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 px-4">
+      <section className="py-12 px-6 sm:px-8 lg:px-12">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
@@ -192,7 +192,7 @@ export default function IntelligentLMSOverview() {
       </section>
 
       {/* Core Features Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-6 sm:px-8 lg:px-12">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -253,7 +253,7 @@ export default function IntelligentLMSOverview() {
       </section>
 
       {/* Comparison Section */}
-      <section id="comparison" className="py-20 px-4 bg-slate-50 dark:bg-slate-800/30">
+      <section id="comparison" className="py-20 px-6 sm:px-8 lg:px-12 bg-slate-50 dark:bg-slate-800/30">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -273,14 +273,14 @@ export default function IntelligentLMSOverview() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700"
+            className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700"
           >
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="bg-slate-100 dark:bg-slate-800/50">
-                  <th className="px-6 py-4 text-left text-slate-600 dark:text-gray-400 font-medium">Feature</th>
-                  <th className="px-6 py-4 text-left text-slate-600 dark:text-gray-400 font-medium">Traditional LMS</th>
-                  <th className="px-6 py-4 text-left text-slate-900 dark:text-white font-medium bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-600/20 dark:to-indigo-600/20">
+                  <th className="px-4 sm:px-6 py-4 text-left text-slate-600 dark:text-gray-400 font-medium text-sm sm:text-base">Feature</th>
+                  <th className="px-4 sm:px-6 py-4 text-left text-slate-600 dark:text-gray-400 font-medium text-sm sm:text-base">Traditional LMS</th>
+                  <th className="px-4 sm:px-6 py-4 text-left text-slate-900 dark:text-white font-medium text-sm sm:text-base bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-600/20 dark:to-indigo-600/20">
                     Taxomind
                   </th>
                 </tr>
@@ -288,17 +288,17 @@ export default function IntelligentLMSOverview() {
               <tbody>
                 {comparisons.map((item, index) => (
                   <tr key={item.feature} className="border-t border-slate-200 dark:border-slate-700">
-                    <td className="px-6 py-4 text-slate-700 dark:text-gray-300 font-medium">{item.feature}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-gray-500">
+                    <td className="px-4 sm:px-6 py-4 text-slate-700 dark:text-gray-300 font-medium text-sm sm:text-base">{item.feature}</td>
+                    <td className="px-4 sm:px-6 py-4 text-slate-600 dark:text-gray-500 text-sm sm:text-base">
                       <div className="flex items-center gap-2">
-                        <X className="w-4 h-4 text-red-500 dark:text-red-400" />
-                        {item.traditional}
+                        <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                        <span>{item.traditional}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-900 dark:text-white bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-600/10 dark:to-indigo-600/10">
+                    <td className="px-4 sm:px-6 py-4 text-slate-900 dark:text-white text-sm sm:text-base bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-600/10 dark:to-indigo-600/10">
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        {item.taxomind}
+                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span>{item.taxomind}</span>
                       </div>
                     </td>
                   </tr>
@@ -310,7 +310,7 @@ export default function IntelligentLMSOverview() {
       </section>
 
       {/* Technology Stack */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-6 sm:px-8 lg:px-12">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0 }}
@@ -355,7 +355,7 @@ export default function IntelligentLMSOverview() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-6 sm:px-8 lg:px-12">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

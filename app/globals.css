@@ -453,3 +453,165 @@ body.dragging *::selection {
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
+/* ========================================
+ * SLIM RAIL SIDEBAR TOKENS & ANIMATIONS
+ * ======================================== */
+
+@layer base {
+  :root {
+    /* Sidebar Tokens - Light Mode */
+    --sidebar-bg: 0 0% 100%; /* white */
+    --sidebar-bg-hover: 210 40% 98%; /* soft gray on hover */
+    --sidebar-border: 214.3 31.8% 91.4%; /* subtle border */
+    --sidebar-text: 222.2 47.4% 11.2%; /* dark text */
+    --sidebar-text-muted: 215.4 16.3% 46.9%; /* muted text */
+    --sidebar-active-bg: 248 95% 98%; /* very subtle purple tint */
+    --sidebar-active-text: 248 70% 50%; /* active purple */
+    --sidebar-active-indicator: 248 70% 50%; /* active indicator */
+
+    /* Flyout Tokens */
+    --flyout-bg: 0 0% 100%;
+    --flyout-border: 214.3 31.8% 91.4%;
+    --flyout-shadow: 220 13% 91%;
+    --flyout-hover-bg: 210 40% 97%; /* lighter hover */
+
+    /* Focus Ring */
+    --sidebar-ring: 248 70% 63%;
+
+    /* Dimensions */
+    --sidebar-width-rail: 64px;
+    --sidebar-width-compact: 224px;
+    --sidebar-transition-duration: 300ms;
+    --sidebar-transition-timing: cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+
+  .dark {
+    /* Sidebar Tokens - Dark Mode */
+    --sidebar-bg: 233 40% 7%; /* dark bg */
+    --sidebar-bg-hover: 232 30% 12%; /* slightly lighter on hover */
+    --sidebar-border: 230 20% 20%; /* dark border */
+    --sidebar-text: 210 40% 98%; /* light text */
+    --sidebar-text-muted: 220 15% 65%; /* muted light text */
+    --sidebar-active-bg: 248 70% 12%; /* very subtle purple tint dark */
+    --sidebar-active-text: 248 95% 75%; /* active purple light */
+    --sidebar-active-indicator: 248 95% 75%; /* active indicator */
+
+    /* Flyout Tokens - Dark */
+    --flyout-bg: 233 35% 10%;
+    --flyout-border: 230 20% 20%;
+    --flyout-shadow: 233 40% 5%;
+    --flyout-hover-bg: 232 27% 13%; /* lighter hover */
+
+    /* Focus Ring - Dark */
+    --sidebar-ring: 249 84% 70%;
+  }
+}
+
+/* Sidebar Width Animations */
+@keyframes sidebar-expand {
+  from {
+    width: var(--sidebar-width-rail);
+  }
+  to {
+    width: var(--sidebar-width-compact);
+  }
+}
+
+@keyframes sidebar-collapse {
+  from {
+    width: var(--sidebar-width-compact);
+  }
+  to {
+    width: var(--sidebar-width-rail);
+  }
+}
+
+/* Label Fade In/Out */
+@keyframes sidebar-label-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes sidebar-label-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+/* Flyout Slide In/Out */
+@keyframes flyout-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes flyout-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-4px) scale(0.98);
+  }
+}
+
+/* Utility classes for sidebar animations */
+.sidebar-expand {
+  animation: sidebar-expand var(--sidebar-transition-duration) var(--sidebar-transition-timing) forwards;
+}
+
+.sidebar-collapse {
+  animation: sidebar-collapse var(--sidebar-transition-duration) var(--sidebar-transition-timing) forwards;
+}
+
+.sidebar-label-in {
+  animation: sidebar-label-in 200ms ease-out forwards;
+  animation-delay: 100ms;
+}
+
+.sidebar-label-out {
+  animation: sidebar-label-out 150ms ease-in forwards;
+}
+
+.flyout-in {
+  animation: flyout-in 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.flyout-out {
+  animation: flyout-out 150ms ease-in forwards;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sidebar-transition-duration: 100ms;
+  }
+
+  .sidebar-expand,
+  .sidebar-collapse,
+  .sidebar-label-in,
+  .sidebar-label-out,
+  .flyout-in,
+  .flyout-out {
+    animation-duration: 100ms;
+    animation-delay: 0ms;
+  }
+}

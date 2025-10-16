@@ -35,11 +35,11 @@ __tests__/hooks/        # Hook tests
 __tests__/actions/      # Server action tests
 ```
 
-### Cleanup
+### Cleanup (Archived)
 ```bash
-_cleanup/jest-configs/  # Old Jest configurations
-_cleanup/test-scripts/  # Temporary test scripts
-_cleanup/logs/          # Log files & HTML dumps
+backups/_cleanup/jest-configs/  # Old Jest configurations
+backups/_cleanup/test-scripts/  # Temporary test scripts
+backups/_cleanup/logs/          # Log files & HTML dumps
 ```
 
 ---
@@ -166,7 +166,7 @@ grep -r "Button" components/
 ## 💡 Pro Tips
 
 1. **Use grep** for quick searches across all docs
-2. **Check _cleanup/** before deleting - verify files are obsolete
+2. **Check backups/_cleanup/** before deleting - verify files are obsolete
 3. **Tests are co-located** with components in some cases (intentional)
 4. **Auth configs** in root are essential - don't move them
 5. **Use /find-docs** for quick navigation
