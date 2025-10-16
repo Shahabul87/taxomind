@@ -11,7 +11,7 @@ import { auth } from '@/auth'
 import { ConfettiProvider } from '@/components/providers/confetti-provider';
 import { Providers } from "@/components/providers";
 // PageBackground removed - using direct bg-background on body
-import { MainHeader } from './(homepage)/main-header';
+import { ResponsiveHeaderWrapper } from './(homepage)/_components/responsive-header-wrapper';
 import { currentUser } from '@/lib/auth';
 import LayoutWithSidebar from '@/components/layout/layout-with-sidebar';
 import ClientToaster from '@/components/client-toaster';
@@ -80,7 +80,7 @@ function HeaderFallback() {
 // Async Header Component
 async function AsyncHeader() {
   let user;
-  
+
   try {
     user = await currentUser();
   } catch (error: any) {
@@ -88,7 +88,7 @@ async function AsyncHeader() {
     user = null;
   }
 
-  return <MainHeader user={user} />;
+  return <ResponsiveHeaderWrapper user={user} />;
 }
 
 // Async Layout Component that handles user data
@@ -202,7 +202,7 @@ export default async function RootLayout({
             ) : (
               // Regular routes: Normal layout with sidebar
               <Suspense fallback={
-                <div className="pt-14 sm:pt-16 min-h-screen flex items-center justify-center">
+                <div className="pt-14 xl:pt-16 min-h-screen flex items-center justify-center">
                   <div>Loading...</div>
                 </div>
               }>
