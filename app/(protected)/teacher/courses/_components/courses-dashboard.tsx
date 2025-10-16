@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
 
 interface CoursesDashboardProps {
   courses: any[];
@@ -21,8 +22,30 @@ interface CoursesDashboardProps {
 }
 
 export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+
+  // Listen to sidebar state changes
+  useEffect(() => {
+    const handleSidebarChange = (event: CustomEvent) => {
+      setSidebarExpanded(event.detail.expanded);
+    };
+
+    window.addEventListener('sidebar-state-change', handleSidebarChange as EventListener);
+
+    return () => {
+      window.removeEventListener('sidebar-state-change', handleSidebarChange as EventListener);
+    };
+  }, []);
+
   return (
-    <div className="space-y-8">
+    <motion.div
+      className="space-y-8"
+      animate={{
+        paddingLeft: sidebarExpanded ? "1rem" : "0.5rem",
+        paddingRight: sidebarExpanded ? "1rem" : "0.5rem",
+      }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
+    >
       
       {/* Header glass shell */}
       <div className="mb-2 rounded-xl border bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-gray-200/70 dark:border-gray-800/70 shadow-sm overflow-hidden">
@@ -173,6 +196,6 @@ export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
       >
         <DataTable columns={columns} data={courses} />
       </motion.div>
-    </div>
+    </motion.div>
   );
 }; 

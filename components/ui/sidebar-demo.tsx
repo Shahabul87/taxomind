@@ -195,15 +195,19 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
       {/* Sidebar */}
       <motion.div
         initial={false}
-        animate={{ 
+        animate={{
           width: (open || (!isMobile && isHovered)) ? "280px" : "80px",
-          x: isMobile && !open ? "-100%" : 0 
+          x: isMobile && !open ? "-100%" : 0
+        }}
+        transition={{
+          duration: 0.2,
+          ease: "easeInOut"
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={cn(
-          "h-screen border-r",
-          "flex flex-col sticky top-0 z-50 transition-all duration-300",
+          "h-screen border-r shrink-0",
+          "flex flex-col sticky top-0 z-50",
           "dark:bg-gray-900 dark:border-gray-700",
           "bg-white border-gray-200",
           isMobile ? "fixed md:relative" : "relative"
@@ -244,6 +248,8 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
             <div key={index}>
               <motion.div
                 initial={false}
+                whileHover={{ x: 2 }}
+                transition={{ duration: 0.15 }}
                 onClick={() => {
                   if (item.submenu) {
                     toggleSubmenu(item.title);
@@ -254,19 +260,22 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
                 }}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 mx-2 rounded-lg cursor-pointer",
-                  "transition-all duration-300",
+                  "transition-all duration-200",
                   (pathname === item.href || activeSubmenu === item.title)
                     ? "dark:bg-purple-500/10 dark:text-purple-400 bg-purple-50 text-purple-600"
                     : "dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200 text-gray-600 hover:bg-gray-100/50 hover:text-gray-900"
                 )}
               >
-                {item.icon}
+                <div className="shrink-0">
+                  {item.icon}
+                </div>
                 {(open || (!isMobile && isHovered)) && (
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="flex-1 text-sm font-medium"
+                    transition={{ duration: 0.15 }}
+                    className="flex-1 text-sm font-medium whitespace-pre"
                   >
                     {item.title}
                   </motion.span>

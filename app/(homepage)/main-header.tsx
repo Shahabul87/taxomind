@@ -474,33 +474,33 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     >
                       <div className="relative">
                         {/* Gradient frame */}
-                        <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-purple-500/50 via-indigo-500/40 to-blue-500/50 opacity-60 blur-md pointer-events-none" />
+                        <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-purple-500/50 via-indigo-500/40 to-blue-500/50 dark:from-purple-400/60 dark:via-indigo-400/50 dark:to-blue-400/60 opacity-60 blur-md pointer-events-none" />
                         {/* Panel */}
-                        <div className="relative w-[720px] max-w-[92vw] backdrop-blur-xl backdrop-saturate-150 rounded-xl shadow-[0_16px_40px_-10px_rgba(2,6,23,0.5)] dark:shadow-[0_20px_50px_-12px_rgba(2,6,23,0.9)] border bg-white/90 dark:bg-slate-900/92 border-slate-200/80 dark:border-slate-700/70 overflow-hidden">
+                        <div className="relative w-[720px] max-w-[92vw] backdrop-blur-xl backdrop-saturate-150 rounded-xl shadow-[0_16px_40px_-10px_rgba(2,6,23,0.5)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.8)] border bg-white/95 dark:bg-slate-900/95 border-slate-200/80 dark:border-slate-600/50 overflow-hidden">
                           {/* Accent line */}
-                          <div className="pointer-events-none absolute top-0 inset-x-0 h-0.5 bg-[linear-gradient(90deg,rgba(168,85,247,0.7),rgba(79,70,229,0.7),rgba(14,165,233,0.7))] opacity-80" />
+                          <div className="pointer-events-none absolute top-0 inset-x-0 h-0.5 bg-[linear-gradient(90deg,rgba(168,85,247,0.7),rgba(79,70,229,0.7),rgba(14,165,233,0.7))] dark:bg-[linear-gradient(90deg,rgba(168,85,247,0.9),rgba(79,70,229,0.9),rgba(14,165,233,0.9))] opacity-80" />
                           {/* Decorative glows */}
-                          <div className="pointer-events-none absolute -top-16 -right-20 w-56 h-56 bg-purple-500/20 blur-[90px] rounded-full" />
-                          <div className="pointer-events-none absolute -bottom-20 -left-24 w-64 h-64 bg-indigo-500/20 blur-[100px] rounded-full" />
+                          <div className="pointer-events-none absolute -top-16 -right-20 w-56 h-56 bg-purple-500/20 dark:bg-purple-400/30 blur-[90px] rounded-full" />
+                          <div className="pointer-events-none absolute -bottom-20 -left-24 w-64 h-64 bg-indigo-500/20 dark:bg-indigo-400/30 blur-[100px] rounded-full" />
                           <div className="grid grid-cols-12 gap-3 p-4">
                             {/* Feature card */}
                             <div className="col-span-12 md:col-span-5">
                               <Link
                                 href="/intelligent-lms/overview"
                                 onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
-                                className="group relative block overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700/60 bg-gradient-to-br from-purple-600/10 via-indigo-600/10 to-blue-600/10 p-4 hover:from-purple-600/15 hover:via-indigo-600/15 hover:to-blue-600/15 transition-colors"
+                                className="group relative block overflow-hidden rounded-xl border border-slate-200 dark:border-slate-600/70 bg-gradient-to-br from-purple-600/10 via-indigo-600/10 to-blue-600/10 dark:from-purple-500/20 dark:via-indigo-500/20 dark:to-blue-500/20 p-4 hover:from-purple-600/15 hover:via-indigo-600/15 hover:to-blue-600/15 dark:hover:from-purple-500/30 dark:hover:via-indigo-500/30 dark:hover:to-blue-500/30 transition-colors"
                               >
                                 <div className="flex items-start gap-3">
-                                  <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-md">
+                                  <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 dark:from-purple-400 dark:to-blue-400 text-white shadow-md dark:shadow-lg">
                                     <Sparkles className="w-5 h-5" />
                                   </div>
                                   <div className="min-w-0">
                                     <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-gray-400">Overview</p>
                                     <h3 className="mt-0.5 text-base font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">The Intelligent LMS</h3>
-                                    <p className="mt-1 text-sm leading-snug text-slate-700 dark:text-gray-300 line-clamp-2">Adaptive pathways, rigorous evaluation, and AI‑driven course intelligence.</p>
+                                    <p className="mt-1 text-sm leading-snug text-slate-700 dark:text-gray-200 line-clamp-2">Adaptive pathways, rigorous evaluation, and AI‑driven course intelligence.</p>
                                   </div>
                                 </div>
-                                <div className="mt-4 flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300">
+                                <div className="mt-4 flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-400">
                                   <span>Learn more</span>
                                   <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
                                 </div>
@@ -512,15 +512,15 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                             <div className="col-span-12 md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2">
                               <Link
                                 href="/intelligent-lms/sam-ai-assistant"
-                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 dark:hover:from-blue-900/20 dark:hover:to-cyan-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-200 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 dark:hover:from-blue-900/30 dark:hover:to-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:focus:ring-purple-400/60"
                                 onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
                               >
-                                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 dark:from-blue-400 dark:to-cyan-400 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg dark:group-hover:shadow-cyan-500/20 group-hover:scale-110 transition-all duration-300">
                                   <Brain className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1">
                                   <div className="text-sm font-semibold flex items-center gap-2">SAM — AI Assistant
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">New</span>
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-400/40">New</span>
                                   </div>
                                   <div className="text-xs mt-0.5 text-slate-600 dark:text-gray-400">Always‑available AI learning support</div>
                                 </div>
@@ -528,10 +528,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
                               <Link
                                 href="/intelligent-lms/evaluation-standards"
-                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 dark:hover:from-emerald-900/20 dark:hover:to-green-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-200 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 dark:hover:from-emerald-900/30 dark:hover:to-green-900/30 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:focus:ring-purple-400/60"
                                 onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
                               >
-                                <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-500 dark:from-emerald-400 dark:to-green-400 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg dark:group-hover:shadow-emerald-500/20 group-hover:scale-110 transition-all duration-300">
                                   <Shield className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1">
@@ -542,11 +542,11 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
                               <Link
                                 href="/intelligent-lms/adaptive-learning"
-                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-yellow-50 hover:to-amber-50 dark:hover:from-yellow-900/20 dark:hover:to-amber-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-200 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-yellow-50 hover:to-amber-50 dark:hover:from-yellow-900/30 dark:hover:to-amber-900/30 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:focus:ring-purple-400/60"
                                 onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
                               >
-                                <div className="p-2 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
-                                  <Zap className="w-4 h-4 text-white" />
+                                <div className="p-2 bg-gradient-to-br from-yellow-500 to-amber-500 dark:from-yellow-400 dark:to-amber-400 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg dark:group-hover:shadow-amber-500/20 group-hover:scale-110 transition-all duration-300">
+                                  <Zap className="w-4 h-4 text-white dark:text-slate-900" />
                                 </div>
                                 <div className="flex-1">
                                   <div className="text-sm font-semibold">Adaptive Learning</div>
@@ -556,10 +556,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
                               <Link
                                 href="/intelligent-lms/course-intelligence"
-                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-cyan-50 hover:to-sky-50 dark:hover:from-cyan-900/20 dark:hover:to-sky-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-200 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-cyan-50 hover:to-sky-50 dark:hover:from-cyan-900/30 dark:hover:to-sky-900/30 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:focus:ring-purple-400/60"
                                 onClick={() => setShowDesktopIntelligentLMSDropdown(false)}
                               >
-                                <div className="p-2 bg-gradient-to-br from-cyan-500 to-sky-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                <div className="p-2 bg-gradient-to-br from-cyan-500 to-sky-500 dark:from-cyan-400 dark:to-sky-400 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg dark:group-hover:shadow-cyan-500/20 group-hover:scale-110 transition-all duration-300">
                                   <Activity className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1">
@@ -622,33 +622,33 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                     >
                       <div className="relative">
                         {/* Gradient frame */}
-                        <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-purple-500/50 via-indigo-500/40 to-blue-500/50 opacity-60 blur-md pointer-events-none" />
+                        <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-purple-500/50 via-indigo-500/40 to-blue-500/50 dark:from-indigo-400/60 dark:via-purple-400/50 dark:to-cyan-400/60 opacity-60 blur-md pointer-events-none" />
                         {/* Panel */}
-                        <div className="relative w-[640px] max-w-[92vw] backdrop-blur-xl backdrop-saturate-150 rounded-xl shadow-[0_16px_40px_-10px_rgba(2,6,23,0.5)] dark:shadow-[0_20px_50px_-12px_rgba(2,6,23,0.9)] border bg-white/90 dark:bg-slate-900/92 border-slate-200/80 dark:border-slate-700/70 overflow-hidden">
+                        <div className="relative w-[640px] max-w-[92vw] backdrop-blur-xl backdrop-saturate-150 rounded-xl shadow-[0_16px_40px_-10px_rgba(2,6,23,0.5)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.8)] border bg-white/95 dark:bg-slate-900/95 border-slate-200/80 dark:border-slate-600/50 overflow-hidden">
                           {/* Accent line */}
-                          <div className="pointer-events-none absolute top-0 inset-x-0 h-0.5 bg-[linear-gradient(90deg,rgba(79,70,229,0.7),rgba(147,51,234,0.7),rgba(6,182,212,0.7))] opacity-80" />
+                          <div className="pointer-events-none absolute top-0 inset-x-0 h-0.5 bg-[linear-gradient(90deg,rgba(79,70,229,0.7),rgba(147,51,234,0.7),rgba(6,182,212,0.7))] dark:bg-[linear-gradient(90deg,rgba(79,70,229,0.9),rgba(147,51,234,0.9),rgba(6,182,212,0.9))] opacity-80" />
                           {/* Decorative glows */}
-                          <div className="pointer-events-none absolute -top-16 -right-16 w-52 h-52 bg-blue-500/20 blur-[90px] rounded-full" />
-                          <div className="pointer-events-none absolute -bottom-20 -left-24 w-64 h-64 bg-cyan-500/20 blur-[100px] rounded-full" />
+                          <div className="pointer-events-none absolute -top-16 -right-16 w-52 h-52 bg-blue-500/20 dark:bg-blue-400/30 blur-[90px] rounded-full" />
+                          <div className="pointer-events-none absolute -bottom-20 -left-24 w-64 h-64 bg-cyan-500/20 dark:bg-cyan-400/30 blur-[100px] rounded-full" />
                           <div className="grid grid-cols-12 gap-3 p-4">
                             {/* Feature card */}
                             <div className="col-span-12 md:col-span-5">
                               <Link
                                 href="/ai-tools"
                                 onClick={() => setShowDesktopAIToolsDropdown(false)}
-                                className="group relative block overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700/60 bg-gradient-to-br from-indigo-600/10 via-purple-600/10 to-cyan-600/10 p-4 hover:from-indigo-600/15 hover:via-purple-600/15 hover:to-cyan-600/15 transition-colors"
+                                className="group relative block overflow-hidden rounded-xl border border-slate-200 dark:border-slate-600/70 bg-gradient-to-br from-indigo-600/10 via-purple-600/10 to-cyan-600/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-cyan-500/20 p-4 hover:from-indigo-600/15 hover:via-purple-600/15 hover:to-cyan-600/15 dark:hover:from-indigo-500/30 dark:hover:via-purple-500/30 dark:hover:to-cyan-500/30 transition-colors"
                               >
                                 <div className="flex items-start gap-3">
-                                  <div className="p-3 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 text-white shadow-md">
+                                  <div className="p-3 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 dark:from-indigo-400 dark:to-cyan-400 text-white shadow-md dark:shadow-lg">
                                     <Cpu className="w-5 h-5" />
                                   </div>
                                   <div className="min-w-0">
                                     <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-gray-400">Directory</p>
                                     <h3 className="mt-0.5 text-base font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">AI Tools Directory</h3>
-                                    <p className="mt-1 text-sm leading-snug text-slate-700 dark:text-gray-300 line-clamp-2">Curated assistants, market trends, news, and research.</p>
+                                    <p className="mt-1 text-sm leading-snug text-slate-700 dark:text-gray-200 line-clamp-2">Curated assistants, market trends, news, and research.</p>
                                   </div>
                                 </div>
-                                <div className="mt-4 flex items-center gap-2 text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                                <div className="mt-4 flex items-center gap-2 text-sm font-medium text-indigo-700 dark:text-indigo-400">
                                   <span>View directory</span>
                                   <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
                                 </div>
@@ -659,10 +659,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                             <div className="col-span-12 md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2">
                               <Link
                                 href="/ai-tutor"
-                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/20 dark:hover:to-blue-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-200 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:focus:ring-purple-400/60"
                                 onClick={() => setShowDesktopAIToolsDropdown(false)}
                               >
-                                <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 dark:from-purple-400 dark:to-blue-400 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg dark:group-hover:shadow-purple-500/20 group-hover:scale-110 transition-all duration-300">
                                   <Brain className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1">
@@ -673,10 +673,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
                               <Link
                                 href="/ai-trends"
-                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 dark:hover:from-blue-900/20 dark:hover:to-cyan-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-200 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 dark:hover:from-blue-900/30 dark:hover:to-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:focus:ring-purple-400/60"
                                 onClick={() => setShowDesktopAIToolsDropdown(false)}
                               >
-                                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 dark:from-blue-400 dark:to-cyan-400 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg dark:group-hover:shadow-blue-500/20 group-hover:scale-110 transition-all duration-300">
                                   <TrendingUp className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1">
@@ -687,10 +687,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
                               <Link
                                 href="/ai-news"
-                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 dark:hover:from-emerald-900/20 dark:hover:to-green-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-200 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 dark:hover:from-emerald-900/30 dark:hover:to-green-900/30 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:focus:ring-purple-400/60"
                                 onClick={() => setShowDesktopAIToolsDropdown(false)}
                               >
-                                <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-500 dark:from-emerald-400 dark:to-green-400 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg dark:group-hover:shadow-emerald-500/20 group-hover:scale-110 transition-all duration-300">
                                   <Newspaper className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1">
@@ -701,10 +701,10 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
                               <Link
                                 href="/ai-research"
-                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-cyan-50 hover:to-sky-50 dark:hover:from-cyan-900/20 dark:hover:to-sky-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                className="group flex items-start px-4 py-3 rounded-xl transition-all duration-200 transform group-hover:translate-x-0.5 text-slate-700 dark:text-gray-200 hover:text-slate-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-cyan-50 hover:to-sky-50 dark:hover:from-cyan-900/30 dark:hover:to-sky-900/30 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:focus:ring-purple-400/60"
                                 onClick={() => setShowDesktopAIToolsDropdown(false)}
                               >
-                                <div className="p-2 bg-gradient-to-br from-cyan-500 to-sky-500 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                                <div className="p-2 bg-gradient-to-br from-cyan-500 to-sky-500 dark:from-cyan-400 dark:to-sky-400 rounded-lg shrink-0 mr-3 mt-0.5 shadow-md group-hover:shadow-lg dark:group-hover:shadow-cyan-500/20 group-hover:scale-110 transition-all duration-300">
                                   <FlaskConical className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1">

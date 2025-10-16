@@ -73,22 +73,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Handle role-based redirects after login
-      if (url === baseUrl || url === `${baseUrl}/` || url.includes('/dashboard/user')) {
-        // Default redirect will be handled by middleware based on user role
+      // PRODUCTION FIX: Improved OAuth redirect handling
+      // Handle callback URLs from OAuth providers
+      // These come back as absolute URLs with the callback path
+      if (url.includes('/api/auth/callback')) {
         return `${baseUrl}/dashboard`;
       }
-      
+
+      // Handle role-based redirects after login
+      if (url === baseUrl || url === `${baseUrl}/` || url.includes('/dashboard/user')) {
+        return `${baseUrl}/dashboard`;
+      }
+
       // If the URL is already an absolute URL (contains the baseUrl), use it
       if (url.startsWith(baseUrl)) {
         return url;
       }
+
       // If it's a relative URL, combine it with the baseUrl
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       }
-      // Default fallback to baseUrl
-      return baseUrl;
+
+      // Default fallback to dashboard (safer than baseUrl for authenticated users)
+      return `${baseUrl}/dashboard`;
     },
     async signIn({ user, account }) {
       // Ensure we return early if missing critical data

@@ -291,13 +291,13 @@ export default function HeroSection() {
               </motion.span>
             </h1>
 
-            <motion.p 
-              className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-gray-300 max-w-3xl mb-6 sm:mb-8 leading-relaxed"
+            <motion.p
+              className="text-base sm:text-lg md:text-xl text-slate-700 dark:text-gray-300 max-w-3xl mb-6 sm:mb-8 leading-relaxed"
               initial={{ opacity: 0 }}
               animate={isInView ? { opacity: 1 } : {}}
               transition={{ delay: 0.5 }}
             >
-              Track cognitive development across 6 scientifically-proven levels. 
+              Track cognitive development across 6 scientifically-proven levels.
               Our AI adapts to each learner&apos;s unique journey, ensuring mastery at every stage.
             </motion.p>
 
@@ -350,8 +350,8 @@ export default function HeroSection() {
               transition={{ duration: 0.8 }}
               className="relative"
             >
-              <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6 text-center lg:text-left">
-                <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+              <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center lg:text-left">
+                <span className="bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400 bg-clip-text text-transparent">
                   Your Interactive Cognitive Journey
                 </span>
               </h3>
@@ -496,8 +496,8 @@ export default function HeroSection() {
                 className="relative"
               >
                 <div className="sticky top-4">
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-6 text-center lg:text-left">
-                    <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+                  <h3 className="text-xl sm:text-2xl font-bold mb-6 text-center lg:text-left">
+                    <span className="bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400 bg-clip-text text-transparent">
                       Cognitive Level Deep Dive
                     </span>
                   </h3>
@@ -544,16 +544,16 @@ export default function HeroSection() {
                                 />
                               </motion.div>
                               <div className="flex-1">
-                                <motion.h4 
-                                  className="text-2xl sm:text-3xl font-bold text-white mb-3"
+                                <motion.h4
+                                  className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-3"
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
                                   transition={{ delay: 0.2 }}
                                 >
                                   {level.name}
                                 </motion.h4>
-                                <motion.p 
-                                  className="text-gray-300 text-base sm:text-lg leading-relaxed mb-4"
+                                <motion.p
+                                  className="text-slate-700 dark:text-gray-300 text-base sm:text-lg leading-relaxed mb-4"
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
                                   transition={{ delay: 0.3 }}
@@ -561,24 +561,24 @@ export default function HeroSection() {
                                   {level.description}
                                 </motion.p>
                                 <div className="flex flex-wrap items-center gap-3">
-                                  <motion.span 
-                                    className="text-sm bg-purple-500/20 px-4 py-2 rounded-full text-purple-300 border border-purple-500/30"
+                                  <motion.span
+                                    className="text-sm bg-purple-100 dark:bg-purple-500/20 px-4 py-2 rounded-full text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30 font-medium"
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ delay: 0.4, type: "spring" }}
                                   >
                                     Level {level.level} of 6
                                   </motion.span>
-                                  <motion.span 
-                                    className="text-sm bg-blue-500/20 px-4 py-2 rounded-full text-blue-300 border border-blue-500/30"
+                                  <motion.span
+                                    className="text-sm bg-blue-100 dark:bg-blue-500/20 px-4 py-2 rounded-full text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30 font-medium"
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ delay: 0.5, type: "spring" }}
                                   >
                                     Bloom&apos;s Taxonomy
                                   </motion.span>
-                                  <motion.span 
-                                    className="text-sm bg-emerald-500/20 px-4 py-2 rounded-full text-emerald-300 border border-emerald-500/30"
+                                  <motion.span
+                                    className="text-sm bg-emerald-100 dark:bg-emerald-500/20 px-4 py-2 rounded-full text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 font-medium"
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ delay: 0.6, type: "spring" }}
@@ -592,30 +592,30 @@ export default function HeroSection() {
                             {/* Three-Column Information Layout */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                               {/* What It Is */}
-                              <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-xl p-4 border border-purple-500/20">
+                              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-500/10 dark:to-indigo-500/10 rounded-xl p-4 border border-purple-200 dark:border-purple-500/20">
                                 <div className="flex items-center gap-2 mb-3">
-                                  <Brain className="w-4 h-4 text-purple-400" />
-                                  <span className="text-purple-300 font-semibold text-sm">What It Is</span>
+                                  <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                  <span className="text-purple-700 dark:text-purple-300 font-semibold text-sm">What It Is</span>
                                 </div>
-                                <p className="text-slate-600 dark:text-gray-300 text-sm leading-relaxed">{level.whatItIs}</p>
+                                <p className="text-slate-700 dark:text-gray-300 text-sm leading-relaxed">{level.whatItIs}</p>
                               </div>
 
                               {/* How It Works */}
-                              <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-500/20">
+                              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-500/10 dark:to-cyan-500/10 rounded-xl p-4 border border-blue-200 dark:border-blue-500/20">
                                 <div className="flex items-center gap-2 mb-3">
-                                  <Zap className="w-4 h-4 text-blue-400" />
-                                  <span className="text-blue-300 font-semibold text-sm">How AI Helps</span>
+                                  <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                  <span className="text-blue-700 dark:text-blue-300 font-semibold text-sm">How AI Helps</span>
                                 </div>
-                                <p className="text-slate-600 dark:text-gray-300 text-sm leading-relaxed">{level.howItWorks}</p>
+                                <p className="text-slate-700 dark:text-gray-300 text-sm leading-relaxed">{level.howItWorks}</p>
                               </div>
 
                               {/* What It Tests */}
-                              <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-xl p-4 border border-emerald-500/20">
+                              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 rounded-xl p-4 border border-emerald-200 dark:border-emerald-500/20">
                                 <div className="flex items-center gap-2 mb-3">
-                                  <Target className="w-4 h-4 text-emerald-400" />
+                                  <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                                   <span className="font-semibold text-sm text-emerald-700 dark:text-emerald-300">What It Tests</span>
                                 </div>
-                                <p className="text-slate-600 dark:text-gray-300 text-sm leading-relaxed">{level.whatItTests}</p>
+                                <p className="text-slate-700 dark:text-gray-300 text-sm leading-relaxed">{level.whatItTests}</p>
                               </div>
                             </div>
 

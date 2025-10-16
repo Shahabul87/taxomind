@@ -1,6 +1,5 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { SidebarDemo } from "@/components/ui/sidebar-demo";
 import { cn } from "@/lib/utils";
 
 import { getAnalytics } from "@/actions/get-analytics";
@@ -23,9 +22,8 @@ const AnalyticsPage = async () => {
     totalSales,
   } = await getAnalytics(userId);
 
-  return ( 
-    <SidebarDemo>
-      <div className="px-4 md:px-6 lg:px-8 py-6 max-w-7xl mx-auto space-y-6">
+  return (
+    <div className="px-4 md:px-6 lg:px-8 py-6 max-w-7xl mx-auto space-y-6">
         {/* Header glass shell */}
         <div className="rounded-xl border bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-gray-200/70 dark:border-gray-800/70 shadow-sm overflow-hidden">
           <div className="p-4 md:p-6">
@@ -47,7 +45,6 @@ const AnalyticsPage = async () => {
         </div>
         <Chart data={data} />
       </div>
-    </SidebarDemo>
    );
 }
  

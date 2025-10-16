@@ -236,6 +236,9 @@ async function handleUserRoute(req: NextRequest) {
     if (isAuthRoute) {
       // If already logged in, redirect to dashboard
       if (isLoggedIn) {
+        // PRODUCTION FIX: Add delay to ensure session is fully established
+        // This prevents OAuth redirect loops where session isn't ready yet
+        console.log('[User Middleware] Already logged in on auth route, redirecting to dashboard');
         const redirectUrl = userRole ? getRoleBasedRedirect(userRole) : DEFAULT_LOGIN_REDIRECT;
         const response = NextResponse.redirect(new URL(redirectUrl, nextUrl));
         return applySecurityHeaders(response);

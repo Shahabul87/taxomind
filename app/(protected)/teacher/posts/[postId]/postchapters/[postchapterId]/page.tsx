@@ -12,7 +12,6 @@ import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { BackButton } from "./_components/back-button";
 import ConditionalHeader from "@/app/(homepage)/user-header";
-import { SidebarDemo } from "@/components/ui/sidebar-demo";
 
 interface PageProps {
   params: Promise<{
@@ -63,8 +62,7 @@ const PostChapterIdPage = async (props: PageProps) => {
   return (
     <>
       <ConditionalHeader user={userForHeader} />
-      <SidebarDemo>
-        <div className="min-h-screen pt-20 bg-gradient-to-b from-gray-50 via-gray-100 to-white dark:from-gray-900 dark:via-gray-900/80 dark:to-gray-950">
+      <div className="min-h-screen pt-20 bg-gradient-to-b from-gray-50 via-gray-100 to-white dark:from-gray-900 dark:via-gray-900/80 dark:to-gray-950">
           <div className="max-w-7xl mx-auto py-6 sm:py-8">
             {/* Header & Actions */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 mb-8">
@@ -170,7 +168,6 @@ const PostChapterIdPage = async (props: PageProps) => {
             </div>
           </div>
         </div>
-      </SidebarDemo>
     </>
   );
 };

@@ -2,7 +2,6 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { currentUser } from '@/lib/auth'
 import ConditionalHeader from "@/app/(homepage)/user-header";
-import { SidebarDemo } from "@/components/ui/sidebar-demo";
 import { PostTitleForm } from "./_components/post-title-form";
 import { PostImageUpload } from "./_components/post-image-upload";
 import { Heading } from "@/components/heading";
@@ -101,8 +100,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
       <div className="bg-gradient-to-b from-gray-100 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
         <ConditionalHeader user={user?.id ? {id: user.id, role: user.role} : null} />
       </div>
-      <SidebarDemo>
-        <div className="min-h-screen pt-16 sm:pt-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
+      <div className="min-h-screen pt-16 sm:pt-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
           <div className="w-full py-4 sm:py-6 lg:py-8">
             {/* Header Section */}
             <div className="mb-6 sm:mb-8">
@@ -195,7 +193,6 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
             </div>
           </div>
         </div>
-      </SidebarDemo>
       <Footer />
     </>
   );

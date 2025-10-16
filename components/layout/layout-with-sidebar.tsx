@@ -58,6 +58,15 @@ const FULL_WIDTH_ROUTES = [
   "/teacher/create", // Course creation - has own container padding
   "/teacher/create/ai-creator", // AI course creator - has own container padding
   "/teacher/create/enhanced", // Enhanced course creator - has own container padding
+  "/settings", // Settings page - has own container padding
+  "/my-courses", // User enrolled courses - has own container padding
+  "/post", // Post page - has own container padding
+  "/post/all-posts", // All posts page - has own container padding
+  "/post/create-post", // Create post page - has own container padding
+  "/analytics/user", // User analytics - has own container padding
+  "/groups", // Groups page - has own container padding
+  "/groups/my-groups", // User groups - has own container padding
+  "/resources", // Resources page - has own container padding
 ];
 
 // Patterns for routes where the sidebar should be hidden
@@ -74,6 +83,9 @@ const FULL_WIDTH_PATTERNS = [
   /^\/teacher\/.*$/, // All teacher routes - have own container padding
   /^\/learn\/.*$/, // All learning routes - have own container padding
   /^\/search.*$/, // Search routes - have own container padding
+  /^\/post\/.*$/, // All post routes - have own container padding
+  /^\/groups\/.*$/, // All group routes - have own container padding
+  /^\/analytics\/.*$/, // All analytics routes - have own container padding
 ];
 
 export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarProps) {
@@ -148,8 +160,10 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
           "h-[calc(100vh-4rem)] pt-2 px-4 overflow-y-auto"
         )}
         style={{
-          // Dynamic margin based on actual sidebar width
-          marginLeft: showSidebar && !isFullWidthPage && !isTablet ? `${sidebarWidth}px` : '0',
+          // Fixed 94px margin for all full-width pages (collapsed sidebar width), dynamic for regular pages
+          marginLeft: showSidebar && !isTablet ?
+            (isFullWidthPage ? '94px' : `${sidebarWidth}px`)
+            : '0',
         }}
       >
         {children}

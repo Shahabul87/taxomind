@@ -33,12 +33,20 @@ const AllPostsPage = async () => {
   }
 
   // Fetch all user posts with comments
-  const posts = await db.post.findMany({
+  const postsData = await db.post.findMany({
     where: {
       userId: user.id
     },
     include: {
-      User: true,
+      User: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+        }
+      },
       comments: true,
     },
     orderBy: {
@@ -46,22 +54,38 @@ const AllPostsPage = async () => {
     }
   });
 
+  // Serialize posts to avoid Decimal field issues
+  const posts = postsData.map(post => ({
+    ...post,
+    user: post.User,
+    User: undefined, // Remove the User field as we've copied it to lowercase 'user'
+  }));
+
   // Get post stats
   const publishedCount = posts.filter(post => post.published).length;
   const draftCount = posts.filter(post => !post.published).length;
-  
+
   // Calculate total views
   const totalViews = posts.reduce((sum, post) => sum + post.views, 0);
-  
+
   // Calculate comments
   const totalComments = posts.reduce((sum, post) => sum + post.comments.length, 0);
-  
+
   // Get categories
   const categories = Array.from(new Set(posts.map(post => post.category))).filter(Boolean);
 
+  // Serialize user object to convert Decimal fields to numbers for client component
+  const serializedUser = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    image: user.image,
+    role: user.role,
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
-      <MyPostsDashboard 
+      <MyPostsDashboard
         posts={posts}
         categories={categories as string[]}
         stats={{
@@ -71,7 +95,7 @@ const AllPostsPage = async () => {
           likes: 0, // We need to add a likes relation to the Post model
           comments: totalComments
         }}
-        user={user}
+        user={serializedUser}
       />
     </div>
   );
