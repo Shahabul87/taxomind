@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 
-export type Breakpoint = 'mobile' | 'tablet' | 'desktop';
+export type Breakpoint = 'mobile' | 'tablet' | 'laptop' | 'desktop';
 
 /**
  * Custom hook to detect screen breakpoints
  * - mobile: < 768px
  * - tablet: 768px - 1023px
- * - desktop: >= 1024px
+ * - laptop: 1024px - 1279px
+ * - desktop: >= 1280px
  */
 export const useBreakpoint = (): Breakpoint => {
   const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');
@@ -21,6 +22,8 @@ export const useBreakpoint = (): Breakpoint => {
         setBreakpoint('mobile');
       } else if (width >= 768 && width < 1024) {
         setBreakpoint('tablet');
+      } else if (width >= 1024 && width < 1280) {
+        setBreakpoint('laptop');
       } else {
         setBreakpoint('desktop');
       }
