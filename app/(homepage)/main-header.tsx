@@ -370,25 +370,15 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
           <div className={[
             'flex justify-between items-center relative transition-all duration-300',
-            scrolled ? 'h-16' : 'h-20'
+            'h-16'
           ].join(' ')}>
             {/* Logo */}
             <Link href="/" className="group flex items-center space-x-1.5 xs:space-x-2 pl-0 sm:pl-0" suppressHydrationWarning>
               <div className="relative">
                 <div className="absolute inset-0 rounded-lg bg-gradient-to-tr from-purple-600/30 to-indigo-600/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                <BookOpen className={[
-                  'transition-transform duration-300 text-purple-400',
-                  scrolled
-                    ? 'h-4 w-4 xs:h-5 xs:w-5 sm:h-5 sm:w-5 md:h-6 md:w-6'
-                    : 'h-5 w-5 xs:h-5 xs:w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-8 lg:w-8'
-                ].join(' ')} />
+                <BookOpen className="h-6 w-6 transition-transform duration-300 text-purple-400" />
               </div>
-              <span className={[
-                'font-bold transition-all text-slate-900 dark:bg-gradient-to-r dark:from-purple-400 dark:to-blue-400 dark:text-transparent dark:bg-clip-text',
-                scrolled
-                  ? 'text-sm xs:text-base sm:text-lg md:text-xl'
-                  : 'text-base xs:text-lg sm:text-xl md:text-2xl lg:text-3xl'
-              ].join(' ')} suppressHydrationWarning>
+              <span className="text-xl font-bold transition-all text-slate-900 dark:bg-gradient-to-r dark:from-purple-400 dark:to-blue-400 dark:text-transparent dark:bg-clip-text" suppressHydrationWarning>
                 Taxomind
               </span>
               <span className="hidden xs:inline-flex md:inline-flex items-center px-1.5 xs:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] font-semibold ml-1 bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30" suppressHydrationWarning>
