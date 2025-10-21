@@ -45,6 +45,9 @@ body,
     --ring: 222.2 47.4% 11.2%;
 
     --radius: 0.5rem;
+    /* Sticky tabs offset - responsive gap from top */
+    --sticky-offset: 10px;
+    --mini-top: 10px;
   }
 
   .dark {
@@ -291,6 +294,49 @@ body,
   .bg-gray-850 {
     background-color: rgba(18, 24, 38, 1);
   }
+
+  /* Safe area-aware paddings for iOS and notched devices */
+  .pt-safe-4 { padding-top: max(1rem, env(safe-area-inset-top)); }
+  .pb-safe-3 { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+  .pb-safe-12 { padding-bottom: max(3rem, env(safe-area-inset-bottom)); }
+  .pb-safe-16 { padding-bottom: max(4rem, env(safe-area-inset-bottom)); }
+  .pb-safe-24 { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+
+  /* Better long-title handling in hero */
+  .hyphens-auto { hyphens: auto; }
+  .word-break-anywhere { overflow-wrap: anywhere; word-break: break-word; }
+  .text-balance { text-wrap: balance; }
+  .overscroll-x-contain { overscroll-behavior-x: contain; }
+  .scrolling-touch { -webkit-overflow-scrolling: touch; }
+  .touch-pan-x { touch-action: pan-x; }
+
+  /* Scroll anchor offset for sticky headers */
+  .scroll-mt-sticky { scroll-margin-top: var(--sticky-offset, 10px); }
+
+  /* Defer rendering of large sections offscreen to reduce work */
+  .cv-auto { content-visibility: auto; contain-intrinsic-size: 600px; }
+}
+
+/* Responsive sticky offset for different screen sizes */
+@media (max-width: 640px) {
+  :root {
+    --sticky-offset: 10px;
+    --mini-top: 10px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  :root {
+    --sticky-offset: 10px;
+    --mini-top: 10px;
+  }
+}
+
+@media (min-width: 1025px) {
+  :root {
+    --sticky-offset: 10px;
+    --mini-top: 10px;
+  }
 }
 
 /* Course page: hide global header on scroll down and lift sticky elements */
@@ -301,10 +347,11 @@ html.course-header-hidden header[aria-label="Primary"] {
   transform: translateY(-100%);
 }
 html.course-header-hidden .course-tabs-sticky {
-  top: 0 !important;
+  top: var(--sticky-offset, env(safe-area-inset-top)) !important;
 }
 html.course-header-hidden .sticky-mini-header {
-  top: 0 !important;
+  /* Respect safe area when global header is hidden */
+  top: env(safe-area-inset-top) !important;
 }
 
 /* Drag and Drop Styles */
@@ -355,6 +402,60 @@ body.dragging *::selection {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.6);
+}
+
+/* Tab content horizontal scrollbar - responsive and elegant */
+[role="tabpanel"]::-webkit-scrollbar {
+  height: 8px;
+}
+
+[role="tabpanel"]::-webkit-scrollbar-track {
+  background: rgba(226, 232, 240, 0.5);
+  border-radius: 4px;
+  margin: 0 8px;
+}
+
+.dark [role="tabpanel"]::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.3);
+}
+
+[role="tabpanel"]::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.6);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.dark [role="tabpanel"]::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.6);
+  background-clip: content-box;
+}
+
+[role="tabpanel"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+  background-clip: content-box;
+}
+
+.dark [role="tabpanel"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+  background-clip: content-box;
+}
+
+/* Firefox scrollbar styling for tab panels */
+[role="tabpanel"] {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.6) rgba(226, 232, 240, 0.5);
+}
+
+.dark [role="tabpanel"] {
+  scrollbar-color: rgba(71, 85, 105, 0.6) rgba(30, 41, 59, 0.3);
+}
+
+/* Mobile touch scrolling improvements */
+@media (max-width: 640px) {
+  [role="tabpanel"]::-webkit-scrollbar {
+    height: 6px;
+  }
 }
 
 /* Add grid pattern background for groups page */

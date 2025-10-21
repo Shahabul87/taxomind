@@ -6,38 +6,54 @@ import { Star } from 'lucide-react';
 import { CourseReview } from './course-reviews';
 
 interface ReviewRatingHistogramProps {
-  reviews: CourseReview[];
+  reviews?: CourseReview[];
+  // Optional precomputed counts across all reviews: index 0..4 = 1..5 stars
+  ratingCounts?: number[];
+  totalReviews?: number;
   onFilterChange: (rating: number | null) => void;
   selectedFilter: number | null;
 }
 
 export const ReviewRatingHistogram = ({
-  reviews,
+  reviews = [],
+  ratingCounts: ratingCountsProp,
+  totalReviews: totalReviewsProp,
   onFilterChange,
   selectedFilter,
 }: ReviewRatingHistogramProps): JSX.Element => {
   // Calculate rating distribution
-  const ratingCounts = [0, 0, 0, 0, 0]; // Index 0 = 1 star, Index 4 = 5 stars
-  reviews.forEach((review) => {
-    if (review.rating >= 1 && review.rating <= 5) {
-      ratingCounts[review.rating - 1]++;
-    }
-  });
+  const ratingCounts = ((): number[] => {
+    if (ratingCountsProp && ratingCountsProp.length === 5) return ratingCountsProp;
+    const counts = [0, 0, 0, 0, 0];
+    reviews.forEach((review) => {
+      if (review.rating >= 1 && review.rating <= 5) {
+        counts[review.rating - 1]++;
+      }
+    });
+    return counts;
+  })();
 
-  const totalReviews = reviews.length;
+  const totalReviews = typeof totalReviewsProp === 'number' ? totalReviewsProp : reviews.length;
   const averageRating = totalReviews > 0
-    ? reviews.reduce((acc, review) => acc + review.rating, 0) / totalReviews
+    ? (() => {
+        if (reviews.length > 0 && !ratingCountsProp) {
+          return reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
+        }
+        // Approximate average from distribution if only counts provided
+        const sum = ratingCounts.reduce((acc, c, idx) => acc + c * (idx + 1), 0);
+        return sum / Math.max(totalReviews, 1);
+      })()
     : 0;
 
   return (
-    <div className="bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl p-6 mb-6">
+    <div className="bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl p-4 sm:p-6 mb-6 w-full overflow-hidden">
       {/* Overall Rating */}
-      <div className="flex items-start gap-8 mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-8 mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
         <div className="text-center">
           <div className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
             {averageRating.toFixed(1)}
           </div>
-          <div className="flex items-center justify-center gap-1 mb-2">
+          <div className="flex items-center justify-center gap-1 mb-2" aria-hidden="true">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
@@ -70,13 +86,16 @@ export const ReviewRatingHistogram = ({
                 className={`w-full flex items-center gap-3 group ${
                   isSelected ? 'opacity-100' : 'opacity-100 hover:opacity-80'
                 } transition-opacity`}
+                role="button"
+                aria-pressed={isSelected}
+                aria-label={`${rating} star${rating > 1 ? 's' : ''} (${count} reviews)`}
               >
                 {/* Star Label */}
                 <div className="flex items-center gap-1 w-16">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {rating}
                   </span>
-                  <Star className="w-4 h-4 text-amber-500 dark:text-amber-400 fill-current" />
+                  <Star className="w-4 h-4 text-amber-500 dark:text-amber-400 fill-current" aria-hidden="true" />
                 </div>
 
                 {/* Progress Bar */}
@@ -113,7 +132,7 @@ export const ReviewRatingHistogram = ({
           className="flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2"
         >
           <div className="flex items-center gap-2">
-            <Star className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-current" />
+            <Star className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-current" aria-hidden="true" />
             <span className="text-sm font-medium text-amber-900 dark:text-amber-100">
               Showing {selectedFilter}-star reviews
             </span>

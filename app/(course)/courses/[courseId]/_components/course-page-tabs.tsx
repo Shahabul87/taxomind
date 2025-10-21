@@ -35,6 +35,9 @@ import { ResourcesTab } from './tabs/resources-tab';
 import { CertificateTab } from './tabs/certificate-tab';
 import { AnnouncementsTab } from './tabs/announcements-tab';
 import { QATab } from './tabs/qa-tab';
+import { ModerationTab } from './tabs/moderation-tab';
+import { ShieldCheck } from 'lucide-react';
+const ShieldCheckIcon = () => <ShieldCheck className="w-4 h-4"/>;
 
 interface CoursePageTabsProps {
   course: Course & {
@@ -59,7 +62,7 @@ interface CoursePageTabsProps {
   userId?: string;
 }
 
-type TabType = 'overview' | 'breakdown' | 'content' | 'instructor' | 'resources' | 'certificate' | 'announcements' | 'qa' | 'reviews';
+type TabType = 'overview' | 'breakdown' | 'content' | 'instructor' | 'resources' | 'certificate' | 'announcements' | 'qa' | 'moderation' | 'reviews';
 
 interface Tab {
   id: TabType;
@@ -82,7 +85,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
 
   const initialTab = (() => {
     const t = (searchParams?.get('tab') || '').toLowerCase();
-    const values: TabType[] = ['overview','breakdown','content','instructor','resources','certificate','announcements','qa','reviews'];
+    const values: TabType[] = ['overview','breakdown','content','instructor','resources','certificate','announcements','qa','moderation','reviews'];
     return (values as string[]).includes(t) ? (t as TabType) : 'overview';
   })();
 
@@ -112,6 +115,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       certificate: 'Certificate',
       announcements: 'Announcements',
       qa: 'Q&A',
+      moderation: 'Moderation',
       reviews: 'Reviews',
     },
     // Extend with other locales when needed
@@ -121,6 +125,38 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
   const plural = (count: number, singular: string, plural: string) => (count === 1 ? singular : plural);
 
   const sectionParam = searchParams?.get('section');
+  const isInstructor = Boolean(userId && course.user?.id === userId);
+
+  // Support hash deep-links like #reviews, #qa, #instructor
+  React.useEffect(() => {
+    const handleHash = () => {
+      if (typeof window === 'undefined') return;
+      const raw = window.location.hash || '';
+      const hash = raw.startsWith('#') ? raw.slice(1) : raw;
+      const allowed: Record<string, TabType> = {
+        reviews: 'reviews',
+        qa: 'qa',
+        instructor: 'instructor',
+      };
+      const next = allowed[hash];
+      if (next) {
+        setActiveTab(next);
+        updateQuery(next);
+        requestAnimationFrame(() => {
+          const panel = document.getElementById(`panel-${next}`) as HTMLElement | null;
+          if (panel) {
+            (panel as any).focus?.({ preventScroll: true });
+            const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            panel.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
+          }
+        });
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash, { passive: true } as any);
+    return () => window.removeEventListener('hashchange', handleHash as any);
+  }, []);
+
   const tabs: Tab[] = [
     {
       id: 'overview',
@@ -173,6 +209,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       label: dict.qa,
       icon: <HelpCircle className="w-4 h-4" />,
     },
+    ...(isInstructor ? [{ id: 'moderation' as TabType, label: dict.moderation, icon: <ShieldCheckIcon /> }] : []),
     {
       id: 'reviews',
       label: dict.reviews,
@@ -189,7 +226,8 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             role="tabpanel"
             id="panel-overview"
             aria-labelledby="tab-overview"
-            className="dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            tabIndex={-1}
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -204,7 +242,8 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             role="tabpanel"
             id="panel-breakdown"
             aria-labelledby="tab-breakdown"
-            className="dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            tabIndex={-1}
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -219,7 +258,8 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             role="tabpanel"
             id="panel-content"
             aria-labelledby="tab-content"
-            className="dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-2 md:dark:p-4"
+            tabIndex={-1}
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-2 md:dark:p-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -241,7 +281,8 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             role="tabpanel"
             id="panel-instructor"
             aria-labelledby="tab-instructor"
-            className="dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            tabIndex={-1}
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -256,7 +297,8 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             role="tabpanel"
             id="panel-resources"
             aria-labelledby="tab-resources"
-            className="dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            tabIndex={-1}
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -271,7 +313,8 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             role="tabpanel"
             id="panel-certificate"
             aria-labelledby="tab-certificate"
-            className="dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            tabIndex={-1}
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -286,7 +329,8 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             role="tabpanel"
             id="panel-announcements"
             aria-labelledby="tab-announcements"
-            className="dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            tabIndex={-1}
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -308,12 +352,30 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             role="tabpanel"
             id="panel-qa"
             aria-labelledby="tab-qa"
-            className="dark:bg-slate-900/40 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            tabIndex={-1}
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <QATab courseId={courseId} sections={allSections} />
+            <QATab courseId={courseId} sections={allSections} userId={userId} isInstructor={isInstructor} />
+          </motion.div>
+        );
+
+      case 'moderation':
+        if (!isInstructor) return null;
+        return (
+          <motion.div
+            role="tabpanel"
+            id="panel-moderation"
+            aria-labelledby="tab-moderation"
+            tabIndex={-1}
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <ModerationTab courseId={courseId} />
           </motion.div>
         );
 
@@ -323,12 +385,13 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             role="tabpanel"
             id="panel-reviews"
             aria-labelledby="tab-reviews"
-            className="dark:bg-slate-900/40 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            tabIndex={-1}
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <CourseReviews courseId={courseId} initialReviews={initialReviews} />
+            <CourseReviews courseId={courseId} initialReviews={initialReviews} isEnrolled={isEnrolled} userId={userId} />
           </motion.div>
         );
 
@@ -364,20 +427,22 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
 
   const scrollByAmount = (delta: number) => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollBy({ left: delta, behavior: 'smooth' });
+    const dirAdjusted = isRTL ? -delta : delta;
+    scrollRef.current.scrollBy({ left: dirAdjusted, behavior: 'smooth' });
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Sticky Tab Navigation */}
-      <div className="mb-8 sticky top-20 md:top-24 z-[40] course-tabs-sticky">
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8">
+      {/* Sticky Tab Navigation - Responsive for all devices */}
+      <div className="mb-4 sm:mb-6 md:mb-8 sticky z-[40] course-tabs-sticky" style={{ top: '10px' }}>
         <div className="relative">
-          <div className="bg-white/80 dark:bg-slate-900/75 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md rounded-2xl p-2 border border-slate-200/70 dark:border-slate-700/60">
+          <div className="bg-white/80 dark:bg-slate-900/75 backdrop-blur-sm md:backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-sm md:supports-[backdrop-filter]:backdrop-blur-md rounded-xl sm:rounded-2xl p-1.5 sm:p-2 border border-slate-200/70 dark:border-slate-700/60 shadow-sm sm:shadow-md">
             <nav
               ref={scrollRef}
-              className="flex gap-2 overflow-x-auto scroll-smooth"
+              className="flex gap-1 sm:gap-1.5 md:gap-2 overflow-x-auto xl:overflow-x-visible scroll-smooth no-scrollbar overscroll-x-contain scrolling-touch touch-pan-x xl:touch-auto snap-x snap-mandatory xl:snap-none"
               role="tablist"
               aria-label={dict.tabs}
+              aria-orientation="horizontal"
               dir={isRTL ? 'rtl' : 'ltr'}
             >
               {tabs.map((tab, index) => {
@@ -403,21 +468,34 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
                           courseId,
                         });
                       } catch {}
+                      try {
+                        requestAnimationFrame(() => {
+                          const panel = document.getElementById(`panel-${tab.id}`) as HTMLElement | null;
+                          if (panel) {
+                            // Focus for accessibility, then scroll under sticky tabs
+                            (panel as any).focus?.({ preventScroll: true });
+                            const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                            panel.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
+                          }
+                        });
+                      } catch {}
                     }}
                     aria-label={`${tab.label}${tab.count !== undefined ? ` (${tab.count})` : ''}`}
                     className={`
-                      group relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap rounded-xl
+                      group relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium whitespace-nowrap rounded-lg sm:rounded-xl
                       transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60 focus-visible:ring-offset-0
+                      snap-start
                       ${isActive
                         ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-white shadow-md'
                         : 'text-gray-700 dark:text-slate-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50'}
                     `}
                   >
-                    {tab.icon}
-                    <span>{tab.label}</span>
+                    <span className="w-3 h-3 sm:w-4 sm:h-4">{tab.icon}</span>
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden text-[10px]">{typeof tab.label === 'string' ? tab.label : 'Tab'}</span>
                     {tab.count !== undefined && (
                       <span className={`
-                        inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full
+                        inline-flex items-center justify-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-semibold rounded-full
                         ${isActive
                           ? 'bg-blue-100 text-blue-700 dark:bg-white/15 dark:text-white'
                           : 'bg-gray-200 text-gray-700 dark:bg-white/10 dark:text-slate-200'}
@@ -436,30 +514,31 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
 
           
 
-          {/* Scroll controls and shadows */}
+          {/* Scroll controls - visible on medium screens and up */}
           <button
             type="button"
             aria-label="Scroll tabs left"
             onClick={() => scrollByAmount(-200)}
-            className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow hover:bg-white dark:hover:bg-slate-900"
+            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow hover:bg-white dark:hover:bg-slate-900 transition-all"
           >
-            <ChevronLeft className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-slate-700 dark:text-slate-200" />
           </button>
           <button
             type="button"
             aria-label="Scroll tabs right"
             onClick={() => scrollByAmount(200)}
-            className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow hover:bg-white dark:hover:bg-slate-900"
+            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow hover:bg-white dark:hover:bg-slate-900 transition-all"
           >
-            <ChevronRight className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-slate-700 dark:text-slate-200" />
           </button>
 
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 rounded-2xl bg-gradient-to-r from-gray-100/90 dark:from-slate-900/70 to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 rounded-2xl bg-gradient-to-l from-gray-100/90 dark:from-slate-900/70 to-transparent" />
+          {/* Edge fade gradients - responsive */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-4 sm:w-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-gray-100/90 dark:from-slate-900/70 to-transparent md:hidden" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-4 sm:w-6 rounded-xl sm:rounded-2xl bg-gradient-to-l from-gray-100/90 dark:from-slate-900/70 to-transparent md:hidden" />
         </div>
-        {/* Tab summary row (below sticky nav) */}
-        <div className="px-3 pt-2">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs md:text-sm text-slate-600 dark:text-slate-300" dir={isRTL ? 'rtl' : 'ltr'}>
+        {/* Tab summary row (below sticky nav) - responsive */}
+        <div className="px-2 sm:px-3 pt-2">
+          <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-4 gap-y-1 sm:gap-y-2 text-[10px] sm:text-xs md:text-sm text-slate-600 dark:text-slate-300" dir={isRTL ? 'rtl' : 'ltr'}>
             {(() => {
               const chaptersCount = chapters.length;
               const lessonsCount = chapters.reduce((acc, ch) => acc + (ch.sections?.length || 0), 0);
@@ -469,17 +548,17 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
               const level = 'All Levels';
               return (
                 <>
-                  <span className="inline-flex items-center gap-1"><Grid3X3 className="w-4 h-4" />{chaptersCount} {plural(chaptersCount, 'Chapter', 'Chapters')}</span>
-                  <span className="opacity-40">•</span>
-                  <span className="inline-flex items-center gap-1"><FileText className="w-4 h-4" />{lessonsCount} {plural(lessonsCount, 'Lesson', 'Lessons')}</span>
-                  <span className="opacity-40">•</span>
-                  <span className="inline-flex items-center gap-1"><MessageSquare className="w-4 h-4" />{reviewsCount} {plural(reviewsCount, 'Review', 'Reviews')}</span>
-                  <span className="opacity-40">•</span>
-                  <span className="inline-flex items-center gap-1"><Clock className="w-4 h-4" />Last updated {lastUpdated}</span>
-                  <span className="opacity-40">•</span>
-                  <span className="inline-flex items-center gap-1"><Globe className="w-4 h-4" />{language}</span>
-                  <span className="opacity-40">•</span>
-                  <span className="inline-flex items-center gap-1"><BarChart className="w-4 h-4" />{level}</span>
+                  <span className="inline-flex items-center gap-0.5 sm:gap-1"><Grid3X3 className="w-3 h-3 sm:w-4 sm:h-4" />{chaptersCount} {plural(chaptersCount, 'Chapter', 'Chapters')}</span>
+                  <span className="opacity-40 hidden sm:inline">•</span>
+                  <span className="inline-flex items-center gap-0.5 sm:gap-1"><FileText className="w-3 h-3 sm:w-4 sm:h-4" />{lessonsCount} {plural(lessonsCount, 'Lesson', 'Lessons')}</span>
+                  <span className="opacity-40 hidden sm:inline">•</span>
+                  <span className="inline-flex items-center gap-0.5 sm:gap-1"><MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />{reviewsCount} {plural(reviewsCount, 'Review', 'Reviews')}</span>
+                  <span className="opacity-40 hidden md:inline">•</span>
+                  <span className="hidden md:inline-flex items-center gap-0.5 sm:gap-1"><Clock className="w-3 h-3 sm:w-4 sm:h-4" />Last updated {lastUpdated}</span>
+                  <span className="opacity-40 hidden lg:inline">•</span>
+                  <span className="hidden lg:inline-flex items-center gap-0.5 sm:gap-1"><Globe className="w-3 h-3 sm:w-4 sm:h-4" />{language}</span>
+                  <span className="opacity-40 hidden lg:inline">•</span>
+                  <span className="hidden lg:inline-flex items-center gap-0.5 sm:gap-1"><BarChart className="w-3 h-3 sm:w-4 sm:h-4" />{level}</span>
                 </>
               );
             })()}
