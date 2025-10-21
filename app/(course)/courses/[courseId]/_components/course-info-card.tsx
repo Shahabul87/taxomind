@@ -92,7 +92,7 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
         viewStartRef.current = null;
       }
     };
-  }, []);
+  }, [course.id, course.price, course.originalPrice, course.currency]);
 
   // Smart animation variants
   const containerVariants = {

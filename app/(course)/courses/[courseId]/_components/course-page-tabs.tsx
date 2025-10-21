@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
 import { Chapter, Section, Course, Category } from '@prisma/client';
 import { motion } from 'framer-motion';
@@ -91,12 +91,12 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
 
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
-  const updateQuery = (next: TabType) => {
+  const updateQuery = useCallback((next: TabType) => {
     if (!pathname) return;
     const params = new URLSearchParams(searchParams?.toString());
     params.set('tab', next);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
+  }, [pathname, searchParams, router]);
 
   // Basic i18n for tab labels + RTL detection
   const locale = typeof navigator !== 'undefined' ? (navigator.language || 'en') : 'en';
@@ -155,7 +155,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
     handleHash();
     window.addEventListener('hashchange', handleHash, { passive: true } as any);
     return () => window.removeEventListener('hashchange', handleHash as any);
-  }, []);
+  }, [updateQuery]);
 
   const tabs: Tab[] = [
     {
