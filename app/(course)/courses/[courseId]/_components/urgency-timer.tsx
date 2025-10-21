@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Clock, Flame, Users } from 'lucide-react';
 
 interface UrgencyTimerProps {
-  dealEndDate?: Date | null;
+  dealEndDate?: Date | string | null;
   spotsRemaining?: number | null;
   showFlashSale?: boolean;
 }
@@ -15,12 +15,15 @@ export const UrgencyTimer = ({
   spotsRemaining,
   showFlashSale = false,
 }: UrgencyTimerProps): JSX.Element | null => {
+  const prefersReducedMotion = useReducedMotion();
   const [timeRemaining, setTimeRemaining] = useState<{
     days: number;
     hours: number;
     minutes: number;
     seconds: number;
   } | null>(null);
+  const [ariaSummary, setAriaSummary] = useState<string | null>(null);
+  const lastAnnouncedKeyRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     if (!dealEndDate) return;
@@ -49,6 +52,24 @@ export const UrgencyTimer = ({
     return () => clearInterval(interval);
   }, [dealEndDate]);
 
+  // Update aria-live summary less frequently to avoid excessive announcements
+  useEffect(() => {
+    if (!timeRemaining) {
+      setAriaSummary(null);
+      lastAnnouncedKeyRef.current = null;
+      return;
+    }
+    const key = `${timeRemaining.days}:${timeRemaining.hours}:${timeRemaining.minutes}`;
+    if (key !== lastAnnouncedKeyRef.current) {
+      lastAnnouncedKeyRef.current = key;
+      const parts: string[] = [];
+      if (timeRemaining.days > 0) parts.push(`${timeRemaining.days} ${timeRemaining.days === 1 ? 'day' : 'days'}`);
+      if (timeRemaining.hours > 0) parts.push(`${timeRemaining.hours} ${timeRemaining.hours === 1 ? 'hour' : 'hours'}`);
+      parts.push(`${timeRemaining.minutes} ${timeRemaining.minutes === 1 ? 'minute' : 'minutes'}`);
+      setAriaSummary(`${parts.join(' ')} left at this price`);
+    }
+  }, [timeRemaining]);
+
   // Don't render if no urgency indicators
   if (!timeRemaining && !spotsRemaining && !showFlashSale) {
     return null;
@@ -56,22 +77,21 @@ export const UrgencyTimer = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={prefersReducedMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
+      transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.3 }}
       className="space-y-3"
     >
+      {ariaSummary && (
+        <div aria-live="polite" role="timer" className="sr-only">
+          {ariaSummary}
+        </div>
+      )}
       {/* Flash Sale Badge */}
       {showFlashSale && (
         <motion.div
-          animate={{
-            scale: [1, 1.05, 1],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Number.POSITIVE_INFINITY,
-            repeatType: 'reverse',
-          }}
+          animate={prefersReducedMotion ? undefined : { scale: [1, 1.05, 1] }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: 'reverse' }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg font-bold text-sm shadow-lg"
         >
           <Flame className="w-4 h-4" />
@@ -91,10 +111,10 @@ export const UrgencyTimer = ({
             </span>
           </div>
 
-          {/* Timer Display */}
-          <div className="flex items-center gap-2">
+          {/* Timer Display (decorative, hidden from AT) */}
+          <div className="flex items-center gap-2" aria-hidden="true">
             {timeRemaining.days > 0 && (
-              <div className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[60px]">
+              <div className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[50px] sm:min-w-[60px]">
                 <span className="text-2xl font-bold text-red-600 dark:text-red-400">
                   {timeRemaining.days}
                 </span>
@@ -104,7 +124,7 @@ export const UrgencyTimer = ({
               </div>
             )}
 
-            <div className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[60px]">
+            <div className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[50px] sm:min-w-[60px]">
               <span className="text-2xl font-bold text-red-600 dark:text-red-400">
                 {String(timeRemaining.hours).padStart(2, '0')}
               </span>
@@ -113,7 +133,7 @@ export const UrgencyTimer = ({
 
             <span className="text-red-600 dark:text-red-400 font-bold">:</span>
 
-            <div className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[60px]">
+            <div className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[50px] sm:min-w-[60px]">
               <span className="text-2xl font-bold text-red-600 dark:text-red-400">
                 {String(timeRemaining.minutes).padStart(2, '0')}
               </span>
@@ -122,7 +142,7 @@ export const UrgencyTimer = ({
 
             <span className="text-red-600 dark:text-red-400 font-bold">:</span>
 
-            <div className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[60px]">
+            <div className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[50px] sm:min-w-[60px]">
               <span className="text-2xl font-bold text-red-600 dark:text-red-400">
                 {String(timeRemaining.seconds).padStart(2, '0')}
               </span>
