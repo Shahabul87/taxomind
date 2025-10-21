@@ -464,6 +464,184 @@ const data = req.body; // ❌ Unvalidated input
    - Generate client: `npx prisma generate`
    - THEN write code
 
+### 🚨 CRITICAL: Prisma Field Safety - Prevent Data Loss in Production
+
+**ALL new Prisma fields MUST be optional or have defaults to prevent Railway/production build failures**
+
+#### Why This Is Critical for Taxomind
+
+When deploying to Railway (our production environment), Prisma migrations run automatically during build. If a new field is required without a default value, the migration will fail because existing database rows cannot satisfy the NOT NULL constraint.
+
+#### The Golden Rule
+
+```prisma
+// ✅ SAFE - Will not break production
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  // New fields MUST be optional OR have defaults
+  phone     String?                    // Option 1: Optional
+  createdAt DateTime @default(now())   // Option 2: Default value
+  isActive  Boolean  @default(true)    // Option 3: Default boolean
+  credits   Int      @default(0)       // Option 4: Default number
+}
+
+// ❌ DANGEROUS - Will break Railway build
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  phone     String   // ERROR: Existing users have no phone number!
+}
+```
+
+#### Taxomind-Specific Safety Patterns
+
+Based on our existing schema patterns:
+
+```prisma
+// ✅ Course enhancements (from domains/13-course-enhancements.prisma)
+model Course {
+  // Existing fields
+  id          String   @id @default(cuid())
+  title       String
+
+  // New optional fields - safe to add
+  difficulty      String?       @default("Beginner")
+  duration        Int?
+  previewVideo    String?
+  originalPrice   Float?
+  language        String?       @default("English")
+  lastUpdated     DateTime      @default(now())
+  completionRate  Float?
+}
+
+// ✅ Q&A System (from domains/14-qa-system.prisma)
+model CourseQuestion {
+  id           String   @id @default(cuid())
+  courseId     String
+  userId       String
+  sectionId    String?  // Optional - not all questions are section-specific
+  title        String
+  content      String   @db.Text
+  upvotes      Int      @default(0)     // Default value
+  downvotes    Int      @default(0)     // Default value
+  isAnswered   Boolean  @default(false) // Default value
+  isPinned     Boolean  @default(false) // Default value
+  createdAt    DateTime @default(now()) // Default value
+  updatedAt    DateTime @updatedAt      // Auto-managed
+}
+
+// ✅ User preferences (from domains/12-user-preferences.prisma)
+model User {
+  // Existing required fields
+  id    String @id @default(cuid())
+  email String @unique
+
+  // New optional relations - always safe
+  notificationPreferences UserNotificationPreferences?
+  privacySettings         UserPrivacySettings?
+  dataExportRequests      DataExportRequest[]
+  loginHistory            LoginHistory[]
+}
+```
+
+#### Pre-Deployment Checklist
+
+Before pushing to staging/production:
+
+1. **Scan for unsafe fields**:
+   ```bash
+   # Find required fields without defaults in recent changes
+   git diff main -- prisma/domains/*.prisma | grep "^+" | grep -E "String|Int|Boolean|DateTime|Float" | grep -v "?" | grep -v "@default"
+   ```
+
+2. **Test migration locally**:
+   ```bash
+   # Reset local dev DB and test migration
+   npm run dev:db:reset
+   npx prisma db push
+   # Verify no errors
+   ```
+
+3. **Check Railway build logs after deployment**:
+   - If you see "Column 'X' cannot be NOT NULL", immediately make that field optional
+   - Push fix to staging, verify build succeeds
+   - Then merge to main
+
+#### Common Railway Build Errors and Fixes
+
+```bash
+# Error in Railway logs:
+Error: Migration failed
+Detail: Column "phone" of relation "User" contains null values
+
+# Fix: Make the field optional
+model User {
+  phone String?  # Add ? to allow NULL
+}
+
+# Or add a default:
+model User {
+  phone String @default("")  # Empty string default
+}
+```
+
+#### Safe Migration Workflow for Taxomind
+
+```bash
+# 1. Add field as optional to schema
+# Edit prisma/schema.prisma
+model User {
+  newField String?  # Start optional
+}
+
+# 2. Test locally
+npm run dev:db:reset
+npx prisma db push
+
+# 3. Push to staging
+git checkout staging
+git pull origin main
+git push origin staging
+
+# 4. Monitor Railway build
+# Check Railway dashboard for build success
+
+# 5. If build succeeds, merge to main
+gh pr create --base main --head staging --title "Add new field safely"
+
+# 6. (Optional) Backfill data if needed
+# Write data migration script to populate the field
+
+# 7. (Optional) Make required after backfill
+model User {
+  newField String  # Remove ? only after all data populated
+}
+```
+
+#### Field Type Defaults Reference
+
+For Taxomind's PostgreSQL database:
+
+| Prisma Type | Safe Default | Example |
+|-------------|--------------|---------|
+| String | `@default("")` or `?` | `bio String?` |
+| Int | `@default(0)` or `?` | `points Int @default(0)` |
+| Float | `@default(0.0)` or `?` | `rating Float @default(0.0)` |
+| Boolean | `@default(false)` or `@default(true)` | `isActive Boolean @default(true)` |
+| DateTime | `@default(now())` or `?` | `createdAt DateTime @default(now())` |
+| String[] | `@default([])` | `tags String[] @default([])` |
+| Json | `@default("{}")` or `?` | `metadata Json?` |
+
+#### Remember
+
+- **Relations are always safe** - they don't require data in existing rows
+- **Auto-generated IDs are safe** - `@id @default(cuid())` or `@id @default(uuid())`
+- **Updated timestamps are safe** - `@updatedAt` is managed automatically
+- **When in doubt, make it optional first** - you can always make it required later after data backfill
+
+This prevents production downtime and data loss during deployments to Railway.
+
 ### Git State Monitoring
 
 **BEFORE large changes**:

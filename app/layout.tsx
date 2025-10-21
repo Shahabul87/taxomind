@@ -16,6 +16,7 @@ import { currentUser } from '@/lib/auth';
 import LayoutWithSidebar from '@/components/layout/layout-with-sidebar';
 import ClientToaster from '@/components/client-toaster';
 import { Suspense } from 'react';
+import { ConditionalHeaderWrapper } from './_components/conditional-header-wrapper';
 // SAM imports temporarily disabled for build
 // import { SAMGlobalProvider } from '@/sam/components/global/sam-global-provider';
 // import { SAMGlobalAssistantRedesigned } from '@/sam-ai-tutor/components/global/sam-global-assistant-redesigned';
@@ -53,7 +54,7 @@ export const viewport = {
 // Header Loading Fallback Component
 function HeaderFallback() {
   return (
-    <header className="fixed top-0 left-0 right-0 w-full z-[50] bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
+    <header className="w-full bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full relative overflow-hidden">
         <div className="flex justify-between items-center h-14 sm:h-16 relative">
           {/* Logo */}
@@ -63,7 +64,7 @@ function HeaderFallback() {
               Taxomind
             </span>
           </div>
-          
+
           {/* Right side skeleton */}
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="w-8 h-8 bg-slate-800/80 rounded-lg animate-pulse"></div>
@@ -128,7 +129,7 @@ export default async function RootLayout({
 
   // Check if this is an admin or auth route
   const headersList = await headers();
-  const pathname = headersList.get("x-pathname") || "";
+  const pathname = headersList.get("x-pathname") || headersList.get("x-url") || "";
 
   // ROBUST AUTH ROUTE DETECTION: Check multiple sources
   const isAdminRoute = pathname.startsWith("/dashboard/admin") || pathname.startsWith("/admin");
@@ -143,16 +144,6 @@ export default async function RootLayout({
                       pathToCheck.includes("/auth/login") ||
                       pathToCheck.includes("/auth/register") ||
                       pathToCheck.includes("/auth/error");
-
-  // DEBUG: Log route detection
-  if (pathToCheck.includes('auth')) {
-    console.log('[ROOT LAYOUT] Auth Route Detected:', {
-      pathname,
-      xUrl,
-      pathToCheck,
-      isAuthRoute
-    });
-  }
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -186,11 +177,9 @@ export default async function RootLayout({
           <>
             {/* Render header for auth routes AND non-admin routes (excluding blog) */}
             {!isAdminRoute && !isBlogRoute && (
-              <div className="fixed top-0 left-0 right-0 z-[50]">
-                <Suspense fallback={<HeaderFallback />}>
-                  <AsyncHeader />
-                </Suspense>
-              </div>
+              <ConditionalHeaderWrapper fallback={<HeaderFallback />}>
+                <AsyncHeader />
+              </ConditionalHeaderWrapper>
             )}
 
             {/* Content rendering - all routes use direct background */}
