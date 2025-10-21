@@ -1,10 +1,29 @@
-import { NextResponse } from "next/server";
-
-import { currentUser } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
+
+const UpdateSchema = z.object({
+  title: z.string().min(3).max(200).optional(),
+  latexEquation: z.string().optional(),
+  imageUrl: z.string().url().optional(),
+  explanation: z.string().min(10).optional(),
+  position: z.number().int().min(0).optional(),
+  isPublished: z.boolean().optional()
+});
+
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
+}
 
 export async function PATCH(
   req: Request,
@@ -13,57 +32,68 @@ export async function PATCH(
   const params = await props.params;
   try {
     const user = await currentUser();
-    const { title, equation, explanation, imageUrl, content, mode } = await req.json();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Authentication required' }
+      }, { status: 401 });
     }
 
-    const courseOwner = await db.course.findUnique({
-      where: {
-        id: params.courseId,
-        userId: user.id,
+    const body = await req.json();
+    const validatedData = UpdateSchema.parse(body);
+
+    // Verify ownership
+    const mathExplanation = await db.mathExplanation.findUnique({
+      where: { id: params.mathId },
+      include: {
+        section: {
+          include: {
+            chapter: {
+              include: {
+                course: true
+              }
+            }
+          }
+        }
       }
     });
 
-    if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    if (!mathExplanation || mathExplanation.section.chapter.course.userId !== user.id) {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Access denied' }
+      }, { status: 403 });
     }
 
-    // Prepare the data based on mode
-    let contentData;
-    let equationData;
-    let imageUrlData;
-    
-    if (mode === "visual") {
-      contentData = content || explanation || "";
-      equationData = null;
-      imageUrlData = imageUrl || "";
-    } else {
-      equationData = equation || "";
-      contentData = explanation || "";
-      imageUrlData = null;
-    }
-
-    const updatedMathExplanation = await db.mathExplanation.update({
-      where: {
-        id: params.mathId,
-        sectionId: params.sectionId,
-      },
-      data: {
-        title,
-        content: contentData,
-        latex: equationData, // Keep backward compatibility
-        equation: equationData,
-        imageUrl: imageUrlData,
-        mode: mode || "equation",
-      }
+    // Update math explanation
+    const updated = await db.mathExplanation.update({
+      where: { id: params.mathId },
+      data: validatedData
     });
 
-    return NextResponse.json(updatedMathExplanation);
+    return NextResponse.json<ApiResponse>({
+      success: true,
+      data: updated
+    });
   } catch (error) {
+    console.error('[MATH_EXPLANATION_PATCH]', error);
 
-    return new NextResponse("Internal Error", { status: 500 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: error.errors as unknown as Record<string, unknown>
+        }
+      }, { status: 400 });
+    }
+
+    return NextResponse.json<ApiResponse>({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Update failed' }
+    }, { status: 500 });
   }
 }
 
@@ -76,31 +106,50 @@ export async function DELETE(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Authentication required' }
+      }, { status: 401 });
     }
 
-    const courseOwner = await db.course.findUnique({
-      where: {
-        id: params.courseId,
-        userId: user.id,
+    // Verify ownership
+    const mathExplanation = await db.mathExplanation.findUnique({
+      where: { id: params.mathId },
+      include: {
+        section: {
+          include: {
+            chapter: {
+              include: {
+                course: true
+              }
+            }
+          }
+        }
       }
     });
 
-    if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    if (!mathExplanation || mathExplanation.section.chapter.course.userId !== user.id) {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Access denied' }
+      }, { status: 403 });
     }
 
-    const deletedMathExplanation = await db.mathExplanation.delete({
-      where: {
-        id: params.mathId,
-        sectionId: params.sectionId,
-      }
+    // Delete math explanation
+    await db.mathExplanation.delete({
+      where: { id: params.mathId }
     });
 
-    return NextResponse.json(deletedMathExplanation);
+    return NextResponse.json<ApiResponse>({
+      success: true,
+      data: { deleted: true }
+    });
   } catch (error) {
-
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error('[MATH_EXPLANATION_DELETE]', error);
+    return NextResponse.json<ApiResponse>({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Delete failed' }
+    }, { status: 500 });
   }
 }
 
@@ -113,30 +162,44 @@ export async function GET(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Authentication required' }
+      }, { status: 401 });
     }
 
-    const courseOwner = await db.course.findUnique({
-      where: {
-        id: params.courseId,
-        userId: user.id,
-      }
-    });
-
-    if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
+    // Verify ownership
     const mathExplanation = await db.mathExplanation.findUnique({
-      where: {
-        id: params.mathId,
-        sectionId: params.sectionId,
+      where: { id: params.mathId },
+      include: {
+        section: {
+          include: {
+            chapter: {
+              include: {
+                course: true
+              }
+            }
+          }
+        }
       }
     });
 
-    return NextResponse.json(mathExplanation);
-  } catch (error) {
+    if (!mathExplanation || mathExplanation.section.chapter.course.userId !== user.id) {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Access denied' }
+      }, { status: 403 });
+    }
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return NextResponse.json<ApiResponse>({
+      success: true,
+      data: mathExplanation
+    });
+  } catch (error) {
+    console.error('[MATH_EXPLANATION_GET]', error);
+    return NextResponse.json<ApiResponse>({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch math explanation' }
+    }, { status: 500 });
   }
 } 

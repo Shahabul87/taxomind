@@ -1,12 +1,13 @@
 'use client';
 
 import { CldUploadWidget } from "next-cloudinary";
+import { CloudinaryUploadWidgetResults } from '@cloudinary-util/types';
 import Image from "next/image";
 import { useCallback } from "react";
 import { ImagePlus } from 'lucide-react'
 
 declare global {
-  var cloudinary: any
+  var cloudinary: unknown
 }
 
 const uploadPreset = "dk2uffum";
@@ -17,14 +18,16 @@ interface ImageUploadProps {
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, value }) => {
-  
-  const handleUpload = useCallback((result: any) => {
-    onChange(result.info.secure_url);
+
+  const handleUpload = useCallback((result: CloudinaryUploadWidgetResults) => {
+    if (result.info && typeof result.info !== 'string') {
+      onChange(result.info.secure_url);
+    }
   }, [onChange]);
 
   return (
-    <CldUploadWidget 
-      onUpload={handleUpload} 
+    <CldUploadWidget
+      onSuccess={handleUpload}
       uploadPreset={uploadPreset}
       options={{
         maxFiles: 1

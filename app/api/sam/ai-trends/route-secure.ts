@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { samTrendsEngine } from '@/lib/sam-trends-engine';
+import { samTrendsEngine } from '@/sam/engines/advanced/sam-trends-engine';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import {
@@ -11,7 +11,7 @@ import {
   searchQuerySchema,
   trendInteractionSchema,
   sanitizeString
-} from '@/lib/validators/sam-validators';
+} from '@/sam/types/sam-validators';
 import { rateLimiters, RateLimiter, rateLimitResponse } from '@/lib/rate-limiter';
 
 // Error response helper

@@ -24,7 +24,7 @@ export async function PATCH(
     }
 
     // Verify enrollment belongs to user
-    const enrollment = await db.pathEnrollment.findFirst({
+    const enrollment = await db.learningPathEnrollment.findFirst({
       where: {
         id: enrollmentId,
         userId: session.user.id,
@@ -39,7 +39,7 @@ export async function PATCH(
     }
 
     // Update enrollment status
-    const updatedEnrollment = await db.pathEnrollment.update({
+    const updatedEnrollment = await db.learningPathEnrollment.update({
       where: { id: enrollmentId },
       data: {
         status,

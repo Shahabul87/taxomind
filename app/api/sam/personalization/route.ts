@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samPersonalizationEngine } from "@/lib/sam-personalization-engine";
+import { samPersonalizationEngine } from "@/sam/engines/educational/sam-personalization-engine";
 import { logger } from '@/lib/logger';
 import {
   LearningBehavior,
   PersonalizationContext,
-} from "@/lib/sam-personalization-engine";
+} from "@/sam/engines/educational/sam-personalization-engine";
 
 export async function POST(req: NextRequest) {
   try {

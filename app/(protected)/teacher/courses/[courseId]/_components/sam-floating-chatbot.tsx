@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { samMemory } from '@/lib/sam-memory-system';
+import { samMemory } from '@/sam/utils/sam-memory-system';
 
 interface ChatMessage {
   id: string;
@@ -121,16 +121,24 @@ export function SamFloatingChatbot({
 
   // Initialize with contextual welcome message based on SAM memory
   useEffect(() => {
-    const context = samMemory.getContextForPage('course-management');
+    const context = samMemory.getContextForPage('course-management') as Record<string, unknown> | null;
     let welcomeMessage = `👋 Hi! I'm SAM, your AI course assistant with complete contextual memory and form synchronization.`;
-    
-    if (context.wizardContext) {
+
+    if (context && typeof context === 'object' && 'wizardContext' in context) {
+      const wizardContext = context.wizardContext as Record<string, unknown>;
+      const targetAudience = typeof wizardContext.targetAudience === 'string' ? wizardContext.targetAudience : 'General';
+      const difficulty = typeof wizardContext.difficulty === 'string' ? wizardContext.difficulty : 'Intermediate';
+      const bloomsFocus = Array.isArray(wizardContext.bloomsFocus) ? (wizardContext.bloomsFocus as string[]).join(', ') : 'All levels';
+      const generationPreferences = wizardContext.generationPreferences as Record<string, unknown> | undefined;
+      const chapterCount = typeof generationPreferences?.chapterCount === 'number' ? generationPreferences.chapterCount : 0;
+      const sectionsPerChapter = typeof generationPreferences?.sectionsPerChapter === 'number' ? generationPreferences.sectionsPerChapter : 0;
+
       welcomeMessage += `\n\n🧠 **I remember everything about our course creation journey:**\n`;
       welcomeMessage += `• Course: "${courseData.title}"\n`;
-      welcomeMessage += `• Target: ${context.wizardContext.targetAudience}\n`;
-      welcomeMessage += `• Level: ${context.wizardContext.difficulty}\n`;
-      welcomeMessage += `• Focus: ${context.wizardContext.bloomsFocus?.join(', ')}\n`;
-      welcomeMessage += `• Original Goals: ${context.wizardContext.generationPreferences?.chapterCount} chapters, ${context.wizardContext.generationPreferences?.sectionsPerChapter} sections each\n\n`;
+      welcomeMessage += `• Target: ${targetAudience}\n`;
+      welcomeMessage += `• Level: ${difficulty}\n`;
+      welcomeMessage += `• Focus: ${bloomsFocus}\n`;
+      welcomeMessage += `• Original Goals: ${chapterCount} chapters, ${sectionsPerChapter} sections each\n\n`;
       welcomeMessage += `🔄 **Form Synchronization Enabled:** I can generate content and automatically update your course forms in real-time!\n\n`;
       welcomeMessage += `💡 Try commands like "Generate 5 chapters" or ask "How do you know about my course structure?"`;
     } else {
@@ -147,7 +155,7 @@ export function SamFloatingChatbot({
       type: 'sam',
       content: welcomeMessage,
       timestamp: new Date(),
-      suggestions: context.wizardContext ? [
+      suggestions: (context && typeof context === 'object' && 'wizardContext' in context) ? [
         "How do you know about my course structure?",
         "Generate 5 chapters for this course",
         "Update my learning objectives",
@@ -208,15 +216,20 @@ export function SamFloatingChatbot({
 
   const handleQuickAction = async (action: string) => {
     const context = buildCourseContext();
-    const samContext = samMemory.getContextForPage('course-management');
-    
+    const samContextRaw = samMemory.getContextForPage('course-management') as Record<string, unknown> | null;
+    const samContext = samContextRaw && typeof samContextRaw === 'object' && 'wizardContext' in samContextRaw ? samContextRaw : null;
+    const wizardContext = samContext?.wizardContext as Record<string, unknown> | undefined;
+    const hasWizardContext = Boolean(wizardContext);
+    const targetAudience = typeof wizardContext?.targetAudience === 'string' ? wizardContext.targetAudience : '';
+    const difficulty = typeof wizardContext?.difficulty === 'string' ? wizardContext.difficulty : '';
+
     const actionPrompts = {
-      blueprint: `Generate a comprehensive course blueprint based on ${samContext.wizardContext ? 'our previous wizard session and' : ''} the current course structure. Help me create/enhance the course content systematically.`,
-      structure: `Analyze my course structure with ${context.totalChapters} chapters and ${context.totalSections} sections. ${samContext.wizardContext ? 'Consider our original planning from the course wizard.' : ''}`,
-      objectives: `Review my ${context.objectiveCount} learning objectives and suggest improvements. ${samContext.wizardContext ? 'Reference our original goals from the course creation process.' : ''}`,
+      blueprint: `Generate a comprehensive course blueprint based on ${hasWizardContext ? 'our previous wizard session and' : ''} the current course structure. Help me create/enhance the course content systematically.`,
+      structure: `Analyze my course structure with ${context.totalChapters} chapters and ${context.totalSections} sections. ${hasWizardContext ? 'Consider our original planning from the course wizard.' : ''}`,
+      objectives: `Review my ${context.objectiveCount} learning objectives and suggest improvements. ${hasWizardContext ? 'Reference our original goals from the course creation process.' : ''}`,
       analytics: `Provide insights on my course performance and analytics based on current completion status.`,
-      engagement: `Suggest strategies to improve student engagement. ${samContext.wizardContext ? 'Keep in mind our target audience: ' + samContext.wizardContext.targetAudience : ''}`,
-      optimization: `Give me optimization tips to improve my course quality. ${samContext.wizardContext ? 'Consider our original difficulty level: ' + samContext.wizardContext.difficulty : ''}`
+      engagement: `Suggest strategies to improve student engagement. ${hasWizardContext && targetAudience ? 'Keep in mind our target audience: ' + targetAudience : ''}`,
+      optimization: `Give me optimization tips to improve my course quality. ${hasWizardContext && difficulty ? 'Consider our original difficulty level: ' + difficulty : ''}`
     };
     
     const prompt = actionPrompts[action as keyof typeof actionPrompts] || `Help me with ${action}`;
@@ -228,7 +241,7 @@ export function SamFloatingChatbot({
     await sendMessage(suggestion, context);
   };
 
-  const sendMessage = async (content: string, context?: any) => {
+  const sendMessage = async (content: string, context?: Record<string, unknown>) => {
     const messageContent = content || inputValue.trim();
     if (!messageContent) return;
 
@@ -253,16 +266,17 @@ export function SamFloatingChatbot({
 
     try {
       const baseContext = context || buildCourseContext();
-      const samContext = samMemory.getContextForPage('course-management');
-      
+      const samContextRaw = samMemory.getContextForPage('course-management') as Record<string, unknown> | null;
+      const samContext = samContextRaw && typeof samContextRaw === 'object' ? samContextRaw : {};
+
       // Enhanced context with SAM memory
       const enhancedContext = {
         ...baseContext,
         samMemoryContext: samContext,
         conversationHistory: samMemory.getRelevantInteractions('course-management', 10),
-        userPreferences: samContext.userProfile,
-        wizardContext: samContext.wizardContext,
-        generatedContent: samContext.generatedContent
+        userPreferences: 'userProfile' in samContext ? samContext.userProfile : null,
+        wizardContext: 'wizardContext' in samContext ? samContext.wizardContext : null,
+        generatedContent: 'generatedContent' in samContext ? samContext.generatedContent : null
       };
       
       const response = await fetch('/api/sam/course-assistant-enhanced', {
@@ -310,9 +324,9 @@ export function SamFloatingChatbot({
         toast.success('Content generated with synchronization data!');
       }
       
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Error sending message to SAM:', error);
-      
+
       // Fallback error message
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -320,7 +334,7 @@ export function SamFloatingChatbot({
         content: "I'm having trouble processing your request. Please try again.",
         timestamp: new Date()
       };
-      
+
       setMessages(prev => [...prev, errorMessage]);
       toast.error('Failed to get response from SAM');
     } finally {

@@ -30,7 +30,7 @@ import { DepthInsightsPanel } from "./depth-insights-panel";
 import { ImprovementRecommendations } from "./improvement-recommendations";
 import { ChapterDepthAnalysis } from "./chapter-depth-analysis";
 import { toast } from "sonner";
-import { SamStandardsInfo, SamStandardsBadge } from "@/components/sam/sam-standards-info";
+import { SamStandardsInfo, SamStandardsBadge } from "@/sam/components/integration/sam-standards-info";
 
 interface CourseDepthAnalyzerProps {
   courseId: string;
@@ -144,12 +144,8 @@ export function CourseDepthAnalyzer({ courseId, courseData }: CourseDepthAnalyze
     }
   }, [courseId]);
 
-  // Check for existing analysis on mount (without forcing re-analysis)
-  useEffect(() => {
-    if (!hasInitialAnalysis && courseData.chapters.length > 0) {
-      analyzeCourse(false); // Don't force, use cache if available
-    }
-  }, [hasInitialAnalysis, courseData.chapters.length, analyzeCourse]);
+  // Removed auto-analysis on mount to save tokens
+  // User must click "Analyze Course" or "Re-analyze" button to trigger analysis
 
   // Calculate overall score
   const overallScore = analysisData 

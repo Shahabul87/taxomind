@@ -19,7 +19,12 @@ interface PostChapter {
     content?: React.ReactNode;
   }
   
-  export const transformPostChapters = (postChapters: PostChapter[]): StickyScrollContent[] => {
+  export const transformPostChapters = (postChapters: PostChapter[] | undefined | null): StickyScrollContent[] => {
+    // Handle undefined or null postChapters
+    if (!postChapters || !Array.isArray(postChapters)) {
+      return [];
+    }
+
     return postChapters.map((chapter) => ({
       title: chapter.title,
       description: chapter.description || "No description available", // Provide a fallback for null description

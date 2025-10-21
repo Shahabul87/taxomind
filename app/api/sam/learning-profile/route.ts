@@ -4,7 +4,7 @@ import { logger } from '@/lib/logger';
 import { 
   getSAMLearningProfile, 
   updateSAMLearningProfile 
-} from '@/lib/sam-database';
+} from '@/sam/utils/sam-database';
 
 export async function GET(req: NextRequest) {
   try {

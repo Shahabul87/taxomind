@@ -16,12 +16,15 @@ export interface CourseCreationRequest {
 }
 
 export interface SamSuggestion {
+  id?: string;
   message: string;
   type: 'encouragement' | 'suggestion' | 'validation' | 'warning' | 'tip';
   actionable: boolean;
   confidence: number;
   action?: () => void;
   autoApplyable?: boolean;
+  timestamp?: number;
+  context?: string;
 }
 
 export interface StepComponentProps {

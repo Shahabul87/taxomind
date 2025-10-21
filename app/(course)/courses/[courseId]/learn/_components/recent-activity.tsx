@@ -34,7 +34,7 @@ interface Course {
       blogs: Array<{ id: string; title: string }>;
       articles: Array<{ id: string; title: string }>;
       notes: Array<{ id: string; title: string }>;
-      codeExplanations: Array<{ id: string; heading: string }>;
+      codeExplanations: Array<{ id: string; title: string }>;
     }>;
   }>;
 }

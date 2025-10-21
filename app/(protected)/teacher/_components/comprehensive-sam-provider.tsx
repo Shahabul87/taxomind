@@ -1,7 +1,7 @@
 "use client";
 
 import React, { ReactNode } from 'react';
-import { SAMGlobalProvider } from '@/components/sam/sam-global-provider';
+import { SAMGlobalProvider } from '@/sam/components/global/sam-global-provider';
 import { SamAITutorProvider } from './sam-ai-tutor-provider';
 
 interface ComprehensiveSAMProviderProps {

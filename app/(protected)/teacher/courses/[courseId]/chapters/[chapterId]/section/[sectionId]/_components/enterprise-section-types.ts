@@ -3,10 +3,16 @@
 
 export interface CodeExplanation {
   id: string;
-  heading: string | null;
-  code: string | null;
+  title: string;
+  code: string;
   explanation: string | null;
   language?: string | null;
+  position?: number;
+  lineStart?: number | null;
+  lineEnd?: number | null;
+  groupId?: string | null;
+  isPublished?: boolean;
+  sectionId?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -14,13 +20,18 @@ export interface CodeExplanation {
 export interface MathExplanation {
   id: string;
   title: string;
-  content: string | null;
-  latex: string | null;
-  equation: string | null;
-  imageUrl: string | null;
-  mode: string | null;
-  createdAt?: Date;
-  updatedAt?: Date;
+  content?: string | null;
+  explanation: string;
+  latex?: string | null;
+  latexEquation?: string | null;
+  equation?: string | null;
+  imageUrl?: string | null;
+  mode?: string | null;
+  isPublished?: boolean;
+  position: number;
+  sectionId?: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface SectionVideo {

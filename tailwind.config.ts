@@ -119,6 +119,10 @@ const config = {
           '0%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },
           '100%': { backgroundPosition: '0% 50%' }
+        },
+        'gradient-x': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' }
         }
   		},
   		animation: {
@@ -128,7 +132,9 @@ const config = {
         'float-slow': 'float 6s ease-in-out infinite',
         'float-medium': 'float 4s ease-in-out infinite',
         'float-fast': 'float 3s ease-in-out infinite',
-        'pulse-slow': 'pulse-slow 4s ease-in-out infinite'
+        'pulse-slow': 'pulse-slow 4s ease-in-out infinite',
+        'shimmer': 'shimmer 3s linear infinite',
+        'gradient-x': 'gradient-x 3s ease infinite'
   		}
   	}
   },

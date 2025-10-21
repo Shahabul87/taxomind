@@ -207,9 +207,9 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
       title: "Posts & Blog",
       icon: <IconNews className="w-5 h-5" />,
       submenu: [
-        { label: "My Posts", href: "/post/all-posts" },
+        { label: "My Posts", href: "/teacher/posts/all-posts" },
         { label: "Browse Posts", href: "/post" },
-        { label: "Create Post", href: "/post/create-post" },
+        { label: "Create Post", href: "/teacher/posts/create-post" },
       ],
     },
     {

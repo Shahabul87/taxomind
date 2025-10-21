@@ -13,7 +13,7 @@ export async function POST(
   const params = await props.params;
   try {
     const user = await currentUser();
-    const { heading, code, explanation } = await req.json();
+    const { title, code, explanation } = await req.json();
 
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -34,7 +34,7 @@ export async function POST(
 
     const codeExplanation = await db.codeExplanation.create({
       data: {
-        heading,
+        title,
         code,
         explanation,
         sectionId: params.sectionId,

@@ -10,55 +10,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const enrollments = await db.pathEnrollment.findMany({
+    const enrollments = await db.learningPathEnrollment.findMany({
       where: {
         userId: session.user.id,
       },
       include: {
-        LearningPath: {
+        learningPath: {
           include: {
-            LearningPathNode: {
-              orderBy: { order: "asc" }
-            }
-          }
-        },
-        NodeProgress: {
-          include: {
-            LearningPathNode: true
-          },
-          orderBy: {
-            LearningPathNode: {
-              order: "asc"
-            }
+            courses: true
           }
         }
       },
       orderBy: [
         { status: "asc" }, // Active paths first
-        { updatedAt: "desc" }
+        { startedAt: "desc" }
       ]
-    });
-
-    // Calculate progress percentage for each enrollment
-    const enrichedEnrollments = enrollments.map(enrollment => {
-      const totalNodes = enrollment.NodeProgress.length;
-      const completedNodes = enrollment.NodeProgress.filter(
-        np => np.status === "COMPLETED"
-      ).length;
-      
-      const progressPercent = totalNodes > 0 
-        ? (completedNodes / totalNodes) * 100 
-        : 0;
-
-      return {
-        ...enrollment,
-        progressPercent
-      };
     });
 
     return NextResponse.json({
       success: true,
-      enrollments: enrichedEnrollments
+      enrollments
     });
   } catch (error) {
     logger.error("Fetch enrollments error:", error);

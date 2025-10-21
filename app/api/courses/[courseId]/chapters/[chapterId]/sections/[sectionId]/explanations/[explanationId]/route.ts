@@ -13,7 +13,7 @@ export async function PATCH(
   const params = await props.params;
   try {
     const user = await currentUser();
-    const { heading, code, explanation } = await req.json();
+    const { title, code, explanation } = await req.json();
 
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -36,7 +36,7 @@ export async function PATCH(
         sectionId: params.sectionId,
       },
       data: {
-        heading,
+        title,
         code,
         explanation,
       }

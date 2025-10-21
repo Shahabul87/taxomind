@@ -64,34 +64,62 @@ model Note {
 
 model CodeExplanation {
   id          String   @id @default(uuid())
-  heading     String?
-  code        String?
-  explanation String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  sectionId   String?
-  language    String?  @default("typescript")
-  order       Int?     @default(0)
-  section     Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
-  @@index([sectionId])
-}
+  // Core content fields
+  title       String   @db.VarChar(200)
+  code        String   @db.Text
+  explanation String?  @db.Text
 
-model MathExplanation {
-  id          String   @id @default(uuid())
-  title       String
-  content     String
-  latex       String?
-  isPublished Boolean  @default(false)
+  // Metadata
+  language    String   @default("typescript") @db.VarChar(50)
+  position    Int      @default(0)
+  lineStart   Int?
+  lineEnd     Int?
+
+  // Grouping & organization
   sectionId   String
+  groupId     String?
+  isPublished Boolean  @default(true)
+
+  // Timestamps
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  equation    String?
-  imageUrl    String?
-  mode        String?
+
+  // Relations
   section     Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([sectionId])
+  @@index([sectionId, position])
+  @@index([groupId])
+}
+
+model MathExplanation {
+  id            String   @id @default(uuid())
+  title         String   @db.VarChar(200)
+
+  // Content fields
+  content       String?  @db.Text
+  explanation   String   @db.Text
+
+  // LaTeX and equation fields
+  latex         String?  @db.Text
+  latexEquation String?  @db.Text
+  equation      String?  @db.Text
+  imageUrl      String?  @db.VarChar(500)
+  mode          String?  @db.VarChar(50)
+
+  // Metadata
+  isPublished   Boolean  @default(false)
+  position      Int      @default(0)
+  sectionId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  section       Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@index([sectionId, position])
 }
 
 model Post {

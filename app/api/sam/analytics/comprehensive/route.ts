@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getComprehensiveAnalytics } from '@/lib/sam-analytics-engine';
+import { getComprehensiveAnalytics } from '@/sam/engines/advanced/sam-analytics-engine';
 import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {

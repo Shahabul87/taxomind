@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logger } from '@/lib/logger';
+import { useSAMFormSync } from "@/hooks/use-sam-form-sync";
 
 import {
   Form,
@@ -43,6 +44,17 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
   });
 
   const { isSubmitting, isValid } = form.formState;
+
+  // Enable SAM AI Assistant context awareness for course creation
+  useSAMFormSync('create-course-form', form.watch, {
+    formName: 'Create Course',
+    metadata: {
+      formType: 'course-creation',
+      purpose: 'Create new course with AI assistance',
+      entityType: 'course',
+      userRole: 'teacher'
+    }
+  });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {

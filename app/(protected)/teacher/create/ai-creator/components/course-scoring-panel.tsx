@@ -58,7 +58,6 @@ export function CourseScoringPanel({ formData, onUpdateFormData, className }: Co
   const [isGeneratingOverviews, setIsGeneratingOverviews] = useState(false);
   const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
   const [showOverviewSuggestions, setShowOverviewSuggestions] = useState(false);
-  const [lastGeneratedForTitle, setLastGeneratedForTitle] = useState<string>('');
 
   // Calculate course score
   const calculateCourseScore = useCallback(() => {
@@ -433,33 +432,8 @@ Make each overview unique, highlighting different aspects and benefits of the co
     });
   }, [overviewSuggestions, showOverviewSuggestions]);
 
-  // Smart auto-generation for overviews: Only once when title changes, then manual only
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    // Only auto-generate if:
-    // 1. Title is substantial (15+ chars)
-    // 2. Title has changed from last generation
-    // 3. Not currently generating
-    // 4. Has category selected for better context
-    if (
-      formData.courseTitle && 
-      formData.courseTitle.length >= 15 && 
-      formData.courseTitle !== lastGeneratedForTitle &&
-      !isGeneratingOverviews &&
-      formData.courseCategory
-    ) {
-      timeoutId = setTimeout(() => {
-        generateOverviewSuggestions();
-        setLastGeneratedForTitle(formData.courseTitle);
-        setShowOverviewSuggestions(true);
-      }, 3000); // Wait 3 seconds after user stops typing
-    }
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [formData.courseTitle, formData.courseCategory, lastGeneratedForTitle, isGeneratingOverviews, generateOverviewSuggestions]);
+  // Removed auto-generation to save tokens and costs
+  // Users must manually click "Generate Overviews" button to generate suggestions
 
   return (
     <div className={cn("space-y-4", className)}>

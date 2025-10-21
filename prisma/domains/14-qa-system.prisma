@@ -1,0 +1,88 @@
+// ============================================
+// Q&A Discussion System (Phase 2, Week 5-6)
+// ============================================
+// Models for course Q&A functionality including
+// questions, answers, and voting system
+
+model CourseQuestion {
+  id           String   @id @default(cuid())
+  courseId     String
+  userId       String
+  sectionId    String?
+  title        String
+  content      String   @db.Text
+  upvotes      Int      @default(0)
+  downvotes    Int      @default(0)
+  isAnswered   Boolean  @default(false)
+  isPinned     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  course       Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section      Section?          @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  answers      CourseAnswer[]
+  votes        QuestionVote[]
+
+  @@index([courseId])
+  @@index([userId])
+  @@index([sectionId])
+  @@index([createdAt])
+  @@index([upvotes])
+}
+
+model CourseAnswer {
+  id           String   @id @default(cuid())
+  questionId   String
+  userId       String
+  content      String   @db.Text
+  upvotes      Int      @default(0)
+  downvotes    Int      @default(0)
+  isInstructor Boolean  @default(false)
+  isBestAnswer Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  question     CourseQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes        AnswerVote[]
+
+  @@index([questionId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([upvotes])
+}
+
+model QuestionVote {
+  id         String   @id @default(cuid())
+  questionId String
+  userId     String
+  value      Int      // 1 for upvote, -1 for downvote
+  createdAt  DateTime @default(now())
+
+  // Relations
+  question   CourseQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, userId])
+  @@index([questionId])
+  @@index([userId])
+}
+
+model AnswerVote {
+  id        String   @id @default(cuid())
+  answerId  String
+  userId    String
+  value     Int      // 1 for upvote, -1 for downvote
+  createdAt DateTime @default(now())
+
+  // Relations
+  answer    CourseAnswer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([answerId, userId])
+  @@index([answerId])
+  @@index([userId])
+}

@@ -37,13 +37,45 @@ const passwordValidation = z.string()
   .regex(/[0-9]/, { message: "Password must contain at least 1 number" })
   .regex(/[^A-Za-z0-9]/, { message: "Password must contain at least 1 special character" });
 
+// Phone number validation
+const phoneValidation = z.string()
+  .min(10, { message: "Phone number must be at least 10 digits" })
+  .max(15, { message: "Phone number must be at most 15 digits" })
+  .regex(/^\+?[1-9]\d{1,14}$/, { message: "Invalid phone number format" });
+
+// Extended Settings Schema for Enterprise Features
 export const SettingsSchema = z.object({
+  // Basic Account Info
   name: z.optional(z.string()),
   email: z.optional(z.string().email()),
   password: z.optional(z.string().min(1)),
   newPassword: z.optional(passwordValidation),
-  role: z.enum(["ADMIN", "USER"]), // All roles for compatibility
-  isTwoFactorEnabled: z.optional(z.boolean())
+  role: z.enum(["ADMIN", "USER"]),
+  isTwoFactorEnabled: z.optional(z.boolean()),
+
+  // Profile Fields
+  phone: z.optional(phoneValidation),
+  image: z.optional(z.string().url()),
+  learningStyle: z.optional(z.enum(["VISUAL", "AUDITORY", "KINESTHETIC", "READING_WRITING"])),
+
+  // Notification Preferences
+  emailNotifications: z.optional(z.boolean()),
+  emailCourseUpdates: z.optional(z.boolean()),
+  emailNewMessages: z.optional(z.boolean()),
+  emailMarketingEmails: z.optional(z.boolean()),
+  emailWeeklyDigest: z.optional(z.boolean()),
+  pushNotifications: z.optional(z.boolean()),
+  pushCourseReminders: z.optional(z.boolean()),
+  pushNewMessages: z.optional(z.boolean()),
+  pushAchievements: z.optional(z.boolean()),
+
+  // Privacy Settings
+  profileVisibility: z.optional(z.enum(["public", "private", "friends"])),
+  showEmail: z.optional(z.boolean()),
+  showPhone: z.optional(z.boolean()),
+  showLearningProgress: z.optional(z.boolean()),
+  allowDataCollection: z.optional(z.boolean()),
+  allowPersonalization: z.optional(z.boolean()),
 });
 
 

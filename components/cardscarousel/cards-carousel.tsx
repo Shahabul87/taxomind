@@ -20,6 +20,7 @@ import { useOutsideClick } from "@/hooks/use-outside-click";
 interface CarouselProps {
   items: JSX.Element[];
   initialScroll?: number;
+  ariaLabel?: string;
 }
 
 interface CardType {
@@ -47,7 +48,7 @@ export const CarouselContext = createContext<{
   currentIndex: 0,
 });
 
-export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
+export const Carousel = ({ items, initialScroll = 0, ariaLabel }: CarouselProps) => {
   const carouselRef = React.useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = React.useState(false);
   const [canScrollRight, setCanScrollRight] = React.useState(true);
@@ -97,15 +98,27 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
     return window && window.innerWidth < 768;
   };
 
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      scrollRight();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      scrollLeft();
+    }
+  };
+
   return (
     <CarouselContext.Provider
       value={{ onCardClose: handleCardClose, currentIndex }}
     >
-      <div className="relative w-full">
+      <div className="relative w-full" role="region" aria-roledescription="carousel" aria-label={ariaLabel || 'Chapters carousel'}>
         <div
-          className="flex w-full overflow-x-scroll overscroll-x-auto py-10 md:py-20 scroll-smooth [scrollbar-width:none]"
+          className="flex w-full overflow-x-scroll overscroll-x-auto py-10 md:py-20 scroll-smooth [scrollbar-width:none] focus:outline-none"
           ref={carouselRef}
           onScroll={checkScrollability}
+          tabIndex={0}
+          onKeyDown={onKeyDown}
         >
           <div
             className={cn(
@@ -144,14 +157,16 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
         </div>
         <div className="flex justify-end gap-2 mr-10">
           <button
-            className="relative z-40 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center disabled:opacity-50"
+            aria-label="Scroll left"
+            className="relative z-40 h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center disabled:opacity-50 border border-gray-200 dark:border-gray-700"
             onClick={scrollLeft}
             disabled={!canScrollLeft}
           >
             <ArrowLeft className="h-6 w-6 text-gray-500" />
           </button>
           <button
-            className="relative z-40 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center disabled:opacity-50"
+            aria-label="Scroll right"
+            className="relative z-40 h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center disabled:opacity-50 border border-gray-200 dark:border-gray-700"
             onClick={scrollRight}
             disabled={!canScrollRight}
           >

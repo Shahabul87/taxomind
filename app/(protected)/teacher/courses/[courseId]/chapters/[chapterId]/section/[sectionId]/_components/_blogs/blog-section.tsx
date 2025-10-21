@@ -313,68 +313,95 @@ export const BlogSectionForm = ({
   };
 
   return (
-    <div className={cn(
-      "p-4 mt-4 rounded-xl",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
-      "transition-all duration-200",
-      "backdrop-blur-sm"
-    )}>
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="flex items-center gap-x-2">
-          <div className={cn(
-            "p-2 w-fit rounded-lg",
-            "bg-pink-50 dark:bg-pink-500/10"
-          )}>
-            <BookOpen className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className={cn(
+        "p-5 rounded-xl",
+        "border border-gray-200/70 dark:border-gray-700/50",
+        "bg-gradient-to-r from-cyan-50/50 via-blue-50/50 to-indigo-50/50",
+        "dark:from-cyan-900/10 dark:via-blue-900/10 dark:to-indigo-900/10",
+        "backdrop-blur-sm shadow-sm",
+        "transition-all duration-300"
+      )}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <motion.div
+              className={cn(
+                "p-2.5 rounded-xl",
+                "bg-gradient-to-br from-cyan-500 to-blue-600",
+                "shadow-lg shadow-cyan-500/30"
+              )}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <BookOpen className="h-5 w-5 text-white" />
+            </motion.div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                Blog Resources
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                Curated articles and blog posts for enhanced learning
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
+                  {blogs.length} {blogs.length === 1 ? 'Resource' : 'Resources'}
+                </span>
+                {blogs.filter(b => b.rating && b.rating >= 4).length > 0 && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
+                    <Star className="h-3 w-3 mr-1 fill-yellow-500 text-yellow-500" />
+                    {blogs.filter(b => b.rating && b.rating >= 4).length} Highly Rated
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-medium text-foreground">
-              Additional Blog Resources
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Add helpful blog articles for deeper understanding
-            </p>
-          </div>
+          <Button
+            onClick={() => setIsCreating(!isCreating)}
+            size="sm"
+            className={cn(
+              "bg-gradient-to-r from-cyan-600 to-blue-600",
+              "hover:from-cyan-700 hover:to-blue-700",
+              "text-white shadow-md",
+              "transition-all duration-200",
+              "w-full sm:w-auto",
+              "gap-2"
+            )}
+          >
+            {isCreating ? (
+              <>
+                <X className="h-4 w-4" />
+                Cancel
+              </>
+            ) : (
+              <>
+                <BookOpen className="h-4 w-4" />
+                Add Blog
+              </>
+            )}
+          </Button>
         </div>
-        <Button
-          onClick={() => setIsCreating(!isCreating)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "bg-pink-50 dark:bg-pink-500/10",
-            "text-pink-700 dark:text-pink-300",
-            "hover:bg-pink-100 dark:hover:bg-pink-500/20",
-            "hover:text-pink-800 dark:hover:text-pink-200",
-            "w-full sm:w-auto",
-            "justify-center",
-            "transition-all duration-200"
-          )}
-        >
-          {isCreating ? (
-            "Cancel"
-          ) : (
-            <>
-              <BookOpen className="h-4 w-4 mr-2" />
-              Add blog
-            </>
-          )}
-        </Button>
       </div>
 
+      {/* Form Section */}
       <AnimatePresence>
         {isCreating && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden mt-4"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="overflow-hidden"
           >
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-4">
+            <div className={cn(
+              "p-6 rounded-xl",
+              "border border-gray-200/70 dark:border-gray-700/50",
+              "bg-white/80 dark:bg-gray-800/60",
+              "backdrop-blur-md shadow-lg"
+            )}>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="space-y-5">
                   <FormField
                     control={form.control}
                     name="blogUrl"
@@ -576,80 +603,102 @@ export const BlogSectionForm = ({
                 </div>
               </form>
             </Form>
-          </motion.div>
+          </div>
+        </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Blog list with sorting and view toggle */}
+      {/* Blog list with enhanced controls */}
       {blogs.length > 0 && (
-        <div className="mt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {blogs.length} Blog Resources
-            </h4>
-            <div className="flex items-center gap-3">
-              {/* View Toggle */}
-              <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={cn(
-                    "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                    viewMode === "list"
-                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  )}
-                >
-                  <List className="h-3 w-3 mr-1.5" />
-                  List
-                </button>
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={cn(
-                    "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                    viewMode === "grid"
-                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  )}
-                >
-                  <Grid3X3 className="h-3 w-3 mr-1.5" />
-                  Grid
-                </button>
+        <div className="space-y-4">
+          {/* Control Bar */}
+          <div className={cn(
+            "p-4 rounded-xl",
+            "border border-gray-200/70 dark:border-gray-700/50",
+            "bg-white/60 dark:bg-gray-800/40",
+            "backdrop-blur-sm shadow-sm"
+          )}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {blogs.length} Blog {blogs.length === 1 ? 'Resource' : 'Resources'}
+                </h4>
+                {blogs.filter(b => b.rating && b.rating >= 4).length > 0 && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
+                    <Star className="h-3 w-3 mr-1 fill-yellow-500 text-yellow-500" />
+                    {blogs.filter(b => b.rating && b.rating >= 4).length} Top Rated
+                  </span>
+                )}
               </div>
 
-              {/* Sort Dropdown */}
-              <div className="flex items-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Sort by:</span>
-                <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                  <SelectTrigger className="w-[130px] h-8 text-xs bg-white/80 dark:bg-gray-800/80">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rating" className="text-xs">
-                      <div className="flex items-center">
-                        <Star className="h-3 w-3 mr-2 text-yellow-500" />
-                        Highest Rated
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="title" className="text-xs">
-                      <div className="flex items-center">
-                        <BookOpen className="h-3 w-3 mr-2 text-gray-500" />
-                        Title (A-Z)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="newest" className="text-xs">
-                      <div className="flex items-center">
-                        <Clock className="h-3 w-3 mr-2 text-blue-500" />
-                        Newest First
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="oldest" className="text-xs">
-                      <div className="flex items-center">
-                        <Calendar className="h-3 w-3 mr-2 text-green-500" />
-                        Oldest First
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center gap-3">
+                {/* View Toggle */}
+                <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 border border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                      viewMode === "list"
+                        ? "bg-white dark:bg-gray-700 text-cyan-600 dark:text-cyan-400 shadow-sm"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    )}
+                  >
+                    <List className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">List</span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                      viewMode === "grid"
+                        ? "bg-white dark:bg-gray-700 text-cyan-600 dark:text-cyan-400 shadow-sm"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    )}
+                  >
+                    <Grid3X3 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Grid</span>
+                  </button>
+                </div>
+
+                {/* Sort Dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400 hidden sm:inline">Sort:</span>
+                  <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+                    <SelectTrigger className={cn(
+                      "w-[140px] h-9 text-xs",
+                      "bg-white dark:bg-gray-800",
+                      "border-gray-200 dark:border-gray-700"
+                    )}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rating" className="text-xs">
+                        <div className="flex items-center">
+                          <Star className="h-3.5 w-3.5 mr-2 text-yellow-500" />
+                          Highest Rated
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="title" className="text-xs">
+                        <div className="flex items-center">
+                          <BookOpen className="h-3.5 w-3.5 mr-2 text-gray-500" />
+                          Title (A-Z)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="newest" className="text-xs">
+                        <div className="flex items-center">
+                          <Clock className="h-3.5 w-3.5 mr-2 text-blue-500" />
+                          Newest First
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="oldest" className="text-xs">
+                        <div className="flex items-center">
+                          <Calendar className="h-3.5 w-3.5 mr-2 text-green-500" />
+                          Oldest First
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </div>

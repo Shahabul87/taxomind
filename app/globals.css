@@ -293,6 +293,20 @@ body,
   }
 }
 
+/* Course page: hide global header on scroll down and lift sticky elements */
+header[aria-label="Primary"] {
+  transition: transform 200ms ease;
+}
+html.course-header-hidden header[aria-label="Primary"] {
+  transform: translateY(-100%);
+}
+html.course-header-hidden .course-tabs-sticky {
+  top: 0 !important;
+}
+html.course-header-hidden .sticky-mini-header {
+  top: 0 !important;
+}
+
 /* Drag and Drop Styles */
 body.dragging {
   cursor: grabbing !important;

@@ -46,12 +46,12 @@ export async function POST(
       codeBlocks.map(async (block: any, index: number) => {
         return await db.codeExplanation.create({
           data: {
-            heading: block.title,
+            title: block.title,
             code: block.code,
             explanation: block.explanation,
             sectionId,
             language: block.language || 'typescript',
-            order: block.order || index,
+            position: block.position || index,
           },
         });
       })
@@ -97,7 +97,7 @@ export async function GET(
       },
       orderBy: [
         {
-          order: "asc",
+          position: "asc",
         },
         {
           createdAt: "asc",

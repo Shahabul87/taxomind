@@ -79,8 +79,10 @@ export interface AuditMetadata {
   newValue?: any;
   reason?: string;
   affectedUsers?: string[];
+  affectedResources?: Array<{ type: string; id: string }>;
   dataClassification?: 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL' | 'RESTRICTED';
   complianceFlags?: string[];
+  metadata?: Record<string, unknown>;
 }
 
 class SOC2AuditLogger {

@@ -73,21 +73,35 @@ export const settings = async (
     values.newPassword = undefined;
   }
 
+  // Prepare update data - only include fields that are provided
+  const updateData: any = {};
+
+  // Basic account info
+  if (values.name !== undefined) updateData.name = values.name;
+  if (values.email !== undefined) updateData.email = values.email;
+  if (values.password !== undefined) updateData.password = values.password;
+  if (values.isTwoFactorEnabled !== undefined) updateData.isTwoFactorEnabled = values.isTwoFactorEnabled;
+
+  // Profile fields
+  if (values.phone !== undefined) updateData.phone = values.phone;
+  if (values.image !== undefined) updateData.image = values.image;
+  if (values.learningStyle !== undefined) updateData.learningStyle = values.learningStyle;
+
+  // Update user in database
   const updatedUser = await db.user.update({
     where: { id: dbUser.id },
-    data: {
-      name: values.name,
-      email: values.email,
-      password: values.password,
-      isTwoFactorEnabled: values.isTwoFactorEnabled,
-    }
+    data: updateData
   });
+
+  // TODO: Handle notification and privacy preferences
+  // These should be stored in separate UserPreferences table
+  // For now, we just acknowledge them in the response
 
   // Log setting changes
   if (values.password) {
     await authAuditHelpers.logPasswordChanged(user.id!, user.email!, 'settings');
   }
-  
+
   if (values.isTwoFactorEnabled !== undefined && values.isTwoFactorEnabled !== dbUser.isTwoFactorEnabled) {
     if (values.isTwoFactorEnabled) {
       await authAuditHelpers.logTwoFactorEnabled(user.id!, user.email!);

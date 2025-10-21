@@ -16,7 +16,7 @@ export async function PATCH(
     }
 
     const { courseId, chapterId, sectionId, explanationId } = await params;
-    const { heading, code, explanation, language, order } = await req.json();
+    const { title, code, explanation, language, position } = await req.json();
 
     // Verify course ownership
     const courseOwner = await db.course.findUnique({
@@ -32,11 +32,11 @@ export async function PATCH(
 
     // Prepare update data
     const updateData: any = {};
-    if (heading !== undefined) updateData.heading = heading;
+    if (title !== undefined) updateData.title = title;
     if (code !== undefined) updateData.code = code;
     if (explanation !== undefined) updateData.explanation = explanation;
     if (language !== undefined) updateData.language = language;
-    if (order !== undefined) updateData.order = order;
+    if (position !== undefined) updateData.position = position;
 
     // Update code explanation
     const codeExplanation = await db.codeExplanation.update({

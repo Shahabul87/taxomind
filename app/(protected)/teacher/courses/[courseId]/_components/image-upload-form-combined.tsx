@@ -3,7 +3,7 @@
 import * as z from "zod";
 import axios from "axios";
 import { useState } from "react";
-import { ImageIcon, Pencil, PlusCircle } from "lucide-react";
+import { Image as ImageIcon, Pencil, PlusCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Image from "next/image";

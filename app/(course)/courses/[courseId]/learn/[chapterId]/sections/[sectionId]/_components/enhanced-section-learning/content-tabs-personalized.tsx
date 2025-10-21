@@ -432,10 +432,10 @@ export const ContentTabsPersonalized = ({
               />
             )}
             {activeContentTab === "code" && (
-              <CodeContent 
+              <CodeContent
                 codeExplanations={(currentSection.codeExplanations ?? []).map(code => ({
                   id: code.id,
-                  title: code.heading ?? 'Code Example',
+                  title: code.title ?? 'Code Example',
                   description: code.explanation ?? undefined,
                   code: undefined,
                   language: undefined,
@@ -443,7 +443,7 @@ export const ContentTabsPersonalized = ({
                   concepts: undefined,
                   author: undefined,
                   explanation: code.explanation ?? undefined
-                }))} 
+                }))}
               />
             )}
           </motion.div>

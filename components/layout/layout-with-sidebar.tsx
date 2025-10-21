@@ -64,9 +64,9 @@ const FULL_WIDTH_ROUTES = [
   "/teacher/create/enhanced", // Enhanced course creator - has own container padding
   "/settings", // Settings page - has own container padding
   "/my-courses", // User enrolled courses - has own container padding
-  "/post", // Post page - has own container padding
-  "/post/all-posts", // All posts page - has own container padding
-  "/post/create-post", // Create post page - has own container padding
+  "/post", // Post page - has own container padding (redirect)
+  "/teacher/posts/all-posts", // All posts page - has own container padding
+  "/teacher/posts/create-post", // Create post page - has own container padding
   "/analytics/user", // User analytics - has own container padding
   "/groups", // Groups page - has own container padding
   "/groups/my-groups", // User groups - has own container padding
@@ -169,10 +169,10 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
           marginLeft: showSidebar
             ? (isSmallMobile
                 ? (MOBILE_SIDEBAR_FIXED
-                    ? (isFullWidthPage ? '94px' : `${sidebarWidth}px`)
+                    ? (isFullWidthPage ? '64px' : `${sidebarWidth}px`)
                     : '0'
                   )
-                : (!isTablet ? (isFullWidthPage ? '94px' : `${sidebarWidth}px`) : '0')
+                : (!isTablet ? (isFullWidthPage ? '64px' : `${sidebarWidth}px`) : '0')
               )
             : '0',
         }}

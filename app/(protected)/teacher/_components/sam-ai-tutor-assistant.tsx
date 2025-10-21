@@ -82,7 +82,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useSAMGlobal } from '@/components/sam/sam-global-provider';
+import { useSAMGlobal } from '@/sam/components/global/sam-global-provider';
 import { useSamAITutor } from './sam-ai-tutor-provider';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';

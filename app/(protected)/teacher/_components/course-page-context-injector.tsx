@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useSAMGlobal } from '@/components/sam/sam-global-provider';
+import { useSAMGlobal } from '@/sam/components/global/sam-global-provider';
 
 // Import the LearningContext type
 interface LearningContext {

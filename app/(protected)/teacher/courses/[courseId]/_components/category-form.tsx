@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { logger } from '@/lib/logger';
+import { useSAMFormSync } from "@/hooks/use-sam-form-sync";
 
 import {
   Form,
@@ -224,6 +225,19 @@ export const CategoryForm = ({
   const { isSubmitting, isValid } = form.formState;
   const categoryType = form.watch("categoryType");
   const searchQuery = form.watch("searchQuery");
+
+  // Enable SAM AI Assistant context awareness for category selection
+  useSAMFormSync(`course-category-form-${courseId}`, form.watch, {
+    formName: 'Select Course Category',
+    metadata: {
+      formType: 'course-category',
+      purpose: 'Categorize course for better discoverability',
+      entityType: 'course',
+      courseId,
+      hasExistingCategory: !!initialData.categoryId,
+      availableCategories: options.map(opt => opt.label).join(', ')
+    }
+  });
 
   // Listen for SAM form population events
   useEffect(() => {

@@ -23,7 +23,7 @@ export interface Section {
   blogs: Array<{ id: string; title: string; content?: string | null }>;
   articles: Array<{ id: string; title: string; content?: string | null }>;
   notes: Array<{ id: string; title: string; content?: string | null }>;
-  codeExplanations: Array<{ id: string; heading: string | null; explanation?: string | null }>;
+  codeExplanations: Array<{ id: string; title: string | null; explanation?: string | null }>;
 }
 
 export interface Chapter {

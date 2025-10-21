@@ -15,16 +15,14 @@ export async function POST(
     }
 
     const { pathId } = await params;
-    // Check if path exists and is active
+    // Check if path exists and is published
     const path = await db.learningPath.findFirst({
       where: {
         id: pathId,
-        isActive: true,
+        isPublished: true,
       },
       include: {
-        LearningPathNode: {
-          orderBy: { order: "asc" }
-        }
+        courses: true
       }
     });
 
@@ -36,11 +34,11 @@ export async function POST(
     }
 
     // Check if already enrolled
-    const existingEnrollment = await db.pathEnrollment.findUnique({
+    const existingEnrollment = await db.learningPathEnrollment.findUnique({
       where: {
-        userId_pathId: {
+        userId_learningPathId: {
           userId: session.user.id,
-          pathId,
+          learningPathId: pathId,
         }
       }
     });
@@ -53,30 +51,19 @@ export async function POST(
     }
 
     // Create enrollment
-    const enrollment = await db.pathEnrollment.create({
+    const enrollment = await db.learningPathEnrollment.create({
       data: {
         id: randomUUID(),
         userId: session.user.id,
-        pathId: pathId,
-        status: "ACTIVE",
-        updatedAt: new Date(),
-        // Create progress entries for each node
-        NodeProgress: {
-          create: path.LearningPathNode.map(node => ({
-            id: randomUUID(),
-            nodeId: node.id,
-            status: "NOT_STARTED",
-            updatedAt: new Date(),
-          }))
-        }
+        learningPathId: pathId,
+        status: "ACTIVE"
       },
       include: {
-        LearningPath: {
+        learningPath: {
           include: {
-            LearningPathNode: true
+            courses: true
           }
-        },
-        NodeProgress: true
+        }
       }
     });
 
@@ -105,29 +92,17 @@ export async function GET(
 
     const { pathId } = await params;
     // Get enrollment status
-    const enrollment = await db.pathEnrollment.findUnique({
+    const enrollment = await db.learningPathEnrollment.findUnique({
       where: {
-        userId_pathId: {
+        userId_learningPathId: {
           userId: session.user.id,
-          pathId,
+          learningPathId: pathId,
         }
       },
       include: {
-        LearningPath: {
+        learningPath: {
           include: {
-            LearningPathNode: {
-              orderBy: { order: "asc" }
-            }
-          }
-        },
-        NodeProgress: {
-          include: {
-            LearningPathNode: true
-          },
-          orderBy: {
-            LearningPathNode: {
-              order: "asc"
-            }
+            courses: true
           }
         }
       }

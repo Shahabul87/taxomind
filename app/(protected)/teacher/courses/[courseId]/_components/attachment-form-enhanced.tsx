@@ -3,7 +3,7 @@
 import * as z from "zod";
 import axios from "axios";
 import { useState, useCallback } from "react";
-import { File, Loader2, PlusCircle, X, FileIcon, Sparkles, Brain, Shield } from "lucide-react";
+import { File, Loader2, PlusCircle, X, Sparkles, Brain, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -332,7 +332,7 @@ export const AttachmentFormEnhanced = ({
             >
               <div className="flex items-center gap-x-2 flex-1">
                 <div className="p-2 rounded-md bg-blue-50 dark:bg-blue-500/10">
-                  <FileIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <File className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">

@@ -13,7 +13,7 @@ import { PostCategory } from "./_components/post-category";
 import { PostDescription } from "./_components/post-description";
 import { PostChaptersForm } from "./_components/post-section-creation";
 import { PostImageUpload } from "./_components/post-image-upload";
-import { CheckCircle2, ChevronRight, Circle, Clock, Eye, FileText, ImageIcon, Layout, NotebookPen } from "lucide-react";
+import { CheckCircle2, ChevronRight, Circle, Clock, Eye, FileText, Image, Layout, NotebookPen } from "lucide-react";
 
 type ChapterLite = {
   id: string;
@@ -52,7 +52,7 @@ export default function EnterpriseEditPost(props: EnterpriseEditPostProps) {
       { label: "Title & Category", icon: NotebookPen, done: hasTitle && hasCategory },
       { label: "Description", icon: Layout, done: hasDescription },
       { label: "Content", icon: FileText, done: hasPublishedSection },
-      { label: "Cover Image", icon: ImageIcon, done: hasImage },
+      { label: "Cover Image", icon: Image, done: hasImage },
     ];
   }, [title, category, description, imageUrl, postChapters]);
 

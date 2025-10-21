@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useSAMGlobal } from '@/components/sam/sam-global-provider';
+import { useSAMGlobal } from '@/sam/components/global/sam-global-provider';
 
 interface PageSamContextOptions {
   // Entity information

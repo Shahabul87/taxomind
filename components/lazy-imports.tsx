@@ -129,7 +129,7 @@ export const TeacherInsights = dynamic(
 
 // SAM AI Assistant - Complex AI components
 export const SAMAssistant = dynamic(
-  () => import('@/components/sam/sam-global-provider').then(m => ({ default: m.SAMGlobalProvider } as any)),
+  () => import('@/sam/components/global/sam-global-provider').then(m => ({ default: m.SAMGlobalProvider } as any)),
   { loading: () => <LoadingSpinner />, ssr: false }
 );
 

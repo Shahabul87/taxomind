@@ -63,7 +63,7 @@ const CourseLearningPage = async (
                   codeExplanations: {
                     select: {
                       id: true,
-                      heading: true,
+                      title: true,
                     }
                   }
                 },
