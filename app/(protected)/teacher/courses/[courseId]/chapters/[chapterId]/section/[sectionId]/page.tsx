@@ -58,7 +58,7 @@ const SectionIdPage = async (
       codeExplanations: {
         select: {
           id: true,
-          heading: true,
+          title: true,
           code: true,
           explanation: true,
         },
@@ -69,9 +69,13 @@ const SectionIdPage = async (
           title: true,
           content: true,
           latex: true,
+          latexEquation: true,
           equation: true,
           imageUrl: true,
           mode: true,
+          explanation: true,
+          isPublished: true,
+          position: true,
         },
       },
       chapter: {

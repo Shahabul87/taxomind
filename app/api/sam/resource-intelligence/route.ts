@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samResourceEngine } from "@/lib/sam-resource-engine";
+import { samResourceEngine } from "@/sam/engines/content/sam-resource-engine";
 import { logger } from '@/lib/logger';
 import {
   Topic,
   ResourceDiscoveryConfig,
   StudentResourceProfile,
   ResourceType,
-} from "@/lib/sam-resource-engine";
+} from "@/sam/engines/content/sam-resource-engine";
 
 export async function POST(req: NextRequest) {
   try {

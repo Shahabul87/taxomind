@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { logger } from '@/lib/logger';
+import { useSAMFormSync } from "@/hooks/use-sam-form-sync";
 import {
   Form,
   FormControl,
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { Course } from "@prisma/client";
-import { SAMEnhancedEditor } from "@/components/tiptap/sam-enhanced-editor";
+import { SAMEnhancedEditor } from "@/sam/components/integration/sam-enhanced-editor";
 import ContentViewer from "@/components/tiptap/content-viewer";
 
 interface DescriptionFormProps {
@@ -57,6 +58,19 @@ export const DescriptionForm = ({
     defaultValues: {
       description: initialData?.description || "",
     },
+  });
+
+  // Enable SAM AI Assistant context awareness for course description
+  useSAMFormSync(`course-description-form-${courseId}`, form.watch, {
+    formName: 'Edit Course Description',
+    metadata: {
+      formType: 'course-description',
+      purpose: 'Update course description with rich text editor',
+      entityType: 'course',
+      courseId,
+      courseTitle: initialData?.title,
+      hasContent: !!initialData?.description
+    }
   });
 
   // Prevent hydration issues

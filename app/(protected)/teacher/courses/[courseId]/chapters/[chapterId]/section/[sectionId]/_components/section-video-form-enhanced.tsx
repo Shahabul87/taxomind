@@ -5,8 +5,8 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { logger } from '@/lib/logger';
-import { 
-  Pencil, Video, Loader2, YoutubeIcon, Eye, EyeOff, 
+import {
+  Pencil, Video, Loader2, Youtube, Eye, EyeOff,
   ExternalLink, Brain, Sparkles, Shield, TrendingUp,
   Clock, Users, BookOpen, Star
 } from "lucide-react";
@@ -247,7 +247,7 @@ export const SectionYoutubeVideoFormEnhanced = ({
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
-                <YoutubeIcon className="h-4 w-4 text-red-500 flex-shrink-0" />
+                <Youtube className="h-4 w-4 text-red-500 flex-shrink-0" />
                 <span className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate">
                   {initialData.videoUrl}
                 </span>

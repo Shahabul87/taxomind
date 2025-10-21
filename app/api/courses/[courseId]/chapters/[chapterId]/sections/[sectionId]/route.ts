@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -7,6 +8,31 @@ import { logger } from '@/lib/logger';
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
+// Enterprise-grade validation schema for section updates
+const SectionUpdateSchema = z.object({
+  // Core content fields
+  title: z.string().min(1, "Title is required").max(200, "Title must be 200 characters or less").optional(),
+  description: z.string().max(5000, "Description must be 5000 characters or less").optional().nullable(),
+  learningObjectives: z.string().max(2000, "Learning objectives must be 2000 characters or less").optional().nullable(),
+
+  // Video content
+  videoUrl: z.string().url("Invalid URL format").optional().nullable().or(z.literal("")),
+
+  // Metadata
+  position: z.number().int("Position must be an integer").min(0, "Position must be non-negative").optional(),
+  duration: z.number().int("Duration must be an integer").min(0, "Duration must be non-negative").optional().nullable(),
+  type: z.string().max(50, "Type must be 50 characters or less").optional().nullable(),
+
+  // Access control
+  isFree: z.boolean().optional(),
+  isPublished: z.boolean().optional(),
+  isPreview: z.boolean().optional().nullable(),
+
+  // Status
+  completionStatus: z.string().max(50, "Completion status must be 50 characters or less").optional().nullable(),
+  resourceUrls: z.string().optional().nullable(),
+}).strict(); // Reject unknown fields to prevent mass assignment attacks
+
 export async function PATCH(
   req: Request,
   props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }
@@ -14,11 +40,20 @@ export async function PATCH(
   const params = await props.params;
   try {
     const session = await auth();
-    const values = await req.json();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Authentication required'
+        }
+      }, { status: 401 });
     }
+
+    // Parse and validate request body
+    const rawValues = await req.json();
+    const values = SectionUpdateSchema.parse(rawValues);
 
     // Verify the course exists and belongs to the user
     const course = await db.course.findUnique({
@@ -29,24 +64,76 @@ export async function PATCH(
     });
 
     if (!course) {
-      return new NextResponse("Not found", { status: 404 });
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Course not found or you do not have permission to access it'
+        }
+      }, { status: 404 });
     }
 
-    // Update the section
+    // Explicit field mapping to prevent mass assignment attacks
+    const updateData: Record<string, unknown> = {};
+
+    if (values.title !== undefined) updateData.title = values.title;
+    if (values.description !== undefined) updateData.description = values.description;
+    if (values.learningObjectives !== undefined) updateData.learningObjectives = values.learningObjectives;
+    if (values.videoUrl !== undefined) updateData.videoUrl = values.videoUrl === "" ? null : values.videoUrl;
+    if (values.position !== undefined) updateData.position = values.position;
+    if (values.duration !== undefined) updateData.duration = values.duration;
+    if (values.type !== undefined) updateData.type = values.type;
+    if (values.isFree !== undefined) updateData.isFree = values.isFree;
+    if (values.isPublished !== undefined) updateData.isPublished = values.isPublished;
+    if (values.isPreview !== undefined) updateData.isPreview = values.isPreview;
+    if (values.completionStatus !== undefined) updateData.completionStatus = values.completionStatus;
+    if (values.resourceUrls !== undefined) updateData.resourceUrls = values.resourceUrls;
+
+    // Update the section with validated and mapped data
     const section = await db.section.update({
       where: {
         id: params.sectionId,
         chapterId: params.chapterId,
       },
-      data: {
-        ...values,
-      },
+      data: updateData,
     });
 
-    return NextResponse.json(section);
+    // Return standard API response format
+    return NextResponse.json({
+      success: true,
+      data: section,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        requestId: crypto.randomUUID(),
+        version: '1.0.0'
+      }
+    });
   } catch (error) {
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      logger.error("[SECTION_UPDATE_VALIDATION_ERROR]:", error.errors);
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          }))
+        }
+      }, { status: 400 });
+    }
+
+    // Handle database errors
     logger.error("[SECTION_UPDATE_ERROR]:", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred while updating the section'
+      }
+    }, { status: 500 });
   }
 }
 
@@ -59,7 +146,13 @@ export async function GET(
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Authentication required'
+        }
+      }, { status: 401 });
     }
 
     // Verify the course exists and belongs to the user
@@ -71,7 +164,13 @@ export async function GET(
     });
 
     if (!course) {
-      return new NextResponse("Not found", { status: 404 });
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Course not found or you do not have permission to access it'
+        }
+      }, { status: 404 });
     }
 
     // Fetch the section
@@ -95,13 +194,34 @@ export async function GET(
     });
 
     if (!section) {
-      return new NextResponse("Section not found", { status: 404 });
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Section not found'
+        }
+      }, { status: 404 });
     }
 
-    return NextResponse.json(section);
+    // Return standard API response format
+    return NextResponse.json({
+      success: true,
+      data: section,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        requestId: crypto.randomUUID(),
+        version: '1.0.0'
+      }
+    });
   } catch (error) {
     logger.error("[SECTION_GET_ERROR]:", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred while fetching the section'
+      }
+    }, { status: 500 });
   }
 }
 
@@ -114,7 +234,13 @@ export async function DELETE(
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Authentication required'
+        }
+      }, { status: 401 });
     }
 
     // Verify course ownership
@@ -126,7 +252,13 @@ export async function DELETE(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'You do not have permission to delete this section'
+        }
+      }, { status: 401 });
     }
 
     // Delete the section
@@ -137,9 +269,24 @@ export async function DELETE(
       }
     });
 
-    return NextResponse.json(deletedSection);
+    // Return standard API response format
+    return NextResponse.json({
+      success: true,
+      data: deletedSection,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        requestId: crypto.randomUUID(),
+        version: '1.0.0'
+      }
+    });
   } catch (error) {
-
-    return new NextResponse("Internal Error", { status: 500 });
+    logger.error("[SECTION_DELETE_ERROR]:", error);
+    return NextResponse.json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred while deleting the section'
+      }
+    }, { status: 500 });
   }
 } 

@@ -1,12 +1,13 @@
 'use client';
 
 import { CldUploadWidget } from "next-cloudinary";
+import { CloudinaryUploadWidgetResults } from '@cloudinary-util/types';
 import Image from "next/image";
 import { useCallback, useState } from "react";
 import { ImagePlus } from 'lucide-react'
 
 declare global {
-  var cloudinary: any
+  var cloudinary: unknown
 }
 
 const uploadPreset = "dk2uffum";
@@ -21,10 +22,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, value }) => {
   const [imageUrls, setImageUrls] = useState<string[]>(value);
 
   // Handler for when images are uploaded
-  const handleUpload = useCallback((result: any) => {
-    if (result.event === "success") {
-      setImageUrls((prevUrls) => [...prevUrls, result.info.secure_url]);
-      onChange([...imageUrls, result.info.secure_url]);
+  const handleUpload = useCallback((result: CloudinaryUploadWidgetResults) => {
+    if (result.event === "success" && result.info && typeof result.info !== 'string') {
+      const secureUrl = result.info.secure_url;
+      setImageUrls((prevUrls) => [...prevUrls, secureUrl]);
+      onChange([...imageUrls, secureUrl]);
     }
   }, [onChange, imageUrls]);
 
@@ -37,7 +39,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, value }) => {
 
   return (
     <CldUploadWidget
-      onUpload={handleUpload}
+      onSuccess={handleUpload}
       uploadPreset={uploadPreset}
       options={{
         maxFiles: 20, // Set the desired number of max files

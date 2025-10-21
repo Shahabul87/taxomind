@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { MarketAnalysisEngine } from '@/lib/sam-market-engine';
+import { MarketAnalysisEngine } from '@/sam/engines/business/sam-market-engine';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 

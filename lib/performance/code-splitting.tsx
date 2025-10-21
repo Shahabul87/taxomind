@@ -209,7 +209,7 @@ export const LazyComponents = {
   ),
 
   SAMEngine: createLazyComponent(
-    () => import('@/components/sam/sam-engine-powered-chat'),
+    () => import('@/sam/components/contextual/sam-engine-powered-chat'),
     { fallback: 'Default', preload: false }
   ),
 

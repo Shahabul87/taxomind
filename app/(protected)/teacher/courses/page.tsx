@@ -14,37 +14,21 @@ const CoursesPage = async () => {
     return redirect("/");
   }
 
+  // Fetch full list for table (keeps current UX); can switch to server-driven later
   const courses = await db.course.findMany({
-    where: {
-      userId: user?.id || '',
-    },
+    where: { userId: user.id },
     include: {
-      category: {
-        select: {
-          name: true
-        }
-      },
-      _count: {
-        select: {
-          Purchase: true,
-          chapters: true
-        }
-      }
+      category: { select: { name: true } },
+      _count: { select: { Purchase: true, chapters: true } },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: { createdAt: 'desc' },
   });
 
-  // Enhanced course stats
-  const publishedCount = courses.filter(course => course.isPublished).length;
+  // Stats based on fetched list
+  const publishedCount = courses.filter(c => c.isPublished).length;
   const draftCount = courses.length - publishedCount;
-  const totalEnrollments = courses.reduce((sum, course) => sum + (course._count?.Purchase || 0), 0);
-  const totalRevenue = courses.reduce((sum, course) => {
-    const enrollments = course._count?.Purchase || 0;
-    const price = course.price || 0;
-    return sum + (enrollments * price);
-  }, 0);
+  const totalEnrollments = courses.reduce((sum, c) => sum + (c._count?.Purchase || 0), 0);
+  const totalRevenue = courses.reduce((sum, c) => sum + ((c._count?.Purchase || 0) * (c.price || 0)), 0);
 
   return (
     <DynamicPageWrapper>

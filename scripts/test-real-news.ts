@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 
-import { samRealNewsFetcher } from '../lib/sam-real-news-fetcher';
-import { samNewsRankingEngine } from '../lib/sam-news-ranking-engine';
+import { samRealNewsFetcher } from '../sam-ai-tutor/utils/sam-real-news-fetcher';
+import { samNewsRankingEngine } from '../sam-ai-tutor/engines/advanced/sam-news-ranking-engine';
 
 async function testRealNews() {
   console.log('Testing Real AI News Fetcher...\n');
@@ -9,22 +9,22 @@ async function testRealNews() {
   try {
     // Test 1: Search for specific AI news
     console.log('1. Searching for "GPT OpenAI" news...');
-    const searchResults = await samRealNewsFetcher.searchAINews('GPT OpenAI latest news');
+    const searchResults = await samRealNewsFetcher.fetchByQuery('GPT OpenAI latest news');
     console.log(`Found ${searchResults.length} articles`);
     
     if (searchResults.length > 0) {
       console.log('\nTop 3 search results:');
       searchResults.slice(0, 3).forEach((article, i) => {
         console.log(`\n${i + 1}. ${article.title}`);
-        console.log(`   Source: ${article.source.name}`);
-        console.log(`   Published: ${article.publishDate}`);
-        console.log(`   URL: ${article.articleUrl}`);
+        console.log(`   Source: ${article.source}`);
+        console.log(`   Published: ${article.publishedAt}`);
+        console.log(`   URL: ${article.url}`);
       });
     }
     
     // Test 2: Fetch all news
     console.log('\n\n2. Fetching all AI news from RSS feeds...');
-    const allNews = await samRealNewsFetcher.fetchAllNews();
+    const allNews = await samRealNewsFetcher.fetchNews();
     console.log(`Total articles fetched: ${allNews.length}`);
     
     // Test 3: Rank the news
@@ -37,8 +37,8 @@ async function testRealNews() {
       console.log(`   Score: ${article.rankingScore}`);
       console.log(`   Status: ${article.trendingStatus}`);
       console.log(`   Badges: ${article.qualityBadges?.join(', ') || 'None'}`);
-      console.log(`   Source: ${article.source.name}`);
-      console.log(`   URL: ${article.articleUrl}`);
+      console.log(`   Source: ${article.source}`);
+      console.log(`   URL: ${article.url}`);
     });
     
     // Test 4: Get trending news

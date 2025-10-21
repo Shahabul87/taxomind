@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getSAMBadges } from '@/lib/sam-database';
-import { TEACHER_ACHIEVEMENTS } from '@/lib/sam-achievements';
+import { getSAMBadges } from '@/sam/utils/sam-database';
+import { TEACHER_ACHIEVEMENTS } from '@/sam/utils/sam-achievements';
 import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {

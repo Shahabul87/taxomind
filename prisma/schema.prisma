@@ -10,8 +10,8 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-10-12T17:53:46.104Z
-// Source: 12 domain files
+// Generated: 2025-10-20T07:34:10.737Z
+// Source: 15 domain files
 // ==========================================
 
 
@@ -935,7 +935,8 @@ model User {
   IdeaComment                             IdeaComment[]
   IdeaLike                                IdeaLike[]
   LearningDNA                             LearningDNA[]
-  LearningPath                            LearningPath[]
+  // DEPRECATED: Old LearningPath relation - replaced with learningPathsCreated in Phase 2
+  // LearningPath                            LearningPath[]
   LearningStyleAnalysis                   LearningStyleAnalysis[]
   Message_Message_recipientIdToUser       Message[]                            @relation("Message_recipientIdToUser")
   Message_Message_senderIdToUser          Message[]                            @relation("Message_senderIdToUser")
@@ -944,8 +945,9 @@ model User {
   MotivationProfile                       MotivationProfile[]
   Note                                    Note[]
   Notification                            Notification[]
-  PathEnrollment                          PathEnrollment[]
-  PathRecommendation                      PathRecommendation[]
+  // DEPRECATED: PathEnrollment relation - models moved to 13-course-enhancements.prisma
+  // PathEnrollment                          PathEnrollment[]
+  // PathRecommendation                      PathRecommendation[]
   PersonalizationResult                   PersonalizationResult[]
   PersonalizedLearningPath                PersonalizedLearningPath[]
   PersonalizedResourceRecommendation      PersonalizedResourceRecommendation[]
@@ -1062,6 +1064,26 @@ model User {
   adminAccounts               AdminAccount[]              @relation("AdminAccounts")
   adminActiveSessions         AdminActiveSession[]        @relation("AdminActiveSessions")
   adminTwoFactorConfirmation  AdminTwoFactorConfirmation? @relation("AdminTwoFactorConfirmation")
+
+  // User Preferences & Settings (added January 16, 2025)
+  notificationPreferences UserNotificationPreferences?
+  privacySettings         UserPrivacySettings?
+  dataExportRequests      DataExportRequest[]          @relation("DataExportRequests")
+  accountDeletionRequests AccountDeletionRequest[]     @relation("AccountDeletionRequests")
+  loginHistory            LoginHistory[]               @relation("LoginHistory")
+
+  // Phase 2: Q&A System (added January 20, 2025)
+  courseQuestions CourseQuestion[]
+  courseAnswers   CourseAnswer[]
+  questionVotes   QuestionVote[]
+  answerVotes     AnswerVote[]
+
+  // Phase 2: Course Enhancements (from 13-course-enhancements.prisma)
+  wishlists                Wishlist[]
+  learningPathsCreated     LearningPath[]
+  learningPathEnrollments  LearningPathEnrollment[]
+  courseComparisons        CourseComparison[]
+  courseRecommendations    CourseRecommendation[]
 }
 
 model Account {
@@ -1124,7 +1146,10 @@ model ActiveSession {
   browser      String?
   os           String?
   deviceType   String?
-  lastActiveAt DateTime @default(now())
+  deviceName   String?  // Added for settings page
+  location     String?  // Added for settings page
+  lastActive   DateTime @default(now())  // Changed from lastActiveAt to match usage
+  createdAt    DateTime @default(now())  // Added for settings page
   expiresAt    DateTime
   isRevoked    Boolean  @default(false)
   User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1452,10 +1477,11 @@ model AdminTwoFactorToken {
 // ==========================================
 
 model Category {
-  id      String   @id @default(uuid())
-  name    String   @unique
-  courses Course[]
-  Group   Group[]
+  id            String         @id @default(uuid())
+  name          String         @unique
+  courses       Course[]
+  Group         Group[]
+  learningPaths LearningPath[]
 }
 
 model Course {
@@ -1478,6 +1504,13 @@ model Course {
   subtitle                     String?
   isFeatured                   Boolean                        @default(false)
   organizationId               String?
+  // Phase 2 Week 5 - Additional course metadata
+  prerequisites                String?                        @db.Text
+  difficulty                   String?
+  totalDuration                Int?
+  originalPrice                Float?
+  dealEndDate                  DateTime?
+  averageRating                Float?
   AIGeneratedContent           AIGeneratedContent[]
   attachments                  Attachment[]
   BloomsPerformanceMetric      BloomsPerformanceMetric[]
@@ -1520,6 +1553,17 @@ model Course {
 
   // New relations for missing models
   courseCompletionAnalytics CourseCompletionAnalytics?
+
+  // Phase 2: Q&A System relations
+  courseQuestions CourseQuestion[]
+
+  // Phase 2: Course Enhancements (from 13-course-enhancements.prisma)
+  wishlists                      Wishlist[]
+  learningPathCourses            LearningPathCourse[]
+  currentPathEnrollments         LearningPathEnrollment[]
+  comparedInComparisons          CourseComparison[]         @relation("ComparedCourses")
+  recommendationsReceived        CourseRecommendation[]     @relation("RecommendedCourse")
+  recommendationsAsSource        CourseRecommendation[]     @relation("RecommendationSource")
 
   @@index([categoryId])
   @@index([organizationId])
@@ -1613,6 +1657,9 @@ model Section {
 
   // New relations for missing models
   sectionCompletionTracking SectionCompletionTracking[]
+
+  // Phase 2: Q&A System relations
+  courseQuestions CourseQuestion[]
 
   @@index([chapterId])
 }
@@ -1739,101 +1786,106 @@ model ExamQuestion {
   @@index([examId, order])
 }
 
-model LearningPath {
-  id                 String               @id
-  name               String
-  description        String?
-  difficulty         PathDifficulty       @default(BEGINNER)
-  estimatedDuration  Int?
-  isActive           Boolean              @default(true)
-  isPublic           Boolean              @default(false)
-  generationType     GenerationType       @default(MANUAL)
-  creatorId          String?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime
-  User               User?                @relation(fields: [creatorId], references: [id])
-  LearningPathNode   LearningPathNode[]
-  PathEnrollment     PathEnrollment[]
-  PathRecommendation PathRecommendation[]
+// DEPRECATED: Duplicate LearningPath model - moved to 13-course-enhancements.prisma
+// model LearningPath {
+//   id                 String               @id
+//   name               String
+//   description        String?
+//   difficulty         PathDifficulty       @default(BEGINNER)
+//   estimatedDuration  Int?
+//   isActive           Boolean              @default(true)
+//   isPublic           Boolean              @default(false)
+//   generationType     GenerationType       @default(MANUAL)
+//   creatorId          String?
+//   createdAt          DateTime             @default(now())
+//   updatedAt          DateTime
+//   User               User?                @relation(fields: [creatorId], references: [id])
+//   LearningPathNode   LearningPathNode[]
+//   PathEnrollment     PathEnrollment[]
+//   PathRecommendation PathRecommendation[]
 
-  @@index([creatorId])
-}
+//   @@index([creatorId])
+// }
 
-model LearningPathNode {
-  id            String          @id
-  order         Int
-  name          String
-  description   String?
-  contentType   PathContentType
-  contentId     String?
-  prerequisites String[]
-  pathId        String
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime
-  LearningPath  LearningPath    @relation(fields: [pathId], references: [id], onDelete: Cascade)
-  NodeProgress  NodeProgress[]
+// DEPRECATED: LearningPathNode model - moved to 13-course-enhancements.prisma
+// model LearningPathNode {
+//   id            String          @id
+//   order         Int
+//   name          String
+//   description   String?
+//   contentType   PathContentType
+//   contentId     String?
+//   prerequisites String[]
+//   pathId        String
+//   createdAt     DateTime        @default(now())
+//   updatedAt     DateTime
+//   LearningPath  LearningPath    @relation(fields: [pathId], references: [id], onDelete: Cascade)
+//   NodeProgress  NodeProgress[]
 
-  @@unique([pathId, order])
-  @@index([pathId])
-}
+//   @@unique([pathId, order])
+//   @@index([pathId])
+// }
 
-model NodeProgress {
-  id               String           @id
-  status           NodeStatus       @default(NOT_STARTED)
-  startedAt        DateTime?
-  completedAt      DateTime?
-  enrollmentId     String
-  nodeId           String
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime
-  PathEnrollment   PathEnrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  LearningPathNode LearningPathNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+// DEPRECATED: NodeProgress model - moved to 13-course-enhancements.prisma
+// model NodeProgress {
+//   id               String           @id
+//   status           NodeStatus       @default(NOT_STARTED)
+//   startedAt        DateTime?
+//   completedAt      DateTime?
+//   enrollmentId     String
+//   nodeId           String
+//   createdAt        DateTime         @default(now())
+//   updatedAt        DateTime
+//   PathEnrollment   PathEnrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+//   LearningPathNode LearningPathNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
 
-  @@unique([enrollmentId, nodeId])
-  @@index([enrollmentId])
-  @@index([nodeId])
-}
+//   @@unique([enrollmentId, nodeId])
+//   @@index([enrollmentId])
+//   @@index([nodeId])
+// }
 
-model PathEnrollment {
-  id              String           @id
-  status          EnrollmentStatus @default(ACTIVE)
-  startedAt       DateTime         @default(now())
-  completedAt     DateTime?
-  progressPercent Float            @default(0)
-  userId          String
-  pathId          String
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime
-  NodeProgress    NodeProgress[]
-  LearningPath    LearningPath     @relation(fields: [pathId], references: [id], onDelete: Cascade)
-  User            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+// DEPRECATED: PathEnrollment model - moved to 13-course-enhancements.prisma
+// model PathEnrollment {
+//   id              String           @id
+//   status          EnrollmentStatus @default(ACTIVE)
+//   startedAt       DateTime         @default(now())
+//   completedAt     DateTime?
+//   progressPercent Float            @default(0)
+//   userId          String
+//   pathId          String
+//   createdAt       DateTime         @default(now())
+//   updatedAt       DateTime
+//   NodeProgress    NodeProgress[]
+//   LearningPath    LearningPath     @relation(fields: [pathId], references: [id], onDelete: Cascade)
+//   User            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, pathId])
-  @@index([pathId])
-  @@index([userId])
-}
+//   @@unique([userId, pathId])
+//   @@index([pathId])
+//   @@index([userId])
+// }
 
-model PathRecommendation {
-  id                        String                      @id
-  reason                    String
-  score                     Float
-  priority                  Int                         @default(0)
-  basedOn                   RecommendationType
-  metadata                  Json?
-  expiresAt                 DateTime?
-  isActive                  Boolean                     @default(true)
-  userId                    String
-  pathId                    String
-  createdAt                 DateTime                    @default(now())
-  updatedAt                 DateTime
-  LearningPath              LearningPath                @relation(fields: [pathId], references: [id], onDelete: Cascade)
-  User                      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  RecommendationInteraction RecommendationInteraction[]
+// DEPRECATED: PathRecommendation model - moved to 13-course-enhancements.prisma
+// model PathRecommendation {
+//   id                        String                      @id
+//   reason                    String
+//   score                     Float
+//   priority                  Int                         @default(0)
+//   basedOn                   RecommendationType
+//   metadata                  Json?
+//   expiresAt                 DateTime?
+//   isActive                  Boolean                     @default(true)
+//   userId                    String
+//   pathId                    String
+//   createdAt                 DateTime                    @default(now())
+//   updatedAt                 DateTime
+//   LearningPath              LearningPath                @relation(fields: [pathId], references: [id], onDelete: Cascade)
+//   User                      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   RecommendationInteraction RecommendationInteraction[]
 
-  @@unique([userId, pathId])
-  @@index([pathId])
-  @@index([userId, isActive])
-}
+//   @@unique([userId, pathId])
+//   @@index([pathId])
+//   @@index([userId, isActive])
+// }
 
 model UserAnswer {
   id              String          @id
@@ -2243,34 +2295,62 @@ model Note {
 
 model CodeExplanation {
   id          String   @id @default(uuid())
-  heading     String?
-  code        String?
-  explanation String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  sectionId   String?
-  language    String?  @default("typescript")
-  order       Int?     @default(0)
-  section     Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
-  @@index([sectionId])
-}
+  // Core content fields
+  title       String   @db.VarChar(200)
+  code        String   @db.Text
+  explanation String?  @db.Text
 
-model MathExplanation {
-  id          String   @id @default(uuid())
-  title       String
-  content     String
-  latex       String?
-  isPublished Boolean  @default(false)
+  // Metadata
+  language    String   @default("typescript") @db.VarChar(50)
+  position    Int      @default(0)
+  lineStart   Int?
+  lineEnd     Int?
+
+  // Grouping & organization
   sectionId   String
+  groupId     String?
+  isPublished Boolean  @default(true)
+
+  // Timestamps
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  equation    String?
-  imageUrl    String?
-  mode        String?
+
+  // Relations
   section     Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([sectionId])
+  @@index([sectionId, position])
+  @@index([groupId])
+}
+
+model MathExplanation {
+  id            String   @id @default(uuid())
+  title         String   @db.VarChar(200)
+
+  // Content fields
+  content       String?  @db.Text
+  explanation   String   @db.Text
+
+  // LaTeX and equation fields
+  latex         String?  @db.Text
+  latexEquation String?  @db.Text
+  equation      String?  @db.Text
+  imageUrl      String?  @db.VarChar(500)
+  mode          String?  @db.VarChar(50)
+
+  // Metadata
+  isPublished   Boolean  @default(false)
+  position      Int      @default(0)
+  sectionId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  section       Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@index([sectionId, position])
 }
 
 model Post {
@@ -4223,15 +4303,16 @@ model AIUsageMetrics {
   @@index([userId])
 }
 
-model RecommendationInteraction {
-  id                 String             @id
-  action             InteractionType
-  recommendationId   String
-  createdAt          DateTime           @default(now())
-  PathRecommendation PathRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
-
-  @@index([recommendationId])
-}
+// DEPRECATED: RecommendationInteraction model - depends on PathRecommendation which was moved to 13-course-enhancements.prisma
+// model RecommendationInteraction {
+//   id                 String             @id
+//   action             InteractionType
+//   recommendationId   String
+//   createdAt          DateTime           @default(now())
+//   PathRecommendation PathRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+//
+//   @@index([recommendationId])
+// }
 
 model UserAIPreferences {
   id                 String   @id
@@ -4556,6 +4637,9 @@ model Organization {
   // Content Governance relations
   approvalWorkflowTemplates ApprovalWorkflowTemplate[]
   approvalAnalytics         ApprovalAnalytics[]
+
+  // Phase 2: Course Enhancements
+  learningPaths LearningPath[]
 
   @@map("organizations")
 }
@@ -5696,3 +5780,382 @@ model CertificateEvent {
   @@index([createdAt])
 }
 
+
+// ==========================================
+// Source: 12-user-preferences.prisma
+// ==========================================
+
+// ==========================================
+// User Preferences & Settings Domain
+// ==========================================
+// Models for user preferences, notification settings,
+// privacy controls, and account management features
+//
+// NOTE: ActiveSession already exists in 02-auth.prisma
+// ==========================================
+
+// User Notification Preferences
+model UserNotificationPreferences {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Email Notifications
+  emailNotifications    Boolean  @default(true)
+  emailCourseUpdates    Boolean  @default(true)
+  emailNewMessages      Boolean  @default(true)
+  emailMarketingEmails  Boolean  @default(false)
+  emailWeeklyDigest     Boolean  @default(true)
+
+  // Push Notifications
+  pushNotifications     Boolean  @default(true)
+  pushCourseReminders   Boolean  @default(true)
+  pushNewMessages       Boolean  @default(true)
+  pushAchievements      Boolean  @default(true)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// User Privacy Settings
+model UserPrivacySettings {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Profile Visibility
+  profileVisibility       String   @default("public") // public, private, friends
+  showEmail               Boolean  @default(false)
+  showPhone               Boolean  @default(false)
+  showLearningProgress    Boolean  @default(true)
+
+  // Data & Personalization
+  allowDataCollection     Boolean  @default(true)
+  allowPersonalization    Boolean  @default(true)
+
+  // Cookie Preferences
+  cookieNecessary         Boolean  @default(true) // Always true
+  cookieFunctional        Boolean  @default(true)
+  cookieAnalytics         Boolean  @default(true)
+  cookieMarketing         Boolean  @default(false)
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// GDPR Data Export Requests
+model DataExportRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("DataExportRequests", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Request Details
+  status          String   @default("pending") // pending, processing, completed, failed
+  format          String   @default("json") // json, csv
+  downloadUrl     String?
+  expiresAt       DateTime?
+
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// Account Deletion Requests
+model AccountDeletionRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("AccountDeletionRequests", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Request Details
+  reason          String?
+  status          String   @default("pending") // pending, approved, rejected, completed, cancelled
+  scheduledFor    DateTime // 30 days from request date
+
+  // Admin Review
+  reviewedBy      String?
+  reviewNotes     String?
+  reviewedAt      DateTime?
+
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledFor])
+}
+
+// Login History (extends auth audit)
+model LoginHistory {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("LoginHistory", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Login Details
+  success         Boolean
+  ipAddress       String?
+  userAgent       String?
+  location        String?
+  failureReason   String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([success])
+}
+
+// ==========================================
+// Source: 13-course-enhancements.prisma
+// ==========================================
+
+// ==========================================
+// Course Enhancements - Phase 2
+// ==========================================
+// Enhanced course features, wishlists, learning paths, and recommendations
+//
+// Total Models: 5
+// Priority: 4
+// ==========================================
+
+// Extend the Course model with new fields
+// Note: These fields should be added to the existing Course model in 03-learning.prisma
+// during the next schema merge
+//
+// model Course {
+//   // Add these fields to existing Course model:
+//   difficulty      String?       @default("Beginner")  // Beginner, Intermediate, Advanced, Expert
+//   duration        Int?          // Total duration in minutes
+//   previewVideo    String?       // Video URL for hover preview
+//   originalPrice   Float?        // Original price before discount
+//   language        String?       @default("English")
+//   lastUpdated     DateTime      @default(now())
+//   completionRate  Float?        // Average completion rate percentage
+//
+//   // Add these relations:
+//   wishlists       Wishlist[]
+//   comparisons     CourseComparison[] @relation("ComparedCourses")
+//   learningPaths   LearningPathCourse[]
+//   recommendations CourseRecommendation[] @relation("RecommendedCourse")
+// }
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  addedAt   DateTime @default(now())
+  priority  Int      @default(0)
+  notes     String?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+model LearningPath {
+  id              String               @id @default(cuid())
+  title           String
+  description     String?
+  slug            String               @unique
+  imageUrl        String?
+  difficulty      String?              @default("Beginner")
+  estimatedWeeks  Int?
+  isPublished     Boolean              @default(false)
+  isFeatured      Boolean              @default(false)
+  createdById     String
+  organizationId  String?
+  categoryId      String?
+  tags            String[]             @default([])
+  prerequisites   String?
+  learningGoals   String[]             @default([])
+  targetAudience  String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  createdBy       User                 @relation(fields: [createdById], references: [id])
+  organization    Organization?        @relation(fields: [organizationId], references: [id])
+  category        Category?            @relation(fields: [categoryId], references: [id])
+  courses         LearningPathCourse[]
+  enrollments     LearningPathEnrollment[]
+
+  @@index([createdById])
+  @@index([organizationId])
+  @@index([categoryId])
+  @@index([slug])
+}
+
+model LearningPathCourse {
+  id             String       @id @default(cuid())
+  learningPathId String
+  courseId       String
+  position       Int
+  isRequired     Boolean      @default(true)
+  description    String?      // Why this course is in the path
+  estimatedWeeks Int?
+  createdAt      DateTime     @default(now())
+
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([learningPathId, courseId])
+  @@index([learningPathId])
+  @@index([courseId])
+}
+
+model LearningPathEnrollment {
+  id               String       @id @default(cuid())
+  userId           String
+  learningPathId   String
+  startedAt        DateTime     @default(now())
+  completedAt      DateTime?
+  progressPercent  Float        @default(0)
+  currentCourseId  String?
+  status           String       @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED
+
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  learningPath     LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  currentCourse    Course?      @relation(fields: [currentCourseId], references: [id])
+
+  @@unique([userId, learningPathId])
+  @@index([userId])
+  @@index([learningPathId])
+  @@index([status])
+}
+
+model CourseComparison {
+  id            String   @id @default(cuid())
+  userId        String
+  courseIds     String[] // Array of course IDs being compared
+  comparedAt    DateTime @default(now())
+  notes         String?
+  selectedId    String?  // The course user selected after comparison
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses       Course[] @relation("ComparedCourses")
+
+  @@index([userId])
+}
+
+model CourseRecommendation {
+  id               String   @id @default(cuid())
+  userId           String
+  courseId         String
+  recommendedById  String?  // ID of the course that triggered this recommendation
+  reason           String   // Why this course is recommended
+  score            Float    // Recommendation score (0-1)
+  type             String   // SIMILAR, NEXT_STEP, POPULAR, PERSONALIZED
+  isViewed         Boolean  @default(false)
+  isEnrolled       Boolean  @default(false)
+  isDismissed      Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime?
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course           Course   @relation("RecommendedCourse", fields: [courseId], references: [id], onDelete: Cascade)
+  recommendedBy    Course?  @relation("RecommendationSource", fields: [recommendedById], references: [id])
+
+  @@index([userId, isDismissed])
+  @@index([courseId])
+  @@index([type])
+  @@index([createdAt])
+}
+// ==========================================
+// Source: 14-qa-system.prisma
+// ==========================================
+
+// ============================================
+// Q&A Discussion System (Phase 2, Week 5-6)
+// ============================================
+// Models for course Q&A functionality including
+// questions, answers, and voting system
+
+model CourseQuestion {
+  id           String   @id @default(cuid())
+  courseId     String
+  userId       String
+  sectionId    String?
+  title        String
+  content      String   @db.Text
+  upvotes      Int      @default(0)
+  downvotes    Int      @default(0)
+  isAnswered   Boolean  @default(false)
+  isPinned     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  course       Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section      Section?          @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  answers      CourseAnswer[]
+  votes        QuestionVote[]
+
+  @@index([courseId])
+  @@index([userId])
+  @@index([sectionId])
+  @@index([createdAt])
+  @@index([upvotes])
+}
+
+model CourseAnswer {
+  id           String   @id @default(cuid())
+  questionId   String
+  userId       String
+  content      String   @db.Text
+  upvotes      Int      @default(0)
+  downvotes    Int      @default(0)
+  isInstructor Boolean  @default(false)
+  isBestAnswer Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  question     CourseQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes        AnswerVote[]
+
+  @@index([questionId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([upvotes])
+}
+
+model QuestionVote {
+  id         String   @id @default(cuid())
+  questionId String
+  userId     String
+  value      Int      // 1 for upvote, -1 for downvote
+  createdAt  DateTime @default(now())
+
+  // Relations
+  question   CourseQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, userId])
+  @@index([questionId])
+  @@index([userId])
+}
+
+model AnswerVote {
+  id        String   @id @default(cuid())
+  answerId  String
+  userId    String
+  value     Int      // 1 for upvote, -1 for downvote
+  createdAt DateTime @default(now())
+
+  // Relations
+  answer    CourseAnswer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([answerId, userId])
+  @@index([answerId])
+  @@index([userId])
+}

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { SAMAnalyticsDashboard } from '@/components/sam/sam-analytics-dashboard';
+import { SAMAnalyticsDashboard } from '@/sam/components/integration/sam-analytics-dashboard';
 import { logger } from '@/lib/logger';
 import { 
   TrendingUp, 

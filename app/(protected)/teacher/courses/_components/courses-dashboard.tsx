@@ -3,26 +3,22 @@
 import { DataTable } from "./data-table";
 import { columns } from "./column";
 import { cn } from "@/lib/utils";
-import { FileText, Layers, Plus, BookMarked, DollarSign } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
+import { CoursesDashboardProps, CourseFilters } from "@/types/course";
+import { AnalyticsSection } from "./analytics-section";
+import { FilterPresets } from "./filter-presets";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface CoursesDashboardProps {
-  courses: any[];
-  stats: {
-    total: number;
-    published: number;
-    draft: number;
-    totalEnrollments: number;
-    totalRevenue: number;
-  };
-}
+// Props interface now imported from types file
 
 export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<CourseFilters>({});
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'courses'>('overview');
 
   // Listen to sidebar state changes
   useEffect(() => {
@@ -37,165 +33,125 @@ export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
     };
   }, []);
 
+  const handleFilterPresetSelected = (filters: CourseFilters) => {
+    setActiveFilters(filters);
+  };
+
   return (
     <motion.div
-      className="space-y-8"
+      className="space-y-4 sm:space-y-6 p-2 sm:p-0"
       animate={{
         paddingLeft: sidebarExpanded ? "1rem" : "0.5rem",
         paddingRight: sidebarExpanded ? "1rem" : "0.5rem",
       }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
     >
-      
-      {/* Header glass shell */}
-      <div className="mb-2 rounded-xl border bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-gray-200/70 dark:border-gray-800/70 shadow-sm overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 md:p-6" data-tour="course-creation-header">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Courses</h1>
-            <p className="text-gray-500 dark:text-gray-400">Create, organize, and track your courses</p>
+      {/* Header */}
+      <div className="rounded-xl border bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-gray-200/70 dark:border-gray-800/70 shadow-sm overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 md:p-6" data-tour="course-creation-header">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent truncate">
+              Courses Dashboard
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 hidden sm:block">
+              Comprehensive analytics, management, and insights
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 sm:hidden">
+              Manage your courses
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/teacher/create">
-              <Button size="sm" className="gap-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-700 hover:via-purple-700 hover:to-indigo-700">
-                <Plus className="h-4 w-4" />
-                Create Course
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link href="/teacher/create" className="w-full sm:w-auto">
+              <Button size="sm" className="gap-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-700 hover:via-purple-700 hover:to-indigo-700 w-full sm:w-auto h-8 sm:h-9">
+                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm">Create Course</span>
               </Button>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className={cn(
-            "bg-white/70 dark:bg-gray-900/70",
-            "border border-gray-200/70 dark:border-gray-800/70",
-            "rounded-xl shadow-md backdrop-blur-md",
-            "p-5",
-            "flex items-center gap-4"
-          )}
-        >
-          <div className="p-2.5 rounded-lg text-white bg-gradient-to-br from-indigo-500 to-purple-500 ring-1 ring-white/20 dark:ring-white/10">
-            <Layers size={20} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Courses</p>
-            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.total}</h3>
-          </div>
-        </motion.div>
+      {/* Tabs Navigation */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-gray-200/70 dark:border-gray-800/70 h-auto">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-xs sm:text-sm px-2 py-2 sm:py-2.5">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-xs sm:text-sm px-2 py-2 sm:py-2.5">
+            Analytics
+          </TabsTrigger>
+          <TabsTrigger value="courses" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-xs sm:text-sm px-2 py-2 sm:py-2.5">
+            <span className="hidden sm:inline">All Courses</span>
+            <span className="sm:hidden">Courses</span>
+          </TabsTrigger>
+        </TabsList>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className={cn(
-            "bg-white/70 dark:bg-gray-900/70",
-            "border border-gray-200/70 dark:border-gray-800/70",
-            "rounded-xl shadow-md backdrop-blur-md",
-            "p-5",
-            "flex items-center gap-4"
-          )}
-        >
-          <div className="p-2.5 rounded-lg text-white bg-gradient-to-br from-indigo-500 to-purple-500 ring-1 ring-white/20 dark:ring-white/10">
-            <BookMarked size={20} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Published</p>
-            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.published}</h3>
-          </div>
-        </motion.div>
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+          {/* Quick Stats + Analytics */}
+          <AnalyticsSection courses={courses} />
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className={cn(
-            "bg-white/70 dark:bg-gray-900/70",
-            "border border-gray-200/70 dark:border-gray-800/70",
-            "rounded-xl shadow-md backdrop-blur-md",
-            "p-5",
-            "flex items-center gap-4"
-          )}
-        >
-          <div className="p-2.5 rounded-lg text-white bg-gradient-to-br from-indigo-500 to-purple-500 ring-1 ring-white/20 dark:ring-white/10">
-            <FileText size={20} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Drafts</p>
-            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.draft}</h3>
-          </div>
-        </motion.div>
+          {/* Filter Presets */}
+          <FilterPresets onPresetSelected={handleFilterPresetSelected} />
 
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.4 }}
-          className={cn(
-            "bg-white/70 dark:bg-gray-900/70",
-            "border border-gray-200/70 dark:border-gray-800/70",
-            "rounded-xl shadow-md backdrop-blur-md",
-            "p-5",
-            "flex items-center gap-4"
-          )}
-        >
-          <div className="p-2.5 rounded-lg text-white bg-gradient-to-br from-indigo-500 to-purple-500 ring-1 ring-white/20 dark:ring-white/10">
-            <DollarSign size={20} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Revenue</p>
-            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              ${stats.totalRevenue.toLocaleString()}
-            </h3>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Insights (subtle) */}
-      <div className="rounded-xl border border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md shadow-md p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-indigo-500" />
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Insights</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">Suggestions to help you optimize</p>
+          {/* Recent Courses Table (limited) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className={cn(
+              "rounded-xl overflow-hidden",
+              "bg-white/70 dark:bg-gray-900/70",
+              "border border-gray-200/70 dark:border-gray-800/70",
+              "shadow-md backdrop-blur-md"
+            )}
+          >
+            <div className="p-3 sm:p-4 border-b border-gray-200/70 dark:border-gray-800/70 flex items-center justify-between">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Recent Courses</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab('courses')}
+                className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
+              >
+                <span className="hidden sm:inline">View All →</span>
+                <span className="sm:hidden">All →</span>
+              </Button>
             </div>
-          </div>
-          <Badge variant="secondary" className="text-xs text-gray-700 dark:text-gray-300">Auto</Badge>
-        </div>
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-700 dark:text-gray-300">
-          {stats.total === 0 ? (
-            <p>Create your first course using the course creator.</p>
-          ) : (
-            <>
-              <p>{stats.draft} draft{stats.draft === 1 ? '' : 's'} pending. Prioritize finishing high-enrollment topics.</p>
-              <p>Revenue currently at ${stats.totalRevenue.toLocaleString()}. Review pricing for underperforming courses.</p>
-              <p>{stats.published} published. Consider adding a short assessment to improve completion.</p>
-            </>
-          )}
-        </div>
-      </div>
+            <div className="overflow-x-auto">
+              <DataTable columns={columns} data={courses.slice(0, 5)} serverMode={false} />
+            </div>
+          </motion.div>
+        </TabsContent>
 
-      {/* Actions moved to header */}
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+          <AnalyticsSection courses={courses} />
+        </TabsContent>
 
-      {/* Table Section */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.3 }}
-        className={cn(
-          "rounded-xl overflow-hidden",
-          "bg-white/70 dark:bg-gray-900/70",
-          "border border-gray-200/70 dark:border-gray-800/70",
-          "shadow-md backdrop-blur-md"
-        )}
-      >
-        <DataTable columns={columns} data={courses} />
-      </motion.div>
+        {/* All Courses Tab */}
+        <TabsContent value="courses" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+          {/* Filter Presets */}
+          <FilterPresets onPresetSelected={handleFilterPresetSelected} />
+
+          {/* Full Table */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className={cn(
+              "rounded-xl overflow-hidden",
+              "bg-white/70 dark:bg-gray-900/70",
+              "border border-gray-200/70 dark:border-gray-800/70",
+              "shadow-md backdrop-blur-md"
+            )}
+          >
+            <div className="overflow-x-auto">
+              <DataTable columns={columns} data={courses} serverMode={false} />
+            </div>
+          </motion.div>
+        </TabsContent>
+      </Tabs>
     </motion.div>
   );
 }; 

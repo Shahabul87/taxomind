@@ -29,28 +29,28 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.6 }}
-      className="bg-gradient-to-br from-emerald-50/80 via-teal-50/60 to-cyan-50/80 dark:from-slate-800/80 dark:via-slate-700/60 dark:to-emerald-900/20 border border-emerald-100/50 dark:border-slate-600/30 p-6 md:p-8 rounded-2xl shadow-sm backdrop-blur-sm"
+      className="bg-gradient-to-br from-emerald-50/80 via-teal-50/60 to-cyan-50/80 dark:from-slate-800/80 dark:via-slate-700/60 dark:to-emerald-900/20 border border-emerald-100/50 dark:border-slate-600/30 p-4 md:p-5 rounded-2xl shadow-sm backdrop-blur-sm"
       data-section="what-youll-learn"
     >
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
         <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">What You&apos;ll Learn</h2>
       </div>
       
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Always visible first 6 objectives */}
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-3">
           {initialObjectives.map((item, index) => (
-            <div 
+            <div
               key={`initial-${item.slice(0, 20).replace(/\s+/g, '-')}`}
-              className="flex items-start gap-4 p-4 bg-white/60 dark:bg-slate-700/30 rounded-xl border border-emerald-100/30 dark:border-slate-600/20 hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-200"
+              className="flex items-start gap-3 p-3 bg-white/60 dark:bg-slate-700/30 rounded-xl border border-emerald-100/30 dark:border-slate-600/20 hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-200"
             >
               <div className="flex-shrink-0 mt-0.5">
-                <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                  <Check className="text-emerald-600 dark:text-emerald-400 text-sm" />
+                <div className="w-5 h-5 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
+                  <Check className="text-emerald-600 dark:text-emerald-400 w-3 h-3" />
                 </div>
               </div>
-              <span className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              <span className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm">
                 {cleanHtmlContent(item)}
               </span>
             </div>
@@ -65,31 +65,31 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                transition={{ 
+                transition={{
                   duration: 0.5,
                   ease: [0.25, 0.46, 0.45, 0.94]
                 }}
                 className="overflow-hidden"
               >
-                <div className="grid md:grid-cols-2 gap-4 mt-4">
+                <div className="grid md:grid-cols-2 gap-3 mt-3">
                   {additionalObjectives.map((item, index) => (
-                    <motion.div 
+                    <motion.div
                       key={`additional-${item.slice(0, 20).replace(/\s+/g, '-')}`}
-                      className="flex items-start gap-4 p-4 bg-white/60 dark:bg-slate-700/30 rounded-xl border border-emerald-100/30 dark:border-slate-600/20 hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-200"
+                      className="flex items-start gap-3 p-3 bg-white/60 dark:bg-slate-700/30 rounded-xl border border-emerald-100/30 dark:border-slate-600/20 hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-200"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ 
+                      transition={{
                         duration: 0.4,
                         delay: index * 0.03,
                         ease: [0.25, 0.46, 0.45, 0.94]
                       }}
                     >
                       <div className="flex-shrink-0 mt-0.5">
-                        <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                          <Check className="text-emerald-600 dark:text-emerald-400 text-sm" />
+                        <div className="w-5 h-5 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
+                          <Check className="text-emerald-600 dark:text-emerald-400 w-3 h-3" />
                         </div>
                       </div>
-                      <span className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                      <span className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm">
                         {cleanHtmlContent(item)}
                       </span>
                     </motion.div>
@@ -100,15 +100,15 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
           </AnimatePresence>
         )}
       </div>
-      
+
       {additionalObjectives.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-emerald-100/50 dark:border-slate-600/30">
+        <div className="mt-4 pt-3 border-t border-emerald-100/50 dark:border-slate-600/30">
           <motion.button
             onClick={() => {
 
               setShowAllObjectives(!showAllObjectives);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-slate-700 hover:bg-emerald-200 dark:hover:bg-slate-600 text-emerald-700 dark:text-emerald-400 rounded-lg font-medium transition-colors duration-200"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 dark:bg-slate-700 hover:bg-emerald-200 dark:hover:bg-slate-600 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-medium transition-colors duration-200"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

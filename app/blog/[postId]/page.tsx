@@ -33,6 +33,29 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
 
   return (
     <>
+      {/* Article JSON-LD for SEO */}
+      {post && (
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Article',
+              headline: post.title,
+              description: post.description || undefined,
+              image: post.imageUrl || undefined,
+              datePublished: post.createdAt?.toISOString?.() || new Date(post.createdAt).toISOString(),
+              dateModified: post.updatedAt?.toISOString?.() || new Date(post.updatedAt).toISOString(),
+              author: post.User?.name ? { '@type': 'Person', name: post.User.name } : undefined,
+              mainEntityOfPage: {
+                '@type': 'WebPage',
+                '@id': `/blog/${params.postId}`,
+              },
+            }),
+          }}
+        />
+      )}
       <div className="min-h-screen bg-white dark:bg-gradient-to-b dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200">
         <div className="w-full max-w-[2000px] mx-auto">
           <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 mx-auto">
@@ -90,8 +113,23 @@ export async function generateMetadata(props: { params: Promise<{ postId: string
   const params = await props.params;
   const post = await getPostData(params.postId);
 
+  const title = post?.title || 'Blog Post';
+  const description = post?.description || 'Article';
+  const images = post?.imageUrl ? [{ url: post.imageUrl, alt: post.title }] : [];
   return {
-    title: post?.title || "Blog Post",
-    description: post?.description || "No description available"
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'article',
+      images,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: images as any,
+    },
   };
 }

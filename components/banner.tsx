@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircleIcon } from "lucide-react"
+import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -36,7 +36,7 @@ interface BannerProps extends VariantProps<typeof bannerVariants> {
 
 const iconMap = {
   warning: AlertTriangle,
-  success: CheckCircleIcon,
+  success: CheckCircle2,
 };
 
 interface BannerContentProps {

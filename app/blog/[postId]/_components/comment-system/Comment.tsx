@@ -505,14 +505,20 @@ export const Comment = ({
     }
   };
 
+  // Security: Don't render comments without valid user data
+  if (!localComment?.user || !localComment.user?.id || !localComment.user?.name) {
+    console.warn('[Comment] Invalid comment data - missing user information:', localComment?.id);
+    return null;
+  }
+
   return (
     <div className={cn("flex flex-col", depth > 0 ? "ml-8 mt-3" : "")}>
       <div className="flex gap-3">
         {/* Avatar */}
         <div className="flex-shrink-0">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={localComment.user.image || ""} />
-            <AvatarFallback>{localComment.user.name?.[0]}</AvatarFallback>
+            <AvatarImage src={localComment.user?.image || ""} />
+            <AvatarFallback>{localComment.user?.name?.[0] || "?"}</AvatarFallback>
           </Avatar>
         </div>
 

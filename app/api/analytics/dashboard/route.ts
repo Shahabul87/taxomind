@@ -91,10 +91,10 @@ async function getStudentDashboard(userId: string, courseId: string | null, time
   const recentActivity = await getRecentActivity(userId, courseId, 10);
 
   // Learning patterns
-  const learningPatterns = await db.pathEnrollment.findMany({
+  const learningPatterns = await db.learningPathEnrollment.findMany({
     where: { userId },
     include: {
-      LearningPath: true
+      learningPath: true
     },
     take: 5
   });
@@ -124,7 +124,7 @@ async function getStudentDashboard(userId: string, courseId: string | null, time
     courseStats,
     recentActivity,
     learningPatterns: learningPatterns.map(enrollment => ({
-      pathName: enrollment.LearningPath.name,
+      pathName: enrollment.learningPath.title,
       progress: enrollment.progressPercent,
       status: enrollment.status
     })),

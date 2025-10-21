@@ -2,11 +2,12 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { CourseCreationRequest, SamSuggestion, SamWizardState, SamWizardActions } from '../types/sam-creator.types';
-import { useSamDebounce } from '@/hooks/use-sam-debounce';
-import { useSamCache } from '@/hooks/use-sam-cache';
+import { useSamDebounce } from '@/sam/hooks/use-sam-debounce';
+import { useSamCache } from '@/sam/hooks/use-sam-cache';
 import { useProgressiveCourseCreation } from '@/hooks/use-progressive-course-creation';
 import { trackAIFeatureUsage, trackFormProgress, trackGenerationStart, trackGenerationEnd } from '@/lib/analytics-tracker';
 import { logger } from '@/lib/logger';
+import { useIntelligentSAMSync } from '@/hooks/use-sam-intelligent-sync';
 
 const TOTAL_STEPS = 4;
 
@@ -39,11 +40,22 @@ export function useSamWizard() {
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [showStreamingModal, setShowStreamingModal] = useState(false);
-  
+
   // Enhanced hooks
   const { debouncedCall, cancelAllCalls } = useSamDebounce();
   const samCache = useSamCache({ ttl: 5 * 60 * 1000, maxSize: 100 });
   const { disclosureState, completeStep } = useProgressiveCourseCreation();
+
+  // Intelligent SAM sync - automatically detects ALL form changes without hardcoding
+  useIntelligentSAMSync('ai-course-creator-wizard', formData, {
+    formName: 'AI Course Creator Wizard',
+    metadata: {
+      currentStep: step,
+      totalSteps: TOTAL_STEPS,
+      pageUrl: '/teacher/create/ai-creator',
+      wizardMode: true,
+    },
+  });
 
   // Auto-save functionality
   useEffect(() => {

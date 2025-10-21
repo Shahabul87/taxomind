@@ -6,7 +6,8 @@ import { logger } from '@/lib/logger';
 import { currentUser } from '@/lib/auth';
 import CourseCard from "./course-feature";
 import { CourseTabsDemo } from "./course-tab-demo";
-import { Footer } from "@/app/(homepage)/footer";
+// Course page uses a dedicated enterprise footer (no logo icon)
+import { CourseFooterEnterprise } from "./_components/course-footer-enterprise";
 import { CourseContent } from "./course-content";
 import ConditionalHeader from "@/app/(homepage)/user-header";
 import { CourseCardsCarousel } from "./course-card-carousel";
@@ -61,6 +62,13 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Pr
     },
     include: {
       category: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
       reviews: true,
       chapters: {
         where: {
@@ -126,7 +134,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Pr
   }
 
   return (
-    <div className="-mt-16">
+    <div className="pt-16 md:pt-20">
       <CourseCard 
         course={course as any} 
         userId={user?.id}
@@ -134,7 +142,8 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Pr
       />
       
       <div className="mt-12">
-        <CoursePageTabs 
+        <CoursePageTabs
+          course={course as any}
           chapters={chapters}
           courseId={courseId}
           initialReviews={reviews}
@@ -143,7 +152,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Pr
         />
       </div>
       
-      <Footer />
+      <CourseFooterEnterprise />
     </div>
   )
 }

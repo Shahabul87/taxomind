@@ -1,0 +1,58 @@
+{
+  "migration": {
+    "name": "Post Routes to Teacher Section",
+    "date": "2025-01-17",
+    "version": "1.0.0",
+    "description": "Migration of all post-related routes from /post/* to /teacher/posts/*"
+  },
+  "redirects": [
+    {
+      "from": "/post/all-posts",
+      "to": "/teacher/posts/all-posts",
+      "file": "app/post/all-posts/page.tsx",
+      "created": "2025-01-17",
+      "removeAfter": "2025-04-17",
+      "accessCount": 0,
+      "lastAccessed": null
+    },
+    {
+      "from": "/post/[postId]",
+      "to": "/teacher/posts/[postId]",
+      "file": "app/post/[postId]/page.tsx",
+      "created": "2025-01-17",
+      "removeAfter": "2025-04-17",
+      "accessCount": 0,
+      "lastAccessed": null
+    },
+    {
+      "from": "/post/create-post",
+      "to": "/teacher/posts/create-post",
+      "file": "app/post/create-post/page.tsx",
+      "created": "2025-01-17",
+      "removeAfter": "2025-04-17",
+      "accessCount": 0,
+      "lastAccessed": null
+    },
+    {
+      "from": "/post/[postId]/postchapters/[postchapterId]",
+      "to": "/teacher/posts/[postId]/postchapters/[postchapterId]",
+      "file": "app/post/[postId]/postchapters/[postchapterId]/page.tsx",
+      "created": "2025-01-17",
+      "removeAfter": "2025-04-17",
+      "accessCount": 0,
+      "lastAccessed": null
+    }
+  ],
+  "monitoring": {
+    "enabled": true,
+    "logFile": "logs/redirect-access.log",
+    "alertThreshold": 100,
+    "checkInterval": "daily"
+  },
+  "notes": [
+    "Monitor redirect usage for 3 months",
+    "Check analytics weekly for 404 errors",
+    "Remove redirects after confirming no active usage",
+    "Update all external links and documentation"
+  ]
+}

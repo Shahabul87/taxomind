@@ -23,6 +23,9 @@ export const CourseImageUpload = ({
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
 
+  // Ensure image URL uses HTTPS for Next.js Image component
+  const secureImageUrl = initialImage?.replace(/^http:\/\//i, 'https://') || null;
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
@@ -204,7 +207,7 @@ export const CourseImageUpload = ({
         )}
       </AnimatePresence>
 
-      {initialImage && !isEditing && (
+      {secureImageUrl && !isEditing && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -212,7 +215,7 @@ export const CourseImageUpload = ({
         >
           <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700/50">
             <Image
-              src={initialImage}
+              src={secureImageUrl}
               alt="Course image"
               fill
               className="object-cover"

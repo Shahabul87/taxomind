@@ -1,0 +1,153 @@
+// ==========================================
+// Course Enhancements - Phase 2
+// ==========================================
+// Enhanced course features, wishlists, learning paths, and recommendations
+//
+// Total Models: 5
+// Priority: 4
+// ==========================================
+
+// Extend the Course model with new fields
+// Note: These fields should be added to the existing Course model in 03-learning.prisma
+// during the next schema merge
+//
+// model Course {
+//   // Add these fields to existing Course model:
+//   difficulty      String?       @default("Beginner")  // Beginner, Intermediate, Advanced, Expert
+//   duration        Int?          // Total duration in minutes
+//   previewVideo    String?       // Video URL for hover preview
+//   originalPrice   Float?        // Original price before discount
+//   language        String?       @default("English")
+//   lastUpdated     DateTime      @default(now())
+//   completionRate  Float?        // Average completion rate percentage
+//
+//   // Add these relations:
+//   wishlists       Wishlist[]
+//   comparisons     CourseComparison[] @relation("ComparedCourses")
+//   learningPaths   LearningPathCourse[]
+//   recommendations CourseRecommendation[] @relation("RecommendedCourse")
+// }
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  addedAt   DateTime @default(now())
+  priority  Int      @default(0)
+  notes     String?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+model LearningPath {
+  id              String               @id @default(cuid())
+  title           String
+  description     String?
+  slug            String               @unique
+  imageUrl        String?
+  difficulty      String?              @default("Beginner")
+  estimatedWeeks  Int?
+  isPublished     Boolean              @default(false)
+  isFeatured      Boolean              @default(false)
+  createdById     String
+  organizationId  String?
+  categoryId      String?
+  tags            String[]             @default([])
+  prerequisites   String?
+  learningGoals   String[]             @default([])
+  targetAudience  String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  createdBy       User                 @relation(fields: [createdById], references: [id])
+  organization    Organization?        @relation(fields: [organizationId], references: [id])
+  category        Category?            @relation(fields: [categoryId], references: [id])
+  courses         LearningPathCourse[]
+  enrollments     LearningPathEnrollment[]
+
+  @@index([createdById])
+  @@index([organizationId])
+  @@index([categoryId])
+  @@index([slug])
+}
+
+model LearningPathCourse {
+  id             String       @id @default(cuid())
+  learningPathId String
+  courseId       String
+  position       Int
+  isRequired     Boolean      @default(true)
+  description    String?      // Why this course is in the path
+  estimatedWeeks Int?
+  createdAt      DateTime     @default(now())
+
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([learningPathId, courseId])
+  @@index([learningPathId])
+  @@index([courseId])
+}
+
+model LearningPathEnrollment {
+  id               String       @id @default(cuid())
+  userId           String
+  learningPathId   String
+  startedAt        DateTime     @default(now())
+  completedAt      DateTime?
+  progressPercent  Float        @default(0)
+  currentCourseId  String?
+  status           String       @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED
+
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  learningPath     LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  currentCourse    Course?      @relation(fields: [currentCourseId], references: [id])
+
+  @@unique([userId, learningPathId])
+  @@index([userId])
+  @@index([learningPathId])
+  @@index([status])
+}
+
+model CourseComparison {
+  id            String   @id @default(cuid())
+  userId        String
+  courseIds     String[] // Array of course IDs being compared
+  comparedAt    DateTime @default(now())
+  notes         String?
+  selectedId    String?  // The course user selected after comparison
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses       Course[] @relation("ComparedCourses")
+
+  @@index([userId])
+}
+
+model CourseRecommendation {
+  id               String   @id @default(cuid())
+  userId           String
+  courseId         String
+  recommendedById  String?  // ID of the course that triggered this recommendation
+  reason           String   // Why this course is recommended
+  score            Float    // Recommendation score (0-1)
+  type             String   // SIMILAR, NEXT_STEP, POPULAR, PERSONALIZED
+  isViewed         Boolean  @default(false)
+  isEnrolled       Boolean  @default(false)
+  isDismissed      Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime?
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course           Course   @relation("RecommendedCourse", fields: [courseId], references: [id], onDelete: Cascade)
+  recommendedBy    Course?  @relation("RecommendationSource", fields: [recommendedById], references: [id])
+
+  @@index([userId, isDismissed])
+  @@index([courseId])
+  @@index([type])
+  @@index([createdAt])
+}

@@ -7,38 +7,25 @@ import { useState, useEffect } from "react";
 
 // Import modular tab components
 import { VideoTab, BlogTab, MathTab, CodeTab } from "./tabs";
-// Import shared types
-import type { CodeExplanation, MathExplanation } from "./enterprise-section-types";
-
-interface Video {
-  id: string;
-  [key: string]: unknown;
-}
-
-interface Blog {
-  id: string;
-  [key: string]: unknown;
-}
-
-interface Article {
-  id: string;
-  [key: string]: unknown;
-}
-
-interface Note {
-  id: string;
-  [key: string]: unknown;
-}
+// Import shared types from enterprise-section-types
+import type {
+  CodeExplanation,
+  MathExplanation,
+  SectionVideo,
+  SectionBlog,
+  SectionArticle,
+  SectionNote
+} from "./enterprise-section-types";
 
 interface Section {
   id: string;
   title: string;
   position: number;
   isPublished: boolean;
-  videos?: Video[];
-  blogs?: Blog[];
-  articles?: Article[];
-  notes?: Note[];
+  videos?: SectionVideo[];
+  blogs?: SectionBlog[];
+  articles?: SectionArticle[];
+  notes?: SectionNote[];
   codeExplanations?: CodeExplanation[];
   mathExplanations?: MathExplanation[];
 }
@@ -50,14 +37,14 @@ interface Chapter {
 }
 
 interface SectionInitialData {
-  [key: string]: unknown;
   chapter: Chapter;
   codeExplanations: CodeExplanation[];
   mathExplanations: MathExplanation[];
-  videos: Video[];
-  blogs: Blog[];
-  articles: Article[];
-  notes: Note[];
+  videos: SectionVideo[];
+  blogs: SectionBlog[];
+  articles: SectionArticle[];
+  notes: SectionNote[];
+  [key: string]: unknown;
 }
 
 interface TabsContainerProps {
@@ -111,14 +98,7 @@ export const TabsContainer = ({
     );
   }
 
-  // Normalize data for CodeTab to avoid strict type mismatches (e.g., heading nullability)
-  const codeTabInitialData = {
-    ...initialData,
-    codeExplanations: (initialData.codeExplanations || []).map((item) => ({
-      ...item,
-      heading: item.heading ?? '',
-    })),
-  } as { [key: string]: unknown; codeExplanations: CodeExplanation[] };
+  // No normalization needed - types are now properly aligned with database schema
 
   return (
     <div className="w-full mt-10">
@@ -195,7 +175,7 @@ export const TabsContainer = ({
             </TabsContent>
 
             <TabsContent value="math">
-              <MathTab 
+              <MathTab
                 courseId={courseId}
                 chapterId={chapterId}
                 sectionId={sectionId}
@@ -208,7 +188,7 @@ export const TabsContainer = ({
                 courseId={courseId}
                 chapterId={chapterId}
                 sectionId={sectionId}
-                initialData={codeTabInitialData}
+                initialData={initialData}
               />
             </TabsContent>
           </div>

@@ -24,6 +24,31 @@ const nextConfig = {
   reactStrictMode: true,
   trailingSlash: false,
 
+  // Turbopack configuration (Next.js 15+)
+  // Migrated from experimental.turbo to top-level turbopack
+  turbopack: {
+    // Module resolution aliases (mirrors tsconfig paths)
+    resolveAlias: {
+      '@': './',
+      '@/sam': './sam-ai-tutor',
+      '@/sam/hooks': './sam-ai-tutor/hooks',
+      '@/sam/engines': './sam-ai-tutor/engines',
+      '@/sam/components': './sam-ai-tutor/components',
+      '@/sam/utils': './sam-ai-tutor/utils',
+      '@/sam/types': './sam-ai-tutor/types',
+      '@/sam/config': './sam-ai-tutor/config',
+    },
+    // Custom resolve extensions
+    resolveExtensions: [
+      '.tsx',
+      '.ts',
+      '.jsx',
+      '.js',
+      '.mjs',
+      '.json',
+    ],
+  },
+
   // Transpile packages that use ESM syntax
   transpilePackages: ['@tanstack/react-table'],
 
@@ -71,6 +96,10 @@ const nextConfig = {
     },
     // Optimize package imports for tree-shaking
     optimizePackageImports: optimizeImports,
+    // Enable Webpack build worker for reduced memory usage during builds
+    webpackBuildWorker: true,
+    // Disable server source maps in production to save memory
+    serverSourceMaps: false,
     // Note: optimizeCss disabled - requires 'critters' package to be installed
     // optimizeCss: true,
     // Enable partial prerendering for faster builds

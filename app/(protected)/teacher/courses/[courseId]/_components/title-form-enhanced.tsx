@@ -5,8 +5,8 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { logger } from '@/lib/logger';
-import { 
-  Pencil, Sparkles, Loader2, Brain, Languages, 
+import {
+  Pencil, Sparkles, Loader2, Brain, Languages,
   Target, BookOpen, Zap, RefreshCw, Globe,
   ChevronDown, ChevronUp, Info
 } from "lucide-react";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSAMFormSync } from "@/hooks/use-sam-form-sync";
 
 import {
   Form,
@@ -115,6 +116,19 @@ export const TitleFormEnhanced = ({
   });
 
   const { isSubmitting, isValid } = form.formState;
+
+  // Enable SAM AI Assistant context awareness for course title editing
+  useSAMFormSync(`course-title-form-${courseId}`, form.watch, {
+    formName: 'Edit Course Title',
+    metadata: {
+      formType: 'course-title',
+      purpose: 'Update course title with AI assistance',
+      entityType: 'course',
+      courseId,
+      category: initialData.category?.name,
+      hasObjectives: !!initialData.learningObjectives?.length
+    }
+  });
 
   // Generate titles using SAM Content Generation Assistant
   const generateTitles = useCallback(async () => {

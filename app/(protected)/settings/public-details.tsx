@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useSAMFormSync } from "@/hooks/use-sam-form-sync";
 
 
 import { Switch } from "@/components/ui/switch";
@@ -58,6 +59,16 @@ export const PublicSettingsPage = () => {
       email: user?.email || undefined,
       role: (user?.role === 'ADMIN' || user?.role === 'USER') ? user.role : 'USER',
       isTwoFactorEnabled: user?.isTwoFactorEnabled || undefined,
+    }
+  });
+
+  // Enable SAM AI Assistant context awareness for this form
+  useSAMFormSync('user-settings-form', form.watch, {
+    formName: 'User Settings',
+    metadata: {
+      formType: 'settings',
+      purpose: 'Update user profile and security settings',
+      section: 'public-details'
     }
   });
 

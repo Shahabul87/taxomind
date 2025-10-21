@@ -1,152 +1,175 @@
-# 📚 Documentation Directory
+# Taxomind Documentation
 
-This directory contains all project documentation organized by category for easy navigation and maintenance.
+Welcome to the Taxomind documentation. This directory contains comprehensive documentation for all aspects of the Taxomind Learning Management System.
 
-## 📁 Directory Structure
+## 📂 Documentation Structure
 
-### 1. **project-setup/** - Core Project Documentation
-Main project documentation including setup guides and core project information.
+### [Features](./features/)
+Documentation for all major features implemented in Taxomind.
 
-**Files:**
-- `README.md` - Main project README with features and overview
-- `CLAUDE.md` - Claude AI assistant guidance for development
-- `PROJECTPLAN.md` - Overall project vision and planning
-- `LOCAL_DEVELOPMENT_GUIDE.md` - Complete local development setup
-- `LOCAL_DEVELOPMENT_SETUP.md` - Additional local setup instructions
-- `README-PLATFORM-SETUP.md` - Platform-specific setup guide
+**Subdirectories:**
+- `ai-creator/` - SAM AI-powered course creation system
+- `code-tabs/` - Interactive code explanation features
+- `math-tabs/` - Mathematical equation rendering
+- `blog-courses/` - Blog and course catalog
+- `responsive-design/` - Mobile-first responsive design
+- `teacher-dashboard/` - Instructor dashboard features
 
-### 2. **deployment/** - Production & Deployment Guides
-All documentation related to deploying and managing production environments.
-
-**Files:**
-- `DEPLOYMENT.md` - Main deployment guide for production
-- `PRODUCTION_DEPLOYMENT_GUIDE.md` - Detailed production deployment
-- `ENTERPRISE_GUIDE.md` - Enterprise-level setup and configuration
-- `How_dev_changes_move_to_production.md` - Development to production workflow
-
-### 3. **troubleshooting/** - Bug Fixes & Problem Solutions
-Comprehensive collection of fixes, solutions, and troubleshooting guides.
-
-**Files:**
-- `API_PRODUCTION_FIX_SUMMARY.md` - API production issue fixes
-- `BUILD_ERROR_FIXES.md` - Build error resolution guides
-- `BUILD_ERROR_RESOLUTION.md` - Additional build error solutions
-- `BCRYPT_EDGE_RUNTIME_FIX.md` - Edge runtime bcrypt fixes
-- `CSS_*_FIX.md` - Various CSS-related fixes
-- `DYNAMIC_ROUTES_*_FIX.md` - Dynamic routing fixes
-- `JSX_RUNTIME_FIX.md` - JSX runtime issue fixes
-- `LOGOUT_*_FIX.md` - Authentication logout fixes
-- `RUNTIME_ERROR_FIXES.md` - General runtime error solutions
-- And more...
-
-### 4. **sam-ai-system/** - SAM AI Core Documentation
-Complete documentation for the SAM (Smart AI Mentor) system.
-
-**Files:**
-- `SAM_AI_TUTOR_DOCUMENTATION.md` - Core SAM tutor documentation
-- `SAM_AI_TUTOR_API_REFERENCE.md` - API reference for SAM tutor
-- `SAM_AI_TUTOR_COMPONENT_GUIDE.md` - Component usage guide
-- `SAM_AI_TUTOR_DEPLOYMENT_GUIDE.md` - Deployment instructions
-- `SAM_AI_TUTOR_TROUBLESHOOTING.md` - Troubleshooting guide
-- `SAM_API_DOCUMENTATION.md` - Complete API documentation
-- `SAM_COMPONENT_REFERENCE.md` - Component reference guide
-- `SAM_DEVELOPMENT_GUIDE.md` - Development guide for SAM features
-- `SAM_EVALUATION_STANDARDS_DOCUMENTATION.md` - Evaluation standards
-- `SAM_FEATURE_GAP_ANALYSIS.md` - Feature analysis and gaps
-
-### 5. **sam-implementation/** - SAM Implementation Guides
-Step-by-step implementation guides and migration documentation for SAM features.
-
-**Files:**
-- `SAM_MIGRATION_GUIDE.md` - Migration guide for SAM features
-- `SAM_IMPLEMENTATION_COMPLETE_GUIDE.md` - Complete implementation guide
-- `SAM_CONTEXTUAL_INTELLIGENCE_IMPLEMENTATION.md` - Contextual AI implementation
-- `SAM_ENGINES_INTEGRATION_GUIDE.md` - Engine integration guides
-- `SAM_FORM_POPULATION_*_GUIDE.md` - Form population implementations
-- `REVOLUTIONARY_COURSE_ARCHITECT_INTEGRATION.md` - Course architect integration
-- And more implementation guides...
-
-### 6. **system-architecture/** - Technical Architecture
-System architecture, design patterns, and technical implementation guides.
-
-**Files:**
-- `AI_INFRASTRUCTURE_ANALYSIS.md` - AI infrastructure analysis
-- `AI_BLOOM_TAXONOMY_IMPLEMENTATION.md` - Bloom's taxonomy implementation
-- `DATABASE_PERFORMANCE_OPTIMIZATION.md` - Database optimization
-- `REDIS_CACHING_STRATEGY.md` - Caching strategy implementation
-- `ENTERPRISE_*_SOLUTION.md` - Enterprise-level solutions
-- `ROLE_BASED_SYSTEM.md` - Role-based access control
-- `INTELLIGENT_PLATFORM_ROADMAP.md` - Platform development roadmap
-
-### 7. **course-management/** - Course & Content Management
-Documentation related to course creation, management, and content handling.
-
-**Files:**
-- `COURSE_CREATION_ANALYSIS.md` - Course creation system analysis
-- `COMPREHENSIVE_COURSE_FORM_ANALYSIS.md` - Course form analysis
-- `COURSE_DEPTH_ANALYZER_DOCUMENTATION.md` - Course depth analysis
-- `LEARNING-SYSTEM-DOCUMENTATION.md` - Learning system documentation
-- `CHAPTER_CREATION_TROUBLESHOOTING.md` - Chapter creation issues
-- And more course-related documentation...
-
-### 8. **integrations/** - Third-party Service Integrations
-Documentation for external service integrations and configurations.
-
-**Files:**
-- `CLOUDINARY_SETUP.md` - Cloudinary media service setup
-- `STRIPE-TESTING-GUIDE.md` - Stripe payment integration testing
-- `DEBUG_OAUTH_GUIDE.md` - OAuth debugging guide
-- `OAUTH_TROUBLESHOOTING_GUIDE.md` - OAuth troubleshooting
-
-### 9. **testing-performance/** - Testing & Performance
-Testing strategies, performance optimization, and quality assurance documentation.
-
-**Files:**
-- `TESTING_PERFORMANCE_DOCS_SETUP.md` - Testing and performance setup
-
-### 10. **platform-enhancements/** - UI/UX & Feature Enhancements
-Platform improvements, rebranding, and feature enhancement documentation.
-
-**Files:**
-- `MINDFORGE_REBRAND_COMPLETE.md` - MindForge rebranding documentation
-- `MINDFORGE_HOMEPAGE_REDESIGN.md` - Homepage redesign guide
-- `AI_CAREER_COACH_SETUP.md` - AI career coach feature setup
-- `UPGRADE_TO_NEXT15.md` - Next.js 15 upgrade guide
-- `NEXTJS_DOWNGRADE_PLAN.md` - Next.js downgrade procedures
-
-## 🔍 Quick Navigation
-
-### Looking for...
-- **Getting Started?** → `project-setup/README.md`
-- **Setup Issues?** → `troubleshooting/`
-- **SAM AI Features?** → `sam-ai-system/` or `sam-implementation/`
-- **Deployment Help?** → `deployment/`
-- **Course Management?** → `course-management/`
-- **System Architecture?** → `system-architecture/`
-
-## 📋 Documentation Standards
-
-### File Naming Convention
-- Use descriptive, ALL_CAPS naming with underscores
-- Include category prefix where applicable (SAM_, ENTERPRISE_, etc.)
-- Use descriptive suffixes (_GUIDE, _DOCUMENTATION, _FIX, _ANALYSIS)
-
-### Content Organization
-- Each file should have a clear purpose and scope
-- Include table of contents for longer documents
-- Use consistent markdown formatting
-- Include timestamps and version information where relevant
-
-## 🔧 Maintenance
-
-This documentation directory is actively maintained. When adding new documentation:
-
-1. Choose the appropriate category folder
-2. Follow existing naming conventions
-3. Update this README if adding new categories
-4. Ensure cross-references are updated
+**Start Here:** [Features README](./features/README.md)
 
 ---
 
-*Documentation organized and maintained for the Taxomind LMS platform*
+### [Setup](./setup/)
+Initial setup and configuration guides for development environment.
+
+**Available Guides:**
+- OAuth authentication setup (Google, GitHub)
+- SMTP email configuration
+- Environment variable setup
+- Development environment initialization
+
+**Start Here:** [Setup README](./setup/README.md)
+
+---
+
+### [Architecture](./architecture/)
+System architecture and design documentation.
+
+**Available Documents:**
+- Email system architecture
+- Enterprise section implementation
+- Clean architecture patterns
+- Security architecture
+
+**Start Here:** [Architecture README](./architecture/README.md)
+
+---
+
+### [Troubleshooting](./troubleshooting/)
+Common issues and their solutions.
+
+**Categories:**
+- UI/UX fixes (padding, layout issues)
+- Email system fixes (circular dependencies, production issues)
+- Build and deployment fixes (package.json, auth debugging)
+- Production checklists
+
+**Start Here:** [Troubleshooting README](./troubleshooting/README.md)
+
+---
+
+### [Deployment](./deployment/)
+Deployment guides for various platforms.
+
+**Available Guides:**
+- Railway deployment (quickstart and detailed guides)
+- Build optimization
+- Production deployment checklist
+
+**Start Here:** [Deployment README](./deployment/README.md)
+
+---
+
+### [Phases](./phases/)
+Phase-by-phase implementation documentation.
+
+**Available Phases:**
+- Phase 1: Foundation and visual components
+- Phase 2: Enhancements and optimizations
+
+**Start Here:** [Phases README](./phases/README.md)
+
+---
+
+### [Miscellaneous](./misc/)
+Other documentation that doesn't fit into main categories.
+
+**Contents:**
+- Homepage analysis
+- Directory organization
+- Theme documentation
+
+**Start Here:** [Misc README](./misc/README.md)
+
+---
+
+## 🚀 Quick Navigation
+
+### For New Developers
+1. Start with [Setup](./setup/README.md) to configure your development environment
+2. Read [Architecture](./architecture/README.md) to understand system design
+3. Explore [Features](./features/README.md) to learn about specific features
+4. Keep [Troubleshooting](./troubleshooting/README.md) handy for common issues
+
+### For Feature Development
+1. Review [Features](./features/README.md) for existing implementations
+2. Check [Architecture](./architecture/README.md) for design patterns
+3. Follow [Testing](./testing/README.md) guidelines for quality assurance
+4. Refer to [Deployment](./deployment/README.md) before releasing
+
+### For Production Deployment
+1. Complete [Deployment](./deployment/README.md) checklist
+2. Review [Troubleshooting](./troubleshooting/README.md) for production issues
+3. Verify [Setup](./setup/README.md) for environment configuration
+4. Monitor logs and follow runbooks
+
+---
+
+## 📖 Documentation Conventions
+
+### File Naming
+- `README.md` - Directory index and overview
+- `*_GUIDE.md` - Step-by-step guides
+- `*_IMPLEMENTATION*.md` - Implementation documentation
+- `*_ARCHITECTURE.md` - Architecture documentation
+- `FIX_*.md` - Troubleshooting and fixes
+
+### Document Structure
+Each guide typically includes:
+- Purpose and overview
+- Prerequisites
+- Step-by-step instructions
+- Code examples
+- Common issues and solutions
+- Related documentation links
+
+---
+
+## 🔗 External Resources
+
+### Official Documentation
+- [Next.js 15 Docs](https://nextjs.org/docs)
+- [Prisma Docs](https://www.prisma.io/docs)
+- [NextAuth.js v5](https://authjs.dev)
+- [Tailwind CSS](https://tailwindcss.com/docs)
+
+### Related Repositories
+- Main repository: [Taxomind GitHub]
+- SAM AI System: [SAM AI Tutor Documentation](./architecture/sam-ai-tutor/)
+
+---
+
+## 📝 Contributing to Documentation
+
+When adding new documentation:
+1. Place files in the appropriate directory
+2. Update the relevant README.md
+3. Follow naming conventions
+4. Include code examples
+5. Add links to related documentation
+
+---
+
+## 🆘 Getting Help
+
+If you can't find what you're looking for:
+1. Check the [Troubleshooting](./troubleshooting/) section
+2. Search existing documentation
+3. Review [Architecture](./architecture/) for system design
+4. Consult the main [CLAUDE.md](../CLAUDE.md) for project standards
+
+---
+
 *Last updated: January 2025*
+*Documentation Version: 2.0.0*
+*Project: Taxomind Learning Management System*

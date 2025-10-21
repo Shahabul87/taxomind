@@ -54,7 +54,7 @@ async function integrateSAMEngineAnalysis(courseContent: any) {
 async function analyzeBlooms(courseContent: any) {
   try {
     // Import the Blooms engine directly instead of making HTTP calls
-    const { BloomsAnalysisEngine } = await import('@/lib/sam-blooms-engine');
+    const { BloomsAnalysisEngine } = await import('@/sam/engines/educational/sam-blooms-engine');
     const engine = new BloomsAnalysisEngine();
     
     // Perform comprehensive analysis

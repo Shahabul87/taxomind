@@ -1794,7 +1794,13 @@ async function main() {
 
     // Get the first user (teacher) to be the author
     const author = await database.user.findFirst({
-      where: { email: 'teacher@dev.local' }
+      where: {
+        OR: [
+          { email: 'teacher@dev.local' },
+          { email: { contains: 'teacher' } },
+          { email: { contains: '@taxomind.com' } }
+        ]
+      }
     });
 
     if (!author) {

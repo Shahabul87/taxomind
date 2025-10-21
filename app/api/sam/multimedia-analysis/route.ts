@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samMultiMediaEngine } from "@/lib/sam-multimedia-engine";
+import { samMultiMediaEngine } from "@/sam/engines/content/sam-multimedia-engine";
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {

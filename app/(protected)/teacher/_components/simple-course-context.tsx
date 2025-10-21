@@ -173,40 +173,9 @@ export function SimpleCourseContext({
 
       console.log('🔄 Simple course context injected:', (window as any).courseContext);
       console.log('📋 Available form data for SAM:', (window as any).courseContext.entityData.formData);
-      
-      // Force a test API call to ensure the Enhanced SAM API has the data
-      setTimeout(async () => {
-        try {
-          const testResponse = await fetch('/api/sam/enhanced-universal-assistant', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              message: 'Test message to verify context',
-              context: {
-                pageTitle: course.title,
-                pageDescription: course.description,
-                pageType: 'course',
-                forms: [], // Will be populated by Enhanced SAM
-                serverData: {
-                  entityType: 'course',
-                  entityId: course.id,
-                  entityData: (window as any).courseContext.entityData
-                },
-                workflow: (window as any).courseContext.workflow
-              },
-              conversationHistory: []
-            })
-          });
-          
-          if (testResponse.ok) {
 
-          } else {
-            logger.warn('⚠️ Enhanced SAM API test failed:', testResponse.status);
-          }
-        } catch (error: any) {
-          logger.warn('⚠️ Enhanced SAM API test error:', error);
-        }
-      }, 3000);
+      // Context successfully injected - SAM will access it when needed
+      // Removed automatic test API call to save tokens and reduce costs
     }
   }, [course, completionStatus]);
 

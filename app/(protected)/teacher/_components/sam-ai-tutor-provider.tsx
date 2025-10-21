@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import { logger } from '@/lib/logger';
 
 // Import Global SAM AI Tutor instead
-import { useSAMGlobal } from '@/components/sam/sam-global-provider';
+import { useSAMGlobal } from '@/sam/components/global/sam-global-provider';
 
 // Import only types from Prisma - these are safe for client components
 import { SAMBadgeType, BadgeLevel, SAMInteractionType } from '@prisma/client';
@@ -194,16 +194,18 @@ export function SamAITutorProvider({ children }: SamAITutorProviderProps) {
         }
         
         const { data: stats } = await response.json();
-        
+
+        // The API returns: { points, level, badges, streak }
+        // Map it to our gamification state structure
         setGamificationState(prev => ({
           ...prev,
-          points: stats.totalPoints,
-          level: Math.floor(stats.totalPoints / 1000) + 1,
+          points: stats?.points || 0,
+          level: stats?.level || 1,
           badges: [], // Will be populated from SAMBadge records
           streaks: {
-            current: stats.streaks[0]?.currentStreak || 0,
-            longest: stats.streaks[0]?.longestStreak || 0,
-            lastActivity: stats.streaks[0]?.lastActivityDate || new Date(),
+            current: stats?.streak || 0,
+            longest: stats?.streak || 0,
+            lastActivity: new Date(),
           },
           achievements: [] // Will be populated from achievements system
         }));

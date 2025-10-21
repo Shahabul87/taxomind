@@ -68,18 +68,36 @@ export class PostService implements IPostService {
         };
       }
 
-      // Step 2: Validate and sanitize input
+      // Step 2: Verify user exists in database (to prevent FK constraint errors)
+      const { db } = await import("@/lib/db");
+      const userExists = await db.user.findUnique({
+        where: { id: userId },
+        select: { id: true }
+      });
+
+      if (!userExists) {
+        logger.warn("[PostService] User not found in database", { userId });
+        return {
+          success: false,
+          error: {
+            code: "USER_NOT_FOUND",
+            message: "User account not found. Please log in again.",
+          },
+        };
+      }
+
+      // Step 3: Validate and sanitize input
       logger.info("[PostService] Validating input", { userId, input });
 
       const validatedInput = validateCreatePostInput(input);
 
-      // Step 3: Process categories
+      // Step 4: Process categories
       const category = this.processCategoriesInternal(
         validatedInput.categories,
         validatedInput.customCategory
       );
 
-      // Step 4: Apply business rules
+      // Step 5: Apply business rules
       const businessRuleCheck = this.validateBusinessRulesInternal(
         validatedInput.title,
         category
@@ -100,7 +118,7 @@ export class PostService implements IPostService {
         };
       }
 
-      // Step 5: Create post via repository
+      // Step 6: Create post via repository
       logger.info("[PostService] Creating post in database", {
         userId,
         title: validatedInput.title,
@@ -113,7 +131,7 @@ export class PostService implements IPostService {
         category
       );
 
-      // Step 6: Log analytics
+      // Step 7: Log analytics
       const timeToCreate = Date.now() - startTime;
       this.logAnalyticsInternal(userId, post, input, timeToCreate);
 

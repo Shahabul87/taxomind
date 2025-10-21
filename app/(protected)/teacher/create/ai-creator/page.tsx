@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StreamingGenerationModal } from "@/components/course-creation/streaming-generation-modal";
-import { SamErrorBoundary } from "@/components/ui/sam-error-boundary";
-import { ArrowRight, ArrowLeft, Sparkles, Home, AlertTriangle, BookOpen, RefreshCw, Brain } from "lucide-react";
+import { SamErrorBoundary } from "@/sam/components/ui/sam-error-boundary";
+import { ArrowRight, ArrowLeft, Sparkles, Home, AlertTriangle, BookOpen, RefreshCw, Brain, Target, Users, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { logger } from '@/lib/logger';
@@ -20,11 +20,13 @@ import { CourseBasicsStep } from "./components/steps/course-basics-step";
 import { TargetAudienceStep } from "./components/steps/target-audience-step";
 import { CourseStructureStep } from "./components/steps/course-structure-step";
 import { AdvancedSettingsStep } from "./components/steps/advanced-settings-step";
-import { SamAssistantPanel } from "./components/sam-wizard/sam-assistant-panel";
+// Removed SamAssistantPanel - using global SAM instead
 import { SimpleProgressTracker } from "./components/sam-wizard/simple-progress-tracker";
 import { CourseScoringPanel } from "./components/course-scoring-panel";
 import { SamLearningDesignAssistance } from "./components/sam-learning-design-assistance";
 import { SAMCompleteGenerationModal } from "./components/sam-complete-generation-modal";
+import { VerticalStepper } from "./components/navigation/VerticalStepper";
+import { MobileStepNav } from "./components/navigation/MobileStepNav";
 
 const STEP_TITLES = [
   "Course Basics",
@@ -104,7 +106,7 @@ export default function AICreatorPage() {
 
           // Save generated structure to SAM memory (client-side only)
           if (typeof window !== 'undefined') {
-            import('@/lib/sam-memory-system').then(({ samMemory }) => {
+            import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
               samMemory.saveGeneratedStructure({
                 courseDescription: result.courseDescription,
                 enhancedObjectives: result.learningObjectives,
@@ -271,7 +273,7 @@ etc.`,
 
       // Step 3: Save progress to SAM memory and redirect
       if (typeof window !== 'undefined') {
-        import('@/lib/sam-memory-system').then(({ samMemory }) => {
+        import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
           samMemory.saveGeneratedStructure({
             courseDescription: formData.courseShortOverview,
             enhancedObjectives: formData.courseGoals || [],
@@ -300,7 +302,7 @@ etc.`,
   React.useEffect(() => {
     // Save form data to SAM memory whenever it changes (client-side only)
     if ((formData.courseTitle || formData.courseShortOverview) && typeof window !== 'undefined') {
-      import('@/lib/sam-memory-system').then(({ samMemory }) => {
+      import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
         samMemory.saveWizardData({
           courseTitle: formData.courseTitle || '',
           courseShortOverview: formData.courseShortOverview || '',
@@ -323,7 +325,7 @@ etc.`,
   // Save SAM interactions to memory
   React.useEffect(() => {
     if (samSuggestion && typeof window !== 'undefined') {
-      import('@/lib/sam-memory-system').then(({ samMemory }) => {
+      import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
         samMemory.addWizardInteraction({
           type: 'suggestion',
           content: typeof samSuggestion === 'string' ? samSuggestion : JSON.stringify(samSuggestion),
@@ -336,7 +338,7 @@ etc.`,
   // Initialize SAM session
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      import('@/lib/sam-memory-system').then(({ samMemory }) => {
+      import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
         samMemory.startSession('ai-course-creator');
         samMemory.updateCurrentPage(`ai-creator-step-${step}`);
       });
@@ -346,33 +348,33 @@ etc.`,
   // Update current step in SAM memory
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      import('@/lib/sam-memory-system').then(({ samMemory }) => {
+      import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
         samMemory.updateCurrentPage(`ai-creator-step-${step}`);
       });
     }
   }, [step]);
 
   // Step validation
-  const isStepValid = () => {
+  const isStepValid = (): boolean => {
     switch (step) {
       case 1:
-        return formData.courseTitle?.length >= 10 && 
-               formData.courseShortOverview?.length >= 50 && 
-               formData.courseCategory;
+        return !!(formData.courseTitle?.length >= 10 &&
+               formData.courseShortOverview?.length >= 50 &&
+               formData.courseCategory);
       case 2:
-        return formData.targetAudience && formData.difficulty;
+        return !!(formData.targetAudience && formData.difficulty);
       case 3:
-        return formData.courseGoals?.length >= 2 && 
-               formData.bloomsFocus?.length >= 2;
+        return !!(formData.courseGoals?.length >= 2 &&
+               formData.bloomsFocus?.length >= 2);
       case 4:
         // Final review - check if all previous steps are valid
-        return formData.courseTitle?.length >= 10 && 
-               formData.courseShortOverview?.length >= 50 && 
+        return !!(formData.courseTitle?.length >= 10 &&
+               formData.courseShortOverview?.length >= 50 &&
                formData.courseCategory &&
-               formData.targetAudience && 
+               formData.targetAudience &&
                formData.difficulty &&
-               formData.courseGoals?.length >= 2 && 
-               formData.bloomsFocus?.length >= 2;
+               formData.courseGoals?.length >= 2 &&
+               formData.bloomsFocus?.length >= 2);
       default:
         return true;
     }
@@ -405,166 +407,153 @@ etc.`,
   const canProceed = isStepValid();
   const isLastStep = step === totalSteps;
 
+  // Stepper configuration
+  const stepperSteps = [
+    {
+      id: 1,
+      title: "Course Basics",
+      description: "Title, category, and overview",
+      icon: <BookOpen className="h-5 w-5" />
+    },
+    {
+      id: 2,
+      title: "Target Audience",
+      description: "Who will take this course",
+      icon: <Users className="h-5 w-5" />
+    },
+    {
+      id: 3,
+      title: "Course Structure",
+      description: "Objectives and framework",
+      icon: <Brain className="h-5 w-5" />
+    },
+    {
+      id: 4,
+      title: "Final Review",
+      description: "Review and generate",
+      icon: <GraduationCap className="h-5 w-5" />
+    }
+  ];
+
   return (
     <SamErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30 dark:from-slate-950 dark:to-indigo-950/30">
+        <div className="container mx-auto px-4 py-8 max-w-[1600px]">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-4 relative">
-              <div className="p-2 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500">
+          <div className="text-center mb-8 lg:mb-12">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="p-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg">
                 <Sparkles className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                Sam AI Course Creator
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                AI Course Creator
               </h1>
-              
-              {/* Controls - Top Right */}
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                {/* Auto-save Status */}
-                {lastAutoSave && (
-                  <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 bg-white/50 dark:bg-slate-800/50 px-2 py-1 rounded border border-white/20">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>Saved {new Date(lastAutoSave).toLocaleTimeString()}</span>
-                  </div>
-                )}
-                
-                {/* Start Over Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetWizard}
-                  className="bg-white/70 dark:bg-slate-800/70 border-white/40 dark:border-slate-700/40 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-200"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Start Over
-                </Button>
-              </div>
             </div>
-            <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Create professional courses with AI assistance. Sam will guide you through each step 
+            <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-sm lg:text-base">
+              Create professional courses with AI assistance. Sam will guide you through each step
               and help optimize your content for maximum learning impact.
             </p>
+
+            {/* Top Actions Bar - Desktop Only */}
+            <div className="hidden lg:flex items-center justify-center gap-4 mt-6">
+              {lastAutoSave && (
+                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <span>Auto-saved {new Date(lastAutoSave).toLocaleTimeString()}</span>
+                </div>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetWizard}
+                className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Start Over
+              </Button>
+            </div>
           </div>
 
-          {/* Main Content Layout - Conditional Layout Based on Step */}
-          <div className={cn(
-            "gap-6 xl:gap-8 w-full max-w-none px-4 sm:px-6 lg:px-8",
-            step === 4 
-              ? "grid grid-cols-1 lg:grid-cols-4" // 3/4 + 1/4 layout for Final Review
-              : "grid grid-cols-1 lg:grid-cols-2" // Normal 1/2 + 1/2 layout for other steps
-          )}>
-            {/* Course Basics - Left Column - Takes 3/4 width on step 4, 1/2 width on other steps */}
-            <div className={cn(
-              "space-y-6",
-              step === 4 ? "lg:col-span-3" : ""
-            )}>
-              {/* Course Basics Header */}
-              <Card className="p-6 backdrop-blur-md bg-gradient-to-r from-white/70 to-blue-50/70 dark:from-slate-900/70 dark:to-blue-950/70 border-white/20 shadow-xl">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500">
-                    <BookOpen className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                      {STEP_TITLES[step - 1]}
-                    </h2>
-                    <p className="text-slate-600 dark:text-slate-400 font-medium">
-                      {STEP_DESCRIPTIONS[step - 1]}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-                      Step {step} of {totalSteps}
-                    </div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">
-                      {Math.round(((step - 1) / (totalSteps - 1)) * 100)}% Complete
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Step Progress Bar */}
-                <div className="mb-4">
-                  <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
-                    <span>Current Step Progress</span>
-                    <span>{Math.round(((step - 1) / (totalSteps - 1)) * 100)}%</span>
-                  </div>
-                  <Progress 
-                    value={((step - 1) / (totalSteps - 1)) * 100} 
-                    className="h-2"
-                  />
+          {/* Main Content Layout - 3 Column Grid for Desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+            {/* Left Sidebar - Vertical Stepper (Desktop Only) */}
+            <aside className="hidden lg:block lg:col-span-3">
+              <div className="sticky top-8">
+                <VerticalStepper
+                  steps={stepperSteps}
+                  currentStep={step}
+                  onStepClick={(newStep) => {
+                    if (newStep < step) {
+                      // Allow going back to previous steps
+                      while (step > newStep) {
+                        handleBack();
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </aside>
+
+            {/* Main Content Area */}
+            <main className="lg:col-span-6 space-y-6">
+              {/* Step Header Card */}
+              <Card className="p-6 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-md">
+                <div className="flex-1">
+                  <h2 className="text-xl lg:text-2xl font-bold text-slate-900 dark:text-slate-100">
+                    {STEP_TITLES[step - 1]}
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {STEP_DESCRIPTIONS[step - 1]}
+                  </p>
                 </div>
 
-                {/* Quick Step Navigation */}
-                <div className="flex gap-2">
-                  {Array.from({ length: totalSteps }, (_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "flex-1 h-2 rounded-full transition-all duration-300",
-                        i + 1 === step
-                          ? 'bg-gradient-to-r from-indigo-500 to-purple-500'
-                          : i + 1 < step
-                          ? 'bg-green-400'
-                          : 'bg-slate-300 dark:bg-slate-600'
-                      )}
-                    />
-                  ))}
+                {/* Mobile: Step Indicator */}
+                <div className="lg:hidden text-right">
+                  <div className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                    {step}/{totalSteps}
+                  </div>
                 </div>
               </Card>
 
-              {/* Enhanced Step Content with animations */}
-              <Card className="p-6 backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border-white/20 shadow-xl transition-all duration-500 ease-out">
-                <div 
-                  key={step} 
-                  className="animate-in fade-in-50 slide-in-from-left-5 duration-500"
-                >
+              {/* Step Content */}
+              <Card className="p-6 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-md">
+                <div key={step} className="animate-in fade-in-50 duration-300">
                   {renderStepContent()}
                 </div>
               </Card>
 
-              {/* Enhanced Navigation */}
-              <Card className="p-5 backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border-white/20 shadow-lg transition-all duration-300">
+              {/* Desktop Navigation */}
+              <Card className="hidden lg:block p-5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-md">
                 <div className="flex items-center justify-between">
                   <Button
                     variant="outline"
                     onClick={handleBack}
                     disabled={step === 1}
                     className={cn(
-                      "bg-white/70 dark:bg-slate-800/70 border-white/40 dark:border-slate-700/40 shadow-md transition-all duration-200",
-                      "hover:bg-white/90 dark:hover:bg-slate-800/90 hover:scale-105 hover:shadow-lg",
-                      step === 1 && "opacity-50 cursor-not-allowed"
+                      "bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700",
+                      "hover:bg-slate-50 dark:hover:bg-slate-700",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
                     )}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
                   </Button>
 
-                  <div className="flex items-center gap-3">
-                    <div className="text-center">
-                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                        Step {step} of {totalSteps}
-                      </span>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        {Math.round(((step - 1) / (totalSteps - 1)) * 100)}% Complete
-                      </div>
-                    </div>
-                  </div>
-
                   {isLastStep ? (
                     <Button
                       onClick={handleGenerateCompleteeCourse}
                       disabled={!canProceed || isCreatingCourse}
                       className={cn(
-                        "bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600",
-                        "shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105",
-                        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
+                        "bg-gradient-to-r from-indigo-600 to-purple-600",
+                        "hover:from-indigo-700 hover:to-purple-700",
+                        "text-white font-semibold shadow-lg hover:shadow-xl",
+                        "disabled:opacity-50 disabled:cursor-not-allowed",
                         isCreatingCourse && "animate-pulse"
                       )}
                     >
                       {isCreatingCourse ? (
                         <>
-                          <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                          <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           Creating Course...
                         </>
                       ) : (
@@ -579,60 +568,64 @@ etc.`,
                       onClick={handleNext}
                       disabled={!canProceed}
                       className={cn(
-                        "bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600",
-                        "shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105",
-                        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        "bg-gradient-to-r from-indigo-600 to-purple-600",
+                        "hover:from-indigo-700 hover:to-purple-700",
+                        "text-white font-semibold shadow-lg hover:shadow-xl",
+                        "disabled:opacity-50 disabled:cursor-not-allowed"
                       )}
                     >
-                      Continue to {STEP_TITLES[step] || 'Next Step'}
+                      Continue
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   )}
                 </div>
-                
-                {/* Progress hint */}
+
                 {!canProceed && (
-                  <div className="mt-3 pt-3 border-t border-white/20 dark:border-slate-700/30">
-                    <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                      <AlertTriangle className="h-3 w-3" />
-                      <span>Please complete all required fields to continue</span>
+                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-500">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <span>Complete all required fields to continue</span>
                     </div>
                   </div>
                 )}
               </Card>
-            </div>
+            </main>
 
-            {/* Course Scoring & AI Assistant - Right Column - Takes 1/4 width on step 4, 1/2 width on other steps */}
-            <div className={cn(
-              "space-y-4 transition-all duration-500 ease-out",
-              step === 4 ? "lg:col-span-1" : ""
-            )}>
-              <SamAssistantPanel
-                suggestion={samSuggestion}
-                isLoading={isLoadingSuggestion}
-                onRefresh={handleRefreshSuggestion}
-                className="transition-all duration-300 ease-out"
-              />
-              
-              {/* Course Scoring Panel - Only show on step 1 */}
-              {step === 1 && (
-                <CourseScoringPanel
-                  formData={formData}
-                  onUpdateFormData={setFormData}
-                  className="transition-all duration-300 ease-out"
-                />
-              )}
-              
-              {/* SAM Learning Design Assistance - Only show on step 3 */}
-              {step === 3 && (
-                <SamLearningDesignAssistance
-                  formData={formData}
-                  onUpdateFormData={setFormData}
-                  className="transition-all duration-300 ease-out"
-                />
-              )}
-            </div>
+            {/* Right Sidebar - Context Panels (SAM Assistant now global) */}
+            <aside className="lg:col-span-3 space-y-6">
+              <div className="sticky top-8 space-y-6">
+                {/* SamAssistantPanel removed - using global SAM instead */}
+                {/* Global SAM (bottom-right floating button) provides AI assistance */}
+
+                {step === 1 && (
+                  <CourseScoringPanel
+                    formData={formData}
+                    onUpdateFormData={setFormData}
+                  />
+                )}
+
+                {step === 3 && (
+                  <SamLearningDesignAssistance
+                    formData={formData}
+                    onUpdateFormData={setFormData}
+                  />
+                )}
+              </div>
+            </aside>
           </div>
+
+          {/* Mobile Bottom Navigation */}
+          <MobileStepNav
+            currentStep={step}
+            totalSteps={totalSteps}
+            canProceed={canProceed}
+            isLastStep={isLastStep}
+            isGenerating={isCreatingCourse}
+            onBack={handleBack}
+            onNext={handleNext}
+            onGenerate={handleGenerateCompleteeCourse}
+            nextStepTitle={STEP_TITLES[step]}
+          />
         </div>
 
         {/* Note: Removed old generation modals - now using unified course creation */}

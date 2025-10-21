@@ -1,6 +1,5 @@
 "use client"
 
-import { Course as PrismaCourse } from "@prisma/client"
 import { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, Pencil, Trash2, Calendar, Loader2, BookOpen, Tag, DollarSign, BookCheck } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -24,19 +23,16 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CourseTableData } from "@/types/course";
+import { APIResponse } from "@/types/api";
+import {
+  trackCourseDeletion,
+  trackCourseEdit,
+} from "@/lib/analytics/course-analytics";
 
-type CourseWithCategory = {
-  id: string;
-  title: string;
-  category: { name: string } | null;
-  price: number | null;
-  isPublished: boolean;
-  createdAt: Date;
-}
-
-export const columns: ColumnDef<CourseWithCategory>[] = [
+export const columns: ColumnDef<CourseTableData>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -238,10 +234,20 @@ export const columns: ColumnDef<CourseWithCategory>[] = [
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link href={`/teacher/courses/${id}`}>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
+                <Link
+                  href={`/teacher/courses/${id}`}
+                  onClick={() => {
+                    // Track course edit navigation
+                    trackCourseEdit(id, {
+                      courseId: id,
+                      action: 'navigate_to_edit',
+                      source: 'teacher_dashboard',
+                    });
+                  }}
+                >
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
                     <Pencil className="h-4 w-4 text-gray-600 dark:text-gray-300" />
@@ -271,11 +277,67 @@ const DeleteCourseButton = ({ courseId }: DeleteCourseButtonProps) => {
   const onDelete = async () => {
     try {
       setIsLoading(true);
-      await axios.delete(`/api/courses/${courseId}`);
-      toast.success("Course deleted");
-      router.refresh();
-    } catch {
-      toast.error("Something went wrong");
+
+      const response = await axios.delete<APIResponse>(`/api/courses/${courseId}`);
+
+      if (response.data.success) {
+        toast.success("Course deleted successfully");
+
+        // Track course deletion
+        trackCourseDeletion(courseId, {
+          source: 'teacher_dashboard',
+          action: 'single_delete',
+        });
+
+        router.refresh();
+
+        // Log successful deletion for analytics
+        logger.info('Course deleted', { courseId });
+      } else {
+        // Handle API-level failure
+        const errorMessage = response.data.error || "Failed to delete course";
+        toast.error(errorMessage);
+        logger.error('Course deletion failed at API level', {
+          courseId,
+          error: response.data.error
+        });
+      }
+    } catch (error) {
+      // Enhanced error handling with specific error types
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<APIResponse>;
+
+        if (axiosError.response) {
+          // Server responded with error status
+          const errorMessage = axiosError.response.data?.error ||
+            `Failed to delete course (${axiosError.response.status})`;
+          toast.error(errorMessage);
+
+          logger.error('Course deletion failed - Server error', {
+            courseId,
+            status: axiosError.response.status,
+            error: axiosError.response.data?.error
+          });
+        } else if (axiosError.request) {
+          // Request made but no response received
+          toast.error("Network error. Please check your connection and try again.");
+          logger.error('Course deletion failed - Network error', { courseId });
+        } else {
+          // Something else went wrong
+          toast.error("An unexpected error occurred");
+          logger.error('Course deletion failed - Unknown error', {
+            courseId,
+            error: axiosError.message
+          });
+        }
+      } else {
+        // Non-Axios error
+        toast.error("An unexpected error occurred");
+        logger.error('Course deletion failed - Non-Axios error', {
+          courseId,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     } finally {
       setIsLoading(false);
     }

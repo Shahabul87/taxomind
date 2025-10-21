@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { SAMEngineIntegration } from '@/lib/sam-engine-integration';
+import { SAMEngineIntegration } from '@/sam/engines/core/sam-engine-integration';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 

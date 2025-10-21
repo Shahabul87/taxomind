@@ -16,6 +16,22 @@ import {
 import Link from "next/link"
 import { PlusCircle, Search, Loader2, Filter, ChevronLeft, ChevronRight, Calendar, DollarSign, MoreVertical, Trash2, Eye, Download } from "lucide-react"
 import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
+import axios from "axios"
+import { toast } from "sonner"
+import { APIResponse } from "@/types/api"
+import {
+  trackBulkOperation,
+  trackExport,
+  trackFilterApplied,
+  trackSearch,
+  trackPageView,
+  trackTimeOnPage,
+  trackFeatureUsage,
+} from "@/lib/analytics/course-analytics"
+// TODO: Implement keyboard shortcuts feature
+// import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
+// import { KeyboardShortcutsHelp } from "@/components/ui/keyboard-shortcuts-help"
 
 import {
   Table,
@@ -46,10 +62,12 @@ import { Card, CardContent } from "@/components/ui/card"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
-  data: TData[]
+  data?: TData[]
+  serverMode?: boolean
 }
 
-export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({columns, data = [], serverMode = true}: DataTableProps<TData, TValue>) {
+  const router = useRouter();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
@@ -57,9 +75,101 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
   const [priceRange, setPriceRange] = React.useState([0, 1000]);
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [dateRange, setDateRange] = React.useState<{from?: Date; to?: Date}>({});
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const [announcement, setAnnouncement] = React.useState<string>('');
+  const [serverData, setServerData] = React.useState<any[]>(Array.isArray(data) ? data : []);
+  const [total, setTotal] = React.useState<number>(Array.isArray(data) ? data.length : 0);
+
+  // Helper function for ARIA announcements
+  const announce = React.useCallback((message: string) => {
+    setAnnouncement(message);
+    // Clear announcement after it's been read
+    setTimeout(() => setAnnouncement(''), 100);
+  }, []);
+
+  // Track page view and time on page
+  React.useEffect(() => {
+    trackPageView('teacher_courses_dashboard');
+
+    const startTime = Date.now();
+
+    return () => {
+      const duration = Date.now() - startTime;
+      trackTimeOnPage('teacher_courses_dashboard', duration);
+    };
+  }, []);
+
+  // TODO: Re-enable keyboard shortcuts when hook is implemented
+  // Keyboard shortcuts
+  // useKeyboardShortcuts({
+  //   shortcuts: [
+  //     {
+  //       key: '/',
+  //       description: 'Focus search',
+  //       handler: () => {
+  //         searchInputRef.current?.focus();
+  //         announce('Search input focused');
+  //         trackFeatureUsage('keyboard_shortcut_search', {
+  //           source: 'teacher_dashboard',
+  //         });
+  //       },
+  //     },
+  //     {
+  //       key: 'n',
+  //       ctrlKey: true,
+  //       description: 'Create new course',
+  //       handler: () => {
+  //         router.push('/teacher/create');
+  //         trackFeatureUsage('keyboard_shortcut_new_course', {
+  //           source: 'teacher_dashboard',
+  //         });
+  //       },
+  //     },
+  //     {
+  //       key: 'e',
+  //       ctrlKey: true,
+  //       description: 'Export courses',
+  //       handler: () => {
+  //         handleExport();
+  //         trackFeatureUsage('keyboard_shortcut_export', {
+  //           source: 'teacher_dashboard',
+  //         });
+  //       },
+  //     },
+  //     {
+  //       key: 'Escape',
+  //       description: 'Clear selection',
+  //       handler: () => {
+  //         if (table.getFilteredSelectedRowModel().rows.length > 0) {
+  //           const count = table.getFilteredSelectedRowModel().rows.length;
+  //           table.resetRowSelection();
+  //           announce(`Cleared selection of ${count} course${count > 1 ? 's' : ''}`);
+  //           toast.success('Selection cleared');
+  //           trackFeatureUsage('keyboard_shortcut_clear_selection', {
+  //             source: 'teacher_dashboard',
+  //           });
+  //         }
+  //       },
+  //     },
+  //     {
+  //       key: 'a',
+  //       ctrlKey: true,
+  //       description: 'Select all visible',
+  //       handler: () => {
+  //         const count = table.getRowModel().rows.length;
+  //         table.toggleAllPageRowsSelected(true);
+  //         announce(`Selected all ${count} visible course${count > 1 ? 's' : ''}`);
+  //         trackFeatureUsage('keyboard_shortcut_select_all', {
+  //           source: 'teacher_dashboard',
+  //         });
+  //       },
+  //     },
+  //   ],
+  //   enabled: true,
+  // });
 
   const table = useReactTable({
-    data,
+    data: serverMode ? (serverData as any[]) : (data as any[]),
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -73,34 +183,227 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
       columnFilters,
       rowSelection,
     },
+    ...(serverMode ? { manualPagination: true } : {}),
     initialState: {
       pagination: {
-        pageSize: 8,
+        pageSize: 10,
       },
     },
   })
 
   // Get unique categories and handle empty/null cases
-  const uniqueCategories = Array.from(
-    new Set(
-      data.map((item: any) => 
-        item.category?.name || 'Uncategorized'
-      )
-    )
-  ).filter(Boolean);
+  const uniqueCategories = React.useMemo(() => {
+    const source = serverMode ? serverData : data;
+    return Array.from(new Set((source as any[]).map((item: any) => item?.category?.name || 'Uncategorized'))).filter(Boolean);
+  }, [serverMode, serverData, data]);
 
   const handleCategoryChange = (value: string) => {
     if (value === "all") {
       table.getColumn("category")?.setFilterValue(undefined);
     } else {
       table.getColumn("category")?.setFilterValue(value);
+
+      // Track filter usage
+      trackFilterApplied('category', value, {
+        source: 'teacher_dashboard',
+      });
     }
   };
 
   const selectedRowCount = table.getFilteredSelectedRowModel().rows.length;
 
+  // Server data loader (debounced)
+  React.useEffect(() => {
+    if (!serverMode) return;
+
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        setIsLoading(true);
+        const pageIndex = table.getState().pagination.pageIndex;
+        const pageSize = table.getState().pagination.pageSize;
+        const titleFilter = (table.getColumn("title")?.getFilterValue() as string) || '';
+        const categoryFilter = (table.getColumn("category")?.getFilterValue() as string) || '';
+        const sort = sorting[0];
+        const params = new URLSearchParams({
+          page: String(pageIndex + 1),
+          pageSize: String(pageSize),
+          search: titleFilter,
+          category: categoryFilter,
+          status: statusFilter,
+          priceMin: String(priceRange[0] ?? 0),
+          priceMax: String(priceRange[1] ?? 1000),
+          sortBy: sort?.id || 'createdAt',
+          sortOrder: (sort?.desc ? 'desc' : 'asc'),
+        });
+        const res = await fetch(`/api/teacher/courses?${params.toString()}`, { signal: controller.signal });
+        if (!res.ok) throw new Error('Failed to load courses');
+        const json = await res.json();
+        if (json?.success) {
+          setServerData(json.data.courses);
+          setTotal(json.data.pagination.total);
+        }
+      } catch (e:any) {
+        if (e?.name !== 'AbortError') {
+          // soft-fail
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverMode, sorting, statusFilter, priceRange, table.getState().pagination, table.getState().columnFilters]);
+
+  // Bulk operation handlers
+  const handleBulkDelete = async () => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const courseIds = selectedRows.map((row) => (row.original as { id: string }).id);
+
+    if (courseIds.length === 0) {
+      toast.error('No courses selected');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${courseIds.length} course${courseIds.length > 1 ? 's' : ''}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const response = await axios.post<APIResponse>('/api/teacher/courses/bulk-delete', {
+        courseIds,
+        confirmDelete: true,
+      });
+
+      if (response.data.success) {
+        const successMessage = `Successfully deleted ${courseIds.length} course${courseIds.length > 1 ? 's' : ''}`;
+        toast.success(successMessage);
+        announce(successMessage);
+
+        // Track bulk delete
+        trackBulkOperation('delete', courseIds.length, {
+          source: 'teacher_dashboard',
+        });
+
+        table.resetRowSelection();
+        router.refresh();
+      } else {
+        toast.error(response.data.error || 'Failed to delete courses');
+      }
+    } catch (error) {
+      toast.error('An error occurred while deleting courses');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBulkPublish = async () => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const courseIds = selectedRows.map((row) => (row.original as { id: string }).id);
+
+    if (courseIds.length === 0) {
+      toast.error('No courses selected');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const response = await axios.patch<APIResponse>('/api/teacher/courses/bulk-update', {
+        courseIds,
+        isPublished: true,
+      });
+
+      if (response.data.success) {
+        const successMessage = `Successfully published ${courseIds.length} course${courseIds.length > 1 ? 's' : ''}`;
+        toast.success(successMessage);
+        announce(successMessage);
+
+        // Track bulk publish
+        trackBulkOperation('publish', courseIds.length, {
+          source: 'teacher_dashboard',
+        });
+
+        table.resetRowSelection();
+        router.refresh();
+      } else {
+        toast.error(response.data.error || 'Failed to publish courses');
+      }
+    } catch (error) {
+      toast.error('An error occurred while publishing courses');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleExport = () => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const courses = selectedRows.length > 0
+      ? selectedRows.map((row) => row.original as any)
+      : (serverMode ? serverData : data);
+
+    // Convert to CSV
+    const csv = convertToCSV(courses);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `courses-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    // Track export
+    trackExport('csv', courses.length, {
+      source: 'teacher_dashboard',
+      metadata: { hasSelection: selectedRows.length > 0 },
+    });
+
+    toast.success(`Exported ${courses.length} course${courses.length > 1 ? 's' : ''}`);
+  };
+
+  const convertToCSV = (courses: TData[]): string => {
+    const headers = ['Title', 'Category', 'Price', 'Status', 'Created At'];
+    const rows = courses.map((course: any) => [
+      course.title || '',
+      course.category?.name || 'Uncategorized',
+      course.price || '0',
+      course.isPublished ? 'Published' : 'Draft',
+      new Date(course.createdAt).toLocaleDateString(),
+    ]);
+
+    return [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+  };
+
+  // TODO: Re-enable keyboard shortcuts when feature is implemented
+  // Define shortcuts for help dialog
+  // const shortcutsForHelp = [
+  //   { keys: ['/'], description: 'Focus search', category: 'Navigation' },
+  //   { keys: ['Ctrl', 'N'], description: 'Create new course', category: 'Actions' },
+  //   { keys: ['Ctrl', 'E'], description: 'Export courses', category: 'Actions' },
+  //   { keys: ['Ctrl', 'A'], description: 'Select all visible courses', category: 'Selection' },
+  //   { keys: ['Escape'], description: 'Clear selection', category: 'Selection' },
+  // ];
+
   return (
     <div className="space-y-4">
+      {/* ARIA Live Region for announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
+      </div>
+
       {/* Bulk Actions Bar */}
       {selectedRowCount > 0 && (
         <motion.div
@@ -124,6 +427,8 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
               size="sm"
               variant="outline"
               className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/30"
+              onClick={handleBulkPublish}
+              disabled={isLoading}
             >
               <Eye className="h-4 w-4 mr-2" />
               Bulk Publish
@@ -132,6 +437,7 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
               size="sm"
               variant="outline"
               className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/30"
+              onClick={handleExport}
             >
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -140,6 +446,8 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
               size="sm"
               variant="outline"
               className="bg-white dark:bg-gray-800 border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
+              onClick={handleBulkDelete}
+              disabled={isLoading}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete Selected
@@ -161,11 +469,25 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Search courses..."
+                ref={searchInputRef}
+                placeholder="Search courses... (Press / to focus)"
                 value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
-                onChange={(event) =>
-                  table.getColumn("title")?.setFilterValue(event.target.value)
-                }
+                onChange={(event) => {
+                  const value = event.target.value;
+                  table.getColumn("title")?.setFilterValue(value);
+
+                  // Track search with debounce
+                  if (value.length > 2) {
+                    const timeoutId = setTimeout(() => {
+                      const resultsCount = table.getFilteredRowModel().rows.length;
+                      trackSearch(value, resultsCount, {
+                        source: 'teacher_dashboard',
+                      });
+                    }, 500);
+
+                    return () => clearTimeout(timeoutId);
+                  }
+                }}
                 className={cn(
                   "pl-9 w-full",
                   "bg-white dark:bg-gray-800",
@@ -175,7 +497,12 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
                   "focus:ring-purple-500",
                   "transition-all duration-200"
                 )}
+                aria-label="Search courses"
+                aria-describedby="search-hint"
               />
+              <span id="search-hint" className="sr-only">
+                Use forward slash (/) to quickly focus the search field
+              </span>
             </div>
 
             {/* Category Filter */}
@@ -295,6 +622,12 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
               </PopoverContent>
             </Popover>
 
+            {/* Keyboard Shortcuts Help */}
+            {/* TODO: Re-enable when KeyboardShortcutsHelp component is implemented */}
+            {/* <div className="w-full sm:w-auto">
+              <KeyboardShortcutsHelp shortcuts={shortcutsForHelp} />
+            </div> */}
+
             {/* Create Course Button - Mobile */}
             <div className="w-full sm:hidden">
               <Link href="/teacher/create" className="w-full block">
@@ -388,11 +721,11 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
       {/* Pagination Section */}
       <div className="flex flex-col sm:flex-row items-center justify-between pt-4 gap-4">
         <div className="text-sm text-gray-500 dark:text-gray-400 order-2 sm:order-1">
-          Showing {table.getFilteredRowModel().rows.length > 0 ? 
-            `${table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-${Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              table.getFilteredRowModel().rows.length
-            )}` : '0'} of {table.getFilteredRowModel().rows.length} courses
+          {serverMode ? (
+            <>Showing {total === 0 ? 0 : (table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1)}-{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, total)} of {total} courses</>
+          ) : (
+            <>Showing {table.getFilteredRowModel().rows.length} courses</>
+          )}
         </div>
         
         <div className="flex items-center gap-2 order-1 sm:order-2">
@@ -413,8 +746,7 @@ export function DataTable<TData, TValue>({columns, data}: DataTableProps<TData, 
           </Button>
           
           <div className="flex items-center justify-center px-4 py-2 text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
+            Page {table.getState().pagination.pageIndex + 1} of {serverMode ? Math.max(1, Math.ceil(total / table.getState().pagination.pageSize)) : table.getPageCount()}
           </div>
           
           <Button

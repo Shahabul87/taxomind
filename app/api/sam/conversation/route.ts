@@ -5,7 +5,7 @@ import {
   createSAMConversation, 
   getSAMConversations, 
   addSAMMessage 
-} from '@/lib/sam-database';
+} from '@/sam/utils/sam-database';
 import { SAMMessageType } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     const { type, data } = body;
 
     if (type === 'create_conversation') {
-      const conversation = await createSAMConversation(session.user.id, {
+      const conversationId = await createSAMConversation(session.user.id, {
         courseId: data.courseId,
         chapterId: data.chapterId,
         sectionId: data.sectionId,
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        data: conversation,
+        data: { id: conversationId },
       });
     }
 

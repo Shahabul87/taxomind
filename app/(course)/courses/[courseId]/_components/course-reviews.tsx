@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -24,6 +24,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 import { ReviewCard } from "./review-card";
+import { ReviewRatingHistogram } from "./review-rating-histogram";
+import { ReviewSortControls, SortOption } from "./review-sort-controls";
 
 const formSchema = z.object({
   rating: z.number().min(1).max(5),
@@ -52,7 +54,38 @@ export const CourseReviews = ({ courseId, initialReviews = [] }: CourseReviewsPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviews, setReviews] = useState(initialReviews);
   const [selectedRating, setSelectedRating] = useState(0);
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('recent');
   const router = useRouter();
+
+  // Filter and sort reviews
+  const filteredAndSortedReviews = useMemo(() => {
+    let filtered = [...reviews];
+
+    // Apply rating filter
+    if (ratingFilter !== null) {
+      filtered = filtered.filter((review) => review.rating === ratingFilter);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'recent':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'highest':
+          return b.rating - a.rating;
+        case 'lowest':
+          return a.rating - b.rating;
+        case 'helpful':
+          // TODO: Add helpful votes to review model
+          return 0; // Placeholder until helpful votes are implemented
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [reviews, ratingFilter, sortBy]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -83,43 +116,53 @@ export const CourseReviews = ({ courseId, initialReviews = [] }: CourseReviewsPr
   return (
     <div className="max-w-4xl lg:max-w-5xl mx-auto">
       <div className="bg-white/50 dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-xl rounded-2xl backdrop-blur-sm">
-        {/* Course Stats */}
+        {/* Header */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-gray-100 dark:to-gray-300 text-transparent bg-clip-text">
             Course Reviews
           </h2>
-          <div className="mt-2 flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-amber-500 dark:text-yellow-400 fill-current" />
-              <span className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                {reviews.length > 0 
-                  ? (reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length).toFixed(1)
-                  : "No ratings yet"
-                }
-              </span>
-            </div>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              ({reviews.length} {reviews.length === 1 ? "review" : "reviews"})
-            </span>
-          </div>
         </div>
 
+        {/* Rating Histogram */}
+        <ReviewRatingHistogram
+          reviews={reviews}
+          onFilterChange={setRatingFilter}
+          selectedFilter={ratingFilter}
+        />
+
+        {/* Sort Controls */}
+        {reviews.length > 0 && (
+          <ReviewSortControls
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            reviewCount={filteredAndSortedReviews.length}
+          />
+        )}
+
          {/* Reviews List */}
-         <div className="mt-8 space-y-4 mb-6">
+         <div className="mt-6 space-y-4 mb-6">
           <AnimatePresence>
-            {reviews.map((review, index) => (
-              <ReviewCard 
-                key={review.id} 
-                review={review} 
+            {filteredAndSortedReviews.map((review, index) => (
+              <ReviewCard
+                key={review.id}
+                review={review}
                 index={index}
               />
             ))}
           </AnimatePresence>
-          
+
           {reviews.length === 0 && (
             <div className="text-center py-6">
               <p className="text-gray-500 dark:text-gray-400">
                 No reviews yet. Be the first to review this course!
+              </p>
+            </div>
+          )}
+
+          {reviews.length > 0 && filteredAndSortedReviews.length === 0 && (
+            <div className="text-center py-6">
+              <p className="text-gray-500 dark:text-gray-400">
+                No reviews match your filter. Try selecting a different rating.
               </p>
             </div>
           )}

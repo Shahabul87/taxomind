@@ -16,9 +16,11 @@ import { currentUser } from '@/lib/auth';
 import LayoutWithSidebar from '@/components/layout/layout-with-sidebar';
 import ClientToaster from '@/components/client-toaster';
 import { Suspense } from 'react';
-import { SAMGlobalProvider } from '@/components/sam/sam-global-provider';
-import { SAMGlobalAssistant } from '@/components/sam/sam-global-assistant';
-import { SAMContextManager } from '@/components/sam/sam-context-manager';
+// SAM imports temporarily disabled for build
+// import { SAMGlobalProvider } from '@/sam/components/global/sam-global-provider';
+// import { SAMGlobalAssistantRedesigned } from '@/sam-ai-tutor/components/global/sam-global-assistant-redesigned';
+// import { SAMMobileResponsive } from '@/sam-ai-tutor/components/ui/sam-mobile-responsive';
+// import { SAMContextManager } from '@/sam/components/contextual/sam-context-manager';
 import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
 
 // Use auto dynamic rendering (Next.js will determine optimal rendering)
@@ -131,6 +133,9 @@ export default async function RootLayout({
   // ROBUST AUTH ROUTE DETECTION: Check multiple sources
   const isAdminRoute = pathname.startsWith("/dashboard/admin") || pathname.startsWith("/admin");
 
+  // Check if this is a blog route (exclude header from blog pages)
+  const isBlogRoute = pathname.startsWith("/blog");
+
   // Check both x-pathname header AND x-url fallback
   const xUrl = headersList.get("x-url") || "";
   const pathToCheck = pathname || xUrl;
@@ -177,9 +182,10 @@ export default async function RootLayout({
         <Providers session={session}>
           <ConfettiProvider />
           <ClientToaster />
-          <SAMGlobalProvider>
-            {/* Render header for auth routes AND non-admin routes */}
-            {!isAdminRoute && (
+          {/* SAMGlobalProvider temporarily disabled for build */}
+          <>
+            {/* Render header for auth routes AND non-admin routes (excluding blog) */}
+            {!isAdminRoute && !isBlogRoute && (
               <div className="fixed top-0 left-0 right-0 z-[50]">
                 <Suspense fallback={<HeaderFallback />}>
                   <AsyncHeader />
@@ -188,7 +194,7 @@ export default async function RootLayout({
             )}
 
             {/* Content rendering - all routes use direct background */}
-            <SAMContextManager />
+            {/* <SAMContextManager /> */}
 
             {/* Conditional layout rendering based on route */}
             {isAuthRoute ? (
@@ -196,6 +202,11 @@ export default async function RootLayout({
               <>{children}</>
             ) : isAdminRoute ? (
               // Admin routes: No wrapper, full screen
+              <div className="min-h-screen">
+                {children}
+              </div>
+            ) : isBlogRoute ? (
+              // Blog routes: No header, no sidebar, full screen
               <div className="min-h-screen">
                 {children}
               </div>
@@ -212,12 +223,13 @@ export default async function RootLayout({
               </Suspense>
             )}
 
-            {/* Global SAM AI Tutor - Available across all authenticated pages */}
-            <SAMGlobalAssistant />
+            {/* SAM AI Tutor: Mobile/Tablet (bottom/side sheet) and Desktop (floating window) */}
+            {/* <SAMMobileResponsive /> */}
+            {/* <SAMGlobalAssistantRedesigned /> */}
 
             {/* CSS Error Monitor - Only in development */}
             <CSSErrorMonitorClient />
-          </SAMGlobalProvider>
+          </>
         </Providers>
       </body>
     </html>

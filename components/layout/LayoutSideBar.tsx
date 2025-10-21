@@ -101,7 +101,9 @@ export function LayoutSideBar({ user }: LayoutSideBarProps) {
 
   // Check if item or its children are active
   const isItemActive = (item: NavNode) => {
-    if (item.href && pathname === item.href) return true;
+    // Use getDashboardHref to get the correct href (handles admin dashboard)
+    const itemHref = getDashboardHref(item);
+    if (itemHref && pathname === itemHref) return true;
     if (item.children) {
       return item.children.some((child) => child.href === pathname);
     }

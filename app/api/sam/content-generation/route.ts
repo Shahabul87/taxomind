@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samGenerationEngine } from "@/lib/sam-generation-engine";
+import { samGenerationEngine } from "@/sam/engines/content/sam-generation-engine";
 import { logger } from '@/lib/logger';
 import {
   LearningObjective,
   GenerationConfig,
-} from "@/lib/sam-generation-engine";
+} from "@/sam/engines/content/sam-generation-engine";
 
 export async function POST(req: NextRequest) {
   try {
@@ -167,7 +167,13 @@ async function handleGenerateStudyGuide(data: any, userId: string) {
     throw new Error("Access denied to this course");
   }
 
-  return await samGenerationEngine.generateStudyGuides(course);
+  // Convert PathDifficulty to string for SAM engine compatibility
+  const courseForSAM = {
+    ...course,
+    difficulty: course.difficulty?.toString() as string | undefined,
+  };
+
+  return await samGenerationEngine.generateStudyGuides(courseForSAM as any);
 }
 
 async function handleCreateExercises(data: any) {

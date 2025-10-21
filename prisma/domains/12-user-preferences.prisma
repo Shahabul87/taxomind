@@ -1,0 +1,124 @@
+// ==========================================
+// User Preferences & Settings Domain
+// ==========================================
+// Models for user preferences, notification settings,
+// privacy controls, and account management features
+//
+// NOTE: ActiveSession already exists in 02-auth.prisma
+// ==========================================
+
+// User Notification Preferences
+model UserNotificationPreferences {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Email Notifications
+  emailNotifications    Boolean  @default(true)
+  emailCourseUpdates    Boolean  @default(true)
+  emailNewMessages      Boolean  @default(true)
+  emailMarketingEmails  Boolean  @default(false)
+  emailWeeklyDigest     Boolean  @default(true)
+
+  // Push Notifications
+  pushNotifications     Boolean  @default(true)
+  pushCourseReminders   Boolean  @default(true)
+  pushNewMessages       Boolean  @default(true)
+  pushAchievements      Boolean  @default(true)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// User Privacy Settings
+model UserPrivacySettings {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Profile Visibility
+  profileVisibility       String   @default("public") // public, private, friends
+  showEmail               Boolean  @default(false)
+  showPhone               Boolean  @default(false)
+  showLearningProgress    Boolean  @default(true)
+
+  // Data & Personalization
+  allowDataCollection     Boolean  @default(true)
+  allowPersonalization    Boolean  @default(true)
+
+  // Cookie Preferences
+  cookieNecessary         Boolean  @default(true) // Always true
+  cookieFunctional        Boolean  @default(true)
+  cookieAnalytics         Boolean  @default(true)
+  cookieMarketing         Boolean  @default(false)
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// GDPR Data Export Requests
+model DataExportRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("DataExportRequests", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Request Details
+  status          String   @default("pending") // pending, processing, completed, failed
+  format          String   @default("json") // json, csv
+  downloadUrl     String?
+  expiresAt       DateTime?
+
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// Account Deletion Requests
+model AccountDeletionRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("AccountDeletionRequests", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Request Details
+  reason          String?
+  status          String   @default("pending") // pending, approved, rejected, completed, cancelled
+  scheduledFor    DateTime // 30 days from request date
+
+  // Admin Review
+  reviewedBy      String?
+  reviewNotes     String?
+  reviewedAt      DateTime?
+
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledFor])
+}
+
+// Login History (extends auth audit)
+model LoginHistory {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("LoginHistory", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Login Details
+  success         Boolean
+  ipAddress       String?
+  userAgent       String?
+  location        String?
+  failureReason   String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([success])
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getUserAchievementSummary } from '@/lib/sam-achievement-engine';
+import { getUserAchievementSummary } from '@/sam/engines/educational/sam-achievement-engine';
 import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {

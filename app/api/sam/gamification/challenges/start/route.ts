@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { startChallengeForUser } from '@/lib/sam-achievement-engine';
+import { startChallengeForUser } from '@/sam/engines/educational/sam-achievement-engine';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {

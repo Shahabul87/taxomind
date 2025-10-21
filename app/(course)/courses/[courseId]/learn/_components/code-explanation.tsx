@@ -57,7 +57,7 @@ export const CodeExplanation = ({ content }: CodeExplanationProps) => {
             <div className="p-4 sm:p-4 md:p-8">
               <div className="flex items-start justify-between mb-4 sm:mb-6">
                 <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-gray-100">
-                  {codeExp.heading}
+                  {codeExp.title}
                 </h3>
                 <Code className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500" />
               </div>

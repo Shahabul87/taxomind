@@ -1,7 +1,7 @@
 {
-  "filesProcessed": 12,
-  "totalLines": 5646,
-  "timestamp": "2025-10-12T17:53:46.105Z",
+  "filesProcessed": 15,
+  "totalLines": 6097,
+  "timestamp": "2025-10-20T07:34:10.740Z",
   "domains": [
     "base",
     "enums",
@@ -14,6 +14,9 @@
     "ai",
     "admin",
     "gamification",
-    "events"
+    "events",
+    "user-preferences",
+    "course-enhancements",
+    "qa-system"
   ]
 }

@@ -51,6 +51,9 @@ model Organization {
   approvalWorkflowTemplates ApprovalWorkflowTemplate[]
   approvalAnalytics         ApprovalAnalytics[]
 
+  // Phase 2: Course Enhancements
+  learningPaths LearningPath[]
+
   @@map("organizations")
 }
 

@@ -222,7 +222,7 @@ export const ContentTabs = ({
                       >
                         <CodeContent codeExplanations={currentSection.codeExplanations.map(item => ({
                           ...item,
-                          title: item.heading ?? 'Untitled',
+                          title: item.title ?? 'Untitled',
                           description: item.explanation
                         }))} />
                       </motion.div>

@@ -229,6 +229,49 @@ The project includes custom slash commands for AI-assisted navigation:
 - **Audit Logging**: Complete activity tracking
 - **MFA Support**: TOTP-based 2FA
 
+## 📍 Application Routes
+
+### Public Routes
+- `/` - Homepage
+- `/courses` - Course catalog
+- `/blog` - Public blog
+- `/auth/login` - User login
+- `/auth/register` - User registration
+
+### Protected Routes
+
+#### Teacher Dashboard
+- `/teacher/courses` - Manage courses
+- `/teacher/courses/[courseId]` - Edit course
+- `/teacher/courses/[courseId]/chapters/[chapterId]` - Edit chapter
+- `/teacher/create` - Create new course
+- `/teacher/analytics` - Teacher analytics
+
+#### Teacher Posts (Blog)
+- `/teacher/posts/all-posts` - Manage all posts
+- `/teacher/posts/create-post` - Create new post
+- `/teacher/posts/[postId]` - Edit post
+- `/teacher/posts/[postId]/postchapters/[postchapterId]` - Edit post chapter
+
+#### Student Dashboard
+- `/dashboard` - Student dashboard
+- `/my-courses` - Enrolled courses
+- `/courses/[courseId]/learn` - Course learning interface
+- `/analytics/user` - Learning analytics
+
+#### Admin Dashboard
+- `/admin` - Admin dashboard
+- `/admin/users` - User management
+- `/admin/settings` - System settings
+- `/admin/audit` - Audit logs
+
+### API Routes
+- `/api/courses` - Course CRUD operations
+- `/api/posts` - Post/Blog operations
+- `/api/auth` - Authentication endpoints
+- `/api/analytics` - Analytics data
+- `/api/monitoring/redirect-stats` - Route migration monitoring
+
 ## 🧪 Testing
 
 ### Test Coverage

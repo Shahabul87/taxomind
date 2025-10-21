@@ -12,7 +12,7 @@ import { ChapterActions } from "./chapter-actions";
 import { ChapterLearningOutcomeForm } from "./chapter-learning-outcome-form";
 import { ChaptersSectionForm } from "./chapter-section-form";
 import { AIChapterContentGeneratorEnhanced } from "./ai-chapter-content-generator-enhanced";
-import { ChapterSamIntegration } from "./chapter-sam-integration";
+// SAM Integration removed - using global SAM assistant instead
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,14 +58,9 @@ export const ChapterPageClient = ({ chapter, params }: ChapterPageClientProps) =
     )}>
       <TourStyles />
       {showTour && <GuidedTour config={aiChapterCreationTour} />}
-      
-      {/* SAM Integration for Chapter Context */}
-      <ChapterSamIntegration 
-        chapter={chapter} 
-        courseId={params.courseId} 
-        chapterId={params.chapterId} 
-      />
-      
+
+      {/* Global SAM Assistant is available via the floating button */}
+
       {/* Warning Banner */}
       {!chapter.isPublished && (
         <div className="px-4 sm:px-6">

@@ -113,15 +113,16 @@ model AIUsageMetrics {
   @@index([userId])
 }
 
-model RecommendationInteraction {
-  id                 String             @id
-  action             InteractionType
-  recommendationId   String
-  createdAt          DateTime           @default(now())
-  PathRecommendation PathRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
-
-  @@index([recommendationId])
-}
+// DEPRECATED: RecommendationInteraction model - depends on PathRecommendation which was moved to 13-course-enhancements.prisma
+// model RecommendationInteraction {
+//   id                 String             @id
+//   action             InteractionType
+//   recommendationId   String
+//   createdAt          DateTime           @default(now())
+//   PathRecommendation PathRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+//
+//   @@index([recommendationId])
+// }
 
 model UserAIPreferences {
   id                 String   @id

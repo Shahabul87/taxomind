@@ -97,7 +97,8 @@ model User {
   IdeaComment                             IdeaComment[]
   IdeaLike                                IdeaLike[]
   LearningDNA                             LearningDNA[]
-  LearningPath                            LearningPath[]
+  // DEPRECATED: Old LearningPath relation - replaced with learningPathsCreated in Phase 2
+  // LearningPath                            LearningPath[]
   LearningStyleAnalysis                   LearningStyleAnalysis[]
   Message_Message_recipientIdToUser       Message[]                            @relation("Message_recipientIdToUser")
   Message_Message_senderIdToUser          Message[]                            @relation("Message_senderIdToUser")
@@ -106,8 +107,9 @@ model User {
   MotivationProfile                       MotivationProfile[]
   Note                                    Note[]
   Notification                            Notification[]
-  PathEnrollment                          PathEnrollment[]
-  PathRecommendation                      PathRecommendation[]
+  // DEPRECATED: PathEnrollment relation - models moved to 13-course-enhancements.prisma
+  // PathEnrollment                          PathEnrollment[]
+  // PathRecommendation                      PathRecommendation[]
   PersonalizationResult                   PersonalizationResult[]
   PersonalizedLearningPath                PersonalizedLearningPath[]
   PersonalizedResourceRecommendation      PersonalizedResourceRecommendation[]
@@ -224,6 +226,26 @@ model User {
   adminAccounts               AdminAccount[]              @relation("AdminAccounts")
   adminActiveSessions         AdminActiveSession[]        @relation("AdminActiveSessions")
   adminTwoFactorConfirmation  AdminTwoFactorConfirmation? @relation("AdminTwoFactorConfirmation")
+
+  // User Preferences & Settings (added January 16, 2025)
+  notificationPreferences UserNotificationPreferences?
+  privacySettings         UserPrivacySettings?
+  dataExportRequests      DataExportRequest[]          @relation("DataExportRequests")
+  accountDeletionRequests AccountDeletionRequest[]     @relation("AccountDeletionRequests")
+  loginHistory            LoginHistory[]               @relation("LoginHistory")
+
+  // Phase 2: Q&A System (added January 20, 2025)
+  courseQuestions CourseQuestion[]
+  courseAnswers   CourseAnswer[]
+  questionVotes   QuestionVote[]
+  answerVotes     AnswerVote[]
+
+  // Phase 2: Course Enhancements (from 13-course-enhancements.prisma)
+  wishlists                Wishlist[]
+  learningPathsCreated     LearningPath[]
+  learningPathEnrollments  LearningPathEnrollment[]
+  courseComparisons        CourseComparison[]
+  courseRecommendations    CourseRecommendation[]
 }
 
 model Account {
@@ -286,7 +308,10 @@ model ActiveSession {
   browser      String?
   os           String?
   deviceType   String?
-  lastActiveAt DateTime @default(now())
+  deviceName   String?  // Added for settings page
+  location     String?  // Added for settings page
+  lastActive   DateTime @default(now())  // Changed from lastActiveAt to match usage
+  createdAt    DateTime @default(now())  // Added for settings page
   expiresAt    DateTime
   isRevoked    Boolean  @default(false)
   User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)

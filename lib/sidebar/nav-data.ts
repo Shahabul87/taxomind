@@ -92,26 +92,20 @@ export const NAV_ITEMS: NavNode[] = [
   },
   {
     key: 'posts',
-    label: 'Posts & Blog',
+    label: 'Posts',
     icon: Newspaper,
     section: 'main',
     children: [
       {
         key: 'my-posts',
         label: 'My Posts',
-        href: '/post/all-posts',
+        href: '/teacher/posts/all-posts',
         description: 'Manage your posts',
-      },
-      {
-        key: 'browse-posts',
-        label: 'Browse Posts',
-        href: '/post',
-        description: 'Read community posts',
       },
       {
         key: 'create-post',
         label: 'Create Post',
-        href: '/post/create-post',
+        href: '/teacher/posts/create-post',
         description: 'Write a new post',
       },
     ],
@@ -223,7 +217,17 @@ export function findActiveNavItem(pathname: string): NavNode | null {
 
     // Check submenu items
     if (item.children) {
-      const activeChild = item.children.find((child) => child.href === pathname);
+      const activeChild = item.children.find((child) => {
+        // Exact match
+        if (child.href === pathname) return true;
+
+        // Check if it's a dynamic route match for posts
+        if (child.href === '/teacher/posts/all-posts' && pathname.startsWith('/teacher/posts/')) {
+          return true;
+        }
+
+        return false;
+      });
       if (activeChild) {
         return item;
       }
@@ -239,7 +243,25 @@ export function findActiveNavItem(pathname: string): NavNode | null {
 export function findActiveSubmenuItem(pathname: string): NavSubmenuItem | null {
   for (const item of NAV_ITEMS) {
     if (item.children) {
-      const activeChild = item.children.find((child) => child.href === pathname);
+      const activeChild = item.children.find((child) => {
+        // Exact match
+        if (child.href === pathname) return true;
+
+        // Check if it's a dynamic route match for posts
+        if (child.href === '/teacher/posts/all-posts' && pathname === '/teacher/posts/all-posts') {
+          return true;
+        }
+        if (child.href === '/teacher/posts/create-post' && pathname === '/teacher/posts/create-post') {
+          return true;
+        }
+
+        // Check for post detail pages
+        if (child.key === 'my-posts' && pathname.match(/^\/teacher\/posts\/[a-zA-Z0-9-]+$/)) {
+          return true;
+        }
+
+        return false;
+      });
       if (activeChild) {
         return activeChild;
       }

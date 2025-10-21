@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samPredictiveEngine } from "@/lib/sam-predictive-engine";
+import { samPredictiveEngine } from "@/sam/engines/advanced/sam-predictive-engine";
 import { logger } from '@/lib/logger';
 import {
   StudentProfile,
@@ -10,7 +10,7 @@ import {
   BehaviorPatterns,
   StudentCohort,
   LearningContext,
-} from "@/lib/sam-predictive-engine";
+} from "@/sam/engines/advanced/sam-predictive-engine";
 
 export async function POST(req: NextRequest) {
   try {

@@ -1,4 +1,4 @@
-import { BloomsAnalysisEngine } from '@/lib/sam-blooms-engine';
+import { BloomsAnalysisEngine } from '@/sam/engines/educational/sam-blooms-engine';
 import { testDb, setupTestDatabase, teardownTestDatabase } from '../../utils/test-db';
 import { TestDataFactory } from '../../utils/test-factory';
 import { mockAnthropicClient, setupMockProviders, resetMockProviders } from '../../utils/mock-providers';

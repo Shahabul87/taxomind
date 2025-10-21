@@ -1,35 +1,87 @@
-"use client";
-
-import { PrivateDetailsSettingsPage } from "./private-details";
-import { motion } from "framer-motion";
-import { useCurrentUser } from "@/hooks/use-current-user";
+import { redirect } from "next/navigation";
+import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import ConditionalHeader from "@/app/(homepage)/user-header";
-import { cn } from "@/lib/utils";
+import { SettingsPageClient } from "./_components/settings-page-client";
+import { SettingsUser } from "@/types/settings";
 
-const SettingsPage = () => {
-  const user = useCurrentUser();
-  
+const SettingsPage = async () => {
+  const user = await currentUser();
+
+  if (!user || !user.id) {
+    redirect("/login");
+  }
+
+  // Fetch complete user data from database
+  const dbUser = await db.user.findUnique({
+    where: { id: user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      phone: true,
+      role: true,
+      isTwoFactorEnabled: true,
+      totpEnabled: true,
+      totpVerified: true,
+      isTeacher: true,
+      isAffiliate: true,
+      learningStyle: true,
+      walletBalance: true,
+      affiliateEarnings: true,
+      affiliateCode: true,
+      samTotalPoints: true,
+      samLevel: true,
+      createdAt: true,
+      lastLoginAt: true,
+      lastLoginIp: true,
+      isAccountLocked: true,
+      emailVerified: true,
+    },
+  });
+
+  if (!dbUser) {
+    redirect("/login");
+  }
+
+  // Type-safe user conversion for settings
+  const settingsUser: SettingsUser = {
+    id: dbUser.id,
+    name: dbUser.name,
+    email: dbUser.email,
+    image: dbUser.image,
+    phone: dbUser.phone,
+    role: dbUser.role,
+    isOAuth: user.isOAuth || false,
+    isTwoFactorEnabled: dbUser.isTwoFactorEnabled,
+    totpEnabled: dbUser.totpEnabled,
+    totpVerified: dbUser.totpVerified,
+    isTeacher: dbUser.isTeacher,
+    isAffiliate: dbUser.isAffiliate,
+    learningStyle: dbUser.learningStyle,
+    walletBalance: Number(dbUser.walletBalance),
+    affiliateEarnings: Number(dbUser.affiliateEarnings),
+    affiliateCode: dbUser.affiliateCode,
+    samTotalPoints: dbUser.samTotalPoints,
+    samLevel: dbUser.samLevel,
+    createdAt: dbUser.createdAt,
+    lastLoginAt: dbUser.lastLoginAt,
+    lastLoginIp: dbUser.lastLoginIp,
+    isAccountLocked: dbUser.isAccountLocked,
+    emailVerified: dbUser.emailVerified,
+  };
+
   // Convert undefined to null to match expected type
-  const userForHeader = user && user.id ? {
+  const userForHeader = {
     id: user.id,
     role: user.role
-  } : null;
+  };
 
   return (
     <>
       <ConditionalHeader user={userForHeader} />
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className={cn(
-          "min-h-screen pt-20",
-          "bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50",
-          "dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-700",
-          "text-gray-900 dark:text-gray-100"
-        )}
-      >
-        <PrivateDetailsSettingsPage />
-      </motion.div>
+      <SettingsPageClient user={settingsUser} />
     </>
   );
 }

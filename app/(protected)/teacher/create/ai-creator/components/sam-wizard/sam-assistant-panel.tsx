@@ -1,11 +1,20 @@
 "use client";
 
 import React from 'react';
+// Re-export the redesigned component
+export { SamAssistantPanelRedesigned as SamAssistantPanel } from './sam-assistant-panel-redesigned';
+
+// Keep old exports for backward compatibility
+export { ConfidenceIndicator, CompactConfidenceIndicator } from './ConfidenceIndicator';
+export { SuggestionHistory, CompactSuggestionHistory } from './SuggestionHistory';
+export { SAMBottomSheet, SAMBottomSheetTrigger } from './SAMBottomSheet';
+
+// Legacy component (kept for reference, not exported)
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SamSuggestion } from '../../types/sam-creator.types';
-import { SamLoadingState } from '@/components/ui/sam-loading-state';
+import { SamLoadingState } from '@/sam/components/ui/sam-loading-state';
 import { Bot, MessageCircle, ThumbsUp, AlertTriangle, Info, Lightbulb, Zap, Sparkles, RefreshCw, ChevronRight, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -67,7 +76,8 @@ const getSuggestionColors = (type: SamSuggestion['type']) => {
   }
 };
 
-export function SamAssistantPanel({ 
+// Legacy component - not exported (use SamAssistantPanelRedesigned instead)
+function LegacySamAssistantPanel({ 
   suggestion, 
   isLoading, 
   onRefresh, 
