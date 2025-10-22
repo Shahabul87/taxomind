@@ -79,7 +79,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 // Modern Course Card Component
-const ModernCourseCard = ({ course, viewMode }: any) => {
+const ModernCourseCard = ({ course, viewMode, isPriority = false }: any) => {
   const [isHovered, setIsHovered] = useState(false);
 
   // Ensure image URLs use HTTPS for Next.js Image component
@@ -103,8 +103,10 @@ const ModernCourseCard = ({ course, viewMode }: any) => {
           {secureImageUrl && (
             <Image
               src={secureImageUrl}
-              alt={course.title}
+              alt=""
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              priority={isPriority}
               className="object-cover transition-transform duration-500 group-hover:scale-110"
             />
           )}
@@ -167,8 +169,9 @@ const ModernCourseCard = ({ course, viewMode }: any) => {
               {secureInstructorAvatar ? (
                 <Image
                   src={secureInstructorAvatar}
-                  alt={course.instructor.name}
+                  alt=""
                   fill
+                  sizes="32px"
                   className="object-cover"
                 />
               ) : (
@@ -267,7 +270,11 @@ const ModernCourseCard = ({ course, viewMode }: any) => {
               {course.isEnrolled ? "Continue Learning" : "Enroll Now"}
               <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover/btn:translate-x-1" />
             </Button>
-            <Button size="icon" variant="outline">
+            <Button
+              size="icon"
+              variant="outline"
+              aria-label={course.isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            >
               <Heart className={cn("w-4 h-4", course.isWishlisted && "fill-current text-red-500")} />
             </Button>
           </div>
@@ -279,7 +286,13 @@ const ModernCourseCard = ({ course, viewMode }: any) => {
 };
 
 // Modern Hero Section
-const ModernHeroSection = () => {
+const ModernHeroSection = ({ totalLearners }: { totalLearners?: number }) => {
+  const formattedLearners = totalLearners
+    ? totalLearners >= 1000
+      ? `${Math.floor(totalLearners / 1000)}k+`
+      : `${totalLearners}+`
+    : '50,000+';
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
       {/* Background Pattern */}
@@ -291,7 +304,7 @@ const ModernHeroSection = () => {
           {/* Trust Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-8">
             <Shield className="w-4 h-4 text-emerald-400" />
-            <span className="text-sm">Trusted by 50,000+ learners worldwide</span>
+            <span className="text-sm">Trusted by {formattedLearners} learners worldwide</span>
           </div>
 
           {/* Main Heading */}
@@ -321,13 +334,24 @@ const ModernHeroSection = () => {
             className="relative max-w-2xl mx-auto"
           >
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" aria-hidden="true" />
+              <label htmlFor="hero-course-search" className="sr-only">
+                Search for courses by topic, skill, or keyword
+              </label>
               <Input
+                id="hero-course-search"
+                name="course-search"
+                type="search"
                 placeholder="What do you want to learn today?"
                 className="pl-12 pr-32 py-6 text-lg bg-white/95 backdrop-blur-sm text-slate-900 border-0"
+                aria-label="Search for courses"
               />
-              <Button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                <Sparkles className="w-4 h-4 mr-2" />
+              <Button
+                type="button"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                aria-label="Activate AI-powered course search"
+              >
+                <Sparkles className="w-4 h-4 mr-2" aria-hidden="true" />
                 AI Search
               </Button>
             </div>
@@ -361,7 +385,7 @@ const ModernHeroSection = () => {
 };
 
 // Modern Stats Bar
-const ModernStatsBar = ({ stats }: any) => {
+const ModernStatsBar = ({ stats, isLoading }: any) => {
   return (
     <div className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-y">
       <div className="container mx-auto px-4 py-8">
@@ -369,8 +393,8 @@ const ModernStatsBar = ({ stats }: any) => {
           {[
             { icon: BookOpen, label: "Total Courses", value: stats.totalCourses, color: "text-purple-600" },
             { icon: TrendingUp, label: "New This Week", value: stats.newCoursesThisWeek, color: "text-emerald-600" },
-            { icon: Users, label: "Active Learners", value: `${stats.activeLearners}+`, color: "text-blue-600" },
-            { icon: Star, label: "Avg. Rating", value: stats.averageRating, color: "text-amber-600" },
+            { icon: Users, label: "Active Learners", value: `${stats.activeLearners.toLocaleString()}+`, color: "text-blue-600" },
+            { icon: Star, label: "Avg. Rating", value: stats.averageRating.toFixed(1), color: "text-amber-600" },
             { icon: Trophy, label: "Completion Rate", value: `${stats.completionRate}%`, color: "text-pink-600" },
           ].map((stat, index) => (
             <motion.div
@@ -381,7 +405,11 @@ const ModernStatsBar = ({ stats }: any) => {
               className="text-center"
             >
               <stat.icon className={cn("w-6 h-6 mx-auto mb-2", stat.color)} />
-              <div className="text-2xl font-bold">{stat.value}</div>
+              {isLoading ? (
+                <div className="text-2xl font-bold animate-pulse">--</div>
+              ) : (
+                <div className="text-2xl font-bold">{stat.value}</div>
+              )}
               <div className="text-sm text-muted-foreground">{stat.label}</div>
             </motion.div>
           ))}
@@ -500,6 +528,19 @@ const ModernFilterSidebar = ({
   );
 };
 
+// Statistics Interface
+interface PlatformStatistics {
+  totalCourses: number;
+  publishedCourses: number;
+  newCoursesThisWeek: number;
+  activeLearners: number;
+  totalLearners: number;
+  averageRating: number;
+  completionRate: number;
+  totalReviews: number;
+  totalEnrollments: number;
+}
+
 // Main Modern Courses Page Component
 export function ModernCoursesPage({
   initialCourses,
@@ -520,8 +561,43 @@ export function ModernCoursesPage({
   const [selectedPriceRange, setSelectedPriceRange] = useState<any>(null);
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [statistics, setStatistics] = useState<PlatformStatistics | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  // Fetch platform statistics on mount
+  useEffect(() => {
+    const fetchStatistics = async () => {
+      try {
+        setStatsLoading(true);
+        const response = await fetch('/api/courses/statistics');
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setStatistics(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch platform statistics:', error);
+        // Fallback to default values
+        setStatistics({
+          totalCourses,
+          publishedCourses: totalCourses,
+          newCoursesThisWeek: 0,
+          activeLearners: 0,
+          totalLearners: 0,
+          averageRating: 0,
+          completionRate: 0,
+          totalReviews: 0,
+          totalEnrollments: 0,
+        });
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStatistics();
+  }, [totalCourses]);
 
   // Clear all filters
   const clearAllFilters = () => {
@@ -543,63 +619,74 @@ export function ModernCoursesPage({
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* Modern Hero Section */}
-      <ModernHeroSection />
+      <ModernHeroSection totalLearners={statistics?.totalLearners} />
 
       {/* Stats Bar */}
       <ModernStatsBar
         stats={{
-          totalCourses,
-          newCoursesThisWeek: 12,
-          activeLearners: 1234,
-          averageRating: 4.5,
-          completionRate: 78
+          totalCourses: statistics?.publishedCourses || totalCourses,
+          newCoursesThisWeek: statistics?.newCoursesThisWeek || 0,
+          activeLearners: statistics?.activeLearners || 0,
+          averageRating: statistics?.averageRating || 0,
+          completionRate: statistics?.completionRate || 0
         }}
+        isLoading={statsLoading}
       />
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
+        {/* Section Heading */}
+        <h2 className="sr-only">Browse Courses</h2>
+
         {/* Controls Bar */}
         <div className="mb-8">
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-3 mb-6">
-            <Button variant="outline" className="group">
-              <Brain className="w-4 h-4 mr-2 text-purple-600" />
+            <Button variant="outline" className="group" aria-label="Get AI-powered course recommendations">
+              <Brain className="w-4 h-4 mr-2 text-purple-600" aria-hidden="true" />
               AI Recommendations
-              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Button>
-            <Button variant="outline" className="group">
-              <Route className="w-4 h-4 mr-2 text-blue-600" />
+            <Button variant="outline" className="group" aria-label="Browse curated learning paths">
+              <Route className="w-4 h-4 mr-2 text-blue-600" aria-hidden="true" />
               Learning Paths
-              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Button>
-            <Button variant="outline" className="group">
-              <Zap className="w-4 h-4 mr-2 text-amber-600" />
+            <Button variant="outline" className="group" aria-label="Start quick beginner courses">
+              <Zap className="w-4 h-4 mr-2 text-amber-600" aria-hidden="true" />
               Quick Start
-              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Button>
-            <Button variant="outline" className="group">
-              <Target className="w-4 h-4 mr-2 text-emerald-600" />
+            <Button variant="outline" className="group" aria-label="Set your career goals and find matching courses">
+              <Target className="w-4 h-4 mr-2 text-emerald-600" aria-hidden="true" />
               Career Goals
-              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Button>
           </div>
 
           {/* Search and Filters */}
           <div className="flex gap-4 items-center">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" aria-hidden="true" />
+              <label htmlFor="filter-course-search" className="sr-only">
+                Filter courses by title or keyword
+              </label>
               <Input
+                id="filter-course-search"
+                name="filter-search"
+                type="search"
                 placeholder="Search courses..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
+                aria-label="Filter courses"
               />
             </div>
 
             <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="lg:hidden">
-                  <SlidersHorizontal className="h-4 w-4 mr-2" />
+                <Button variant="outline" className="lg:hidden" aria-label={`Open filters${activeFiltersCount > 0 ? ` (${activeFiltersCount} active)` : ''}`}>
+                  <SlidersHorizontal className="h-4 w-4 mr-2" aria-hidden="true" />
                   Filters
                   {activeFiltersCount > 0 && (
                     <Badge variant="secondary" className="ml-2">
@@ -641,22 +728,26 @@ export function ModernCoursesPage({
               </SelectContent>
             </Select>
 
-            <div className="hidden md:flex items-center border rounded-lg">
+            <div className="hidden md:flex items-center border rounded-lg" role="group" aria-label="View mode">
               <Button
                 variant={viewMode === "grid" ? "secondary" : "ghost"}
                 size="icon"
                 onClick={() => setViewMode("grid")}
                 className="rounded-r-none"
+                aria-label="Grid view"
+                aria-pressed={viewMode === "grid"}
               >
-                <Grid3X3 className="h-4 w-4" />
+                <Grid3X3 className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
                 size="icon"
                 onClick={() => setViewMode("list")}
                 className="rounded-l-none"
+                aria-label="List view"
+                aria-pressed={viewMode === "list"}
               >
-                <List className="h-4 w-4" />
+                <List className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </div>
@@ -690,11 +781,12 @@ export function ModernCoursesPage({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {courses.map((course: any) => (
+                {courses.map((course: any, index: number) => (
                   <ModernCourseCard
                     key={course.id}
                     course={course}
                     viewMode={viewMode}
+                    isPriority={index === 0}
                   />
                 ))}
               </div>
