@@ -104,7 +104,22 @@ interface ModernBlogPageProps {
 }
 
 // Modern Hero Section with Featured Article
-const ModernHeroSection = ({ featuredPost }: { featuredPost?: BlogPost }) => {
+const ModernHeroSection = ({
+  featuredPost,
+  statistics,
+  isLoading
+}: {
+  featuredPost?: BlogPost;
+  statistics?: BlogStatistics | null;
+  isLoading?: boolean;
+}) => {
+  const formatNumber = (num: number) => {
+    if (num >= 1000) {
+      return `${Math.floor(num / 1000)}K+`;
+    }
+    return `${num}+`;
+  };
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-purple-50 to-slate-50 dark:from-slate-950 dark:via-purple-950/20 dark:to-slate-950">
       {/* Background Pattern */}
@@ -140,7 +155,13 @@ const ModernHeroSection = ({ featuredPost }: { featuredPost?: BlogPost }) => {
                   <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">500+</div>
+                  {isLoading ? (
+                    <div className="text-2xl font-bold animate-pulse">--</div>
+                  ) : (
+                    <div className="text-2xl font-bold">
+                      {formatNumber(statistics?.publishedArticles || 0)}
+                    </div>
+                  )}
                   <div className="text-sm text-slate-600 dark:text-slate-400">Articles</div>
                 </div>
               </div>
@@ -149,7 +170,13 @@ const ModernHeroSection = ({ featuredPost }: { featuredPost?: BlogPost }) => {
                   <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">50K+</div>
+                  {isLoading ? (
+                    <div className="text-2xl font-bold animate-pulse">--</div>
+                  ) : (
+                    <div className="text-2xl font-bold">
+                      {formatNumber(statistics?.totalReaders || 0)}
+                    </div>
+                  )}
                   <div className="text-sm text-slate-600 dark:text-slate-400">Readers</div>
                 </div>
               </div>
@@ -158,7 +185,13 @@ const ModernHeroSection = ({ featuredPost }: { featuredPost?: BlogPost }) => {
                   <Award className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">100+</div>
+                  {isLoading ? (
+                    <div className="text-2xl font-bold animate-pulse">--</div>
+                  ) : (
+                    <div className="text-2xl font-bold">
+                      {formatNumber(statistics?.totalAuthors || 0)}
+                    </div>
+                  )}
                   <div className="text-sm text-slate-600 dark:text-slate-400">Authors</div>
                 </div>
               </div>
@@ -546,6 +579,18 @@ const NewsletterSection = () => {
 };
 
 // Main Modern Blog Page Component
+// Blog Statistics Interface
+interface BlogStatistics {
+  totalArticles: number;
+  publishedArticles: number;
+  totalReaders: number;
+  totalAuthors: number;
+  totalViews: number;
+  totalComments: number;
+  averageViews: number;
+  popularCategories: Array<{ category: string; count: number }>;
+}
+
 export function ModernBlogPage({
   featuredPosts,
   initialPosts,
@@ -558,12 +603,46 @@ export function ModernBlogPage({
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"latest" | "popular" | "trending">("latest");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [statistics, setStatistics] = useState<BlogStatistics | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   // Advanced filter states
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
   const [minViews, setMinViews] = useState<number>(0);
   const [dateRange, setDateRange] = useState<"all" | "today" | "week" | "month" | "year">("all");
+
+  // Fetch blog statistics on mount
+  useEffect(() => {
+    const fetchStatistics = async () => {
+      try {
+        setStatsLoading(true);
+        const response = await fetch('/api/blog/statistics');
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setStatistics(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch blog statistics:', error);
+        // Fallback to default values
+        setStatistics({
+          totalArticles: initialPosts.length,
+          publishedArticles: initialPosts.length,
+          totalReaders: 50000,
+          totalAuthors: 100,
+          totalViews: 0,
+          totalComments: 0,
+          averageViews: 0,
+          popularCategories: [],
+        });
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStatistics();
+  }, [initialPosts.length]);
 
   // Filter posts by category and search
   const filteredPosts = useMemo(() => {
@@ -638,7 +717,11 @@ export function ModernBlogPage({
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* Hero Section */}
-      <ModernHeroSection featuredPost={featuredPosts[0]} />
+      <ModernHeroSection
+        featuredPost={featuredPosts[0]}
+        statistics={statistics}
+        isLoading={statsLoading}
+      />
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
