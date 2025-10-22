@@ -78,7 +78,10 @@ const SectionItem = ({ section, courseId, chapterId, isEnrolled, sectionIndex }:
       // Scroll to enroll card on same page
       try {
         const el = document.getElementById('enroll-card');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (el) {
+          const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          el.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
+        }
         EventTracker.getInstance().trackInteraction('course_section_locked_click', {
           courseId,
           chapterId,
@@ -143,7 +146,8 @@ const SectionItem = ({ section, courseId, chapterId, isEnrolled, sectionIndex }:
     <motion.div
       whileHover={isAccessible ? { x: 4 } : {}}
       className={cn(
-        "flex justify-between items-center p-3 rounded-lg transition-all duration-200",
+        "flex justify-between items-center p-3 rounded-lg transition-all duration-200 scroll-mt-sticky",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900",
         isAccessible 
           ? "bg-white/50 dark:bg-gray-800/50 hover:bg-gray-50/80 dark:hover:bg-gray-800 cursor-pointer" 
           : "bg-gray-50/30 dark:bg-gray-800/30 opacity-60"
@@ -151,6 +155,7 @@ const SectionItem = ({ section, courseId, chapterId, isEnrolled, sectionIndex }:
       onClick={handleSectionClick}
       role="button"
       tabIndex={0}
+      aria-label={`Open section ${sectionIndex + 1}: ${section.title}`}
       data-section-id={section.id}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -181,7 +186,7 @@ const SectionItem = ({ section, courseId, chapterId, isEnrolled, sectionIndex }:
             <div className="text-sm font-medium text-slate-600 dark:text-slate-400 tracking-tight">
               <span className="text-indigo-600/80 dark:text-indigo-400/80">{section.type}</span>
               <span className="mx-2 text-slate-400 dark:text-slate-600">•</span>
-              <span className="text-slate-500 dark:text-slate-500">
+              <span className="text-slate-500 dark:text-slate-400">
                 {section.duration ? `${section.duration} min` : 'Duration varies'}
               </span>
             </div>
@@ -382,7 +387,10 @@ export const CourseContent = ({
       if (secParam) {
         setTimeout(() => {
           const el = document.querySelector(`[data-section-id="${secParam}"]`);
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (el) {
+              const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+              el.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'center' });
+            }
         }, 50);
       }
     }
@@ -495,7 +503,10 @@ export const CourseContent = ({
                   type="button"
                   onClick={() => {
                     const el = document.querySelector(`[data-section-id="${resumeContext.sectionId}"]`) as HTMLElement | null;
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (el) {
+                      const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                      el.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'center' });
+                    }
                   }}
                   className="inline-flex items-center gap-2 px-3 py-1.5 text-xs rounded-md border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-100/70 dark:hover:bg-amber-900/30"
                 >
@@ -834,7 +845,7 @@ export const CourseContent = ({
             >
               {/* Chapter Header */}
               <div
-                className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+                className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900"
                 onClick={() => toggleChapter(index)}
                 role="button"
                 tabIndex={0}
@@ -864,7 +875,7 @@ export const CourseContent = ({
                       )}
                     </div>
                     
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2 scroll-mt-sticky">
                       <span className="truncate">{chapter.title}</span>
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${accessibleSectionsInChapter > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-800/40' : 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/40 dark:text-gray-300 dark:border-gray-700/50'}`}>
                         Free: {accessibleSectionsInChapter}/{totalInChapter}
@@ -1081,7 +1092,7 @@ export const CourseContent = ({
           type="button"
           onClick={() => {
             const el = document.querySelector(`[data-section-id="${resumeContext.sectionId}"]`) as HTMLElement | null;
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
             try { EventTracker.getInstance().trackInteraction('content_resume_fab_click', { courseId, sectionId: resumeContext.sectionId }); } catch {}
           }}
           className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-lg border border-amber-400"

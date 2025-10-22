@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { Loader2, Heart, Gift, Play } from 'lucide-react';
+import { Loader2, Heart, Play } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Course } from '@prisma/client';
@@ -25,6 +25,9 @@ export const CTAButtonHierarchy = ({
   const router = useRouter();
 
   const handleEnroll = async (): Promise<void> => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('analytics:click', { detail: { id: isEnrolled ? 'cta-go-to-course' : 'cta-enroll-now', courseId: course.id, price: course.price ?? null } }));
+    }
     try {
       if (!userId) {
         router.push(`/auth/login?callbackUrl=/courses/${course.id}`);
@@ -55,6 +58,9 @@ export const CTAButtonHierarchy = ({
   };
 
   const handleWishlist = async (): Promise<void> => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('analytics:click', { detail: { id: 'cta-wishlist', courseId: course.id } }));
+    }
     if (!userId) {
       router.push(`/auth/login?callbackUrl=/courses/${course.id}`);
       return;
@@ -69,33 +75,31 @@ export const CTAButtonHierarchy = ({
     }
   };
 
-  const handleGift = (): void => {
-    // TODO: Implement gift course functionality
-    toast.info('Gift course feature coming soon!');
-  };
-
   const handlePreview = (): void => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('analytics:click', { detail: { id: 'cta-preview', courseId: course.id } }));
+    }
     // TODO: Implement preview video functionality
     toast.info('Preview feature coming soon!');
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="space-y-3"
+      transition={{ delay: 0.1 }}
+      className="space-y-2"
     >
-      {/* Primary CTA - Enroll Now */}
       {isEnrolled ? (
         <button
-          className="w-full group relative px-6 py-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-green-500/25"
+          data-analytics-id="cta-go-to-course"
+          className="w-full relative px-5 py-3 md:py-3.5 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-semibold text-base md:text-lg transition-all duration-200 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
           onClick={() => {
             router.push(`/courses/${course.id}/learn`);
           }}
           disabled={isLoading}
         >
-          <span className="relative z-10 flex items-center justify-center gap-2">
+          <span className="flex items-center justify-center gap-2">
             {isLoading ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -108,74 +112,61 @@ export const CTAButtonHierarchy = ({
               </>
             )}
           </span>
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-green-600/50 to-emerald-600/50 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </button>
       ) : (
-        <button
-          className="w-full group relative px-6 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-purple-500/25"
-          onClick={() => {
-            handleEnroll().catch((error: unknown) => {
-              console.error('Enrollment failed:', error);
-            });
-          }}
-          disabled={isLoading}
-        >
-          <span className="relative z-10 flex items-center justify-center gap-2">
-            {isLoading ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              'Enroll Now'
-            )}
-          </span>
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-600/50 to-blue-600/50 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        </button>
-      )}
-
-      {/* Secondary CTAs */}
-      {!isEnrolled && (
-        <div className="grid grid-cols-2 gap-3">
-          {/* Add to Wishlist */}
+        <div className="flex items-center gap-2">
           <button
+            data-analytics-id="cta-enroll-now"
+            className="flex-1 relative px-5 py-3 md:py-3.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold text-base md:text-lg transition-all duration-200 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            onClick={() => {
+              handleEnroll().catch((error: unknown) => {
+                console.error('Enrollment failed:', error);
+              });
+            }}
+            disabled={isLoading}
+          >
+            <span className="flex items-center justify-center gap-2">
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Enroll Now'
+              )}
+            </span>
+          </button>
+
+          <button
+            data-analytics-id="cta-wishlist"
+            title="Wishlist"
+            aria-label="Add to wishlist"
             onClick={() => {
               handleWishlist().catch((error: unknown) => {
                 console.error('Wishlist failed:', error);
               });
             }}
-            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 font-semibold text-sm transition-all duration-200 ${
+            className={`inline-flex items-center justify-center w-11 h-11 md:w-12 md:h-12 rounded-lg border transition-colors ${
               isWishlisted
                 ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400'
                 : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
             }`}
           >
-            <Heart
-              className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`}
-            />
-            <span>Wishlist</span>
+            <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+            <span className="sr-only">Wishlist</span>
           </button>
 
-          {/* Preview Course */}
           <button
+            data-analytics-id="cta-preview"
+            title="Preview"
+            aria-label="Preview"
             onClick={handlePreview}
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 font-semibold text-sm transition-all duration-200"
+            className="inline-flex items-center justify-center w-11 h-11 md:w-12 md:h-12 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500"
           >
-            <Play className="w-4 h-4" />
-            <span>Preview</span>
+            <Play className="w-5 h-5" />
+            <span className="sr-only">Preview</span>
           </button>
         </div>
-      )}
-
-      {/* Tertiary CTA - Gift This Course */}
-      {!isEnrolled && (
-        <button
-          onClick={handleGift}
-          className="w-full flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium transition-colors"
-        >
-          <Gift className="w-4 h-4" />
-          <span>Gift this course</span>
-        </button>
       )}
     </motion.div>
   );

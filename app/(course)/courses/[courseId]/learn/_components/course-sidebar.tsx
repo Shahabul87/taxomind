@@ -19,7 +19,7 @@ export const CourseSidebar = ({ course, currentChapterId }: CourseSidebarProps) 
   const pathname = usePathname();
 
   return (
-    <div className="h-full border-r flex flex-col overflow-y-auto shadow-lg bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+    <div className="h-full border-r flex flex-col overflow-y-auto no-scrollbar shadow-lg bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
       {/* Course Title Section */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800">
         <h2 className="font-heading text-2xl bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent font-bold">
@@ -28,19 +28,21 @@ export const CourseSidebar = ({ course, currentChapterId }: CourseSidebarProps) 
       </div>
 
       {/* Chapters List */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        <nav className="p-4 space-y-2" aria-label="Chapters">
           {course.chapters.map((chapter) => (
+            // Use nav semantics per chapter link
             <Link
               key={chapter.id}
               href={`/courses/${course.id}/learn/${chapter.id}`}
               className={cn(
                 "flex items-center p-3 text-sm transition-all rounded-lg hover:bg-gray-100/80 dark:hover:bg-gray-800/80",
                 "border border-transparent hover:border-gray-200 dark:hover:border-gray-700",
-                "group relative",
+                "group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60",
                 pathname && pathname.includes(chapter.id) &&
                 "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
               )}
+              aria-current={pathname && pathname.includes(chapter.id) ? 'page' : undefined}
             >
               <div className="flex items-center gap-3 flex-1">
                 {chapter.isPublished ? (
@@ -72,8 +74,8 @@ export const CourseSidebar = ({ course, currentChapterId }: CourseSidebarProps) 
               />
             </Link>
           ))}
-        </div>
+        </nav>
       </div>
     </div>
   );
-}; 
+};

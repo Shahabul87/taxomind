@@ -89,9 +89,9 @@ export const CourseIncludesList = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.3 }}
-      className="space-y-3"
+      className="space-y-3 md:space-y-3.5"
     >
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-4">
         This course includes:
       </h3>
 
@@ -102,13 +102,13 @@ export const CourseIncludesList = ({
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 + index * 0.05 }}
-            className="flex items-start gap-3 text-sm"
+            className="flex items-start gap-3 text-sm md:text-base"
           >
             <div className="flex-shrink-0 mt-0.5">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
             </div>
             <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-              <span className="text-gray-500 dark:text-gray-400">{item.icon}</span>
+              <span className="text-gray-500 dark:text-gray-400" aria-hidden="true">{item.icon}</span>
               <span>{item.label}</span>
             </div>
           </motion.div>

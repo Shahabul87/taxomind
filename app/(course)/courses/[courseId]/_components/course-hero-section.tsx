@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 import { Course } from '@prisma/client';
 import { cleanHtmlContent } from '../utils/html-utils';
@@ -32,6 +32,7 @@ interface CourseHeroSectionProps {
 }
 
 export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Element => {
+  const prefersReducedMotion = useReducedMotion();
   // Calculate average rating
   const averageRating = course.reviews?.length
     ? (course.reviews.reduce((acc, review) => acc + review.rating, 0) / course.reviews.length).toFixed(1)
@@ -83,7 +84,10 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Eleme
   const secureImageUrl = course.imageUrl?.replace(/^http:\/\//i, 'https://') ?? '/default-course.jpg';
 
   return (
-    <div className="relative h-[60vh] w-full">
+    <section
+      className="relative w-full min-h-[360px] sm:min-h-[440px] md:min-h-[560px] lg:min-h-[60vh] xl:min-h-[70vh]"
+      aria-label="Course overview hero"
+    >
       {/* Background Image with Gradient Overlay */}
       <div className="absolute inset-0">
         <Image
@@ -98,12 +102,12 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Eleme
       </div>
 
       {/* Course Info Overlay */}
-      <div className="absolute inset-0 flex items-end pb-12 md:pb-16">
+      <div className="absolute inset-0 flex items-end pt-safe-4 pb-safe-12 md:pb-safe-16">
         <motion.div
-          className="container mx-auto px-4 max-w-7xl"
+          className="container mx-auto px-4 sm:px-6 md:px-8 max-w-7xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.6 }}
         >
           {/* Breadcrumb Navigation */}
           <HeroBreadcrumb items={breadcrumbItems} />
@@ -122,20 +126,20 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Eleme
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="inline-flex items-center mb-4"
+            transition={{ delay: prefersReducedMotion ? 0 : 0.2 }}
+            className="inline-flex items-center mb-4 max-w-full"
           >
             <span className="
               px-4 py-2
               rounded-full
               bg-slate-800/80 dark:bg-white/10
-              backdrop-blur-md
+              backdrop-blur-sm md:backdrop-blur-md
               border border-slate-700/50 dark:border-white/20
               text-white
               font-medium
               shadow-lg
               shadow-slate-900/30 dark:shadow-purple-500/20
-              flex items-center gap-2
+              flex items-center gap-2 truncate max-w-full
             ">
               <div className="w-2 h-2 rounded-full bg-purple-400" />
               {course.category?.name ?? 'Category not specified'}
@@ -146,8 +150,8 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Eleme
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-4xl md:text-6xl font-bold text-white mb-4 max-w-4xl leading-tight"
+            transition={{ delay: prefersReducedMotion ? 0 : 0.3 }}
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 max-w-screen-md md:max-w-4xl leading-tight break-words word-break-anywhere hyphens-auto text-balance"
           >
             {cleanHtmlContent(course.title)}
           </motion.h1>
@@ -176,6 +180,6 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Eleme
           />
         </motion.div>
       </div>
-    </div>
+    </section>
   );
 }; 

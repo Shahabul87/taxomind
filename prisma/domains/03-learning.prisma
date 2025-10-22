@@ -268,8 +268,23 @@ model CourseReview {
   updatedAt DateTime @updatedAt
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  helpfulVotes CourseReviewHelpfulVote[]
 
   @@index([courseId])
+  @@index([userId])
+}
+
+model CourseReviewHelpfulVote {
+  id        String       @id @default(uuid())
+  reviewId  String
+  userId    String
+  createdAt DateTime     @default(now())
+
+  review CourseReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
   @@index([userId])
 }
 
@@ -757,4 +772,3 @@ model SectionCompletionTracking {
   @@index([status])
   @@index([completedAt])
 }
-

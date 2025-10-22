@@ -6,9 +6,23 @@ import { z } from 'zod';
 // Schema for creating a question
 const CreateQuestionSchema = z.object({
   title: z.string().min(10, 'Title must be at least 10 characters').max(200, 'Title must be at most 200 characters'),
-  content: z.string().min(20, 'Content must be at least 20 characters').max(5000, 'Content must be at most 5000 characters'),
+  content: z.string().min(20, 'Content must be at least 20 characters').max(20000, 'Content too long'),
   sectionId: z.string().optional(),
 });
+
+function sanitizeHtmlServer(input: string): string {
+  try {
+    let out = input;
+    // Remove script and style tags
+    out = out.replace(/<\/(?:script|style)>/gi, '').replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '');
+    // Remove on* attributes and javascript: URIs
+    out = out.replace(/ on[a-z]+="[^"]*"/gi, '').replace(/ on[a-z]+='[^']*'/gi, '');
+    out = out.replace(/javascript:/gi, '');
+    return out;
+  } catch {
+    return input;
+  }
+}
 
 // Schema for query parameters
 const QuerySchema = z.object({
@@ -138,6 +152,15 @@ export async function GET(
 
     // Get user's votes for these questions
     const questionIds = questions.map((q) => q.id);
+    // Determine which questions have instructor answers
+    const instructorAnswers = await db.courseAnswer.findMany({
+      where: {
+        questionId: { in: questionIds },
+        isInstructor: true,
+      },
+      select: { questionId: true },
+    });
+    const hasInstructorAnswer = new Set(instructorAnswers.map((a) => a.questionId));
     const userVotes = await db.questionVote.findMany({
       where: {
         userId: user.id,
@@ -146,11 +169,25 @@ export async function GET(
     });
 
     const userVotesMap = new Map(userVotes.map((v) => [v.questionId, v.value]));
+    // Subscriptions for current user (gracefully handle if model not migrated yet)
+    let subscribedSet = new Set<string>();
+    try {
+      const subClient = (db as any).questionSubscription;
+      if (subClient && typeof subClient.findMany === 'function') {
+        const subs = await subClient.findMany({
+          where: { userId: user.id, questionId: { in: questionIds } },
+          select: { questionId: true },
+        });
+        subscribedSet = new Set(subs.map((s: any) => s.questionId));
+      }
+    } catch {}
 
     // Enhance questions with user vote status
     const enhancedQuestions = questions.map((question) => ({
       ...question,
       userVote: userVotesMap.get(question.id) || 0,
+      hasInstructorAnswer: hasInstructorAnswer.has(question.id),
+      isSubscribed: subscribedSet.has(question.id),
     }));
 
     return NextResponse.json({
@@ -239,6 +276,8 @@ export async function POST(
     // Parse and validate request body
     const body = await request.json();
     const validatedData = CreateQuestionSchema.parse(body);
+    // Sanitize rich HTML content
+    const safeContent = sanitizeHtmlServer(validatedData.content);
 
     // Verify section exists if provided
     if (validatedData.sectionId) {
@@ -266,7 +305,7 @@ export async function POST(
     const question = await db.courseQuestion.create({
       data: {
         title: validatedData.title,
-        content: validatedData.content,
+        content: safeContent,
         sectionId: validatedData.sectionId || null,
         courseId,
         userId: user.id,

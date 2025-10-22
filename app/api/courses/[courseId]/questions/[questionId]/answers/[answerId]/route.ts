@@ -2,12 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
+import { qaEventBus } from '@/lib/realtime/event-bus';
 
 // Schema for updating an answer
 const UpdateAnswerSchema = z.object({
   content: z.string().min(20).max(5000).optional(),
   isBestAnswer: z.boolean().optional(),
 });
+
+function sanitizeHtmlServer(input: string): string {
+  try {
+    let out = input;
+    out = out.replace(/<\/(?:script|style)>/gi, '').replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '');
+    out = out.replace(/ on[a-z]+="[^"]*"/gi, '').replace(/ on[a-z]+='[^']*'/gi, '');
+    out = out.replace(/javascript:/gi, '');
+    return out;
+  } catch {
+    return input;
+  }
+}
 
 interface RouteParams {
   params: {
@@ -114,7 +127,7 @@ export async function PATCH(
     } = {};
 
     if (validatedData.content !== undefined) {
-      updateData.content = validatedData.content;
+      updateData.content = sanitizeHtmlServer(validatedData.content);
     }
     if (validatedData.isBestAnswer !== undefined) {
       updateData.isBestAnswer = validatedData.isBestAnswer;
@@ -140,7 +153,7 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: updatedAnswer,
       metadata: {
@@ -148,6 +161,14 @@ export async function PATCH(
         version: '1.0.0',
       },
     });
+    try {
+      if (validatedData.isBestAnswer !== undefined) {
+        qaEventBus.emitEvent({ type: 'answer_marked_best', courseId, questionId, payload: { answerId, isBest: Boolean(validatedData.isBestAnswer) } });
+      } else {
+        qaEventBus.emitEvent({ type: 'question_updated', courseId, questionId, payload: { fields: ['answer_updated'] } });
+      }
+    } catch {}
+    return response;
   } catch (error) {
     console.error('Error updating answer:', error);
 

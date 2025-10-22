@@ -59,7 +59,7 @@ const ChapterIdPage = async (props: ChapterPageProps) => {
     <>
       <ConditionalHeader user={user as any} />
       <div className="h-full">
-        <div className="hidden md:flex h-full w-80 flex-col fixed inset-y-0 z-50 mt-[70px]">
+        <div className="hidden md:flex h-full w-80 flex-col fixed inset-y-0 z-50" style={{ top: 'var(--sticky-offset, 64px)' }}>
           <CourseSidebar
             course={course}
             currentChapterId={params.chapterId}
@@ -68,7 +68,7 @@ const ChapterIdPage = async (props: ChapterPageProps) => {
         <div className="md:ml-80 h-full">
           <div className="h-full flex flex-col">
             <div className="h-full flex flex-col">
-              <main className="md:pl-75 pt-[80px] h-full">
+              <main className="md:pl-75 h-full" style={{ paddingTop: 'var(--sticky-offset, 64px)' }}>
                 <ChapterContent 
                   chapter={chapter}
                   course={course}

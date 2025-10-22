@@ -36,7 +36,8 @@ export const StickyMiniHeader: React.FC<StickyMiniHeaderProps> = ({ course, isEn
     e.preventDefault();
     const el = document.getElementById('enroll-card');
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
     }
   };
 
@@ -51,10 +52,11 @@ export const StickyMiniHeader: React.FC<StickyMiniHeaderProps> = ({ course, isEn
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -10, opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed top-16 md:top-16 left-0 right-0 z-[45] sticky-mini-header"
+          className="hidden md:block fixed left-0 right-0 z-[45] sticky-mini-header"
+          style={{ top: 'var(--mini-top, 4rem)' }}
         >
           <div className="container mx-auto px-4 max-w-7xl">
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md shadow-lg px-3 py-2">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm md:backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-sm md:supports-[backdrop-filter]:backdrop-blur-md shadow-lg px-3 py-2">
               {/* Title + Rating */}
               <div className="flex items-center min-w-0 gap-3">
                 <div className="truncate font-semibold text-slate-900 dark:text-white max-w-[50vw] md:max-w-[40vw]">

@@ -34,23 +34,23 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
     >
       <div className="flex items-center gap-3 mb-4">
         <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">What You&apos;ll Learn</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100">What You&apos;ll Learn</h2>
       </div>
       
       <div className="space-y-3">
         {/* Always visible first 6 objectives */}
-        <div className="grid md:grid-cols-2 gap-3">
+        <div className="grid sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4">
           {initialObjectives.map((item, index) => (
             <div
               key={`initial-${item.slice(0, 20).replace(/\s+/g, '-')}`}
-              className="flex items-start gap-3 p-3 bg-white/60 dark:bg-slate-700/30 rounded-xl border border-emerald-100/30 dark:border-slate-600/20 hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-200"
+              className="flex items-start gap-2 sm:gap-3 md:gap-3.5 p-2.5 sm:p-3 md:p-3.5 bg-white/60 dark:bg-slate-700/30 rounded-xl border border-emerald-100/30 dark:border-slate-600/20 hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-200"
             >
               <div className="flex-shrink-0 mt-0.5">
-                <div className="w-5 h-5 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                  <Check className="text-emerald-600 dark:text-emerald-400 w-3 h-3" />
+                <div className="w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
+                  <Check className="text-emerald-600 dark:text-emerald-400 w-3 h-3 sm:w-3 sm:h-3 md:w-3 md:h-3" />
                 </div>
               </div>
-              <span className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm">
+              <span className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm md:text-base break-words word-break-anywhere text-balance">
                 {cleanHtmlContent(item)}
               </span>
             </div>
@@ -71,11 +71,11 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
                 }}
                 className="overflow-hidden"
               >
-                <div className="grid md:grid-cols-2 gap-3 mt-3">
+                <div className="grid sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mt-3">
                   {additionalObjectives.map((item, index) => (
                     <motion.div
                       key={`additional-${item.slice(0, 20).replace(/\s+/g, '-')}`}
-                      className="flex items-start gap-3 p-3 bg-white/60 dark:bg-slate-700/30 rounded-xl border border-emerald-100/30 dark:border-slate-600/20 hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-200"
+                      className="flex items-start gap-2 sm:gap-3 md:gap-3.5 p-2.5 sm:p-3 md:p-3.5 bg-white/60 dark:bg-slate-700/30 rounded-xl border border-emerald-100/30 dark:border-slate-600/20 hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-200"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{
@@ -85,11 +85,11 @@ export const CourseLearningObjectives = ({ course }: CourseLearningObjectivesPro
                       }}
                     >
                       <div className="flex-shrink-0 mt-0.5">
-                        <div className="w-5 h-5 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                          <Check className="text-emerald-600 dark:text-emerald-400 w-3 h-3" />
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
+                          <Check className="text-emerald-600 dark:text-emerald-400 w-3 h-3 sm:w-3 sm:h-3 md:w-3 md:h-3" />
                         </div>
                       </div>
-                      <span className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm">
+                      <span className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm md:text-base break-words word-break-anywhere text-balance">
                         {cleanHtmlContent(item)}
                       </span>
                     </motion.div>

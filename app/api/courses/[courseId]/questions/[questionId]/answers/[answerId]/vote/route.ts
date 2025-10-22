@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
+import { qaEventBus } from '@/lib/realtime/event-bus';
 
 // Schema for voting
 const VoteSchema = z.object({
@@ -136,7 +137,7 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         answerId: updatedAnswer.id,
@@ -149,6 +150,8 @@ export async function POST(
         version: '1.0.0',
       },
     });
+    try { qaEventBus.emitEvent({ type: 'vote_updated', courseId, questionId, payload: { answerId, upvotes: updatedAnswer.upvotes, downvotes: updatedAnswer.downvotes } }); } catch {}
+    return response;
   } catch (error) {
     console.error('Error voting on answer:', error);
 

@@ -16,6 +16,7 @@ import { CourseReviews } from "./_components/course-reviews";
 import { EnrollButton } from "./_components/enroll-button";
 import { CourseOutcomes } from "./_components/course-outcomes";
 import { CoursePageTabs } from "./_components/course-page-tabs";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 type CourseReview = {
   id: string;
@@ -134,7 +135,12 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Pr
   }
 
   return (
-    <div>
+    <div className="relative">
+      {/* Fixed Theme Toggle Button - Top Right Corner */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+
       <CourseCard
         course={course as any}
         userId={user?.id}

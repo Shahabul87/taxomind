@@ -52,7 +52,7 @@ export const CourseRequirements = ({ course }: CourseRequirementsProps): JSX.Ele
                 <CheckCircle2 className="w-3 h-3 text-amber-600 dark:text-amber-400" strokeWidth={2.5} />
               </div>
             </div>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed break-words word-break-anywhere text-balance">
               {requirement}
             </p>
           </motion.div>

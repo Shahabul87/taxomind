@@ -110,7 +110,7 @@ export const ResourcesTab = ({ courseId }: ResourcesTabProps): JSX.Element => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="space-y-6 cv-auto"
     >
       {/* Search */}
       <div className="flex justify-center">
@@ -210,7 +210,7 @@ export const ResourcesTab = ({ courseId }: ResourcesTabProps): JSX.Element => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.05 * index }}
-                    className="group flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-200"
+                    className="group flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-600 shadow-none md:hover:shadow-md transition-all duration-200"
                     role="listitem"
                   >
                     <div className="flex items-center gap-3">
@@ -219,14 +219,14 @@ export const ResourcesTab = ({ courseId }: ResourcesTabProps): JSX.Element => {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 dark:text-white">{resource.name}</p>
+                          <p className="font-medium text-gray-900 dark:text-white break-words word-break-anywhere text-balance">{resource.name}</p>
                           {(resource.type || 'FILE') && (
                             <span className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20">
                               {(resource.type || 'FILE').toString().toUpperCase()}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 break-words word-break-anywhere">
                           {(resource.type || 'FILE')}{resource.size ? ` • ${resource.size}` : ''}{resource.chapterTitle ? ` • ${resource.chapterTitle}` : ''}
                         </p>
                       </div>
@@ -236,7 +236,7 @@ export const ResourcesTab = ({ courseId }: ResourcesTabProps): JSX.Element => {
                       download
                       onClick={() => { try { EventTracker.getInstance().trackInteraction('resource_download', { courseId, name: resource.name, type: resource.type, chapter: resource.chapterTitle }); } catch {} }}
                       aria-label={`Download ${resource.name}`}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
                     >
                       <Download className="w-4 h-4" />
                       Download
@@ -303,12 +303,12 @@ export const ResourcesTab = ({ courseId }: ResourcesTabProps): JSX.Element => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.05 * index }}
                     onClick={() => { try { EventTracker.getInstance().trackInteraction('resource_external_open', { courseId, name: resource.name, url: resource.url, chapter: resource.chapterTitle }); } catch {} }}
-                    className="group flex items-start justify-between p-4 bg-gray-50 dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md transition-all duration-200"
+                    className="group flex items-start justify-between p-4 bg-gray-50 dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-600 shadow-none md:hover:shadow-md transition-all duration-200"
                     role="listitem"
                   >
                     <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                        <p className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        <p className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors break-words word-break-anywhere text-balance">
                           {resource.name}
                         </p>
                         <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" />
@@ -318,7 +318,7 @@ export const ResourcesTab = ({ courseId }: ResourcesTabProps): JSX.Element => {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{resource.description || resource.url}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 break-words word-break-anywhere">{resource.description || resource.url}</p>
                       {resource.chapterTitle && (
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">From: {resource.chapterTitle}</p>
                       )}
@@ -332,7 +332,7 @@ export const ResourcesTab = ({ courseId }: ResourcesTabProps): JSX.Element => {
                           EventTracker.getInstance().trackInteraction('resource_external_copy', { courseId, name: resource.name, url: resource.url, chapter: resource.chapterTitle });
                         } catch {}
                       }}
-                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 inline-flex items-center px-3 py-1.5 text-xs rounded-md border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 inline-flex items-center px-3 py-1.5 text-xs rounded-md border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-500"
                       aria-label={`Copy link for ${resource.name}`}
                     >
                       Copy link

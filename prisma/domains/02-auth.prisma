@@ -74,6 +74,7 @@ model User {
   ContentOptimization                     ContentOptimization[]
   courses                                 Course[]
   courseReviews                           CourseReview[]
+  reviewHelpfulVotes                      CourseReviewHelpfulVote[]
   CustomTab                               CustomTab[]
   EmotionalStateAnalysis                  EmotionalStateAnalysis[]
   Enrollment                              Enrollment[]
@@ -622,4 +623,3 @@ model AdminTwoFactorToken {
   @@index([token])
   @@index([expires])
 }
-

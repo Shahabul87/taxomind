@@ -85,12 +85,12 @@ const sectionIdPage = async (props: {params: Promise<{courseId: string; sectionI
 
   return (
     <div className="min-h-screen bg-slate-800">
-      <div className=" ml-10">
-        <h1 className="text-2xl text-white font-bold p-2 pl-10"> {section.title}</h1>
+      <div className="container mx-auto px-4">
+        <h1 className="text-2xl text-white font-bold py-4">{section.title}</h1>
       </div>
-      <div className="flex flex-col xl:flex-row p-4 xl:mx-10">
-      <div className="flex-1 xl:mr-4">
-      <div className="flex justify-center">
+      <div className="container mx-auto px-4 flex flex-col xl:flex-row gap-6">
+        <div className="flex-1 xl:mr-4">
+          <div className="flex justify-center">
             {section.videoUrl ? (
                 <div className="relative w-full pb-[56.25%]"> {/* 16:9 aspect ratio */}
                 {/* Displaying YouTube iframe if videoUrl exists */}
@@ -108,17 +108,17 @@ const sectionIdPage = async (props: {params: Promise<{courseId: string; sectionI
             )}
             </div>
 
-        <div className="flex items-center justify-between mt-1 pl-3 pr-3">
-          <button className="bg-blue-500 text-white px-4 py-2 rounded">
+        <div className="flex items-center justify-between mt-2 px-3">
+          <button className="bg-blue-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded text-sm sm:text-base">
             Prev
           </button>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded">
+          <button className="bg-blue-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded text-sm sm:text-base">
             Next
           </button>
         </div>
       </div>
-      <div className="flex-none xl:w-1/3 border rounded-md mt-12 xl:mt-0 overflow-y-hidden shadow-md">
-      
+      <div className="flex-none xl:w-1/3 border rounded-md mt-8 xl:mt-0 overflow-y-hidden shadow-md">
+           
            <SectionSidebar course={course} />
   
         

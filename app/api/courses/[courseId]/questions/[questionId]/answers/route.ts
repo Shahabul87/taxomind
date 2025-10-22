@@ -2,11 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
+import { qaEventBus } from '@/lib/realtime/event-bus';
 
 // Schema for creating an answer
 const CreateAnswerSchema = z.object({
-  content: z.string().min(20, 'Answer must be at least 20 characters').max(5000, 'Answer must be at most 5000 characters'),
+  content: z.string().min(20, 'Answer must be at least 20 characters').max(20000, 'Answer too long'),
 });
+
+function sanitizeHtmlServer(input: string): string {
+  try {
+    let out = input;
+    out = out.replace(/<\/(?:script|style)>/gi, '').replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '');
+    out = out.replace(/ on[a-z]+="[^"]*"/gi, '').replace(/ on[a-z]+='[^']*'/gi, '');
+    out = out.replace(/javascript:/gi, '');
+    return out;
+  } catch {
+    return input;
+  }
+}
 
 interface RouteParams {
   params: {
@@ -40,6 +53,7 @@ export async function POST(
         id: questionId,
         courseId,
       },
+      select: { id: true, courseId: true, isLocked: true },
     });
 
     if (!question) {
@@ -49,6 +63,17 @@ export async function POST(
           error: { code: 'NOT_FOUND', message: 'Question not found' }
         },
         { status: 404 }
+      );
+    }
+
+    // Disallow answers on locked questions
+    if ((question as any)?.isLocked) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'This question is locked' }
+        },
+        { status: 403 }
       );
     }
 
@@ -85,7 +110,7 @@ export async function POST(
     // Create answer
     const answer = await db.courseAnswer.create({
       data: {
-        content: validatedData.content,
+        content: sanitizeHtmlServer(validatedData.content),
         questionId,
         userId: user.id,
         isInstructor,
@@ -117,6 +142,9 @@ export async function POST(
         data: { isAnswered: true },
       });
     }
+
+    // Emit SSE event
+    qaEventBus.emitEvent({ type: 'answer_created', courseId, questionId, payload: { answerId: answer.id } });
 
     return NextResponse.json(
       {

@@ -28,7 +28,7 @@ export const HeroBadgeSystem = ({ badges }: HeroBadgeSystemProps): JSX.Element =
     badgeList.push({
       id: 'bestseller',
       label: 'Bestseller',
-      icon: <TrendingUp className="w-3 h-3" />,
+      icon: <TrendingUp className="w-3 h-3" aria-hidden="true" />,
       bgColor: 'bg-amber-500/20',
       borderColor: 'border-amber-400/50',
       iconColor: 'text-amber-300',
@@ -40,7 +40,7 @@ export const HeroBadgeSystem = ({ badges }: HeroBadgeSystemProps): JSX.Element =
     badgeList.push({
       id: 'hot-new',
       label: 'Hot & New',
-      icon: <Flame className="w-3 h-3" />,
+      icon: <Flame className="w-3 h-3" aria-hidden="true" />,
       bgColor: 'bg-orange-500/20',
       borderColor: 'border-orange-400/50',
       iconColor: 'text-orange-300',
@@ -52,7 +52,7 @@ export const HeroBadgeSystem = ({ badges }: HeroBadgeSystemProps): JSX.Element =
     badgeList.push({
       id: 'highest-rated',
       label: 'Highest Rated',
-      icon: <Star className="w-3 h-3" />,
+      icon: <Star className="w-3 h-3" aria-hidden="true" />,
       bgColor: 'bg-purple-500/20',
       borderColor: 'border-purple-400/50',
       iconColor: 'text-purple-300',
@@ -64,7 +64,7 @@ export const HeroBadgeSystem = ({ badges }: HeroBadgeSystemProps): JSX.Element =
     badgeList.push({
       id: 'updated',
       label: `Updated ${badges.lastUpdated}`,
-      icon: <Calendar className="w-3 h-3" />,
+      icon: <Calendar className="w-3 h-3" aria-hidden="true" />,
       bgColor: 'bg-blue-500/20',
       borderColor: 'border-blue-400/50',
       iconColor: 'text-blue-300',

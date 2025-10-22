@@ -1,7 +1,8 @@
 "use client";
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Star, User, Clock, Award, Globe, BarChart } from 'lucide-react';
 
 interface HeroStatsEnhancedProps {
@@ -18,25 +19,26 @@ interface HeroStatsEnhancedProps {
 }
 
 export const HeroStatsEnhanced = ({ stats }: HeroStatsEnhancedProps): JSX.Element => {
+  const prefersReducedMotion = useReducedMotion();
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ delay: 0.45, duration: 0.4 }}
+      transition={{ delay: prefersReducedMotion ? 0 : 0.45, duration: prefersReducedMotion ? 0 : 0.4 }}
       className="space-y-4"
     >
       {/* Primary Stats Row - Rating & Students */}
       <div className="flex flex-wrap items-center gap-6">
         {/* Rating - Primary Emphasis */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" aria-hidden="true">
             {[1, 2, 3, 4, 5].map((star: number) => (
               <Star
                 key={star}
                 className={`w-5 h-5 ${
                   star <= Math.round(Number.parseFloat(stats.averageRating))
                     ? 'text-yellow-400 fill-current'
-                    : 'text-gray-400 dark:text-gray-400'
+                    : 'text-gray-400 dark:text-gray-300'
                 }`}
               />
             ))}
@@ -44,8 +46,15 @@ export const HeroStatsEnhanced = ({ stats }: HeroStatsEnhancedProps): JSX.Elemen
           <span className="text-2xl font-bold text-white">
             {stats.averageRating}
           </span>
-          <span className="text-white/70 text-sm">
+          <Link
+            href="#reviews"
+            className="text-white/80 hover:text-white underline-offset-2 hover:underline text-sm"
+            aria-label="View reviews"
+          >
             ({stats.totalReviews.toLocaleString()} {stats.totalReviews === 1 ? 'rating' : 'ratings'})
+          </Link>
+          <span className="sr-only">
+            Average rating {stats.averageRating} out of 5 based on {stats.totalReviews.toLocaleString()} {stats.totalReviews === 1 ? 'rating' : 'ratings'}
           </span>
         </div>
 

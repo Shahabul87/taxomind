@@ -71,7 +71,18 @@ export const InstructorMiniProfile = ({
             const instructorTab = document.querySelector('[data-tab="instructor"]') as HTMLButtonElement | null;
             if (instructorTab) {
               instructorTab.click();
-              instructorTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              // After activating the tab, scroll to the panel using sticky-aware offset
+              requestAnimationFrame(() => {
+                const panel = document.getElementById('panel-instructor');
+                const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                const behavior: ScrollBehavior = prefersReduced ? 'auto' : 'smooth';
+                if (panel) {
+                  panel.scrollIntoView({ behavior, block: 'start' });
+                } else {
+                  // Fallback: scroll the tab into view
+                  instructorTab.scrollIntoView({ behavior, block: 'start' });
+                }
+              });
             }
           }}
         >

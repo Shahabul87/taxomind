@@ -2,10 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
+import { useCommerce } from "@/components/commerce/commerce-context";
 
 export const CourseFooterEnterprise: React.FC = () => {
+  const { currency, locale, setCurrency, setLocale } = useCommerce();
   return (
-    <footer className="mt-16 border-t border-slate-200/70 dark:border-slate-800 bg-white/95 dark:bg-slate-950/90 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md" role="contentinfo" aria-label="Course Footer">
+    <footer className="mt-16 border-t border-slate-200/70 dark:border-slate-800 bg-white/95 dark:bg-slate-950/90 backdrop-blur-sm md:backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-sm md:supports-[backdrop-filter]:backdrop-blur-md" role="contentinfo" aria-label="Course Footer">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         {/* Top section: brand + controls */}
         <div className="py-8 md:py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -19,18 +21,28 @@ export const CourseFooterEnterprise: React.FC = () => {
           </div>
           <div className="flex items-center gap-3">
             <label className="sr-only" htmlFor="course-footer-language">Language</label>
-            <select id="course-footer-language" className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-3 py-2 text-sm">
-              <option>English</option>
-              <option>Deutsch</option>
-              <option>Español</option>
-              <option>Français</option>
+            <select
+              id="course-footer-language"
+              className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-3 py-2 text-sm"
+              value={locale}
+              onChange={(e) => setLocale(e.target.value)}
+            >
+              <option value="en-US">English</option>
+              <option value="de-DE">Deutsch</option>
+              <option value="es-ES">Español</option>
+              <option value="fr-FR">Français</option>
             </select>
             <label className="sr-only" htmlFor="course-footer-currency">Currency</label>
-            <select id="course-footer-currency" className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-3 py-2 text-sm">
-              <option>USD</option>
-              <option>EUR</option>
-              <option>GBP</option>
-              <option>INR</option>
+            <select
+              id="course-footer-currency"
+              className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-3 py-2 text-sm"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+            >
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="INR">INR</option>
             </select>
           </div>
         </div>
@@ -130,4 +142,3 @@ export const CourseFooterEnterprise: React.FC = () => {
     </footer>
   );
 };
-

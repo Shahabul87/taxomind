@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { SortAsc, Clock, TrendingUp, Star } from 'lucide-react';
+import { SortAsc, Clock, Star, TrendingUp } from 'lucide-react';
 
 export type SortOption = 'recent' | 'highest' | 'lowest' | 'helpful';
 
@@ -50,8 +50,8 @@ export const ReviewSortControls = ({
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 md:gap-3">
         {/* Sort Label */}
         <div className="flex items-center gap-2">
           <SortAsc className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -61,7 +61,7 @@ export const ReviewSortControls = ({
         </div>
 
         {/* Sort Options */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Sort reviews">
           {sortOptions.map((option) => {
             const isActive = sortBy === option.id;
             return (
@@ -71,7 +71,7 @@ export const ReviewSortControls = ({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className={`
-                  group relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                  group relative flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium
                   transition-all duration-200
                   ${
                     isActive
@@ -79,13 +79,15 @@ export const ReviewSortControls = ({
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }
                 `}
+                role="radio"
+                aria-checked={isActive}
                 title={option.description}
               >
-                <span className={isActive ? 'text-white' : ''}>{option.icon}</span>
+                <span className={isActive ? 'text-white' : ''} aria-hidden="true">{option.icon}</span>
                 <span>{option.label}</span>
 
                 {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2.5 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                   {option.description}
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45" />
                 </div>

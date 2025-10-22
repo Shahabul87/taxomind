@@ -234,7 +234,7 @@ export const VideoPlayer = ({
           </div>
 
           {/* Bottom Controls */}
-          <div className="absolute bottom-4 left-4 right-4 pointer-events-auto">
+          <div className="absolute bottom-4 left-4 right-4 pointer-events-auto pb-safe-3">
             {/* Progress Info */}
             {duration > 0 && (
               <div className="flex items-center justify-between text-white text-sm mb-2 drop-shadow">

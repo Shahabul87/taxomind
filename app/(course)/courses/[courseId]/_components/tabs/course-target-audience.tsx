@@ -61,7 +61,7 @@ export const CourseTargetAudience = ({ course }: CourseTargetAudienceProps): JSX
                 />
               </div>
             </div>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed break-words word-break-anywhere text-balance">
               {audience}
             </p>
           </motion.div>

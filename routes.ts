@@ -12,6 +12,7 @@ export const publicRoutes = [
   "/blog",
   "/blog/[postId]",
   "/courses", // Course listing - public for browsing
+  "/courses/[courseId]", // Course detail page - public for viewing
   // SECURITY FIX: Removed course learning routes - moved to protected
   // Course content requires authentication and purchase verification
   "/post",

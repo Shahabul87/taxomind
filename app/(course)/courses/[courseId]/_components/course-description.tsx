@@ -32,9 +32,9 @@ export const CourseDescription = ({ course }: CourseDescriptionProps): JSX.Eleme
         {course.description ? (
           <div
             className={cn(
-              "prose prose-sm prose-slate dark:prose-invert max-w-none",
+              "prose prose-sm md:prose-base prose-slate dark:prose-invert max-w-none break-words word-break-anywhere hyphens-auto text-balance",
               "prose-headings:text-slate-800 dark:prose-headings:text-slate-200",
-              "prose-h1:text-xl prose-h2:text-lg prose-h3:text-base",
+              "prose-h1:text-xl md:prose-h1:text-2xl prose-h2:text-lg md:prose-h2:text-xl prose-h3:text-base md:prose-h3:text-lg",
               "prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-p:text-sm prose-p:leading-relaxed",
               "prose-strong:text-slate-800 dark:prose-strong:text-slate-200",
               "prose-em:text-slate-600 dark:prose-em:text-slate-400",

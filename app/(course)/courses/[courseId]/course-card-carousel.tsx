@@ -179,7 +179,7 @@ export const CourseCardsCarousel = ({ courseId, chapters }: CourseContentProps):
   const formattedDuration = totalMinutes > 0 ? (() => { const h = Math.floor(totalMinutes / 60); const m = totalMinutes % 60; return h > 0 ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`; })() : '—';
 
   return (
-    <div className="relative">
+    <div className="relative cv-auto">
       {/* Header summary */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">

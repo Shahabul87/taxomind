@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import TipTapEditor from '@/components/tiptap/editor';
 import {
   Select,
   SelectContent,
@@ -31,6 +32,28 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+
+// Minimal client-side sanitizer: strips scripts/styles and on* attributes
+function sanitizeHtml(input: string): string {
+  try {
+    const doc = new DOMParser().parseFromString(input, 'text/html');
+    // remove script and style tags
+    doc.querySelectorAll('script, style').forEach((el) => el.remove());
+    // remove event handler attributes and javascript: URLs
+    doc.querySelectorAll('*').forEach((el) => {
+      for (const attr of Array.from(el.attributes)) {
+        const name = attr.name.toLowerCase();
+        const value = attr.value.toLowerCase();
+        if (name.startsWith('on') || value.startsWith('javascript:')) {
+          el.removeAttribute(attr.name);
+        }
+      }
+    });
+    return doc.body.innerHTML;
+  } catch {
+    return input;
+  }
+}
 
 const questionFormSchema = z.object({
   title: z.string().min(10, 'Title must be at least 10 characters').max(200, 'Title must be at most 200 characters'),
@@ -59,6 +82,8 @@ export const AskQuestionForm = ({
   onSuccess,
 }: AskQuestionFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; title: string; _count: { answers: number } }>>([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   const form = useForm<QuestionFormValues>({
     resolver: zodResolver(questionFormSchema),
@@ -102,6 +127,30 @@ export const AskQuestionForm = ({
       setIsSubmitting(false);
     }
   };
+
+  // Duplicate suggestions: search similar questions as user types title
+  const titleValue = form.watch('title');
+  useEffect(() => {
+    const q = (titleValue || '').trim();
+    if (q.length < 3) { setSuggestions([]); return; }
+    let cancelled = false;
+    const fetchSuggestions = async () => {
+      setIsSuggesting(true);
+      try {
+        const params = new URLSearchParams({ page: '1', limit: '5', search: q });
+        const res = await fetch(`/api/courses/${courseId}/questions?${params.toString()}`);
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error('Failed to fetch suggestions');
+        if (!cancelled) setSuggestions((data.data.questions || []).map((x: any) => ({ id: x.id, title: x.title, _count: { answers: x._count?.answers || 0 } })));
+      } catch {
+        if (!cancelled) setSuggestions([]);
+      } finally {
+        if (!cancelled) setIsSuggesting(false);
+      }
+    };
+    const t = setTimeout(fetchSuggestions, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [titleValue, courseId]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -162,11 +211,39 @@ export const AskQuestionForm = ({
                     />
                   </FormControl>
                   <FormMessage />
+                  {/* Suggestions */}
+                  {suggestions.length > 0 && (
+                    <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
+                      <div className="flex items-center gap-2 px-3 py-2 text-xs text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                        <Search className="w-3.5 h-3.5" />
+                        Similar questions — check before posting
+                      </div>
+                      <ul className="divide-y divide-gray-200 dark:divide-gray-800">
+                        {suggestions.map((s) => (
+                          <li key={s.id} className="px-3 py-2 text-sm">
+                            <a
+                              href={`/courses/${courseId}/questions/${s.id}`}
+                              target="_blank"
+                              className="text-blue-700 dark:text-blue-300 hover:underline"
+                              onClick={() => {
+                                if (typeof window !== 'undefined') {
+                                  window.dispatchEvent(new CustomEvent('analytics:click', { detail: { id: 'qa-duplicate-suggestion', questionId: s.id } }));
+                                }
+                              }}
+                            >
+                              {s.title}
+                            </a>
+                            <span className="ml-2 text-xs text-gray-500">• {s._count.answers} answer{s._count.answers === 1 ? '' : 's'}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </FormItem>
               )}
             />
 
-            {/* Content */}
+            {/* Content (Rich Text) */}
             <FormField
               control={form.control}
               name="content"
@@ -174,12 +251,13 @@ export const AskQuestionForm = ({
                 <FormItem>
                   <FormLabel>Question Details</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Provide more details about your question..."
-                      className="min-h-[150px] resize-none"
-                      {...field}
-                      disabled={isSubmitting}
-                    />
+                    <div>
+                      <TipTapEditor
+                        value={field.value}
+                        onChange={(html) => field.onChange(sanitizeHtml(html))}
+                        placeholder="Provide more details, add code blocks, links, and images…"
+                      />
+                    </div>
                   </FormControl>
                   <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                     <FormMessage />

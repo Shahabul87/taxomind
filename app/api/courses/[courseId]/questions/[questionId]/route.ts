@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
+import { qaEventBus } from '@/lib/realtime/event-bus';
 
 // Schema for updating a question
 const UpdateQuestionSchema = z.object({
   title: z.string().min(10).max(200).optional(),
   content: z.string().min(20).max(5000).optional(),
   isPinned: z.boolean().optional(),
+  isLocked: z.boolean().optional(),
+  mergedIntoId: z.string().nullable().optional(),
 });
 
 interface RouteParams {
@@ -132,6 +135,8 @@ export async function GET(
       canMarkBest: isInstructor || question.userId === user.id,
     }));
 
+    const hasInstructorAnswer = question.answers.some((a) => a.isInstructor);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -141,6 +146,7 @@ export async function GET(
         canEdit: question.userId === user.id || isInstructor,
         canDelete: question.userId === user.id || isInstructor,
         canPin: isInstructor,
+        hasInstructorAnswer,
       },
       metadata: {
         timestamp: new Date().toISOString(),
@@ -213,12 +219,23 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = UpdateQuestionSchema.parse(body);
 
-    // Only instructor can pin questions
-    if (validatedData.isPinned !== undefined && !isInstructor) {
+    // Only instructor can pin or lock questions
+    if ((validatedData.isPinned !== undefined || validatedData.isLocked !== undefined) && !isInstructor) {
       return NextResponse.json(
         {
           success: false,
-          error: { code: 'FORBIDDEN', message: 'Only instructors can pin questions' }
+          error: { code: 'FORBIDDEN', message: 'Only instructors can update moderation fields' }
+        },
+        { status: 403 }
+      );
+    }
+
+    // Only instructor can merge questions
+    if (validatedData.mergedIntoId !== undefined && !isInstructor) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Only instructors can merge questions' }
         },
         { status: 403 }
       );
@@ -240,6 +257,8 @@ export async function PATCH(
       title?: string;
       content?: string;
       isPinned?: boolean;
+      isLocked?: boolean;
+      mergedIntoId?: string | null;
     } = {};
 
     if (validatedData.title !== undefined) {
@@ -250,6 +269,12 @@ export async function PATCH(
     }
     if (validatedData.isPinned !== undefined) {
       updateData.isPinned = validatedData.isPinned;
+    }
+    if (validatedData.isLocked !== undefined) {
+      updateData.isLocked = validatedData.isLocked;
+    }
+    if (validatedData.mergedIntoId !== undefined) {
+      updateData.mergedIntoId = validatedData.mergedIntoId ?? null;
     }
 
     // Update question
@@ -287,6 +312,9 @@ export async function PATCH(
         version: '1.0.0',
       },
     });
+    
+    // Emit SSE update (fire-and-forget)
+    try { qaEventBus.emitEvent({ type: 'question_updated', courseId, questionId, payload: { fields: Object.keys(updateData) } }); } catch {}
   } catch (error) {
     console.error('Error updating question:', error);
 

@@ -137,6 +137,18 @@ export default async function RootLayout({
   // Check if this is a blog route (exclude header from blog pages)
   const isBlogRoute = pathname.startsWith("/blog");
 
+  // Check if this is a course detail page (exclude header from course detail pages)
+  const isCourseDetailPage = /^\/courses\/[^\/]+$/.test(pathname);
+
+  // Debug logging
+  if (pathname.includes('/courses/')) {
+    console.log('[ROOT LAYOUT] Course Page Debug:', {
+      pathname,
+      isCourseDetailPage,
+      regexTest: /^\/courses\/[^\/]+$/.test(pathname)
+    });
+  }
+
   // Check both x-pathname header AND x-url fallback
   const xUrl = headersList.get("x-url") || "";
   const pathToCheck = pathname || xUrl;
@@ -175,8 +187,8 @@ export default async function RootLayout({
           <ClientToaster />
           {/* SAMGlobalProvider temporarily disabled for build */}
           <>
-            {/* Render header for auth routes AND non-admin routes (excluding blog) */}
-            {!isAdminRoute && !isBlogRoute && (
+            {/* Render header for auth routes AND non-admin routes (excluding blog and course detail pages) */}
+            {!isAdminRoute && !isBlogRoute && !isCourseDetailPage && (
               <ConditionalHeaderWrapper fallback={<HeaderFallback />}>
                 <AsyncHeader />
               </ConditionalHeaderWrapper>
@@ -196,6 +208,11 @@ export default async function RootLayout({
               </div>
             ) : isBlogRoute ? (
               // Blog routes: No header, no sidebar, full screen
+              <div className="min-h-screen">
+                {children}
+              </div>
+            ) : isCourseDetailPage ? (
+              // Course detail pages: No header, no sidebar, full screen
               <div className="min-h-screen">
                 {children}
               </div>

@@ -9,12 +9,14 @@ interface QATabProps {
     id: string;
     title: string;
   }>;
+  userId?: string;
+  isInstructor?: boolean;
 }
 
-export const QATab = ({ courseId, sections = [] }: QATabProps): JSX.Element => {
+export const QATab = ({ courseId, sections = [], userId, isInstructor = false }: QATabProps): JSX.Element => {
   return (
     <div className="py-4">
-      <QuestionList courseId={courseId} sections={sections} />
+      <QuestionList courseId={courseId} sections={sections} userId={userId} isInstructor={isInstructor} />
     </div>
   );
 };
