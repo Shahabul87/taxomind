@@ -35,7 +35,10 @@ export const TopicRail: React.FC<TopicRailProps> = ({
   return (
     <div
       ref={railRef}
-      className="flex flex-col space-y-1 min-w-[200px] max-w-[240px] pr-4 border-r border-slate-200 dark:border-slate-700"
+      className="flex flex-col space-y-2 min-w-[200px] max-w-[240px] pr-5 border-r border-slate-200/40 dark:border-slate-700/30"
+      style={{
+        borderImage: 'linear-gradient(to bottom, transparent, rgba(148, 163, 184, 0.2), transparent) 1',
+      }}
       role="menubar"
       aria-label="Topics navigation"
       aria-orientation="vertical"
@@ -52,71 +55,93 @@ export const TopicRail: React.FC<TopicRailProps> = ({
             onClick={() => onTopicSelect(topic.slug)}
             onMouseEnter={() => onTopicHover?.(topic.slug)}
             onFocus={() => onTopicSelect(topic.slug)}
+            onKeyDown={(e) => {
+              const buttons = railRef.current?.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]');
+              if (!buttons || buttons.length === 0) return;
+              const currentIndex = index;
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const next = (currentIndex + 1) % buttons.length;
+                buttons[next]?.focus();
+              }
+              if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prev = (currentIndex - 1 + buttons.length) % buttons.length;
+                buttons[prev]?.focus();
+              }
+              if (e.key === 'Home') {
+                e.preventDefault();
+                buttons[0]?.focus();
+              }
+              if (e.key === 'End') {
+                e.preventDefault();
+                buttons[buttons.length - 1]?.focus();
+              }
+            }}
             className={`
-              group relative flex items-start gap-3 px-3 py-3 rounded-lg
-              transition-all duration-200
+              group relative flex items-start gap-3 px-3.5 py-3.5 rounded-lg
+              transition-all duration-200 ease-out
               text-left w-full
-              focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 dark:focus:ring-offset-slate-900
+              focus:outline-none
               ${isActive || isCurrentPage
-                ? 'bg-slate-100 dark:bg-slate-800/70 text-slate-900 dark:text-white'
-                : 'text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                ? 'bg-slate-50/60 dark:bg-slate-800/40 text-slate-900 dark:text-white'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50/40 dark:hover:bg-slate-800/30'
               }
             `}
+            style={isActive || isCurrentPage ? {
+              borderLeft: `1px solid ${topic.accentHex}40`,
+            } : {}}
             role="menuitem"
             aria-current={isCurrentPage ? 'page' : undefined}
             tabIndex={index === 0 || isActive ? 0 : -1}
           >
-            {/* Accent Bar (Rich Variant) */}
-            {variant === 'rich' && (isActive || isCurrentPage) && (
-              <motion.div
-                className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full"
-                style={{ backgroundColor: topic.accentHex }}
-                initial={{ scaleY: 0 }}
-                animate={{ scaleY: 1 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                aria-hidden="true"
-              />
-            )}
-
-            {/* Icon */}
+            {/* Icon Container */}
             <div
               className={`
-                w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0
+                relative w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0
                 transition-all duration-200
-                ${isActive || isCurrentPage
-                  ? `shadow-md dark:shadow-lg`
-                  : 'group-hover:scale-105'
-                }
               `}
-              style={{
-                backgroundColor: variant === 'rich'
-                  ? `${topic.accentHex}${isActive ? '' : '15'}`
-                  : 'rgba(148, 163, 184, 0.1)',
-              }}
             >
-              <Icon
-                className={`w-5 h-5 transition-colors ${
-                  isActive || isCurrentPage
-                    ? 'text-white'
-                    : 'text-slate-600 dark:text-gray-400'
-                }`}
-              />
+              {/* Main icon container */}
+              <div
+                className="relative w-full h-full rounded-lg flex items-center justify-center"
+                style={{
+                  backgroundColor: isActive || isCurrentPage
+                    ? `${topic.accentHex}20`
+                    : variant === 'rich'
+                    ? `${topic.accentHex}10`
+                    : 'rgba(148, 163, 184, 0.08)',
+                }}
+              >
+                <Icon
+                  className={`relative w-5 h-5 transition-all duration-200 ${
+                    isActive || isCurrentPage
+                      ? 'text-slate-700 dark:text-slate-200'
+                      : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300'
+                  }`}
+                  {...((isActive || isCurrentPage) && {
+                    style: { color: topic.accentHex } as React.CSSProperties
+                  })}
+                />
+              </div>
             </div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-sm font-semibold truncate">
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`text-sm font-semibold tracking-wide truncate transition-colors duration-200 ${
+                  isActive || isCurrentPage ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'
+                }`}>
                   {topic.label}
                 </span>
                 {topic.badge && (
                   <span
                     className={`
-                      px-1.5 py-0.5 text-[10px] font-semibold rounded-md
-                      ${topic.badge.variant === 'new' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' : ''}
-                      ${topic.badge.variant === 'ai' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-400/40' : ''}
-                      ${topic.badge.variant === 'beta' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300' : ''}
-                      ${topic.badge.variant === 'pro' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300' : ''}
+                      px-1.5 py-0.5 text-[10px] font-semibold rounded-md transition-all duration-200
+                      ${topic.badge.variant === 'new' ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-sm' : ''}
+                      ${topic.badge.variant === 'ai' ? 'bg-violet-100 dark:bg-violet-500/25 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-400/50' : ''}
+                      ${topic.badge.variant === 'beta' ? 'bg-blue-100 dark:bg-blue-500/25 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-400/50' : ''}
+                      ${topic.badge.variant === 'pro' ? 'bg-amber-100 dark:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-400/50' : ''}
                       ${topic.badge.className || ''}
                     `}
                   >
@@ -125,21 +150,20 @@ export const TopicRail: React.FC<TopicRailProps> = ({
                 )}
               </div>
               {topic.description && (
-                <p className="text-xs text-slate-600 dark:text-gray-400 line-clamp-2">
+                <p className={`text-xs leading-relaxed line-clamp-2 transition-colors duration-200 ${
+                  isActive || isCurrentPage 
+                    ? 'text-slate-600 dark:text-slate-400' 
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}>
                   {topic.description}
                 </p>
               )}
             </div>
 
-            {/* Hover Indicator */}
+            {/* Focus indicator */}
             <div
-              className={`
-                absolute right-2 top-1/2 -translate-y-1/2
-                w-1 h-8 rounded-full
-                transition-opacity duration-200
-                ${isActive || isCurrentPage ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}
-              `}
-              style={{ backgroundColor: topic.accentHex }}
+              className="absolute inset-0 rounded-lg opacity-0 group-focus-visible:opacity-100 transition-opacity ring-2 ring-offset-2 dark:ring-offset-slate-900"
+              style={{ '--tw-ring-color': topic.accentHex } as React.CSSProperties}
               aria-hidden="true"
             />
           </button>
