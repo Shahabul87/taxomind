@@ -31,8 +31,15 @@ import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 export const LoginForm = () => {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams?.get("callbackUrl");
-  const urlError = searchParams?.get("error") === "OAuthAccountNotLinked"
-    ? "Email already in use with different provider!"
+
+  // Handle OAuth account linking scenarios
+  const oauthError = searchParams?.get("error");
+  const urlError = oauthError === "OAuthAccountNotLinked"
+    ? "An account with this email already exists. This account has been automatically linked to your social login. Please try signing in again."
+    : oauthError === "OAuthSignin"
+    ? "Error occurred during social sign in. Please try again."
+    : oauthError === "OAuthCallback"
+    ? "Error during authentication callback. Please try again."
     : "";
 
   const [showTwoFactor, setShowTwoFactor] = useState(false);
@@ -453,14 +460,24 @@ export const LoginForm = () => {
                       )}
 
                       {/* Error/Success Messages & Forgot Password */}
-                      {error && (
+                      {(error || urlError) && (
                         <motion.div
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-sm text-destructive flex items-start gap-3"
+                          className={`p-4 rounded-xl border text-sm flex items-start gap-3 ${
+                            oauthError === "OAuthAccountNotLinked"
+                              ? "bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-400"
+                              : "bg-destructive/10 border-destructive/20 text-destructive"
+                          }`}
                         >
-                          <div className="w-5 h-5 rounded-full bg-destructive/20 flex items-center justify-center shrink-0 mt-0.5">
-                            <span className="text-xs font-bold">!</span>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                            oauthError === "OAuthAccountNotLinked"
+                              ? "bg-blue-500/20"
+                              : "bg-destructive/20"
+                          }`}>
+                            <span className="text-xs font-bold">
+                              {oauthError === "OAuthAccountNotLinked" ? "i" : "!"}
+                            </span>
                           </div>
                           <p className="flex-1">{error || urlError}</p>
                         </motion.div>

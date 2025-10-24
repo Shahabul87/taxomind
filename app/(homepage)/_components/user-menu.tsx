@@ -233,6 +233,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                 src={user.image}
                 alt={user.name || "User"}
                 fill
+                sizes="40px"
                 className="object-cover"
               />
             ) : (

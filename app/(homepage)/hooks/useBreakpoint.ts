@@ -6,10 +6,10 @@ export type Breakpoint = 'mobile' | 'tablet' | 'laptop' | 'desktop';
 
 /**
  * Custom hook to detect screen breakpoints
- * - mobile: < 768px
- * - tablet: 768px - 1023px
- * - laptop: 1024px - 1279px
- * - desktop: >= 1280px
+ * - mobile: < 768px (All mobile devices - portrait and landscape)
+ * - tablet: 768px - 1023px (Tablet devices)
+ * - laptop: 1024px - 1279px (Laptop screens)
+ * - desktop: >= 1280px (Desktop and large displays)
  */
 export const useBreakpoint = (): Breakpoint => {
   const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');

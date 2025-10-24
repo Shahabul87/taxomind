@@ -18,11 +18,13 @@ export default {
           access_type: "offline",
           response_type: "code"
         }
-      }
+      },
+      allowDangerousEmailAccountLinking: true, // Allow linking accounts with same email
     }),
     Github({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      allowDangerousEmailAccountLinking: true, // Allow linking accounts with same email
     }),
     Credentials({
       async authorize(credentials) {

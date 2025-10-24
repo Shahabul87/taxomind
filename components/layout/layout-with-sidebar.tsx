@@ -153,6 +153,8 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
 
       {/* Main content with conditional margin and padding */}
       <main
+        id="main-content"
+        tabIndex={-1}
         className={clsx(
           "flex-1 transition-all duration-300",
           // Course pages: Full screen, no padding

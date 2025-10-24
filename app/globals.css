@@ -14,35 +14,35 @@ body,
  
 @layer base {
   :root {
-    /* Offwhite light theme */
-    --background: 210 20% 98%; /* soft offwhite */
-    --foreground: 222.2 47.4% 11.2%;
+    /* Light theme - modern, neutral with soft depth */
+    --background: 220 22% 98%;
+    --foreground: 222 47% 12%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 215 30% 97%;
+    --muted-foreground: 218 15% 45%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 84% 5%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 84% 5%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 214 24% 90%;
+    --input: 214 24% 90%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 247 70% 52%; /* refined indigo/violet */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 22% 96%;
+    --secondary-foreground: 222 47% 12%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 248 85% 60%;
+    --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 52%;
     --destructive-foreground: 210 40% 98%;
 
-    --ring: 222.2 47.4% 11.2%;
+    --ring: 247 70% 52%;
 
     --radius: 0.5rem;
     /* Sticky tabs offset - responsive gap from top */
@@ -51,34 +51,35 @@ body,
   }
 
   .dark {
-    --background: 233 40% 7%;
-    --foreground: 210 40% 98%;
+    /* Dark theme - deep slate with elegant accents */
+    --background: 232 46% 6.5%;
+    --foreground: 220 20% 96%;
 
-    --muted: 232 27% 15%;
-    --muted-foreground: 220 15% 65%;
+    --muted: 230 25% 14%;
+    --muted-foreground: 220 12% 70%;
 
-    --popover: 233 40% 7%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 232 46% 6.5%;
+    --popover-foreground: 220 20% 96%;
 
-    --card: 233 35% 10%;
-    --card-foreground: 210 40% 98%;
+    --card: 232 38% 10%;
+    --card-foreground: 220 20% 96%;
 
-    --border: 230 20% 20%;
-    --input: 230 20% 20%;
+    --border: 230 18% 20%;
+    --input: 230 18% 20%;
 
-    --primary: 248 70% 63%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 250 85% 72%;
+    --primary-foreground: 232 46% 6.5%;
 
-    --secondary: 232 30% 18%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 230 28% 16%;
+    --secondary-foreground: 220 20% 96%;
 
-    --accent: 267 75% 65%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 255 90% 76%;
+    --accent-foreground: 232 46% 6.5%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 70% 40%;
     --destructive-foreground: 210 40% 98%;
 
-    --ring: 249 84% 70%;
+    --ring: 250 85% 72%;
   }
 }
 
@@ -576,14 +577,14 @@ body.dragging *::selection {
 @layer base {
   :root {
     /* Sidebar Tokens - Light Mode */
-    --sidebar-bg: 0 0% 100%; /* white */
-    --sidebar-bg-hover: 210 40% 98%; /* soft gray on hover */
-    --sidebar-border: 214.3 31.8% 91.4%; /* subtle border */
-    --sidebar-text: 222.2 47.4% 11.2%; /* dark text */
-    --sidebar-text-muted: 215.4 16.3% 46.9%; /* muted text */
-    --sidebar-active-bg: 248 95% 98%; /* very subtle purple tint */
-    --sidebar-active-text: 248 70% 50%; /* active purple */
-    --sidebar-active-indicator: 248 70% 50%; /* active indicator */
+    --sidebar-bg: 0 0% 100%;
+    --sidebar-bg-hover: 220 22% 97%;
+    --sidebar-border: 214 24% 90%;
+    --sidebar-text: 222 47% 12%;
+    --sidebar-text-muted: 218 15% 45%;
+    --sidebar-active-bg: 247 70% 96%;
+    --sidebar-active-text: 247 70% 52%;
+    --sidebar-active-indicator: 247 70% 52%;
 
     /* Flyout Tokens */
     --flyout-bg: 0 0% 100%;
@@ -592,7 +593,7 @@ body.dragging *::selection {
     --flyout-hover-bg: 210 40% 97%; /* lighter hover */
 
     /* Focus Ring */
-    --sidebar-ring: 248 70% 63%;
+    --sidebar-ring: 247 70% 52%;
 
     /* Dimensions */
     --sidebar-width-rail: 64px;
@@ -603,14 +604,14 @@ body.dragging *::selection {
 
   .dark {
     /* Sidebar Tokens - Dark Mode */
-    --sidebar-bg: 233 40% 7%; /* dark bg */
-    --sidebar-bg-hover: 232 30% 12%; /* slightly lighter on hover */
-    --sidebar-border: 230 20% 20%; /* dark border */
-    --sidebar-text: 210 40% 98%; /* light text */
-    --sidebar-text-muted: 220 15% 65%; /* muted light text */
-    --sidebar-active-bg: 248 70% 12%; /* very subtle purple tint dark */
-    --sidebar-active-text: 248 95% 75%; /* active purple light */
-    --sidebar-active-indicator: 248 95% 75%; /* active indicator */
+    --sidebar-bg: 232 46% 6.5%;
+    --sidebar-bg-hover: 232 30% 12%;
+    --sidebar-border: 230 18% 20%;
+    --sidebar-text: 220 20% 96%;
+    --sidebar-text-muted: 220 12% 70%;
+    --sidebar-active-bg: 250 35% 16%;
+    --sidebar-active-text: 250 85% 72%;
+    --sidebar-active-indicator: 250 85% 72%;
 
     /* Flyout Tokens - Dark */
     --flyout-bg: 233 35% 10%;
@@ -619,7 +620,7 @@ body.dragging *::selection {
     --flyout-hover-bg: 232 27% 13%; /* lighter hover */
 
     /* Focus Ring - Dark */
-    --sidebar-ring: 249 84% 70%;
+    --sidebar-ring: 250 85% 72%;
   }
 }
 
@@ -714,12 +715,91 @@ body.dragging *::selection {
   animation: flyout-out 150ms ease-in forwards;
 }
 
-/* Reduced motion support */
+/* ========================================
+ * ACCESSIBILITY: FOCUS INDICATORS
+ * ======================================== */
+
+/* Consistent focus-visible indicators across all interactive elements */
+*:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Enhanced focus for primary actions */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px hsla(var(--primary), 0.1);
+}
+
+/* Dark mode focus indicators */
+.dark *:focus-visible {
+  outline-color: hsl(var(--ring));
+}
+
+.dark button:focus-visible,
+.dark a:focus-visible,
+.dark [role="button"]:focus-visible {
+  outline-color: hsl(var(--ring));
+  box-shadow: 0 0 0 4px hsla(var(--ring), 0.15);
+}
+
+/* Skip link visibility on focus */
+.sr-only:focus {
+  position: absolute;
+  width: auto;
+  height: auto;
+  padding: 1rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ========================================
+ * ACCESSIBILITY: REDUCED MOTION SUPPORT
+ * ======================================== */
+
+/* Comprehensive reduced motion support - WCAG 2.3.3 */
+/* Scrollbar hide utility for mobile sheet */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --sidebar-transition-duration: 100ms;
   }
 
+  /* Disable or significantly reduce ALL animations */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Allow essential animations to complete quickly */
+  [data-essential-animation],
+  [data-essential-animation]::before,
+  [data-essential-animation]::after {
+    animation-duration: 100ms !important;
+    transition-duration: 100ms !important;
+  }
+
+  /* Sidebar animations */
   .sidebar-expand,
   .sidebar-collapse,
   .sidebar-label-in,
@@ -728,5 +808,22 @@ body.dragging *::selection {
   .flyout-out {
     animation-duration: 100ms;
     animation-delay: 0ms;
+  }
+
+  /* Remove transform-based animations that might cause motion sickness */
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .animate-slide-in-left,
+  .animate-bounce-in,
+  .animate-blob,
+  .animate-pop {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Instant opacity changes instead of fades */
+  @keyframes reduced-motion-fade {
+    to { opacity: 1; }
   }
 }

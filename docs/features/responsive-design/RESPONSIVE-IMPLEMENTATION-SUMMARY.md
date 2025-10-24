@@ -23,7 +23,7 @@ January 2025
 **Updated Components**:
 - `app/(homepage)/_components/notifications-popover.tsx` - Now uses IconButton
 - `app/(homepage)/_components/messages-popover.tsx` - Now uses IconButton
-- `components/header/taxomind-header.tsx` - Search and notification buttons use IconButton
+- `app/(homepage)/main-header.tsx` - Search and notification buttons use IconButton (legacy `taxomind-header.tsx` archived at `backups/legacy-headers/taxomind-header.tsx`)
 
 ### 2. Responsive Main Header Redesign
 **File**: `/app/(homepage)/main-header.tsx` (Replaced)

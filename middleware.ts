@@ -236,11 +236,27 @@ async function handleUserRoute(req: NextRequest) {
     if (isAuthRoute) {
       // If already logged in, redirect to dashboard
       if (isLoggedIn) {
-        // PRODUCTION FIX: Add delay to ensure session is fully established
-        // This prevents OAuth redirect loops where session isn't ready yet
-        console.log('[User Middleware] Already logged in on auth route, redirecting to dashboard');
+        // PRODUCTION FIX: Check if this is coming from an OAuth callback
+        // If so, add a small delay to ensure session is fully established
+        const isFromOAuth = nextUrl.searchParams.has('code') ||
+                           nextUrl.searchParams.has('state') ||
+                           pathname.includes('callback');
+
+        console.log('[User Middleware] Already logged in on auth route', {
+          isFromOAuth,
+          pathname,
+          userRole
+        });
+
         const redirectUrl = userRole ? getRoleBasedRedirect(userRole) : DEFAULT_LOGIN_REDIRECT;
         const response = NextResponse.redirect(new URL(redirectUrl, nextUrl));
+
+        // Set cache headers to prevent caching during OAuth flow
+        if (isFromOAuth) {
+          response.headers.set('Cache-Control', 'no-store, must-revalidate');
+          response.headers.set('Pragma', 'no-cache');
+        }
+
         return applySecurityHeaders(response);
       }
 

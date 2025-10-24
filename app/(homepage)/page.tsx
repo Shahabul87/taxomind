@@ -1,5 +1,6 @@
 import { getHomepageFeaturedCourses, getHomepageFeaturedPosts } from "@/actions/get-homepage-content";
-import HeroSection from "./hero-section";
+import HeroHeader from "./hero-header";
+import CognitiveJourneySection from "./cognitive-journey-section";
 import HowItWorksSection from "./how-it-works-section";
 import { HomeFooter } from "./HomeFooter";
 import { FeaturedCoursesSection } from './featured-courses-section';
@@ -20,14 +21,27 @@ const Home = async () => {
 
   return (
     <>
-      <HeroSection />
-      <HowItWorksSection />
-     
-      <div className="min-h-screen">
-        <FeaturedCoursesSection courses={courses} />
-        <FeaturedBlogPostsSection posts={posts} />
-      </div>
-      <TestimonialsSection />
+      {/* Skip to main content link for keyboard navigation */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-6 focus:py-3 focus:bg-purple-600 focus:text-white focus:rounded-lg focus:shadow-lg focus:ring-4 focus:ring-purple-500 focus:ring-offset-2 transition-all"
+      >
+        Skip to main content
+      </a>
+
+      <HeroHeader />
+
+      <main id="main-content">
+        <CognitiveJourneySection />
+        <HowItWorksSection />
+
+        <div className="min-h-screen">
+          <FeaturedCoursesSection courses={courses} />
+          <FeaturedBlogPostsSection posts={posts} />
+        </div>
+        <TestimonialsSection />
+      </main>
+
       <HomeFooter />
     </>
   );

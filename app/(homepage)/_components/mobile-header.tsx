@@ -16,6 +16,8 @@ import { HeaderAfterLoginProps } from '../types/header-types';
 import { NotificationsPopover } from './notifications-popover';
 import { MessagesPopover } from './messages-popover';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { AIFeaturesMobileSheet } from '../components/mega-menu/AIFeaturesMobileSheet';
+import { aiFeatureTopics, aiFeaturesByTopic, aiConceptChips } from '../data/ai-features-data';
 
 /**
  * Mobile Header Component
@@ -30,6 +32,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 export const MobileHeader = ({ user }: HeaderAfterLoginProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showAIFeaturesMobileSheet, setShowAIFeaturesMobileSheet] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const isAuthenticated = !!user?.id;
@@ -150,32 +153,15 @@ export const MobileHeader = ({ user }: HeaderAfterLoginProps) => {
                 Blogs
               </Link>
 
-              <Link
-                href="/features"
-                className="block px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
+              <button
+                onClick={() => setShowAIFeaturesMobileSheet(true)}
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 dark:hover:from-purple-900/20 dark:hover:to-indigo-900/20 rounded-lg transition-colors"
               >
-                Features
-                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                AI Features
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300">
                   New
                 </span>
-              </Link>
-
-              <Link
-                href="/intelligent-lms/overview"
-                className="block px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Intelligent LMS
-              </Link>
-
-              <Link
-                href="/ai-tutor"
-                className="block px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                AI Tools
-              </Link>
+              </button>
 
               {isAuthenticated && (
                 <Link
@@ -190,6 +176,19 @@ export const MobileHeader = ({ user }: HeaderAfterLoginProps) => {
           </div>
         )}
       </header>
+
+      {/* AI Features Mobile Sheet */}
+      <AIFeaturesMobileSheet
+        isOpen={showAIFeaturesMobileSheet}
+        onClose={() => setShowAIFeaturesMobileSheet(false)}
+        topics={aiFeatureTopics}
+        contentByTopic={aiFeaturesByTopic}
+        conceptChips={aiConceptChips}
+        onItemClick={() => {
+          setShowAIFeaturesMobileSheet(false);
+          setIsMobileMenuOpen(false);
+        }}
+      />
 
       {/* Spacer to prevent content from going under fixed header */}
       <div className="h-14" />

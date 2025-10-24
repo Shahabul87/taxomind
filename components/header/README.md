@@ -1,6 +1,9 @@
-# Taxomind Header Component
+# Header Components (Current vs Legacy)
 
-A modern, feature-rich header component designed specifically for the Taxomind learning platform.
+This repo now uses the new enterprise MainHeader for navigation and AI Features. The previous TaxomindHeader has been archived.
+
+- Current: `app/(homepage)/main-header.tsx`
+- Legacy (archived): `backups/legacy-headers/taxomind-header.tsx`
 
 ## Features
 
@@ -24,10 +27,10 @@ A modern, feature-rich header component designed specifically for the Taxomind l
 - **Theme Toggle**: Dark/Light mode switcher
 - **Notifications**: Bell icon with unread indicator
 
-## Usage
+## Usage (current)
 
 ```tsx
-import { TaxomindHeader } from '@/components/header/taxomind-header';
+import { MainHeader } from '@/app/(homepage)/main-header';
 
 // In your layout or page component
 const user = {
@@ -47,7 +50,7 @@ const user = {
 export default function Layout({ children }) {
   return (
     <>
-      <TaxomindHeader user={user} />
+      <MainHeader user={user} />
       <main>{children}</main>
     </>
   );
@@ -72,13 +75,13 @@ export default function Layout({ children }) {
 
 ## Styling
 
-The component uses:
+MainHeader uses:
 - **Tailwind CSS** for styling
 - **Framer Motion** for animations
 - **Lucide React** for icons
 - **Next.js Image** component for optimized image loading
 
-## Features by User Role
+## Features by User Role (MainHeader)
 
 ### All Users
 - View profile and stats
@@ -142,6 +145,14 @@ To customize the header for your needs:
 3. **User Stats**: Adjust the stats grid to show different metrics
 4. **Dropdown Menu**: Customize menu items based on your app's features
 5. **Animations**: Adjust Framer Motion animation properties
+
+## Legacy component
+
+If you still need the older component for reference, find it at:
+
+- `backups/legacy-headers/taxomind-header.tsx`
+
+It is no longer used in production and will not receive updates.
 
 ## Best Practices
 

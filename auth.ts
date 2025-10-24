@@ -1,6 +1,3 @@
-// CRITICAL: Mark this file as server-only to prevent client-side bundling
-import "server-only";
-
 import NextAuth from "next-auth"
 import { UserRole } from "@prisma/client";
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -73,10 +70,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
+      console.log('[Auth Redirect]', { url, baseUrl });
+
       // PRODUCTION FIX: Improved OAuth redirect handling
       // Handle callback URLs from OAuth providers
       // These come back as absolute URLs with the callback path
       if (url.includes('/api/auth/callback')) {
+        console.log('[Auth Redirect] OAuth callback detected, redirecting to dashboard');
         return `${baseUrl}/dashboard`;
       }
 
