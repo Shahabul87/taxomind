@@ -17,11 +17,10 @@ import LayoutWithSidebar from '@/components/layout/layout-with-sidebar';
 import ClientToaster from '@/components/client-toaster';
 import { Suspense } from 'react';
 import { ConditionalHeaderWrapper } from './_components/conditional-header-wrapper';
-// SAM imports temporarily disabled for build
-// import { SAMGlobalProvider } from '@/sam/components/global/sam-global-provider';
-// import { SAMGlobalAssistantRedesigned } from '@/sam-ai-tutor/components/global/sam-global-assistant-redesigned';
-// import { SAMMobileResponsive } from '@/sam-ai-tutor/components/ui/sam-mobile-responsive';
-// import { SAMContextManager } from '@/sam/components/contextual/sam-context-manager';
+// SAM AI Tutor imports
+import { SAMGlobalProvider } from '@/sam-ai-tutor/components/global/sam-global-provider';
+import { SAMGlobalAssistantRedesigned } from '@/sam-ai-tutor/components/global/sam-global-assistant-redesigned';
+import { SAMMobileResponsive } from '@/sam-ai-tutor/components/ui/sam-mobile-responsive';
 import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
 
 // Use auto dynamic rendering (Next.js will determine optimal rendering)
@@ -195,17 +194,13 @@ export default async function RootLayout({
         <Providers session={session}>
           <ConfettiProvider />
           <ClientToaster />
-          {/* SAMGlobalProvider temporarily disabled for build */}
-          <>
+          <SAMGlobalProvider>
             {/* Render header for auth routes AND non-admin routes (excluding blog and course detail pages) */}
             {!isAdminRoute && !isBlogRoute && !isCourseDetailPage && (
               <ConditionalHeaderWrapper fallback={<HeaderFallback />}>
                 <AsyncHeader />
               </ConditionalHeaderWrapper>
             )}
-
-            {/* Content rendering - all routes use direct background */}
-            {/* <SAMContextManager /> */}
 
             {/* Conditional layout rendering based on route */}
             {isAuthRoute ? (
@@ -242,12 +237,12 @@ export default async function RootLayout({
             )}
 
             {/* SAM AI Tutor: Mobile/Tablet (bottom/side sheet) and Desktop (floating window) */}
-            {/* <SAMMobileResponsive /> */}
-            {/* <SAMGlobalAssistantRedesigned /> */}
+            <SAMMobileResponsive />
+            <SAMGlobalAssistantRedesigned />
 
             {/* CSS Error Monitor - Only in development */}
             <CSSErrorMonitorClient />
-          </>
+          </SAMGlobalProvider>
         </Providers>
       </body>
     </html>
