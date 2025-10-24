@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
-import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
+import { isRateLimited, getRateLimitMessage } from "@/lib/rate-limit";
 import { logger } from '@/lib/logger';
 
 // A simplified, universal endpoint for handling all types of reactions

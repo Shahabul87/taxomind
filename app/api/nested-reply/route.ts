@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
+import { isRateLimited, getRateLimitMessage } from "@/lib/rate-limit";
 import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
 
