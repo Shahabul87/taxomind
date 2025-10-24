@@ -48,6 +48,8 @@
     "validate:startup": "NODE_OPTIONS='--max-old-space-size=8192' npx ts-node -e \"require('./lib/startup-validation').validateApplicationStartup()\"",
     "validate:csp": "node scripts/validate-csp.js",
     "validate:security": "node scripts/validate-csp.js",
+    "validate:railway": "bash scripts/pre-push-validation.sh",
+    "validate:railway:full": "bash scripts/pre-push-validation.sh --full",
     "prebuild": "node scripts/validate-env.js",
     "lint": "NODE_OPTIONS='--max-old-space-size=8192' next lint --max-warnings 0",
     "lint:fast": "NODE_OPTIONS='--max-old-space-size=8192' eslint . --ext .js,.jsx,.ts,.tsx --cache --cache-location .next/cache/eslint/ --max-warnings 0",
