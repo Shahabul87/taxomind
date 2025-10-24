@@ -52,6 +52,8 @@ const extractTextFromHtml = (html: string | null): string => {
 export const getHomepageFeaturedCourses = cacheWrapper(
   async (limit: number = 8): Promise<HomepageCourse[]> => {
     try {
+      console.log('🔍 [getHomepageFeaturedCourses] Fetching featured courses, limit:', limit);
+
       const courses = await db.course.findMany({
         where: { isPublished: true, isFeatured: true },
         select: {
@@ -71,12 +73,18 @@ export const getHomepageFeaturedCourses = cacheWrapper(
         take: limit,
       });
 
-      return courses.map((c) => ({
+      console.log('✅ [getHomepageFeaturedCourses] Found courses:', courses.length);
+
+      const result = courses.map((c) => ({
         ...c,
         cleanDescription: extractTextFromHtml(c.description),
       }));
+
+      console.log('📦 [getHomepageFeaturedCourses] Returning courses:', result.length);
+
+      return result;
     } catch (error) {
-      console.error("Database error in Course.findMany:", error);
+      console.error("❌ [getHomepageFeaturedCourses] Database error:", error);
       // Return empty array during build if database is not ready
       return [];
     }

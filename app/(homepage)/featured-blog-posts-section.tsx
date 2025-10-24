@@ -1,5 +1,12 @@
 import MyPostCard from "@/app/blog/blog-card";
 
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: Date;
+  userId: string;
+}
+
 interface Post {
   id: string;
   createdAt: string | Date;
@@ -10,7 +17,7 @@ interface Post {
   updatedAt: Date;
   published: boolean;
   category: string | null;
-  comments?: any[];
+  comments?: Comment[];
 }
 
 interface FeaturedBlogPostsProps {

@@ -13,6 +13,10 @@ const extractTextFromHtml = (html: string | null): string => {
     .replace(/&#39;/g, "'");
 };
 
+type CourseCategory = {
+  name: string;
+} | null;
+
 type CourseWithProgressWithCategory = {
   id: string;
   title: string;
@@ -22,7 +26,7 @@ type CourseWithProgressWithCategory = {
   price?: number | null;
   isPublished: boolean;
   isFeatured: boolean;
-  category: any;
+  category: CourseCategory;
   chapters: { id: string }[];
   cleanDescription?: string;
   createdAt: Date;
