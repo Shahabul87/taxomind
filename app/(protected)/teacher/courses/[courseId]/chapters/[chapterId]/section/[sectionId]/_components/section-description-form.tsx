@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import TipTapEditor from "@/components/tiptap/editor";
 import ContentViewer from "@/components/tiptap/content-viewer";
+import { AISectionContentGenerator } from "./ai-section-content-generator";
 
 interface SectionDescriptionFormProps {
   initialData: {
@@ -30,6 +31,7 @@ interface SectionDescriptionFormProps {
   courseId: string;
   chapterId: string;
   sectionId: string;
+  chapterTitle: string;
 }
 
 const formSchema = z.object({
@@ -43,33 +45,15 @@ export const SectionDescriptionForm = ({
   courseId,
   chapterId,
   sectionId,
+  chapterTitle,
 }: SectionDescriptionFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [truncatedContent, setTruncatedContent] = useState(initialData.description || "");
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  useEffect(() => {
-    const truncateHtml = (html: string, maxLength: number) => {
-      const div = document.createElement('div');
-      div.innerHTML = html || '';
-      const text = div.textContent || div.innerText;
-      if (text.length <= maxLength) return html;
-      return text.substring(0, maxLength).trim() + '...';
-    };
-
-    if (initialData.description) {
-      setTruncatedContent(isExpanded
-        ? initialData.description
-        : truncateHtml(initialData.description, 150)
-      );
-    }
-  }, [isExpanded, initialData.description]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -116,29 +100,45 @@ export const SectionDescriptionForm = ({
             </p>
           </div>
         </div>
-        <Button
-          onClick={() => setIsEditing(!isEditing)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "bg-blue-500/5 dark:bg-blue-500/10",
-            "text-blue-600 dark:text-blue-400",
-            "hover:bg-blue-500/10 dark:hover:bg-blue-500/20",
-            "border border-blue-500/20 dark:border-blue-500/30",
-            "w-full sm:w-auto justify-center",
-            "transition-all duration-200",
-            "h-9 px-4 text-xs font-medium"
-          )}
-        >
-          {isEditing ? (
-            <>Cancel</>
-          ) : (
-            <>
-              <Pencil className="h-3 w-3 mr-2" />
-              Edit
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <AISectionContentGenerator
+            sectionTitle={initialData.title}
+            chapterTitle={chapterTitle}
+            courseId={courseId}
+            chapterId={chapterId}
+            sectionId={sectionId}
+            contentType="description"
+            onGenerate={(content) => {
+              form.setValue('description', content);
+              setIsEditing(true);
+            }}
+            disabled={!initialData.title}
+            existingContent={initialData.description}
+          />
+          <Button
+            onClick={() => setIsEditing(!isEditing)}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "bg-blue-500/5 dark:bg-blue-500/10",
+              "text-blue-600 dark:text-blue-400",
+              "hover:bg-blue-500/10 dark:hover:bg-blue-500/20",
+              "border border-blue-500/20 dark:border-blue-500/30",
+              "flex-1 sm:flex-none justify-center",
+              "transition-all duration-200",
+              "h-9 px-4 text-xs font-medium"
+            )}
+          >
+            {isEditing ? (
+              <>Cancel</>
+            ) : (
+              <>
+                <Pencil className="h-3 w-3 mr-2" />
+                Edit
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       {!isEditing && (
         <motion.div
@@ -155,35 +155,18 @@ export const SectionDescriptionForm = ({
               No description provided yet
             </p>
           ) : (
-            <div className="space-y-2">
-              <ContentViewer
-                content={truncatedContent}
-                className={cn(
-                  "text-foreground prose prose-sm max-w-none",
-                  "prose-headings:text-foreground",
-                  "prose-p:text-foreground",
-                  "prose-strong:text-foreground",
-                  "prose-ul:text-foreground",
-                  "prose-li:text-foreground",
-                  "prose-a:text-blue-600 dark:prose-a:text-blue-400"
-                )}
-              />
-              {initialData.description.length > 150 && (
-                <Button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "text-blue-700 dark:text-blue-300",
-                    "hover:text-blue-800 dark:hover:text-blue-200",
-                    "p-0 h-auto",
-                    "text-sm font-medium"
-                  )}
-                >
-                  {isExpanded ? "Show Less" : "Show More"}
-                </Button>
+            <ContentViewer
+              content={initialData.description}
+              className={cn(
+                "text-foreground prose prose-sm max-w-none",
+                "prose-headings:text-foreground",
+                "prose-p:text-foreground",
+                "prose-strong:text-foreground",
+                "prose-ul:text-foreground",
+                "prose-li:text-foreground",
+                "prose-a:text-blue-600 dark:prose-a:text-blue-400"
               )}
-            </div>
+            />
           )}
         </motion.div>
       )}

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import TipTapEditor from "@/components/tiptap/editor";
 import ContentViewer from "@/components/tiptap/content-viewer";
+import { AISectionContentGenerator } from "./ai-section-content-generator";
 
 interface SectionLearningObjectivesFormProps {
   initialData: {
@@ -30,6 +31,7 @@ interface SectionLearningObjectivesFormProps {
   courseId: string;
   chapterId: string;
   sectionId: string;
+  chapterTitle: string;
 }
 
 const formSchema = z.object({
@@ -43,33 +45,15 @@ export const SectionLearningObjectivesForm = ({
   courseId,
   chapterId,
   sectionId,
+  chapterTitle,
 }: SectionLearningObjectivesFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [truncatedContent, setTruncatedContent] = useState(initialData.learningObjectives || "");
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  useEffect(() => {
-    const truncateHtml = (html: string, maxLength: number) => {
-      const div = document.createElement('div');
-      div.innerHTML = html || '';
-      const text = div.textContent || div.innerText;
-      if (text.length <= maxLength) return html;
-      return text.substring(0, maxLength).trim() + '...';
-    };
-
-    if (initialData.learningObjectives) {
-      setTruncatedContent(isExpanded
-        ? initialData.learningObjectives
-        : truncateHtml(initialData.learningObjectives, 150)
-      );
-    }
-  }, [isExpanded, initialData.learningObjectives]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -116,29 +100,45 @@ export const SectionLearningObjectivesForm = ({
             </p>
           </div>
         </div>
-        <Button
-          onClick={() => setIsEditing(!isEditing)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "bg-indigo-500/5 dark:bg-indigo-500/10",
-            "text-indigo-600 dark:text-indigo-400",
-            "hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20",
-            "border border-indigo-500/20 dark:border-indigo-500/30",
-            "w-full sm:w-auto justify-center",
-            "transition-all duration-200",
-            "h-9 px-4 text-xs font-medium"
-          )}
-        >
-          {isEditing ? (
-            <>Cancel</>
-          ) : (
-            <>
-              <Pencil className="h-3 w-3 mr-2" />
-              Edit
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <AISectionContentGenerator
+            sectionTitle={initialData.title}
+            chapterTitle={chapterTitle}
+            courseId={courseId}
+            chapterId={chapterId}
+            sectionId={sectionId}
+            contentType="learningObjectives"
+            onGenerate={(content) => {
+              form.setValue('learningObjectives', content);
+              setIsEditing(true);
+            }}
+            disabled={!initialData.title}
+            existingContent={initialData.learningObjectives}
+          />
+          <Button
+            onClick={() => setIsEditing(!isEditing)}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "bg-indigo-500/5 dark:bg-indigo-500/10",
+              "text-indigo-600 dark:text-indigo-400",
+              "hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20",
+              "border border-indigo-500/20 dark:border-indigo-500/30",
+              "flex-1 sm:flex-none justify-center",
+              "transition-all duration-200",
+              "h-9 px-4 text-xs font-medium"
+            )}
+          >
+            {isEditing ? (
+              <>Cancel</>
+            ) : (
+              <>
+                <Pencil className="h-3 w-3 mr-2" />
+                Edit
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       {!isEditing && (
         <motion.div
@@ -155,35 +155,18 @@ export const SectionLearningObjectivesForm = ({
               No learning objectives defined yet
             </p>
           ) : (
-            <div className="space-y-2">
-              <ContentViewer
-                content={truncatedContent}
-                className={cn(
-                  "text-foreground prose prose-sm max-w-none",
-                  "prose-headings:text-foreground",
-                  "prose-p:text-foreground",
-                  "prose-strong:text-foreground",
-                  "prose-ul:text-foreground",
-                  "prose-li:text-foreground",
-                  "prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
-                )}
-              />
-              {initialData.learningObjectives.length > 150 && (
-                <Button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "text-indigo-700 dark:text-indigo-300",
-                    "hover:text-indigo-800 dark:hover:text-indigo-200",
-                    "p-0 h-auto",
-                    "text-sm font-medium"
-                  )}
-                >
-                  {isExpanded ? "Show Less" : "Show More"}
-                </Button>
+            <ContentViewer
+              content={initialData.learningObjectives}
+              className={cn(
+                "text-foreground prose prose-sm max-w-none",
+                "prose-headings:text-foreground",
+                "prose-p:text-foreground",
+                "prose-strong:text-foreground",
+                "prose-ul:text-foreground",
+                "prose-li:text-foreground",
+                "prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
               )}
-            </div>
+            />
           )}
         </motion.div>
       )}

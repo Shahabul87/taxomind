@@ -513,6 +513,7 @@ export const EnterpriseSectionPageClient = ({
                       courseId={params.courseId}
                       chapterId={params.chapterId}
                       sectionId={params.sectionId}
+                      chapterTitle={chapter.title}
                     />
                   </CardContent>
                 </Card>
@@ -544,6 +545,7 @@ export const EnterpriseSectionPageClient = ({
                       courseId={params.courseId}
                       chapterId={params.chapterId}
                       sectionId={params.sectionId}
+                      chapterTitle={chapter.title}
                     />
                   </CardContent>
                 </Card>
