@@ -25,6 +25,12 @@ export const CourseCardHome = ({
   price,
   category,
 }: CourseCardProps) => {
+  // Ensure image URLs use HTTPS for Next.js Image component in production
+  // Also provide a proper fallback image path instead of base64 data URI
+  const secureImageUrl = imageUrl
+    ? imageUrl.replace(/^http:\/\//i, 'https://')
+    : '/default-image.webp';
+
   return (
     <Link href={`/courses/${id}`} prefetch={false} className="group block h-full">
       <article className="h-full bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-white/5 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 overflow-hidden flex flex-col">
@@ -32,11 +38,12 @@ export const CourseCardHome = ({
         {/* Image Section - Optimized height */}
         <div className="relative h-44 overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
           <Image
-            src={imageUrl || "/placeholder.svg"}
+            src={secureImageUrl}
             alt={title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
+            unoptimized={!imageUrl} // Don't optimize placeholder images
           />
 
           {/* Category Badge - Simplified */}
