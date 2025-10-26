@@ -29,34 +29,41 @@ export const HeroStatsEnhanced = ({ stats }: HeroStatsEnhancedProps): JSX.Elemen
     >
       {/* Primary Stats Row - Rating & Students */}
       <div className="flex flex-wrap items-center gap-6">
-        {/* Rating - Primary Emphasis */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1" aria-hidden="true">
-            {[1, 2, 3, 4, 5].map((star: number) => (
-              <Star
-                key={star}
-                className={`w-5 h-5 ${
-                  star <= Math.round(Number.parseFloat(stats.averageRating))
-                    ? 'text-yellow-400 fill-current'
-                    : 'text-gray-400 dark:text-gray-300'
-                }`}
-              />
-            ))}
+        {/* Rating - Primary Emphasis or New Course Badge */}
+        {stats.totalReviews > 0 && Number.parseFloat(stats.averageRating) > 0 ? (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1" aria-hidden="true">
+              {[1, 2, 3, 4, 5].map((star: number) => (
+                <Star
+                  key={star}
+                  className={`w-5 h-5 ${
+                    star <= Math.round(Number.parseFloat(stats.averageRating))
+                      ? 'text-yellow-400 fill-current'
+                      : 'text-gray-400 dark:text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-2xl font-bold text-white">
+              {stats.averageRating}
+            </span>
+            <Link
+              href="#reviews"
+              className="text-white/80 hover:text-white underline-offset-2 hover:underline text-sm"
+              aria-label="View reviews"
+            >
+              ({stats.totalReviews.toLocaleString()} {stats.totalReviews === 1 ? 'rating' : 'ratings'})
+            </Link>
+            <span className="sr-only">
+              Average rating {stats.averageRating} out of 5 based on {stats.totalReviews.toLocaleString()} {stats.totalReviews === 1 ? 'rating' : 'ratings'}
+            </span>
           </div>
-          <span className="text-2xl font-bold text-white">
-            {stats.averageRating}
-          </span>
-          <Link
-            href="#reviews"
-            className="text-white/80 hover:text-white underline-offset-2 hover:underline text-sm"
-            aria-label="View reviews"
-          >
-            ({stats.totalReviews.toLocaleString()} {stats.totalReviews === 1 ? 'rating' : 'ratings'})
-          </Link>
-          <span className="sr-only">
-            Average rating {stats.averageRating} out of 5 based on {stats.totalReviews.toLocaleString()} {stats.totalReviews === 1 ? 'rating' : 'ratings'}
-          </span>
-        </div>
+        ) : (
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/50 dark:border-purple-400/50 backdrop-blur-sm">
+            <Star className="w-5 h-5 text-blue-400 dark:text-blue-300" />
+            <span className="text-white font-semibold text-lg">New Course</span>
+          </div>
+        )}
 
         {/* Students - Secondary Emphasis */}
         <div className="flex items-center gap-2">

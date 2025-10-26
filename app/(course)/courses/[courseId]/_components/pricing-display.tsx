@@ -68,16 +68,27 @@ export const PricingDisplay = ({
       )}
 
       {/* Pricing */}
-      <div className="flex items-baseline gap-3">
-        {/* Current Price */}
-        <div className={`${compact ? 'text-2xl md:text-3xl' : 'text-4xl'} font-bold ${isFree ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
-          {formatPrice(currentPrice)}
+      <div className="space-y-2">
+        <div className="flex items-baseline gap-3">
+          {/* Current Price */}
+          <div className={`${compact ? 'text-2xl md:text-3xl' : 'text-4xl'} font-bold ${isFree ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+            {formatPrice(currentPrice)}
+          </div>
+
+          {/* Original Price (strikethrough) */}
+          {hasDiscount && originalPrice && (
+            <div className={`${compact ? 'text-base md:text-lg' : 'text-xl'} text-gray-500 dark:text-gray-400 line-through`}>
+              {formatPrice(originalPrice)}
+            </div>
+          )}
         </div>
 
-        {/* Original Price (strikethrough) */}
-        {hasDiscount && originalPrice && (
-          <div className={`${compact ? 'text-base md:text-lg' : 'text-xl'} text-gray-500 dark:text-gray-400 line-through`}>
-            {formatPrice(originalPrice)}
+        {/* Value Messaging for Paid Courses */}
+        {!isFree && !hasDiscount && (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-full">
+            <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+              Best Value • Lifetime Access
+            </span>
           </div>
         )}
       </div>

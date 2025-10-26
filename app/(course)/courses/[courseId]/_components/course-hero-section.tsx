@@ -28,6 +28,8 @@ interface CourseHeroSectionProps {
       enrollments?: number;
       Enrollment?: number;
     };
+    totalDuration?: number | null;
+    difficulty?: string | null;
   };
 }
 
@@ -74,11 +76,13 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Eleme
     { label: cleanHtmlContent(course.title), href: '#' },
   ];
 
-  // Calculate total hours (placeholder - totalDuration field doesn't exist in schema yet)
-  const totalHours = undefined;
+  // Calculate total hours from totalDuration (in minutes)
+  const totalHours = course.totalDuration && course.totalDuration > 0
+    ? Math.floor(course.totalDuration / 60)
+    : undefined;
 
-  // Get difficulty level (placeholder - difficulty field doesn't exist in schema yet)
-  const difficultyLevel = 'All Levels';
+  // Get difficulty level from course data
+  const difficultyLevel = course.difficulty ?? 'All Levels';
 
   // Ensure image URL uses HTTPS for Next.js Image component
   const secureImageUrl = course.imageUrl?.replace(/^http:\/\//i, 'https://') ?? '/default-course.jpg';
@@ -88,7 +92,7 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Eleme
       className="relative w-full min-h-[360px] sm:min-h-[440px] md:min-h-[560px] lg:min-h-[60vh] xl:min-h-[70vh]"
       aria-label="Course overview hero"
     >
-      {/* Background Image with Gradient Overlay */}
+      {/* Background Image with Enhanced Gradient Overlay */}
       <div className="absolute inset-0">
         <Image
           src={secureImageUrl}
@@ -98,13 +102,15 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Eleme
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70 dark:from-black/60 dark:via-gray-900/50 dark:to-gray-900" />
+        {/* Enhanced gradient for better text contrast */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/50 dark:from-black/90 dark:via-black/70 dark:to-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/70 dark:from-black/40 dark:via-black/60 dark:to-gray-900" />
       </div>
 
       {/* Course Info Overlay */}
-      <div className="absolute inset-0 flex items-end pt-safe-4 pb-safe-12 md:pb-safe-16">
+      <div className="absolute inset-0 flex items-end pb-safe-12 md:pb-safe-16">
         <motion.div
-          className="container mx-auto px-4 sm:px-6 md:px-8 max-w-7xl"
+          className="container mx-auto px-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.6 }}
@@ -146,12 +152,13 @@ export const CourseHeroSection = ({ course }: CourseHeroSectionProps): JSX.Eleme
             </span>
           </motion.div>
 
-          {/* Course Title */}
+          {/* Course Title with Enhanced Readability */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: prefersReducedMotion ? 0 : 0.3 }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 max-w-screen-md md:max-w-4xl leading-tight break-words word-break-anywhere hyphens-auto text-balance"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 max-w-screen-md md:max-w-4xl leading-tight break-words word-break-anywhere hyphens-auto text-balance drop-shadow-lg [text-shadow:_0_2px_8px_rgb(0_0_0_/_80%),_0_4px_16px_rgb(0_0_0_/_60%)]"
+            style={{ textTransform: 'capitalize' }}
           >
             {cleanHtmlContent(course.title)}
           </motion.h1>

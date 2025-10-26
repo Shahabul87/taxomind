@@ -115,15 +115,18 @@ export const CTAButtonHierarchy = ({
         </button>
       ) : (
         <div className="flex items-center gap-2">
-          <button
+          <motion.button
             data-analytics-id="cta-enroll-now"
-            className="flex-1 relative px-5 py-3 md:py-3.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold text-base md:text-lg transition-all duration-200 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            className="flex-1 relative px-5 py-3 md:py-3.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold text-base md:text-lg transition-all duration-200 shadow-md hover:shadow-xl hover:shadow-purple-500/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => {
               handleEnroll().catch((error: unknown) => {
                 console.error('Enrollment failed:', error);
               });
             }}
             disabled={isLoading}
+            whileHover={{ scale: isLoading ? 1 : 1.02 }}
+            whileTap={{ scale: isLoading ? 1 : 0.98 }}
+            transition={{ duration: 0.2 }}
           >
             <span className="flex items-center justify-center gap-2">
               {isLoading ? (
@@ -135,37 +138,42 @@ export const CTAButtonHierarchy = ({
                 'Enroll Now'
               )}
             </span>
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
             data-analytics-id="cta-wishlist"
-            title="Wishlist"
-            aria-label="Add to wishlist"
+            title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            aria-pressed={isWishlisted}
             onClick={() => {
               handleWishlist().catch((error: unknown) => {
                 console.error('Wishlist failed:', error);
               });
             }}
-            className={`inline-flex items-center justify-center w-11 h-11 md:w-12 md:h-12 rounded-lg border transition-colors ${
+            className={`inline-flex items-center justify-center w-11 h-11 md:w-12 md:h-12 rounded-lg border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-pink-500 ${
               isWishlisted
-                ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400'
-                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
+                ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 shadow-md'
+                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-pink-400 dark:hover:border-pink-500 hover:shadow-md'
             }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
-            <span className="sr-only">Wishlist</span>
-          </button>
+            <Heart className={`w-5 h-5 transition-all ${isWishlisted ? 'fill-current' : ''}`} aria-hidden="true" />
+            <span className="sr-only">{isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}</span>
+          </motion.button>
 
-          <button
+          <motion.button
             data-analytics-id="cta-preview"
-            title="Preview"
-            aria-label="Preview"
+            title="Preview course"
+            aria-label="Preview course video"
             onClick={handlePreview}
-            className="inline-flex items-center justify-center w-11 h-11 md:w-12 md:h-12 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500"
+            className="inline-flex items-center justify-center w-11 h-11 md:w-12 md:h-12 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Play className="w-5 h-5" />
-            <span className="sr-only">Preview</span>
-          </button>
+            <Play className="w-5 h-5" aria-hidden="true" />
+            <span className="sr-only">Preview course video</span>
+          </motion.button>
         </div>
       )}
     </motion.div>

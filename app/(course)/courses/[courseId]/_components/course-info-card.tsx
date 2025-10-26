@@ -1,19 +1,19 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import Image from 'next/image';
 
 import { motion, useReducedMotion } from 'framer-motion';
 import {
-  Star,
-  Users,
   Clock,
-  BarChart3 as BarChart,
   Calendar,
   Award,
   BookOpen,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
+import { throttle } from 'lodash';
 
 import { CourseSocialMediaShare } from '../course-social-media-sharing';
 
@@ -36,66 +36,132 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
   const impressionFiredRef = useRef(false);
   const viewStartRef = useRef<number | null>(null);
   const accumulatedMsRef = useRef<number>(0);
+
+  // Collapsible sections state
+  const [isIncludesExpanded, setIsIncludesExpanded] = useState(true);
+  const [isPrerequisitesExpanded, setIsPrerequisitesExpanded] = useState(false);
+
   // Ensure image URL uses HTTPS for Next.js Image component
   const secureImageUrl = course.imageUrl?.replace(/^http:\/\//i, 'https://') ?? '/default-course.jpg';
 
-  // Derived values
-  const totalHours = useMemo(() => (course.totalDuration ? Math.floor((course.totalDuration || 0) / 60) : course.totalHours ?? undefined), [course.totalDuration, course.totalHours]);
-  const totalChapters = course._count?.chapters ?? course.chapters?.length ?? undefined;
-  const enrollments = (course._count?.Enrollment ?? course._count?.enrollments ?? course.activeLearners ?? 0) || 0;
+  // Derived values with proper error handling
+  const totalHours = useMemo(() => {
+    if (course.totalDuration && course.totalDuration > 0) {
+      return Math.floor(course.totalDuration / 60);
+    }
+    return course.totalHours ?? undefined;
+  }, [course.totalDuration, course.totalHours]);
+
+  const totalChapters = useMemo(() => {
+    return course._count?.chapters ?? course.chapters?.length ?? undefined;
+  }, [course._count?.chapters, course.chapters?.length]);
+
+  const enrollments = useMemo(() => {
+    return course._count?.Enrollment ?? course._count?.enrollments ?? course.activeLearners ?? 0;
+  }, [course._count?.Enrollment, course._count?.enrollments, course.activeLearners]);
 
   const { averageRating, reviewsCount } = useMemo(() => {
-    if (typeof course.averageRating === 'number') {
-      return { averageRating: course.averageRating as number, reviewsCount: course.reviews?.length ?? 0 };
+    if (typeof course.averageRating === 'number' && course.averageRating > 0) {
+      return {
+        averageRating: course.averageRating,
+        reviewsCount: course.reviews?.length ?? 0
+      };
     }
-    const count = course.reviews?.length ?? 0;
-    if (!count) return { averageRating: undefined, reviewsCount: 0 };
-    const sum = course.reviews!.reduce((acc, r) => acc + (r.rating || 0), 0);
-    return { averageRating: Number((sum / count).toFixed(1)), reviewsCount: count };
-  }, [course]);
+    const reviews = course.reviews ?? [];
+    const count = reviews.length;
+    if (count === 0) {
+      return { averageRating: undefined, reviewsCount: 0 };
+    }
+    const sum = reviews.reduce((acc, r) => acc + (r.rating ?? 0), 0);
+    return {
+      averageRating: Number((sum / count).toFixed(1)),
+      reviewsCount: count
+    };
+  }, [course.averageRating, course.reviews]);
 
-  const lastUpdated = useMemo(() => new Date(course.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }), [course.updatedAt]);
+  const lastUpdated = useMemo(() => {
+    try {
+      return new Date(course.updatedAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short'
+      });
+    } catch {
+      return 'Recently';
+    }
+  }, [course.updatedAt]);
 
-  // Removed Skills section per request
+  // Throttled analytics handler for better performance
+  const handleIntersection = useMemo(
+    () => throttle((entries: IntersectionObserverEntry[]) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          if (!impressionFiredRef.current) {
+            impressionFiredRef.current = true;
+            window.dispatchEvent(
+              new CustomEvent('analytics:impression', {
+                detail: {
+                  id: 'course-info-card',
+                  courseId: course.id,
+                  price: course.price ?? null,
+                  originalPrice: course.originalPrice ?? null,
+                  currency: course.currency ?? null
+                }
+              })
+            );
+          }
+          if (viewStartRef.current === null) {
+            viewStartRef.current = performance.now();
+          }
+        } else {
+          if (viewStartRef.current !== null) {
+            const delta = performance.now() - viewStartRef.current;
+            accumulatedMsRef.current += delta;
+            viewStartRef.current = null;
+            window.dispatchEvent(
+              new CustomEvent('analytics:viewtime', {
+                detail: {
+                  id: 'course-info-card',
+                  courseId: course.id,
+                  ms: Math.round(accumulatedMsRef.current)
+                }
+              })
+            );
+          }
+        }
+      }
+    }, 250),
+    [course.id, course.price, course.originalPrice, course.currency]
+  );
 
   // Fire a one-time impression when the card enters viewport
   useEffect(() => {
     const el = rootRef.current;
     if (!el || typeof window === 'undefined') return;
-    const io = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          if (!impressionFiredRef.current) {
-            impressionFiredRef.current = true;
-            window.dispatchEvent(new CustomEvent('analytics:impression', { detail: { id: 'course-info-card', courseId: course.id, price: course.price ?? null, originalPrice: course.originalPrice ?? null, currency: course.currency ?? null } }));
-          }
-          if (viewStartRef.current == null) {
-            viewStartRef.current = performance.now();
-          }
-        } else {
-          if (viewStartRef.current != null) {
-            const delta = performance.now() - viewStartRef.current;
-            accumulatedMsRef.current += delta;
-            viewStartRef.current = null;
-            window.dispatchEvent(new CustomEvent('analytics:viewtime', { detail: { id: 'course-info-card', courseId: course.id, ms: Math.round(accumulatedMsRef.current) } }));
-          }
-        }
-      }
-    }, { threshold: 0.25 });
+
+    const io = new IntersectionObserver(handleIntersection, { threshold: 0.25 });
     io.observe(el);
+
     return () => {
       io.disconnect();
-      if (viewStartRef.current != null) {
+      if (viewStartRef.current !== null) {
         const delta = performance.now() - viewStartRef.current;
         const total = accumulatedMsRef.current + delta;
-        window.dispatchEvent(new CustomEvent('analytics:viewtime', { detail: { id: 'course-info-card', courseId: course.id, ms: Math.round(total) } }));
+        window.dispatchEvent(
+          new CustomEvent('analytics:viewtime', {
+            detail: {
+              id: 'course-info-card',
+              courseId: course.id,
+              ms: Math.round(total)
+            }
+          })
+        );
         viewStartRef.current = null;
       }
     };
-  }, [course.id, course.price, course.originalPrice, course.currency]);
+  }, [handleIntersection, course.id]);
 
   // Smart animation variants
-  const containerVariants = {
+  const containerVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 12 },
     show: {
       opacity: 1,
@@ -107,12 +173,12 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
         delayChildren: prefersReducedMotion ? 0 : 0.15,
       },
     },
-  } as const;
+  } as const), [prefersReducedMotion]);
 
-  const itemVariants = {
+  const itemVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 8 },
     show: { opacity: 1, y: 0 },
-  } as const;
+  } as const), []);
 
   return (
     <motion.div
@@ -123,46 +189,28 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
       variants={containerVariants}
       whileHover={prefersReducedMotion ? undefined : { y: -2 }}
       aria-labelledby="course-info-card-title"
-      className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 h-fit md:sticky"
-      style={{ top: 'var(--sticky-offset, 6rem)' }}
+      className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 h-fit lg:sticky"
+      style={{ top: 'var(--sticky-offset, 4rem)' }}
     >
       <h2 id="course-info-card-title" className="sr-only">Course enrollment and purchase options</h2>
-      <motion.div className="space-y-6" variants={containerVariants}>
-        {/* Course Cover with metrics overlay */}
+      <motion.div className="space-y-4 sm:space-y-6" variants={containerVariants}>
+        {/* Course Cover - Simplified (removed redundant overlay badges) */}
         <motion.div className="relative rounded-xl overflow-hidden" variants={itemVariants}>
-          <motion.div className="aspect-video relative" whileHover={prefersReducedMotion ? undefined : { scale: 1.02 }} transition={{ duration: 0.25 }}>
+          <motion.div
+            className="aspect-video relative"
+            whileHover={prefersReducedMotion ? undefined : { scale: 1.02 }}
+            transition={{ duration: 0.25 }}
+          >
             <Image
               src={secureImageUrl}
               alt={course.title}
               fill
-              sizes="(min-width: 768px) 33vw, 100vw"
+              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
               className="object-cover"
+              priority={false}
             />
           </motion.div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-          <div className="absolute bottom-2 left-3 right-3 flex flex-wrap items-center gap-2">
-            {/* Rating */}
-            {typeof averageRating === 'number' && (
-              <motion.span variants={itemVariants} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 dark:bg-gray-900/80 text-gray-900 dark:text-gray-100 text-xs font-semibold shadow">
-                <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                {averageRating.toFixed(1)}{reviewsCount ? ` (${reviewsCount})` : ''}
-              </motion.span>
-            )}
-            {/* Enrollments */}
-            {enrollments > 0 && (
-              <motion.span variants={itemVariants} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 dark:bg-gray-900/80 text-gray-900 dark:text-gray-100 text-xs font-medium shadow">
-                <Users className="w-3.5 h-3.5" />
-                {Number(enrollments).toLocaleString()} enrolled
-              </motion.span>
-            )}
-            {/* Difficulty */}
-            {course.difficulty && (
-              <motion.span variants={itemVariants} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 dark:bg-gray-900/80 text-gray-900 dark:text-gray-100 text-xs font-medium shadow">
-                <BarChart className="w-3.5 h-3.5" />
-                {course.difficulty}
-              </motion.span>
-            )}
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         </motion.div>
 
         {/* Pricing */}
@@ -180,53 +228,104 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
           <CTAButtonHierarchy course={course} userId={userId} isEnrolled={isEnrolled} />
         </motion.div>
 
-        {/* Key Facts */}
+        {/* Key Facts - Improved responsive grid */}
         <motion.div variants={itemVariants} className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5">
           <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-gray-100">Quick facts</h3>
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-3.5 text-sm md:text-base text-gray-700 dark:text-gray-300">
-            {totalHours !== undefined && (
-              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-blue-500" aria-hidden="true" /><span>{totalHours}h total</span></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700 dark:text-gray-300">
+            {totalHours !== undefined && totalHours > 0 && (
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-500 flex-shrink-0" aria-hidden="true" />
+                <span>{totalHours}h total</span>
+              </div>
             )}
-            {totalChapters !== undefined && (
-              <div className="flex items-center gap-2"><BookOpen className="w-4 h-4 text-indigo-500" aria-hidden="true" /><span>{totalChapters} chapters</span></div>
+            {totalChapters !== undefined && totalChapters > 0 && (
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-indigo-500 flex-shrink-0" aria-hidden="true" />
+                <span>{totalChapters} {totalChapters === 1 ? 'chapter' : 'chapters'}</span>
+              </div>
             )}
-            {course.difficulty && (
-              <div className="flex items-center gap-2"><BarChart className="w-4 h-4 text-purple-500" aria-hidden="true" /><span className="break-words word-break-anywhere">{course.difficulty}</span></div>
-            )}
-            <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-emerald-600" aria-hidden="true" /><span>Updated {lastUpdated}</span></div>
-            {course.category?.name && (
-              <div className="flex items-center gap-2"><Award className="w-4 h-4 text-amber-600" aria-hidden="true" /><span className="break-words word-break-anywhere text-balance">{course.category.name}</span></div>
-            )}
-            <div className="flex items-center gap-2"><Award className="w-4 h-4 text-emerald-600" aria-hidden="true" /><span>Certificate included</span></div>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-emerald-600 flex-shrink-0" aria-hidden="true" />
+              <span>Updated {lastUpdated}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-emerald-600 flex-shrink-0" aria-hidden="true" />
+              <span>Certificate included</span>
+            </div>
           </div>
         </motion.div>
 
-        {/* Skills section intentionally removed */}
-
-        {/* What’s Included (delivery + resources) */}
-        <motion.div variants={itemVariants}>
-          <CourseIncludesList
-            totalHours={totalHours}
-            totalResources={course.totalResources ?? undefined}
-            totalExercises={course.totalExercises ?? undefined}
-            hasLifetimeAccess={true}
-            hasMobileAccess={true}
-            hasCertificate={true}
-            hasMoneyBackGuarantee={true}
-          />
+        {/* What's Included (collapsible for mobile) */}
+        <motion.div variants={itemVariants} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <button
+            onClick={() => setIsIncludesExpanded(!isIncludesExpanded)}
+            className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            aria-expanded={isIncludesExpanded}
+            aria-controls="course-includes-content"
+          >
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">This course includes</h3>
+            {isIncludesExpanded ? (
+              <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
+            )}
+          </button>
+          {isIncludesExpanded && (
+            <motion.div
+              id="course-includes-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="p-4 border-t border-gray-200 dark:border-gray-700"
+            >
+              <CourseIncludesList
+                totalHours={totalHours}
+                totalResources={course.totalResources ?? undefined}
+                totalExercises={course.totalExercises ?? undefined}
+                hasLifetimeAccess={true}
+                hasMobileAccess={true}
+                hasCertificate={true}
+                hasMoneyBackGuarantee={true}
+              />
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* Prerequisites (summary) */}
+        {/* Prerequisites (collapsible) */}
         {course.prerequisites && (
-          <motion.div variants={itemVariants} className="rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 p-3 text-sm text-gray-700 dark:text-gray-300">
-            <span className="font-medium">Prerequisites: </span>
-            <span className="line-clamp-2">{course.prerequisites}</span>
+          <motion.div variants={itemVariants} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <button
+              onClick={() => setIsPrerequisitesExpanded(!isPrerequisitesExpanded)}
+              className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-expanded={isPrerequisitesExpanded}
+              aria-controls="prerequisites-content"
+            >
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Prerequisites</h3>
+              {isPrerequisitesExpanded ? (
+                <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
+              )}
+            </button>
+            {isPrerequisitesExpanded && (
+              <motion.div
+                id="prerequisites-content"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="p-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300"
+              >
+                {course.prerequisites}
+              </motion.div>
+            )}
           </motion.div>
         )}
 
         {/* Trust & Policies */}
         <motion.div variants={itemVariants}>
-          <TrustBadges />
+          <TrustBadges averageRating={averageRating} reviewsCount={reviewsCount} />
         </motion.div>
 
         {/* For teams section removed as requested */}

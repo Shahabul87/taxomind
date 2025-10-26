@@ -4,7 +4,17 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, CreditCard, Heart, Lock } from 'lucide-react';
 
-export const TrustBadges = (): JSX.Element => {
+interface TrustBadgesProps {
+  averageRating?: number;
+  reviewsCount?: number;
+}
+
+export const TrustBadges = ({ averageRating, reviewsCount }: TrustBadgesProps): JSX.Element => {
+  // Format rating display
+  const ratingText = averageRating && reviewsCount && reviewsCount > 0
+    ? `${averageRating.toFixed(1)}/5 from ${reviewsCount} ${reviewsCount === 1 ? 'review' : 'reviews'}`
+    : 'Highly rated course';
+
   const badges = [
     {
       icon: <ShieldCheck className="w-5 h-5" />,
@@ -24,7 +34,7 @@ export const TrustBadges = (): JSX.Element => {
     {
       icon: <Heart className="w-5 h-5" />,
       label: 'Satisfaction',
-      description: '4.8/5 avg student rating',
+      description: ratingText,
     },
   ];
 
