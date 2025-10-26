@@ -48,13 +48,15 @@ const extractTextFromHtml = (html: string | null): string => {
 /**
  * Featured courses for homepage (static, cached)
  * - No user/session reads so page can be ISR/static
+ * - Falls back to recent published courses if no featured courses
  */
 export const getHomepageFeaturedCourses = cacheWrapper(
   async (limit: number = 8): Promise<HomepageCourse[]> => {
     try {
       console.log('🔍 [getHomepageFeaturedCourses] Fetching featured courses, limit:', limit);
 
-      const courses = await db.course.findMany({
+      // Try to get featured courses first
+      let courses = await db.course.findMany({
         where: { isPublished: true, isFeatured: true },
         select: {
           id: true,
@@ -73,7 +75,31 @@ export const getHomepageFeaturedCourses = cacheWrapper(
         take: limit,
       });
 
-      console.log('✅ [getHomepageFeaturedCourses] Found courses:', courses.length);
+      console.log('✅ [getHomepageFeaturedCourses] Found featured courses:', courses.length);
+
+      // If no featured courses, fall back to most recent published courses
+      if (courses.length === 0) {
+        console.log('⚠️ [getHomepageFeaturedCourses] No featured courses, fetching recent published courses');
+        courses = await db.course.findMany({
+          where: { isPublished: true },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            imageUrl: true,
+            price: true,
+            isPublished: true,
+            isFeatured: true,
+            category: { select: { name: true } },
+            chapters: { select: { id: true }, where: { isPublished: true } },
+            createdAt: true,
+            updatedAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        });
+        console.log('✅ [getHomepageFeaturedCourses] Found published courses:', courses.length);
+      }
 
       const result = courses.map((c) => ({
         ...c,
@@ -99,6 +125,8 @@ export const getHomepageFeaturedCourses = cacheWrapper(
 export const getHomepageFeaturedPosts = cacheWrapper(
   async (limit: number = 6): Promise<HomepagePost[]> => {
     try {
+      console.log('🔍 [getHomepageFeaturedPosts] Fetching featured posts, limit:', limit);
+
       const posts = await db.post.findMany({
         where: { published: true, isArchived: false },
         select: {
@@ -110,13 +138,15 @@ export const getHomepageFeaturedPosts = cacheWrapper(
           category: true,
           createdAt: true,
           updatedAt: true,
-          authorId: true,
+          userId: true, // Use userId instead of authorId
         },
         orderBy: { createdAt: "desc" },
         take: limit,
       });
 
-      return posts.map((p) => ({
+      console.log('✅ [getHomepageFeaturedPosts] Found posts:', posts.length);
+
+      const result = posts.map((p) => ({
         id: p.id,
         title: p.title || "Untitled Post",
         description: p.description || null,
@@ -125,10 +155,14 @@ export const getHomepageFeaturedPosts = cacheWrapper(
         category: p.category || null,
         createdAt: (p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt as any)).toISOString(),
         updatedAt: p.updatedAt as Date,
-        userId: p.authorId || '',
+        userId: p.userId,
       }));
+
+      console.log('📦 [getHomepageFeaturedPosts] Returning posts:', result.length);
+
+      return result;
     } catch (error) {
-      console.error("Database error in Post.findMany:", error);
+      console.error("❌ [getHomepageFeaturedPosts] Database error:", error);
       // Return empty array during build if database is not ready
       return [];
     }
