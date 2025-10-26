@@ -1,9 +1,11 @@
 "use client";
 
 import React from 'react';
-import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Star, User, Clock, Award, Globe, BarChart } from 'lucide-react';
+import { User, Clock, Award, Globe, BarChart } from 'lucide-react';
+import { InteractiveRatingStars, NewCourseBadge } from './interactive-rating-stars';
+import { AnimatedStatCard } from './animated-stat-counter';
+import { colorPalette } from '../utils/design-tokens';
 
 interface HeroStatsEnhancedProps {
   stats: {
@@ -20,107 +22,114 @@ interface HeroStatsEnhancedProps {
 
 export const HeroStatsEnhanced = ({ stats }: HeroStatsEnhancedProps): JSX.Element => {
   const prefersReducedMotion = useReducedMotion();
+  const rating = Number.parseFloat(stats.averageRating);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: prefersReducedMotion ? 0 : 0.45, duration: prefersReducedMotion ? 0 : 0.4 }}
-      className="space-y-4"
+      className="space-y-6"
     >
-      {/* Primary Stats Row - Rating & Students */}
-      <div className="flex flex-wrap items-center gap-6">
-        {/* Rating - Primary Emphasis or New Course Badge */}
-        {stats.totalReviews > 0 && Number.parseFloat(stats.averageRating) > 0 ? (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1" aria-hidden="true">
-              {[1, 2, 3, 4, 5].map((star: number) => (
-                <Star
-                  key={star}
-                  className={`w-5 h-5 ${
-                    star <= Math.round(Number.parseFloat(stats.averageRating))
-                      ? 'text-yellow-400 fill-current'
-                      : 'text-gray-400 dark:text-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
-            <span className="text-2xl font-bold text-white">
-              {stats.averageRating}
-            </span>
-            <Link
-              href="#reviews"
-              className="text-white/80 hover:text-white underline-offset-2 hover:underline text-sm"
-              aria-label="View reviews"
-            >
-              ({stats.totalReviews.toLocaleString()} {stats.totalReviews === 1 ? 'rating' : 'ratings'})
-            </Link>
-            <span className="sr-only">
-              Average rating {stats.averageRating} out of 5 based on {stats.totalReviews.toLocaleString()} {stats.totalReviews === 1 ? 'rating' : 'ratings'}
-            </span>
-          </div>
+      {/* Primary Stats Row - Rating & Animated Students */}
+      <div className="flex flex-wrap items-center gap-8">
+        {/* Interactive Rating Stars or New Course Badge */}
+        {stats.totalReviews > 0 && rating > 0 ? (
+          <InteractiveRatingStars
+            rating={rating}
+            totalReviews={stats.totalReviews}
+            interactive={true}
+            size="md"
+            showNumber={true}
+            showCount={true}
+            linkToReviews={true}
+          />
         ) : (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/50 dark:border-purple-400/50 backdrop-blur-sm">
-            <Star className="w-5 h-5 text-blue-400 dark:text-blue-300" />
-            <span className="text-white font-semibold text-lg">New Course</span>
-          </div>
+          <NewCourseBadge size="md" />
         )}
 
-        {/* Students - Secondary Emphasis */}
-        <div className="flex items-center gap-2">
-          <User className="text-purple-600 dark:text-purple-400 w-5 h-5" />
-          <span className="text-white text-lg font-semibold">
-            {stats.totalEnrollments.toLocaleString()}
-          </span>
-          <span className="text-white/70 text-sm">
-            {stats.totalEnrollments === 1 ? 'student' : 'students'}
-          </span>
-        </div>
+        {/* Animated Student Count */}
+        <AnimatedStatCard
+          icon={<User className="w-6 h-6" />}
+          value={stats.totalEnrollments}
+          label={stats.totalEnrollments === 1 ? 'student' : 'students'}
+          suffix=""
+          accentColor={colorPalette.accent.success}
+          delay={0.2}
+        />
 
-        {/* Certificate Badge */}
+        {/* Certificate Badge with animation */}
         {stats.hasCertificate && (
-          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-600/20 dark:bg-emerald-500/20 border border-emerald-600/50 dark:border-emerald-400/50 rounded-full backdrop-blur-sm">
-            <Award className="text-emerald-700 dark:text-emerald-300 w-4 h-4" />
-            <span className="text-emerald-800 dark:text-emerald-100 text-sm font-medium">
+          <motion.div
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/20 border border-emerald-400/40 rounded-full backdrop-blur-md"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={prefersReducedMotion ? undefined : { scale: 1.05 }}
+            transition={{ delay: 0.3, duration: 0.2 }}
+          >
+            <Award className="text-emerald-300 w-4 h-4" aria-hidden="true" />
+            <span className="text-emerald-100 text-sm font-medium">
               Certificate of Completion
             </span>
-          </div>
+          </motion.div>
         )}
       </div>
 
-      {/* Secondary Stats Row - Course Details */}
-      <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
+      {/* Secondary Stats Row - Course Details with staggered animation */}
+      <motion.div
+        className="flex flex-wrap items-center gap-4 text-white/70 text-sm"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: prefersReducedMotion ? 0 : 0.5 }}
+      >
         {/* Total Hours */}
         {stats.totalHours !== undefined && stats.totalHours > 0 && (
-          <div className="flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-blue-400" />
-            <span>
+          <motion.div
+            className="flex items-center gap-1.5 group cursor-default"
+            whileHover={prefersReducedMotion ? undefined : { x: 2 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Clock className="w-4 h-4 text-blue-300 group-hover:text-blue-200 transition-colors" aria-hidden="true" />
+            <span className="group-hover:text-white transition-colors">
               {stats.totalHours} {stats.totalHours === 1 ? 'hour' : 'hours'} total
             </span>
-          </div>
+          </motion.div>
         )}
 
         {/* Difficulty Level */}
         {stats.difficultyLevel && (
-          <div className="flex items-center gap-1.5">
-            <BarChart className="w-4 h-4 text-indigo-400" />
-            <span>{stats.difficultyLevel}</span>
-          </div>
+          <motion.div
+            className="flex items-center gap-1.5 group cursor-default"
+            whileHover={prefersReducedMotion ? undefined : { x: 2 }}
+            transition={{ duration: 0.2 }}
+          >
+            <BarChart className="w-4 h-4 text-indigo-300 group-hover:text-indigo-200 transition-colors" aria-hidden="true" />
+            <span className="group-hover:text-white transition-colors">{stats.difficultyLevel}</span>
+          </motion.div>
         )}
 
         {/* Language */}
         {stats.language && (
-          <div className="flex items-center gap-1.5">
-            <Globe className="w-4 h-4 text-cyan-400" />
-            <span>{stats.language}</span>
-          </div>
+          <motion.div
+            className="flex items-center gap-1.5 group cursor-default"
+            whileHover={prefersReducedMotion ? undefined : { x: 2 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Globe className="w-4 h-4 text-cyan-300 group-hover:text-cyan-200 transition-colors" aria-hidden="true" />
+            <span className="group-hover:text-white transition-colors">{stats.language}</span>
+          </motion.div>
         )}
 
         {/* Last Updated - Tertiary */}
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-4 h-4 text-gray-400" />
-          <span className="text-white/60">Last updated {stats.lastUpdated}</span>
-        </div>
-      </div>
+        <motion.div
+          className="flex items-center gap-1.5 group cursor-default"
+          whileHover={prefersReducedMotion ? undefined : { x: 2 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Clock className="w-4 h-4 text-white/40 group-hover:text-white/50 transition-colors" aria-hidden="true" />
+          <span className="text-white/50 group-hover:text-white/60 transition-colors">Last updated {stats.lastUpdated}</span>
+        </motion.div>
+      </motion.div>
     </motion.div>
   );
 };

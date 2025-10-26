@@ -6,7 +6,7 @@ import { Course, Chapter } from '@prisma/client';
 
 import { CourseDescription } from './course-description';
 import { CourseHeroSection } from './course-hero-section';
-import { CourseInfoCard } from './course-info-card';
+import { CourseInfoCardProfessional as CourseInfoCard } from './course-info-card-professional';
 import { CourseLearningObjectives } from './course-learning-objectives';
 import { StickyMiniHeader } from './sticky-mini-header';
 import { MobileEnrollBar } from './mobile-enroll-bar';
@@ -30,73 +30,49 @@ interface CourseLayoutProps {
 }
 
 export const CourseLayout = ({ course, userId, isEnrolled = false }: CourseLayoutProps): JSX.Element => {
-  // Hide global header on scroll down (course page only) and let tabs stick to top
-  const [headerHidden, setHeaderHidden] = useState(false);
-  const lastYRef = useRef(0);
-
+  // Compute dynamic sticky offset for the info card
   useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      const scrollingDown = y > lastYRef.current;
-      const nearTop = y < 80;
-      if (nearTop) {
-        setHeaderHidden(false);
-      } else if (scrollingDown && y > 140) {
-        setHeaderHidden(true);
-      } else {
-        setHeaderHidden(false);
-      }
-      lastYRef.current = y;
-    };
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    // Toggle class for global CSS hooks
-    if (headerHidden) root.classList.add('course-header-hidden');
-    else root.classList.remove('course-header-hidden');
-
-    // Smoothly translate the primary header out of view (header has aria-label="Primary")
-    const headerEl = document.querySelector('header[aria-label="Primary"]') as HTMLElement | null;
-    if (headerEl) {
-      headerEl.style.transition = 'transform 200ms ease';
-      headerEl.style.transform = headerHidden ? 'translateY(-100%)' : 'translateY(0)';
-    }
-
-    return () => {
-      root.classList.remove('course-header-hidden');
-      if (headerEl) headerEl.style.transform = 'translateY(0)';
-    };
-  }, [headerHidden]);
-
-  // Compute dynamic sticky offset for the info card to avoid overlapping headers
-  useEffect(() => {
+    const docEl = document.documentElement;
+    const lastOffsetRef = { current: 0 } as { current: number };
+    const baseMin = 72; // base sticky offset to minimize initial jump
     const updateStickyOffset = (): void => {
-      const docEl = document.documentElement;
-      const headerEl = document.querySelector('header[aria-label="Primary"]') as HTMLElement | null;
       const miniEl = document.querySelector('.sticky-mini-header') as HTMLElement | null;
-      const headerHeight = headerEl?.offsetHeight ?? 96; // fallback ~6rem
-      // mini header is fixed at top-16; compute its bottom relative to viewport
       const miniBottom = miniEl ? Math.max(0, miniEl.getBoundingClientRect().bottom) : 0;
-      const offset = Math.max(headerHeight, miniBottom) + 8; // add small cushion
-      docEl.style.setProperty('--sticky-offset', `${Math.ceil(offset)}px`);
-      // expose header height for mini header top positioning
-      docEl.style.setProperty('--mini-top', `${Math.ceil(headerHeight)}px`);
+      // add cushion and enforce minimum for stability
+      const next = Math.max(baseMin, Math.ceil(miniBottom + 8));
+      if (Math.abs(next - lastOffsetRef.current) > 6) {
+        lastOffsetRef.current = next;
+        docEl.style.setProperty('--sticky-offset', `${next}px`);
+      }
     };
 
     updateStickyOffset();
-    window.addEventListener('resize', updateStickyOffset, { passive: true } as any);
-    window.addEventListener('scroll', updateStickyOffset, { passive: true } as any);
+    const onScroll = () => updateStickyOffset();
+    const onResize = () => updateStickyOffset();
+    window.addEventListener('resize', onResize, { passive: true } as any);
+    window.addEventListener('scroll', onScroll, { passive: true } as any);
     return () => {
-      window.removeEventListener('resize', updateStickyOffset);
-      window.removeEventListener('scroll', updateStickyOffset);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onScroll);
       document.documentElement.style.removeProperty('--sticky-offset');
-      document.documentElement.style.removeProperty('--mini-top');
     };
+  }, []);
+
+  // Track when hero is fully scrolled past to switch overlay → sticky
+  const [isPastHero, setIsPastHero] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        // If sentinel is below top (not visible), we've passed the hero
+        setIsPastHero(!e.isIntersecting && e.boundingClientRect.top < 0);
+      }
+    }, { threshold: 0.01 });
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   return (
@@ -110,8 +86,12 @@ export const CourseLayout = ({ course, userId, isEnrolled = false }: CourseLayou
       </a>
       {/* Sticky mini header after scrolling past hero */}
       <StickyMiniHeader course={course} isEnrolled={isEnrolled} />
-      {/* Hero Section */}
-      <CourseHeroSection course={course} />
+      {/* Original Hero Section - Full width, no overlay */}
+      <div className="relative">
+        <CourseHeroSection course={course} userId={userId} isEnrolled={isEnrolled} />
+        {/* Sentinel at the end of hero to toggle states */}
+        <div ref={sentinelRef} aria-hidden="true" className="absolute -bottom-1 left-0 right-0 h-1" />
+      </div>
 
       {/* Main Content */}
       <div id="main-content" role="main" className="container mx-auto px-4 py-12 pb-24 pb-safe-24">
@@ -125,13 +105,15 @@ export const CourseLayout = ({ course, userId, isEnrolled = false }: CourseLayou
             <CourseLearningObjectives course={course} />
           </div>
 
-          {/* Right Column - Course Info Card */}
-          <div className="md:relative md:-mt-24 lg:-mt-32 xl:-mt-40 2xl:-mt-48 md:z-10">
-            <CourseInfoCard 
-              course={course}
-              userId={userId}
-              isEnrolled={isEnrolled}
-            />
+          {/* Right Column - Sticky Info Card (shown after passing hero; hidden while overlay is visible) */}
+          <div className="md:relative">
+            <div className={`${isPastHero ? 'block' : 'hidden'}`} aria-hidden={!isPastHero}>
+              <CourseInfoCard 
+                course={course}
+                userId={userId}
+                isEnrolled={isEnrolled}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -1,11 +1,10 @@
 import { getHomepageFeaturedCourses, getHomepageFeaturedPosts } from "@/actions/get-homepage-content";
-import HeroHeader from "./hero-header";
-import CognitiveJourneySection from "./cognitive-journey-section";
-import HowItWorksSection from "./how-it-works-section";
+import HomeHeroSection from "./components/HomeHeroSection";
+import BloomsTaxonomySection from "./components/BloomsTaxonomySection";
+import RemoveHashOnLoad from "./components/RemoveHashOnLoad";
 import { HomeFooter } from "./HomeFooter";
 import { FeaturedCoursesSection } from './featured-courses-section';
 import { FeaturedBlogPostsSection } from './featured-blog-posts-section';
-import TestimonialsSection from './testimonials-section';
 
 // Use dynamic rendering to avoid build-time database queries
 // This prevents build failures when database is not yet migrated
@@ -21,6 +20,8 @@ const Home = async () => {
 
   return (
     <>
+      <RemoveHashOnLoad />
+
       {/* Skip to main content link for keyboard navigation */}
       <a
         href="#main-content"
@@ -29,17 +30,15 @@ const Home = async () => {
         Skip to main content
       </a>
 
-      <HeroHeader />
+      <HomeHeroSection />
 
       <main id="main-content">
-        <CognitiveJourneySection />
-        <HowItWorksSection />
+        <BloomsTaxonomySection />
 
         <div className="min-h-screen">
           <FeaturedCoursesSection courses={courses} />
           <FeaturedBlogPostsSection posts={posts} />
         </div>
-        <TestimonialsSection />
       </main>
 
       <HomeFooter />

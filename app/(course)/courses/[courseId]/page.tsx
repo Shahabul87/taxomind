@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Metadata } from "next";
 
 import { db } from "@/lib/db";
@@ -47,9 +47,28 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     }
   });
 
+  const title = course?.title ?? "Course Details | SkillHub";
+  const description = course?.description ?? "Learn new skills with our detailed courses";
+  const image = (course as any)?.imageUrl || (course as any)?.image || "/logo.png";
+  const url = `/courses/${courseId}`;
+
   return {
-    title: course?.title ?? "Course Details | SkillHub",
-    description: course?.description ?? "Learn new skills with our detailed courses"
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: 'article',
+      images: [{ url: image }]
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image]
+    }
   };
 }
 
@@ -92,9 +111,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Pr
 
   const user = await currentUser();
 
-  if (!course) {
-    return redirect("/");
-  }
+  if (!course) return notFound();
 
   // Check if user is enrolled in this course
   let enrollment = null;
@@ -134,8 +151,40 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Pr
     // Continue with empty reviews array
   }
 
+  // JSON-LD Course schema
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Course',
+    name: course.title,
+    description: course.description,
+    provider: {
+      '@type': 'Organization',
+      name: 'SkillHub',
+      sameAs: 'https://taxomind.com'
+    },
+    image: (course as any)?.imageUrl || (course as any)?.image || undefined,
+    hasCourseInstance: {
+      '@type': 'CourseInstance',
+      courseMode: course.difficulty || 'All Levels',
+      startDate: course.createdAt?.toISOString?.() || undefined,
+      endDate: course.updatedAt?.toISOString?.() || undefined
+    },
+    aggregateRating: (course.reviews?.length || 0) > 0 ? {
+      '@type': 'AggregateRating',
+      ratingValue: Number(((course.reviews || []).reduce((a, r) => a + (r.rating || 0), 0) / (course.reviews || []).length).toFixed(1)),
+      reviewCount: (course.reviews || []).length
+    } : undefined,
+    offers: (course as any)?.price ? {
+      '@type': 'Offer',
+      price: (course as any)?.price,
+      priceCurrency: (course as any)?.currency || 'USD',
+      availability: 'https://schema.org/InStock'
+    } : undefined
+  };
+
   return (
-    <div className="relative">
+    <div className="relative pt-4 md:pt-6">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Fixed Theme Toggle Button - Top Right Corner */}
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />

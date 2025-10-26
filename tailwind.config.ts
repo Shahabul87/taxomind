@@ -44,6 +44,13 @@ const config = {
   			ring: 'hsl(var(--ring))',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
+  			'motivation-start': 'hsl(var(--motivation-start))',
+  			'motivation-end': 'hsl(var(--motivation-end))',
+  			'motivation-vignette': 'hsl(var(--motivation-vignette))',
+  			'card-border': 'hsl(var(--card-border))',
+  			'surface': 'hsl(var(--surface))',
+  			'surface-muted': 'hsl(var(--surface-muted))',
+  			'brand': 'hsl(var(--brand))',
   			primary: {
   				DEFAULT: 'hsl(var(--primary))',
   				foreground: 'hsl(var(--primary-foreground))'
@@ -79,6 +86,9 @@ const config = {
       backgroundPosition: {
         'pos-0': '0% 0%',
         'pos-100': '100% 100%',
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(circle, var(--tw-gradient-stops))',
       },
   		borderRadius: {
   			lg: 'var(--radius)',

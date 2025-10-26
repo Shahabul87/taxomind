@@ -51,6 +51,7 @@ describe('register action', () => {
       email: 'existing@example.com',
       password: 'password123',
       name: 'Test User',
+      acceptTermsAndPrivacy: true,
     });
 
     expect(result).toEqual({
@@ -63,6 +64,7 @@ describe('register action', () => {
       email: 'newuser@example.com',
       password: 'password123',
       name: 'New User',
+      acceptTermsAndPrivacy: true,
     };
 
     mockGetUserByEmail.mockResolvedValue(null);
@@ -104,6 +106,7 @@ describe('register action', () => {
       email: 'noname@example.com',
       password: 'Password123!',
       name: 'User Name', // Name is required in RegisterSchema
+      acceptTermsAndPrivacy: true,
     };
 
     mockGetUserByEmail.mockResolvedValue(null);
@@ -141,6 +144,7 @@ describe('register action', () => {
       email: 'error@example.com',
       password: 'password123',
       name: 'Error User',
+      acceptTermsAndPrivacy: true,
     });
 
     expect(result).toEqual({
@@ -153,6 +157,7 @@ describe('register action', () => {
       email: 'emailfail@example.com',
       password: 'password123',
       name: 'Email Fail User',
+      acceptTermsAndPrivacy: true,
     };
 
     mockGetUserByEmail.mockResolvedValue(null);
@@ -215,6 +220,7 @@ describe('register action', () => {
       email: '  NewUser@Example.COM  ',
       password: 'password123',
       name: 'New User',
+      acceptTermsAndPrivacy: true,
     };
 
     mockGetUserByEmail.mockResolvedValue(null);
@@ -251,6 +257,7 @@ describe('register action', () => {
       email: 'dbfail@example.com',
       password: 'password123',
       name: 'DB Fail User',
+      acceptTermsAndPrivacy: true,
     };
 
     mockGetUserByEmail.mockResolvedValue(null);

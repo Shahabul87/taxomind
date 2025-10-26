@@ -119,105 +119,82 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
 
   return (
     <Link href={`/blog/${post.id}`} prefetch={false} className="group block h-full">
-      <article className="h-full bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-white/5 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all duration-300 overflow-hidden flex flex-col group-hover:scale-[1.02] transform">
-        
-        {/* Image Section */}
-        <div className="relative h-48 overflow-hidden bg-gray-100 dark:bg-gray-800">
+      <article className="h-full bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-white/5 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 overflow-hidden flex flex-col">
+
+        {/* Image Section - Reduced height for better proportion */}
+        <div className="relative h-44 overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
           {post.imageUrl ? (
             <Image
               src={post.imageUrl}
               alt={post.title}
               fill
-              className="object-cover group-hover:scale-110 transition-transform duration-500"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center group-hover:from-slate-200 group-hover:to-slate-300 dark:group-hover:from-gray-600 dark:group-hover:to-gray-700 transition-all duration-300">
+            <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-3 bg-slate-300 dark:bg-gray-600 rounded-xl flex items-center justify-center group-hover:bg-slate-400 dark:group-hover:bg-gray-500 transition-colors duration-300">
-                  <User className="w-8 h-8 text-slate-500 dark:text-gray-400 group-hover:text-slate-600 dark:group-hover:text-gray-300 transition-colors duration-300" />
+                <div className="w-12 h-12 mx-auto mb-2 bg-slate-300 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                  <User className="w-6 h-6 text-slate-500 dark:text-gray-400" />
                 </div>
-                <p className="text-sm text-slate-500 dark:text-gray-400 font-medium">No Image</p>
+                <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">No Image</p>
               </div>
             </div>
           )}
-          
-          {/* Category Badge with Dynamic Colors */}
+
+          {/* Category Badge - Simplified */}
           {post.category && (
-            <div className="absolute top-3 left-3">
-              <span className={`px-3 py-1.5 ${categoryColors.bg} backdrop-blur-sm text-xs font-bold ${categoryColors.text} rounded-full shadow-sm border ${categoryColors.border} transition-all duration-300 group-hover:scale-105`}>
+            <div className="absolute top-2.5 left-2.5">
+              <span className={`px-2.5 py-1 ${categoryColors.bg} backdrop-blur-sm text-xs font-semibold ${categoryColors.text} rounded-md shadow-sm border ${categoryColors.border}`}>
                 {post.category}
               </span>
             </div>
           )}
-
-          {/* Status Badge */}
-          <div className="absolute top-3 right-3">
-            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full backdrop-blur-sm border transition-all duration-300 group-hover:scale-105 ${
-              post.published 
-                ? 'bg-emerald-100/90 dark:bg-emerald-900/70 text-emerald-700 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-700/50'
-                : 'bg-amber-100/90 dark:bg-amber-900/70 text-amber-700 dark:text-amber-300 border-amber-200/50 dark:border-amber-700/50'
-            }`}>
-              {post.published ? 'Live' : 'Draft'}
-            </span>
-          </div>
-
-          {/* Subtle overlay for better text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
 
-        {/* Content Section */}
-        <div className="flex-1 p-6 flex flex-col">
-          
-          {/* Elegant Title with Gradient Effect */}
-          <h3 className="text-xl font-bold mb-3 line-clamp-2 leading-tight transition-all duration-300 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-gray-100 dark:to-white bg-clip-text text-transparent group-hover:from-blue-600 group-hover:via-purple-600 group-hover:to-blue-600 dark:group-hover:from-blue-400 dark:group-hover:via-purple-400 dark:group-hover:to-blue-400">
+        {/* Content Section - Optimized spacing */}
+        <div className="flex-1 p-4 flex flex-col min-h-0">
+
+          {/* Title - Properly sized and clamped */}
+          <h3 className="text-lg font-bold mb-2 line-clamp-2 leading-snug text-foreground group-hover:text-brand transition-colors duration-300">
             {post.title}
           </h3>
 
-          {/* Description */}
-          <p className="text-slate-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1 mb-5 group-hover:text-slate-700 dark:group-hover:text-gray-300 transition-colors duration-300">
-                {getCleanDescription(post.description)}
-              </p>
+          {/* Description - Fixed height allocation */}
+          <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2 mb-4 flex-grow-0">
+            {getCleanDescription(post.description)}
+          </p>
 
-          {/* Meta Information */}
-          <div className="mt-auto space-y-3">
-            
-            {/* Stats Row */}
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 group-hover:text-slate-600 dark:group-hover:text-gray-300 transition-colors duration-300">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-1.5">
+          {/* Meta Information - Compact and well-organized */}
+          <div className="mt-auto space-y-2.5 pt-3 border-t border-gray-100 dark:border-gray-800">
+
+            {/* Stats Row - Single line with proper spacing */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
-                  <span className="font-medium">{getReadingTime(post.description)} min read</span>
+                  <span>{getReadingTime(post.description)} min</span>
                 </div>
-                <div className="flex items-center space-x-1.5">
+                <div className="flex items-center gap-1">
                   <MessageCircle className="w-3.5 h-3.5" />
-                  <span className="font-medium">{post.comments?.length || 0} comments</span>
+                  <span>{post.comments?.length || 0}</span>
                 </div>
               </div>
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
-                <span className="font-medium">{formatDate(post.createdAt)}</span>
+                <span>{formatDate(post.createdAt)}</span>
               </div>
             </div>
-            
-            {/* Elegant Divider */}
-            <div className="border-t border-gray-100 dark:border-gray-800 group-hover:border-gray-200 dark:group-hover:border-gray-700 transition-colors duration-300" />
 
-            {/* Enhanced Call to Action */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-300">
-                Continue Reading
-              </span>
-              <div className="flex items-center space-x-1.5 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 group-hover:translate-x-1 transition-all duration-300">
-                <span className="text-sm font-bold">Read More</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-300" />
+            {/* Call to Action - Simplified */}
+            <div className="flex items-center justify-end">
+              <div className="flex items-center gap-1.5 text-brand group-hover:gap-2 transition-all duration-300">
+                <span className="text-sm font-semibold">Read More</span>
+                <ArrowRight className="w-4 h-4" />
               </div>
             </div>
           </div>
         </div>
-
-        {/* Subtle bottom accent line */}
-        <div className="h-0.5 bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent group-hover:via-blue-400 dark:group-hover:via-blue-500 transition-all duration-300" />
       </article>
     </Link>
   );

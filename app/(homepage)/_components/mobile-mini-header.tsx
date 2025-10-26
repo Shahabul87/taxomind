@@ -383,14 +383,6 @@ export const MobileMiniHeader: React.FC<MobileMiniHeaderProps> = ({ user }) => {
                         <LogIn className="w-4 h-4 inline mr-2" aria-hidden="true" />
                         Sign In
                       </button>
-                      <button
-                        onClick={() => handleNavigation('/auth/register')}
-                        className="w-full py-3 px-4 rounded-lg bg-white dark:bg-slate-800 border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                        style={{ minHeight: '44px' }}
-                      >
-                        <UserPlus className="w-4 h-4 inline mr-2" aria-hidden="true" />
-                        Sign Up
-                      </button>
                     </div>
                   )}
                 </div>

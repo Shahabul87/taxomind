@@ -146,7 +146,7 @@ const SectionItem = ({ section, courseId, chapterId, isEnrolled, sectionIndex }:
     <motion.div
       whileHover={isAccessible ? { x: 4 } : {}}
       className={cn(
-        "flex justify-between items-center p-3 rounded-lg transition-all duration-200 scroll-mt-sticky",
+        "flex justify-between items-center p-3 pl-5 sm:pl-6 rounded-lg transition-all duration-200 scroll-mt-sticky relative",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900",
         isAccessible 
           ? "bg-white/50 dark:bg-gray-800/50 hover:bg-gray-50/80 dark:hover:bg-gray-800 cursor-pointer" 
@@ -164,6 +164,11 @@ const SectionItem = ({ section, courseId, chapterId, isEnrolled, sectionIndex }:
         }
       }}
     >
+      {/* Accent node for timeline */}
+      <span
+        aria-hidden="true"
+        className="absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[var(--accent,theme(colors.indigo.500))] ring-2 ring-white/80 dark:ring-slate-900/70"
+      />
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 font-medium min-w-0">
           <span className="flex-shrink-0">{sectionIndex + 1}.</span>
@@ -979,7 +984,7 @@ export const CourseContent = ({
                         )}
                         
                         {/* Sections */}
-                        <div className="space-y-2">
+                        <div className="relative space-y-2 pl-2 before:absolute before:left-2 before:top-0 before:bottom-0 before:w-px before:bg-slate-200 dark:before:bg-slate-800">
                           {chapter.sections && chapter.sections.length > 0 && (
                             (() => {
                               let secs = [...chapter.sections];
@@ -999,14 +1004,15 @@ export const CourseContent = ({
                               return (
                                 <>
                                   {items.map((section, sectionIndex) => (
-                                    <SectionItem
-                                      key={section.id}
-                                      section={section}
-                                      courseId={courseId}
-                                      chapterId={chapter.id}
-                                      isEnrolled={isEnrolled}
-                                      sectionIndex={sectionIndex}
-                                    />
+                                    <div key={section.id} className="relative">
+                                      <SectionItem
+                                        section={section}
+                                        courseId={courseId}
+                                        chapterId={chapter.id}
+                                        isEnrolled={isEnrolled}
+                                        sectionIndex={sectionIndex}
+                                      />
+                                    </div>
                                   ))}
                                   {chapter.sections.length > initial && (
                                     <div className="pt-2">

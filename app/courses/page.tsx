@@ -9,6 +9,8 @@ export const metadata = {
   description: 'Browse our comprehensive catalog of expert-led courses. Learn at your own pace with AI-powered adaptive learning, personalized recommendations, and industry-recognized certificates.'
 };
 
+export const dynamic = 'force-dynamic';
+
 async function getInitialData() {
   try {
     const user = await currentUser();

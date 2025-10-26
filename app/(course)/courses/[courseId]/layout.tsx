@@ -6,29 +6,13 @@ import { initAnalyticsDomBridge } from '@/lib/analytics/dom-bridge';
 
 /**
  * Layout for course detail pages
- * Hides the global header using client-side DOM manipulation
+ * Provides commerce + analytics context for course pages
  */
 export default function CourseDetailLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  useEffect(() => {
-    // Hide the global header when this layout mounts
-    const header = document.querySelector('header');
-    if (header) {
-      header.style.display = 'none';
-    }
-
-    // Show the header again when this layout unmounts
-    return () => {
-      const header = document.querySelector('header');
-      if (header) {
-        header.style.display = '';
-      }
-    };
-  }, []);
-
   useEffect(() => {
     // Initialize DOM analytics bridge (idempotent)
     initAnalyticsDomBridge();

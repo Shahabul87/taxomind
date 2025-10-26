@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 
 import { Chapter, Section, Course, Category } from '@prisma/client';
 import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import {
   Grid3X3,
   FileText,
@@ -24,19 +25,33 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { EventTracker } from '@/lib/analytics/event-tracker';
 
 
-import { CourseCardsCarousel } from '../course-card-carousel';
-import { CourseContent } from '../course-content';
+// Lightweight skeletons for lazy content
+const SkeletonPanel = () => (
+  <div className="min-h-[240px] w-full rounded-xl border border-slate-200/70 dark:border-slate-800/60 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/40 dark:to-slate-900/60 animate-pulse" />
+);
+const SkeletonList = () => (
+  <div className="space-y-3">
+    {Array.from({ length: 4 }).map((_, i) => (
+      <div key={i} className="h-14 rounded-lg border border-slate-200/70 dark:border-slate-800/60 bg-white/70 dark:bg-slate-900/40" />
+    ))}
+  </div>
+);
 
-import { CourseReviews } from './course-reviews';
+// Dynamic imports for heavy client panes
+const CourseCardsCarousel = dynamic(() => import('../course-card-carousel').then(m => m.CourseCardsCarousel), { loading: () => <SkeletonPanel />, ssr: false });
+const CourseContent = dynamic(() => import('../course-content').then(m => m.CourseContent), { loading: () => <SkeletonList />, ssr: false });
+const CourseReviews = dynamic(() => import('./course-reviews').then(m => m.CourseReviews), { loading: () => <SkeletonList />, ssr: false });
+const OverviewTab = dynamic(() => import('./tabs/overview-tab').then(m => m.OverviewTab), { loading: () => <SkeletonPanel />, ssr: false });
+const InstructorProfileTab = dynamic(() => import('./tabs/instructor-profile-tab').then(m => m.InstructorProfileTab), { loading: () => <SkeletonPanel />, ssr: false });
+const ResourcesTab = dynamic(() => import('./tabs/resources-tab').then(m => m.ResourcesTab), { loading: () => <SkeletonPanel />, ssr: false });
+const CertificateTab = dynamic(() => import('./tabs/certificate-tab').then(m => m.CertificateTab), { loading: () => <SkeletonPanel />, ssr: false });
+const AnnouncementsTab = dynamic(() => import('./tabs/announcements-tab').then(m => m.AnnouncementsTab), { loading: () => <SkeletonPanel />, ssr: false });
+const QATab = dynamic(() => import('./tabs/qa-tab').then(m => m.QATab), { loading: () => <SkeletonList />, ssr: false });
+const ModerationTab = dynamic(() => import('./tabs/moderation-tab').then(m => m.ModerationTab), { loading: () => <SkeletonPanel />, ssr: false });
+
 import type { CourseReview } from './course-reviews';
-import { OverviewTab } from './tabs/overview-tab';
-import { InstructorProfileTab } from './tabs/instructor-profile-tab';
-import { ResourcesTab } from './tabs/resources-tab';
-import { CertificateTab } from './tabs/certificate-tab';
-import { AnnouncementsTab } from './tabs/announcements-tab';
-import { QATab } from './tabs/qa-tab';
-import { ModerationTab } from './tabs/moderation-tab';
 import { ShieldCheck } from 'lucide-react';
+import { getCategoryPalette } from '../utils/color-utils';
 const ShieldCheckIcon = () => <ShieldCheck className="w-4 h-4"/>;
 
 interface CoursePageTabsProps {
@@ -217,6 +232,20 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       count: initialReviews.length
     }
   ];
+
+  // Lightweight preloader on hover/cue
+  const preloaders: Partial<Record<TabType, () => void>> = {
+    overview: () => { import('./tabs/overview-tab'); },
+    breakdown: () => { import('../course-card-carousel'); },
+    content: () => { import('../course-content'); },
+    instructor: () => { import('./tabs/instructor-profile-tab'); },
+    resources: () => { import('./tabs/resources-tab'); },
+    certificate: () => { import('./tabs/certificate-tab'); },
+    announcements: () => { import('./tabs/announcements-tab'); },
+    qa: () => { import('./tabs/qa-tab'); },
+    moderation: () => { import('./tabs/moderation-tab'); },
+    reviews: () => { import('./course-reviews'); },
+  };
 
   const renderTabContent = (): JSX.Element | null => {
     switch (activeTab) {
@@ -431,12 +460,21 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
     scrollRef.current.scrollBy({ left: dirAdjusted, behavior: 'smooth' });
   };
 
+  // Derive dynamic accent from category
+  const palette = getCategoryPalette(course?.category?.name);
+
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8">
+    <div
+      className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8"
+      style={{
+        ['--accent' as any]: palette.primary,
+        ['--accent-2' as any]: palette.secondary,
+      }}
+    >
       {/* Sticky Tab Navigation - Responsive for all devices */}
       <div className="mb-4 sm:mb-6 md:mb-8 sticky z-[40] course-tabs-sticky" style={{ top: '10px' }}>
         <div className="relative">
-          <div className="bg-white/80 dark:bg-slate-900/75 backdrop-blur-sm md:backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-sm md:supports-[backdrop-filter]:backdrop-blur-md rounded-xl sm:rounded-2xl p-1.5 sm:p-2 border border-slate-200/70 dark:border-slate-700/60 shadow-sm sm:shadow-md">
+          <div className="bg-white/75 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl sm:rounded-2xl p-1.5 sm:p-2 border border-slate-200/60 dark:border-slate-700/50 shadow-sm sm:shadow-md">
             <nav
               ref={scrollRef}
               className="flex gap-1 sm:gap-1.5 md:gap-2 overflow-x-auto xl:overflow-x-visible scroll-smooth no-scrollbar overscroll-x-contain scrolling-touch touch-pan-x xl:touch-auto snap-x snap-mandatory xl:snap-none"
@@ -458,6 +496,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
                     aria-controls={`panel-${tab.id}`}
                     tabIndex={isActive ? 0 : -1}
                     onKeyDown={(e) => onKeyDown(e, index)}
+                    onMouseEnter={() => { try { preloaders[tab.id]?.(); } catch {} }}
                     onClick={() => {
                       setActiveTab(tab.id);
                       updateQuery(tab.id);
@@ -482,11 +521,11 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
                     }}
                     aria-label={`${tab.label}${tab.count !== undefined ? ` (${tab.count})` : ''}`}
                     className={`
-                      group relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium whitespace-nowrap rounded-lg sm:rounded-xl
-                      transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60 focus-visible:ring-offset-0
+                      group relative flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium whitespace-nowrap rounded-lg sm:rounded-xl
+                      transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 focus-visible:ring-offset-0
                       snap-start
                       ${isActive
-                        ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-white shadow-md'
+                        ? 'bg-white dark:bg-gray-700 text-slate-900 dark:text-white shadow-md'
                         : 'text-gray-700 dark:text-slate-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50'}
                     `}
                   >
@@ -497,14 +536,14 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
                       <span className={`
                         inline-flex items-center justify-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-semibold rounded-full
                         ${isActive
-                          ? 'bg-blue-100 text-blue-700 dark:bg-white/15 dark:text-white'
+                          ? 'bg-[var(--accent)]/15 text-slate-900 dark:text-white'
                           : 'bg-gray-200 text-gray-700 dark:bg-white/10 dark:text-slate-200'}
                       `}>
                         {tab.count}
                       </span>
                     )}
                     {isActive && (
-                      <span className="pointer-events-none absolute -bottom-1 left-2 right-2 h-0.5 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 dark:from-purple-400 dark:to-indigo-400" />
+                      <span className="pointer-events-none absolute -bottom-1 left-2 right-2 h-0.5 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-2)]" />
                     )}
                   </button>
                 );
@@ -533,8 +572,8 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
           </button>
 
           {/* Edge fade gradients - responsive */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-4 sm:w-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-gray-100/90 dark:from-slate-900/70 to-transparent md:hidden" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-4 sm:w-6 rounded-xl sm:rounded-2xl bg-gradient-to-l from-gray-100/90 dark:from-slate-900/70 to-transparent md:hidden" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-4 sm:w-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-white/80 dark:from-slate-900/70 to-transparent md:hidden" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-4 sm:w-6 rounded-xl sm:rounded-2xl bg-gradient-to-l from-white/80 dark:from-slate-900/70 to-transparent md:hidden" />
         </div>
         {/* Tab summary row (below sticky nav) - responsive */}
         <div className="px-2 sm:px-3 pt-2">
@@ -572,4 +611,4 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       </div>
     </div>
   );
-}; 
+};

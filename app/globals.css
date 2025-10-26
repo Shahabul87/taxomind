@@ -30,8 +30,8 @@ body,
     --border: 214 24% 90%;
     --input: 214 24% 90%;
 
-    --primary: 247 70% 52%; /* refined indigo/violet */
-    --primary-foreground: 210 40% 98%;
+    --primary: 142 76% 46%; /* green for CTA - #22c55e */
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 220 22% 96%;
     --secondary-foreground: 222 47% 12%;
@@ -45,9 +45,21 @@ body,
     --ring: 247 70% 52%;
 
     --radius: 0.5rem;
+
+    /* Motivation section gradient */
+    --motivation-start: 48 96% 96%; /* soft yellow-white */
+    --motivation-end: 0 0% 100%; /* pure white */
+    --motivation-vignette: 48 50% 80%; /* subtle yellow tint */
+    --card: 0 0% 100%;
+    --card-border: 214 24% 90%;
     /* Sticky tabs offset - responsive gap from top */
     --sticky-offset: 10px;
     --mini-top: 10px;
+
+    /* Paths section tokens */
+    --surface: 0 0% 100%;
+    --surface-muted: 220 14% 96%;
+    --brand: 142 76% 46%; /* green from hero */
   }
 
   .dark {
@@ -67,7 +79,7 @@ body,
     --border: 230 18% 20%;
     --input: 230 18% 20%;
 
-    --primary: 250 85% 72%;
+    --primary: 142 76% 56%; /* brighter green for dark mode */
     --primary-foreground: 232 46% 6.5%;
 
     --secondary: 230 28% 16%;
@@ -80,6 +92,18 @@ body,
     --destructive-foreground: 210 40% 98%;
 
     --ring: 250 85% 72%;
+
+    /* Motivation section gradient - dark mode */
+    --motivation-start: 232 30% 12%; /* dark slate */
+    --motivation-end: 232 46% 6.5%; /* darker slate */
+    --motivation-vignette: 232 40% 5%; /* vignette tint */
+    --card: 232 38% 10%;
+    --card-border: 230 18% 20%;
+
+    /* Paths section tokens - dark mode */
+    --surface: 232 38% 10%;
+    --surface-muted: 230 25% 14%;
+    --brand: 142 76% 56%; /* brighter green */
   }
 }
 
@@ -316,6 +340,14 @@ body,
 
   /* Defer rendering of large sections offscreen to reduce work */
   .cv-auto { content-visibility: auto; contain-intrinsic-size: 600px; }
+
+  /* Two-line clamp utility for subtitles */
+  .clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
 /* Responsive sticky offset for different screen sizes */

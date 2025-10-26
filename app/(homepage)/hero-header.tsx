@@ -5,7 +5,7 @@ import { motion, useReducedMotion, useInView } from "framer-motion";
 import { Brain, ArrowRight, Play, Zap, Shield, Award, Users, Activity, Lightbulb, BookOpen, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { BrainIllustration } from "./components/BrainIllustration";
+import { ThemeWordBubbles } from "./components/ThemeWordBubbles";
 import { AnimatedHeadline } from "./components/AnimatedHeadline";
 
 interface HeroHeaderProps {
@@ -320,8 +320,8 @@ export default function HeroHeader({
                 {/* Background Glow Effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 dark:from-purple-500/20 dark:to-blue-500/20 blur-3xl rounded-full" aria-hidden="true" />
 
-                {/* Brain SVG Component */}
-                <BrainIllustration />
+                {/* Theme Word Bubbles Component */}
+                <ThemeWordBubbles />
 
                 {/* Floating Stats */}
                 <motion.div

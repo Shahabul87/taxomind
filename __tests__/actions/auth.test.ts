@@ -1,7 +1,7 @@
 // Define proper types
 interface MockUser {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
   image: string | null;
   password?: string;

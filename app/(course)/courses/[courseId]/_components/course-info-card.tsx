@@ -22,15 +22,21 @@ import { UrgencyTimer } from './urgency-timer';
 import { CTAButtonHierarchy } from './cta-button-hierarchy';
 import { CourseIncludesList } from './course-includes-list';
 import { TrustBadges } from './trust-badges';
+import { TrustIndicators } from './trust-indicators';
 import type { CourseWithMeta } from './types';
 
 interface CourseInfoCardProps {
   course: CourseWithMeta;
   userId?: string;
   isEnrolled?: boolean;
+  disableAnalytics?: boolean;
+  /**
+   * Visual variant. 'overlay' removes sticky behavior and tunes surfaces for dark hero overlays.
+   */
+  variant?: 'default' | 'overlay';
 }
 
-export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInfoCardProps): JSX.Element => {
+export const CourseInfoCard = ({ course, userId, isEnrolled = false, disableAnalytics = false, variant = 'default' }: CourseInfoCardProps): JSX.Element => {
   const prefersReducedMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const impressionFiredRef = useRef(false);
@@ -93,6 +99,7 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
   // Throttled analytics handler for better performance
   const handleIntersection = useMemo(
     () => throttle((entries: IntersectionObserverEntry[]) => {
+      if (disableAnalytics) return;
       for (const entry of entries) {
         if (entry.isIntersecting) {
           if (!impressionFiredRef.current) {
@@ -130,7 +137,7 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
         }
       }
     }, 250),
-    [course.id, course.price, course.originalPrice, course.currency]
+    [course.id, course.price, course.originalPrice, course.currency, disableAnalytics]
   );
 
   // Fire a one-time impression when the card enters viewport
@@ -146,19 +153,21 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
       if (viewStartRef.current !== null) {
         const delta = performance.now() - viewStartRef.current;
         const total = accumulatedMsRef.current + delta;
-        window.dispatchEvent(
-          new CustomEvent('analytics:viewtime', {
-            detail: {
-              id: 'course-info-card',
-              courseId: course.id,
-              ms: Math.round(total)
-            }
-          })
-        );
+        if (!disableAnalytics) {
+          window.dispatchEvent(
+            new CustomEvent('analytics:viewtime', {
+              detail: {
+                id: 'course-info-card',
+                courseId: course.id,
+                ms: Math.round(total)
+              }
+            })
+          );
+        }
         viewStartRef.current = null;
       }
     };
-  }, [handleIntersection, course.id]);
+  }, [handleIntersection, course.id, disableAnalytics]);
 
   // Smart animation variants
   const containerVariants = useMemo(() => ({
@@ -180,6 +189,10 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
     show: { opacity: 1, y: 0 },
   } as const), []);
 
+  const isOverlay = variant === 'overlay';
+  const stickyClass = isOverlay ? '' : 'lg:sticky';
+  const topStyle = isOverlay ? undefined : { top: 'var(--sticky-offset, 4rem)', transition: 'top 150ms ease' } as React.CSSProperties;
+
   return (
     <motion.div
       id="enroll-card"
@@ -189,8 +202,8 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
       variants={containerVariants}
       whileHover={prefersReducedMotion ? undefined : { y: -2 }}
       aria-labelledby="course-info-card-title"
-      className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 h-fit lg:sticky"
-      style={{ top: 'var(--sticky-offset, 4rem)' }}
+      className={`p-4 sm:p-6 rounded-2xl shadow-xl h-fit max-w-[420px] ${stickyClass} bg-card text-card-foreground border border-border backdrop-blur-sm`}
+      style={topStyle}
     >
       <h2 id="course-info-card-title" className="sr-only">Course enrollment and purchase options</h2>
       <motion.div className="space-y-4 sm:space-y-6" variants={containerVariants}>
@@ -210,7 +223,7 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
               priority={false}
             />
           </motion.div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
         </motion.div>
 
         {/* Pricing */}
@@ -229,9 +242,9 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
         </motion.div>
 
         {/* Key Facts - Improved responsive grid */}
-        <motion.div variants={itemVariants} className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5">
-          <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-gray-100">Quick facts</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700 dark:text-gray-300">
+        <motion.div variants={itemVariants} className="rounded-xl border border-border bg-muted/40 backdrop-blur px-4 py-4 md:px-5 md:py-5">
+          <h3 className="text-sm font-semibold mb-3 text-foreground">Quick facts</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground">
             {totalHours !== undefined && totalHours > 0 && (
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-blue-500 flex-shrink-0" aria-hidden="true" />
@@ -256,18 +269,18 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
         </motion.div>
 
         {/* What's Included (collapsible for mobile) */}
-        <motion.div variants={itemVariants} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <motion.div variants={itemVariants} className="rounded-xl border border-border bg-muted/40 backdrop-blur overflow-hidden">
           <button
             onClick={() => setIsIncludesExpanded(!isIncludesExpanded)}
-            className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="w-full flex items-center justify-between p-4 hover:bg-muted/60 transition-colors"
             aria-expanded={isIncludesExpanded}
             aria-controls="course-includes-content"
           >
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">This course includes</h3>
+            <h3 className="text-sm font-semibold text-foreground">This course includes</h3>
             {isIncludesExpanded ? (
-              <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
+              <ChevronUp className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
+              <ChevronDown className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
             )}
           </button>
           {isIncludesExpanded && (
@@ -277,7 +290,7 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="p-4 border-t border-gray-200 dark:border-gray-700"
+              className="p-4 border-t border-border"
             >
               <CourseIncludesList
                 totalHours={totalHours}
@@ -294,18 +307,18 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
 
         {/* Prerequisites (collapsible) */}
         {course.prerequisites && (
-          <motion.div variants={itemVariants} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <motion.div variants={itemVariants} className="rounded-xl border border-border bg-muted/40 backdrop-blur overflow-hidden">
             <button
               onClick={() => setIsPrerequisitesExpanded(!isPrerequisitesExpanded)}
-              className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/60 transition-colors"
               aria-expanded={isPrerequisitesExpanded}
               aria-controls="prerequisites-content"
             >
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Prerequisites</h3>
+              <h3 className="text-sm font-semibold text-foreground">Prerequisites</h3>
               {isPrerequisitesExpanded ? (
-                <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
+                <ChevronUp className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
               ) : (
-                <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
+                <ChevronDown className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
               )}
             </button>
             {isPrerequisitesExpanded && (
@@ -315,7 +328,7 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="p-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300"
+                className="p-4 border-t border-border text-sm text-muted-foreground"
               >
                 {course.prerequisites}
               </motion.div>
@@ -323,15 +336,21 @@ export const CourseInfoCard = ({ course, userId, isEnrolled = false }: CourseInf
           </motion.div>
         )}
 
-        {/* Trust & Policies */}
+        {/* Enhanced Trust Indicators */}
         <motion.div variants={itemVariants}>
-          <TrustBadges averageRating={averageRating} reviewsCount={reviewsCount} />
+          <TrustIndicators
+            successRate={94}
+            moneyBackDays={30}
+            totalStudents={enrollments}
+            rating={averageRating}
+            isVerifiedInstructor={true}
+          />
         </motion.div>
 
         {/* For teams section removed as requested */}
 
         {/* Social Share */}
-        <motion.div variants={itemVariants} className="pt-6 border-t border-gray-200 dark:border-gray-700">
+        <motion.div variants={itemVariants} className="pt-6 border-t border-border">
           <CourseSocialMediaShare courseTitle={course.title} />
         </motion.div>
       </motion.div>

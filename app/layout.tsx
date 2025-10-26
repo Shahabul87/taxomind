@@ -136,18 +136,6 @@ export default async function RootLayout({
   // Check if this is a blog route (exclude header from blog pages)
   const isBlogRoute = pathname.startsWith("/blog");
 
-  // Check if this is a course detail page (exclude header from course detail pages)
-  const isCourseDetailPage = /^\/courses\/[^\/]+$/.test(pathname);
-
-  // Debug logging
-  if (pathname.includes('/courses/')) {
-    console.log('[ROOT LAYOUT] Course Page Debug:', {
-      pathname,
-      isCourseDetailPage,
-      regexTest: /^\/courses\/[^\/]+$/.test(pathname)
-    });
-  }
-
   // Check both x-pathname header AND x-url fallback
   const xUrl = headersList.get("x-url") || "";
   const pathToCheck = pathname || xUrl;
@@ -168,9 +156,9 @@ export default async function RootLayout({
               (function() {
                 try {
                   const theme = localStorage.getItem('theme');
-                  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  const shouldBeDark = theme === 'dark' || (!theme && prefersDark);
-                  if (shouldBeDark) {
+                  // Only apply dark mode if explicitly set in localStorage
+                  // Default to light theme on first visit
+                  if (theme === 'dark') {
                     document.documentElement.classList.add('dark');
                   }
                 } catch (e) {}
@@ -195,8 +183,8 @@ export default async function RootLayout({
           <ConfettiProvider />
           <ClientToaster />
           <SAMGlobalProvider>
-            {/* Render header for auth routes AND non-admin routes (excluding blog and course detail pages) */}
-            {!isAdminRoute && !isBlogRoute && !isCourseDetailPage && (
+            {/* Render header for auth routes AND non-admin routes (excluding blog pages) */}
+            {!isAdminRoute && !isBlogRoute && (
               <ConditionalHeaderWrapper fallback={<HeaderFallback />}>
                 <AsyncHeader />
               </ConditionalHeaderWrapper>
@@ -215,11 +203,6 @@ export default async function RootLayout({
               </main>
             ) : isBlogRoute ? (
               // Blog routes: No header, no sidebar, full screen
-              <main id="main-content" tabIndex={-1} className="min-h-screen">
-                {children}
-              </main>
-            ) : isCourseDetailPage ? (
-              // Course detail pages: No header, no sidebar, full screen
               <main id="main-content" tabIndex={-1} className="min-h-screen">
                 {children}
               </main>

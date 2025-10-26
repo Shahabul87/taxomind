@@ -140,14 +140,6 @@ export const LaptopHeader = ({ user }: HeaderAfterLoginProps) => {
                   >
                     Login
                   </Link>
-
-                  {/* Sign Up Button */}
-                  <Link
-                    href="/auth/register"
-                    className="px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-sm whitespace-nowrap"
-                  >
-                    Sign Up
-                  </Link>
                 </>
               )}
             </div>

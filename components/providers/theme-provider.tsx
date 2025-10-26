@@ -33,13 +33,14 @@ function applyThemeClass(theme: Theme) {
 }
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  // Initialize theme from localStorage/system preference immediately
+  // Initialize theme from localStorage with light as default
   // This matches the blocking script in layout.tsx that sets the class before hydration
   const getInitialTheme = (): Theme => {
     if (typeof window === "undefined") return "light"; // SSR default
     try {
       const saved = localStorage.getItem("theme") as Theme | null;
-      return saved ?? (getSystemPrefersDark() ? "dark" : "light");
+      // Default to light theme on first visit (no system preference check)
+      return saved ?? "light";
     } catch {
       return "light";
     }

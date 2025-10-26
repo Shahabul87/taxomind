@@ -10,7 +10,6 @@ import {
   BookOpen,
   Search,
   LogIn,
-  UserPlus,
 } from 'lucide-react';
 
 // Component imports
@@ -287,16 +286,6 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                       whileTap={{ scale: 0.95 }}
                     >
                       Sign In
-                    </motion.div>
-                  </Link>
-                  <Link href="/auth/register">
-                    <motion.div
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.97 }}
-                      className="group relative overflow-hidden px-3 xs:px-4 sm:px-5 xl:px-6 py-1.5 xs:py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium transition-all duration-300 shadow-lg hover:shadow-purple-500/25 text-xs xs:text-sm xl:text-base"
-                    >
-                      <span className="relative z-10">Sign Up</span>
-                      <span className="pointer-events-none absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.35),transparent)] group-hover:translate-x-full transition-transform duration-700" />
                     </motion.div>
                   </Link>
                 </div>

@@ -9,7 +9,6 @@ import {
   X,
   Search,
   LogIn,
-  UserPlus,
   ChevronDown,
   Sparkles,
   Brain,
@@ -186,14 +185,6 @@ export const TabletHeader = ({ user }: HeaderAfterLoginProps) => {
                     className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                   >
                     Login
-                  </Link>
-
-                  {/* Sign Up Button */}
-                  <Link
-                    href="/auth/register"
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-sm"
-                  >
-                    Sign Up
                   </Link>
                 </>
               )}

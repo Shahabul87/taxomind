@@ -52,8 +52,7 @@ export const StickyMiniHeader: React.FC<StickyMiniHeaderProps> = ({ course, isEn
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -10, opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="hidden md:block fixed left-0 right-0 z-[45] sticky-mini-header"
-          style={{ top: 'var(--mini-top, 4rem)' }}
+          className="hidden md:block fixed left-0 right-0 z-[45] sticky-mini-header top-0"
         >
           <div className="container mx-auto px-4 max-w-7xl">
             <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm md:backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-sm md:supports-[backdrop-filter]:backdrop-blur-md shadow-lg px-3 py-2">
