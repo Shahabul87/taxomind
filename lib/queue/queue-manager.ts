@@ -353,7 +353,7 @@ export class QueueManager {
       throw new Error(`Queue ${queueName} not found`);
     }
 
-    return queue.getJob(jobId);
+    return (await queue.getJob(jobId)) || null;
   }
 
   /**

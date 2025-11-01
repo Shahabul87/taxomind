@@ -7,35 +7,6 @@ declare global {
   var redis: Redis | undefined;
 }
 
-// Create Redis client or fallback to in-memory implementation
-export const redis = (() => {
-  // Check if Redis URL is available
-  const redisUrl = process.env.REDIS_URL;
-  
-  if (redisUrl) {
-    try {
-      // Production Redis implementation
-      if (globalThis.redis) {
-        return globalThis.redis;
-      }
-      
-      const redisClient = new Redis(redisUrl, {
-        maxRetriesPerRequest: 3,
-        enableReadyCheck: false,
-        lazyConnect: true,
-      } as any);
-      
-      globalThis.redis = redisClient;
-      return redisClient;
-    } catch (error: any) {
-      logger.warn('Redis connection failed, using fallback:', error);
-    }
-  }
-  
-  // Fallback implementation for development
-  return new MockRedis();
-})();
-
 // Mock Redis implementation for development/testing
 class MockRedis {
   private store: Map<string, any> = new Map();
@@ -263,5 +234,34 @@ class MockRedis {
     return 'redis_version:6.0.0-mock\nused_memory_human:1.0M\nconnected_clients:1';
   }
 }
+
+// Create Redis client or fallback to in-memory implementation
+export const redis = (() => {
+  // Check if Redis URL is available
+  const redisUrl = process.env.REDIS_URL;
+
+  if (redisUrl) {
+    try {
+      // Production Redis implementation
+      if (globalThis.redis) {
+        return globalThis.redis;
+      }
+
+      const redisClient = new Redis(redisUrl, {
+        maxRetriesPerRequest: 3,
+        enableReadyCheck: false,
+        lazyConnect: true,
+      } as any);
+
+      globalThis.redis = redisClient;
+      return redisClient;
+    } catch (error: any) {
+      logger.warn('Redis connection failed, using fallback:', error);
+    }
+  }
+
+  // Fallback implementation for development
+  return new MockRedis();
+})();
 
 export { MockRedis };

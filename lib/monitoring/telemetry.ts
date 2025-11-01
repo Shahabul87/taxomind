@@ -87,9 +87,7 @@ const instrumentations: any[] = [
   }),
   
   // Prisma instrumentation for database queries
-  new PrismaInstrumentation({
-    middleware: true,
-  }),
+  new PrismaInstrumentation(),
   
   // Redis instrumentation for cache operations
   new RedisInstrumentation({
