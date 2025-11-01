@@ -27,6 +27,8 @@ const nextConfig = {
   // Turbopack configuration (Next.js 15+)
   // Migrated from experimental.turbo to top-level turbopack
   turbopack: {
+    // Set the root directory to silence workspace root warning
+    root: __dirname,
     // Module resolution aliases (mirrors tsconfig paths)
     resolveAlias: {
       '@': './',
@@ -78,14 +80,13 @@ const nextConfig = {
     pagesBufferLength: 5,
   },
   
-  // TypeScript and ESLint validation
+  // TypeScript validation
   // Industry practice: decouple checks from build. Keep strict in CI; allow skip locally.
-  // Use SKIP_TYPE_CHECK=true and/or SKIP_LINT=true to speed local builds.
+  // Use SKIP_TYPE_CHECK=true to speed local builds.
+  // Note: ESLint configuration is no longer supported in next.config.js (Next.js 16+)
+  // Use `next lint` command or eslint.config.js instead
   typescript: {
     ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
-  },
-  eslint: {
-    ignoreDuringBuilds: process.env.SKIP_LINT === 'true',
   },
   
   // Experimental settings for Next.js 15
