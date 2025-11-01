@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MessageSquare, Plus, Filter, ArrowUp, ThumbsUp, MessageCircle, ShareIcon, Search } from "lucide-react";
+import { MessageSquare, Plus, Filter, ArrowUp, ThumbsUp, MessageCircle, Share as ShareIcon, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NewDiscussionDialog } from "./new-discussion-dialog";
 import { DiscussionCard } from "./discussion-card";

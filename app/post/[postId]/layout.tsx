@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
-import { HideHeader } from './_components/hide-header';
-import './blog-post.css';
+// TODO: Uncomment when hide-header component is added to git
+// import { HideHeader } from './_components/hide-header';
+// import './blog-post.css';
 
 /**
  * Blog Post Detail Layout
@@ -17,7 +18,7 @@ interface BlogPostLayoutProps {
 export default function BlogPostLayout({ children }: BlogPostLayoutProps) {
   return (
     <div className="blog-post-wrapper min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-purple-50/20 dark:from-slate-950 dark:via-indigo-950/10 dark:to-purple-950/10">
-      <HideHeader />
+      {/* <HideHeader /> */}
       {children}
     </div>
   );
