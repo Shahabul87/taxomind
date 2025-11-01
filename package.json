@@ -21,6 +21,10 @@
     "url": "https://github.com/Shahabul87/taxomind/issues"
   },
   "homepage": "https://github.com/Shahabul87/taxomind#readme",
+  "engines": {
+    "node": ">=20.9.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "node scripts/load-env.js && next dev --turbo",
     "dev:clean": "node scripts/fix-css-dev.js && node scripts/load-env.js && next dev --turbo",
