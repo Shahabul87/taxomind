@@ -12,8 +12,8 @@ interface ChapterData {
   description: string | null;
   imageUrl: string | null;
   postId: string;
-  isPublished: boolean | null;
-  isFree: boolean | null;
+  isPublished: boolean;
+  isFree: boolean;
   position: number;
   createdAt: Date;
   updatedAt: Date;
