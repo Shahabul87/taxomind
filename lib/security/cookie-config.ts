@@ -57,7 +57,7 @@ export const CookieEnvironments = {
   },
   production: {
     secure: true,
-    sameSite: 'strict' as const,
+    sameSite: 'lax' as const, // CRITICAL: 'lax' required for OAuth callbacks from external domains
     httpOnly: true,
     domain: undefined,
   },
@@ -137,7 +137,7 @@ export function getSecureCookieConfig(options: CookieSecurityOptions = {}): Cook
         ...baseConfig,
         httpOnly: false, // CSRF token needs to be accessible to client
         secure: isDevelopment ? false : true,
-        sameSite: 'strict', // CSRF should be strict
+        sameSite: 'lax', // CRITICAL: 'lax' required for OAuth (changed from 'strict')
         path: '/',
         maxAge: isDevelopment ? undefined : 60 * 60, // 1 hour
       },
