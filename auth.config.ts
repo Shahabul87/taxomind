@@ -19,12 +19,12 @@ export default {
           response_type: "code"
         }
       },
-      allowDangerousEmailAccountLinking: true, // Allow linking accounts with same email
+      allowDangerousEmailAccountLinking: false, // SECURITY: Disabled to prevent account takeover via email compromise
     }),
     Github({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      allowDangerousEmailAccountLinking: true, // Allow linking accounts with same email
+      allowDangerousEmailAccountLinking: false, // SECURITY: Disabled to prevent account takeover via email compromise
     }),
     Credentials({
       async authorize(credentials) {

@@ -77,23 +77,43 @@ export const login = async (
   }
 
   if (!existingUser.emailVerified) {
-    const verificationToken = await generateVerificationToken(
-      existingUser.email,
-    );
-
-    // Queue verification email for background processing
-    await queueVerificationEmail({
-      userEmail: verificationToken.email,
-      userName: existingUser.name || "User",
-      verificationToken: verificationToken.token,
-      expiresAt: verificationToken.expires,
-      userId: existingUser.id,
-      timestamp: new Date(),
-      isResend: true,
+    // IMPROVED UX: Don't auto-resend on every login attempt
+    // Check if a recent verification token exists (within last 5 minutes)
+    const recentToken = await db.verificationToken.findFirst({
+      where: {
+        identifier: existingUser.email,
+        expires: { gt: new Date(Date.now() - 5 * 60 * 1000) } // Last 5 minutes
+      },
+      orderBy: { expires: 'desc' }
     });
 
-    console.log('[login] sent verification email');
-    return { success: "Confirmation email sent!" };
+    if (!recentToken) {
+      // Only generate new token if no recent one exists
+      const verificationToken = await generateVerificationToken(
+        existingUser.email,
+      );
+
+      // Queue verification email for background processing
+      await queueVerificationEmail({
+        userEmail: verificationToken.email,
+        userName: existingUser.name || "User",
+        verificationToken: verificationToken.token,
+        expiresAt: verificationToken.expires,
+        userId: existingUser.id,
+        timestamp: new Date(),
+        isResend: true,
+      });
+
+      console.log('[login] sent verification email');
+    }
+
+    // Return improved error message with resend link
+    return {
+      error: "Please verify your email address before logging in.",
+      code: "EMAIL_NOT_VERIFIED",
+      resendUrl: "/auth/resend-verification",
+      email: existingUser.email // For pre-filling resend form
+    };
   }
 
   if (existingUser.isTwoFactorEnabled && existingUser.email) {

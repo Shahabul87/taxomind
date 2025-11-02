@@ -68,7 +68,14 @@ export const LoginForm = () => {
 
             if (data?.error) {
               form.reset();
-              setError(data.error);
+
+              // Handle email verification error with resend link
+              if (data.code === "EMAIL_NOT_VERIFIED" && data.resendUrl && data.email) {
+                const resendLink = `${data.resendUrl}?email=${encodeURIComponent(data.email)}`;
+                setError(`${data.error} Click <a href="${resendLink}" class="text-primary hover:underline font-medium">here to resend verification email</a>.`);
+              } else {
+                setError(data.error);
+              }
             }
             if (data?.success) {
               form.reset();
