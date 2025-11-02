@@ -177,12 +177,12 @@ export const MobileMiniHeader: React.FC<MobileMiniHeaderProps> = ({ user }) => {
             className="flex items-center gap-1.5 min-w-0 flex-shrink-0"
             aria-label="Taxomind home"
           >
-            <div className="relative w-8 h-8 flex-shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800">
+            <div className="relative w-7 h-7 flex-shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800">
               <Image
                 src="/taxomind-logo.png"
                 alt="Taxomind"
-                width={32}
-                height={32}
+                width={28}
+                height={28}
                 className="w-full h-full object-contain"
                 priority
               />

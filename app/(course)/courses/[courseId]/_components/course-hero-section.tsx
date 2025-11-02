@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 
 import { Course } from '@prisma/client';
 import { cleanHtmlContent } from '../utils/html-utils';
-import { getCategoryPalette } from '../utils/color-utils';
+import { getCategoryPalette } from '@/theme_color/color-utils';
 import { HeroBreadcrumb } from './hero-breadcrumb';
 import { HeroBadgeSystem } from './hero-badge-system';
 import { InstructorShowcaseEnhanced } from './instructor-showcase-enhanced';

@@ -227,23 +227,23 @@ export const UserMenu = ({ user }: UserMenuProps) => {
           className="relative flex items-center justify-center group focus:outline-none focus:ring-2 focus:ring-purple-500/20 rounded-full p-1"
           aria-label="User menu"
         >
-          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/40 hover:border-purple-400/60 group-hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
+          <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/40 hover:border-purple-400/60 group-hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
             {user?.image ? (
               <Image
                 src={user.image}
                 alt={user.name || "User"}
                 fill
-                sizes="40px"
+                sizes="32px"
                 className="object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-inner">
+              <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-inner">
                 {getAvatarFallback(user?.name)}
               </div>
             )}
-            
+
             {/* Status indicator */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 shadow-sm"></div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 shadow-sm"></div>
           </div>
         </button>
         

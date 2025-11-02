@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 
 import { Course } from '@prisma/client';
 import { cleanHtmlContent } from '../utils/html-utils';
-import { getCategoryPalette } from '../utils/color-utils';
+import { getCategoryPalette } from '@/theme_color/color-utils';
 import { HeroBreadcrumb } from './hero-breadcrumb';
 import { HeroBadgeSystem } from './hero-badge-system';
 import { InstructorMiniProfile } from './instructor-mini-profile';

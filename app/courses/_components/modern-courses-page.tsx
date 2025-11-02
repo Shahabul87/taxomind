@@ -7,6 +7,17 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import {
+  Navbar,
+  NavBody,
+  NavItems,
+  MobileNav,
+  MobileNavHeader,
+  MobileNavMenu,
+  MobileNavToggle,
+  NavbarLogo,
+  NavbarButton,
+} from "@/components/ui/resizable-navbar";
+import {
   Search,
   Filter,
   Grid3X3,
@@ -299,7 +310,7 @@ const ModernHeroSection = ({ totalLearners }: { totalLearners?: number }) => {
       <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:50px_50px]" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
 
-      <div className="relative container mx-auto px-4 py-20">
+      <div className="relative container mx-auto px-4 pt-32 pb-20">
         <div className="max-w-4xl mx-auto text-center">
           {/* Trust Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-8">
@@ -563,8 +574,17 @@ export function ModernCoursesPage({
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [statistics, setStatistics] = useState<PlatformStatistics | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  // Navigation items
+  const navItems = [
+    { name: "Home", link: "/" },
+    { name: "Courses", link: "/courses" },
+    { name: "Blog", link: "/blog" },
+    { name: "About", link: "/about" },
+  ];
 
   // Fetch platform statistics on mount
   useEffect(() => {
@@ -618,6 +638,69 @@ export function ModernCoursesPage({
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
+      {/* Enterprise Resizable Navbar */}
+      <Navbar>
+        {/* Desktop Navigation */}
+        <NavBody className="hidden lg:flex">
+          <NavbarLogo />
+          <NavItems items={navItems} />
+          <div className="relative z-20 flex items-center gap-4">
+            {userId ? (
+              <Link href="/dashboard">
+                <NavbarButton variant="gradient">Dashboard</NavbarButton>
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/login">
+                  <NavbarButton variant="secondary">Sign In</NavbarButton>
+                </Link>
+                <Link href="/auth/register">
+                  <NavbarButton variant="gradient">Get Started</NavbarButton>
+                </Link>
+              </>
+            )}
+          </div>
+        </NavBody>
+
+        {/* Mobile Navigation */}
+        <MobileNav className="lg:hidden">
+          <MobileNavHeader>
+            <NavbarLogo />
+            <MobileNavToggle isOpen={isMobileNavOpen} onClick={() => setIsMobileNavOpen(!isMobileNavOpen)} />
+          </MobileNavHeader>
+
+          <MobileNavMenu isOpen={isMobileNavOpen} onClose={() => setIsMobileNavOpen(false)}>
+            <div className="flex flex-col gap-4 w-full">
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.link}
+                  className="text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
+                  onClick={() => setIsMobileNavOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+              <Separator />
+              {userId ? (
+                <Link href="/dashboard" onClick={() => setIsMobileNavOpen(false)}>
+                  <NavbarButton variant="gradient" className="w-full">Dashboard</NavbarButton>
+                </Link>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <Link href="/auth/login" onClick={() => setIsMobileNavOpen(false)}>
+                    <NavbarButton variant="secondary" className="w-full">Sign In</NavbarButton>
+                  </Link>
+                  <Link href="/auth/register" onClick={() => setIsMobileNavOpen(false)}>
+                    <NavbarButton variant="gradient" className="w-full">Get Started</NavbarButton>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </MobileNavMenu>
+        </MobileNav>
+      </Navbar>
+
       {/* Modern Hero Section */}
       <ModernHeroSection totalLearners={statistics?.totalLearners} />
 

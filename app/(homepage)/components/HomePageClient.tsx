@@ -1,7 +1,7 @@
 'use client';
 
-import HomeHeroSection from './HomeHeroSection';
-import BloomsTaxonomySection from './BloomsTaxonomySection';
+import HomeHeroSection from './HomeHeroSectionRedesigned';
+import BloomsTaxonomySection from '../blooms-taxonomy-section';
 import RemoveHashOnLoad from './RemoveHashOnLoad';
 import { HomeFooter } from '../HomeFooter';
 import { FeaturedCoursesSection } from '../featured-courses-section';

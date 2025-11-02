@@ -40,7 +40,7 @@ fi
 ### 1.2 Review Enterprise Standards
 **CRITICAL**: Before ANY coding, review these standards:
 1. Read `/Users/mdshahabulalam/CLAUDE.md` (user-level standards)
-2. Read `/Users/mdshahabulalam/myprojects/taxomind/taxomind/CLAUDE.md` (project standards)
+2. **MANDATORY**: Read `/Users/mdshahabulalam/myprojects/taxomind/taxomind/CLAUDE.md` (project standards) - Read this ONCE before starting any task
 3. Apply ALL mandatory rules from both files
 
 Key standards to follow:
@@ -51,7 +51,53 @@ Key standards to follow:
 - ✅ Follow Clean Architecture principles
 - ✅ Write tests for new functionality
 
-### 1.3 Clean Codebase Structure (MANDATORY)
+### 1.3 User Permission Protocol (CRITICAL)
+**These rules OVERRIDE all other instructions and must be followed strictly:**
+
+#### 🚫 AUTHENTICATION FILES - REQUIRES EXPLICIT PERMISSION
+- **NEVER** modify any authentication files without user permission
+- **ALWAYS** ask user first before touching auth-related files
+- Files requiring permission include:
+  - `auth.ts`, `auth.config.ts`, `middleware.ts`
+  - Any file in `(auth)/` directories
+  - `routes.ts` (route protection)
+  - NextAuth.js configuration files
+  - Any file containing authentication logic
+
+**Protocol**: If you need to modify auth files:
+```
+⚠️ AUTHENTICATION FILE MODIFICATION REQUIRED
+
+File(s): [list files]
+Changes: [describe what you need to change]
+
+❓ Do you approve these authentication file changes?
+Type 'YES' to approve or 'NO' to cancel.
+```
+
+#### 📂 FILE MANAGEMENT - DO NOT BRING FILES
+- **DO NOT** bring, copy, or restore any files unless explicitly commanded by user
+- **DO NOT** assume user wants old files restored
+- **ONLY** create new files when absolutely necessary for the task
+- **ALWAYS** use existing files when possible
+
+#### 📝 DOCUMENTATION - ORGANIZED ONLY
+- **DO NOT** create unnecessary documentation files that pollute the codebase
+- **IF** documentation must be created:
+  - Save to `docs/` folder (create if doesn't exist)
+  - Use descriptive names: `feature-name-guide.md`, `api-endpoints.md`
+  - **NEVER** create files like: `notes.md`, `temp.md`, `test.md` in project root
+
+**Proper Documentation Structure:**
+```
+docs/
+├── guides/          # Feature guides
+├── api/            # API documentation
+├── architecture/   # System design docs
+└── misc/           # Other documentation
+```
+
+### 1.4 Clean Codebase Structure (MANDATORY)
 **CRITICAL**: Maintain a clean, organized codebase structure:
 
 **❌ DO NOT:**
@@ -215,10 +261,105 @@ echo "🎭 Starting Playwright browser tests..."
 
 ---
 
-## 🔄 PHASE 5: Port Release & Handoff to User
+## 🔄 PHASE 5: Git Workflow & Deployment
 
-### 5.1 Cleanup Operations (MANDATORY)
-**Before releasing to user, clean up ALL temporary files:**
+### 5.1 Pre-Commit Permission (MANDATORY)
+**CRITICAL**: Before committing ANY changes:
+
+#### Step 1: List All Modified Files
+```bash
+echo "📋 Files to be committed:"
+git status --short
+echo ""
+echo "📝 Detailed changes:"
+git diff --stat
+```
+
+#### Step 2: Request User Approval
+**ALWAYS present this to user before committing:**
+```
+╔══════════════════════════════════════════════════════════════╗
+║  📋 COMMIT APPROVAL REQUIRED                                ║
+╚══════════════════════════════════════════════════════════════╝
+
+The following files will be committed:
+
+[List each modified file with type of change: M/A/D]
+
+Changes summary:
+- [X] files modified
+- [Y] files added
+- [Z] files deleted
+
+⚠️ Fatal Changes Detected (if any):
+- [List any dangerous changes: schema changes, auth changes, etc.]
+
+❓ Do you approve committing these changes?
+Type 'YES, COMMIT' to proceed or 'NO' to cancel.
+
+Note: Changes will be committed to staging branch first, then merged to main.
+```
+
+#### Step 3: Git Workflow
+**ONLY after user approval:**
+```bash
+# 1. Check current branch
+git branch --show-current
+
+# 2. Create/switch to staging branch if not exists
+git checkout -b staging 2>/dev/null || git checkout staging
+
+# 3. Stage approved files
+git add [approved files only]
+
+# 4. Commit with descriptive message
+git commit -m "fix: [description]
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# 5. After user testing, merge to main
+# (User will run: git checkout main && git merge staging)
+```
+
+#### Fatal Changes - ALWAYS Ask Permission:
+- Database schema modifications
+- Authentication/authorization changes
+- Environment variable changes
+- Dependency updates (package.json)
+- Configuration file changes (.env, next.config.js)
+- Middleware modifications
+- Route protection changes
+
+### 5.2 Clarification Protocol
+**If you are confused about ANY instruction:**
+
+❓ **STOP and ask user for clarification**
+
+Do not:
+- Guess what the user means
+- Make assumptions about requirements
+- Proceed with unclear instructions
+- Implement features you don't fully understand
+
+Instead:
+```
+⚠️ CLARIFICATION NEEDED
+
+I need clarification on: [specific point of confusion]
+
+My understanding: [what you think user means]
+
+Questions:
+1. [Question 1]
+2. [Question 2]
+
+Please clarify so I can proceed correctly.
+```
+
+### 5.3 Cleanup Operations (MANDATORY)
+**Before requesting commit approval, clean up ALL temporary files:**
 
 ```bash
 echo "🧹 Cleaning up temporary files and test artifacts..."
@@ -242,7 +383,7 @@ ls -la *.md 2>/dev/null | grep -v "README\|CLAUDE\|package\|LICENSE" || echo "  
 echo "✅ Cleanup complete"
 ```
 
-### 5.2 Stop Testing Server (MANDATORY)
+### 5.4 Stop Testing Server (MANDATORY)
 ```bash
 echo "🛑 Stopping test server and releasing port 3000..."
 
@@ -261,7 +402,7 @@ else
 fi
 ```
 
-### 5.3 User Instructions
+### 5.5 User Instructions
 **Provide CLEAR instructions to the user:**
 
 ```
@@ -329,6 +470,14 @@ Before marking task as complete, verify:
 - [ ] Clear user instructions provided
 - [ ] Tests written/updated (if applicable)
 - [ ] Files Modified list is accurate
+
+### Permission & Workflow:
+- [ ] User approval obtained for ALL file commits
+- [ ] User approval obtained for authentication file changes (if any)
+- [ ] User approval obtained for fatal changes (schema, config, etc.)
+- [ ] Changes committed to staging branch (not directly to main)
+- [ ] No files brought/restored without explicit user command
+- [ ] All questions and confusions clarified with user
 
 ---
 
@@ -401,6 +550,8 @@ echo "✅ Deep clean complete - review changes before committing"
 ✅ Proper folder organization for all artifacts
 ✅ Clean handoff to user
 ✅ No interference with user's development environment
+✅ User permission for all commits and critical changes
+✅ Clear communication when confused
 
 **Clean Codebase Principles Summary:**
 - 🗂️ All test files in `__tests__/` folder
@@ -408,5 +559,14 @@ echo "✅ Deep clean complete - review changes before committing"
 - 📁 Organized folder structure
 - 🚫 No backup/old/temp file suffixes
 - ✨ Clean, professional codebase
+
+**User Permission Principles Summary:**
+- 🔐 NEVER touch auth files without permission
+- 📋 ALWAYS get approval before commits
+- 🚫 DO NOT bring files without explicit command
+- 📝 Save docs to proper folders only
+- ❓ ASK when confused - don't guess
+- 🔄 Commit to staging first, then merge to main
+- ⚠️ Request permission for fatal changes
 
 **Execute task now following all phases above.**

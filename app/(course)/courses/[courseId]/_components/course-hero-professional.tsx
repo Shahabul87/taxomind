@@ -20,7 +20,7 @@ import {
 
 import { Course } from '@prisma/client';
 import { cleanHtmlContent } from '../utils/html-utils';
-import { getCategoryPalette } from '../utils/color-utils';
+import { getCategoryPalette } from '@/theme_color/color-utils';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 

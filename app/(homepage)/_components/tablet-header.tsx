@@ -101,12 +101,12 @@ export const TabletHeader = ({ user }: HeaderAfterLoginProps) => {
           <div className="flex justify-between items-center h-16">
             {/* Logo Section */}
             <Link href="/" className="flex items-center space-x-2.5">
-              <div className="relative w-8 h-8 flex-shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800">
+              <div className="relative w-7 h-7 flex-shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800">
                 <Image
                   src="/taxomind-logo.png"
                   alt="Taxomind"
-                  width={32}
-                  height={32}
+                  width={28}
+                  height={28}
                   className="w-full h-full object-contain"
                   priority
                 />

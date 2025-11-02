@@ -30,22 +30,22 @@ const configs = {
   fast: {
     name: 'Fast Check (App only)',
     args: ['--noEmit', '--incremental', '--tsBuildInfoFile', '.tsbuildinfo.fast', '--project', 'tsconfig.json'],
-    memory: '4096'
+    memory: '6144'
   },
   standard: {
     name: 'Standard Check',
     args: ['--noEmit', '--incremental', '--project', 'tsconfig.build.json'],
-    memory: '6144'
+    memory: '12288'
   },
   full: {
     name: 'Full Check (All files)',
     args: ['--noEmit', '--incremental'],
-    memory: '8192'
+    memory: '16384'
   },
   watch: {
     name: 'Watch Mode',
     args: ['--noEmit', '--incremental', '--watch', '--preserveWatchOutput'],
-    memory: '4096'
+    memory: '6144'
   }
 };
 

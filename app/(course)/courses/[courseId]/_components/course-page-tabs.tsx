@@ -51,7 +51,7 @@ const ModerationTab = dynamic(() => import('./tabs/moderation-tab').then(m => m.
 
 import type { CourseReview } from './course-reviews';
 import { ShieldCheck } from 'lucide-react';
-import { getCategoryPalette } from '../utils/color-utils';
+import { getCategoryPalette } from '@/theme_color/color-utils';
 const ShieldCheckIcon = () => <ShieldCheck className="w-4 h-4"/>;
 
 interface CoursePageTabsProps {

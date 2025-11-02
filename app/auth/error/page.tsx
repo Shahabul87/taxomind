@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Shield, TrendingUp, Award, Sparkles, ArrowLeft, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Suspense } from "react";
 
 const errorMessages = {
   Configuration: "There is a problem with the server configuration.",
@@ -22,7 +23,7 @@ const errorMessages = {
   SessionRequired: "You must be signed in to access this page.",
 };
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams?.get("error") as keyof typeof errorMessages;
 
@@ -241,5 +242,13 @@ export default function AuthErrorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<div className="mt-20 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+      <AuthErrorContent />
+    </Suspense>
   );
 }

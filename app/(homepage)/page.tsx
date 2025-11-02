@@ -1,10 +1,10 @@
 import { getHomepageFeaturedCourses, getHomepageFeaturedPosts } from "@/actions/get-homepage-content";
-import HomeHeroSection from "./components/HomeHeroSection";
-import BloomsTaxonomySection from "./components/BloomsTaxonomySection";
+import HomeHeroSectionRedesigned from "./components/HomeHeroSectionRedesigned";
 import RemoveHashOnLoad from "./components/RemoveHashOnLoad";
 import { HomeFooter } from "./HomeFooter";
 import { FeaturedCoursesSection } from './featured-courses-section';
 import { FeaturedBlogPostsSection } from './featured-blog-posts-section';
+import { HomeNavbar } from './components/HomeNavbar';
 
 // Use dynamic rendering to avoid build-time database queries
 // This prevents build failures when database is not yet migrated
@@ -30,15 +30,17 @@ const Home = async () => {
         Skip to main content
       </a>
 
-      <HomeHeroSection />
+      {/* Scroll-triggered navbar - Hidden initially, appears on scroll */}
+      <HomeNavbar />
+
+      <HomeHeroSectionRedesigned />
 
       <main id="main-content">
-        <BloomsTaxonomySection />
+        {/* Enterprise Featured Courses Section with integrated navbar */}
+        <FeaturedCoursesSection courses={courses} />
 
-        <div className="min-h-screen">
-          <FeaturedCoursesSection courses={courses} />
-          <FeaturedBlogPostsSection posts={posts} />
-        </div>
+        {/* Featured Blog Posts Section */}
+        <FeaturedBlogPostsSection posts={posts} />
       </main>
 
       <HomeFooter />

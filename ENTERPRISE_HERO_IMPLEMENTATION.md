@@ -415,7 +415,7 @@ app/(course)/courses/[courseId]/
 │   └── ... (other components)
 ├── utils/
 │   ├── design-tokens.ts                   [NEW] ⭐
-│   ├── color-utils.ts                     [EXISTING]
+│   ├── color-utils.ts                     [MOVED to /theme_color/]
 │   └── html-utils.ts                      [EXISTING]
 └── page.tsx                               [EXISTING]
 

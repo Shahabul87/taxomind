@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
-import type { CategoryPalette } from '../utils/color-utils';
+import type { CategoryPalette } from '@/theme_color/color-utils';
 
 interface DynamicBackgroundProps {
   palette: CategoryPalette;
