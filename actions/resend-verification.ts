@@ -24,11 +24,8 @@ export const resendVerification = async (
 
   const { email } = validatedFields.data;
 
-  // Apply rate limiting - max 3 resend attempts per 15 minutes per email
-  const rateLimitResult = await rateLimitAuth('resend-verification', email, {
-    points: 3,
-    duration: 15 * 60, // 15 minutes
-  });
+  // Apply rate limiting using the 'verify' endpoint (3 attempts per 15 minutes)
+  const rateLimitResult = await rateLimitAuth('verify', email);
 
   if (!rateLimitResult.success) {
     return {
@@ -57,7 +54,7 @@ export const resendVerification = async (
   // Check if a recent verification token exists (within last 2 minutes)
   const recentToken = await db.verificationToken.findFirst({
     where: {
-      identifier: existingUser.email,
+      email: existingUser.email,
       expires: { gt: new Date(Date.now() - 2 * 60 * 1000) }, // Last 2 minutes
     },
     orderBy: { expires: 'desc' },
@@ -77,7 +74,7 @@ export const resendVerification = async (
     );
 
     // Queue verification email
-    const emailQueued = await queueVerificationEmail({
+    await queueVerificationEmail({
       userEmail: verificationToken.email,
       userName: existingUser.name || "User",
       verificationToken: verificationToken.token,
@@ -86,12 +83,6 @@ export const resendVerification = async (
       timestamp: new Date(),
       isResend: true,
     });
-
-    if (!emailQueued) {
-      return {
-        error: "Failed to send verification email. Please try again later.",
-      };
-    }
 
     console.log('[resend-verification] Email queued for:', email);
 

@@ -81,7 +81,7 @@ export const login = async (
     // Check if a recent verification token exists (within last 5 minutes)
     const recentToken = await db.verificationToken.findFirst({
       where: {
-        identifier: existingUser.email,
+        email: existingUser.email,
         expires: { gt: new Date(Date.now() - 5 * 60 * 1000) } // Last 5 minutes
       },
       orderBy: { expires: 'desc' }
