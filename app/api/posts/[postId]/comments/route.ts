@@ -21,7 +21,7 @@ export const POST = withAuth(async (
       }, 429);
     }
 
-    const { content } = await request.json();
+    const { content, commentId } = await request.json();
     const params = await props.params;
     const { postId } = params;
 
@@ -39,6 +39,44 @@ export const POST = withAuth(async (
       return createSuccessResponse({ error: "Post not found" }, 404);
     }
 
+    // If commentId is provided, create a Reply instead of a Comment
+    if (commentId) {
+      const parentComment = await db.comment.findUnique({
+        where: { id: commentId },
+        select: { id: true }
+      });
+
+      if (!parentComment) {
+        return createSuccessResponse({ error: "Parent comment not found" }, 404);
+      }
+
+      const reply = await db.reply.create({
+        data: {
+          content,
+          userId: context.user.id,
+          postId,
+          commentId,
+          depth: 1,
+        },
+        include: {
+          User: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+          Reaction: true,
+        },
+      });
+
+      // Invalidate cache for this post's comments
+      await invalidateCache(`comments:${postId}:*`);
+
+      return createSuccessResponse(reply, 201);
+    }
+
+    // Create a top-level Comment
     const comment = await db.comment.create({
       data: {
         content,
@@ -166,11 +204,36 @@ export const GET = withAuth(async (
                 },
               },
             },
-            Reply: {
-              select: {
-                id: true,
-              }
-            }
+            other_Reply: {
+              include: {
+                User: {
+                  select: {
+                    id: true,
+                    name: true,
+                    image: true,
+                  },
+                },
+                Reaction: true,
+                other_Reply: {
+                  include: {
+                    User: {
+                      select: {
+                        id: true,
+                        name: true,
+                        image: true,
+                      },
+                    },
+                    Reaction: true,
+                  },
+                  orderBy: {
+                    createdAt: "asc",
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
           },
           orderBy: {
             createdAt: "asc",

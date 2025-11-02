@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { MyPostsDashboard } from "./_components/my-posts-dashboard";
 import { db } from "@/lib/db";
 import { Metadata } from "next";
+import { DashboardLayout } from "@/app/dashboard/_components/DashboardLayout";
 
 export const metadata: Metadata = {
   title: "My Posts | Taxomind Teacher Dashboard",
@@ -104,20 +105,22 @@ const TeacherAllPostsPage = async () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 w-full">
-      <MyPostsDashboard
-        posts={posts}
-        categories={categories as string[]}
-        stats={{
-          published: publishedCount,
-          drafts: draftCount,
-          views: totalViews,
-          likes: 0, // We need to add a likes relation to the Post model
-          comments: totalComments
-        }}
-        user={serializedUser}
-      />
-    </div>
+    <DashboardLayout user={user}>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 w-full">
+        <MyPostsDashboard
+          posts={posts}
+          categories={categories as string[]}
+          stats={{
+            published: publishedCount,
+            drafts: draftCount,
+            views: totalViews,
+            likes: 0, // We need to add a likes relation to the Post model
+            comments: totalComments
+          }}
+          user={serializedUser}
+        />
+      </div>
+    </DashboardLayout>
   );
 };
 

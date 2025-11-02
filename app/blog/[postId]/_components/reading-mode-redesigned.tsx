@@ -34,15 +34,10 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { StickyScroll } from "./sticky-scroll-reveal";
 import PostChapterCard from "./post-chapter-card";
 import PostCardModelTwo from "./post-card-model-two";
 import { PostCardCarouselDemo } from "./post-card-carousel-model-demo";
 import { PostCardFlipBook } from "./post-card-flip-book";
-import { transformPostChapters } from "./transform-post-chapter";
-import FocusMode from "./focus-mode";
-import MagazineLayout from "./magazine-layout";
-import TimelineView from "./timeline-view";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -91,14 +86,6 @@ interface ReadingModesProps {
 // Reading mode definitions with enhanced metadata
 const readingModes = [
   {
-    id: 1,
-    name: "Sticky Scroll",
-    icon: Layers,
-    description: "Parallax scrolling with sticky sections",
-    desktopOnly: true,
-    color: "purple",
-  },
-  {
     id: 2,
     name: "Chapter Cards",
     icon: LayoutGrid,
@@ -129,30 +116,6 @@ const readingModes = [
     description: "Interactive book-style reading",
     desktopOnly: true,
     color: "pink",
-  },
-  {
-    id: 6,
-    name: "Focus Mode",
-    icon: Eye,
-    description: "Distraction-free zen reading",
-    desktopOnly: false,
-    color: "indigo",
-  },
-  {
-    id: 7,
-    name: "Magazine",
-    icon: Newspaper,
-    description: "Multi-column newspaper layout",
-    desktopOnly: true,
-    color: "cyan",
-  },
-  {
-    id: 8,
-    name: "Timeline",
-    icon: TrendingUp,
-    description: "Chronological timeline view",
-    desktopOnly: true,
-    color: "emerald",
   },
 ];
 
@@ -190,7 +153,7 @@ const ReadingModesRedesigned = ({ post }: ReadingModesProps) => {
 
       // Set initial mode based on screen size
       const isLargeScreen = window.innerWidth >= 1024;
-      setActiveMode(isLargeScreen ? 1 : 3);
+      setActiveMode(isLargeScreen ? 2 : 3);
     }
 
     // Calculate estimated reading time (average 200 words per minute)
@@ -273,8 +236,6 @@ const ReadingModesRedesigned = ({ post }: ReadingModesProps) => {
     setAlignment("left");
     setTheme("light");
   }, []);
-
-  const content = transformPostChapters(post.PostChapterSection);
 
   if (!mounted) {
     return null;
@@ -662,12 +623,6 @@ const ReadingModesRedesigned = ({ post }: ReadingModesProps) => {
             transition={{ duration: 0.3 }}
             className="w-full"
           >
-            {/* Existing Modes */}
-            {activeMode === 1 && (
-              <div className="hidden lg:block">
-                <StickyScroll content={content} />
-              </div>
-            )}
             {activeMode === 2 && (
               <div className="hidden lg:grid grid-cols-1 gap-6">
                 {post.PostChapterSection.map((chapter) => (
@@ -685,19 +640,6 @@ const ReadingModesRedesigned = ({ post }: ReadingModesProps) => {
             {activeMode === 5 && (
               <div className="hidden lg:block">
                 <PostCardFlipBook data={post.PostChapterSection} />
-              </div>
-            )}
-
-            {/* New Reading Modes */}
-            {activeMode === 6 && <FocusMode data={post.PostChapterSection} />}
-            {activeMode === 7 && (
-              <div className="hidden lg:block">
-                <MagazineLayout data={post.PostChapterSection} />
-              </div>
-            )}
-            {activeMode === 8 && (
-              <div className="hidden lg:block">
-                <TimelineView data={post.PostChapterSection} />
               </div>
             )}
           </motion.div>

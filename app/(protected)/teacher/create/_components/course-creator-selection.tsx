@@ -45,24 +45,24 @@ export const CourseCreatorSelection = ({
               </div>
 
               {/* Content */}
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-2">
                 Manual Creator
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-300 mb-4 text-sm leading-relaxed">
                 Full control over every aspect. Perfect for experienced educators.
               </p>
 
               {/* Features */}
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                   Custom structure design
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                   Complete creative control
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                   Step-by-step guidance
                 </div>
@@ -93,24 +93,24 @@ export const CourseCreatorSelection = ({
               </div>
 
               {/* Content */}
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-2">
                 AI Creator (Sam)
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-300 mb-4 text-sm leading-relaxed">
                 AI generates complete course structure automatically.
               </p>
 
               {/* Features */}
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                   <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
                   Auto-generated structure
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                   <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
                   Bloom&apos;s taxonomy aligned
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                   <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
                   Smart recommendations
                 </div>

@@ -4,6 +4,65 @@
 
 /* Remove these animation keyframes since they're now in the tailwind config */
 
+/* Enterprise Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Utility Classes */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .glass {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+/* Grid Background Pattern */
+.bg-grid-white\/\[0\.05\] {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
 html,
 body,
 :root {
@@ -60,6 +119,14 @@ body,
     --surface: 0 0% 100%;
     --surface-muted: 220 14% 96%;
     --brand: 142 76% 46%; /* green from hero */
+
+    /* Coursera-style Hero Section Tokens */
+    --hero-primary: 217 91% 60%; /* light blue #3b82f6 */
+    --hero-primary-dark: 221 83% 53%; /* darker blue #2563eb */
+    --hero-secondary: 24 95% 93%; /* peach #fde4cf */
+    --hero-secondary-dark: 24 85% 88%; /* darker peach */
+    --hero-text: 222 47% 11%; /* dark text on light bg */
+    --hero-text-muted: 215 16% 47%; /* muted text */
   }
 
   .dark {
@@ -104,6 +171,14 @@ body,
     --surface: 232 38% 10%;
     --surface-muted: 230 25% 14%;
     --brand: 142 76% 56%; /* brighter green */
+
+    /* Coursera-style Hero Section Tokens - Dark Mode */
+    --hero-primary: 217 91% 65%; /* brighter blue for dark mode */
+    --hero-primary-dark: 221 83% 58%; /* lighter blue */
+    --hero-secondary: 24 60% 25%; /* darker peach for dark mode */
+    --hero-secondary-dark: 24 50% 20%; /* even darker peach */
+    --hero-text: 220 20% 96%; /* light text on dark bg */
+    --hero-text-muted: 220 12% 70%; /* muted light text */
   }
 }
 

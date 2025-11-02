@@ -27,8 +27,8 @@ export const DynamicPageWrapper = ({ children }: DynamicPageWrapperProps) => {
   return (
     <div className={cn(
       "min-h-screen w-full",
-      "bg-gradient-to-b from-gray-50 to-white",
-      "dark:from-gray-900 dark:via-gray-900 dark:to-gray-950"
+      "bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40",
+      "dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
     )}>
       <motion.div
         className="w-full h-full py-8 lg:py-12"

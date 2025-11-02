@@ -23,14 +23,14 @@ export const CreateNewCoursePage = () => {
         {creatorMode === 'selection' && (
           <div className="mb-6 sm:mb-8">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-600/10 to-indigo-600/10 dark:from-blue-400/10 dark:to-indigo-400/10 border border-blue-200/30 dark:border-blue-700/20">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 dark:from-blue-400/10 dark:to-indigo-400/10 border border-blue-200/30 dark:border-blue-700/20">
                 <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-700 dark:from-slate-100 dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
                   Choose Creation Method
                 </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Select your preferred approach</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300">Select your preferred approach</p>
               </div>
             </div>
           </div>
@@ -40,19 +40,19 @@ export const CreateNewCoursePage = () => {
           <div className="mb-6 sm:mb-8">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-600/10 to-indigo-600/10 dark:from-blue-400/10 dark:to-indigo-400/10 border border-blue-200/30 dark:border-blue-700/20">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 dark:from-blue-400/10 dark:to-indigo-400/10 border border-blue-200/30 dark:border-blue-700/20">
                   <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-700 dark:from-slate-100 dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
                     Course Details
                   </h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Set up the basics</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">Set up the basics</p>
                 </div>
               </div>
               <button
                 onClick={() => setCreatorMode('selection')}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50"
               >
                 ← Back
               </button>
@@ -85,7 +85,7 @@ export const CreateNewCoursePage = () => {
         {/* Content Section */}
         <div className={cn(
           "rounded-xl sm:rounded-2xl backdrop-blur-sm",
-          "bg-white/90 dark:bg-gray-800/50 border border-white/60 dark:border-gray-700/40"
+          "bg-white/90 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/40"
         )}>
           {creatorMode === 'selection' && (
             <CourseCreatorSelection 

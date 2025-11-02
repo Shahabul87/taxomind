@@ -11,6 +11,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Home, AlertTriangle, BookOpen, Refresh
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { logger } from '@/lib/logger';
+import { AICreatorLayout } from "./_components/AICreatorLayout";
 
 // Import modular components
 import { useSamWizard } from "./hooks/use-sam-wizard";
@@ -436,20 +437,20 @@ etc.`,
   ];
 
   return (
-    <SamErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30 dark:from-slate-950 dark:to-indigo-950/30">
+    <AICreatorLayout>
+      <SamErrorBoundary>
         <div className="container mx-auto px-4 py-8 max-w-[1600px]">
           {/* Header */}
           <div className="text-center mb-8 lg:mb-12">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="p-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg">
+              <div className="p-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg">
                 <Sparkles className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
                 AI Course Creator
               </h1>
             </div>
-            <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-sm lg:text-base">
+            <p className="text-slate-600 dark:text-slate-300 max-w-2xl mx-auto text-sm lg:text-base">
               Create professional courses with AI assistance. Sam will guide you through each step
               and help optimize your content for maximum learning impact.
             </p>
@@ -457,7 +458,7 @@ etc.`,
             {/* Top Actions Bar - Desktop Only */}
             <div className="hidden lg:flex items-center justify-center gap-4 mt-6">
               {lastAutoSave && (
-                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 shadow-sm">
                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                   <span>Auto-saved {new Date(lastAutoSave).toLocaleTimeString()}</span>
                 </div>
@@ -466,7 +467,7 @@ etc.`,
                 variant="outline"
                 size="sm"
                 onClick={resetWizard}
-                className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200"
+                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Start Over
@@ -497,40 +498,40 @@ etc.`,
             {/* Main Content Area */}
             <main className="lg:col-span-6 space-y-6">
               {/* Step Header Card */}
-              <Card className="p-6 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-md">
+              <Card className="p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-3xl hover:shadow-xl transition-all duration-300">
                 <div className="flex-1">
                   <h2 className="text-xl lg:text-2xl font-bold text-slate-900 dark:text-slate-100">
                     {STEP_TITLES[step - 1]}
                   </h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
                     {STEP_DESCRIPTIONS[step - 1]}
                   </p>
                 </div>
 
                 {/* Mobile: Step Indicator */}
                 <div className="lg:hidden text-right">
-                  <div className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                  <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                     {step}/{totalSteps}
                   </div>
                 </div>
               </Card>
 
               {/* Step Content */}
-              <Card className="p-6 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-md">
+              <Card className="p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-3xl hover:shadow-xl transition-all duration-300">
                 <div key={step} className="animate-in fade-in-50 duration-300">
                   {renderStepContent()}
                 </div>
               </Card>
 
               {/* Desktop Navigation */}
-              <Card className="hidden lg:block p-5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-md">
+              <Card className="hidden lg:block p-5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-3xl hover:shadow-xl transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <Button
                     variant="outline"
                     onClick={handleBack}
                     disabled={step === 1}
                     className={cn(
-                      "bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700",
+                      "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-700",
                       "hover:bg-slate-50 dark:hover:bg-slate-700",
                       "disabled:opacity-50 disabled:cursor-not-allowed"
                     )}
@@ -544,7 +545,7 @@ etc.`,
                       onClick={handleGenerateCompleteeCourse}
                       disabled={!canProceed || isCreatingCourse}
                       className={cn(
-                        "bg-gradient-to-r from-indigo-600 to-purple-600",
+                        "bg-gradient-to-r from-blue-500 to-indigo-500",
                         "hover:from-indigo-700 hover:to-purple-700",
                         "text-white font-semibold shadow-lg hover:shadow-xl",
                         "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -568,7 +569,7 @@ etc.`,
                       onClick={handleNext}
                       disabled={!canProceed}
                       className={cn(
-                        "bg-gradient-to-r from-indigo-600 to-purple-600",
+                        "bg-gradient-to-r from-blue-500 to-indigo-500",
                         "hover:from-indigo-700 hover:to-purple-700",
                         "text-white font-semibold shadow-lg hover:shadow-xl",
                         "disabled:opacity-50 disabled:cursor-not-allowed"
@@ -629,7 +630,7 @@ etc.`,
         </div>
 
         {/* Note: Removed old generation modals - now using unified course creation */}
-      </div>
-    </SamErrorBoundary>
+      </SamErrorBoundary>
+    </AICreatorLayout>
   );
 }

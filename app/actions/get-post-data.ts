@@ -54,6 +54,39 @@ export const getPostData = async (postId: string) => {
                     },
                   },
                 },
+                other_Reply: {
+                  include: {
+                    User: {
+                      select: {
+                        id: true,
+                        name: true,
+                        image: true,
+                      },
+                    },
+                    Reaction: true,
+                    other_Reply: {
+                      include: {
+                        User: {
+                          select: {
+                            id: true,
+                            name: true,
+                            image: true,
+                          },
+                        },
+                        Reaction: true,
+                      },
+                      orderBy: {
+                        createdAt: "asc",
+                      },
+                    },
+                  },
+                  orderBy: {
+                    createdAt: "asc",
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: "asc",
               },
             },
           },

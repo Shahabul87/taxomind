@@ -58,104 +58,69 @@ export const MetricCard = ({
   if (isLoading) {
     return (
       <Card className={cn(
-        "bg-white/70 dark:bg-gray-900/70",
-        "border border-gray-200/70 dark:border-gray-800/70",
-        "rounded-xl shadow-md backdrop-blur-md",
-        "p-4 sm:p-5 md:p-6"
+        "group relative overflow-hidden border-0 shadow-lg rounded-lg",
+        `bg-gradient-to-br ${iconBgColor}`,
+        "p-5"
       )}>
-        <div className="flex items-center gap-3 sm:gap-4">
-          <Skeleton className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex-shrink-0" />
-          <div className="flex-1 space-y-2 min-w-0">
-            <Skeleton className="h-3 sm:h-4 w-20 sm:w-24" />
-            <Skeleton className="h-6 sm:h-8 w-16 sm:w-20" />
-            <Skeleton className="h-2 sm:h-3 w-24 sm:w-32" />
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-3">
+            <Skeleton className="w-8 h-8 rounded-lg bg-white/20" />
+            <Skeleton className="h-4 w-24 bg-white/20" />
           </div>
+          <Skeleton className="h-8 w-20 bg-white/20" />
+          <Skeleton className="h-3 w-32 mt-2 bg-white/20" />
         </div>
       </Card>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay }}
-      whileHover={{ scale: 1.02 }}
-      className="h-full"
-    >
-      <Card className={cn(
-        "bg-white/70 dark:bg-gray-900/70",
-        "border border-gray-200/70 dark:border-gray-800/70",
-        "rounded-xl shadow-md backdrop-blur-md",
-        "p-4 sm:p-5 md:p-6",
-        "transition-all duration-300",
-        "hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-700",
-        "h-full"
-      )}>
-        <div className="flex items-center gap-3 sm:gap-4">
-          {/* Icon */}
-          <motion.div
-            whileHover={{ rotate: 5, scale: 1.1 }}
-            transition={{ type: "spring", stiffness: 300 }}
-            className={cn(
-              "p-2 sm:p-2.5 md:p-3 rounded-lg flex-shrink-0",
-              iconColor,
-              `bg-gradient-to-br ${iconBgColor}`,
-              "ring-1 ring-white/20 dark:ring-white/10",
-              "shadow-lg"
-            )}
-          >
-            <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-          </motion.div>
+    <Card className={cn(
+      "group relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]",
+      `bg-gradient-to-br ${iconBgColor}`,
+      "h-full"
+    )}>
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-blue-700/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-              {title}
-            </p>
-            <h3 className="text-xl sm:text-2xl md:text-2xl font-bold text-gray-900 dark:text-white mt-0.5 sm:mt-1 truncate">
-              {value}
-            </h3>
-
-            {/* Trend or Subtitle */}
-            {change !== undefined && (
-              <div className={cn("flex items-center gap-1 mt-0.5 sm:mt-1 flex-wrap", getTrendColor())}>
-                <TrendIcon className="w-3 h-3" />
-                <span className="text-xs font-medium">
-                  {change > 0 ? '+' : ''}{change.toFixed(1)}%
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
-                  vs last period
-                </span>
-              </div>
-            )}
-            {subtitle && !change && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 truncate">
-                {subtitle}
-              </p>
-            )}
+      <div className="relative p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-2 bg-white/20 rounded-lg">
+            <Icon className={cn("w-4 h-4", iconColor)} />
           </div>
+          <span className="text-sm font-medium text-white/90">{title}</span>
         </div>
-      </Card>
-    </motion.div>
+        <div className="text-2xl font-bold text-white">{value}</div>
+
+        {/* Trend or Subtitle */}
+        {change !== undefined && (
+          <div className="flex items-center gap-1 mt-2">
+            <TrendIcon className="w-3 h-3 text-white/80" />
+            <span className="text-xs font-medium text-white/80">
+              {change > 0 ? '+' : ''}{change.toFixed(1)}%
+            </span>
+          </div>
+        )}
+        {subtitle && !change && (
+          <div className="text-xs text-white/80 mt-2">
+            {subtitle}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 };
 
 export const MetricCardSkeleton = () => {
   return (
-    <Card className={cn(
-      "bg-white/70 dark:bg-gray-900/70",
-      "border border-gray-200/70 dark:border-gray-800/70",
-      "rounded-xl shadow-md backdrop-blur-md",
-      "p-4 sm:p-5 md:p-6"
-    )}>
-      <div className="flex items-center gap-3 sm:gap-4">
-        <Skeleton className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex-shrink-0" />
-        <div className="flex-1 space-y-2 min-w-0">
-          <Skeleton className="h-3 sm:h-4 w-20 sm:w-24" />
-          <Skeleton className="h-6 sm:h-8 w-16 sm:w-20" />
-          <Skeleton className="h-2 sm:h-3 w-24 sm:w-32" />
+    <Card className="group relative overflow-hidden border-0 shadow-lg rounded-lg bg-gradient-to-br from-slate-500 to-slate-600 p-5">
+      <div className="relative">
+        <div className="flex items-center gap-3 mb-3">
+          <Skeleton className="w-8 h-8 rounded-lg bg-white/20" />
+          <Skeleton className="h-4 w-24 bg-white/20" />
         </div>
+        <Skeleton className="h-8 w-20 bg-white/20" />
+        <Skeleton className="h-3 w-32 mt-2 bg-white/20" />
       </div>
     </Card>
   );

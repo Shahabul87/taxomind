@@ -28,17 +28,10 @@ import { Button } from "@/components/ui/button";
 import { useKeyboardShortcuts, KeyboardShortcut } from "@/hooks/use-keyboard-shortcuts";
 import { useReadingAnalytics } from "@/hooks/use-reading-analytics";
 import { KeyboardShortcutsDialog, KeyboardShortcutsIndicator } from "@/components/keyboard-shortcuts-dialog";
-import { EnhancedTableOfContents } from "./enhanced-table-of-contents";
-import { PrintStyles, PrintHeader, PrintFooter } from "./print-styles";
-import { StickyScroll } from "./sticky-scroll-reveal";
 import PostChapterCard from "./post-chapter-card";
 import PostCardModelTwo from "./post-card-model-two";
 import { PostCardCarouselDemo } from "./post-card-carousel-model-demo";
 import { PostCardFlipBook } from "./post-card-flip-book";
-import { transformPostChapters } from "./transform-post-chapter";
-import FocusMode from "./focus-mode";
-import MagazineLayout from "./magazine-layout";
-import TimelineView from "./timeline-view";
 import {
   Tooltip,
   TooltipContent,
@@ -78,14 +71,10 @@ interface ReadingModeEnhancedProps {
 }
 
 const readingModes = [
-  { id: 1, name: "Sticky Scroll", icon: Layers, description: "Parallax scrolling", desktopOnly: true },
   { id: 2, name: "Chapter Cards", icon: LayoutGrid, description: "Card layout", desktopOnly: true },
   { id: 3, name: "Normal", icon: FileText, description: "Traditional view", desktopOnly: false },
   { id: 4, name: "Carousel", icon: LayoutList, description: "Swipeable", desktopOnly: false },
   { id: 5, name: "FlipBook", icon: BookOpen, description: "Book-style", desktopOnly: true },
-  { id: 6, name: "Focus Mode", icon: Eye, description: "Distraction-free", desktopOnly: false },
-  { id: 7, name: "Magazine", icon: Newspaper, description: "Multi-column", desktopOnly: true },
-  { id: 8, name: "Timeline", icon: TrendingUp, description: "Chronological", desktopOnly: true },
 ];
 
 export default function ReadingModeEnhanced({ post }: ReadingModeEnhancedProps) {
@@ -218,7 +207,7 @@ export default function ReadingModeEnhanced({ post }: ReadingModeEnhancedProps) 
 
     if (typeof window !== 'undefined') {
       const isLargeScreen = window.innerWidth >= 1024;
-      setActiveMode(isLargeScreen ? 1 : 3);
+      setActiveMode(isLargeScreen ? 2 : 3);
     }
   }, []);
 
@@ -246,24 +235,12 @@ export default function ReadingModeEnhanced({ post }: ReadingModeEnhancedProps) 
     return () => window.removeEventListener('resize', handleResize);
   }, [activeMode]);
 
-  const content = transformPostChapters(post.PostChapterSection);
-
   if (!mounted) return null;
 
   const currentMode = readingModes.find((m) => m.id === activeMode);
 
   return (
     <>
-      {/* Print Styles */}
-      <PrintStyles />
-      <PrintHeader
-        title={post.title}
-        author={post.User?.name}
-        date={post.createdAt.toLocaleDateString()}
-        url={typeof window !== 'undefined' ? window.location.href : ''}
-      />
-      <PrintFooter title={post.title} />
-
       <div className="flex flex-col w-full relative">
         {/* Reading Progress Bar */}
         <motion.div
@@ -426,19 +403,6 @@ export default function ReadingModeEnhanced({ post }: ReadingModeEnhancedProps) 
           </Button>
         )}
 
-        {/* Enhanced Table of Contents */}
-        <EnhancedTableOfContents
-          chapters={post.PostChapterSection.map((chapter) => ({
-            id: chapter.id,
-            title: chapter.title,
-            description: chapter.description,
-            position: chapter.position,
-          }))}
-          open={showTOC}
-          onOpenChange={setShowTOC}
-          onChapterView={trackChapterView}
-        />
-
         {/* Keyboard Shortcuts Dialog */}
         <KeyboardShortcutsDialog
           open={showShortcuts}
@@ -460,7 +424,6 @@ export default function ReadingModeEnhanced({ post }: ReadingModeEnhancedProps) 
               transition={{ duration: 0.3 }}
               className="w-full"
             >
-              {activeMode === 1 && <div className="hidden lg:block"><StickyScroll content={content} /></div>}
               {activeMode === 2 && (
                 <div className="hidden lg:grid grid-cols-1 gap-6">
                   {post.PostChapterSection.map((chapter) => (
@@ -473,9 +436,6 @@ export default function ReadingModeEnhanced({ post }: ReadingModeEnhancedProps) 
               {activeMode === 3 && <PostCardModelTwo data={post.PostChapterSection} />}
               {activeMode === 4 && <PostCardCarouselDemo postchapter={post.PostChapterSection} />}
               {activeMode === 5 && <div className="hidden lg:block"><PostCardFlipBook data={post.PostChapterSection} /></div>}
-              {activeMode === 6 && <FocusMode data={post.PostChapterSection} />}
-              {activeMode === 7 && <div className="hidden lg:block"><MagazineLayout data={post.PostChapterSection} /></div>}
-              {activeMode === 8 && <div className="hidden lg:block"><TimelineView data={post.PostChapterSection} /></div>}
             </motion.div>
           </AnimatePresence>
         </div>

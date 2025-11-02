@@ -28,6 +28,15 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
   const [selectedChapter, setSelectedChapter] = useState<ChapterData | null>(null);
   const placeholderImage = 'https://via.placeholder.com/300';
 
+  // Handle null/undefined postchapter
+  if (!postchapter || !Array.isArray(postchapter) || postchapter.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-10">
+        <p className="text-gray-500 dark:text-gray-400">No chapters available</p>
+      </div>
+    );
+  }
+
   const data = postchapter.map((chapter) => ({
     id: chapter.id,
     title: chapter.title,
@@ -48,12 +57,12 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
 
   return (
     <>
-      <div className="w-full h-full py-2">
-        <div className="space-y-2 mb-2">
+      <div className="w-full h-full py-2 md:py-4">
+        <div className="space-y-1 md:space-y-2 mb-2 md:mb-4 px-2 md:px-4">
           <h2 className={cn(
-            "max-w-7xl pl-4 mx-auto",
-            "text-2xl md:text-4xl lg:text-5xl font-bold",
-            "bg-gradient-to-r dark:from-purple-100 dark:via-blue-100 dark:to-cyan-100 from-indigo-700 via-blue-700 to-cyan-700",
+            "max-w-7xl mx-auto",
+            "text-xl md:text-3xl lg:text-4xl font-bold",
+            "bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400",
             "bg-clip-text text-transparent",
             "tracking-tight leading-tight",
             "font-heading"
@@ -61,9 +70,9 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
             Explore Chapters
           </h2>
           <p className={cn(
-            "max-w-7xl pl-4 mx-auto",
-            "text-sm md:text-base",
-            "text-gray-600 dark:text-gray-400/80",
+            "max-w-7xl mx-auto",
+            "text-xs md:text-sm",
+            "text-slate-600 dark:text-slate-300",
             "font-light tracking-wide"
           )}>
             Click on any chapter to view full details
@@ -74,31 +83,31 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
 
       {/* Modal */}
       {showModal && selectedChapter && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-white/90 dark:bg-black/90 backdrop-blur-md">
-          <div className="relative w-full max-w-6xl mx-4" style={{ marginTop: "calc(64px + 2rem)" }}>
-            <div className="relative w-full rounded-2xl bg-gradient-to-br from-gray-50/95 via-gray-100/95 to-gray-50/95 dark:from-gray-900/95 dark:via-gray-800/95 dark:to-gray-900/95 border border-gray-200/30 dark:border-gray-700/30 shadow-2xl backdrop-blur-sm">
-              <div className="sticky top-0 z-50 w-full flex justify-end bg-gradient-to-b from-gray-50/95 via-gray-50/80 to-transparent dark:from-gray-900/95 dark:via-gray-900/80 dark:to-transparent backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-md">
+          <div className="relative w-full max-w-6xl mx-4 my-4 md:my-8">
+            <div className="relative w-full rounded-3xl bg-white/95 dark:bg-slate-800/95 border border-slate-200/50 dark:border-slate-700/50 shadow-2xl backdrop-blur-sm">
+              <div className="sticky top-0 z-50 w-full flex justify-end bg-gradient-to-b from-white/95 via-white/80 to-transparent dark:from-slate-800/95 dark:via-slate-800/80 dark:to-transparent backdrop-blur-sm rounded-t-3xl">
                 <button
                   onClick={() => setShowModal(false)}
                   className={cn(
-                    "m-4",
+                    "m-3 md:m-4",
                     "p-2 rounded-full",
-                    "bg-gray-200/80 hover:bg-gray-300/80 dark:bg-gray-800/80 dark:hover:bg-gray-700/80",
-                    "text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200",
+                    "bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600",
+                    "text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white",
                     "transition-all duration-200",
-                    "shadow-lg ring-1 ring-gray-300/50 dark:ring-gray-700/50"
+                    "shadow-lg ring-1 ring-slate-200/50 dark:ring-slate-600/50"
                   )}
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-6 md:p-8 lg:p-10 space-y-6 -mt-14">
-                <div className="flex items-center gap-4 pt-14">
+              <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 -mt-12 md:-mt-14">
+                <div className="flex items-center gap-3 md:gap-4 pt-12 md:pt-14">
                   <span className={cn(
-                    "text-sm font-medium",
+                    "text-xs md:text-sm font-medium",
                     "bg-gradient-to-r from-purple-500/90 to-blue-500/90 dark:from-purple-500/90 dark:to-blue-500/90",
-                    "px-3 py-1 rounded-full",
+                    "px-2.5 md:px-3 py-0.5 md:py-1 rounded-full",
                     "text-white/95",
                     "shadow-lg shadow-purple-500/10",
                     "border border-purple-400/20"
@@ -109,18 +118,16 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
                 </div>
 
                 <h3 className={cn(
-                  "text-3xl lg:text-4xl xl:text-5xl font-bold",
-                  "bg-gradient-to-r dark:from-purple-100 dark:via-blue-100 dark:to-cyan-100 from-indigo-700 via-blue-700 to-cyan-700",
-                  "bg-clip-text text-transparent",
+                  "text-2xl md:text-3xl lg:text-4xl font-bold",
+                  "text-slate-900 dark:text-white",
                   "tracking-tight leading-tight",
-                  "font-heading",
-                  "drop-shadow-sm"
+                  "font-heading"
                 )}>
                   {selectedChapter.title}
                 </h3>
 
                 {selectedChapter.imageUrl && (
-                  <div className="relative w-full h-[40vh] lg:h-[50vh] rounded-xl overflow-hidden">
+                  <div className="relative w-full h-[30vh] md:h-[35vh] lg:h-[45vh] rounded-xl overflow-hidden">
                     <Image
                       src={selectedChapter.imageUrl}
                       alt={selectedChapter.title}
@@ -132,8 +139,8 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
 
                 <div className={cn(
                   "prose dark:prose-invert max-w-none",
-                  "text-base lg:text-lg",
-                  "text-gray-700 dark:text-gray-300/90",
+                  "text-sm md:text-base lg:text-lg",
+                  "text-slate-700 dark:text-slate-300",
                   "leading-relaxed tracking-wide"
                 )}>
                   <div
@@ -144,7 +151,7 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
                   />
                 </div>
 
-                <div className="hidden lg:block">
+                <div className="hidden md:block pt-2">
                   <div className="flex items-center gap-2">
                     <div className="h-1 w-1 rounded-full bg-purple-400/30 dark:bg-purple-400/50" />
                     <div className="h-1 w-1 rounded-full bg-blue-400/30 dark:bg-blue-400/50" />
@@ -178,16 +185,16 @@ const DummyContent: React.FC<{ postchapter: ChapterData[] }> = ({ postchapter })
 
   return (
     <div className={cn(
-      "bg-gradient-to-br from-gray-50/90 to-gray-100/90 dark:from-gray-900/90 dark:to-gray-800/90",
+      "bg-white/90 dark:bg-slate-800/90",
       "backdrop-blur-sm",
-      "p-8 md:p-14 rounded-3xl mb-4",
-      "border border-gray-200/50 dark:border-gray-700/50"
+      "p-4 md:p-8 lg:p-12 rounded-2xl md:rounded-3xl mb-2 md:mb-4",
+      "border border-slate-200/50 dark:border-slate-700/50 shadow-lg"
     )}>
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-2 md:gap-4 mb-3 md:mb-6">
         <span className={cn(
-          "text-sm font-medium",
+          "text-xs md:text-sm font-medium",
           "bg-gradient-to-r from-purple-500/90 to-blue-500/90 dark:from-purple-400/80 dark:to-blue-400/80",
-          "px-3 py-1 rounded-full",
+          "px-2 md:px-3 py-0.5 md:py-1 rounded-full",
           "text-white"
         )}>
           Chapter {chapter.position || 1}
@@ -197,7 +204,7 @@ const DummyContent: React.FC<{ postchapter: ChapterData[] }> = ({ postchapter })
 
       <div className={cn(
         "prose max-w-4xl mx-auto",
-        "text-base md:text-lg lg:text-xl",
+        "text-sm md:text-base lg:text-lg",
         "font-light tracking-wide",
         "leading-relaxed"
       )}>
@@ -206,12 +213,12 @@ const DummyContent: React.FC<{ postchapter: ChapterData[] }> = ({ postchapter })
             __html: chapter.description || "No description available",
           }}
           className={cn(
-            "text-gray-700 dark:text-gray-200",
+            "text-slate-700 dark:text-slate-300",
             "text-justify",
-            "prose-headings:text-gray-900 dark:prose-headings:text-gray-100",
-            "prose-strong:text-gray-800 dark:prose-strong:text-white",
-            "prose-em:text-gray-700 dark:prose-em:text-gray-200",
-            "prose-code:text-gray-800 dark:prose-code:text-gray-200",
+            "prose-headings:text-slate-900 dark:prose-headings:text-white",
+            "prose-strong:text-slate-800 dark:prose-strong:text-slate-100",
+            "prose-em:text-slate-700 dark:prose-em:text-slate-300",
+            "prose-code:text-slate-800 dark:prose-code:text-slate-200",
             "prose-a:text-blue-600 dark:prose-a:text-blue-400",
             "hover:prose-a:text-blue-700 dark:hover:prose-a:text-blue-300"
           )}
@@ -219,7 +226,7 @@ const DummyContent: React.FC<{ postchapter: ChapterData[] }> = ({ postchapter })
       </div>
 
       {chapter.imageUrl && (
-        <div className="relative w-full h-[30rem] mt-8 group">
+        <div className="relative w-full h-[15rem] md:h-[20rem] lg:h-[28rem] mt-4 md:mt-8 group">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 dark:from-purple-500/10 to-blue-500/5 dark:to-blue-500/10 rounded-xl z-10" />
           <Image
             src={chapter.imageUrl}

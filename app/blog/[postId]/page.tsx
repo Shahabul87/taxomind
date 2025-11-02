@@ -1,14 +1,13 @@
 import { redirect } from "next/navigation";
 import { currentUser } from '@/lib/auth'
 import { Footer } from "@/app/(homepage)/footer";
-import { transformPostChapters } from "./_components/transform-post-chapter";
 import ReadingModes from "./_components/reading-mode";
 import { FeaturedImage } from "./_components/featured-image";
 import { Metadata } from "next";
-import PostHeaderDetails from "./_components/post-header-details";
+import EnterprisePostHeader from "./_components/enterprise-post-header";
 import { getPostData } from "@/app/actions/get-post-data";
-import SimilarPosts from "./_components/similar-posts";
-import { CommentSection } from "./_components/comment-system";
+import YouMayLikeSection from "./_components/you-may-like-section";
+import FacebookCommentSection from "./_components/facebook-comment-section";
 
 // Is the app running in development mode?
 const isDev = process.env.NODE_ENV === 'development';
@@ -22,14 +21,19 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
     return redirect("/");
   }
 
-  const content = transformPostChapters(post.PostChapterSection);
-  const formattedDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  // Calculate reading time based on post chapters
+  const calculateReadingTime = (postchapters: any[]) => {
+    if (!postchapters || postchapters.length === 0) return 5;
+    const wordsPerMinute = 200;
+    const totalWords = postchapters.reduce((acc, chapter) => {
+      const description = chapter.description || '';
+      const words = description.split(/\s+/).length;
+      return acc + words;
+    }, 0);
+    return Math.max(1, Math.ceil(totalWords / wordsPerMinute));
   };
+
+  const readingTime = calculateReadingTime(post.PostChapterSection || []);
 
   return (
     <>
@@ -56,20 +60,34 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
           }}
         />
       )}
-      <div className="min-h-screen bg-white dark:bg-gradient-to-b dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200">
-        <div className="w-full max-w-[2000px] mx-auto">
-          <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 mx-auto">
-            <div className="mx-auto w-full lg:px-4 lg:py-8">
-              {/* Combined Header and Metadata */}
-              <PostHeaderDetails
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="w-full px-4 sm:px-6 lg:px-8 mx-auto">
+            <div className="mx-auto w-full py-8 lg:py-12">
+              {/* Enterprise Header */}
+              <EnterprisePostHeader
                 title={post.title}
+                description={post.description}
                 category={post.category}
                 authorName={post.User?.name}
+                authorImage={undefined}
+                authorRole="Content Creator"
                 createdAt={post.createdAt}
                 updatedAt={post.updatedAt}
+                readingTime={readingTime}
+                viewCount={1234}
+                likeCount={89}
+                commentCount={post.comments?.length || 0}
+                shareCount={45}
+                tags={post.category ? [post.category] : []}
+                difficulty="Intermediate"
+                language="English"
+                isVerified={true}
+                isFeatured={false}
+                isPremium={false}
               />
 
-              <div className="h-px w-full bg-gray-200 dark:bg-gradient-to-r dark:from-blue-500/50 dark:via-purple-500/50 dark:to-blue-500/50 mb-8" />
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent my-12" />
 
               {/* Featured Image with Toggle */}
               {post.imageUrl && (
@@ -79,21 +97,21 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
               )}
 
               {/* Reading Modes */}
-              <div className="mb-12 bg-gray-50 dark:bg-gray-800/50 rounded-xl lg:p-6 border border-gray-200 dark:border-gray-700/50 backdrop-blur-sm">
+              <div className="mb-12">
                 <ReadingModes post={post} />
               </div>
 
-              {/* Similar Posts Section */}
-              <SimilarPosts 
+              {/* You May Like Section */}
+              <YouMayLikeSection
                 postId={params.postId}
-                category={post.category} 
+                category={post.category}
                 useDummyData={true}
               />
 
               {/* Comments Section */}
-              <div className="mt-8 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700/50 backdrop-blur-sm">
-                <CommentSection 
-                  postId={params.postId} 
+              <div className="mt-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl p-6 border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
+                <FacebookCommentSection
+                  postId={params.postId}
                   initialComments={post.comments as unknown as any[]}
                 />
               </div>

@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import Image from 'next/image';
-import { 
-  User, 
-  BookOpen, 
-  Award, 
-  Calendar, 
-  Settings, 
+import { motion } from 'framer-motion';
+import { ProfilePageLayout } from './_components/ProfilePageLayout';
+import {
+  User,
+  BookOpen,
+  Award,
+  Calendar,
+  Settings,
   Activity,
   TrendingUp,
   Clock,
@@ -31,8 +33,11 @@ import {
   FileText,
   Video,
   MessageSquare,
-  Heart
+  Heart,
+  Sparkles,
+  Zap
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -270,16 +275,60 @@ export default function ProfilePage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
-      {/* Profile Header */}
-      <div className="relative">
-        <div className="h-48 bg-gradient-to-r from-primary/20 via-primary/10 to-secondary/20" />
-        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
-      </div>
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
 
-      <div className="container mx-auto px-4 -mt-32 relative z-10">
-        <div className="bg-background rounded-xl shadow-xl p-8 mb-8">
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+
+  return (
+    <ProfilePageLayout>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="min-h-screen"
+      >
+        {/* Profile Header Banner */}
+        <div className="relative overflow-hidden">
+          <div className="h-56 sm:h-64 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 relative">
+            <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
+            <motion.div
+              className="absolute inset-0"
+              animate={{
+                backgroundPosition: ['0% 0%', '100% 100%'],
+              }}
+              transition={{
+                duration: 20,
+                repeat: Infinity,
+                repeatType: 'reverse'
+              }}
+              style={{
+                backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)',
+                backgroundSize: '100px 100px'
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-24 relative z-10">
+        <motion.div
+          variants={itemVariants}
+          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl shadow-xl border border-slate-200/50 dark:border-slate-700/50 p-6 sm:p-8 mb-8"
+        >
           <div className="flex flex-col md:flex-row items-start gap-8">
             {/* Profile Picture */}
             <div className="relative group">
@@ -301,54 +350,79 @@ export default function ProfilePage() {
 
             {/* Profile Info */}
             <div className="flex-1">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold">{profile.name}</h1>
-                  <p className="text-muted-foreground mt-1">{profile.email}</p>
-                  <p className="mt-3 max-w-2xl">{profile.bio}</p>
-                  
-                  <div className="flex flex-wrap gap-4 mt-4 text-sm text-muted-foreground">
+              <div className="flex items-start justify-between flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+                      {profile.name}
+                    </h1>
+                    <motion.div
+                      animate={{
+                        rotate: [0, 10, -10, 0]
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatDelay: 3
+                      }}
+                    >
+                      <Sparkles className="h-5 w-5 text-indigo-500" />
+                    </motion.div>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-300 mt-1 flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    {profile.email}
+                  </p>
+                  <p className="mt-4 max-w-2xl text-slate-700 dark:text-slate-200 leading-relaxed">
+                    {profile.bio}
+                  </p>
+
+                  <div className="flex flex-wrap gap-4 mt-5 text-sm text-slate-600 dark:text-slate-400">
                     {profile.location && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700/50 rounded-full">
                         <MapPin className="h-4 w-4" />
                         {profile.location}
                       </div>
                     )}
                     {profile.website && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700/50 rounded-full">
                         <Globe className="h-4 w-4" />
-                        <a href={profile.website} className="hover:text-primary">
+                        <a href={profile.website} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                           Portfolio
                         </a>
                       </div>
                     )}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700/50 rounded-full">
                       <Calendar className="h-4 w-4" />
                       Member since {new Date(profile.createdAt).toLocaleDateString()}
                     </div>
                   </div>
 
                   {/* Social Links */}
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex gap-2 mt-5">
                     {profile.twitter && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8">
+                      <Button size="icon" variant="ghost" className="h-9 w-9 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                         <Twitter className="h-4 w-4" />
                       </Button>
                     )}
                     {profile.linkedin && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8">
+                      <Button size="icon" variant="ghost" className="h-9 w-9 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-400 transition-colors">
                         <Linkedin className="h-4 w-4" />
                       </Button>
                     )}
                     {profile.github && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8">
+                      <Button size="icon" variant="ghost" className="h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                         <Github className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
                 </div>
 
-                <Button variant="outline" onClick={() => setIsEditingProfile(true)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditingProfile(true)}
+                  className="border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all"
+                >
                   <Edit2 className="h-4 w-4 mr-2" />
                   Edit Profile
                 </Button>
@@ -356,58 +430,103 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Stats Overview */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mt-8 pt-8 border-t">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{profile.coursesEnrolled}</div>
-              <div className="text-sm text-muted-foreground">Courses Enrolled</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{profile.coursesCompleted}</div>
-              <div className="text-sm text-muted-foreground">Completed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{profile.certificatesEarned}</div>
-              <div className="text-sm text-muted-foreground">Certificates</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{profile.totalLearningHours}h</div>
-              <div className="text-sm text-muted-foreground">Learning Hours</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold flex items-center justify-center gap-1">
+          {/* Stats Overview - Enhanced */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="text-center p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20"
+            >
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{profile.coursesEnrolled}</div>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">Courses Enrolled</div>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="text-center p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20"
+            >
+              <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">{profile.coursesCompleted}</div>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">Completed</div>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="text-center p-4 rounded-xl bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20"
+            >
+              <div className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">{profile.certificatesEarned}</div>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">Certificates</div>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="text-center p-4 rounded-xl bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20"
+            >
+              <div className="text-2xl sm:text-3xl font-bold text-cyan-600 dark:text-cyan-400">{profile.totalLearningHours}h</div>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">Learning Hours</div>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="text-center p-4 rounded-xl bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20"
+            >
+              <div className="text-2xl sm:text-3xl font-bold flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
                 {profile.currentStreak}
-                <span className="text-orange-500">🔥</span>
+                <motion.span
+                  animate={{
+                    scale: [1, 1.2, 1]
+                  }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity
+                  }}
+                  className="text-orange-500"
+                >
+                  🔥
+                </motion.span>
               </div>
-              <div className="text-sm text-muted-foreground">Day Streak</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{profile.longestStreak}</div>
-              <div className="text-sm text-muted-foreground">Best Streak</div>
-            </div>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">Day Streak</div>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="text-center p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20"
+            >
+              <div className="text-2xl sm:text-3xl font-bold text-yellow-600 dark:text-yellow-400">{profile.longestStreak}</div>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">Best Streak</div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="courses">Courses</TabsTrigger>
-            <TabsTrigger value="achievements">Achievements</TabsTrigger>
-            <TabsTrigger value="skills">Skills</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
-          </TabsList>
+        <motion.div variants={itemVariants}>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+            <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-lg">
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="courses" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-lg">
+                Courses
+              </TabsTrigger>
+              <TabsTrigger value="achievements" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-amber-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-lg">
+                Achievements
+              </TabsTrigger>
+              <TabsTrigger value="skills" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-lg">
+                Skills
+              </TabsTrigger>
+              <TabsTrigger value="activity" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-lg">
+                Activity
+              </TabsTrigger>
+            </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-8">
-            <div className="grid gap-8 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2">
               {/* Continue Learning */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Continue Learning</CardTitle>
-                  <CardDescription>Pick up where you left off</CardDescription>
+              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-3xl hover:shadow-xl transition-all duration-300">
+                <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50">
+                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                    <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500">
+                      <BookOpen className="h-5 w-5 text-white" />
+                    </div>
+                    Continue Learning
+                  </CardTitle>
+                  <CardDescription className="text-slate-600 dark:text-slate-300">Pick up where you left off</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-6">
                   {profile.courses.slice(0, 2).map((course) => (
                     <div key={course.id} className="flex gap-4">
                       <div className="relative w-24 h-16 rounded-lg overflow-hidden bg-muted">
@@ -429,10 +548,15 @@ export default function ProfilePage() {
               </Card>
 
               {/* Recent Achievements */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Achievements</CardTitle>
-                  <CardDescription>Your latest accomplishments</CardDescription>
+              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-3xl hover:shadow-xl transition-all duration-300">
+                <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50">
+                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                    <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-500 to-amber-500">
+                      <Trophy className="h-5 w-5 text-white" />
+                    </div>
+                    Recent Achievements
+                  </CardTitle>
+                  <CardDescription className="text-slate-600 dark:text-slate-300">Your latest accomplishments</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {profile.achievements.slice(0, 3).map((achievement) => (
@@ -451,10 +575,15 @@ export default function ProfilePage() {
               </Card>
 
               {/* Learning Stats */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Learning Analytics</CardTitle>
-                  <CardDescription>Your progress this month</CardDescription>
+              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-3xl hover:shadow-xl transition-all duration-300">
+                <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50">
+                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                    <div className="p-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500">
+                      <BarChart3 className="h-5 w-5 text-white" />
+                    </div>
+                    Learning Analytics
+                  </CardTitle>
+                  <CardDescription className="text-slate-600 dark:text-slate-300">Your progress this month</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -489,10 +618,15 @@ export default function ProfilePage() {
               </Card>
 
               {/* Top Skills */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top Skills</CardTitle>
-                  <CardDescription>Your skill progression</CardDescription>
+              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-3xl hover:shadow-xl transition-all duration-300">
+                <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50">
+                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                    <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500">
+                      <Zap className="h-5 w-5 text-white" />
+                    </div>
+                    Top Skills
+                  </CardTitle>
+                  <CardDescription className="text-slate-600 dark:text-slate-300">Your skill progression</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -634,7 +768,9 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+        </motion.div>
+        </div>
+      </motion.div>
+    </ProfilePageLayout>
   );
 }

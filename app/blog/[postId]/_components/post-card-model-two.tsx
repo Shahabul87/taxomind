@@ -42,6 +42,15 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
     });
   };
 
+  // Handle null/undefined data
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-10">
+        <p className="text-gray-500 dark:text-gray-400">No chapters available</p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-[85rem] mx-auto space-y-16 px-4">
       {data.map((chapter, index) => (
@@ -113,16 +122,18 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
             )}
 
             {/* Description */}
-            <div className={cn(
-              "prose prose-lg lg:prose-xl max-w-none",
-              "dark:prose-invert",
-              "prose-p:text-gray-700 dark:prose-p:text-gray-300",
-              "prose-strong:text-gray-900 dark:prose-strong:text-white",
-              "prose-headings:text-gray-900 dark:prose-headings:text-white",
-              "leading-relaxed"
-            )}>
-              {parseHtmlContent(chapter.description)}
-            </div>
+            {chapter.description && (
+              <div className={cn(
+                "prose prose-lg lg:prose-xl max-w-none",
+                "dark:prose-invert",
+                "prose-p:text-gray-700 dark:prose-p:text-gray-300",
+                "prose-strong:text-gray-900 dark:prose-strong:text-white",
+                "prose-headings:text-gray-900 dark:prose-headings:text-white",
+                "leading-relaxed"
+              )}>
+                {parseHtmlContent(chapter.description)}
+              </div>
+            )}
 
             {/* Decorative Elements */}
             <div className="flex items-center gap-4 mt-10">

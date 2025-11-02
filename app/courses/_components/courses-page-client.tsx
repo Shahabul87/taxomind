@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/hooks/use-debounce";
-import { ModernCoursesPage } from "./modern-courses-page";
+import { ProfessionalCoursesPage } from "./professional-courses-page";
 import {
   Search,
   Filter,
@@ -50,7 +50,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { EnhancedCourseCard } from "./enhanced-course-card";
 import { FilterSidebar } from "./filter-sidebar";
-import { HeroSection } from "./hero-section";
 import { QuickStatsBar } from "./quick-stats-bar";
 import { Pagination } from "./pagination";
 import { EmptyState } from "./empty-state";
@@ -395,9 +394,9 @@ export function CoursesPageClient({
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-  // Use modern design
+  // Use professional design
   return (
-    <ModernCoursesPage
+    <ProfessionalCoursesPage
       initialCourses={courses}
       filterOptions={filterOptions}
       totalCourses={totalCount}

@@ -130,17 +130,17 @@ export const FilterPresets = ({
       }
     }
 
-    return `${baseClasses} bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 hover:border-gray-300 dark:hover:border-gray-600`;
+    return `${baseClasses} bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600`;
   };
 
   return (
-    <Card className="border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md shadow-md p-3 sm:p-4">
+    <Card className="border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg rounded-3xl p-3 sm:p-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
         <div className="flex-1 min-w-0">
-          <h3 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
             Quick Filters
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 hidden sm:block">
+          <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 hidden sm:block">
             Filter courses by common criteria
           </p>
         </div>
@@ -149,7 +149,7 @@ export const FilterPresets = ({
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 h-7 sm:h-8 text-xs flex-shrink-0"
+          className="gap-2 h-7 sm:h-8 text-xs flex-shrink-0 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
           disabled
         >
           <Plus className="w-3 h-3" />
@@ -209,18 +209,18 @@ export const FilterPresets = ({
                     "p-1.5 sm:p-2 rounded-md inline-flex items-center justify-center w-fit",
                     isActive
                       ? "bg-white/20 backdrop-blur-sm"
-                      : "bg-gray-100 dark:bg-gray-700"
+                      : "bg-slate-100 dark:bg-slate-700"
                   )}>
                     <Icon className={cn(
                       "w-3.5 h-3.5 sm:w-4 sm:h-4",
-                      isActive ? "text-white" : "text-gray-600 dark:text-gray-300"
+                      isActive ? "text-white" : "text-slate-600 dark:text-slate-300"
                     )} />
                   </div>
 
                   <div>
                     <p className={cn(
                       "text-xs font-semibold mb-0.5 truncate",
-                      isActive ? "text-white" : "text-gray-900 dark:text-white"
+                      isActive ? "text-white" : "text-slate-900 dark:text-white"
                     )}>
                       {preset.name}
                     </p>
@@ -228,7 +228,7 @@ export const FilterPresets = ({
                       "text-[10px] leading-tight line-clamp-2",
                       isActive
                         ? "text-white/80"
-                        : "text-gray-500 dark:text-gray-400"
+                        : "text-slate-600 dark:text-slate-400"
                     )}>
                       {preset.description}
                     </p>
@@ -256,21 +256,21 @@ export const FilterPresets = ({
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+          className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-xs">
                 Active Filter
               </Badge>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 {allPresets.find(p => p.id === selectedPreset)?.name}
               </p>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-xs"
+              className="h-7 text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
               onClick={() => handlePresetClick(defaultPresets[0])}
             >
               Clear

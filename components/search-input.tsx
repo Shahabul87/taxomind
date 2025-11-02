@@ -21,7 +21,7 @@ export const SearchInput = ({
   onChange 
 }: SearchInputProps) => {
   const [value, setValue] = useState("")
-  const debouncedValue = useDebounce(value);
+  const debouncedValue = useDebounce(value, 500);
 
   const searchParams = useSearchParams();
   const router = useRouter();

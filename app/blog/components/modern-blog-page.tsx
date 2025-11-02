@@ -40,7 +40,8 @@ import {
   Lightbulb,
   FileText,
   Grid3X3,
-  List
+  List,
+  X
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -103,13 +104,86 @@ interface ModernBlogPageProps {
   trendingPosts: BlogPost[];
 }
 
-// Modern Hero Section with Featured Article
+// Featured Article Component with Horizontal Layout - Compact Version
+const FeaturedArticleCard = ({ post, index }: { post: BlogPost; index: number }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+    >
+      <Link href={`/blog/${post.id}`}>
+        <Card className="overflow-hidden bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-sm border border-slate-700/50 hover:border-slate-600/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl group cursor-pointer h-[145px]">
+          {/* Horizontal Layout: Image Left, Content Right */}
+          <div className="flex h-full">
+            {/* Image Section - Left */}
+            <div className="relative w-[35%] overflow-hidden">
+              <Image
+                src={post.imageUrl || "/api/placeholder/800/400"}
+                alt={post.title}
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-slate-900/50" />
+              {index === 0 && (
+                <Badge className="absolute top-2 left-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md border-0 px-2 py-0.5 text-xs">
+                  Featured
+                </Badge>
+              )}
+            </div>
+
+            {/* Content Section - Right */}
+            <div className="w-[65%] p-3 flex flex-col justify-between">
+              {/* Top Section */}
+              <div>
+                {/* Metadata */}
+                <div className="flex items-center gap-2 mb-1.5 text-[10px] text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-2.5 h-2.5" />
+                    {new Date(post.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-2.5 h-2.5" />
+                    {post.readingTime}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Eye className="w-2.5 h-2.5" />
+                    {post.views.toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-sm font-bold mb-1.5 line-clamp-2 text-white group-hover:text-blue-400 transition-colors leading-tight">
+                  {post.title}
+                </h3>
+
+                {/* Description */}
+                <p className="text-[11px] text-slate-300 line-clamp-2 leading-snug">
+                  {post.description}
+                </p>
+              </div>
+
+              {/* CTA Button */}
+              <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white border-0 w-full h-7 text-[11px] mt-1.5">
+                Read Article
+                <ArrowRight className="w-3 h-3 ml-1 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </Link>
+    </motion.div>
+  );
+};
+
+// Modern Hero Section with Recent Articles
 const ModernHeroSection = ({
-  featuredPost,
+  featuredPosts,
   statistics,
   isLoading
 }: {
-  featuredPost?: BlogPost;
+  featuredPosts: BlogPost[];
   statistics?: BlogStatistics | null;
   isLoading?: boolean;
 }) => {
@@ -121,7 +195,7 @@ const ModernHeroSection = ({
   };
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-purple-50 to-slate-50 dark:from-slate-950 dark:via-purple-950/20 dark:to-slate-950">
+    <div className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-grid-slate-200/50 dark:bg-grid-slate-700/25 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,white)]" />
 
@@ -134,12 +208,12 @@ const ModernHeroSection = ({
             transition={{ duration: 0.5 }}
           >
             {/* Blog Label */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-700 dark:text-blue-400 text-sm font-medium mb-6">
               <PenSquare className="w-4 h-4" />
               <span>Insights & Innovation</span>
             </div>
 
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 dark:from-white dark:via-purple-200 dark:to-white bg-clip-text text-transparent">
+            <h1 className="text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 dark:from-white dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent tracking-tight">
               Ideas That Shape Tomorrow
             </h1>
 
@@ -211,62 +285,35 @@ const ModernHeroSection = ({
             </div>
           </motion.div>
 
-          {/* Right Content - Featured Article */}
-          {featuredPost && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Card className="overflow-hidden border-0 shadow-2xl hover:shadow-3xl transition-shadow duration-300">
-                <div className="relative h-64 overflow-hidden">
-                  <Image
-                    src={featuredPost.imageUrl || "/api/placeholder/800/400"}
-                    alt={featuredPost.title}
-                    fill
-                    className="object-cover transition-transform duration-500 hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  <Badge className="absolute top-4 left-4 bg-purple-600 text-white">
-                    Featured
-                  </Badge>
+          {/* Right Content - Most Recent Articles Section */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="relative"
+          >
+            {/* Section Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4 mb-4 text-sm text-slate-600 dark:text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(featuredPost.createdAt).toLocaleDateString()}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {featuredPost.readingTime}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-4 h-4" />
-                      {featuredPost.views.toLocaleString()}
-                    </span>
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3 line-clamp-2 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
-                    {featuredPost.title}
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-300 line-clamp-3 mb-4">
-                    {featuredPost.description}
-                  </p>
-                  <Link href={`/blog/${featuredPost.id}`}>
-                    <Button className="w-full group">
-                      Read Article
-                      <ArrowUpRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Most Recent</h2>
+              </div>
+            </div>
+
+            {/* Scrollable Recent Articles Container - Shows all 5 items */}
+            <div className="space-y-2.5 max-h-[760px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-100 dark:[&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-slate-400 dark:[&::-webkit-scrollbar-thumb]:hover:bg-slate-500">
+              {featuredPosts.slice(0, 5).map((post, index) => (
+                <FeaturedArticleCard key={post.id} post={post} index={index} />
+              ))}
+            </div>
+          </motion.div>
         </div>
       </div>
 
       {/* Decorative Elements */}
-      <div className="absolute top-20 right-10 w-72 h-72 bg-purple-400 rounded-full blur-3xl opacity-20" />
+      <div className="absolute top-20 right-10 w-72 h-72 bg-indigo-400 rounded-full blur-3xl opacity-20" />
       <div className="absolute bottom-20 left-10 w-96 h-96 bg-blue-400 rounded-full blur-3xl opacity-20" />
     </div>
   );
@@ -293,7 +340,7 @@ const ModernBlogCard = ({ post, index, viewMode = "grid" }: { post: BlogPost; in
         transition={{ duration: 0.3, delay: index * 0.05 }}
         className="w-full"
       >
-        <Card className="overflow-hidden border-0 shadow-sm hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-900 h-full">
+        <Card className="overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-lg transition-all duration-300 rounded-xl h-full">
           <div className="flex gap-5 p-5">
             {/* Image Thumbnail - Consistent Size */}
             <div className="relative flex-shrink-0 w-40 h-40 rounded-lg overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
@@ -336,7 +383,7 @@ const ModernBlogCard = ({ post, index, viewMode = "grid" }: { post: BlogPost; in
 
                   {/* Title */}
                   <Link href={`/blog/${post.id}`}>
-                    <h3 className="font-bold text-lg mb-2 line-clamp-2 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                    <h3 className="font-bold text-lg mb-2 line-clamp-2 text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                       {post.title}
                     </h3>
                   </Link>
@@ -371,7 +418,7 @@ const ModernBlogCard = ({ post, index, viewMode = "grid" }: { post: BlogPost; in
                     className="h-9 w-9"
                     onClick={() => setIsBookmarked(!isBookmarked)}
                   >
-                    <Bookmark className={cn("w-4 h-4", isBookmarked && "fill-current text-purple-600")} />
+                    <Bookmark className={cn("w-4 h-4", isBookmarked && "fill-current text-blue-600 dark:text-blue-400")} />
                   </Button>
                   <Link href={`/blog/${post.id}`}>
                     <Button size="sm" className="h-9 px-4">
@@ -397,7 +444,7 @@ const ModernBlogCard = ({ post, index, viewMode = "grid" }: { post: BlogPost; in
       whileHover={{ y: -4 }}
       className="h-full"
     >
-      <Card className="h-full flex flex-col overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 bg-white dark:bg-slate-900">
+      <Card className="h-full flex flex-col overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-xl transition-all duration-300 rounded-xl">
         {/* Image - Consistent Height */}
         <div className="relative h-52 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
           {post.imageUrl && (
@@ -429,7 +476,7 @@ const ModernBlogCard = ({ post, index, viewMode = "grid" }: { post: BlogPost; in
             className="absolute top-3 right-3 h-9 w-9 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800"
             onClick={() => setIsBookmarked(!isBookmarked)}
           >
-            <Bookmark className={cn("w-4 h-4", isBookmarked && "fill-current text-purple-600")} />
+            <Bookmark className={cn("w-4 h-4", isBookmarked && "fill-current text-blue-600 dark:text-blue-400")} />
           </Button>
         </div>
 
@@ -456,7 +503,7 @@ const ModernBlogCard = ({ post, index, viewMode = "grid" }: { post: BlogPost; in
 
           {/* Title */}
           <Link href={`/blog/${post.id}`}>
-            <h3 className="text-lg font-bold mb-2 line-clamp-2 hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer min-h-[3.5rem]">
+            <h3 className="text-lg font-bold mb-2 line-clamp-2 text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer min-h-[3.5rem]">
               {post.title}
             </h3>
           </Link>
@@ -507,39 +554,62 @@ const ModernBlogCard = ({ post, index, viewMode = "grid" }: { post: BlogPost; in
   );
 };
 
-// Trending Sidebar Component
+// Trending Sidebar Component - Redesigned
 const TrendingSidebar = ({ posts }: { posts: BlogPost[] }) => {
+  const gradients = [
+    "from-purple-500 to-pink-500",
+    "from-blue-500 to-cyan-500",
+    "from-emerald-500 to-teal-500",
+    "from-orange-500 to-red-500",
+    "from-indigo-500 to-purple-500"
+  ];
+
   return (
-    <Card className="border-0 shadow-sm">
-      <CardHeader>
+    <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-2xl overflow-hidden">
+      <CardHeader className="pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold flex items-center gap-2">
+          <h3 className="text-lg font-bold flex items-center gap-2 text-slate-900 dark:text-white">
             <TrendingUp className="w-5 h-5 text-orange-500" />
             Trending Now
           </h3>
-          <Badge variant="secondary">Hot</Badge>
+          <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 px-3 py-1 text-xs font-semibold shadow-md">
+            Hot
+          </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {posts.map((post, index) => (
-          <Link key={post.id} href={`/blog/${post.id}`}>
-            <div className="flex gap-3 group cursor-pointer">
-              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white flex items-center justify-center font-bold">
-                {index + 1}
-              </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-medium line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                  {post.title}
-                </h4>
-                <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-                  <span>{post.user.name}</span>
-                  <span>•</span>
-                  <span>{post.views.toLocaleString()} views</span>
+      <CardContent className="p-0">
+        <div className="divide-y divide-slate-200/50 dark:divide-slate-700/50">
+          {posts.slice(0, 5).map((post, index) => (
+            <Link key={post.id} href={`/blog/${post.id}`}>
+              <div className="px-5 py-4 group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-all duration-200">
+                <div className="flex gap-4 items-start">
+                  {/* Gradient Number Badge */}
+                  <div className={`flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br ${gradients[index]} text-white flex items-center justify-center font-bold text-lg shadow-lg`}>
+                    {index + 1}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold line-clamp-2 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-2 leading-tight">
+                      {post.title}
+                    </h4>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        {post.user.name}
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-3 h-3" />
+                        {post.views.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
@@ -548,11 +618,11 @@ const TrendingSidebar = ({ posts }: { posts: BlogPost[] }) => {
 // Newsletter Subscription Component
 const NewsletterSection = () => {
   return (
-    <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
+    <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-slate-200/50 dark:border-slate-700/50 shadow-sm rounded-xl">
       <CardContent className="p-6">
         <div className="text-center mb-4">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/50 mb-3">
-            <Rocket className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 mb-3">
+            <Rocket className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <h3 className="text-lg font-semibold mb-2">Stay Updated</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -603,6 +673,7 @@ export function ModernBlogPage({
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"latest" | "popular" | "trending">("latest");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
   const [statistics, setStatistics] = useState<BlogStatistics | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -715,36 +786,45 @@ export function ModernBlogPage({
   }, [posts, selectedCategory, searchQuery, minViews, dateRange, sortBy]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
       {/* Hero Section */}
       <ModernHeroSection
-        featuredPost={featuredPosts[0]}
+        featuredPosts={featuredPosts}
         statistics={statistics}
         isLoading={statsLoading}
       />
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
-        {/* Search and Filter Bar */}
-        <div className="mb-8">
+        {/* Search and Filter Bar - Sticky */}
+        <div className="sticky top-0 z-40 mb-8 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 pb-4 -mx-4 px-4 pt-4 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-700/50">
           <div className="flex flex-col lg:flex-row gap-4 mb-6">
             {/* Search Input - Consistent Height */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 h-5 w-5" />
               <Input
                 placeholder="Search articles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-11 text-base"
+                className="pl-10 pr-10 h-11 text-base bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <div className="flex gap-3">
               {/* Sort Dropdown - Consistent Height */}
               <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                <SelectTrigger className="w-[160px] h-11">
+                <SelectTrigger className="w-[160px] h-11 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 text-slate-900 dark:text-white">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
                   <SelectItem value="latest">Latest</SelectItem>
                   <SelectItem value="popular">Most Popular</SelectItem>
                   <SelectItem value="trending">Trending</SelectItem>
@@ -752,9 +832,9 @@ export function ModernBlogPage({
               </Select>
 
               {/* Advanced Filters Popover - Consistent Height */}
-              <Popover>
+              <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-11 px-4">
+                  <Button variant="outline" className="h-11 px-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700/80">
                     <Filter className="w-4 h-4 mr-2" />
                     Filters
                     {(minViews > 0 || dateRange !== "all") && (
@@ -764,7 +844,7 @@ export function ModernBlogPage({
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80">
+                <PopoverContent className="w-80 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <h4 className="font-medium text-sm">Advanced Filters</h4>
@@ -819,19 +899,25 @@ export function ModernBlogPage({
                       >
                         Clear All
                       </Button>
-                      <Button size="sm" className="h-9">Apply Filters</Button>
+                      <Button
+                        size="sm"
+                        className="h-9"
+                        onClick={() => setIsFilterPopoverOpen(false)}
+                      >
+                        Apply Filters
+                      </Button>
                     </div>
                   </div>
                 </PopoverContent>
               </Popover>
 
               {/* View Mode Toggle - Consistent Height */}
-              <div className="hidden md:flex items-center border rounded-lg h-11">
+              <div className="hidden md:flex items-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 rounded-lg h-11">
                 <Button
                   variant={viewMode === "grid" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setViewMode("grid")}
-                  className="rounded-r-none h-9 w-11"
+                  className="rounded-r-none h-9 w-11 text-slate-900 dark:text-white"
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </Button>
@@ -839,7 +925,7 @@ export function ModernBlogPage({
                   variant={viewMode === "list" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setViewMode("list")}
-                  className="rounded-l-none h-9 w-11"
+                  className="rounded-l-none h-9 w-11 text-slate-900 dark:text-white"
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -847,14 +933,54 @@ export function ModernBlogPage({
             </div>
           </div>
 
+          {/* Active Filters Display */}
+          {(searchQuery || minViews > 0 || dateRange !== "all") && (
+            <div className="mb-4 flex flex-wrap gap-2 items-center">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Active filters:</span>
+              {searchQuery && (
+                <Badge variant="secondary" className="gap-1">
+                  Search: &quot;{searchQuery}&quot;
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="ml-1 hover:text-slate-900 dark:hover:text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+              {minViews > 0 && (
+                <Badge variant="secondary" className="gap-1">
+                  Min views: {minViews.toLocaleString()}
+                  <button
+                    onClick={() => setMinViews(0)}
+                    className="ml-1 hover:text-slate-900 dark:hover:text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+              {dateRange !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  Date: {dateRange}
+                  <button
+                    onClick={() => setDateRange("all")}
+                    className="ml-1 hover:text-slate-900 dark:hover:text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+          )}
+
           {/* Category Tabs - Consistent Height */}
           <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-            <TabsList className="w-full justify-start overflow-x-auto flex-nowrap bg-slate-100 dark:bg-slate-800 h-11">
+            <TabsList className="w-full justify-start overflow-x-auto flex-nowrap bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 h-11">
               {categories.map(category => (
                 <TabsTrigger
                   key={category.id}
                   value={category.id}
-                  className="whitespace-nowrap h-9 px-4"
+                  className="whitespace-nowrap h-9 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
                 >
                   {category.name}
                   <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
@@ -895,13 +1021,34 @@ export function ModernBlogPage({
 
             {/* All Posts Grid */}
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">
-                  {selectedCategory === "all" ? "Latest Articles" : `${selectedCategory} Articles`}
-                </h2>
-                <span className="text-sm text-slate-500">
-                  {filteredPosts.length} articles found
-                </span>
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                    {selectedCategory === "all" ? "Latest Articles" : `${categories.find(c => c.id === selectedCategory)?.name} Articles`}
+                  </h2>
+                  <Badge variant="secondary" className="text-sm">
+                    {filteredPosts.length} {filteredPosts.length === 1 ? "article" : "articles"}
+                  </Badge>
+                </div>
+
+                {/* Active Filters Indicator */}
+                {(searchQuery || selectedCategory !== "all" || minViews > 0 || dateRange !== "all" || sortBy !== "latest") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedCategory("all");
+                      setMinViews(0);
+                      setDateRange("all");
+                      setSortBy("latest");
+                    }}
+                    className="h-8 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Reset all filters
+                  </Button>
+                )}
               </div>
 
               {filteredPosts.length > 0 ? (
@@ -940,7 +1087,7 @@ export function ModernBlogPage({
             <NewsletterSection />
 
             {/* Popular Tags */}
-            <Card className="border-0 shadow-sm">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm rounded-xl">
               <CardHeader>
                 <h3 className="font-semibold flex items-center gap-2">
                   <Hash className="w-5 h-5" />
@@ -953,7 +1100,7 @@ export function ModernBlogPage({
                     <Badge
                       key={tag}
                       variant="secondary"
-                      className="cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+                      className="cursor-pointer hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 transition-all"
                     >
                       {tag}
                     </Badge>
@@ -963,7 +1110,7 @@ export function ModernBlogPage({
             </Card>
 
             {/* Top Authors */}
-            <Card className="border-0 shadow-sm">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm rounded-xl">
               <CardHeader>
                 <h3 className="font-semibold flex items-center gap-2">
                   <Users className="w-5 h-5" />

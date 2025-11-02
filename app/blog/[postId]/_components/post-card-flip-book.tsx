@@ -18,6 +18,15 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
+  // Handle null/undefined data early
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-10">
+        <p className="text-gray-500 dark:text-gray-400">No chapters available</p>
+      </div>
+    );
+  }
+
   useEffect(() => {
     console.log("FlipBook Data:", data); // Debug log
     if (!Array.isArray(data) || data.length === 0) {
@@ -101,14 +110,36 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-12rem)] flex items-center justify-center bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-3xl shadow-2xl overflow-hidden">
-      {/* Book Shadow Effect */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/5 to-transparent dark:from-white/5" />
-      
+    <>
+      <style jsx>{`
+        .flip-book-page::-webkit-scrollbar {
+          width: 8px;
+        }
+        .flip-book-page::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .flip-book-page::-webkit-scrollbar-thumb {
+          background: rgb(203 213 225);
+          border-radius: 4px;
+        }
+        .flip-book-page::-webkit-scrollbar-thumb:hover {
+          background: rgb(148 163 184);
+        }
+        .dark .flip-book-page::-webkit-scrollbar-thumb {
+          background: rgb(51 65 85);
+        }
+        .dark .flip-book-page::-webkit-scrollbar-thumb:hover {
+          background: rgb(71 85 105);
+        }
+      `}</style>
+      <div className="relative w-full h-[80vh] flex items-center justify-center bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+        {/* Book Shadow Effect */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/5 to-transparent dark:from-white/5" />
+
       {/* Book Container */}
-      <div 
+      <div
         ref={containerRef}
-        className="relative w-full h-[90%] flex items-center justify-center perspective-1000 px-2"
+        className="relative w-full h-full flex items-center justify-center perspective-1000 px-4 py-6"
       >
         {/* Book Spine Shadow */}
         <div className="absolute left-1/2 top-0 bottom-0 w-4 -translate-x-1/2 bg-gradient-to-r from-transparent via-black/10 to-transparent dark:via-white/10" />
@@ -119,11 +150,11 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
           disabled={currentSpread === 0}
           className={cn(
             "absolute left-0 z-20 p-2 rounded-full",
-            "bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm",
-            "border border-gray-200 dark:border-gray-700",
-            "text-gray-800 dark:text-gray-200",
+            "bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm",
+            "border border-slate-200 dark:border-slate-700",
+            "text-slate-800 dark:text-slate-200",
             "transition-all duration-200 ease-out",
-            "hover:scale-110 hover:bg-white dark:hover:bg-gray-800",
+            "hover:scale-110 hover:bg-white dark:hover:bg-slate-800",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             "shadow-lg hover:shadow-xl"
           )}
@@ -136,11 +167,11 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
           disabled={currentSpread >= Math.ceil(data.length / 2) - 1}
           className={cn(
             "absolute right-0 z-20 p-2 rounded-full",
-            "bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm",
-            "border border-gray-200 dark:border-gray-700",
-            "text-gray-800 dark:text-gray-200",
+            "bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm",
+            "border border-slate-200 dark:border-slate-700",
+            "text-slate-800 dark:text-slate-200",
             "transition-all duration-200 ease-out",
-            "hover:scale-110 hover:bg-white dark:hover:bg-gray-800",
+            "hover:scale-110 hover:bg-white dark:hover:bg-slate-800",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             "shadow-lg hover:shadow-xl"
           )}
@@ -167,24 +198,25 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
           >
             {/* Left Page */}
             <div className={cn(
+              "flip-book-page",
               "flex-1 relative p-6 lg:p-8",
-              "bg-white dark:bg-gray-900",
+              "bg-white dark:bg-slate-900",
               "rounded-l-2xl shadow-2xl",
-              "overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600",
-              "border-l border-t border-b border-gray-100 dark:border-gray-800",
-              "[&::-webkit-scrollbar]:absolute [&::-webkit-scrollbar]:right-0",
-              "[&::-webkit-scrollbar-track]:bg-transparent",
-              "[&::-webkit-scrollbar-thumb]:rounded-full"
-            )}>
-              <div className="absolute top-4 right-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+              "overflow-y-auto overflow-x-hidden",
+              "border-l border-t border-b border-slate-100 dark:border-slate-800",
+              "max-h-full"
+            )}
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgb(203 213 225) transparent'
+            }}>
+              <div className="absolute top-4 right-4 text-sm font-medium text-slate-500 dark:text-slate-400">
                 Page {currentSpread * 2 + 1}
               </div>
               <div className="space-y-6">
                 <h2 className={cn(
                   "text-3xl font-bold",
-                  "bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900",
-                  "dark:from-white dark:via-gray-100 dark:to-white",
-                  "bg-clip-text text-transparent"
+                  "text-slate-900 dark:text-white"
                 )}>
                   {data[currentSpread * 2]?.title || 'Untitled'}
                 </h2>
@@ -217,24 +249,25 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
             {/* Right Page */}
             {data[currentSpread * 2 + 1] && (
               <div className={cn(
+                "flip-book-page",
                 "flex-1 relative p-6 lg:p-8",
-                "bg-white dark:bg-gray-900",
+                "bg-white dark:bg-slate-900",
                 "rounded-r-2xl shadow-2xl",
-                "overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600",
-                "border-r border-t border-b border-gray-100 dark:border-gray-800",
-                "[&::-webkit-scrollbar]:absolute [&::-webkit-scrollbar]:right-0",
-                "[&::-webkit-scrollbar-track]:bg-transparent",
-                "[&::-webkit-scrollbar-thumb]:rounded-full"
-              )}>
-                <div className="absolute top-4 right-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                "overflow-y-auto overflow-x-hidden",
+                "border-r border-t border-b border-slate-100 dark:border-slate-800",
+                "max-h-full"
+              )}
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgb(203 213 225) transparent'
+              }}>
+                <div className="absolute top-4 right-4 text-sm font-medium text-slate-500 dark:text-slate-400">
                   Page {currentSpread * 2 + 2}
                 </div>
                 <div className="space-y-6">
                   <h2 className={cn(
                     "text-3xl font-bold",
-                    "bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900",
-                    "dark:from-white dark:via-gray-100 dark:to-white",
-                    "bg-clip-text text-transparent"
+                    "text-slate-900 dark:text-white"
                   )}>
                     {data[currentSpread * 2 + 1]?.title || 'Untitled'}
                   </h2>
@@ -283,6 +316,7 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
         ))}
       </div>
     </div>
+    </>
   );
 };
 

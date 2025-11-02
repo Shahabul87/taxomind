@@ -12,11 +12,5 @@ export default async function CreateBlogLayout({
     return redirect("/");
   }
 
-  return (
-    <div className="min-h-screen pt-16 pb-8">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        {children}
-      </div>
-    </div>
-  );
+  return <>{children}</>;
 } 

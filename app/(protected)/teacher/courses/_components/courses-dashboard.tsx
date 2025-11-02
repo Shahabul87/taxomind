@@ -47,24 +47,21 @@ export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
       transition={{ duration: 0.2, ease: "easeInOut" }}
     >
       {/* Header */}
-      <div className="rounded-xl border bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-gray-200/70 dark:border-gray-800/70 shadow-sm overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 md:p-6" data-tour="course-creation-header">
+      <div className="rounded-3xl border bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 md:p-6" data-tour="course-creation-header">
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent truncate">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent tracking-tight">
               Courses Dashboard
             </h1>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 hidden sm:block">
+            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
               Comprehensive analytics, management, and insights
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 sm:hidden">
-              Manage your courses
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Link href="/teacher/create" className="w-full sm:w-auto">
-              <Button size="sm" className="gap-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-700 hover:via-purple-700 hover:to-indigo-700 w-full sm:w-auto h-8 sm:h-9">
-                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="text-xs sm:text-sm">Create Course</span>
+              <Button size="sm" className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 shadow-md hover:shadow-lg w-full sm:w-auto transition-all duration-200">
+                <Plus className="h-4 w-4" />
+                <span className="text-sm">Create Course</span>
               </Button>
             </Link>
           </div>
@@ -73,14 +70,23 @@ export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-gray-200/70 dark:border-gray-800/70 h-auto">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-xs sm:text-sm px-2 py-2 sm:py-2.5">
+        <TabsList className="grid w-full grid-cols-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-1 rounded-xl h-auto">
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-lg text-xs sm:text-sm px-3 py-2.5"
+          >
             Overview
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-xs sm:text-sm px-2 py-2 sm:py-2.5">
+          <TabsTrigger
+            value="analytics"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-lg text-xs sm:text-sm px-3 py-2.5"
+          >
             Analytics
           </TabsTrigger>
-          <TabsTrigger value="courses" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-xs sm:text-sm px-2 py-2 sm:py-2.5">
+          <TabsTrigger
+            value="courses"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-lg text-xs sm:text-sm px-3 py-2.5"
+          >
             <span className="hidden sm:inline">All Courses</span>
             <span className="sm:hidden">Courses</span>
           </TabsTrigger>
@@ -98,24 +104,23 @@ export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
             className={cn(
-              "rounded-xl overflow-hidden",
-              "bg-white/70 dark:bg-gray-900/70",
-              "border border-gray-200/70 dark:border-gray-800/70",
-              "shadow-md backdrop-blur-md"
+              "rounded-3xl overflow-hidden",
+              "bg-white/80 dark:bg-slate-800/80",
+              "border border-slate-200/50 dark:border-slate-700/50",
+              "shadow-lg backdrop-blur-sm hover:shadow-xl transition-all duration-300"
             )}
           >
-            <div className="p-3 sm:p-4 border-b border-gray-200/70 dark:border-gray-800/70 flex items-center justify-between">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Recent Courses</h3>
+            <div className="p-5 md:p-6 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Courses</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setActiveTab('courses')}
-                className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm transition-all duration-200"
               >
-                <span className="hidden sm:inline">View All →</span>
-                <span className="sm:hidden">All →</span>
+                View All →
               </Button>
             </div>
             <div className="overflow-x-auto">
@@ -138,12 +143,12 @@ export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
             className={cn(
-              "rounded-xl overflow-hidden",
-              "bg-white/70 dark:bg-gray-900/70",
-              "border border-gray-200/70 dark:border-gray-800/70",
-              "shadow-md backdrop-blur-md"
+              "rounded-3xl overflow-hidden",
+              "bg-white/80 dark:bg-slate-800/80",
+              "border border-slate-200/50 dark:border-slate-700/50",
+              "shadow-lg backdrop-blur-sm hover:shadow-xl transition-all duration-300"
             )}
           >
             <div className="overflow-x-auto">
