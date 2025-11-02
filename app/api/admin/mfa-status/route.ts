@@ -1,20 +1,29 @@
 import { NextResponse } from 'next/server';
-import { adminAuth } from '@/auth.admin';
+import { currentUser } from '@/lib/auth';
 import { getAdminMFAInfo } from '@/lib/auth/mfa-enforcement';
-
-export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    const session = await adminAuth();
-    if (!session?.user?.id || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ mfaInfo: null, error: 'Unauthorized' }, { status: 401 });
+    const user = await currentUser();
+
+    if (!user || user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const info = await getAdminMFAInfo(session.user.id);
-    return NextResponse.json({ mfaInfo: info });
+    const mfaInfo = await getAdminMFAInfo(user.id);
+
+    if (!mfaInfo) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      daysUntilEnforcement: mfaInfo.mfaEnforcementStatus.daysUntilEnforcement,
+      warningPeriodActive: mfaInfo.mfaEnforcementStatus.warningPeriodActive,
+      enforcementLevel: mfaInfo.mfaEnforcementStatus.enforcementLevel,
+      message: mfaInfo.mfaEnforcementStatus.message,
+    });
   } catch (error) {
-    return NextResponse.json({ mfaInfo: null, error: 'Failed to get MFA status' }, { status: 500 });
+    console.error('[MFA Status API] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-

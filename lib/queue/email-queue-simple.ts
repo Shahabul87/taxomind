@@ -63,15 +63,18 @@ export async function queueVerificationEmail(data: VerificationEmailData): Promi
       isResend: data.isResend
     });
 
-    // Send email using Resend HTTP API (not SMTP)
+    // Import email tracking for retry logic
+    const { sendEmailWithTracking } = await import('@/lib/queue/email-tracking');
     const { sendEmail } = await import('@/lib/email/resend-service');
 
     console.log('[Email Queue] Sending verification email via Resend HTTP API to:', data.userEmail);
 
-    const sent = await sendEmail({
-      to: data.userEmail,
-      subject: 'Welcome to Taxomind - Verify Your Email',
-      html: `
+    // Define the email sending function
+    const sendFn = async () => {
+      return await sendEmail({
+        to: data.userEmail,
+        subject: 'Welcome to Taxomind - Verify Your Email',
+        html: `
         <!DOCTYPE html>
         <html>
         <head>
@@ -150,12 +153,23 @@ export async function queueVerificationEmail(data: VerificationEmailData): Promi
         </body>
         </html>
       `,
-    });
+      });
+    };
+
+    // Send with tracking and retry logic
+    const sent = await sendEmailWithTracking(
+      {
+        userId: data.userId,
+        email: data.userEmail,
+        type: 'VERIFICATION',
+      },
+      sendFn
+    );
 
     if (sent) {
       console.log('[Email Queue] ✅ Verification email sent successfully to:', data.userEmail);
     } else {
-      console.error('[Email Queue] ❌ Failed to send verification email to:', data.userEmail);
+      console.error('[Email Queue] ❌ Failed to send verification email after retries to:', data.userEmail);
     }
   } catch (error) {
     logger.error('Failed to queue verification email', error);
@@ -171,14 +185,15 @@ export async function queuePasswordResetEmail(data: PasswordResetEmailData): Pro
       userId: data.userId
     });
 
-    // Send email using Resend HTTP API (not SMTP)
+    const { sendEmailWithTracking } = await import('@/lib/queue/email-tracking');
     const { sendEmail } = await import('@/lib/email/resend-service');
 
     console.log('[Email Queue] Sending password reset email via Resend HTTP API to:', data.userEmail);
 
     const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/new-password?token=${data.resetToken}`;
 
-    const sent = await sendEmail({
+    const sendFn = async () => {
+      return await sendEmail({
       to: data.userEmail,
       subject: 'Reset Your Taxomind Password',
       html: `
@@ -227,12 +242,22 @@ export async function queuePasswordResetEmail(data: PasswordResetEmailData): Pro
         </body>
         </html>
       `,
-    });
+      });
+    };
+
+    const sent = await sendEmailWithTracking(
+      {
+        userId: data.userId,
+        email: data.userEmail,
+        type: 'PASSWORD_RESET',
+      },
+      sendFn
+    );
 
     if (sent) {
       console.log('[Email Queue] ✅ Password reset email sent successfully to:', data.userEmail);
     } else {
-      console.error('[Email Queue] ❌ Failed to send password reset email to:', data.userEmail);
+      console.error('[Email Queue] ❌ Failed to send password reset email after retries to:', data.userEmail);
     }
   } catch (error) {
     logger.error('Failed to queue password reset email', error);
@@ -247,12 +272,13 @@ export async function queue2FAEmail(data: TwoFactorEmailData): Promise<void> {
       userId: data.userId
     });
 
-    // Send email using Resend HTTP API (not SMTP)
+    const { sendEmailWithTracking } = await import('@/lib/queue/email-tracking');
     const { sendEmail } = await import('@/lib/email/resend-service');
 
     console.log('[Email Queue] Sending 2FA email via Resend HTTP API to:', data.userEmail);
 
-    const sent = await sendEmail({
+    const sendFn = async () => {
+      return await sendEmail({
       to: data.userEmail,
       subject: '2FA Code for Login',
       html: `
@@ -267,12 +293,22 @@ export async function queue2FAEmail(data: TwoFactorEmailData): Promise<void> {
           </p>
         </div>
       `,
-    });
+      });
+    };
+
+    const sent = await sendEmailWithTracking(
+      {
+        userId: data.userId,
+        email: data.userEmail,
+        type: 'TWO_FACTOR',
+      },
+      sendFn
+    );
 
     if (sent) {
       console.log('[Email Queue] ✅ 2FA email sent successfully to:', data.userEmail);
     } else {
-      console.error('[Email Queue] ❌ Failed to send 2FA email to:', data.userEmail);
+      console.error('[Email Queue] ❌ Failed to send 2FA email after retries to:', data.userEmail);
     }
   } catch (error) {
     logger.error('Failed to queue 2FA email', error);

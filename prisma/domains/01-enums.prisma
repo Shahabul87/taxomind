@@ -789,3 +789,18 @@ enum BulkOperationStatus {
   CANCELLED
 }
 
+enum EmailType {
+  VERIFICATION
+  TWO_FACTOR
+  PASSWORD_RESET
+  MAGIC_LINK
+}
+
+enum EmailStatus {
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  BOUNCED
+}
+

@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-11-01T18:39:45.953Z
+// Generated: 2025-11-02T17:06:00.233Z
 // Source: 15 domain files
 // ==========================================
 
@@ -832,6 +832,21 @@ enum BulkOperationStatus {
   CANCELLED
 }
 
+enum EmailType {
+  VERIFICATION
+  TWO_FACTOR
+  PASSWORD_RESET
+  MAGIC_LINK
+}
+
+enum EmailStatus {
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  BOUNCED
+}
+
 
 // ==========================================
 // Source: 02-auth.prisma
@@ -1054,6 +1069,7 @@ model User {
   userLearningPattern       UserLearningPattern?
   sectionCompletionTracking SectionCompletionTracking[]
   userCapabilities          UserCapability[]
+  emailLogs                 EmailLog[]
   userContext               UserContext?
 
   // Phase 3: Admin-specific relations (added January 11, 2025)
@@ -1460,6 +1476,26 @@ model AdminTwoFactorToken {
   @@index([email])
   @@index([token])
   @@index([expires])
+}
+
+model EmailLog {
+  id        String      @id @default(cuid())
+  userId    String?
+  email     String
+  type      EmailType
+  status    EmailStatus @default(QUEUED)
+  attempts  Int         @default(0)
+  lastError String?
+  sentAt    DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // ==========================================
