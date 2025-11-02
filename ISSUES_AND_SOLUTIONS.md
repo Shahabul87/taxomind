@@ -134,7 +134,171 @@
 - Better visual hierarchy and accessibility
 - Maintains proper z-index layering for interactive elements
 
+## Issue 8: Production OAuth Social Login Infinite Redirect Loop
+
+**Issue**: After successfully authenticating with OAuth providers (Google/GitHub) in production, users were redirected back to the login page in an infinite loop instead of being redirected to the dashboard. OAuth login worked perfectly in development (localhost) but failed consistently in production on Railway.
+
+**Symptoms**:
+- User clicks "Sign in with Google" or "Sign in with GitHub"
+- OAuth provider authentication succeeds (user approves)
+- Callback to `https://taxomind.railway.app/api/auth/callback/*` succeeds
+- User is redirected back to `/auth/login` instead of `/dashboard`
+- Session is not established, user appears logged out
+- Infinite redirect loop between login and callback
+
+**Root Cause Analysis**:
+
+The issue had **TWO critical root causes**:
+
+### 1. Missing AUTH_SECRET in Production Environment (CRITICAL)
+- **Location**: `.env.production` file had NO `AUTH_SECRET` or `NEXTAUTH_SECRET`
+- **Impact**:
+  - NextAuth.js uses `AUTH_SECRET` to sign and verify JWT tokens
+  - Without the secret, JWT tokens cannot be created
+  - OAuth callback succeeds but session creation fails
+  - User appears logged out even after successful authentication
+- **Why it worked in dev**: Development environment had `AUTH_SECRET` in `.env`
+
+### 2. Cookie sameSite='strict' Blocking OAuth Cookies (CRITICAL)
+- **Location**: `lib/security/cookie-config.ts:60` - Production cookie configuration
+- **Impact**:
+  - Production cookies used `sameSite: 'strict'`
+  - OAuth callbacks are cross-site redirects (from google.com/github.com)
+  - `sameSite='strict'` blocks ALL cookies on cross-site navigation
+  - Session cookies not set after OAuth callback redirect
+  - User appears logged out and redirects to login
+- **Why it worked in dev**:
+  - Development used `sameSite: 'lax'` (line 48)
+  - `'lax'` allows cookies on top-level navigation (OAuth callbacks)
+
+**Additional Context**:
+- **Next.js 16 Migration**: Project uses `proxy.ts` instead of deprecated `middleware.ts`
+- The proxy configuration was already correct for OAuth callbacks
+- OAuth provider credentials were properly configured
+- The issue was purely with session establishment, not OAuth flow
+
+**Solution**:
+
+### Fix #1: Added AUTH_SECRET to Production Environment
+**File**: `.env.production`
+```env
+# CRITICAL: NextAuth Secret for JWT signing (REQUIRED for OAuth)
+AUTH_SECRET=vNtmVyPG6zPXhnte81jU1o9TLjCYxw2M9mEYMDV//d4=
+NEXTAUTH_SECRET=vNtmVyPG6zPXhnte81jU1o9TLjCYxw2M9mEYMDV//d4=
+```
+
+**Deployment Note**: This secret MUST also be set as an environment variable in Railway dashboard:
+1. Railway Dashboard → Project → Variables
+2. Add: `AUTH_SECRET=vNtmVyPG6zPXhnte81jU1o9TLjCYxw2M9mEYMDV//d4=`
+3. Add: `NEXTAUTH_SECRET=vNtmVyPG6zPXhnte81jU1o9TLjCYxw2M9mEYMDV//d4=`
+
+### Fix #2: Changed Cookie sameSite from 'strict' to 'lax'
+**File**: `lib/security/cookie-config.ts`
+
+**Changes Made**:
+1. **Line 60** - Production base cookie configuration:
+```typescript
+// BEFORE:
+production: {
+  secure: true,
+  sameSite: 'strict' as const,  // ❌ BLOCKED OAuth cookies
+  httpOnly: true,
+  domain: undefined,
+}
+
+// AFTER:
+production: {
+  secure: true,
+  sameSite: 'lax' as const,  // ✅ Allows OAuth cookies
+  httpOnly: true,
+  domain: undefined,
+}
+```
+
+2. **Line 140** - CSRF token cookie configuration:
+```typescript
+// BEFORE:
+csrfToken: {
+  name: `${isProduction ? '__Host-' : ''}next-auth.csrf-token`,
+  options: {
+    ...baseConfig,
+    httpOnly: false,
+    secure: isDevelopment ? false : true,
+    sameSite: 'strict',  // ❌ BLOCKED OAuth
+    path: '/',
+    maxAge: isDevelopment ? undefined : 60 * 60,
+  },
+}
+
+// AFTER:
+csrfToken: {
+  name: `${isProduction ? '__Host-' : ''}next-auth.csrf-token`,
+  options: {
+    ...baseConfig,
+    httpOnly: false,
+    secure: isDevelopment ? false : true,
+    sameSite: 'lax',  // ✅ Allows OAuth
+    path: '/',
+    maxAge: isDevelopment ? undefined : 60 * 60,
+  },
+}
+```
+
+**Security Impact**:
+The change from `sameSite='strict'` to `'lax'` is **secure and industry-standard** for OAuth:
+
+| Cookie Attribute | Value | Security Benefit |
+|-----------------|-------|------------------|
+| `secure` | `true` | HTTPS-only cookies |
+| `httpOnly` | `true` | JavaScript cannot access |
+| `sameSite` | `lax` | Blocks cross-site POST, allows top-level GET |
+| **Result** | ✅ | OAuth callbacks work, CSRF protection maintained |
+
+**sameSite Cookie Modes Explained**:
+
+| Mode | Cross-Site Cookies | OAuth Support | Use Case |
+|------|-------------------|---------------|----------|
+| `strict` | ❌ Blocked on ALL cross-site requests | ❌ NO | Maximum security, no OAuth |
+| `lax` | ✅ Allowed on top-level navigation (GET) | ✅ YES | **Industry standard for OAuth** |
+| `none` | ✅ Allowed on all requests | ✅ YES | Third-party embeds only |
+
+**OAuth Flow with sameSite='lax'**:
+1. ✅ User clicks "Sign in with Google"
+2. ✅ Redirects to google.com (OAuth provider)
+3. ✅ User approves authentication
+4. ✅ Google redirects to `/api/auth/callback/google` (top-level GET request)
+5. ✅ **sameSite='lax' allows cookies** on this redirect
+6. ✅ Session cookie is set with AUTH_SECRET
+7. ✅ User redirects to `/dashboard`
+8. ✅ **Success - No redirect loop!**
+
+**Files Modified**:
+1. `.env.production` - Added AUTH_SECRET and NEXTAUTH_SECRET
+2. `lib/security/cookie-config.ts`:
+   - Line 60: Production sameSite 'strict' → 'lax'
+   - Line 140: CSRF token sameSite 'strict' → 'lax'
+
+**Commits**:
+- `b8a8b5f` - Added AUTH_SECRET to production environment
+- `a9e1e94` - Fixed cookie sameSite configuration for OAuth
+
+**Key Improvements**:
+- OAuth login works in production environment
+- Sessions properly established after OAuth callback
+- Maintains strong security (HTTPS-only, httpOnly cookies)
+- Industry-standard OAuth cookie configuration
+- No infinite redirect loops
+- Consistent behavior between development and production
+
+**Verification**:
+1. Navigate to `https://taxomind.railway.app`
+2. Click "Sign in with Google" or "Sign in with GitHub"
+3. Complete OAuth authentication
+4. User redirects to `/dashboard` (NOT `/auth/login`)
+5. Session persists across page refreshes
+6. No redirect loops ✅
+
 ---
 
 **Last Updated**: January 2025
-**Status**: All issues resolved, including search icon visibility fix - courses page navbar now theme-responsive
+**Status**: All issues resolved, including OAuth production redirect loop - social login now works in production
