@@ -114,7 +114,7 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
             className="
               text-3xl sm:text-4xl md:text-5xl lg:text-6xl
               font-bold
-              text-white
+              text-slate-900 dark:text-white
               capitalize
               mb-6
               max-w-screen-md md:max-w-4xl
@@ -133,7 +133,7 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: prefersReducedMotion ? 0 : 0.35 }}
-              className="text-white/80 max-w-screen-md md:max-w-3xl mb-5 clamp-2"
+              className="text-slate-600 dark:text-white/80 max-w-screen-md md:max-w-3xl mb-5 clamp-2"
             >
               {cleanHtmlContent(course.description)}
             </motion.p>

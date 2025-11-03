@@ -76,7 +76,7 @@ export const CourseLayout = ({ course, userId, isEnrolled = false }: CourseLayou
   }, []);
 
   return (
-    <div className="min-h-screen bg-white/10 dark:bg-gradient-to-b dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
       {/* Skip to main content for keyboard users */}
       <a
         href="#main-content"

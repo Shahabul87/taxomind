@@ -67,8 +67,8 @@ export const DynamicBackground = ({
 
   return (
     <div ref={containerRef} className={`absolute inset-0 overflow-hidden ${className}`}>
-      {/* Layer 1: Base gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+      {/* Layer 1: Base gradient - Light & Dark mode optimized */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700" />
 
       {/* Layer 2: Animated mesh blobs using category palette (hidden on small screens) */}
       {showMesh && (
@@ -183,10 +183,10 @@ export const DynamicBackground = ({
       )}
 
       {/* Layer 5: Bottom fade for seamless transition */}
-      <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-slate-950/90 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-slate-50/90 via-slate-50/50 to-transparent dark:from-slate-900/90 dark:via-slate-900/50 pointer-events-none" />
 
       {/* Layer 6: Glassmorphic overlay (optional, for additional depth) */}
-      <div className="absolute inset-0 backdrop-blur-[1px] bg-black/5" />
+      <div className="absolute inset-0 backdrop-blur-[1px] bg-white/5 dark:bg-black/5" />
     </div>
   );
 };
