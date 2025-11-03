@@ -115,6 +115,7 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
               text-3xl sm:text-4xl md:text-5xl lg:text-6xl
               font-bold
               text-white
+              capitalize
               mb-6
               max-w-screen-md md:max-w-4xl
               leading-tight
@@ -122,9 +123,6 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
               break-words
               text-balance
             "
-            style={{
-              textTransform: 'none',
-            }}
           >
             {cleanHtmlContent(course.title)}
           </motion.h1>
