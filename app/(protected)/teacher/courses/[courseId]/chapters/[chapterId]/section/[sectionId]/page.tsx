@@ -1,10 +1,8 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { Suspense } from "react";
 import { EnterpriseSectionPageClient } from "./_components/enterprise-section-page-client";
 import { SectionErrorBoundary } from "./_components/section-error-boundary";
-import { SectionLoadingSkeleton } from "./_components/section-loading-skeleton";
 import { logger } from '@/lib/logger';
 import { z } from "zod";
 import { type SectionData } from "./_components/enterprise-section-types";
@@ -123,22 +121,24 @@ const SectionIdPage = async (
       ...sectionData.chapter,
       sections: sectionData.chapter.sections.map(s => ({
         ...s,
-        videos: s.videos.filter((v): v is typeof v & { url: string } => v.url !== null)
+        videos: (s.videos || []).filter((v): v is typeof v & { url: string } => v.url !== null),
+        blogs: (s.blogs || []).filter((b): b is typeof b & { url: string } => b.url !== null),
+        articles: (s.articles || []).filter((a): a is typeof a & { url: string } => a.url !== null),
+        notes: s.notes || [],
       }))
     }
   };
   const chapter = section.chapter;
 
-  // Wrap with error boundary and suspense for enterprise-grade experience
+  // Wrap with error boundary for enterprise-grade experience
+  // Note: Suspense is not needed here as data is fetched server-side before rendering
   return (
     <SectionErrorBoundary>
-      <Suspense fallback={<SectionLoadingSkeleton />}>
-        <EnterpriseSectionPageClient
-          section={section}
-          chapter={chapter}
-          params={params}
-        />
-      </Suspense>
+      <EnterpriseSectionPageClient
+        section={section}
+        chapter={chapter}
+        params={params}
+      />
     </SectionErrorBoundary>
   );
 }
