@@ -85,13 +85,22 @@ export const QuestionList = ({ courseId, sections = [], userId, isInstructor = f
   // Push state to URL
   useEffect(() => {
     if (!pathname) return;
-    const qp = new URLSearchParams(searchParams?.toString());
+    const currentParams = searchParams?.toString() || '';
+    const qp = new URLSearchParams(currentParams);
+
     if (search) qp.set('q', search); else qp.delete('q');
     qp.set('sortBy', sortBy);
     if (sectionId) qp.set('sectionId', sectionId); else qp.delete('sectionId');
     qp.set('qaView', view);
-    router.replace(`${pathname}?${qp.toString()}`, { scroll: false });
-  }, [search, sortBy, sectionId, view, pathname, router, searchParams]);
+
+    const newParamsString = qp.toString();
+
+    // Only update if params actually changed
+    if (currentParams !== newParamsString) {
+      router.replace(`${pathname}?${newParamsString}`, { scroll: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, sortBy, sectionId, view, pathname]);
 
   const fetchQuestions = useCallback(async () => {
     setIsLoading(true);
@@ -164,7 +173,8 @@ export const QuestionList = ({ courseId, sections = [], userId, isInstructor = f
             return;
           }
           if (data?.type === 'answer_created' || data?.type === 'question_updated' || data?.type === 'answer_marked_best') {
-            fetchQuestions();
+            // Trigger a refresh by updating a flag instead of calling fetchQuestions directly
+            setPage((p) => p); // Force re-fetch
           }
         } catch {}
       };
@@ -172,7 +182,8 @@ export const QuestionList = ({ courseId, sections = [], userId, isInstructor = f
     } catch {
       // no-op
     }
-  }, [courseId, fetchQuestions]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId]);
 
   const handleVote = async (questionId: string, value: number) => {
     setVotingQuestionId(questionId);
@@ -273,53 +284,66 @@ export const QuestionList = ({ courseId, sections = [], userId, isInstructor = f
   }, [isLoading, page, totalPages]);
 
   return (
-    <div className="space-y-6 cv-auto">
-      {/* Sticky Header with stats and quick views */}
-      <div className="sticky z-10 -mx-4 md:mx-0 px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm md:backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-sm md:supports-[backdrop-filter]:backdrop-blur-md border-b border-gray-200/70 dark:border-gray-800" style={{ top: 'var(--sticky-offset, 0px)' }}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <MessageCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">Q&A</h2>
-            <span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${sseConnected ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header with stats and action buttons */}
+      <div className="flex flex-col gap-4">
+        {/* Top row: Title, Stats, Actions */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <MessageCircle className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Q&A</h2>
+            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${sseConnected ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
               {sseConnected ? 'Live' : 'Offline'}
             </span>
-            <div className="hidden md:flex items-center gap-2 ml-2 text-xs text-gray-600 dark:text-gray-400">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">Total: {totalCount ?? `${loadedTotal}+`}</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300">Unanswered: {loadedUnanswered}</span>
-              {loadedPinned > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">Pinned: {loadedPinned}</span>
-              )}
-              {userId && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">Mine: {loadedMine}</span>
-              )}
-            </div>
           </div>
+
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1">
-              {(['all','unanswered','mine','pinned'] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => {
-                    setView(v);
-                    if (v === 'unanswered') setSortBy('unanswered');
-                    if (v === 'all' && sortBy === 'unanswered') setSortBy('recent');
-                  }}
-                  className={`px-3 py-1 rounded-full text-xs border transition-colors ${
-                    view === v
-                      ? 'bg-purple-600 text-white border-purple-600'
-                      : 'bg-white dark:bg-slate-900 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-600'
-                  }`}
-                >
-                  {v === 'all' ? 'All' : v === 'unanswered' ? 'Unanswered' : v === 'mine' ? 'My questions' : 'Pinned'}
-                </button>
-              ))}
-            </div>
-            {/* Instructor-only: Reports panel (button opens modal) */}
             <ReportsButton courseId={courseId} />
             <Button size="sm" onClick={() => setIsAskDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-1.5" /> Ask
+              <Plus className="w-4 h-4 mr-1.5" /> Ask Question
             </Button>
           </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="flex items-center gap-3 flex-wrap text-sm text-gray-600 dark:text-gray-400">
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            Total: {totalCount ?? `${loadedTotal}+`}
+          </span>
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300">
+            Unanswered: {loadedUnanswered}
+          </span>
+          {loadedPinned > 0 && (
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
+              Pinned: {loadedPinned}
+            </span>
+          )}
+          {userId && (
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
+              My Questions: {loadedMine}
+            </span>
+          )}
+        </div>
+
+        {/* View toggle buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {(['all','unanswered','mine','pinned'] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => {
+                setView(v);
+                if (v === 'unanswered') setSortBy('unanswered');
+                if (v === 'all' && sortBy === 'unanswered') setSortBy('recent');
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                view === v
+                  ? 'bg-purple-600 text-white border-purple-600'
+                  : 'bg-white dark:bg-slate-900 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-purple-400 dark:hover:border-purple-600'
+              }`}
+            >
+              {v === 'all' ? 'All' : v === 'unanswered' ? 'Unanswered' : v === 'mine' ? 'My Questions' : 'Pinned'}
+            </button>
+          ))}
         </div>
       </div>
 

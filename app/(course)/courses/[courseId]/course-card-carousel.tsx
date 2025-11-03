@@ -259,7 +259,7 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto"
       onClick={onClose}
     >
       <motion.div
@@ -278,70 +278,56 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
           <div className="absolute top-0 left-0 right-0 h-px bg-slate-200 dark:bg-slate-800" />
 
           {/* Modal Header */}
-          <div className="relative p-8 sm:p-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            {/* Background pattern */}
-            <div className="absolute inset-0 opacity-5 dark:opacity-10">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
-            </div>
-
-            <div className="relative flex items-start justify-between gap-6">
-              <div className="flex items-start gap-5 flex-1 min-w-0">
-                {/* Animated icon container */}
+          <div className="relative p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                {/* Compact icon container */}
                 <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.2, type: "spring", stiffness: 150, damping: 12 }}
-                  className="flex-shrink-0 relative group/icon"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                  className="flex-shrink-0"
                 >
-                  <div className="absolute -inset-1 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-3xl blur-lg opacity-40 group-hover/icon:opacity-60 transition duration-300" />
-                  <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-3xl bg-gradient-to-br from-purple-500 via-blue-600 to-cyan-600 flex items-center justify-center shadow-xl transform group-hover/icon:scale-110 transition-transform duration-300">
-                    <BookOpen className="h-8 w-8 sm:h-10 sm:w-10 text-white" strokeWidth={2.5} />
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 via-blue-600 to-cyan-600 flex items-center justify-center shadow-md">
+                    <BookOpen className="h-6 w-6 text-white" strokeWidth={2.5} />
                   </div>
                 </motion.div>
 
-                <div className="flex-1 min-w-0 pt-1">
+                <div className="flex-1 min-w-0">
                   <motion.div
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     transition={{ delay: 0.15 }}
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-slate-900 text-white dark:bg-white dark:text-slate-900">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-slate-900 text-white dark:bg-white dark:text-slate-900">
                         Chapter Overview
                       </span>
                     </div>
-                    <h3 id="chapter-modal-title" className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white leading-tight tracking-tight mb-4">
+                    <h3 id="chapter-modal-title" className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white leading-tight mb-2">
                       {cleanHtmlContent(chapter.title)}
                     </h3>
                   </motion.div>
 
-                  {/* Enhanced chapter stats */}
+                  {/* Compact chapter stats */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="flex flex-wrap items-center gap-3"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="flex flex-wrap items-center gap-2"
                   >
-                    <div className="group/stat">
-                      <div className="flex items-center gap-2.5 px-4 py-2 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-200/60 dark:border-blue-500/30">
-                        <div className="p-1.5 rounded-xl bg-blue-500 shadow-md">
-                          <Layers className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">Sections</span>
-                          <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{chapter.sections.length}</span>
-                        </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-500/10 rounded-md border border-blue-200/60 dark:border-blue-500/30">
+                      <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] font-medium text-blue-600 dark:text-blue-400 uppercase">Sections</span>
+                        <span className="text-xs font-bold text-blue-700 dark:text-blue-300">{chapter.sections.length}</span>
                       </div>
                     </div>
-                    <div className="group/stat">
-                      <div className="flex items-center gap-2.5 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl border border-emerald-200/60 dark:border-emerald-500/30">
-                        <div className="p-1.5 rounded-xl bg-emerald-500 shadow-md">
-                          <Clock className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Duration</span>
-                          <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{chapter.estimatedTime || 'Multi-lesson'}</span>
-                        </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-md border border-emerald-200/60 dark:border-emerald-500/30">
+                      <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400 uppercase">Duration</span>
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">{chapter.estimatedTime || 'Multi-lesson'}</span>
                       </div>
                     </div>
                   </motion.div>
@@ -370,7 +356,7 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="p-8 sm:p-10 max-h-[calc(80vh-240px)] overflow-y-auto
+            className="p-8 sm:p-10 max-h-[calc(85vh-180px)] overflow-y-auto
                      scrollbar-thin scrollbar-thumb-rounded-full
                      scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600
                      hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500
@@ -381,38 +367,31 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
 
           {/* Modal Footer */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="p-8 sm:p-10 pt-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="p-4 border-t border-slate-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50"
           >
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-5">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm">
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Ready to dive in?</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Explore all sections and master this chapter</p>
-                </div>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Ready to start learning?</p>
               </div>
-              <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={onClose}
-                  className="flex-1 sm:flex-none px-6 py-3.5 rounded-xl font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                 >
                   Close
                 </button>
-                <div className="flex-1 sm:flex-none">
-                  <a
-                    href={courseIdFromLocation ? `/courses/${courseIdFromLocation}?tab=content&chapter=${chapter.id}${firstSectionId ? `&section=${firstSectionId}` : ''}` : '#'}
-                    className="relative w-full px-8 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-colors duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
-                    ref={primaryRef}
-                  >
-                    <span>Start Learning</span>
-                    <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
-                  </a>
-                </div>
+                <a
+                  href={courseIdFromLocation ? `/courses/${courseIdFromLocation}?tab=content&chapter=${chapter.id}${firstSectionId ? `&section=${firstSectionId}` : ''}` : '#'}
+                  className="flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
+                  ref={primaryRef}
+                >
+                  <span>Start Learning</span>
+                  <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
+                </a>
               </div>
             </div>
           </motion.div>
@@ -538,10 +517,10 @@ interface DummyContentProps {
 
 const DummyContent = ({ description, sections, chapter }: DummyContentProps): JSX.Element => {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Chapter Overview Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 mb-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
             <BookOpen className="w-5 h-5 text-white" strokeWidth={2.5} />
           </div>

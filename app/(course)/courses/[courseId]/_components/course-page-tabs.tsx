@@ -14,12 +14,7 @@ import {
   FolderOpen,
   Award,
   Bell,
-  HelpCircle,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Globe,
-  BarChart
+  HelpCircle
 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { EventTracker } from '@/lib/analytics/event-tracker';
@@ -186,16 +181,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
     },
     {
       id: 'content',
-      label: (
-        <span className="inline-flex items-center gap-2">
-          {dict.content}
-          {sectionParam && (
-            <span className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full border border-amber-300/70 dark:border-amber-800/60 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20">
-              Resume
-            </span>
-          )}
-        </span>
-      ) as any,
+      label: dict.content,
       icon: <FileText className="w-4 h-4" />,
       count: chapters.reduce((acc, chapter) => acc + (chapter.sections?.length || 0), 0)
     },
@@ -224,7 +210,6 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       label: dict.qa,
       icon: <HelpCircle className="w-4 h-4" />,
     },
-    ...(isInstructor ? [{ id: 'moderation' as TabType, label: dict.moderation, icon: <ShieldCheckIcon /> }] : []),
     {
       id: 'reviews',
       label: dict.reviews,
@@ -471,137 +456,66 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
         ['--accent-2' as any]: palette.secondary,
       }}
     >
-      {/* Sticky Tab Navigation - Responsive for all devices */}
-      <div className="mb-4 sm:mb-6 md:mb-8 sticky z-[40] course-tabs-sticky" style={{ top: '10px' }}>
-        <div className="relative">
-          <div className="bg-white/75 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl sm:rounded-2xl p-1.5 sm:p-2 border border-slate-200/60 dark:border-slate-700/50 shadow-sm sm:shadow-md">
-            <nav
-              ref={scrollRef}
-              className="flex gap-1 sm:gap-1.5 md:gap-2 overflow-x-auto xl:overflow-x-visible scroll-smooth no-scrollbar overscroll-x-contain scrolling-touch touch-pan-x xl:touch-auto snap-x snap-mandatory xl:snap-none"
-              role="tablist"
-              aria-label={dict.tabs}
-              aria-orientation="horizontal"
-              dir={isRTL ? 'rtl' : 'ltr'}
-            >
-              {tabs.map((tab, index) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    ref={(el) => { tabRefs.current[tab.id] = el; }}
-                    id={`tab-${tab.id}`}
-                    data-tab={tab.id}
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-controls={`panel-${tab.id}`}
-                    tabIndex={isActive ? 0 : -1}
-                    onKeyDown={(e) => onKeyDown(e, index)}
-                    onMouseEnter={() => { try { preloaders[tab.id]?.(); } catch {} }}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      updateQuery(tab.id);
-                      // Track analytics
-                      try {
-                        EventTracker.getInstance().trackInteraction('course_tab_selected', {
-                          tab: tab.id,
-                          courseId,
-                        });
-                      } catch {}
-                      try {
-                        requestAnimationFrame(() => {
-                          const panel = document.getElementById(`panel-${tab.id}`) as HTMLElement | null;
-                          if (panel) {
-                            // Focus for accessibility, then scroll under sticky tabs
-                            (panel as any).focus?.({ preventScroll: true });
-                            const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                            panel.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
-                          }
-                        });
-                      } catch {}
-                    }}
-                    aria-label={`${tab.label}${tab.count !== undefined ? ` (${tab.count})` : ''}`}
-                    className={`
-                      group relative flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium whitespace-nowrap rounded-lg sm:rounded-xl
-                      transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 focus-visible:ring-offset-0
-                      snap-start
-                      ${isActive
-                        ? 'bg-white dark:bg-gray-700 text-slate-900 dark:text-white shadow-md'
-                        : 'text-gray-700 dark:text-slate-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50'}
-                    `}
-                  >
-                    <span className="w-3 h-3 sm:w-4 sm:h-4">{tab.icon}</span>
-                    <span className="hidden sm:inline">{tab.label}</span>
-                    <span className="sm:hidden text-[10px]">{typeof tab.label === 'string' ? tab.label : 'Tab'}</span>
-                    {tab.count !== undefined && (
-                      <span className={`
-                        inline-flex items-center justify-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-semibold rounded-full
-                        ${isActive
-                          ? 'bg-[var(--accent)]/15 text-slate-900 dark:text-white'
-                          : 'bg-gray-200 text-gray-700 dark:bg-white/10 dark:text-slate-200'}
-                      `}>
-                        {tab.count}
-                      </span>
-                    )}
-                    {isActive && (
-                      <span className="pointer-events-none absolute -bottom-1 left-2 right-2 h-0.5 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-2)]" />
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
-          
-
-          {/* Scroll controls - visible on medium screens and up */}
-          <button
-            type="button"
-            aria-label="Scroll tabs left"
-            onClick={() => scrollByAmount(-200)}
-            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow hover:bg-white dark:hover:bg-slate-900 transition-all"
+      {/* Sticky Tab Navigation - Clean & Professional */}
+      <div className="mb-8 sticky z-[40] course-tabs-sticky" style={{ top: '16px' }}>
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <nav
+            ref={scrollRef}
+            className="flex gap-1 overflow-x-auto scroll-smooth no-scrollbar p-1.5"
+            role="tablist"
+            aria-label={dict.tabs}
+            aria-orientation="horizontal"
+            dir={isRTL ? 'rtl' : 'ltr'}
           >
-            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-slate-700 dark:text-slate-200" />
-          </button>
-          <button
-            type="button"
-            aria-label="Scroll tabs right"
-            onClick={() => scrollByAmount(200)}
-            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow hover:bg-white dark:hover:bg-slate-900 transition-all"
-          >
-            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-slate-700 dark:text-slate-200" />
-          </button>
-
-          {/* Edge fade gradients - responsive */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-4 sm:w-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-white/80 dark:from-slate-900/70 to-transparent md:hidden" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-4 sm:w-6 rounded-xl sm:rounded-2xl bg-gradient-to-l from-white/80 dark:from-slate-900/70 to-transparent md:hidden" />
-        </div>
-        {/* Tab summary row (below sticky nav) - responsive */}
-        <div className="px-2 sm:px-3 pt-2">
-          <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-4 gap-y-1 sm:gap-y-2 text-[10px] sm:text-xs md:text-sm text-slate-600 dark:text-slate-300" dir={isRTL ? 'rtl' : 'ltr'}>
-            {(() => {
-              const chaptersCount = chapters.length;
-              const lessonsCount = chapters.reduce((acc, ch) => acc + (ch.sections?.length || 0), 0);
-              const reviewsCount = initialReviews.length;
-              const lastUpdated = new Date(course.updatedAt).toLocaleDateString(locale, { year: 'numeric', month: 'short' });
-              const language = 'English';
-              const level = 'All Levels';
+            {tabs.map((tab, index) => {
+              const isActive = activeTab === tab.id;
               return (
-                <>
-                  <span className="inline-flex items-center gap-0.5 sm:gap-1"><Grid3X3 className="w-3 h-3 sm:w-4 sm:h-4" />{chaptersCount} {plural(chaptersCount, 'Chapter', 'Chapters')}</span>
-                  <span className="opacity-40 hidden sm:inline">•</span>
-                  <span className="inline-flex items-center gap-0.5 sm:gap-1"><FileText className="w-3 h-3 sm:w-4 sm:h-4" />{lessonsCount} {plural(lessonsCount, 'Lesson', 'Lessons')}</span>
-                  <span className="opacity-40 hidden sm:inline">•</span>
-                  <span className="inline-flex items-center gap-0.5 sm:gap-1"><MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />{reviewsCount} {plural(reviewsCount, 'Review', 'Reviews')}</span>
-                  <span className="opacity-40 hidden md:inline">•</span>
-                  <span className="hidden md:inline-flex items-center gap-0.5 sm:gap-1"><Clock className="w-3 h-3 sm:w-4 sm:h-4" />Last updated {lastUpdated}</span>
-                  <span className="opacity-40 hidden lg:inline">•</span>
-                  <span className="hidden lg:inline-flex items-center gap-0.5 sm:gap-1"><Globe className="w-3 h-3 sm:w-4 sm:h-4" />{language}</span>
-                  <span className="opacity-40 hidden lg:inline">•</span>
-                  <span className="hidden lg:inline-flex items-center gap-0.5 sm:gap-1"><BarChart className="w-3 h-3 sm:w-4 sm:h-4" />{level}</span>
-                </>
+                <button
+                  key={tab.id}
+                  ref={(el) => { tabRefs.current[tab.id] = el; }}
+                  id={`tab-${tab.id}`}
+                  data-tab={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`panel-${tab.id}`}
+                  tabIndex={isActive ? 0 : -1}
+                  onKeyDown={(e) => onKeyDown(e, index)}
+                  onMouseEnter={() => { try { preloaders[tab.id]?.(); } catch {} }}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    updateQuery(tab.id);
+                    try {
+                      EventTracker.getInstance().trackInteraction('course_tab_selected', {
+                        tab: tab.id,
+                        courseId,
+                      });
+                    } catch {}
+                  }}
+                  aria-label={`${typeof tab.label === 'string' ? tab.label : 'Tab'}${tab.count !== undefined ? ` (${tab.count})` : ''}`}
+                  className={`
+                    relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap rounded-lg
+                    transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
+                    ${isActive
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}
+                  `}
+                >
+                  <span className="w-4 h-4">{tab.icon}</span>
+                  <span>{typeof tab.label === 'string' ? tab.label : 'Tab'}</span>
+                  {tab.count !== undefined && (
+                    <span className={`
+                      inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 text-xs font-semibold rounded-full
+                      ${isActive
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}
+                    `}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
               );
-            })()}
-          </div>
+            })}
+          </nav>
         </div>
       </div>
 

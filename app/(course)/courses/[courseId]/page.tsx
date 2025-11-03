@@ -17,6 +17,7 @@ import { EnrollButton } from "./_components/enroll-button";
 import { CourseOutcomes } from "./_components/course-outcomes";
 import { CoursePageTabs } from "./_components/course-page-tabs";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { SimilarCoursesSection } from "./_components/similar-courses-section";
 
 type CourseReview = {
   id: string;
@@ -183,7 +184,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Pr
   };
 
   return (
-    <div className="relative pt-4 md:pt-6">
+    <div className="relative pt-4 md:pt-6 min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Fixed Theme Toggle Button - Top Right Corner */}
       <div className="fixed top-4 right-4 z-50">
@@ -196,7 +197,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Pr
         isEnrolled={!!enrollment}
       />
 
-      <div className="mt-12">
+      <div className="-mt-60 relative z-10">
         <CoursePageTabs
           course={course as any}
           chapters={chapters}
@@ -206,6 +207,11 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Pr
           userId={user?.id}
         />
       </div>
+
+      <SimilarCoursesSection
+        courseId={courseId}
+        categoryId={course.categoryId}
+      />
 
       <CourseFooterEnterprise />
     </div>

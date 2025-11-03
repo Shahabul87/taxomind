@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { User, Clock, Award, Globe, BarChart } from 'lucide-react';
+import { User, Clock, Award, Globe, BarChart, MessageSquare } from 'lucide-react';
 import { InteractiveRatingStars, NewCourseBadge } from './interactive-rating-stars';
 import { AnimatedStatCard } from './animated-stat-counter';
 import { colorPalette } from '../utils/design-tokens';
+import { Button } from '@/components/ui/button';
 
 interface HeroStatsEnhancedProps {
   stats: {
@@ -18,9 +19,11 @@ interface HeroStatsEnhancedProps {
     language?: string;
     hasCertificate?: boolean;
   };
+  isEnrolled?: boolean;
+  onEnroll?: () => void;
 }
 
-export const HeroStatsEnhanced = ({ stats }: HeroStatsEnhancedProps): JSX.Element => {
+export const HeroStatsEnhanced = ({ stats, isEnrolled, onEnroll }: HeroStatsEnhancedProps): JSX.Element => {
   const prefersReducedMotion = useReducedMotion();
   const rating = Number.parseFloat(stats.averageRating);
 
@@ -33,7 +36,7 @@ export const HeroStatsEnhanced = ({ stats }: HeroStatsEnhancedProps): JSX.Elemen
     >
       {/* Primary Stats Row - Rating & Animated Students */}
       <div className="flex flex-wrap items-center gap-8">
-        {/* Interactive Rating Stars or New Course Badge */}
+        {/* Interactive Rating Stars or Enroll Now Button */}
         {stats.totalReviews > 0 && rating > 0 ? (
           <InteractiveRatingStars
             rating={rating}
@@ -44,6 +47,20 @@ export const HeroStatsEnhanced = ({ stats }: HeroStatsEnhancedProps): JSX.Elemen
             showCount={true}
             linkToReviews={true}
           />
+        ) : !isEnrolled && onEnroll ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Button
+              onClick={onEnroll}
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl"
+            >
+              Enroll Now
+            </Button>
+          </motion.div>
         ) : (
           <NewCourseBadge size="md" />
         )}
@@ -56,6 +73,16 @@ export const HeroStatsEnhanced = ({ stats }: HeroStatsEnhancedProps): JSX.Elemen
           suffix=""
           accentColor={colorPalette.accent.success}
           delay={0.2}
+        />
+
+        {/* Animated Reviews Count */}
+        <AnimatedStatCard
+          icon={<MessageSquare className="w-6 h-6" />}
+          value={stats.totalReviews}
+          label={stats.totalReviews === 1 ? 'review' : 'reviews'}
+          suffix=""
+          accentColor={colorPalette.accent.info}
+          delay={0.25}
         />
 
         {/* Certificate Badge with animation */}

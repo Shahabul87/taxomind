@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Star, Award, BookOpen, Users, MessageCircle, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface InstructorShowcaseEnhancedProps {
   instructor: {
@@ -23,6 +24,8 @@ interface InstructorShowcaseEnhancedProps {
   showMessageButton?: boolean;
   showVerifiedBadge?: boolean;
   linkToProfile?: boolean;
+  isEnrolled?: boolean;
+  onEnroll?: () => void;
 }
 
 /**
@@ -36,6 +39,8 @@ export const InstructorShowcaseEnhanced = ({
   showMessageButton = false,
   showVerifiedBadge = true,
   linkToProfile = true,
+  isEnrolled = false,
+  onEnroll,
 }: InstructorShowcaseEnhancedProps): JSX.Element => {
   const prefersReducedMotion = useReducedMotion();
   const [isHovered, setIsHovered] = useState(false);
@@ -162,43 +167,23 @@ export const InstructorShowcaseEnhanced = ({
           )}
         </div>
 
-        {/* Instructor Stats */}
-        {stats && (
-          <motion.div
-            className="flex flex-wrap items-center gap-4 mt-3 text-sm text-white/70"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            {stats.rating !== undefined && stats.rating > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" aria-hidden="true" />
-                <span className="font-semibold text-white">{stats.rating.toFixed(1)}</span>
-                {stats.totalReviews !== undefined && stats.totalReviews > 0 && (
-                  <span className="text-white/60">
-                    ({stats.totalReviews.toLocaleString()})
-                  </span>
-                )}
-              </div>
-            )}
-
-            {stats.totalCourses !== undefined && stats.totalCourses > 0 && (
-              <div className="flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-blue-400" aria-hidden="true" />
-                <span>
-                  {stats.totalCourses} {stats.totalCourses === 1 ? 'course' : 'courses'}
-                </span>
-              </div>
-            )}
-
-            {stats.totalStudents !== undefined && stats.totalStudents > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-purple-400" aria-hidden="true" />
-                <span>{stats.totalStudents.toLocaleString()} students</span>
-              </div>
-            )}
-          </motion.div>
-        )}
+        {/* Reviews Display Only */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {/* Reviews Count */}
+          {stats && stats.totalReviews !== undefined && stats.totalReviews > 0 && (
+            <motion.div
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg border border-white/20"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" aria-hidden="true" />
+              <span className="text-white font-medium">
+                {stats.rating?.toFixed(1)} ({stats.totalReviews.toLocaleString()} reviews)
+              </span>
+            </motion.div>
+          )}
+        </div>
       </div>
     </motion.div>
   );

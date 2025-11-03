@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 
 import { Course } from '@prisma/client';
@@ -12,6 +13,7 @@ import { HeroStatsEnhanced } from './hero-stats-enhanced';
 import { DynamicBackground } from './dynamic-background';
 import { TrustIndicatorsCompact } from './trust-indicators';
 import { CourseInfoCardProfessional as CourseInfoCard } from './course-info-card-professional';
+import { toast } from 'sonner';
 
 interface CourseHeroSectionProps {
   course: Course & {
@@ -40,7 +42,19 @@ interface CourseHeroSectionProps {
 
 export const CourseHeroSection = ({ course, userId, isEnrolled = false }: CourseHeroSectionProps): JSX.Element => {
   const prefersReducedMotion = useReducedMotion();
+  const router = useRouter();
   const palette = getCategoryPalette(course.category?.name);
+
+  const handleEnroll = () => {
+    if (!userId) {
+      toast.error('Please sign in to enroll in this course');
+      router.push('/auth/login');
+      return;
+    }
+
+    // Navigate to the enrollment or checkout page
+    router.push(`/courses/${course.id}/checkout`);
+  };
   // Calculate average rating
   const averageRating = course.reviews?.length
     ? (course.reviews.reduce((acc, review) => acc + review.rating, 0) / course.reviews.length).toFixed(1)
@@ -76,7 +90,7 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
 
   return (
     <section
-      className="relative w-full min-h-[380px] sm:min-h-[480px] md:min-h-[540px] lg:min-h-[600px] overflow-hidden"
+      className="relative w-full overflow-hidden"
       aria-label="Course overview hero"
       style={{
         // Expose palette for children via CSS variables
@@ -96,7 +110,7 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
       />
 
       {/* Course Info Content */}
-      <div className="relative flex items-center min-h-[inherit] py-12 md:py-16 lg:py-20">
+      <div className="relative flex items-center py-12 md:py-16 lg:py-20">
         <motion.div
           className="container mx-auto px-4 md:px-6 lg:px-8"
           initial={{ opacity: 0, y: 20 }}
@@ -114,7 +128,7 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
             className="
               text-3xl sm:text-4xl md:text-5xl lg:text-6xl
               font-bold
-              text-slate-900 dark:text-white
+              text-white
               capitalize
               mb-6
               max-w-screen-md md:max-w-4xl
@@ -133,7 +147,7 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: prefersReducedMotion ? 0 : 0.35 }}
-              className="text-slate-600 dark:text-white/80 max-w-screen-md md:max-w-3xl mb-5 clamp-2"
+              className="text-white/90 max-w-screen-md md:max-w-3xl mb-5 clamp-2"
             >
               {cleanHtmlContent(course.description)}
             </motion.p>
@@ -159,7 +173,9 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
               showQuickBio={false}
               showMessageButton={false}
               showVerifiedBadge={true}
-              linkToProfile={true}
+              linkToProfile={false}
+              isEnrolled={isEnrolled}
+              onEnroll={handleEnroll}
             />
           )}
 
@@ -175,6 +191,8 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
               language: (course as any)?.language ?? undefined,
               hasCertificate: true,
             }}
+            isEnrolled={isEnrolled}
+            onEnroll={handleEnroll}
           />
 
           {/* Compact trust indicators (mobile-first reassurance) */}
@@ -184,14 +202,14 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
         </motion.div>
       </div>
 
-      {/* Desktop overlay: Course info card anchored within hero */}
-      <div className="absolute inset-0 hidden md:block pointer-events-none">
+      {/* Desktop overlay: Course info card anchored within hero - TEMPORARILY HIDDEN */}
+      {/* <div className="absolute inset-0 hidden md:block pointer-events-none">
         <div className="container mx-auto px-4 md:px-6 lg:px-8 h-full relative">
           <div className="absolute right-4 md:right-6 lg:right-8 top-28 md:top-24 lg:top-28 w-[360px] lg:w-[400px] pointer-events-auto">
             <CourseInfoCard course={course as any} userId={userId} isEnrolled={isEnrolled} variant="overlay" />
           </div>
         </div>
-      </div>
+      </div> */}
     </section>
   );
 };

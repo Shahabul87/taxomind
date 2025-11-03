@@ -7,7 +7,7 @@ import { useCommerce } from "@/components/commerce/commerce-context";
 export const CourseFooterEnterprise: React.FC = () => {
   const { currency, locale, setCurrency, setLocale } = useCommerce();
   return (
-    <footer className="mt-16 border-t border-slate-200/70 dark:border-slate-800 bg-white/95 dark:bg-slate-950/90 backdrop-blur-sm md:backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-sm md:supports-[backdrop-filter]:backdrop-blur-md" role="contentinfo" aria-label="Course Footer">
+    <footer className="mt-16 border-t border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-[0_-4px_24px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.3)]" role="contentinfo" aria-label="Course Footer">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         {/* Top section: brand + controls */}
         <div className="py-8 md:py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -97,7 +97,7 @@ export const CourseFooterEnterprise: React.FC = () => {
         </div>
 
         {/* Newsletter */}
-        <div className="py-6 border-t border-slate-200/70 dark:border-slate-800">
+        <div className="py-6 border-t border-slate-200/50 dark:border-slate-700/50">
           <div className="grid md:grid-cols-3 gap-6 md:items-center">
             <div className="md:col-span-2">
               <div className="text-sm font-semibold text-slate-900 dark:text-white">Stay in the loop</div>
