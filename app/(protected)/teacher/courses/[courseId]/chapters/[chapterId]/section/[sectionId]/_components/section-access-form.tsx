@@ -4,7 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Lock, Unlock, Loader2 } from "lucide-react";
+import { Lock, Unlock, Pencil } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -54,16 +54,16 @@ export const SectionAccessForm = ({
 
   const { isSubmitting } = form.formState;
 
+  const toggleEdit = () => setIsEditing((current) => !current);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-
-      const response = await axios.patch(
-        `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`, 
+      await axios.patch(
+        `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`,
         values
       );
-
       toast.success("Section access updated");
-      setIsEditing(false);
+      toggleEdit();
       router.refresh();
     } catch (error: any) {
       logger.error("Section access update error:", error);
@@ -71,156 +71,142 @@ export const SectionAccessForm = ({
     }
   };
 
-  const Icon = form.getValues("isFree") ? Unlock : Lock;
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className={cn(
-            "p-2 rounded-lg transition-all duration-200",
-            form.getValues("isFree")
-              ? "bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 dark:from-emerald-500/20 dark:to-cyan-500/20 border border-emerald-500/20 dark:border-emerald-500/30"
-              : "bg-gradient-to-br from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20 border border-amber-500/20 dark:border-amber-500/30"
-          )}>
-            <Icon className={cn(
-              "h-4 w-4",
-              form.getValues("isFree")
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-amber-600 dark:text-amber-400"
-            )} />
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-foreground">
-              Access Settings
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Control who can access this section
-            </p>
+      {/* Display Mode */}
+      {!isEditing && (
+        <div className="group relative">
+          <div className="flex flex-col gap-4">
+            {/* Access status display */}
+            <div className="flex-1 min-w-0 w-full">
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+                <div className={cn(
+                  "p-2 rounded-md",
+                  initialData.isFree
+                    ? "bg-emerald-100 dark:bg-emerald-900/30"
+                    : "bg-purple-100 dark:bg-purple-900/30"
+                )}>
+                  {initialData.isFree ? (
+                    <Unlock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <Lock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className={cn(
+                    "font-semibold text-sm",
+                    initialData.isFree
+                      ? "text-emerald-700 dark:text-emerald-300"
+                      : "text-purple-700 dark:text-purple-300"
+                  )}>
+                    {initialData.isFree ? "Free Preview" : "Premium Content"}
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mt-0.5">
+                    {initialData.isFree
+                      ? "This section is available as a free preview to attract students"
+                      : "Students need to enroll in the course to access this section"
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Edit button - aligned to right */}
+            <div className="flex items-center justify-end">
+              <Button
+                onClick={toggleEdit}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-9 px-4",
+                  "bg-white/80 dark:bg-slate-800/80",
+                  "border-slate-200 dark:border-slate-700",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-800",
+                  "hover:border-purple-300 dark:hover:border-purple-600",
+                  "hover:text-purple-600 dark:hover:text-purple-400",
+                  "font-semibold",
+                  "transition-all duration-200",
+                  "shadow-sm hover:shadow-md"
+                )}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </div>
           </div>
         </div>
-        <Button
-          onClick={() => setIsEditing(!isEditing)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "transition-all duration-200",
-            "w-full sm:w-auto justify-center",
-            "border",
-            "h-8 px-3 text-xs font-medium",
-            form.getValues("isFree")
-              ? "bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 border-emerald-500/20 dark:border-emerald-500/30"
-              : "bg-amber-500/5 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 border-amber-500/20 dark:border-amber-500/30"
-          )}
-        >
-          {isEditing ? "Cancel" : "Edit access"}
-        </Button>
-      </div>
-      {!isEditing && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            "px-3 py-2.5 rounded-lg border",
-            form.getValues("isFree")
-              ? "bg-emerald-500/5 border-emerald-500/20"
-              : "bg-amber-500/5 border-amber-500/20"
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <Icon className={cn(
-              "h-3.5 w-3.5",
-              form.getValues("isFree")
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-amber-600 dark:text-amber-400"
-            )} />
-            <p className={cn(
-              "text-sm font-medium",
-              form.getValues("isFree")
-                ? "text-emerald-700 dark:text-emerald-300"
-                : "text-amber-700 dark:text-amber-300"
-            )}>
-              {form.getValues("isFree") ? "Free Preview" : "Enrolled Students Only"}
-            </p>
-          </div>
-          <p className={cn(
-            "text-xs mt-1",
-            form.getValues("isFree")
-              ? "text-emerald-600/80 dark:text-emerald-400/80"
-              : "text-amber-600/80 dark:text-amber-400/80"
-          )}>
-            {form.getValues("isFree")
-              ? "This section is available for preview without enrollment"
-              : "Students need to be enrolled to access this section"}
-          </p>
-        </motion.div>
       )}
+
+      {/* Edit Mode */}
       {isEditing && (
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 mt-4"
+            className="space-y-4"
           >
             <FormField
               control={form.control}
               name="isFree"
               render={({ field }) => (
                 <FormItem className={cn(
-                  "px-3 py-2.5 rounded-lg space-y-2",
-                  "border border-border",
-                  "bg-muted/30"
+                  "p-4 rounded-lg",
+                  "border border-slate-200 dark:border-slate-700",
+                  "bg-slate-50 dark:bg-slate-900/50"
                 )}>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-x-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
+                    <div className="space-y-1 flex-1">
+                      <p className={cn(
+                        "font-semibold text-sm",
+                        field.value
+                          ? "text-emerald-700 dark:text-emerald-300"
+                          : "text-purple-700 dark:text-purple-300"
+                      )}>
+                        Free Preview
+                      </p>
+                      <FormDescription className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+                        Enable this to make the section available as a free preview. This helps attract potential students by giving them a taste of your course content.
+                      </FormDescription>
+                    </div>
                     <FormControl>
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
+                        disabled={isSubmitting}
                         className={cn(
-                          "data-[state=checked]:bg-emerald-600 dark:data-[state=checked]:bg-emerald-500",
-                          "data-[state=unchecked]:bg-amber-600 dark:data-[state=unchecked]:bg-amber-500"
+                          "data-[state=checked]:bg-emerald-600"
                         )}
                       />
                     </FormControl>
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-medium text-foreground">
-                        Free Section Preview
-                      </p>
-                      <FormDescription className="text-xs text-muted-foreground">
-                        Make this section free for preview
-                      </FormDescription>
-                    </div>
                   </div>
                 </FormItem>
               )}
             />
-            <div className="flex items-center gap-x-2 pt-2">
+            <div className="flex items-center justify-between gap-x-2">
+              <Button
+                onClick={toggleEdit}
+                variant="outline"
+                size="sm"
+                type="button"
+                className={cn(
+                  "h-9 px-4",
+                  "bg-white dark:bg-slate-800",
+                  "border-slate-300 dark:border-slate-600",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-700",
+                  "font-semibold",
+                  "transition-all duration-200"
+                )}
+              >
+                Cancel
+              </Button>
               <Button
                 disabled={isSubmitting}
                 type="submit"
                 size="sm"
-                className={cn(
-                  "transition-all duration-200",
-                  "w-full sm:w-auto justify-center",
-                  "shadow-sm",
-                  "h-8 px-3 text-xs font-medium",
-                  form.getValues("isFree")
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : "bg-amber-600 hover:bg-amber-700 text-white"
-                )}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-x-1.5">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    >
-                      <Loader2 className="h-3 w-3" />
-                    </motion.div>
-                    <span>Saving...</span>
-                  </div>
-                ) : (
-                  "Save Changes"
-                )}
+                {isSubmitting ? "Saving..." : "Save"}
               </Button>
             </div>
           </form>

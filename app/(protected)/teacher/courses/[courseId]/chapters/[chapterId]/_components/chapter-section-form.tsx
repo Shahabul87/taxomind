@@ -157,36 +157,25 @@ export const ChaptersSectionForm = ({
   return (
     <div className={cn(
       "relative p-4 sm:p-6 rounded-xl",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
+      "border border-slate-200 dark:border-slate-700",
+      "bg-white dark:bg-slate-900",
       "transition-all duration-200",
-      "backdrop-blur-sm",
-      "overflow-x-auto",
-      "scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700",
-      "scrollbar-track-transparent"
+      "overflow-x-auto"
     )}>
       <div className="min-w-[600px] sm:min-w-full">
         {(isUpdating || isGeneratingAI) && (
-          <div className="absolute h-full w-full bg-white/10 dark:bg-gray-900/20 top-0 right-0 rounded-xl flex items-center justify-center backdrop-blur-sm">
-            <Loader2 className="h-6 w-6 text-cyan-600 dark:text-cyan-400 animate-spin" />
+          <div className="absolute h-full w-full bg-white/80 dark:bg-slate-900/80 top-0 right-0 rounded-xl flex items-center justify-center backdrop-blur-sm z-10">
+            <Loader2 className="h-6 w-6 text-slate-600 dark:text-slate-400 animate-spin" />
           </div>
         )}
         <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
           <div className="space-y-1">
-            <div className="flex items-center gap-x-2">
-              <div className="p-2 w-fit rounded-md bg-cyan-50 dark:bg-cyan-500/10">
-                <LayoutGrid className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
-              </div>
-              <div>
-                <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 dark:from-cyan-400 dark:to-teal-400 bg-clip-text text-transparent">
-                  Chapter Sections
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium tracking-wide">
-                  Add and organize your course content
-                </p>
-              </div>
-            </div>
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+              Chapter Sections
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Add and organize your course content
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <AISectionGenerator
@@ -198,15 +187,17 @@ export const ChaptersSectionForm = ({
             />
             <Button
               onClick={() => setIsCreating(!isCreating)}
-              variant="ghost"
+              variant="outline"
               size="sm"
               className={cn(
+                "h-9 px-4",
                 "transition-all duration-200",
                 "w-full sm:w-auto",
                 "justify-center",
+                "font-semibold",
                 isCreating
-                  ? "text-rose-700 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-                  : "text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-500/10"
+                  ? "text-rose-700 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 border-rose-200 dark:border-rose-700"
+                  : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700"
               )}
             >
               {isCreating ? (
@@ -220,6 +211,9 @@ export const ChaptersSectionForm = ({
             </Button>
           </div>
         </div>
+
+        {/* Horizontal separator */}
+        <div className="my-4 border-b border-slate-200 dark:border-slate-700" />
 
         <AnimatePresence mode="wait">
           {isCreating && (
@@ -247,12 +241,14 @@ export const ChaptersSectionForm = ({
                             disabled={isSubmitting}
                             placeholder="e.g. 'Introduction to the topic'"
                             className={cn(
-                              "bg-white dark:bg-gray-900/50",
-                              "border-gray-200 dark:border-gray-700/50",
-                              "text-gray-900 dark:text-gray-200",
-                              "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-                              "focus:ring-cyan-500/20",
-                              "text-sm sm:text-base font-medium",
+                              "bg-white dark:bg-slate-900",
+                              "border border-slate-300/60 dark:border-slate-600/60",
+                              "text-slate-900 dark:text-slate-100",
+                              "placeholder:text-slate-400 dark:placeholder:text-slate-500",
+                              "focus:border-slate-400/70 dark:focus:border-slate-500/70",
+                              "focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
+                              "text-sm sm:text-base",
+                              "h-11",
                               "transition-all duration-200"
                             )}
                           />
@@ -264,16 +260,14 @@ export const ChaptersSectionForm = ({
                   <Button
                     disabled={!isValid || isSubmitting}
                     type="submit"
-                    variant="ghost"
                     size="sm"
                     className={cn(
-                      "bg-cyan-50 dark:bg-cyan-500/10",
-                      "text-cyan-700 dark:text-cyan-300",
-                      "hover:bg-cyan-100 dark:hover:bg-cyan-500/20",
-                      "hover:text-cyan-800 dark:hover:text-cyan-200",
-                      "border border-cyan-200/20 dark:border-cyan-500/20",
+                      "bg-emerald-600 hover:bg-emerald-700",
+                      "text-white",
                       "w-full sm:w-auto",
+                      "h-9 px-4",
                       "justify-center",
+                      "font-semibold",
                       "transition-all duration-200"
                     )}
                   >
@@ -305,15 +299,16 @@ export const ChaptersSectionForm = ({
               items={chapter.sections || []}
             />
             {chapter.sections.length === 0 && (
-              <div className="mt-4 text-center space-y-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                  No sections yet
-                </p>
-                {!chapter.title && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Add chapter title to use AI generation
+              <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                <div className="flex items-center gap-2 px-3">
+                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    No sections yet
                   </p>
-                )}
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                  Add sections to organize your chapter content. {!chapter.title && "Add chapter title to use AI generation."}
+                </p>
               </div>
             )}
           </motion.div>

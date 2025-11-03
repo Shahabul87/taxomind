@@ -90,10 +90,10 @@ export const PrivacyTab = ({ form, isPending }: PrivacyTabProps) => {
     >
       {/* Profile Visibility */}
       <div className={cn(
-        "p-6 rounded-xl",
-        "bg-white/60 dark:bg-slate-800/60",
+        "p-6 rounded-3xl",
+        "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
-        "border border-slate-200/30 dark:border-slate-700/30",
+        "border border-slate-200/50 dark:border-slate-700/50",
         "shadow-lg"
       )}>
         <div className="flex items-center space-x-3 mb-6">
@@ -101,10 +101,10 @@ export const PrivacyTab = ({ form, isPending }: PrivacyTabProps) => {
             <Eye className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
               Profile Visibility
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               Control who can see your profile information
             </p>
           </div>
@@ -208,10 +208,10 @@ export const PrivacyTab = ({ form, isPending }: PrivacyTabProps) => {
 
       {/* Data & Personalization */}
       <div className={cn(
-        "p-6 rounded-xl",
-        "bg-white/60 dark:bg-slate-800/60",
+        "p-6 rounded-3xl",
+        "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
-        "border border-slate-200/30 dark:border-slate-700/30",
+        "border border-slate-200/50 dark:border-slate-700/50",
         "shadow-lg"
       )}>
         <div className="flex items-center space-x-3 mb-6">
@@ -219,10 +219,10 @@ export const PrivacyTab = ({ form, isPending }: PrivacyTabProps) => {
             <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
               Data &amp; Personalization
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               Manage how your data is used
             </p>
           </div>
@@ -277,10 +277,10 @@ export const PrivacyTab = ({ form, isPending }: PrivacyTabProps) => {
 
       {/* Cookie Preferences */}
       <div className={cn(
-        "p-6 rounded-xl",
-        "bg-white/60 dark:bg-slate-800/60",
+        "p-6 rounded-3xl",
+        "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
-        "border border-slate-200/30 dark:border-slate-700/30",
+        "border border-slate-200/50 dark:border-slate-700/50",
         "shadow-lg"
       )}>
         <div className="flex items-center space-x-3 mb-6">
@@ -288,10 +288,10 @@ export const PrivacyTab = ({ form, isPending }: PrivacyTabProps) => {
             <Cookie className="h-5 w-5 text-orange-600 dark:text-orange-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
               Cookie Preferences
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               Manage cookie settings for your browsing experience
             </p>
           </div>
@@ -342,10 +342,10 @@ export const PrivacyTab = ({ form, isPending }: PrivacyTabProps) => {
 
       {/* GDPR Data Export */}
       <div className={cn(
-        "p-6 rounded-xl",
-        "bg-white/60 dark:bg-slate-800/60",
+        "p-6 rounded-3xl",
+        "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
-        "border border-slate-200/30 dark:border-slate-700/30",
+        "border border-slate-200/50 dark:border-slate-700/50",
         "shadow-lg"
       )}>
         <div className="flex items-center space-x-3 mb-6">
@@ -353,17 +353,17 @@ export const PrivacyTab = ({ form, isPending }: PrivacyTabProps) => {
             <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
               Data Export (GDPR)
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               Download a copy of your personal data
             </p>
           </div>
         </div>
 
         <div className="space-y-4">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             Request a copy of all your personal data stored in our system. This includes your profile information, course progress, purchases, and activity history.
           </p>
 
@@ -398,7 +398,7 @@ export const PrivacyTab = ({ form, isPending }: PrivacyTabProps) => {
 
       {/* Account Deletion */}
       <div className={cn(
-        "p-6 rounded-xl",
+        "p-6 rounded-3xl",
         "bg-red-50/60 dark:bg-red-900/20",
         "backdrop-blur-sm",
         "border border-red-200/50 dark:border-red-800/50",

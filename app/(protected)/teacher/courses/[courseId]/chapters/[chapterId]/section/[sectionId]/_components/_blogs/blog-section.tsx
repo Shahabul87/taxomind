@@ -4,20 +4,13 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, BookOpen, Loader2, Star, Link as LinkIcon, ExternalLink, Globe, X, ChevronDown, ArrowUp, ArrowDown, Clock, Calendar, Clipboard, Grid3X3, List, Eye, User } from "lucide-react";
+import { BookOpen, Loader2, Star, Link as LinkIcon, ExternalLink, Globe, X, Clipboard } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { logger } from '@/lib/logger';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 import {
   Form,
@@ -31,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { DisplayBlogs } from "./display-blogs";
 
 interface BlogSectionFormProps {
   chapter: {
@@ -65,6 +58,8 @@ interface BlogSectionFormProps {
   courseId: string;
   chapterId: string;
   sectionId: string;
+  isCreating: boolean;
+  setIsCreating: (value: boolean) => void;
 }
 
 const formSchema = z.object({
@@ -76,9 +71,6 @@ const formSchema = z.object({
   }),
   description: z.string().optional(),
 });
-
-type SortOption = "rating" | "title" | "newest" | "oldest";
-type ViewMode = "grid" | "list";
 
 interface BlogPreviewData {
   title: string;
@@ -93,36 +85,19 @@ export const BlogSectionForm = ({
   courseId,
   chapterId,
   sectionId,
+  isCreating,
+  setIsCreating,
 }: BlogSectionFormProps) => {
-  const [isCreating, setIsCreating] = useState(false);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
   const [selectedRating, setSelectedRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [previewData, setPreviewData] = useState<BlogPreviewData | null>(null);
-  const [sortBy, setSortBy] = useState<SortOption>("rating");
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const router = useRouter();
-  
+
   // Find the current section's blogs
   const currentSection = chapter.sections.find(section => section.id === sectionId);
-  const unfilteredBlogs = currentSection?.blogs || [];
-
-  // Sort blogs based on the selected sort option
-  const blogs = [...unfilteredBlogs].sort((a, b) => {
-    switch (sortBy) {
-      case "rating":
-        return (b.rating || 0) - (a.rating || 0);
-      case "title":
-        return a.title.localeCompare(b.title);
-      case "newest":
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case "oldest":
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      default:
-        return 0;
-    }
-  });
+  const blogs = currentSection?.blogs || [];
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -300,115 +275,31 @@ export const BlogSectionForm = ({
     }
   };
 
-  const handleBlogClick = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  const getRatingColor = (rating: number | null | undefined) => {
-    if (!rating) return "gray";
-    if (rating >= 4) return "green";
-    if (rating >= 3) return "blue";
-    if (rating >= 2) return "yellow";
-    return "red";
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className={cn(
-        "p-5 rounded-xl",
-        "border border-gray-200/70 dark:border-gray-700/50",
-        "bg-gradient-to-r from-cyan-50/50 via-blue-50/50 to-indigo-50/50",
-        "dark:from-cyan-900/10 dark:via-blue-900/10 dark:to-indigo-900/10",
-        "backdrop-blur-sm shadow-sm",
-        "transition-all duration-300"
-      )}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <motion.div
-              className={cn(
-                "p-2.5 rounded-xl",
-                "bg-gradient-to-br from-cyan-500 to-blue-600",
-                "shadow-lg shadow-cyan-500/30"
-              )}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <BookOpen className="h-5 w-5 text-white" />
-            </motion.div>
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                Blog Resources
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                Curated articles and blog posts for enhanced learning
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
-                  {blogs.length} {blogs.length === 1 ? 'Resource' : 'Resources'}
-                </span>
-                {blogs.filter(b => b.rating && b.rating >= 4).length > 0 && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
-                    <Star className="h-3 w-3 mr-1 fill-yellow-500 text-yellow-500" />
-                    {blogs.filter(b => b.rating && b.rating >= 4).length} Highly Rated
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <Button
-            onClick={() => setIsCreating(!isCreating)}
-            size="sm"
-            className={cn(
-              "bg-gradient-to-r from-cyan-600 to-blue-600",
-              "hover:from-cyan-700 hover:to-blue-700",
-              "text-white shadow-md",
-              "transition-all duration-200",
-              "w-full sm:w-auto",
-              "gap-2"
-            )}
-          >
-            {isCreating ? (
-              <>
-                <X className="h-4 w-4" />
-                Cancel
-              </>
-            ) : (
-              <>
-                <BookOpen className="h-4 w-4" />
-                Add Blog
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-4">
 
-      {/* Form Section */}
       <AnimatePresence>
         {isCreating && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="overflow-hidden"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden mt-4"
           >
-            <div className={cn(
-              "p-6 rounded-xl",
-              "border border-gray-200/70 dark:border-gray-700/50",
-              "bg-white/80 dark:bg-gray-800/60",
-              "backdrop-blur-md shadow-lg"
-            )}>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="space-y-5">
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
+                <div className="space-y-4">
                   <FormField
                     control={form.control}
                     name="blogUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Blog URL <span className="text-pink-500">*</span>
+                        <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Blog URL <span className="text-blue-500">*</span>
                         </FormLabel>
                         <div className="relative">
                           <FormControl>
@@ -417,24 +308,26 @@ export const BlogSectionForm = ({
                               disabled={isSubmitting}
                               placeholder="Enter blog or article URL"
                               className={cn(
-                                "bg-white dark:bg-gray-900/50",
-                                "border-gray-200 dark:border-gray-700/50",
-                                "text-gray-900 dark:text-gray-200",
+                                "bg-white dark:bg-slate-900",
+                                "border-slate-200 dark:border-slate-700",
+                                "text-slate-900 dark:text-slate-100",
                                 "pl-10 pr-20",
-                                "focus:ring-pink-500/20",
+                                "focus:bg-slate-50 dark:focus:bg-slate-800",
+                                "focus:border-slate-200 dark:focus:border-slate-700",
+                                "focus:ring-0 focus:ring-offset-0",
                                 "text-sm",
                                 "transition-all duration-200"
                               )}
                             />
                           </FormControl>
-                          <Globe className="absolute left-3 top-3 h-4 w-4 text-pink-500 dark:text-pink-400" />
+                          <BookOpen className="absolute left-3 top-3 h-4 w-4 text-blue-500 dark:text-blue-400" />
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
                             <Button
                               type="button"
                               size="sm"
                               variant="ghost"
                               onClick={pasteFromClipboard}
-                              className="h-7 px-2 text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400"
+                              className="h-7 px-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
                             >
                               <Clipboard className="h-4 w-4 mr-1" />
                               <span className="text-xs">Paste</span>
@@ -446,7 +339,7 @@ export const BlogSectionForm = ({
                                   field.onChange("");
                                   setPreviewData(null);
                                 }}
-                                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                                className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
                               >
                                 <X className="h-4 w-4" />
                               </button>
@@ -454,146 +347,149 @@ export const BlogSectionForm = ({
                           </div>
                         </div>
                         <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
-                        <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
+                        <FormDescription className="text-xs text-slate-500 dark:text-slate-400">
                           Enter a URL from Medium, Dev.to, or other blog platforms
                         </FormDescription>
                       </FormItem>
                     )}
                   />
 
-                {isLoadingMetadata && (
-                  <div className="flex justify-center py-8">
-                    <div className="flex flex-col items-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
-                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Fetching blog metadata...</p>
+                  {isLoadingMetadata && (
+                    <div className="flex justify-center py-8">
+                      <div className="flex flex-col items-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Fetching blog details...</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {previewData && !isLoadingMetadata && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-pink-100 dark:border-pink-800/30 overflow-hidden bg-white dark:bg-gray-800/60 shadow-md"
-                  >
-                    <div className="relative h-48 w-full bg-gray-100 dark:bg-gray-700">
-                      {previewData.thumbnail ? (
-                        <div className="h-full w-full relative">
-                          <Image
-                            src={previewData.thumbnail}
-                            alt={previewData.title}
-                            width={400}
-                            height={192}
-                            className="object-cover h-full w-full"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const fallbackEl = document.getElementById(`thumbnail-fallback-${Date.now()}`);
-                              if (fallbackEl) fallbackEl.style.display = 'flex';
-                            }}
-                          />
-                          <div 
-                            id={`thumbnail-fallback-${Date.now()}`}
-                            className="hidden absolute inset-0 h-full w-full flex items-center justify-center bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30"
-                          >
-                            <BookOpen className="h-16 w-16 text-pink-300 dark:text-pink-500" />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30">
-                          <BookOpen className="h-16 w-16 text-pink-300 dark:text-pink-500" />
-                        </div>
-                      )}
-                      {previewData.siteName && (
-                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md">
-                          <span className="text-white text-xs font-medium">{previewData.siteName}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <FormField
-                        control={form.control}
-                        name="title"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-gray-700 dark:text-gray-300">Blog Title</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                placeholder="Blog title"
-                                className="text-base font-medium border border-gray-200 dark:border-gray-700 bg-transparent"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      {previewData.author && (
-                        <div className="mt-2 flex items-center">
-                          <div className="w-5 h-5 rounded-full bg-pink-100 dark:bg-pink-800 flex items-center justify-center text-xs font-medium text-pink-600 dark:text-pink-300 mr-2">
-                            {previewData.author.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{previewData.author}</span>
-                        </div>
-                      )}
-                      
-                      {previewData.description && (
-                        <div className="mt-3">
-                          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{previewData.description}</p>
-                        </div>
-                      )}
-                      
-                      <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rate this blog&apos;s quality</p>
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((rating) => (
-                            <button
-                              key={rating}
-                              type="button"
-                              onMouseEnter={() => setHoveredRating(rating)}
-                              onMouseLeave={() => setHoveredRating(0)}
-                              onClick={() => setSelectedRating(rating)}
-                              className="focus:outline-none transition-transform hover:scale-110"
+                  {previewData && !isLoadingMetadata && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-xl border border-blue-100 dark:border-blue-800/30 overflow-hidden bg-white dark:bg-slate-800/60 shadow-md"
+                    >
+                      <div className="relative h-[200px] w-full bg-slate-100 dark:bg-slate-700">
+                        {previewData.thumbnail ? (
+                          <div className="h-full w-full relative group overflow-hidden">
+                            <Image
+                              src={previewData.thumbnail}
+                              alt={previewData.title}
+                              width={400}
+                              height={200}
+                              className="object-cover h-full w-full"
+                            />
+                            <div
+                              id={`blog-thumbnail-fallback-${Date.now()}`}
+                              className="hidden absolute inset-0 h-full w-full flex items-center justify-center bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30"
                             >
-                              <Star
-                                className={cn(
-                                  "h-6 w-6 transition-colors duration-200",
-                                  (rating <= (hoveredRating || selectedRating))
-                                    ? "text-yellow-400 fill-yellow-400"
-                                    : "text-gray-300 dark:text-gray-600"
-                                )}
-                              />
-                            </button>
-                          ))}
-                          <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {selectedRating > 0 ? `${selectedRating}/5` : "Select rating"}
-                          </span>
+                              <BookOpen className="h-16 w-16 text-blue-300 dark:text-blue-500" />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30">
+                            <BookOpen className="h-16 w-16 text-blue-300 dark:text-blue-500" />
+                          </div>
+                        )}
+                        {previewData.siteName && (
+                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md">
+                            <span className="text-white text-xs font-medium">{previewData.siteName}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <FormField
+                          control={form.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-slate-700 dark:text-slate-300">Blog Title</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="Blog title"
+                                  className={cn(
+                                    "text-base font-medium",
+                                    "border-slate-200 dark:border-slate-700",
+                                    "bg-white dark:bg-slate-900",
+                                    "focus:bg-slate-50 dark:focus:bg-slate-800",
+                                    "focus:border-slate-200 dark:focus:border-slate-700",
+                                    "focus:ring-0 focus:ring-offset-0",
+                                    "transition-colors duration-200"
+                                  )}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {previewData.author && (
+                          <div className="mt-2 flex items-center">
+                            <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-xs font-medium text-blue-600 dark:text-blue-300 mr-2">
+                              {previewData.author.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-sm text-slate-700 dark:text-slate-300">{previewData.author}</span>
+                          </div>
+                        )}
+
+                        {previewData.description && (
+                          <div className="mt-3">
+                            <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">{previewData.description}</p>
+                          </div>
+                        )}
+
+                        <div className="mt-4">
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Rate this blog&apos;s quality</p>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((rating) => (
+                              <button
+                                key={rating}
+                                type="button"
+                                onMouseEnter={() => setHoveredRating(rating)}
+                                onMouseLeave={() => setHoveredRating(0)}
+                                onClick={() => setSelectedRating(rating)}
+                                className="focus:outline-none transition-transform hover:scale-110"
+                              >
+                                <Star
+                                  className={cn(
+                                    "h-6 w-6 transition-colors duration-200",
+                                    (rating <= (hoveredRating || selectedRating))
+                                      ? "text-yellow-400 fill-yellow-400"
+                                      : "text-slate-300 dark:text-slate-600"
+                                  )}
+                                />
+                              </button>
+                            ))}
+                            <span className="ml-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                              {selectedRating > 0 ? `${selectedRating}/5` : "Select rating"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end mt-4">
+                          <Button
+                            type="submit"
+                            disabled={!isValid || isSubmitting}
+                            className={cn(
+                              "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600",
+                              "text-white border-0",
+                              "shadow-md hover:shadow-lg transition-all"
+                            )}
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Adding...
+                              </>
+                            ) : (
+                              "Add Blog Resource"
+                            )}
+                          </Button>
                         </div>
                       </div>
-
-                      <div className="flex justify-end mt-4">
-                        <Button
-                          type="submit"
-                          disabled={!isValid || isSubmitting}
-                          className={cn(
-                            "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600",
-                            "text-white border-0",
-                            "shadow-md hover:shadow-lg transition-all"
-                          )}
-                        >
-                          {isSubmitting ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Adding...
-                            </>
-                          ) : (
-                            "Add Blog Resource"
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
+                    </motion.div>
+                  )}
 
                   {!previewData && !isLoadingMetadata && blogUrl && z.string().url().safeParse(blogUrl).success && (
                     <p className="text-sm text-rose-500 dark:text-rose-400 italic">
@@ -603,258 +499,16 @@ export const BlogSectionForm = ({
                 </div>
               </form>
             </Form>
-          </div>
-        </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Blog list with enhanced controls */}
-      {blogs.length > 0 && (
-        <div className="space-y-4">
-          {/* Control Bar */}
-          <div className={cn(
-            "p-4 rounded-xl",
-            "border border-gray-200/70 dark:border-gray-700/50",
-            "bg-white/60 dark:bg-gray-800/40",
-            "backdrop-blur-sm shadow-sm"
-          )}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {blogs.length} Blog {blogs.length === 1 ? 'Resource' : 'Resources'}
-                </h4>
-                {blogs.filter(b => b.rating && b.rating >= 4).length > 0 && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
-                    <Star className="h-3 w-3 mr-1 fill-yellow-500 text-yellow-500" />
-                    {blogs.filter(b => b.rating && b.rating >= 4).length} Top Rated
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3">
-                {/* View Toggle */}
-                <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 border border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                      viewMode === "list"
-                        ? "bg-white dark:bg-gray-700 text-cyan-600 dark:text-cyan-400 shadow-sm"
-                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                    )}
-                  >
-                    <List className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">List</span>
-                  </button>
-                  <button
-                    onClick={() => setViewMode("grid")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                      viewMode === "grid"
-                        ? "bg-white dark:bg-gray-700 text-cyan-600 dark:text-cyan-400 shadow-sm"
-                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                    )}
-                  >
-                    <Grid3X3 className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Grid</span>
-                  </button>
-                </div>
-
-                {/* Sort Dropdown */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600 dark:text-gray-400 hidden sm:inline">Sort:</span>
-                  <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                    <SelectTrigger className={cn(
-                      "w-[140px] h-9 text-xs",
-                      "bg-white dark:bg-gray-800",
-                      "border-gray-200 dark:border-gray-700"
-                    )}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="rating" className="text-xs">
-                        <div className="flex items-center">
-                          <Star className="h-3.5 w-3.5 mr-2 text-yellow-500" />
-                          Highest Rated
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="title" className="text-xs">
-                        <div className="flex items-center">
-                          <BookOpen className="h-3.5 w-3.5 mr-2 text-gray-500" />
-                          Title (A-Z)
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="newest" className="text-xs">
-                        <div className="flex items-center">
-                          <Clock className="h-3.5 w-3.5 mr-2 text-blue-500" />
-                          Newest First
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="oldest" className="text-xs">
-                        <div className="flex items-center">
-                          <Calendar className="h-3.5 w-3.5 mr-2 text-green-500" />
-                          Oldest First
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* List View */}
-          {viewMode === "list" && (
-            <div className="space-y-2 rounded-xl overflow-hidden bg-white dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800/50">
-              {blogs.map((blog) => (
-                <div 
-                  key={blog.id}
-                  className="group relative"
-                >
-                  <div 
-                    className="px-4 py-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
-                    onClick={() => handleBlogClick(blog.url)}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate pr-8 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {blog.title}
-                      </h4>
-                      <div className="flex items-center mt-1">
-                        <div className={cn(
-                          "flex items-center gap-0.5 mr-3",
-                          `text-${getRatingColor(blog.rating)}-500`
-                        )}>
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className={cn(
-                                "h-3 w-3",
-                                i < (blog.rating || 0)
-                                  ? `text-${getRatingColor(blog.rating)}-500 fill-${getRatingColor(blog.rating)}-500`
-                                  : "text-gray-300 dark:text-gray-600"
-                              )}
-                            />
-                          ))}
-                        </div>
-                        {blog.siteName && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {blog.siteName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Grid View */}
-          {viewMode === "grid" && (
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              {blogs.map((blog) => (
-                <div 
-                  key={blog.id}
-                  className="group relative bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden"
-                  onClick={() => handleBlogClick(blog.url)}
-                >
-                  {/* Thumbnail */}
-                  {blog.thumbnail ? (
-                    <div className="relative h-32 w-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                      <Image
-                        src={blog.thumbnail}
-                        alt={blog.title}
-                        width={400}
-                        height={128}
-                        className="object-cover h-full w-full group-hover:scale-105 transition-transform duration-200"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                      {blog.siteName && (
-                        <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded">
-                          <span className="text-white text-xs font-medium">{blog.siteName}</span>
-                        </div>
-                      )}
-                      <div className="absolute top-2 right-2">
-                        <ExternalLink className="h-4 w-4 text-white/80 group-hover:text-white transition-colors" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative h-32 w-full bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 flex items-center justify-center">
-                      <BookOpen className="h-8 w-8 text-blue-400 dark:text-blue-500" />
-                      {blog.siteName && (
-                        <div className="absolute top-2 left-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm px-2 py-1 rounded">
-                          <span className="text-gray-700 dark:text-gray-300 text-xs font-medium">{blog.siteName}</span>
-                        </div>
-                      )}
-                      <div className="absolute top-2 right-2">
-                        <ExternalLink className="h-4 w-4 text-gray-500 group-hover:text-blue-500 transition-colors" />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Content */}
-                  <div className="p-4">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-5">
-                      {blog.title}
-                    </h4>
-                    
-                    {blog.description && (
-                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-3 leading-4">
-                        {blog.description}
-                      </p>
-                    )}
-
-                    {/* Rating */}
-                    <div className="flex items-center justify-between">
-                      <div className={cn(
-                        "flex items-center gap-0.5",
-                        `text-${getRatingColor(blog.rating)}-500`
-                      )}>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={cn(
-                              "h-3 w-3",
-                              i < (blog.rating || 0)
-                                ? `text-${getRatingColor(blog.rating)}-500 fill-${getRatingColor(blog.rating)}-500`
-                                : "text-gray-300 dark:text-gray-600"
-                            )}
-                          />
-                        ))}
-                        {blog.rating && (
-                          <span className="ml-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {blog.rating}/5
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                        {blog.author && (
-                          <div className="flex items-center">
-                            <User className="h-3 w-3 mr-1" />
-                            <span className="truncate max-w-20">{blog.author}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Date */}
-                    <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-                      {blog.createdAt && format(new Date(blog.createdAt), 'MMM d, yyyy')}
-                    </div>
-                  </div>
-
-                  {/* Hover Action */}
-                  <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Blog list display */}
+      <DisplayBlogs
+        items={blogs}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />
 
       {/* Empty state */}
       {blogs.length === 0 && !isCreating && (

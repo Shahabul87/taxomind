@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
-export const getPostData = async (postId: string) => {
+export const getPostData = async (postId: string, userId?: string) => {
   try {
 
     const post = await db.post.findUnique({
@@ -16,6 +16,13 @@ export const getPostData = async (postId: string) => {
             email: true,
           },
         },
+        // PostReaction: { // Commented out - PostReaction relation does not exist in schema
+        //   select: {
+        //     id: true,
+        //     type: true,
+        //     userId: true,
+        //   },
+        // },
         comments: {
           include: {
             User: {
@@ -113,7 +120,19 @@ export const getPostData = async (postId: string) => {
       return null;
     }
 
-    return post;
+    // Calculate reaction counts and user's reaction status
+    // Note: PostReaction relation removed as it doesn't exist in schema
+    const loveCount = 0; // post.PostReaction?.length || 0;
+    const hasUserReacted = false; // userId ? post.PostReaction?.some(reaction => reaction.userId === userId) : false;
+
+    // Return post with computed fields
+    return {
+      ...post,
+      _count: {
+        reactions: loveCount,
+      },
+      userReaction: hasUserReacted ? { type: "LOVE" } : null,
+    };
   } catch (error: any) {
     logger.error("[GET_POST_DATA]", error);
     return null;

@@ -145,11 +145,13 @@ export const requestInstructorRole = async (
         verifiedBy: null
       },
       create: {
+        id: crypto.randomUUID(),
         userId: user.id,
         status: "PENDING",
         documentType,
         documentUrl,
-        verificationNotes
+        verificationNotes,
+        updatedAt: new Date()
       }
     });
 
@@ -158,6 +160,7 @@ export const requestInstructorRole = async (
     // Create audit log
     await db.auditLog.create({
       data: {
+        id: crypto.randomUUID(),
         userId: user.id,
         action: "CREATE",
         entityType: "INSTRUCTOR_VERIFICATION",
@@ -243,6 +246,7 @@ export const reviewInstructorRequest = async (
     // Create audit log
     await db.auditLog.create({
       data: {
+        id: crypto.randomUUID(),
         userId: reviewer.id,
         action: approved ? "APPROVE" : "REJECT",
         entityType: "INSTRUCTOR_VERIFICATION",

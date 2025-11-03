@@ -3,6 +3,8 @@
 import { cn } from "@/lib/utils";
 import { BookOpen, ExternalLink } from "lucide-react";
 import { BlogSectionForm } from "./_blogs/blog-section";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface BlogResourcesCardProps {
   chapter: {
@@ -44,31 +46,54 @@ export const BlogResourcesCard = ({
 }: BlogResourcesCardProps) => {
   const currentSection = chapter.sections.find(section => section.id === sectionId);
   const blogCount = currentSection?.blogs?.length || 0;
+  const [isCreating, setIsCreating] = useState(false);
 
   return (
     <div className="space-y-4">
-      <div className="relative bg-card/50 backdrop-blur-sm p-5 rounded-lg border border-border shadow-md">
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="p-2 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-lg">
-            <BookOpen className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
-          </div>
+      <div className="relative bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-sm font-medium text-foreground">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
               Blog Resources
             </h2>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               {blogCount} {blogCount === 1 ? 'article' : 'articles'} • External learning content
             </p>
           </div>
+          <Button
+            onClick={() => setIsCreating(!isCreating)}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "flex-shrink-0",
+              "bg-blue-50 dark:bg-blue-500/10",
+              "text-blue-700 dark:text-blue-300",
+              "hover:bg-blue-100 dark:hover:bg-blue-500/20",
+              "hover:text-blue-800 dark:hover:text-blue-200",
+              "transition-all duration-200"
+            )}
+          >
+            {isCreating ? (
+              "Cancel"
+            ) : (
+              <>
+                <BookOpen className="h-4 w-4 mr-2" />
+                Add blog
+              </>
+            )}
+          </Button>
         </div>
+        <div className="border-b border-slate-200 dark:border-slate-700 mb-4" />
 
         {/* Content */}
-        <div className="mt-3">
+        <div>
           <BlogSectionForm
             chapter={chapter}
             courseId={courseId}
             chapterId={chapterId}
             sectionId={sectionId}
+            isCreating={isCreating}
+            setIsCreating={setIsCreating}
           />
         </div>
       </div>

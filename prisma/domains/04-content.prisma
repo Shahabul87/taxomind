@@ -16,6 +16,8 @@ model Blog {
   author      String?
   description String?
   rating      Int?
+  thumbnail   String?   @db.VarChar(500)
+  siteName    String?
   publishedAt DateTime?
   position    Int?
   sectionId   String?

@@ -74,55 +74,65 @@ export const SettingsTabs = ({
 
   return (
     <div className="mb-8">
-      {/* Desktop Tabs */}
+      {/* Desktop Tabs - Analytics Style */}
       <div className="hidden lg:block">
-        <nav className="flex space-x-2 border-b border-slate-200 dark:border-slate-700">
+        <div className={cn(
+          "bg-white/80 dark:bg-slate-800/80",
+          "backdrop-blur-sm",
+          "p-1 rounded-xl",
+          "border border-slate-200/50 dark:border-slate-700/50",
+          "shadow-sm",
+          "inline-flex gap-1"
+        )}>
           {filteredTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
 
             return (
-              <button
+              <motion.button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 className={cn(
-                  "relative px-6 py-4 text-sm font-medium transition-all duration-300",
-                  "hover:text-blue-600 dark:hover:text-blue-400",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                  "relative px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
+                  "flex items-center gap-2",
                   isActive
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-slate-600 dark:text-slate-400"
+                    ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700/50"
                 )}
               >
-                <div className="flex items-center space-x-2">
-                  <Icon className="h-5 w-5" />
-                  <span>{tab.label}</span>
-                </div>
+                <Icon className="h-4 w-4" />
+                <span className="whitespace-nowrap">{tab.label}</span>
 
                 {isActive && (
                   <motion.div
-                    layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    layoutId="activeTabIndicator"
+                    className="absolute inset-0 rounded-lg border-2 border-blue-400/50 dark:border-indigo-400/50 pointer-events-none"
+                    initial={false}
+                    transition={{ type: "spring", duration: 0.5 }}
                   />
                 )}
-              </button>
+              </motion.button>
             );
           })}
-        </nav>
+        </div>
       </div>
 
-      {/* Mobile Dropdown */}
+      {/* Mobile Dropdown - Analytics Style */}
       <div className="lg:hidden">
         <select
           value={activeTab}
           onChange={(e) => onTabChange(e.target.value as SettingsTab)}
           className={cn(
-            "w-full px-4 py-3 rounded-lg",
-            "bg-white dark:bg-slate-800",
-            "border border-slate-200 dark:border-slate-700",
+            "w-full px-4 py-3 rounded-xl",
+            "bg-white/80 dark:bg-slate-800/80",
+            "backdrop-blur-sm",
+            "border border-slate-200/50 dark:border-slate-700/50",
             "text-slate-900 dark:text-slate-100",
-            "focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            "shadow-sm",
+            "focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+            "transition-all duration-200"
           )}
         >
           {filteredTabs.map((tab) => (

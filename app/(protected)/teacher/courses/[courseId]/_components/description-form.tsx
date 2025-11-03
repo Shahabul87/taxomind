@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { Course } from "@prisma/client";
-import { SAMEnhancedEditor } from "@/sam/components/integration/sam-enhanced-editor";
+import TipTapEditor from "@/components/tiptap/editor";
 import ContentViewer from "@/components/tiptap/content-viewer";
 
 interface DescriptionFormProps {
@@ -224,16 +224,9 @@ export const DescriptionForm = ({
   };
 
   return (
-    <div className={cn(
-      "p-4 rounded-xl",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
-      "transition-all duration-200",
-      "backdrop-blur-sm"
-    )}>
+    <div className="space-y-4">
       {/* Hidden metadata for SAM to detect the form even when not in edit mode */}
-      <div 
+      <div
         data-sam-form-metadata="course-description"
         data-form-id="course-description-form"
         data-form-purpose="update-course-description"
@@ -247,40 +240,38 @@ export const DescriptionForm = ({
         data-field-type="rich-text"
         style={{ display: 'none' }}
       />
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-x-2">
-            <div className="p-2 w-fit rounded-md bg-purple-50 dark:bg-purple-500/10">
-              <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <p className="text-base sm:text-lg font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
-              Course Description
-            </p>
-          </div>
-          {!isEditing && (
-            <div className="mt-2">
+
+      {/* Display Mode */}
+      {!isEditing && (
+        <div className="group relative">
+          <div className="flex flex-col gap-4">
+            {/* Description content - full width */}
+            <div className="flex-1 min-w-0 w-full">
               {!initialData.description ? (
-                <div className="space-y-2">
-                  <p className="text-sm italic text-slate-600 dark:text-slate-400">
-                    No course description yet
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-500">
+                <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                  <div className="flex items-center gap-2 px-3">
+                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      No description set
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
                     Provide a detailed description of what this course covers, who it&apos;s for, and what makes it valuable.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <ContentViewer 
-                    content={truncatedContent || initialData.description} 
+                <div className="space-y-2 w-full">
+                  <ContentViewer
+                    content={truncatedContent || initialData.description}
                     className={cn(
-                      "text-slate-800 dark:text-slate-200 prose prose-sm max-w-none",
-                      "prose-headings:text-slate-900 dark:prose-headings:text-slate-100",
-                      "prose-p:text-slate-800 dark:prose-p:text-slate-200",
-                      "prose-strong:text-slate-900 dark:prose-strong:text-white",
-                      "prose-ul:list-disc prose-ul:pl-5 prose-ul:text-slate-800 dark:prose-ul:text-slate-200",
-                      "prose-li:text-slate-800 dark:prose-li:text-slate-200 prose-li:mb-1",
-                      "prose-ol:list-decimal prose-ol:pl-5 prose-ol:text-slate-800 dark:prose-ol:text-slate-200",
-                      "prose-a:text-purple-600 dark:prose-a:text-purple-400"
+                      "text-slate-700 dark:text-slate-300 prose prose-sm max-w-none w-full",
+                      "prose-headings:text-sm prose-headings:text-slate-800 dark:prose-headings:text-slate-200",
+                      "prose-p:text-sm prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-p:leading-relaxed",
+                      "prose-strong:text-sm prose-strong:text-slate-800 dark:prose-strong:text-slate-200",
+                      "prose-ul:list-disc prose-ul:pl-5 prose-ul:text-sm",
+                      "prose-li:text-sm prose-li:text-slate-700 dark:prose-li:text-slate-300 prose-li:mb-1",
+                      "prose-ol:list-decimal prose-ol:pl-5 prose-ol:text-sm",
+                      "prose-a:text-sm prose-a:text-blue-600 dark:prose-a:text-blue-400"
                     )}
                   />
                   {initialData.description && initialData.description.length > 300 && (
@@ -288,12 +279,7 @@ export const DescriptionForm = ({
                       onClick={() => setIsExpanded(!isExpanded)}
                       variant="ghost"
                       size="sm"
-                      className={cn(
-                        "text-purple-700 dark:text-purple-300",
-                        "hover:text-purple-800 dark:hover:text-purple-200",
-                        "p-0 h-auto",
-                        "text-sm font-medium"
-                      )}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-xs font-medium"
                     >
                       {isExpanded ? "Show Less" : "Show More"}
                     </Button>
@@ -301,75 +287,74 @@ export const DescriptionForm = ({
                 </div>
               )}
             </div>
-          )}
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <ErrorBoundary
-            fallback={
-              <Button 
-                variant="outline"
-                type="button"
-                size="sm"
-                disabled
-                className="text-xs h-8"
+
+            {/* Buttons below description - aligned to right */}
+            <div className="flex items-center justify-end gap-2">
+              <ErrorBoundary
+                fallback={
+                  <Button
+                    variant="outline"
+                    type="button"
+                    size="sm"
+                    disabled
+                    className="h-9"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    AI Error
+                  </Button>
+                }
               >
-                <Sparkles className="h-3 w-3 mr-1" />
-                AI Error
-              </Button>
-            }
-          >
-            <AICourseAssistant
-              courseTitle={initialData.title || ""}
-              type="description"
-              onGenerate={handleAIGenerate}
-              disabled={!initialData.title}
-              trigger={
-                <Button
-                  variant="outline"
-                  size="sm"
+                <AICourseAssistant
+                  courseTitle={initialData.title || ""}
+                  type="description"
+                  onGenerate={handleAIGenerate}
                   disabled={!initialData.title}
-                  className={cn(
-                    "text-purple-700 dark:text-purple-300",
-                    "border-purple-200 dark:border-purple-700",
-                    "hover:text-purple-800 dark:hover:text-purple-200",
-                    "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-                    "w-full sm:w-auto",
-                    "justify-center",
-                    "transition-all duration-200"
-                  )}
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate with AI
-                </Button>
-              }
-            />
-          </ErrorBoundary>
-          <Button 
-            onClick={toggleEdit} 
-            variant="outline"
-            type="button"
-            size="sm"
-            className={cn(
-              "text-purple-700 dark:text-purple-300",
-              "border-purple-200 dark:border-purple-700",
-              "hover:text-purple-800 dark:hover:text-purple-200",
-              "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-              "w-full sm:w-auto",
-              "justify-center",
-              "transition-all duration-200"
-            )}
-          >
-            {isEditing ? (
-              <>Cancel</>
-            ) : (
-              <>
+                  trigger={
+                    <Button
+                      size="sm"
+                      disabled={!initialData.title}
+                      className={cn(
+                        "h-9 px-4",
+                        "bg-gradient-to-r from-sky-500 to-blue-500",
+                        "hover:from-sky-600 hover:to-blue-600",
+                        "text-white font-semibold",
+                        "shadow-md hover:shadow-lg",
+                        "transition-all duration-200",
+                        "disabled:opacity-50 disabled:cursor-not-allowed"
+                      )}
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate with AI
+                    </Button>
+                  }
+                />
+              </ErrorBoundary>
+              <Button
+                onClick={toggleEdit}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-9 px-4",
+                  "bg-white/80 dark:bg-slate-800/80",
+                  "border-slate-200 dark:border-slate-700",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-800",
+                  "hover:border-purple-300 dark:hover:border-purple-600",
+                  "hover:text-purple-600 dark:hover:text-purple-400",
+                  "font-semibold",
+                  "transition-all duration-200",
+                  "shadow-sm hover:shadow-md"
+                )}
+              >
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
-              </>
-            )}
-          </Button>
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Edit Mode */}
       {isEditing && (
         <Form {...form}>
           <form
@@ -379,7 +364,7 @@ export const DescriptionForm = ({
             data-entity-type="course"
             data-entity-id={courseId}
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 mt-4"
+            className="space-y-4"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey && e.target instanceof HTMLButtonElement) {
                 e.preventDefault();
@@ -392,17 +377,35 @@ export const DescriptionForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <div className="bg-white dark:bg-slate-800 rounded-md" data-form="course-description">
-                      <SAMEnhancedEditor
+                    <div className={cn(
+                      "rounded-lg",
+                      "border border-gray-200 dark:border-gray-700/50",
+                      "bg-white dark:bg-gray-900/50"
+                    )}>
+                      <TipTapEditor
                         value={field.value}
                         onChange={field.onChange}
-                        placeholder="Write a description for your course..."
-                        editorClassName="[&_.tiptap]:!text-black dark:[&_.tiptap]:!text-gray-200 min-h-[150px]"
-                        samEnabled={true}
-                        context={{
-                          courseId,
-                          formType: 'description',
-                        }}
+                        placeholder="Write a comprehensive description for your course. Include:
+
+• What students will learn
+• Course prerequisites
+• Who this course is for
+• What makes it unique"
+                        editorClassName="prose prose-sm max-w-none
+                          [&_.tiptap]:min-h-[200px]
+                          [&_.tiptap]:text-slate-800 dark:[&_.tiptap]:text-slate-200
+                          [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3 [&_ul]:space-y-1
+                          [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3 [&_ol]:space-y-1
+                          [&_li]:mb-1 [&_li]:text-slate-800 [&_li]:dark:text-slate-200 [&_li]:leading-relaxed
+                          [&_li]:marker:text-slate-600 [&_li]:dark:marker:text-slate-400
+                          [&_p]:text-slate-800 dark:[&_p]:text-slate-200 [&_p]:leading-relaxed
+                          [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_strong]:font-semibold
+                          [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-slate-900 dark:[&_h1]:text-slate-100
+                          [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 dark:[&_h2]:text-slate-100
+                          [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-slate-900 dark:[&_h3]:text-slate-100"
+                        data-field-purpose="course-description"
+                        data-validation="required,min:10"
+                        data-content-type="course-description"
                       />
                     </div>
                   </FormControl>
@@ -410,7 +413,24 @@ export const DescriptionForm = ({
                 </FormItem>
               )}
             />
-            <div className="flex items-center justify-end gap-x-2">
+            <div className="flex items-center justify-between gap-x-2">
+              <Button
+                onClick={toggleEdit}
+                variant="outline"
+                size="sm"
+                type="button"
+                className={cn(
+                  "h-9 px-4",
+                  "bg-white dark:bg-slate-800",
+                  "border-slate-300 dark:border-slate-600",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-700",
+                  "font-semibold",
+                  "transition-all duration-200"
+                )}
+              >
+                Cancel
+              </Button>
               <Button
                 disabled={!isValid || isSubmitting}
                 type="submit"

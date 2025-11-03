@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import ConditionalHeader from "@/app/(homepage)/user-header";
-import { SettingsPageClient } from "./_components/settings-page-client";
+import { SettingsPageWithLayout } from "./_components/settings-page-with-layout";
 import { SettingsUser } from "@/types/settings";
 
 const SettingsPage = async () => {
@@ -72,18 +71,18 @@ const SettingsPage = async () => {
     emailVerified: dbUser.emailVerified,
   };
 
-  // Convert undefined to null to match expected type
-  const userForHeader = {
+  // Convert user data for SmartHeader and SmartSidebar
+  const dashboardUser = {
     id: user.id,
-    role: user.role
+    name: user.name || null,
+    email: user.email || null,
+    image: user.image || null,
+    role: dbUser.role,
+    isTeacher: dbUser.isTeacher || false,
+    isAffiliate: dbUser.isAffiliate || false,
   };
 
-  return (
-    <>
-      <ConditionalHeader user={userForHeader} />
-      <SettingsPageClient user={settingsUser} />
-    </>
-  );
+  return <SettingsPageWithLayout user={settingsUser} dashboardUser={dashboardUser} />;
 }
 
 export default SettingsPage;

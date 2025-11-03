@@ -305,11 +305,11 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
             </Card>
           </motion.div>
 
-          {/* Two-Column Chapter Configuration */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-4 sm:mb-6 md:mb-8">
-            {/* Left Column - Chapter Details */}
+          {/* Two-Column Layout for Title, Description, Learning Outcomes, and Access Settings */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-4 sm:mb-6 md:mb-8">
+            {/* Left Column */}
             <div className="space-y-3 sm:space-y-4 md:space-y-6">
-              {/* Chapter Title & Learning Outcomes Card */}
+              {/* Chapter Title Card */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -322,28 +322,24 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
                   "backdrop-blur-sm",
                   "shadow-lg"
                 )}>
-                  <div className="flex items-center gap-x-2 sm:gap-x-3 mb-4 sm:mb-5 md:mb-6">
+                  <div className="flex items-center gap-x-2 sm:gap-x-3 mb-3 sm:mb-4">
                     <IconBadge icon={LayoutDashboard} />
-                    <h2 className="text-base sm:text-lg md:text-xl font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
-                      Customize your chapter
+                    <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+                      Chapter Title
                     </h2>
+                    {chapter.title && (
+                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                    )}
                   </div>
-                  <div className="space-y-4 sm:space-y-5 md:space-y-6">
-                    <ChapterTitleForm
-                      initialData={{ title: chapter.title || "" }}
-                      courseId={params.courseId}
-                      chapterId={params.chapterId}
-                    />
-                    <Separator />
-                    <ChapterLearningOutcomeForm
-                      initialData={{
-                        title: chapter.title || "",
-                        learningOutcomes: chapter.learningOutcomes || ""
-                      }}
-                      courseId={params.courseId}
-                      chapterId={params.chapterId}
-                    />
-                  </div>
+
+                  {/* Horizontal line separator */}
+                  <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
+                  <ChapterTitleForm
+                    initialData={{ title: chapter.title || "" }}
+                    courseId={params.courseId}
+                    chapterId={params.chapterId}
+                  />
                 </div>
               </motion.div>
 
@@ -360,28 +356,73 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
                   "backdrop-blur-sm",
                   "shadow-lg"
                 )}>
-                  <div className="flex items-center gap-x-2 sm:gap-x-3 mb-4 sm:mb-5 md:mb-6">
+                  <div className="flex items-center gap-x-2 sm:gap-x-3 mb-3 sm:mb-4">
                     <IconBadge icon={BookOpen} />
-                    <h2 className="text-base sm:text-lg md:text-xl font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
+                    <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
                       Chapter Description
                     </h2>
+                    {chapter.description && (
+                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                    )}
                   </div>
-                  <div>
-                    <ChapterDescriptionForm
-                      initialData={{
-                        title: chapter.title || "",
-                        description: chapter.description || ""
-                      }}
-                      courseId={params.courseId}
-                      chapterId={params.chapterId}
-                    />
+
+                  {/* Horizontal line separator */}
+                  <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
+                  <ChapterDescriptionForm
+                    initialData={{
+                      title: chapter.title || "",
+                      description: chapter.description || ""
+                    }}
+                    courseId={params.courseId}
+                    chapterId={params.chapterId}
+                  />
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-3 sm:space-y-4 md:space-y-6">
+              {/* Learning Outcomes Card */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.25 }}
+              >
+                <div className={cn(
+                  "p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl",
+                  "bg-white/40 dark:bg-gray-800/40",
+                  "border border-gray-200 dark:border-gray-700/50",
+                  "backdrop-blur-sm",
+                  "shadow-lg"
+                )}>
+                  <div className="flex items-center gap-x-2 sm:gap-x-3 mb-3 sm:mb-4">
+                    <IconBadge icon={Target} />
+                    <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+                      Learning Outcomes
+                    </h2>
+                    {chapter.learningOutcomes && (
+                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                    )}
                   </div>
+
+                  {/* Horizontal line separator */}
+                  <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
+                  <ChapterLearningOutcomeForm
+                    initialData={{
+                      title: chapter.title || "",
+                      learningOutcomes: chapter.learningOutcomes || ""
+                    }}
+                    courseId={params.courseId}
+                    chapterId={params.chapterId}
+                  />
                 </div>
               </motion.div>
 
               {/* Access Settings Card */}
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
               >
@@ -392,77 +433,79 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
                   "backdrop-blur-sm",
                   "shadow-lg"
                 )}>
-                  <div className="flex items-center gap-x-2 sm:gap-x-3 mb-4 sm:mb-5 md:mb-6">
+                  <div className="flex items-center gap-x-2 sm:gap-x-3 mb-3 sm:mb-4">
                     <IconBadge icon={Eye} />
-                    <h2 className="text-base sm:text-lg md:text-xl font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
+                    <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
                       Access Settings
                     </h2>
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
                   </div>
-                  <div>
-                    <ChapterAccessForm
-                      initialData={{
-                        isFree: chapter.isFree,
-                        isPublished: chapter.isPublished
-                      }}
-                      courseId={params.courseId}
-                      chapterId={params.chapterId}
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            </div>
 
-            {/* Right Column - Sections */}
-            <div>
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <div className={cn(
-                  "p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl",
-                  "bg-white/40 dark:bg-gray-800/40",
-                  "border border-gray-200 dark:border-gray-700/50",
-                  "backdrop-blur-sm",
-                  "shadow-lg"
-                )}>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-4 sm:mb-5 md:mb-6">
-                    <div className="flex items-center gap-x-2 sm:gap-x-3">
-                      <IconBadge icon={Video} />
-                      <h2 className="text-base sm:text-lg md:text-xl font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
-                        Chapter Sections
-                      </h2>
-                    </div>
-                    {contentStats.totalSections > 0 && (
-                      <Badge variant="outline" className="gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1">
-                        {contentStats.totalSections} {contentStats.totalSections === 1 ? 'Section' : 'Sections'}
-                      </Badge>
-                    )}
-                  </div>
-                  <div>
-                    {contentStats.totalSections === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-8 sm:py-10 md:py-12 px-3 sm:px-4 text-center">
-                        <div className="p-3 sm:p-4 rounded-full bg-gray-100 dark:bg-gray-800 mb-3 sm:mb-4">
-                          <Video className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-gray-400 dark:text-gray-600" />
-                        </div>
-                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1.5 sm:mb-2">
-                          No sections yet
-                        </h3>
-                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-md mb-3 sm:mb-4">
-                          Start by creating your first section. Add videos, articles, and learning materials to help your students.
-                        </p>
-                      </div>
-                    ) : null}
-                    <ChaptersSectionForm
-                      chapter={chapter}
-                      courseId={params.courseId}
-                      chapterId={params.chapterId}
-                    />
-                  </div>
+                  {/* Horizontal line separator */}
+                  <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
+                  <ChapterAccessForm
+                    initialData={{
+                      isFree: chapter.isFree,
+                      isPublished: chapter.isPublished
+                    }}
+                    courseId={params.courseId}
+                    chapterId={params.chapterId}
+                  />
                 </div>
               </motion.div>
             </div>
           </div>
+
+          {/* Chapter Sections - Single Column Below Two-Column Layout */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mb-4 sm:mb-6 md:mb-8"
+          >
+            <div className={cn(
+              "p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl",
+              "bg-white/40 dark:bg-gray-800/40",
+              "border border-gray-200 dark:border-gray-700/50",
+              "backdrop-blur-sm",
+              "shadow-lg"
+            )}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-4 sm:mb-5 md:mb-6">
+                <div className="flex items-center gap-x-2 sm:gap-x-3">
+                  <IconBadge icon={Video} />
+                  <h2 className="text-base sm:text-lg md:text-xl font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
+                    Chapter Sections
+                  </h2>
+                </div>
+                {contentStats.totalSections > 0 && (
+                  <Badge variant="outline" className="gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1">
+                    {contentStats.totalSections} {contentStats.totalSections === 1 ? 'Section' : 'Sections'}
+                  </Badge>
+                )}
+              </div>
+              <div>
+                {contentStats.totalSections === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 sm:py-10 md:py-12 px-3 sm:px-4 text-center">
+                    <div className="p-3 sm:p-4 rounded-full bg-gray-100 dark:bg-gray-800 mb-3 sm:mb-4">
+                      <Video className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-gray-400 dark:text-gray-600" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1.5 sm:mb-2">
+                      No sections yet
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-md mb-3 sm:mb-4">
+                      Start by creating your first section. Add videos, articles, and learning materials to help your students.
+                    </p>
+                  </div>
+                ) : null}
+                <ChaptersSectionForm
+                  chapter={chapter}
+                  courseId={params.courseId}
+                  chapterId={params.chapterId}
+                />
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </TooltipProvider>

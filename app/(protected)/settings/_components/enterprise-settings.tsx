@@ -99,36 +99,46 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className={cn(
-          "bg-white/80 dark:bg-slate-800/80",
-          "backdrop-blur-sm",
-          "border-l border-r-0 border-t-0 border-b-0 border-slate-200/50 dark:border-slate-700/50",
-          "shadow-xl shadow-slate-900/5 dark:shadow-black/20",
-          "h-full min-h-screen"
-        )}
+        className="h-full min-h-screen"
       >
-        {/* Header Section */}
-        <div
-          className={cn(
-            "px-4 py-6 sm:px-6 sm:py-8 lg:px-8",
-            "bg-gradient-to-r from-blue-50/50 to-indigo-50/30 dark:from-blue-900/30 dark:to-indigo-900/20",
-            "border-b border-slate-200/50 dark:border-slate-700/50",
-            "backdrop-blur-sm"
-          )}
-        >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-blue-100/80 dark:bg-blue-900/40 backdrop-blur-sm flex items-center justify-center shadow-lg">
-              <Settings className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
+        {/* Enterprise Header Section */}
+        <div className="px-4 py-8 sm:px-6 lg:px-8 mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className={cn(
+              "bg-white/80 dark:bg-slate-800/80",
+              "backdrop-blur-sm",
+              "border border-slate-200/50 dark:border-slate-700/50",
+              "shadow-lg",
+              "rounded-3xl",
+              "p-6 sm:p-8"
+            )}
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className={cn(
+                "h-14 w-14 rounded-2xl",
+                "bg-gradient-to-br from-blue-500 to-indigo-500",
+                "flex items-center justify-center",
+                "shadow-lg shadow-blue-500/20"
+              )}>
+                <Settings className="h-7 w-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <h1 className={cn(
+                  "text-2xl sm:text-3xl font-bold tracking-tight",
+                  "bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent",
+                  "dark:from-blue-400 dark:to-indigo-400"
+                )}>
+                  Account Settings
+                </h1>
+                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-1">
+                  Manage your account, security, privacy, and preferences
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100">
-                Account Settings
-              </h1>
-              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
-                Manage your account, security, privacy, and preferences
-              </p>
-            </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Tabs Navigation */}

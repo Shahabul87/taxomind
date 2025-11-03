@@ -14,7 +14,7 @@ export async function POST(
   const params = await props.params;
   try {
     const session = await auth();
-    const { title, blogUrl, description, rating } = await req.json();
+    const { title, blogUrl, description, rating, thumbnail, siteName, author } = await req.json();
 
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -31,17 +31,20 @@ export async function POST(
       return new NextResponse("Section not found", { status: 404 });
     }
 
-    // Create the blog with only the fields defined in the schema
+    // Create the blog with all fields
     const blog = await db.blog.create({
       data: {
         title,
         url: blogUrl,
         description,
-        rating: Number(rating),
+        rating: rating ? Number(rating) : null,
+        thumbnail: thumbnail || null,
+        siteName: siteName || null,
+        author: author || null,
         sectionId: params.sectionId,
         userId: session.user.id,
         isPublished: true,
-        position: 0, // Add a default position
+        position: 0,
       },
     });
 

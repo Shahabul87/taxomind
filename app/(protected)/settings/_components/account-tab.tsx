@@ -32,21 +32,26 @@ export const AccountTab = ({ form, isPending, isOAuth }: AccountTabProps) => {
     >
       {/* Basic Information Section */}
       <div className={cn(
-        "p-6 rounded-xl",
-        "bg-white/60 dark:bg-slate-800/60",
+        "p-6 rounded-3xl",
+        "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
-        "border border-slate-200/30 dark:border-slate-700/30",
+        "border border-slate-200/50 dark:border-slate-700/50",
         "shadow-lg"
       )}>
         <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
-            <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <div className={cn(
+            "h-10 w-10 rounded-xl",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center",
+            "shadow-md shadow-blue-500/20"
+          )}>
+            <User className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
               Basic Information
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               Update your personal details
             </p>
           </div>

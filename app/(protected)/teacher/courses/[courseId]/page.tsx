@@ -2,7 +2,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CircleDollarSign, File, LayoutDashboard, ListChecks, AlertTriangle, CheckCircle2, Brain, Target, FileQuestion, Lightbulb, Sparkles, BarChart3 } from "lucide-react";
-import { TitleFormEnhanced } from "./_components/title-form-enhanced";
+import { TitleForm } from "./_components/title-form";
 import { DescriptionForm } from "./_components/description-form";
 
 import { CategoryForm } from "./_components/category-form";
@@ -104,7 +104,14 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
   const completionPercentage = Math.round((completedSections / totalSections) * 100);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-300/20 dark:bg-purple-500/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 animate-blob"></div>
+        <div className="absolute top-0 -right-4 w-72 h-72 bg-indigo-300/20 dark:bg-indigo-500/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-300/20 dark:bg-blue-500/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+      </div>
+
       {/* Enhanced SAM Context Injection */}
       <SimpleCourseContext
         course={{
@@ -134,26 +141,26 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
       />
 
 
-      <div className="pt-3 sm:pt-4 md:pt-6 pb-8 sm:pb-12 md:pb-16 relative px-2 sm:px-0">
+      <div className="pt-3 sm:pt-4 md:pt-6 pb-8 sm:pb-12 md:pb-16 relative px-2 sm:px-0 z-10">
         {/* Full-Width Course Setup Header with Glass Effects */}
         <div className="w-full mb-4 sm:mb-6 md:mb-8">
           {/* Banner for unpublished status */}
           {!course.isPublished && (
-            <div className="w-full mb-4 sm:mb-6">
+            <div className="w-full mb-4 sm:mb-6 animate-in fade-in slide-in-from-top-4 duration-700">
               <div className="mx-2 sm:mx-4 md:mx-6 lg:mx-8">
-                <div className="w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-3 sm:p-4 md:p-6 hover:shadow-xl transition-all duration-300">
+                <div className="w-full bg-gradient-to-r from-amber-50/90 to-orange-50/90 dark:from-amber-950/50 dark:to-orange-950/50 backdrop-blur-md rounded-2xl border-2 border-amber-200/60 dark:border-amber-700/40 shadow-xl shadow-amber-500/10 dark:shadow-amber-900/20 p-3 sm:p-4 md:p-6 hover:shadow-2xl hover:shadow-amber-500/20 dark:hover:shadow-amber-900/30 transition-all duration-500 group">
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="p-2 sm:p-2.5 md:p-3 rounded-lg bg-white/20 backdrop-blur-sm flex-shrink-0">
-                      <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400" />
+                    <div className="p-2.5 sm:p-3 md:p-3.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                      <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      <p className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-100">
                         This course is unpublished. It will not be visible to students.
                       </p>
-                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">
+                      <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 mt-0.5 sm:mt-1 hidden sm:block">
                         Complete at least {minSectionsRequired} sections and click publish to make it available.
                       </p>
-                      <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 sm:hidden">
+                      <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-0.5 sm:hidden">
                         Complete {minSectionsRequired}+ sections to publish
                       </p>
                     </div>
@@ -173,17 +180,17 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
                   <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
                     {/* Left: Icon and Title */}
                     <div className="flex items-center gap-3 sm:gap-4 md:gap-6 flex-1 min-w-0">
-                      <div className="p-2 sm:p-3 md:p-4 rounded-lg bg-white/20 flex-shrink-0">
-                        <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-indigo-600 dark:text-indigo-400" />
+                      <div className="p-2 sm:p-3 md:p-4 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md flex-shrink-0">
+                        <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-white" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
                           Course Setup
                         </h1>
-                        <p className="text-slate-600 dark:text-slate-300 mt-0.5 sm:mt-1 text-xs sm:text-sm md:text-base hidden sm:block">
+                        <p className="text-slate-600 dark:text-slate-300 mt-1 sm:mt-2 text-xs sm:text-sm md:text-base font-medium hidden sm:block leading-relaxed">
                           Configure your course settings and content
                         </p>
-                        <p className="text-slate-600 dark:text-slate-300 mt-0.5 text-[10px] sm:hidden">
+                        <p className="text-slate-600 dark:text-slate-300 mt-1 text-[10px] font-medium sm:hidden">
                           Configure settings
                         </p>
                       </div>
@@ -204,14 +211,14 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                       {/* Progress Info */}
                       <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
-                        <div className="p-1.5 sm:p-2 rounded-lg bg-white/20">
-                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
+                        <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md">
+                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                         </div>
                         <div>
-                          <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                          <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white tracking-tight">
                             Progress {completionText}
                           </p>
-                          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
+                          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">
                             {completionPercentage}% complete
                           </p>
                         </div>
@@ -284,49 +291,71 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
         {/* Course Information - Two Column Layout */}
         <div className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-            {/* Left Column - Course Title and Description */}
+            {/* Left Column - Course Title, Description, and Learning Objectives */}
             <div className="space-y-3 sm:space-y-4">
+              {/* Course Title */}
               <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-white/20 flex-shrink-0">
-                    <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 shadow-md flex-shrink-0">
+                    <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate">
-                    Course Title & Description
+                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+                    Course Title
                   </h2>
-                  {completionStatus.titleDesc && (
-                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                  {course.title && (
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
-                
-                <div className="space-y-4">
-                  <TitleFormEnhanced 
-                    initialData={{ 
-                      title: course.title ?? undefined, 
-                      description: course.description ?? undefined,
-                      category: course.categoryId ? { id: course.categoryId, name: categories.find(cat => cat.id === course.categoryId)?.name || '' } : undefined,
-                      learningObjectives: course.whatYouWillLearn || []
-                    }} 
-                    courseId={course.id} 
-                  />
-                  <DescriptionForm initialData={course} courseId={course.id} />
+
+                {/* Horizontal line separator */}
+                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
+                <TitleForm
+                  initialData={{
+                    title: course.title ?? "",
+                    description: course.description ?? undefined
+                  }}
+                  courseId={course.id}
+                />
+              </div>
+
+              {/* Course Description */}
+              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
+                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md flex-shrink-0">
+                    <FileQuestion className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  </div>
+                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+                    Course Description
+                  </h2>
+                  {course.description && (
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                  )}
                 </div>
+
+                {/* Horizontal line separator */}
+                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
+                <DescriptionForm initialData={course} courseId={course.id} />
               </div>
 
               {/* Learning Objectives */}
               <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-white/20 flex-shrink-0">
-                    <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md flex-shrink-0">
+                    <Target className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate">
+                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
                     Learning Objectives
                   </h2>
                   {completionStatus.learningObj && (
-                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
-                
+
+                {/* Horizontal line separator */}
+                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
                 <CourseLearningOutcomeForm
                   initialData={{ 
                     whatYouWillLearn: course.whatYouWillLearn || [],
@@ -343,17 +372,20 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
               {/* Course Category */}
               <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-white/20 flex-shrink-0">
-                    <ListChecks className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-indigo-600 dark:text-indigo-400" />
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md flex-shrink-0">
+                    <ListChecks className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate">
+                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
                     Course Category
                   </h2>
                   {completionStatus.category && (
-                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
-                
+
+                {/* Horizontal line separator */}
+                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
                 <CategoryForm
                   initialData={course}
                   courseId={course.id}
@@ -367,34 +399,40 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
               {/* Course Price */}
               <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-white/20 flex-shrink-0">
-                    <CircleDollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 shadow-md flex-shrink-0">
+                    <CircleDollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate">
+                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
                     Course Price
                   </h2>
                   {completionStatus.price && (
-                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
-                
+
+                {/* Horizontal line separator */}
+                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
                 <PriceForm initialData={course} courseId={course.id} />
               </div>
 
               {/* Course Image */}
               <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-white/20 flex-shrink-0">
-                    <File className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-600 dark:text-orange-400" />
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 shadow-md flex-shrink-0">
+                    <File className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate">
+                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
                     Course Image
                   </h2>
                   {completionStatus.image && (
-                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
-                
+
+                {/* Horizontal line separator */}
+                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
                 <CourseImageUpload 
                   courseId={params.courseId}
                   initialImage={course.imageUrl}
@@ -408,14 +446,14 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
         <div className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8">
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-white/20 flex-shrink-0">
-                <ListChecks className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 shadow-md flex-shrink-0">
+                <ListChecks className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate">
+              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
                 Course Chapters
               </h2>
               {completionStatus.chapters && (
-                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
               )}
             </div>
             <ChaptersForm initialData={course} courseId={course.id} />
@@ -426,16 +464,20 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
         <div className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8">
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-white/20 flex-shrink-0">
-                <File className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 rounded-lg bg-gradient-to-r from-violet-500 to-purple-500 shadow-md flex-shrink-0">
+                <File className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate">
+              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
                 Course Resources
               </h2>
               {completionStatus.attachments && (
-                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
               )}
             </div>
+
+            {/* Horizontal line separator */}
+            <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+
             <AttachmentForm initialData={course} courseId={course.id} />
           </div>
         </div>
@@ -445,10 +487,10 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
             {/* Header Section */}
             <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-white/20 flex-shrink-0">
-                <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 shadow-md flex-shrink-0">
+                <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate">
+              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
                 Course Depth Analysis
               </h2>
             </div>

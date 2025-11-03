@@ -47,11 +47,13 @@ export const ChapterTitleForm = ({
 
   const { isSubmitting, isValid } = form.formState;
 
+  const toggleEdit = () => setIsEditing((current) => !current);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       await axios.patch(`/api/courses/${courseId}/chapters/${chapterId}`, values);
       toast.success("Chapter updated");
-      setIsEditing(false);
+      toggleEdit();
       router.refresh();
     } catch {
       toast.error("Something went wrong");
@@ -59,56 +61,61 @@ export const ChapterTitleForm = ({
   };
 
   return (
-    <div className={cn(
-      "p-4 rounded-xl",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
-      "transition-all duration-200",
-      "backdrop-blur-sm"
-    )}>
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="flex flex-col gap-1">
-          <p className="text-base sm:text-lg font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
-            Chapter Title
-          </p>
-          {!isEditing && (
-            <p className={cn(
-              "text-sm sm:text-base font-medium mt-1",
-              "text-gray-700 dark:text-gray-300"
-            )}>
-              {initialData.title}
-            </p>
-          )}
-        </div>
-        <Button 
-          onClick={() => setIsEditing(!isEditing)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "text-purple-700 dark:text-purple-300",
-            "hover:text-purple-800 dark:hover:text-purple-200",
-            "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-            "w-full sm:w-auto",
-            "justify-center",
-            "transition-all duration-200"
-          )}
-        >
-          {isEditing ? (
-            <span className="text-rose-700 dark:text-rose-300">Cancel</span>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Pencil className="h-4 w-4" />
-              <span>Edit</span>
+    <div className="space-y-4">
+      {/* Display Mode */}
+      {!isEditing && (
+        <div className="group relative">
+          <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4 transition-all duration-300">
+            <div className="flex-1 min-w-0">
+              {initialData.title ? (
+                <p className="text-base sm:text-lg font-medium text-slate-700 dark:text-slate-300 break-words">
+                  {initialData.title}
+                </p>
+              ) : (
+                <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                  <div className="flex items-center gap-2 px-3">
+                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      No title set
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                    Add a clear, descriptive title for your chapter
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-        </Button>
-      </div>
+            <Button
+              onClick={toggleEdit}
+              variant="outline"
+              size="sm"
+              className={cn(
+                "flex-shrink-0 h-9 px-4",
+                "bg-white/80 dark:bg-slate-800/80",
+                "border-slate-200 dark:border-slate-700",
+                "text-slate-700 dark:text-slate-300",
+                "hover:bg-slate-50 dark:hover:bg-slate-800",
+                "hover:border-purple-300 dark:hover:border-purple-600",
+                "hover:text-purple-600 dark:hover:text-purple-400",
+                "font-semibold text-sm",
+                "transition-all duration-200",
+                "shadow-sm hover:shadow-md",
+                "backdrop-blur-sm"
+              )}
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Mode */}
       {isEditing && (
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 mt-4"
+            className="space-y-4"
           >
             <FormField
               control={form.control}
@@ -116,51 +123,56 @@ export const ChapterTitleForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input
-                      {...field}
-                      disabled={isSubmitting}
-                      placeholder="e.g. 'Introduction to the topic'"
-                      data-form="chapter-title"
-                      className={cn(
-                        "bg-white dark:bg-gray-900/50",
-                        "border-gray-200 dark:border-gray-700/50",
-                        "text-gray-900 dark:text-gray-200",
-                        "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-                        "focus:border-purple-500/50 focus:ring-purple-500/20",
-                        "text-sm sm:text-base font-medium",
-                        "transition-all duration-200"
-                      )}
-                    />
+                    <div className="relative">
+                      <Input
+                        {...field}
+                        disabled={isSubmitting}
+                        placeholder="e.g. 'Introduction to the topic'"
+                        className={cn(
+                          "pr-20",
+                          "bg-white dark:bg-slate-900",
+                          "border border-slate-300/60 dark:border-slate-600/60",
+                          "text-slate-900 dark:text-slate-100",
+                          "placeholder:text-slate-400 dark:placeholder:text-slate-500",
+                          "focus:border-slate-400/70 dark:focus:border-slate-500/70",
+                          "focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
+                          "text-base font-normal",
+                          "h-11",
+                          "rounded-md",
+                          "transition-all duration-200"
+                        )}
+                      />
+                    </div>
                   </FormControl>
-                  <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
+                  <FormMessage />
                 </FormItem>
               )}
             />
-            <div className="flex items-center gap-x-2">
+            <div className="flex items-center justify-between gap-x-2">
               <Button
-                disabled={!isValid || isSubmitting}
-                type="submit"
-                variant="ghost"
+                onClick={toggleEdit}
+                variant="outline"
                 size="sm"
+                type="button"
                 className={cn(
-                  "bg-purple-50 dark:bg-purple-500/10",
-                  "text-purple-700 dark:text-purple-300",
-                  "hover:bg-purple-100 dark:hover:bg-purple-500/20",
-                  "hover:text-purple-800 dark:hover:text-purple-200",
-                  "border border-purple-200/20 dark:border-purple-500/20",
-                  "w-full sm:w-auto",
-                  "justify-center",
+                  "h-9 px-4",
+                  "bg-white dark:bg-slate-800",
+                  "border-slate-300 dark:border-slate-600",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-700",
+                  "font-semibold",
                   "transition-all duration-200"
                 )}
               >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-x-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-purple-600 dark:border-purple-400 border-t-transparent" />
-                    <span>Saving...</span>
-                  </div>
-                ) : (
-                  "Save"
-                )}
+                Cancel
+              </Button>
+              <Button
+                disabled={!isValid || isSubmitting}
+                type="submit"
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {isSubmitting ? "Saving..." : "Save"}
               </Button>
             </div>
           </form>

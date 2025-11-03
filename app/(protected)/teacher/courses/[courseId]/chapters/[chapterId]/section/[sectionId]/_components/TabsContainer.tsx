@@ -104,14 +104,16 @@ export const TabsContainer = ({
     <div className="w-full mt-10">
       <div className="w-full">
         <Tabs defaultValue="videos" value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="w-full grid grid-cols-4 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+          <TabsList className="w-full grid grid-cols-4 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
             <TabsTrigger
               value="videos"
               className={cn(
                 "flex items-center gap-2 transition-all duration-200",
-                "data-[state=active]:bg-gray-900 dark:data-[state=active]:bg-gray-700",
+                "data-[state=active]:bg-blue-600 dark:data-[state=active]:bg-blue-600",
                 "data-[state=active]:text-white dark:data-[state=active]:text-white",
-                "hover:bg-gray-200 dark:hover:bg-gray-700/50"
+                "data-[state=active]:shadow-md",
+                "hover:bg-slate-200 dark:hover:bg-slate-700/50",
+                "text-slate-600 dark:text-slate-400"
               )}
             >
               <Video className="h-4 w-4" />
@@ -121,9 +123,11 @@ export const TabsContainer = ({
               value="blogs"
               className={cn(
                 "flex items-center gap-2 transition-all duration-200",
-                "data-[state=active]:bg-gray-900 dark:data-[state=active]:bg-gray-700",
+                "data-[state=active]:bg-blue-600 dark:data-[state=active]:bg-blue-600",
                 "data-[state=active]:text-white dark:data-[state=active]:text-white",
-                "hover:bg-gray-200 dark:hover:bg-gray-700/50"
+                "data-[state=active]:shadow-md",
+                "hover:bg-slate-200 dark:hover:bg-slate-700/50",
+                "text-slate-600 dark:text-slate-400"
               )}
             >
               <BookOpen className="h-4 w-4" />
@@ -133,9 +137,11 @@ export const TabsContainer = ({
               value="math"
               className={cn(
                 "flex items-center gap-2 transition-all duration-200",
-                "data-[state=active]:bg-gray-900 dark:data-[state=active]:bg-gray-700",
+                "data-[state=active]:bg-blue-600 dark:data-[state=active]:bg-blue-600",
                 "data-[state=active]:text-white dark:data-[state=active]:text-white",
-                "hover:bg-gray-200 dark:hover:bg-gray-700/50"
+                "data-[state=active]:shadow-md",
+                "hover:bg-slate-200 dark:hover:bg-slate-700/50",
+                "text-slate-600 dark:text-slate-400"
               )}
             >
               <Calculator className="h-4 w-4" />
@@ -145,9 +151,11 @@ export const TabsContainer = ({
               value="code"
               className={cn(
                 "flex items-center gap-2 transition-all duration-200",
-                "data-[state=active]:bg-gray-900 dark:data-[state=active]:bg-gray-700",
+                "data-[state=active]:bg-blue-600 dark:data-[state=active]:bg-blue-600",
                 "data-[state=active]:text-white dark:data-[state=active]:text-white",
-                "hover:bg-gray-200 dark:hover:bg-gray-700/50"
+                "data-[state=active]:shadow-md",
+                "hover:bg-slate-200 dark:hover:bg-slate-700/50",
+                "text-slate-600 dark:text-slate-400"
               )}
             >
               <Code2 className="h-4 w-4" />

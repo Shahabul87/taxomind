@@ -123,21 +123,21 @@ export const SecurityTab = ({
       {/* Two-Factor Authentication */}
       {!isOAuth && (
         <div className={cn(
-          "p-6 rounded-xl",
-          "bg-white/60 dark:bg-slate-800/60",
+          "p-6 rounded-3xl",
+          "bg-white/80 dark:bg-slate-800/80",
           "backdrop-blur-sm",
-          "border border-slate-200/30 dark:border-slate-700/30",
+          "border border-slate-200/50 dark:border-slate-700/50",
           "shadow-lg"
         )}>
           <div className="flex items-center space-x-3 mb-6">
-            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-              <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+              <Shield className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Two-Factor Authentication
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Add an extra layer of security to your account
               </p>
             </div>
@@ -173,7 +173,7 @@ export const SecurityTab = ({
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
-                    <Smartphone className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    <Smartphone className="h-4 w-4 text-slate-600 dark:text-slate-300" />
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       Authenticator App (TOTP)
                     </span>
@@ -184,7 +184,7 @@ export const SecurityTab = ({
                   {totpEnabled && totpVerified && (
                     <div className="flex items-center space-x-1 mt-2">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span className="text-xs text-green-600 dark:text-green-400">Active</span>
+                      <span className="text-xs text-white">Active</span>
                     </div>
                   )}
                 </div>
@@ -204,22 +204,22 @@ export const SecurityTab = ({
 
       {/* Active Sessions */}
       <div className={cn(
-        "p-6 rounded-xl",
-        "bg-white/60 dark:bg-slate-800/60",
+        "p-6 rounded-3xl",
+        "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
-        "border border-slate-200/30 dark:border-slate-700/30",
+        "border border-slate-200/50 dark:border-slate-700/50",
         "shadow-lg"
       )}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
-              <Monitor className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
+              <Monitor className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Active Sessions
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Manage your active login sessions
               </p>
             </div>
@@ -248,7 +248,7 @@ export const SecurityTab = ({
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
-                    <Monitor className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    <Monitor className="h-4 w-4 text-slate-600 dark:text-slate-300" />
                     <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
                       {session.deviceName}
                     </span>
@@ -259,11 +259,11 @@ export const SecurityTab = ({
                     )}
                   </div>
                   <div className="mt-2 space-y-1">
-                    <div className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-400">
+                    <div className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-300">
                       <MapPin className="h-3 w-3" />
                       <span>{session.location || "Unknown location"}</span>
                     </div>
-                    <div className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-400">
+                    <div className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-300">
                       <Clock className="h-3 w-3" />
                       <span>Last active: {format(session.lastActivity, "PPp")}</span>
                     </div>
@@ -288,21 +288,21 @@ export const SecurityTab = ({
 
       {/* Login History */}
       <div className={cn(
-        "p-6 rounded-xl",
-        "bg-white/60 dark:bg-slate-800/60",
+        "p-6 rounded-3xl",
+        "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
-        "border border-slate-200/30 dark:border-slate-700/30",
+        "border border-slate-200/50 dark:border-slate-700/50",
         "shadow-lg"
       )}>
         <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
-            <Key className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+            <Key className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
               Login History
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               Recent login attempts (last 10)
             </p>
           </div>
@@ -332,7 +332,7 @@ export const SecurityTab = ({
                     </span>
                   </div>
                   <div className="mt-1 space-y-0.5">
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
                       {entry.location || entry.ipAddress}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-500">

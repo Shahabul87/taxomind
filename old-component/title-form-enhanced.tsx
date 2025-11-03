@@ -251,26 +251,35 @@ export const TitleFormEnhanced = ({
               setIsEditing(true);
               generateTitles();
             }}
-            variant="outline"
             size="sm"
             disabled={isGenerating}
             className={cn(
-              "text-purple-700 dark:text-purple-300",
-              "border-purple-200 dark:border-purple-700",
-              "hover:text-purple-800 dark:hover:text-purple-200",
-              "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-              "transition-all duration-200"
+              // Elegant AI button - sky blue gradient (fresh & modern)
+              "relative overflow-hidden group",
+              "bg-gradient-to-r from-sky-500 to-blue-500",
+              "hover:from-sky-600 hover:to-blue-600",
+              "text-white font-semibold",
+              "border-0",
+              "shadow-lg shadow-sky-500/30 hover:shadow-xl hover:shadow-blue-500/40",
+              "transition-all duration-300 ease-out",
+              "hover:scale-[1.02]",
+              "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
+              // Shine effect
+              "before:absolute before:inset-0",
+              "before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent",
+              "before:translate-x-[-200%] group-hover:before:translate-x-[200%]",
+              "before:transition-transform before:duration-700"
             )}
           >
             {isGenerating ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
+                <span className="relative z-10">Generating...</span>
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                AI Generate
+                <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+                <span className="relative z-10">AI Generate</span>
               </>
             )}
           </Button>
@@ -279,11 +288,15 @@ export const TitleFormEnhanced = ({
             variant="outline"
             size="sm"
             className={cn(
-              "text-purple-700 dark:text-purple-300",
-              "border-purple-200 dark:border-purple-700",
-              "hover:text-purple-800 dark:hover:text-purple-200",
-              "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-              "transition-all duration-200"
+              // Following analytics_page_color.md edit button design
+              "bg-slate-50 dark:bg-slate-800/50",
+              "border-slate-200 dark:border-slate-700",
+              "text-slate-700 dark:text-slate-300",
+              "hover:bg-slate-100 dark:hover:bg-slate-800",
+              "hover:border-slate-300 dark:hover:border-slate-600",
+              "transition-all duration-200",
+              "font-medium",
+              isEditing && "text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-500/10"
             )}
           >
             {isEditing ? (

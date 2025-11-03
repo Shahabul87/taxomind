@@ -103,68 +103,67 @@ export const Actions = ({
     <div className={cn(
       "flex items-center justify-center md:justify-start",
       "w-full md:w-auto",
-      "gap-2 sm:gap-x-2"
+      "gap-2 sm:gap-3"
     )}>
       <Button
         onClick={onClick}
         disabled={disabled || isPublishLoading}
-        variant="ghost"
+        variant={isPublished ? "enterprise-purple-outline" : "enterprise-purple"}
         size="sm"
         className={cn(
-          "bg-purple-500/10 hover:bg-purple-500/20",
-          "text-purple-700 dark:text-purple-300",
-          "hover:text-purple-800 dark:hover:text-purple-200",
-          "border border-purple-200/20 dark:border-purple-500/20",
-          "transition-all duration-200",
-          "text-xs sm:text-sm",
-          "h-8 sm:h-9",
-          "px-2 sm:px-4",
-          "flex items-center justify-center",
-          disabled && "opacity-50 cursor-not-allowed"
+          "text-xs sm:text-sm font-semibold",
+          "h-9 sm:h-10",
+          "px-4 sm:px-6",
+          "flex items-center justify-center gap-2",
+          "relative overflow-hidden group",
+          disabled && "opacity-50 cursor-not-allowed hover:scale-100"
         )}
       >
         {isPublishLoading ? (
           <div className="flex items-center gap-x-2">
-            <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
-            <span>{isPublished ? "Unpublishing..." : "Publishing..."}</span>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="hidden sm:inline">{isPublished ? "Unpublishing..." : "Publishing..."}</span>
+            <span className="sm:hidden">{isPublished ? "Unpub..." : "Pub..."}</span>
           </div>
         ) : (
           <>
             {isPublished ? (
               <>
-                <EyeOff className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                Unpublish
+                <EyeOff className="h-4 w-4" />
+                <span className="hidden sm:inline">Unpublish</span>
+                <span className="sm:hidden">Unpub</span>
               </>
             ) : (
               <>
-                <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                Publish
+                <Eye className="h-4 w-4" />
+                <span className="hidden sm:inline">Publish Course</span>
+                <span className="sm:hidden">Publish</span>
               </>
             )}
           </>
         )}
       </Button>
       <ConfirmModal onConfirm={onDelete}>
-        <Button 
-          disabled={isDeleteLoading} 
-          variant="ghost"
+        <Button
+          disabled={isDeleteLoading}
+          variant="enterprise-danger-outline"
           size="sm"
           className={cn(
-            "bg-rose-500/10 hover:bg-rose-500/20",
-            "text-rose-700 dark:text-rose-300",
-            "hover:text-rose-800 dark:hover:text-rose-200",
-            "border border-rose-200/20 dark:border-rose-500/20",
-            "transition-all duration-200",
-            "h-8 sm:h-9",
-            "px-2 sm:px-3",
+            "h-9 sm:h-10",
+            "w-9 sm:w-10",
             "flex items-center justify-center",
-            disabled && "opacity-50 cursor-not-allowed"
+            "p-0",
+            "group relative overflow-hidden",
+            isDeleteLoading && "opacity-50 cursor-not-allowed hover:scale-100"
           )}
         >
           {isDeleteLoading ? (
-            <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Trash className="h-3 w-3 sm:h-4 sm:w-4" />
+            <>
+              <Trash className="h-4 w-4 transition-transform group-hover:scale-110" />
+              <span className="sr-only">Delete course</span>
+            </>
           )}
         </Button>
       </ConfirmModal>

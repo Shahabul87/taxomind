@@ -42,41 +42,19 @@ export const CourseLearningOutcomeForm = ({
   courseId,
 }: CourseLearningOutcomeFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [truncatedContent, setTruncatedContent] = useState("");
   const [isMounted, setIsMounted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const router = useRouter();
 
-  // Convert array to HTML string for display
-  const learningOutcomesHtml = (initialData?.whatYouWillLearn?.length ?? 0) > 0 
+  // Convert array to HTML string for editor
+  const learningOutcomesHtml = (initialData?.whatYouWillLearn?.length ?? 0) > 0
     ? `<ul class="list-disc pl-6 space-y-1 mb-3">${initialData.whatYouWillLearn!.map(item => `<li class="text-slate-800 dark:text-slate-200 leading-relaxed">${item}</li>`).join('')}</ul>`
     : "";
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!isMounted) return;
-    
-    const truncateHtml = (html: string, maxLength: number) => {
-      if (typeof window === 'undefined') return html;
-      
-      const div = document.createElement('div');
-      div.innerHTML = html || '';
-      const text = div.textContent || div.innerText;
-      if (text.length <= maxLength) return html;
-      return text.substring(0, maxLength).trim() + '...';
-    };
-
-    if (learningOutcomesHtml) {
-      setTruncatedContent(isExpanded 
-        ? learningOutcomesHtml 
-        : truncateHtml(learningOutcomesHtml, 200)
-      );
-    }
-  }, [isExpanded, learningOutcomesHtml, isMounted]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -159,127 +137,105 @@ export const CourseLearningOutcomeForm = ({
   }
 
   return (
-    <div className={cn(
-      "p-4 rounded-xl",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
-      "transition-all duration-200",
-      "backdrop-blur-sm"
-    )}>
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-x-2">
-            <div className="p-2 w-fit rounded-md bg-purple-50 dark:bg-purple-500/10">
-              <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <p className="text-base sm:text-lg font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
-              Learning Outcomes
-            </p>
-          </div>
-          {!isEditing && (
-            <div className="mt-2">
+    <div className="space-y-4">
+      {/* Display Mode */}
+      {!isEditing && (
+        <div className="group relative">
+          <div className="flex flex-col gap-4">
+            {/* Learning objectives content - full width with nice bullet points */}
+            <div className="flex-1 min-w-0 w-full">
               {!learningOutcomesHtml ? (
-                <div className="space-y-2">
-                  <p className="text-sm italic text-slate-600 dark:text-slate-400">
-                    No learning outcomes defined yet
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-500">
-                    Define what students will learn from this course. Use bullet points, numbered lists, or formatted text to clearly outline the key learning objectives.
+                <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                  <div className="flex items-center gap-2 px-3">
+                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      No learning objectives set
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                    Define what students will learn from this course. Use bullet points to clearly outline the key learning objectives.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <ContentViewer 
-                    content={truncatedContent}
-                    className={cn(
-                      "text-slate-800 dark:text-slate-200 prose prose-sm max-w-none",
-                      "prose-headings:text-slate-900 dark:prose-headings:text-slate-100",
-                      "prose-p:text-slate-800 dark:prose-p:text-slate-200",
-                      "prose-strong:text-slate-900 dark:prose-strong:text-white",
-                      "prose-ul:list-disc prose-ul:pl-5 prose-ul:text-slate-800 dark:prose-ul:text-slate-200",
-                      "prose-li:text-slate-800 dark:prose-li:text-slate-200 prose-li:mb-1",
-                      "prose-ol:list-decimal prose-ol:pl-5 prose-ol:text-slate-800 dark:prose-ol:text-slate-200",
-                      "prose-a:text-purple-600 dark:prose-a:text-purple-400",
-                      "[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3 [&_ul]:space-y-1",
-                      "[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3 [&_ol]:space-y-1",
-                      "[&_li]:mb-1 [&_li]:text-slate-800 [&_li]:dark:text-slate-200 [&_li]:leading-relaxed",
-                      "[&_li]:marker:text-slate-600 [&_li]:dark:marker:text-slate-400"
-                    )}
-                  />
-                  {learningOutcomesHtml && learningOutcomesHtml.length > 200 && (
+                <div className="space-y-3 w-full">
+                  {/* Display learning objectives as numbered list with nice formatting */}
+                  <ul className="space-y-3">
+                    {initialData.whatYouWillLearn?.slice(0, isExpanded ? initialData.whatYouWillLearn.length : 3).map((objective, index) => (
+                      <li key={index} className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                        <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+                          {index + 1}
+                        </span>
+                        <span className="flex-1 pt-0.5">{objective}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {/* Show More/Less button if more than 3 objectives */}
+                  {initialData.whatYouWillLearn && initialData.whatYouWillLearn.length > 3 && (
                     <Button
                       onClick={() => setIsExpanded(!isExpanded)}
                       variant="ghost"
                       size="sm"
-                      className={cn(
-                        "text-purple-700 dark:text-purple-300",
-                        "hover:text-purple-800 dark:hover:text-purple-200",
-                        "p-0 h-auto",
-                        "text-sm font-medium"
-                      )}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-xs font-medium"
                     >
-                      {isExpanded ? "Show Less" : "Show More"}
+                      {isExpanded ? "Show Less" : `Show More (${initialData.whatYouWillLearn.length - 3} more)`}
                     </Button>
                   )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <AICourseAssistant
-            courseTitle={initialData.title || ""}
-            type="objectives"
-            onGenerate={handleAIGenerate}
-            disabled={!initialData.title}
-            trigger={
+
+            {/* Buttons below objectives - aligned to right */}
+            <div className="flex items-center justify-end gap-2">
+              <AICourseAssistant
+                courseTitle={initialData.title || ""}
+                type="objectives"
+                onGenerate={handleAIGenerate}
+                disabled={!initialData.title}
+                trigger={
+                  <Button
+                    size="sm"
+                    disabled={!initialData.title}
+                    className={cn(
+                      "h-9 px-4",
+                      "bg-gradient-to-r from-sky-500 to-blue-500",
+                      "hover:from-sky-600 hover:to-blue-600",
+                      "text-white font-semibold",
+                      "shadow-md hover:shadow-lg",
+                      "transition-all duration-200",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate with AI
+                  </Button>
+                }
+              />
               <Button
+                onClick={() => setIsEditing(!isEditing)}
                 variant="outline"
                 size="sm"
-                disabled={!initialData.title}
                 className={cn(
-                  "text-purple-700 dark:text-purple-300",
-                  "border-purple-200 dark:border-purple-700",
-                  "hover:text-purple-800 dark:hover:text-purple-200",
-                  "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-                  "w-full sm:w-auto",
-                  "justify-center",
-                  "transition-all duration-200"
+                  "h-9 px-4",
+                  "bg-white/80 dark:bg-slate-800/80",
+                  "border-slate-200 dark:border-slate-700",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-800",
+                  "hover:border-purple-300 dark:hover:border-purple-600",
+                  "hover:text-purple-600 dark:hover:text-purple-400",
+                  "font-semibold",
+                  "transition-all duration-200",
+                  "shadow-sm hover:shadow-md"
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  <span>Generate with AI</span>
-                </div>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
               </Button>
-            }
-          />
-          <Button
-            onClick={() => setIsEditing(!isEditing)}
-            variant="outline"
-            size="sm"
-            className={cn(
-              "text-purple-700 dark:text-purple-300",
-              "border-purple-200 dark:border-purple-700",
-              "hover:text-purple-800 dark:hover:text-purple-200",
-              "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-              "w-full sm:w-auto",
-              "justify-center",
-              "transition-all duration-200"
-            )}
-          >
-            {isEditing ? (
-              <span className="text-rose-700 dark:text-rose-300">Cancel</span>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Pencil className="h-4 w-4" />
-                <span>Edit</span>
-              </div>
-            )}
-          </Button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Edit Mode */}
       {isEditing && (
         <Form {...form}>
           <form
@@ -289,7 +245,7 @@ export const CourseLearningOutcomeForm = ({
             data-entity-type="course"
             data-entity-id={courseId}
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 mt-4"
+            className="space-y-4"
           >
             <FormField
               control={form.control}
@@ -305,17 +261,24 @@ export const CourseLearningOutcomeForm = ({
                       <TipTapEditor
                         value={field.value}
                         onChange={field.onChange}
-                        placeholder="Define what students will achieve by completing this course. Use bullet points or numbered lists for clarity:
+                        placeholder="Define what students will achieve by completing this course. Use bullet points for clarity:
 
 • Master core concepts and principles
-• Apply practical skills in real-world scenarios  
+• Apply practical skills in real-world scenarios
 • Build confidence through hands-on projects
 • Develop industry-relevant expertise"
-                        editorClassName="prose prose-sm max-w-none 
+                        editorClassName="prose prose-sm max-w-none
+                          [&_.tiptap]:min-h-[200px]
+                          [&_.tiptap]:text-slate-800 dark:[&_.tiptap]:text-slate-200
                           [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3 [&_ul]:space-y-1
                           [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3 [&_ol]:space-y-1
                           [&_li]:mb-1 [&_li]:text-slate-800 [&_li]:dark:text-slate-200 [&_li]:leading-relaxed
-                          [&_li]:marker:text-slate-600 [&_li]:dark:marker:text-slate-400"
+                          [&_li]:marker:text-slate-600 [&_li]:dark:marker:text-slate-400
+                          [&_p]:text-slate-800 dark:[&_p]:text-slate-200 [&_p]:leading-relaxed
+                          [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_strong]:font-semibold
+                          [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-slate-900 dark:[&_h1]:text-slate-100
+                          [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 dark:[&_h2]:text-slate-100
+                          [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-slate-900 dark:[&_h3]:text-slate-100"
                         data-field-purpose="learning-outcomes"
                         data-validation="required,min:10"
                         data-content-type="learning-objectives"
@@ -327,22 +290,29 @@ export const CourseLearningOutcomeForm = ({
                 </FormItem>
               )}
             />
-            <div className="flex items-center gap-x-2">
+            <div className="flex items-center justify-between gap-x-2">
+              <Button
+                onClick={() => setIsEditing(false)}
+                variant="outline"
+                size="sm"
+                type="button"
+                className={cn(
+                  "h-9 px-4",
+                  "bg-white dark:bg-slate-800",
+                  "border-slate-300 dark:border-slate-600",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-700",
+                  "font-semibold",
+                  "transition-all duration-200"
+                )}
+              >
+                Cancel
+              </Button>
               <Button
                 disabled={!isValid || isSubmitting}
                 type="submit"
-                variant="ghost"
                 size="sm"
-                className={cn(
-                  "bg-purple-50 dark:bg-purple-500/10",
-                  "text-purple-700 dark:text-purple-300",
-                  "hover:bg-purple-100 dark:hover:bg-purple-500/20",
-                  "hover:text-purple-800 dark:hover:text-purple-200",
-                  "border border-purple-200/20 dark:border-purple-500/20",
-                  "w-full sm:w-auto",
-                  "justify-center",
-                  "transition-all duration-200"
-                )}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-x-2">

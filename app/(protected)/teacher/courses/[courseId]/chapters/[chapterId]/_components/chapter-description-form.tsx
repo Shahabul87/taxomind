@@ -4,7 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, AlignLeft, FileText } from "lucide-react";
+import { Pencil, Sparkles } from "lucide-react";
 import { AIChapterAssistant } from "./ai-chapter-assistant";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -42,31 +42,12 @@ export const ChapterDescriptionForm = ({
   chapterId,
 }: ChapterDescriptionFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [truncatedContent, setTruncatedContent] = useState(initialData.description || "");
   const [isMounted, setIsMounted] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [truncatedContent, setTruncatedContent] = useState("");
   const router = useRouter();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
-    const truncateHtml = (html: string, maxLength: number) => {
-      const div = document.createElement('div');
-      div.innerHTML = html || '';
-      const text = div.textContent || div.innerText;
-      if (text.length <= maxLength) return html;
-      return text.substring(0, maxLength).trim() + '...';
-    };
-
-    if (initialData.description) {
-      setTruncatedContent(isExpanded 
-        ? initialData.description 
-        : truncateHtml(initialData.description, 150)
-      );
-    }
-  }, [isExpanded, initialData.description]);
+  const toggleEdit = () => setIsEditing((current) => !current);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,16 +58,32 @@ export const ChapterDescriptionForm = ({
 
   const { isSubmitting, isValid } = form.formState;
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      await axios.patch(`/api/courses/${courseId}/chapters/${chapterId}`, values);
-      toast.success("Chapter updated");
-      setIsEditing(false);
-      router.refresh();
-    } catch {
-      toast.error("Something went wrong");
+  // Prevent hydration issues
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Handle content truncation
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const truncateHtml = (html: string, maxLength: number) => {
+      if (typeof window === 'undefined') return html;
+
+      const div = document.createElement('div');
+      div.innerHTML = html || '';
+      const text = div.textContent || div.innerText;
+      if (text.length <= maxLength) return html;
+      return text.substring(0, maxLength).trim() + '...';
+    };
+
+    if (initialData.description) {
+      setTruncatedContent(isExpanded
+        ? initialData.description
+        : truncateHtml(initialData.description, 300)
+      );
     }
-  };
+  }, [isExpanded, initialData.description, isMounted]);
 
   const handleAIGenerate = (content: string) => {
     form.setValue("description", content);
@@ -97,59 +94,62 @@ export const ChapterDescriptionForm = ({
     toast.success("Description generated! You can edit it before saving.");
   };
 
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      await axios.patch(`/api/courses/${courseId}/chapters/${chapterId}`, values);
+      toast.success("Chapter updated");
+      toggleEdit();
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong");
+    }
+  };
+
   if (!isMounted) {
     return null;
   }
 
   return (
-    <div className={cn(
-      "p-4 mt-6 rounded-xl",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
-      "transition-all duration-200",
-      "backdrop-blur-sm",
-      "group"
-    )}>
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-x-2">
-            <div className="p-2 w-fit rounded-md bg-cyan-50 dark:bg-cyan-500/10">
-              <FileText className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
-            </div>
-            <p className="text-base sm:text-lg font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 dark:from-cyan-400 dark:to-teal-400 bg-clip-text text-transparent">
-              Chapter Description
-            </p>
-          </div>
-          {!isEditing && (
-            <div className="mt-2">
+    <div className="space-y-4">
+      {/* Display Mode */}
+      {!isEditing && (
+        <div className="group relative">
+          <div className="flex flex-col gap-4">
+            {/* Description content - full width */}
+            <div className="flex-1 min-w-0 w-full">
               {!initialData.description ? (
-                <p className="text-sm italic text-gray-600 dark:text-gray-400">
-                  No description provided yet
-                </p>
+                <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                  <div className="flex items-center gap-2 px-3">
+                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      No description set
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                    Provide a detailed description of what this chapter covers and what students will learn.
+                  </p>
+                </div>
               ) : (
-                <div className="space-y-2">
-                  <ContentViewer 
-                    content={truncatedContent}
+                <div className="space-y-2 w-full">
+                  <ContentViewer
+                    content={truncatedContent || initialData.description}
                     className={cn(
-                      "text-gray-700 dark:text-gray-300 prose prose-sm max-w-none",
-                      "prose-headings:text-gray-900 dark:prose-headings:text-gray-100",
-                      "prose-p:text-gray-700 dark:prose-p:text-gray-300",
-                      "prose-strong:text-gray-900 dark:prose-strong:text-gray-100",
-                      "prose-ul:text-gray-700 dark:prose-ul:text-gray-300"
+                      "text-slate-700 dark:text-slate-300 prose prose-sm max-w-none w-full",
+                      "prose-headings:text-sm prose-headings:text-slate-800 dark:prose-headings:text-slate-200",
+                      "prose-p:text-sm prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-p:leading-relaxed",
+                      "prose-strong:text-sm prose-strong:text-slate-800 dark:prose-strong:text-slate-200",
+                      "prose-ul:list-disc prose-ul:pl-5 prose-ul:text-sm",
+                      "prose-li:text-sm prose-li:text-slate-700 dark:prose-li:text-slate-300 prose-li:mb-1",
+                      "prose-ol:list-decimal prose-ol:pl-5 prose-ol:text-sm",
+                      "prose-a:text-sm prose-a:text-blue-600 dark:prose-a:text-blue-400"
                     )}
                   />
-                  {initialData.description.length > 150 && (
+                  {initialData.description && initialData.description.length > 300 && (
                     <Button
                       onClick={() => setIsExpanded(!isExpanded)}
                       variant="ghost"
                       size="sm"
-                      className={cn(
-                        "text-cyan-700 dark:text-cyan-300",
-                        "hover:text-cyan-800 dark:hover:text-cyan-200",
-                        "p-0 h-auto",
-                        "text-sm font-medium"
-                      )}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-xs font-medium"
                     >
                       {isExpanded ? "Show Less" : "Show More"}
                     </Button>
@@ -157,44 +157,64 @@ export const ChapterDescriptionForm = ({
                 </div>
               )}
             </div>
-          )}
+
+            {/* Buttons below description - aligned to right */}
+            <div className="flex items-center justify-end gap-2">
+              <AIChapterAssistant
+                chapterTitle={initialData.title}
+                type="description"
+                onGenerate={handleAIGenerate}
+                disabled={!initialData.title}
+                trigger={
+                  <Button
+                    size="sm"
+                    disabled={!initialData.title}
+                    className={cn(
+                      "h-9 px-4",
+                      "bg-gradient-to-r from-sky-500 to-blue-500",
+                      "hover:from-sky-600 hover:to-blue-600",
+                      "text-white font-semibold",
+                      "shadow-md hover:shadow-lg",
+                      "transition-all duration-200",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate with AI
+                  </Button>
+                }
+              />
+              <Button
+                onClick={toggleEdit}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-9 px-4",
+                  "bg-white/80 dark:bg-slate-800/80",
+                  "border-slate-200 dark:border-slate-700",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-800",
+                  "hover:border-purple-300 dark:hover:border-purple-600",
+                  "hover:text-purple-600 dark:hover:text-purple-400",
+                  "font-semibold",
+                  "transition-all duration-200",
+                  "shadow-sm hover:shadow-md"
+                )}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <AIChapterAssistant
-            chapterTitle={initialData.title}
-            type="description"
-            onGenerate={handleAIGenerate}
-            disabled={!initialData.title}
-          />
-          <Button
-            onClick={() => setIsEditing(!isEditing)}
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "text-cyan-700 dark:text-cyan-300",
-              "hover:text-cyan-800 dark:hover:text-cyan-200",
-              "hover:bg-cyan-50 dark:hover:bg-cyan-500/10",
-              "w-full sm:w-auto",
-              "justify-center",
-              "transition-all duration-200"
-            )}
-          >
-            {isEditing ? (
-              <span className="text-rose-700 dark:text-rose-300">Cancel</span>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Pencil className="h-4 w-4" />
-                <span>Edit</span>
-              </div>
-            )}
-          </Button>
-        </div>
-      </div>
+      )}
+
+      {/* Edit Mode */}
       {isEditing && (
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 mt-4"
+            className="space-y-4"
           >
             <FormField
               control={form.control}
@@ -203,47 +223,63 @@ export const ChapterDescriptionForm = ({
                 <FormItem>
                   <FormControl>
                     <div className={cn(
-                      "rounded-lg shadow-lg",
+                      "rounded-lg",
                       "border border-gray-200 dark:border-gray-700/50",
                       "bg-white dark:bg-gray-900/50"
-                    )} data-form="chapter-description">
+                    )}>
                       <TipTapEditor
                         value={field.value}
                         onChange={field.onChange}
-                        placeholder="Write a detailed description of your chapter..."
+                        placeholder="Write a comprehensive description for your chapter. Include:
+
+• What students will learn
+• Key topics covered
+• Prerequisites if any
+• What makes it valuable"
+                        editorClassName="prose prose-sm max-w-none
+                          [&_.tiptap]:min-h-[200px]
+                          [&_.tiptap]:text-slate-800 dark:[&_.tiptap]:text-slate-200
+                          [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3 [&_ul]:space-y-1
+                          [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3 [&_ol]:space-y-1
+                          [&_li]:mb-1 [&_li]:text-slate-800 [&_li]:dark:text-slate-200 [&_li]:leading-relaxed
+                          [&_li]:marker:text-slate-600 [&_li]:dark:marker:text-slate-400
+                          [&_p]:text-slate-800 dark:[&_p]:text-slate-200 [&_p]:leading-relaxed
+                          [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_strong]:font-semibold
+                          [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-slate-900 dark:[&_h1]:text-slate-100
+                          [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 dark:[&_h2]:text-slate-100
+                          [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-slate-900 dark:[&_h3]:text-slate-100"
                       />
                     </div>
                   </FormControl>
-                  <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
+                  <FormMessage />
                 </FormItem>
               )}
             />
-            <div className="flex items-center gap-x-2">
+            <div className="flex items-center justify-between gap-x-2">
+              <Button
+                onClick={toggleEdit}
+                variant="outline"
+                size="sm"
+                type="button"
+                className={cn(
+                  "h-9 px-4",
+                  "bg-white dark:bg-slate-800",
+                  "border-slate-300 dark:border-slate-600",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-700",
+                  "font-semibold",
+                  "transition-all duration-200"
+                )}
+              >
+                Cancel
+              </Button>
               <Button
                 disabled={!isValid || isSubmitting}
                 type="submit"
-                variant="ghost"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 size="sm"
-                className={cn(
-                  "bg-cyan-50 dark:bg-cyan-500/10",
-                  "text-cyan-700 dark:text-cyan-300",
-                  "hover:bg-cyan-100 dark:hover:bg-cyan-500/20",
-                  "hover:text-cyan-800 dark:hover:text-cyan-200",
-                  "border border-cyan-200/20 dark:border-cyan-500/20",
-                  "w-full sm:w-auto",
-                  "justify-center",
-                  "transition-all duration-200",
-                  "shadow-lg"
-                )}
               >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-x-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-600 dark:border-cyan-400 border-t-transparent" />
-                    <span>Saving...</span>
-                  </div>
-                ) : (
-                  "Save"
-                )}
+                Save
               </Button>
             </div>
           </form>

@@ -5,11 +5,9 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil, DollarSign } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { logger } from '@/lib/logger';
 
 import {
   Form,
@@ -41,12 +39,9 @@ export const PriceForm = ({
   courseId,
 }: PriceFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [pendingSamData, setPendingSamData] = useState<{ 
-    price?: number; 
-    coursePrice?: number; 
-    amount?: number 
-  } | null>(null);
   const router = useRouter();
+
+  const toggleEdit = () => setIsEditing((current) => !current);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -57,268 +52,148 @@ export const PriceForm = ({
 
   const { isSubmitting, isValid } = form.formState;
 
-  // Listen for SAM form population events
-  useEffect(() => {
-    const handleSamFormPopulation = (event: CustomEvent) => {
-
-      if (event.detail?.formId === 'course-price-form' || 
-          event.detail?.formId === 'price-form' ||
-          event.detail?.formId === 'update-price' ||
-          event.detail?.formId === 'course-price') {
-
-        // Auto-open edit mode when SAM tries to populate
-        setIsEditing(true);
-        
-        // Store the data to be populated
-        if (event.detail?.data?.price !== undefined || 
-            event.detail?.data?.coursePrice !== undefined ||
-            event.detail?.data?.amount !== undefined) {
-          setPendingSamData(event.detail.data);
-        }
-      }
-    };
-
-    window.addEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
-    
-    return () => {
-      window.removeEventListener('sam-populate-form', handleSamFormPopulation as EventListener);
-    };
-  }, []);
-
-  // Handle pending SAM data when form is ready
-  useEffect(() => {
-    if (pendingSamData && isEditing && form) {
-      const priceValue = pendingSamData.price ?? pendingSamData.coursePrice ?? pendingSamData.amount;
-      if (priceValue !== undefined) {
-
-        form.setValue("price", priceValue);
-        form.trigger("price");
-        
-        // Dispatch success event
-        window.dispatchEvent(new CustomEvent('sam-form-populated', {
-          detail: {
-            formId: 'course-price-form',
-            success: true
-          }
-        }));
-        
-        // Clear pending data
-        setPendingSamData(null);
-      }
-    }
-  }, [pendingSamData, isEditing, form]);
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-
-      const response = await axios.post(`/api/course-update`, {
+      await axios.post(`/api/course-update`, {
         courseId: courseId,
         price: values.price
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 30000, // 30 second timeout
       });
-
       toast.success("Price updated");
-      setIsEditing(false);
+      toggleEdit();
       router.refresh();
-    } catch (error: any) {
-      logger.error("Price update error:", error);
-      
-      if (error.response) {
-        logger.error("Error response status:", error.response.status);
-        logger.error("Error response data:", error.response.data);
-        
-        if (error.response.status === 401) {
-          toast.error("Authentication failed. Please log in again.");
-        } else if (error.response.status === 404) {
-          toast.error("Course not found.");
-        } else if (error.response.status >= 500) {
-          toast.error("Server error. Please try again later.");
-        } else {
-          toast.error(`Error: ${error.response.data || 'Something went wrong'}`);
-        }
-      } else if (error.request) {
-        logger.error("No response received:", error.request);
-        toast.error("Network error. Please check your connection.");
-      } else {
-        logger.error("Request setup error:", error.message);
-        toast.error("Something went wrong");
-      }
+    } catch {
+      toast.error("Something went wrong");
     }
-  }
+  };
 
   return (
-    <div className={cn(
-      "p-4 mt-6 rounded-xl",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/50",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/70",
-      "backdrop-blur-sm",
-      "transition-all duration-200"
-    )}>
-      {/* Hidden metadata for SAM to detect the form even when not in edit mode */}
-      <div 
-        data-sam-form-metadata="course-price"
-        data-form-id="course-price-form"
-        data-form-purpose="update-price"
-        data-form-alternate-id="price-form"
-        data-form-type="price"
-        data-entity-type="course"
-        data-entity-id={courseId}
-        data-current-value={initialData?.price || 0}
-        data-is-editing={isEditing.toString()}
-        data-field-name="price"
-        data-field-type="number"
-        style={{ display: 'none' }}
-      />
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="space-y-1">
-          <div className="flex items-center gap-x-2">
-            <div className="p-2 w-fit rounded-md bg-emerald-50 dark:bg-emerald-500/10">
-              <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-base sm:text-lg font-semibold bg-gradient-to-r from-emerald-600 to-cyan-600 dark:from-emerald-400 dark:to-cyan-400 bg-clip-text text-transparent">
-                Course Price
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Set a competitive price for your course
-              </p>
-            </div>
-          </div>
-          {!isEditing && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 mt-2"
-            >
-              <p className={cn(
-                "text-xl sm:text-2xl font-bold",
-                initialData.price === 0 
-                  ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md"
-                  : "text-gray-900 dark:text-gray-100"
-              )}>
-                {formatPrice(initialData.price || 0)}
-              </p>
-              {initialData.price === 0 && (
-                <span className={cn(
-                  "text-xs font-medium px-2 py-0.5 rounded-full",
-                  "text-emerald-600 dark:text-emerald-400",
-                  "bg-emerald-50 dark:bg-emerald-500/10"
-                )}>
-                  Free
-                </span>
-              )}
-            </motion.div>
-          )}
-        </div>
-        <Button
-          onClick={() => setIsEditing(!isEditing)}
-          variant="outline"
-          size="sm"
-          className={cn(
-            "text-purple-700 dark:text-purple-300",
-            "border-purple-200 dark:border-purple-700",
-            "hover:text-purple-800 dark:hover:text-purple-200",
-            "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-            "w-full sm:w-auto",
-            "justify-center",
-            "transition-all duration-200"
-          )}
-        >
-          {isEditing ? (
-            "Cancel"
-          ) : (
-            <>
-              <Pencil className="h-4 w-4 mr-2" />
-              Adjust
-            </>
-          )}
-        </Button>
-      </div>
-      <AnimatePresence>
-        {isEditing && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <Form {...form}>
-              <form
-                id="course-price-form"
-                data-form="course-price"
-                data-purpose="update-price"
-                data-entity-type="course"
-                data-entity-id={courseId}
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4 mt-4"
-              >
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <div className="relative">
-                          <DollarSign className="h-4 w-4 absolute left-3 top-3 text-gray-500 dark:text-gray-400" />
-                          <Input
-                            {...field}
-                            type="number"
-                            step="0.01"
-                            disabled={isSubmitting}
-                            placeholder="Set your price"
-                            data-form="course-price"
-                            className={cn(
-                              "bg-white dark:bg-gray-900/50",
-                              "border-gray-200 dark:border-gray-700/50",
-                              "text-gray-900 dark:text-gray-200",
-                              "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-                              "focus:ring-emerald-500/20",
-                              "pl-9",
-                              "text-base sm:text-lg font-medium",
-                              "transition-all duration-200"
-                            )}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
-                    </FormItem>
+    <div className="space-y-4">
+      {/* Display Mode */}
+      {!isEditing && (
+        <div className="group relative">
+          <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4 transition-all duration-300">
+            <div className="flex-1 min-w-0">
+              {initialData.price !== null && initialData.price !== undefined ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-200">
+                    {formatPrice(initialData.price)}
+                  </span>
+                  {initialData.price === 0 && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                      Free
+                    </span>
                   )}
-                />
-                <div className="flex items-center gap-x-2">
-                  <Button
-                    disabled={!isValid || isSubmitting}
-                    type="submit"
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "bg-emerald-50 dark:bg-emerald-500/10",
-                      "text-emerald-700 dark:text-emerald-300",
-                      "hover:bg-emerald-100 dark:hover:bg-emerald-500/20",
-                      "hover:text-emerald-800 dark:hover:text-emerald-200",
-                      "w-full sm:w-auto",
-                      "justify-center",
-                      "transition-all duration-200"
-                    )}
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center gap-x-2">
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-600 dark:border-emerald-400 border-t-transparent" />
-                        <span>Saving...</span>
-                      </div>
-                    ) : (
-                      "Save"
-                    )}
-                  </Button>
                 </div>
-              </form>
-            </Form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              ) : (
+                <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                  <div className="flex items-center gap-2 px-3">
+                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      No price set
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                    Set a price for your course (enter 0 for free)
+                  </p>
+                </div>
+              )}
+            </div>
+            <Button
+              onClick={toggleEdit}
+              variant="outline"
+              size="sm"
+              className={cn(
+                "flex-shrink-0 h-9 px-4",
+                "bg-white/80 dark:bg-slate-800/80",
+                "border-slate-200 dark:border-slate-700",
+                "text-slate-700 dark:text-slate-300",
+                "hover:bg-slate-50 dark:hover:bg-slate-800",
+                "hover:border-purple-300 dark:hover:border-purple-600",
+                "hover:text-purple-600 dark:hover:text-purple-400",
+                "font-semibold text-sm",
+                "transition-all duration-200",
+                "shadow-sm hover:shadow-md",
+                "backdrop-blur-sm"
+              )}
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Mode */}
+      {isEditing && (
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <div className="relative">
+                      <DollarSign className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                      <Input
+                        {...field}
+                        type="number"
+                        step="0.01"
+                        disabled={isSubmitting}
+                        placeholder="0.00"
+                        className={cn(
+                          "pl-10",
+                          "bg-white dark:bg-slate-900",
+                          "border border-slate-300/60 dark:border-slate-600/60",
+                          "text-slate-900 dark:text-slate-100",
+                          "placeholder:text-slate-400 dark:placeholder:text-slate-500",
+                          "focus:border-slate-400/70 dark:focus:border-slate-500/70",
+                          "focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
+                          "text-base font-normal",
+                          "h-11",
+                          "rounded-md",
+                          "transition-all duration-200"
+                        )}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex items-center justify-between gap-x-2">
+              <Button
+                onClick={toggleEdit}
+                variant="outline"
+                size="sm"
+                type="button"
+                className={cn(
+                  "h-9 px-4",
+                  "bg-white dark:bg-slate-800",
+                  "border-slate-300 dark:border-slate-600",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-700",
+                  "font-semibold",
+                  "transition-all duration-200"
+                )}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={!isValid || isSubmitting}
+                type="submit"
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {isSubmitting ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      )}
     </div>
   );
-}
+};

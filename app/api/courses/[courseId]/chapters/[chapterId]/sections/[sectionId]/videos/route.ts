@@ -14,7 +14,8 @@ export async function POST(
   const params = await props.params;
   try {
     const session = await auth();
-    const { title, description, videoUrl, rating } = await req.json();
+    const body = await req.json();
+    const { title, description, videoUrl, rating, thumbnail, platform, embedUrl, author } = body;
 
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -37,11 +38,13 @@ export async function POST(
         title,
         description,
         url: videoUrl,
-        rating: Number(rating),
+        rating: rating ? Number(rating) : null,
         sectionId: params.sectionId,
         userId: session.user.id,
         isPublished: true,
         position: 0,
+        thumbnail: thumbnail || null,
+        platform: platform || null,
       },
     });
 

@@ -52,6 +52,8 @@ interface VideoSectionFormProps {
   courseId: string;
   chapterId: string;
   sectionId: string;
+  isCreating: boolean;
+  setIsCreating: (value: boolean) => void;
 }
 
 const descriptionOptions = [
@@ -82,8 +84,8 @@ const RatingStars = ({ rating }: { rating: number | null }) => {
           key={star}
           className={cn(
             "h-3.5 w-3.5",
-            star <= (rating || 0) 
-              ? "text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400" 
+            star <= (rating || 0)
+              ? "text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400"
               : "text-gray-400 dark:text-gray-600"
           )}
         />
@@ -100,8 +102,9 @@ export const VideoSectionForm = ({
   courseId,
   chapterId,
   sectionId,
+  isCreating,
+  setIsCreating,
 }: VideoSectionFormProps) => {
-  const [isCreating, setIsCreating] = useState(false);
   const router = useRouter();
   const [hoveredRating, setHoveredRating] = useState(0);
   const [selectedRating, setSelectedRating] = useState(0);
@@ -275,55 +278,7 @@ export const VideoSectionForm = ({
   };
 
   return (
-    <div className={cn(
-      "p-4 mt-4 rounded-xl",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
-      "transition-all duration-200",
-      "backdrop-blur-sm"
-    )}>
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="flex items-center gap-x-2">
-          <div className={cn(
-            "p-2 w-fit rounded-lg",
-            "bg-blue-50 dark:bg-blue-500/10"
-          )}>
-            <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-foreground">
-              Additional Video Resources
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Add helpful video resources for better understanding
-            </p>
-          </div>
-        </div>
-        <Button
-          onClick={() => setIsCreating(!isCreating)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "bg-blue-50 dark:bg-blue-500/10",
-            "text-blue-700 dark:text-blue-300",
-            "hover:bg-blue-100 dark:hover:bg-blue-500/20",
-            "hover:text-blue-800 dark:hover:text-blue-200",
-            "w-full sm:w-auto",
-            "justify-center",
-            "transition-all duration-200"
-          )}
-        >
-          {isCreating ? (
-            "Cancel"
-          ) : (
-            <>
-              <Video className="h-4 w-4 mr-2" />
-              Add video
-            </>
-          )}
-        </Button>
-      </div>
+    <div className="space-y-4">
 
       <AnimatePresence>
         {isCreating && (

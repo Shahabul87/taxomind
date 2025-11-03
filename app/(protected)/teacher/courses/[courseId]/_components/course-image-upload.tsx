@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Loader2, Image as ImageIcon } from "lucide-react";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
-import { logger } from '@/lib/logger';
 
 interface CourseImageUploadProps {
   courseId: string;
@@ -26,11 +24,13 @@ export const CourseImageUpload = ({
   // Ensure image URL uses HTTPS for Next.js Image component
   const secureImageUrl = initialImage?.replace(/^http:\/\//i, 'https://') || null;
 
+  const toggleEdit = () => setIsEditing((current) => !current);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
       const file = e.target.files?.[0];
-      
+
       if (!file) return;
 
       const formData = new FormData();
@@ -46,7 +46,7 @@ export const CourseImageUpload = ({
       }
 
       const data = await response.json();
-      
+
       await fetch(`/api/courses/${courseId}`, {
         method: 'PATCH',
         headers: {
@@ -56,173 +56,133 @@ export const CourseImageUpload = ({
       });
 
       toast.success("Image uploaded!");
+      setIsEditing(false);
       router.refresh();
-    } catch (error: any) {
-      logger.error('Upload error:', error);
+    } catch {
       toast.error("Something went wrong");
     } finally {
       setUploading(false);
-      setIsEditing(false);
     }
   };
 
   return (
-    <div className={cn(
-      "p-4 mt-6 rounded-xl",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/50",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/70",
-      "backdrop-blur-sm",
-      "transition-all duration-200"
-    )}>
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="space-y-1">
-          <div className="flex items-center gap-x-2">
-            <div className="p-2 w-fit rounded-md bg-blue-50 dark:bg-blue-500/10">
-              <ImageIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-base sm:text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">
-                Course Image
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Upload an attractive course thumbnail
-              </p>
+    <div className="space-y-4">
+      {/* Display Mode */}
+      {!isEditing && (
+        <div className="group relative">
+          <div className="flex flex-col gap-4">
+            {secureImageUrl ? (
+              <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                <Image
+                  src={secureImageUrl}
+                  alt="Course image"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                <div className="flex items-center gap-2 px-3">
+                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    No image uploaded
+                  </p>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                  Upload an attractive course thumbnail (16:9 ratio recommended)
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end">
+              <Button
+                onClick={toggleEdit}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-9 px-4",
+                  "bg-white/80 dark:bg-slate-800/80",
+                  "border-slate-200 dark:border-slate-700",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-800",
+                  "hover:border-purple-300 dark:hover:border-purple-600",
+                  "hover:text-purple-600 dark:hover:text-purple-400",
+                  "font-semibold text-sm",
+                  "transition-all duration-200",
+                  "shadow-sm hover:shadow-md"
+                )}
+              >
+                <ImagePlus className="h-4 w-4 mr-2" />
+                {secureImageUrl ? "Change" : "Upload"}
+              </Button>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-x-2">
-          {isEditing ? (
-            <>
-              <Button
-                onClick={() => setIsEditing(false)}
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "text-purple-700 dark:text-purple-300",
-                  "border-purple-200 dark:border-purple-700",
-                  "hover:text-purple-800 dark:hover:text-purple-200",
-                  "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-                  "w-full sm:w-auto",
-                  "justify-center",
-                  "transition-all duration-200"
-                )}
-                disabled={uploading}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => document.getElementById('imageUpload')?.click()}
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "text-purple-700 dark:text-purple-300",
-                  "border-purple-200 dark:border-purple-700",
-                  "hover:text-purple-800 dark:hover:text-purple-200",
-                  "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-                  "w-full sm:w-auto",
-                  "justify-center",
-                  "transition-all duration-200"
-                )}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <div className="flex items-center gap-x-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Uploading...</span>
-                  </div>
-                ) : (
-                  <>
-                    <ImagePlus className="h-4 w-4 mr-2" />
-                    Select Image
-                  </>
-                )}
-              </Button>
-            </>
-          ) : (
+      )}
+
+      {/* Edit Mode */}
+      {isEditing && (
+        <div className="space-y-4">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+            id="imageUpload"
+            disabled={uploading}
+          />
+
+          <label
+            htmlFor="imageUpload"
+            className={cn(
+              "flex flex-col items-center justify-center gap-3",
+              "w-full p-8",
+              "border-2 border-dashed rounded-lg",
+              "border-slate-300 dark:border-slate-600",
+              "bg-slate-50 dark:bg-slate-900",
+              uploading ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 hover:bg-slate-100 dark:hover:bg-slate-800",
+              "transition-all duration-200"
+            )}
+          >
+            <div className="p-3 rounded-full bg-slate-200 dark:bg-slate-700">
+              {uploading ? (
+                <Loader2 className="h-6 w-6 text-slate-600 dark:text-slate-400 animate-spin" />
+              ) : (
+                <ImagePlus className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+              )}
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                {uploading ? "Uploading..." : "Click to upload an image"}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                PNG, JPG up to 5MB
+              </p>
+            </div>
+          </label>
+
+          <div className="flex items-center justify-between gap-x-2">
             <Button
-              onClick={() => setIsEditing(true)}
+              onClick={toggleEdit}
               variant="outline"
               size="sm"
-              className={cn(
-                "text-purple-700 dark:text-purple-300",
-                "border-purple-200 dark:border-purple-700",
-                "hover:text-purple-800 dark:hover:text-purple-200",
-                "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-                "w-full sm:w-auto",
-                "justify-center",
-                "transition-all duration-200"
-              )}
+              type="button"
               disabled={uploading}
-            >
-              <ImagePlus className="h-4 w-4 mr-2" />
-              {initialImage ? "Change Image" : "Add Image"}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {isEditing && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mt-4"
-          >
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-              id="imageUpload"
-            />
-            <label
-              htmlFor="imageUpload"
               className={cn(
-                "flex flex-col items-center justify-center gap-4",
-                "w-full p-6 sm:p-8",
-                "border-2 border-dashed rounded-xl",
-                "border-blue-200 dark:border-blue-500/20",
-                "bg-blue-50/50 dark:bg-blue-500/5",
-                "cursor-pointer",
-                "hover:border-blue-300 dark:hover:border-blue-500/30",
-                "hover:bg-blue-50 dark:hover:bg-blue-500/10",
+                "h-9 px-4",
+                "bg-white dark:bg-slate-800",
+                "border-slate-300 dark:border-slate-600",
+                "text-slate-700 dark:text-slate-300",
+                "hover:bg-slate-50 dark:hover:bg-slate-700",
+                "font-semibold",
                 "transition-all duration-200"
               )}
             >
-              <div className="p-4 rounded-full bg-blue-100/50 dark:bg-blue-500/10">
-                <ImagePlus className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                  Click to upload an image
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Maximum file size: 5MB
-                </p>
-              </div>
-            </label>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {secureImageUrl && !isEditing && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-4"
-        >
-          <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700/50">
-            <Image
-              src={secureImageUrl}
-              alt="Course image"
-              fill
-              className="object-cover"
-            />
+              Cancel
+            </Button>
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   );
-}; 
+};

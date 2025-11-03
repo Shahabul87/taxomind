@@ -413,9 +413,9 @@ export const EnterpriseSectionPageClient = ({
 
           {/* Two-Column Section Configuration */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-4 sm:mb-6 md:mb-8">
-            {/* Left Column - Section Title + Access Settings & Video */}
+            {/* Left Column - Section Title, Access Settings & Video */}
             <div className="space-y-3 sm:space-y-4 md:space-y-6">
-              {/* Section Title & Access Settings Card */}
+              {/* Section Title Card */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -429,20 +429,44 @@ export const EnterpriseSectionPageClient = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <CardTitle className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">
-                          Section Title & Access
+                          Section Title
                         </CardTitle>
-                        <CardDescription className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 hidden sm:block">Basic section configuration and permissions</CardDescription>
+                        <CardDescription className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 hidden sm:block">Give your section a descriptive title</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 md:space-y-6">
+                  <CardContent className="p-3 sm:p-4 md:p-6">
                     <SectionTitleForm
                       initialData={section}
                       courseId={params.courseId}
                       chapterId={params.chapterId}
                       sectionId={params.sectionId}
                     />
-                    <Separator />
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Access Settings Card */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15 }}
+              >
+                <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
+                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                        <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">
+                          Access Settings
+                        </CardTitle>
+                        <CardDescription className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 hidden sm:block">Control who can access this section</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 sm:p-4 md:p-6">
                     <SectionAccessForm
                       initialData={section}
                       courseId={params.courseId}
@@ -559,19 +583,26 @@ export const EnterpriseSectionPageClient = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
-              <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-500 shadow-lg shadow-indigo-500/20 flex-shrink-0">
-                    <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent truncate">
-                      Interactive Learning Materials
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 hidden sm:block">Enhance learning with diverse content types</CardDescription>
+            <Card className="shadow-md rounded-xl border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
+              <CardHeader className="p-4 sm:p-5 md:p-6">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                      <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0 pt-1">
+                      <CardTitle className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+                        Interactive Learning Materials
+                      </CardTitle>
+                      <CardDescription className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Enrich your section with supplementary content like videos, blog posts, articles, and code examples.
+                        Share the best available resources to help students grasp concepts clearly and thoroughly.
+                        Quality materials make complex topics accessible and engaging.
+                      </CardDescription>
+                    </div>
                   </div>
                 </div>
+                <div className="mt-5 border-b border-slate-200/50 dark:border-slate-700/50" />
               </CardHeader>
               <CardContent className="p-3 sm:p-4 md:p-6">
                 <TabsContainer
@@ -582,7 +613,7 @@ export const EnterpriseSectionPageClient = ({
                     chapter: {
                       id: chapter.id,
                       title: chapter.title,
-                      sections: []
+                      sections: chapter.sections
                     },
                     codeExplanations: section.codeExplanations || [],
                     mathExplanations: section.mathExplanations || [],

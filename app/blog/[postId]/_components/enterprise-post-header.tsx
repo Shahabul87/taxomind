@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import axios from "axios";
+import { useSession } from "next-auth/react";
 import {
   Calendar,
   Clock,
@@ -59,6 +62,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 
 interface EnterprisePostHeaderProps {
+  postId: string;
   title: string;
   description?: string | null;
   category: string | null | undefined;
@@ -73,6 +77,7 @@ interface EnterprisePostHeaderProps {
   likeCount?: number;
   commentCount?: number;
   shareCount?: number;
+  hasUserReacted?: boolean;
   tags?: string[];
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
   language?: string;
@@ -82,6 +87,7 @@ interface EnterprisePostHeaderProps {
 }
 
 export const EnterprisePostHeader = ({
+  postId,
   title,
   description,
   category,
@@ -92,10 +98,11 @@ export const EnterprisePostHeader = ({
   createdAt,
   updatedAt,
   readingTime = 5,
-  viewCount = 1234,
-  likeCount = 89,
-  commentCount = 12,
-  shareCount = 45,
+  viewCount = 0,
+  likeCount = 0,
+  commentCount = 0,
+  shareCount = 0,
+  hasUserReacted = false,
   tags = [],
   difficulty,
   language = "English",
@@ -103,12 +110,13 @@ export const EnterprisePostHeader = ({
   isFeatured = false,
   isPremium = false,
 }: EnterprisePostHeaderProps) => {
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(hasUserReacted);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [localLikeCount, setLocalLikeCount] = useState(likeCount);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const currentURL = typeof window !== 'undefined' ? window.location.href : '';
 
   const formatDate = (date: Date) => {
@@ -125,9 +133,47 @@ export const EnterprisePostHeader = ({
     return num.toString();
   };
 
-  const handleLike = () => {
+  const { data: session } = useSession();
+
+  // Track view on mount
+  useEffect(() => {
+    const trackView = async () => {
+      try {
+        await axios.post(`/api/posts/${postId}/views`);
+      } catch (error) {
+        console.error("Failed to track view:", error);
+      }
+    };
+    trackView();
+  }, [postId]);
+
+  const handleLike = async () => {
+    if (!session) {
+      toast.error("Please sign in to react");
+      return;
+    }
+
+    if (isSubmitting) return;
+
+    const previousLiked = isLiked;
+    const previousCount = localLikeCount;
+
+    // Optimistic update
     setIsLiked(!isLiked);
     setLocalLikeCount(isLiked ? localLikeCount - 1 : localLikeCount + 1);
+    setIsSubmitting(true);
+
+    try {
+      await axios.post(`/api/posts/${postId}/reactions`, { type: "LOVE" });
+    } catch (error) {
+      // Revert on error
+      setIsLiked(previousLiked);
+      setLocalLikeCount(previousCount);
+      toast.error("Failed to update reaction");
+      console.error("Failed to react:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const copyToClipboard = async () => {

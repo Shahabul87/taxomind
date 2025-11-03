@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-11-02T17:06:00.233Z
+// Generated: 2025-11-02T23:49:13.438Z
 // Source: 15 domain files
 // ==========================================
 
@@ -2297,6 +2297,8 @@ model Blog {
   author      String?
   description String?
   rating      Int?
+  thumbnail   String?   @db.VarChar(500)
+  siteName    String?
   publishedAt DateTime?
   position    Int?
   sectionId   String?

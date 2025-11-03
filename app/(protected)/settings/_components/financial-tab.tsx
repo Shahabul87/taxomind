@@ -50,7 +50,7 @@ export const FinancialTab = ({
     >
       {/* Wallet Balance */}
       <div className={cn(
-        "p-6 rounded-xl",
+        "p-6 rounded-3xl",
         "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20",
         "backdrop-blur-sm",
         "border border-green-200/50 dark:border-green-700/50",
@@ -62,7 +62,7 @@ export const FinancialTab = ({
               <Wallet className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">Total Balance</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">Total Balance</p>
               <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                 {formatCurrency(walletBalance)}
               </h2>
@@ -78,21 +78,21 @@ export const FinancialTab = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-green-200/30 dark:border-green-700/30">
-            <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">Available</p>
+          <div className="p-4 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-green-200/30 dark:border-green-700/30">
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-1">Available</p>
             <p className="text-lg font-semibold text-green-600 dark:text-green-400">
               {formatCurrency(walletBalance * 0.8)}
             </p>
           </div>
-          <div className="p-4 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-green-200/30 dark:border-green-700/30">
-            <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">Pending</p>
-            <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
+          <div className="p-4 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-green-200/30 dark:border-green-700/30">
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-1">Pending</p>
+            <p className="text-lg font-semibold text-white">
               {formatCurrency(walletBalance * 0.15)}
             </p>
           </div>
-          <div className="p-4 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-green-200/30 dark:border-green-700/30">
-            <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">On Hold</p>
-            <p className="text-lg font-semibold text-slate-600 dark:text-slate-400">
+          <div className="p-4 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-green-200/30 dark:border-green-700/30">
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-1">On Hold</p>
+            <p className="text-lg font-semibold text-slate-600 dark:text-slate-300">
               {formatCurrency(walletBalance * 0.05)}
             </p>
           </div>
@@ -102,10 +102,10 @@ export const FinancialTab = ({
       {/* Teacher Earnings (if teacher) */}
       {isTeacher && (
         <div className={cn(
-          "p-6 rounded-xl",
-          "bg-white/60 dark:bg-slate-800/60",
+          "p-6 rounded-3xl",
+          "bg-white/80 dark:bg-slate-800/80",
           "backdrop-blur-sm",
-          "border border-slate-200/30 dark:border-slate-700/30",
+          "border border-slate-200/50 dark:border-slate-700/50",
           "shadow-lg"
         )}>
           <div className="flex items-center space-x-3 mb-6">
@@ -113,10 +113,10 @@ export const FinancialTab = ({
               <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Instructor Earnings
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Revenue from your courses
               </p>
             </div>
@@ -125,7 +125,7 @@ export const FinancialTab = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-600 dark:text-slate-400">This Month</span>
+                <span className="text-sm text-slate-600 dark:text-slate-300">This Month</span>
                 <BarChart3 className="h-4 w-4 text-blue-600" />
               </div>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
@@ -137,7 +137,7 @@ export const FinancialTab = ({
             </div>
             <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-600 dark:text-slate-400">All Time</span>
+                <span className="text-sm text-slate-600 dark:text-slate-300">All Time</span>
                 <DollarSign className="h-4 w-4 text-purple-600" />
               </div>
               <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
@@ -167,10 +167,10 @@ export const FinancialTab = ({
       {/* Affiliate Program (if affiliate) */}
       {isAffiliate && (
         <div className={cn(
-          "p-6 rounded-xl",
-          "bg-white/60 dark:bg-slate-800/60",
+          "p-6 rounded-3xl",
+          "bg-white/80 dark:bg-slate-800/80",
           "backdrop-blur-sm",
-          "border border-slate-200/30 dark:border-slate-700/30",
+          "border border-slate-200/50 dark:border-slate-700/50",
           "shadow-lg"
         )}>
           <div className="flex items-center space-x-3 mb-6">
@@ -178,10 +178,10 @@ export const FinancialTab = ({
               <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Affiliate Program
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Earn by referring new users
               </p>
             </div>
@@ -189,7 +189,7 @@ export const FinancialTab = ({
 
           <div className="space-y-4 mb-6">
             <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Your Affiliate Code</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">Your Affiliate Code</p>
               <div className="flex items-center justify-between">
                 <code className="text-lg font-mono font-semibold text-purple-600 dark:text-purple-400">
                   {affiliateCode || 'AFFILIATE123'}
@@ -209,19 +209,19 @@ export const FinancialTab = ({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 rounded-lg bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
-                <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">Total Earnings</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mb-1">Total Earnings</p>
                 <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
                   {formatCurrency(affiliateEarnings)}
                 </p>
               </div>
               <div className="p-4 rounded-lg bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
-                <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">Referrals</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mb-1">Referrals</p>
                 <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
                   42
                 </p>
               </div>
               <div className="p-4 rounded-lg bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
-                <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">Conversion Rate</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mb-1">Conversion Rate</p>
                 <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
                   12.5%
                 </p>
@@ -239,10 +239,10 @@ export const FinancialTab = ({
 
       {/* Payment Methods */}
       <div className={cn(
-        "p-6 rounded-xl",
-        "bg-white/60 dark:bg-slate-800/60",
+        "p-6 rounded-3xl",
+        "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
-        "border border-slate-200/30 dark:border-slate-700/30",
+        "border border-slate-200/50 dark:border-slate-700/50",
         "shadow-lg"
       )}>
         <div className="flex items-center justify-between mb-6">
@@ -251,10 +251,10 @@ export const FinancialTab = ({
               <CreditCard className="h-5 w-5 text-orange-600 dark:text-orange-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Payout Methods
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Manage how you receive payments
               </p>
             </div>
@@ -273,7 +273,7 @@ export const FinancialTab = ({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-100">PayPal</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">user@example.com</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">user@example.com</p>
                 </div>
               </div>
               <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded">
@@ -283,7 +283,7 @@ export const FinancialTab = ({
           </div>
 
           <div className="p-4 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/30">
-            <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
+            <p className="text-sm text-slate-600 dark:text-slate-300 text-center">
               Add Stripe, Bank Transfer, or other payment methods
             </p>
           </div>
@@ -292,7 +292,7 @@ export const FinancialTab = ({
 
       {/* Transaction History Link */}
       <div className={cn(
-        "p-6 rounded-xl",
+        "p-6 rounded-3xl",
         "bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800/60 dark:to-blue-900/20",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
@@ -300,10 +300,10 @@ export const FinancialTab = ({
       )}>
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-1">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">
               Transaction History
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               View all your earnings and payouts
             </p>
           </div>

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentUser } from '@/lib/auth'
-import { Footer } from "@/app/(homepage)/footer";
+import { HomeFooter } from "@/app/(homepage)/HomeFooter";
 import ReadingModes from "./_components/reading-mode";
 import { FeaturedImage } from "./_components/featured-image";
 import { Metadata } from "next";
@@ -15,7 +15,7 @@ const isDev = process.env.NODE_ENV === 'development';
 const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
   const params = await props.params;
   const user = await currentUser();
-  const post = await getPostData(params.postId);
+  const post = await getPostData(params.postId, user?.id);
 
   if (!post) {
     return redirect("/");
@@ -66,6 +66,7 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
             <div className="mx-auto w-full py-8 lg:py-12">
               {/* Enterprise Header */}
               <EnterprisePostHeader
+                postId={params.postId}
                 title={post.title}
                 description={post.description}
                 category={post.category}
@@ -75,10 +76,10 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
                 createdAt={post.createdAt}
                 updatedAt={post.updatedAt}
                 readingTime={readingTime}
-                viewCount={1234}
-                likeCount={89}
+                viewCount={post.views || 0}
+                likeCount={post._count?.reactions || 0}
                 commentCount={post.comments?.length || 0}
-                shareCount={45}
+                hasUserReacted={!!post.userReaction}
                 tags={post.category ? [post.category] : []}
                 difficulty="Intermediate"
                 language="English"
@@ -116,11 +117,11 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
                 />
               </div>
             </div>
-
-            <Footer />
           </div>
         </div>
       </div>
+
+      <HomeFooter />
     </>
   );
 };

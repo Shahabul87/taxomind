@@ -299,6 +299,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'cdn.sanity.io',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'assets.aceternity.com',
         pathname: '/**',
       },

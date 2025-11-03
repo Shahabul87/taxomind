@@ -9,6 +9,10 @@ import { logger } from '@/lib/logger';
 import { z } from "zod";
 import { type SectionData } from "./_components/enterprise-section-types";
 
+// Disable caching for this page to ensure fresh data after mutations
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Input validation schema
 const SectionPageParamsSchema = z.object({
   courseId: z.string().uuid("Invalid course ID format"),

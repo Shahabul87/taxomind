@@ -2,7 +2,7 @@
 
 import { Section } from "@prisma/client";
 import { useEffect, useState, useRef } from "react";
-import { Grip, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Grip, Pencil, Trash2, Loader2, Lock, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ChapterSectionListProps {
   items: Section[];
@@ -264,74 +270,126 @@ export const ChapterSectionList = ({
             onTouchCancel={handleTouchCancel}
             className={cn(
               "flex items-center gap-x-2",
-              "bg-white/50 dark:bg-gray-900/40",
-              "border border-gray-200 dark:border-gray-700/50",
-              "text-gray-900 dark:text-gray-200",
-              "rounded-lg mb-4",
+              "bg-white dark:bg-slate-900",
+              "border border-slate-200 dark:border-slate-700",
+              "text-slate-900 dark:text-slate-100",
+              "rounded-lg mb-3",
               "text-sm sm:text-base",
               "transition-all duration-200 ease-in-out",
               "touch-manipulation",
               isDragOver && !isDragging && "border-purple-300 dark:border-purple-700 bg-purple-50/30 dark:bg-purple-900/10",
-              section.isPublished && "bg-sky-50/50 dark:bg-sky-900/20 border-sky-200/50 dark:border-sky-800/50"
+              section.isPublished && "bg-emerald-50/50 dark:bg-emerald-900/20 border-emerald-200/50 dark:border-emerald-800/50"
             )}
           >
             <div
               className={cn(
                 "px-2 py-3 border-r",
-                "border-r-gray-200 dark:border-r-gray-700/50",
-                "hover:bg-gray-100/50 dark:hover:bg-gray-800/50",
+                "border-r-slate-200 dark:border-r-slate-700",
+                "hover:bg-slate-100/50 dark:hover:bg-slate-800/50",
                 "rounded-l-lg transition cursor-grab active:cursor-grabbing",
                 "flex items-center",
                 "touch-manipulation",
-                section.isPublished && "border-r-sky-200/50 dark:border-r-sky-800/50"
+                section.isPublished && "border-r-emerald-200/50 dark:border-r-emerald-800/50"
               )}
             >
-              <Grip className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              <Grip className="h-5 w-5 text-slate-600 dark:text-slate-400" />
             </div>
             <div className="flex-1 px-2 py-2 truncate">
               {section.title}
             </div>
             <div className="ml-auto pr-2 flex items-center gap-x-2">
+              {/* isFree Badge */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-2 py-1 rounded-md",
+                      section.isFree
+                        ? "bg-emerald-50 dark:bg-emerald-900/30"
+                        : "bg-purple-50 dark:bg-purple-900/30"
+                    )}>
+                      {section.isFree ? (
+                        <Unlock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      ) : (
+                        <Lock className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                      )}
+                      <span className={cn(
+                        "text-xs font-medium",
+                        section.isFree
+                          ? "text-emerald-700 dark:text-emerald-300"
+                          : "text-purple-700 dark:text-purple-300"
+                      )}>
+                        {section.isFree ? "Free" : "Premium"}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{section.isFree ? "Free preview section" : "Premium section - requires enrollment"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Published Status Badge */}
               <Badge className={cn(
-                "bg-gray-100 dark:bg-gray-800",
-                "text-gray-700 dark:text-gray-300",
-                "border-gray-200 dark:border-gray-700",
-                section.isPublished && "bg-sky-50 dark:bg-sky-900 text-sky-700 dark:text-sky-300 border-sky-200/50 dark:border-sky-800/50"
+                "bg-slate-100 dark:bg-slate-800",
+                "text-slate-700 dark:text-slate-300",
+                "border-slate-200 dark:border-slate-700",
+                section.isPublished && "bg-emerald-50 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/50"
               )}>
                 {section.isPublished ? "Published" : "Draft"}
               </Badge>
-              <Button
-                onClick={() => onEdit(section.id)}
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "hover:bg-purple-50 dark:hover:bg-purple-500/10",
-                  "text-purple-700 dark:text-purple-400",
-                  "hover:text-purple-800 dark:hover:text-purple-300"
-                )}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "hover:bg-rose-50 dark:hover:bg-rose-500/10",
-                      "text-rose-700 dark:text-rose-400",
-                      "hover:text-rose-800 dark:hover:text-rose-300"
-                    )}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+
+              {/* Edit Button with Tooltip */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => onEdit(section.id)}
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "hover:bg-slate-100 dark:hover:bg-slate-800",
+                        "text-slate-700 dark:text-slate-400",
+                        "hover:text-slate-900 dark:hover:text-slate-200"
+                      )}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Edit section</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Delete Button with Tooltip */}
+              <TooltipProvider>
+                <Tooltip>
+                  <AlertDialog>
+                    <TooltipTrigger asChild>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "hover:bg-rose-50 dark:hover:bg-rose-500/10",
+                            "text-rose-700 dark:text-rose-400",
+                            "hover:text-rose-800 dark:hover:text-rose-300"
+                          )}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Delete section</p>
+                    </TooltipContent>
+                <AlertDialogContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="text-xl text-gray-900 dark:text-white">
+                    <AlertDialogTitle className="text-xl text-slate-900 dark:text-white">
                       Delete Section
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="text-gray-600 dark:text-gray-300 text-base">
+                    <AlertDialogDescription className="text-slate-600 dark:text-slate-300 text-base">
                       Are you sure you want to delete this section?
                       <br />
                       <span className="text-rose-600 dark:text-rose-400 font-medium">
@@ -341,18 +399,18 @@ export const ChapterSectionList = ({
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel className={cn(
-                      "bg-gray-100 dark:bg-gray-800",
-                      "hover:bg-gray-200 dark:hover:bg-gray-700",
-                      "border-gray-200 dark:border-gray-700",
-                      "text-gray-900 dark:text-white"
+                      "bg-slate-100 dark:bg-slate-800",
+                      "hover:bg-slate-200 dark:hover:bg-slate-700",
+                      "border-slate-200 dark:border-slate-700",
+                      "text-slate-900 dark:text-white"
                     )}>
                       Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => handleDelete(section.id)}
                       className={cn(
-                        "bg-rose-500 dark:bg-rose-600",
-                        "hover:bg-rose-600 dark:hover:bg-rose-700",
+                        "bg-rose-600 dark:bg-rose-600",
+                        "hover:bg-rose-700 dark:hover:bg-rose-700",
                         "text-white border-0"
                       )}
                     >
@@ -367,7 +425,9 @@ export const ChapterSectionList = ({
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
-              </AlertDialog>
+                  </AlertDialog>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         );
