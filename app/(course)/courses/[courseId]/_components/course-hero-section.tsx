@@ -7,7 +7,6 @@ import { Course } from '@prisma/client';
 import { cleanHtmlContent } from '../utils/html-utils';
 import { getCategoryPalette } from '@/theme_color/color-utils';
 import { HeroBreadcrumb } from './hero-breadcrumb';
-import { HeroBadgeSystem } from './hero-badge-system';
 import { InstructorShowcaseEnhanced } from './instructor-showcase-enhanced';
 import { HeroStatsEnhanced } from './hero-stats-enhanced';
 import { DynamicBackground } from './dynamic-background';
@@ -60,22 +59,6 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
     day: 'numeric'
   });
 
-  // Format last updated for badge (Month Year)
-  const lastUpdatedBadge = new Date(course.updatedAt).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-  });
-
-  // Check course age for "Hot & New" badge
-  const courseAge = Date.now() - new Date(course.createdAt).getTime();
-  const isHotAndNew = courseAge < 30 * 24 * 60 * 60 * 1000; // Less than 30 days
-
-  // Check if highest rated (rating > 4.7)
-  const isHighestRated = Number.parseFloat(averageRating) > 4.7;
-
-  // Check if bestseller (placeholder logic - would need actual category stats)
-  const isBestseller = totalEnrollments > 100 && Number.parseFloat(averageRating) > 4.5;
-
   // Breadcrumb items
   const breadcrumbItems = [
     { label: 'Courses', href: '/courses' },
@@ -122,35 +105,6 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
         >
           {/* Breadcrumb Navigation */}
           <HeroBreadcrumb items={breadcrumbItems} />
-
-          {/* Badge System */}
-          <HeroBadgeSystem
-            badges={{
-              isBestseller,
-              isHotAndNew,
-              isHighestRated,
-              lastUpdated: lastUpdatedBadge,
-            }}
-          />
-
-          {/* Smart tagline + Category Badge */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: prefersReducedMotion ? 0 : 0.2 }}
-            className="inline-flex items-center mb-4 max-w-full"
-          >
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white font-medium flex items-center gap-2 truncate">
-                <div className="w-2 h-2 rounded-full animate-pulse"
-                     style={{ backgroundColor: 'var(--hero-secondary)' }} />
-                {course.category?.name ?? 'Category not specified'}
-              </span>
-              <span className="px-3 py-1.5 rounded-full bg-black/20 border border-white/10 text-white/80 text-sm">
-                Learn smarter — estimated {totalHours ? `${totalHours}h` : 'time'} guided journey
-              </span>
-            </div>
-          </motion.div>
 
           {/* Course Title - Enhanced Typography */}
           <motion.h1
