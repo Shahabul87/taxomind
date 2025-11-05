@@ -19,6 +19,7 @@ import {
   MobileNavMenu,
   MobileNavToggle,
 } from "@/components/ui/resizable-navbar";
+import { cn } from "@/lib/utils";
 
 interface FilterOptions {
   categories?: Array<{ id: string; name: string; count: number }>;
@@ -55,21 +56,26 @@ export function CoursesNavbarResizable({
     <Navbar className="px-4">
       {/* Desktop Navigation */}
       <NavBody className="gap-4">
-        {/* Logo */}
-        <Link
-          href="/"
-          className="relative z-20 flex-shrink-0 text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-300 dark:hover:to-indigo-300 transition-all duration-300"
-        >
-          Taxomind
-        </Link>
+        {(visible) => (
+          <>
+            {/* Logo */}
+            <Link
+              href="/"
+              className="relative z-20 flex-shrink-0 text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-300 dark:hover:to-indigo-300 transition-all duration-300"
+            >
+              Taxomind
+            </Link>
 
-        {/* Center: Search Bar */}
-        <div className="relative z-20 flex-1 max-w-2xl mx-auto">
-          <SearchBar />
-        </div>
+            {/* Center: Search Bar - Reduced width when navbar is resized */}
+            <div className={cn(
+              "relative z-20 flex-1 mx-auto transition-all duration-300",
+              visible ? "max-w-md" : "max-w-2xl"
+            )}>
+              <SearchBar />
+            </div>
 
-        {/* Right Side: Filters + Join Button */}
-        <div className="relative z-20 flex items-center gap-3">
+            {/* Right Side: Filters + Join Button */}
+            <div className="relative z-20 flex items-center gap-3">
           {/* Filters Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -217,7 +223,9 @@ export function CoursesNavbarResizable({
           >
             <Link href="/auth/register">Join for Free</Link>
           </Button>
-        </div>
+            </div>
+          </>
+        )}
       </NavBody>
 
       {/* Mobile Navigation */}

@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star } from 'lucide-react';
 import type { Course } from '@prisma/client';
+import { useRouter } from 'next/navigation';
 
 interface StickyMiniHeaderProps {
   course: Course & {
@@ -15,6 +16,7 @@ interface StickyMiniHeaderProps {
 
 export const StickyMiniHeader: React.FC<StickyMiniHeaderProps> = ({ course, isEnrolled = false }) => {
   const [visible, setVisible] = React.useState(false);
+  const router = useRouter();
 
   React.useEffect(() => {
     const onScroll = () => {
@@ -38,7 +40,15 @@ export const StickyMiniHeader: React.FC<StickyMiniHeaderProps> = ({ course, isEn
     if (el) {
       const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       el.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
+      return;
     }
+
+    // Fallback: navigate to checkout if enroll card is not available on page
+    try {
+      if (course?.id) {
+        router.push(`/courses/${course.id}/checkout`);
+      }
+    } catch {}
   };
 
   // Hide the mini header if enrolled

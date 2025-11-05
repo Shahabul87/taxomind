@@ -1,10 +1,4 @@
-// Main layout component
-export { CourseLayout } from './course-layout';
-
 // Individual section components
-export { CourseHeroSection } from './course-hero-section';
-export { CourseHeroSectionEnhanced } from './course-hero-section-enhanced';
-export { CourseHeroProfessional } from './course-hero-professional';
 export { CourseDescription } from './course-description';
 export { CourseLearningObjectives } from './course-learning-objectives';
 export { CourseInfoCard } from './course-info-card';

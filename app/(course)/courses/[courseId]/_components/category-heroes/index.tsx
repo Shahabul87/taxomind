@@ -1,0 +1,63 @@
+/**
+ * Category-Specific Hero Components
+ *
+ * Dynamic hero components that adapt based on course category
+ */
+
+import { ProgrammingHero } from './programming-hero';
+import { AIMLHero } from './ai-ml-hero';
+import { DesignHero } from './design-hero';
+import { DefaultHero } from './default-hero';
+import { getCategoryLayout, CategoryLayoutVariant } from '../../_config/category-layouts';
+
+interface BaseCourse {
+  title: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  subtitle?: string | null;
+  difficulty?: string | null;
+  category?: {
+    name: string;
+  } | null;
+}
+
+interface CategoryHeroProps {
+  course: BaseCourse;
+  categoryName?: string | null;
+}
+
+/**
+ * Main CategoryHero component that selects the appropriate hero based on category
+ */
+export function CategoryHero({ course, categoryName }: CategoryHeroProps) {
+  const layout = getCategoryLayout(categoryName);
+  const variant = layout.variant;
+
+  // Sample data for demonstration - in real app, fetch from course metadata
+  const techStack = ['React', 'TypeScript', 'Node.js', 'PostgreSQL'];
+  const models = ['CNN', 'RNN', 'Transformers', 'BERT'];
+  const tools = ['Figma', 'Adobe XD', 'Sketch', 'Framer'];
+
+  switch (variant) {
+    case 'programming':
+      return <ProgrammingHero course={course} techStack={techStack} />;
+
+    case 'ai-ml':
+      return <AIMLHero course={course} models={models} />;
+
+    case 'data-science':
+      return <AIMLHero course={course} models={['Pandas', 'NumPy', 'Scikit-learn', 'TensorFlow']} />;
+
+    case 'design':
+      return <DesignHero course={course} tools={tools} />;
+
+    case 'business':
+    case 'marketing':
+    case 'default':
+    default:
+      return <DefaultHero course={course} />;
+  }
+}
+
+// Export individual heroes for direct use if needed
+export { ProgrammingHero, AIMLHero, DesignHero, DefaultHero };

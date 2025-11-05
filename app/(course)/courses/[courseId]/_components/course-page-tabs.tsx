@@ -241,7 +241,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             id="panel-overview"
             aria-labelledby="tab-overview"
             tabIndex={-1}
-            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -257,7 +257,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             id="panel-breakdown"
             aria-labelledby="tab-breakdown"
             tabIndex={-1}
-            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -273,12 +273,12 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             id="panel-content"
             aria-labelledby="tab-content"
             tabIndex={-1}
-            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-2 md:dark:p-4"
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-2 sm:p-3 md:dark:p-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="px-2 md:px-8">
+            <div className="px-1 sm:px-2 md:px-4 lg:px-8">
               <CourseContent
                 chapters={chapters}
                 courseId={courseId}
@@ -296,7 +296,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             id="panel-instructor"
             aria-labelledby="tab-instructor"
             tabIndex={-1}
-            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -312,7 +312,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             id="panel-resources"
             aria-labelledby="tab-resources"
             tabIndex={-1}
-            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -328,7 +328,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             id="panel-certificate"
             aria-labelledby="tab-certificate"
             tabIndex={-1}
-            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -344,7 +344,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             id="panel-announcements"
             aria-labelledby="tab-announcements"
             tabIndex={-1}
-            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -367,7 +367,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             id="panel-qa"
             aria-labelledby="tab-qa"
             tabIndex={-1}
-            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -384,7 +384,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             id="panel-moderation"
             aria-labelledby="tab-moderation"
             tabIndex={-1}
-            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -400,7 +400,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             id="panel-reviews"
             aria-labelledby="tab-reviews"
             tabIndex={-1}
-            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 dark:rounded-2xl dark:p-4 md:dark:p-6"
+            className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch touch-pan-x overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -450,18 +450,22 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
 
   return (
     <div
-      className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8"
+      className="w-full mx-auto px-3 sm:px-4 md:px-6 lg:px-8 max-w-[100vw]"
       style={{
         ['--accent' as any]: palette.primary,
         ['--accent-2' as any]: palette.secondary,
       }}
     >
-      {/* Sticky Tab Navigation - Clean & Professional */}
-      <div className="mb-8 sticky z-[40] course-tabs-sticky" style={{ top: '16px' }}>
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+      {/* Sticky Tab Navigation - Elevated Design for Hero Overlap */}
+      <div
+        className="mb-6 sm:mb-8 sticky z-[40] course-tabs-sticky"
+        // Respect safe-area on notched devices and allow global sticky offset overrides
+        style={{ top: 'calc(var(--sticky-offset, 12px) + env(safe-area-inset-top, 0px))' }}
+      >
+        <div className="bg-white dark:bg-slate-900 rounded-lg sm:rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-md md:shadow-2xl md:shadow-blue-900/20 dark:md:shadow-black/60 mx-auto backdrop-blur-md md:bg-white/98 dark:md:bg-slate-900/98 ring-1 ring-white/20 dark:ring-slate-700/30" style={{ maxWidth: '1280px' }}>
           <nav
             ref={scrollRef}
-            className="flex gap-1 overflow-x-auto scroll-smooth no-scrollbar p-1.5"
+            className="flex gap-0.5 sm:gap-1 overflow-x-auto scroll-smooth no-scrollbar p-1 sm:p-1.5 -webkit-overflow-scrolling-touch snap-x snap-mandatory"
             role="tablist"
             aria-label={dict.tabs}
             aria-orientation="horizontal"
@@ -493,18 +497,18 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
                   }}
                   aria-label={`${typeof tab.label === 'string' ? tab.label : 'Tab'}${tab.count !== undefined ? ` (${tab.count})` : ''}`}
                   className={`
-                    relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap rounded-lg
-                    transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
+                    relative flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium whitespace-nowrap rounded-md sm:rounded-lg snap-start
+                    transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95 touch-manipulation
                     ${isActive
                       ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}
                   `}
                 >
-                  <span className="w-4 h-4">{tab.icon}</span>
-                  <span>{typeof tab.label === 'string' ? tab.label : 'Tab'}</span>
+                  <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0">{tab.icon}</span>
+                  <span className="hidden xs:inline sm:inline">{typeof tab.label === 'string' ? tab.label : 'Tab'}</span>
                   {tab.count !== undefined && (
                     <span className={`
-                      inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 text-xs font-semibold rounded-full
+                      inline-flex items-center justify-center min-w-[18px] sm:min-w-[20px] px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-xs font-semibold rounded-full flex-shrink-0
                       ${isActive
                         ? 'bg-blue-600 text-white'
                         : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}
@@ -519,8 +523,8 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
         </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="min-h-[500px]">
+      {/* Tab Content - Responsive Container */}
+      <div className="min-h-[400px] sm:min-h-[500px] mx-auto" style={{ maxWidth: '1280px' }}>
         {renderTabContent()}
       </div>
     </div>

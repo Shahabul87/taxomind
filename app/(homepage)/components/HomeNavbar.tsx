@@ -8,6 +8,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { UserMenu } from "@/app/(homepage)/_components/user-menu";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface NavItem {
   name: string;
@@ -62,9 +63,9 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
     >
       <motion.div
         animate={{
-          backdropFilter: isVisible ? "blur(12px)" : "none",
+          backdropFilter: isVisible ? "blur(8px)" : "none",
           boxShadow: isVisible
-            ? "0 0 24px rgba(34, 42, 53, 0.06), 0 1px 1px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(34, 42, 53, 0.04), 0 0 4px rgba(34, 42, 53, 0.08), 0 16px 68px rgba(47, 48, 55, 0.05), 0 1px 0 rgba(255, 255, 255, 0.1) inset"
+            ? "0 4px 24px rgba(59, 130, 246, 0.1), 0 2px 8px rgba(59, 130, 246, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05)"
             : "none",
           width: isVisible ? "60%" : "100%",
           y: isVisible ? 10 : 0,
@@ -79,7 +80,7 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
         }}
         className={cn(
           "relative mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full px-4 py-2 lg:flex",
-          isVisible && "bg-white/80 dark:bg-slate-800/80"
+          isVisible && "bg-blue-50 dark:bg-slate-800/95 border border-blue-100 dark:border-slate-700/50"
         )}
       >
         {/* Logo */}
@@ -117,7 +118,7 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
               {hovered === idx && (
                 <motion.div
                   layoutId="hovered"
-                  className="absolute inset-0 h-full w-full rounded-full bg-gray-100 dark:bg-slate-700/50"
+                  className="absolute inset-0 h-full w-full rounded-full bg-blue-100 dark:bg-slate-700/70"
                 />
               )}
               <span className="relative z-20">{item.name}</span>
@@ -126,7 +127,8 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
         </motion.div>
 
         {/* Auth Section */}
-        <div className="relative z-20 flex items-center gap-4">
+        <div className="relative z-20 flex items-center gap-3">
+          <ThemeToggle />
           {user ? (
             <UserMenu user={user} />
           ) : (
@@ -146,14 +148,14 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
       {/* Mobile Navigation - Shows on scroll */}
       <motion.div
         animate={{
-          backdropFilter: isVisible ? "blur(12px)" : "none",
+          backdropFilter: isVisible ? "blur(8px)" : "none",
           boxShadow: isVisible
-            ? "0 0 24px rgba(34, 42, 53, 0.06), 0 1px 1px rgba(0, 0, 0, 0.05)"
+            ? "0 4px 20px rgba(59, 130, 246, 0.1), 0 2px 6px rgba(59, 130, 246, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05)"
             : "none",
         }}
         className={cn(
           "relative z-[60] mx-auto flex w-full max-w-xl flex-row items-center justify-between rounded-full px-4 py-3 lg:hidden",
-          isVisible && "bg-white/80 dark:bg-slate-800/80"
+          isVisible && "bg-blue-50 dark:bg-slate-800/95 border border-blue-100 dark:border-slate-700/50"
         )}
         style={{
           margin: "10px 16px",
@@ -181,6 +183,7 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
 
         {/* Mobile Auth Section */}
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {user ? (
             <UserMenu user={user} />
           ) : (

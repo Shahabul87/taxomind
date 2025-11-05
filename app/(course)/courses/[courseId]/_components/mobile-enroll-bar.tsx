@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import type { Course } from '@prisma/client';
 
 interface MobileEnrollBarProps {
@@ -9,13 +10,22 @@ interface MobileEnrollBarProps {
 }
 
 export const MobileEnrollBar: React.FC<MobileEnrollBarProps> = ({ course, isEnrolled = false }) => {
+  const router = useRouter();
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     const el = document.getElementById('enroll-card');
     if (el) {
       const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       el.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
+      return;
     }
+
+    // Fallback: if enroll card is not present in DOM, navigate to checkout
+    try {
+      if (course?.id) {
+        router.push(`/courses/${course.id}/checkout`);
+      }
+    } catch {}
   };
 
   if (isEnrolled) return null;

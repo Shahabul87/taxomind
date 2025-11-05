@@ -1,221 +1,133 @@
-import { notFound } from "next/navigation";
-import { Metadata } from "next";
-
-import { db } from "@/lib/db";
-import { logger } from '@/lib/logger';
+import { Suspense } from 'react';
+import { Metadata } from 'next';
 import { currentUser } from '@/lib/auth';
-import CourseCard from "./course-feature";
-import { CourseTabsDemo } from "./course-tab-demo";
-// Course page uses a dedicated enterprise footer (no logo icon)
-import { CourseFooterEnterprise } from "./_components/course-footer-enterprise";
-import { CourseContent } from "./course-content";
-import ConditionalHeader from "@/app/(homepage)/user-header";
-import { CourseCardsCarousel } from "./course-card-carousel";
-import GradientHeading from "./_components/gradient-heading";
-import { CourseReviews } from "./_components/course-reviews";
-import { EnrollButton } from "./_components/enroll-button";
-import { CourseOutcomes } from "./_components/course-outcomes";
-import { CoursePageTabs } from "./_components/course-page-tabs";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { SimilarCoursesSection } from "./_components/similar-courses-section";
 
-type CourseReview = {
-  id: string;
-  rating: number;
-  comment: string;
-  courseId: string;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-  user: {
-    id: string;
-    name: string | null;
-    image: string | null;
-  };
-};
+// New architecture imports
+import { getCourseData, getEnrollmentStatus } from './_lib/data-fetchers';
+import { generateCourseMetadata, generateCourseJsonLd, generateBreadcrumbJsonLd } from './_lib/metadata-generator';
+import { getCategoryLayout } from './_config/category-layouts';
+
+// Component imports
+import { CourseFooterEnterprise } from './_components/course-footer-enterprise';
+import { CoursePageTabs } from './_components/course-page-tabs';
+import { SimilarCoursesSection } from './_components/similar-courses-section';
+import { MobileEnrollBar } from './_components/mobile-enroll-bar';
+import { StickyMiniHeader } from './_components/sticky-mini-header';
+import { DynamicSections } from './_components/dynamic-sections';
+import { HeroWrapper } from './_components/hero-wrapper';
 
 type Props = {
-  params: Promise<{ courseId: string }>
+  params: Promise<{ courseId: string }>;
 };
 
+/**
+ * Generate metadata for SEO using new metadata generator
+ */
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params;
-  const courseId = await Promise.resolve(params.courseId);
-
-  const course = await db.course.findUnique({
-    where: {
-      id: courseId,
-    }
-  });
-
-  const title = course?.title ?? "Course Details | SkillHub";
-  const description = course?.description ?? "Learn new skills with our detailed courses";
-  const image = (course as any)?.imageUrl || (course as any)?.image || "/logo.png";
-  const url = `/courses/${courseId}`;
-
-  return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: {
-      title,
-      description,
-      url,
-      type: 'article',
-      images: [{ url: image }]
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: [image]
-    }
-  };
+  return generateCourseMetadata(params.courseId);
 }
 
-const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}): Promise<JSX.Element> => {
+/**
+ * Main Course Page Component (Server Component)
+ * Uses new scalable architecture with category-specific rendering
+ */
+const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): Promise<JSX.Element> => {
   const params = await props.params;
-  const courseId = await Promise.resolve(params.courseId);
+  const courseId = params.courseId;
 
-  const course = await db.course.findUnique({
-    where: {
-      id: courseId,
-    },
-    include: {
-      category: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
-          image: true,
-        },
-      },
-      reviews: true,
-      chapters: {
-        where: {
-          isPublished: true,
-        },
-        orderBy: {
-          position: "asc",
-        },
-        include: {
-          sections: true,
-        },
-      },
-      _count: {
-        select: {
-          Enrollment: true,
-        },
-      },
-    },
-  });
+  // Parallel data fetching for optimal performance
+  const [course, user] = await Promise.all([
+    getCourseData(courseId),
+    currentUser(),
+  ]);
 
-  const user = await currentUser();
+  // Check enrollment status
+  const enrollment = await getEnrollmentStatus(user?.id, courseId);
 
-  if (!course) return notFound();
+  // Get category-specific configuration
+  const categoryLayout = getCategoryLayout(course.category?.name);
 
-  // Check if user is enrolled in this course
-  let enrollment = null;
-  if (user?.id) {
-    try {
-      enrollment = await db.enrollment.findUnique({
-        where: {
-          userId_courseId: {
-            userId: user.id,
-            courseId: courseId,
-          },
-        },
-      });
-    } catch (error: unknown) {
-      logger.error("Error checking enrollment:", error);
+  // Generate structured data for SEO
+  const jsonLd = generateCourseJsonLd(course);
+  const breadcrumbLd = generateBreadcrumbJsonLd(course);
+
+  // Get category-specific props for hero
+  const getCategorySpecificProps = () => {
+    switch (categoryLayout.variant) {
+      case 'programming':
+        return { techStack: ['React', 'TypeScript', 'Node.js', 'PostgreSQL'] };
+      case 'ai-ml':
+      case 'data-science':
+        return { models: ['CNN', 'RNN', 'Transformers', 'BERT'] };
+      case 'design':
+        return { tools: ['Figma', 'Adobe XD', 'Sketch', 'Framer'] };
+      default:
+        return {};
     }
-  }
-
-  const chapters = course?.chapters ?? [];
-
-  // Fetch initial reviews with error handling
-  let reviews: CourseReview[] = [];
-  try {
-    reviews = await db.courseReview.findMany({
-      where: {
-        courseId: courseId,
-      },
-      include: {
-        user: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-  } catch (error: unknown) {
-    logger.error("Error fetching reviews:", error);
-    // Continue with empty reviews array
-  }
-
-  // JSON-LD Course schema
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Course',
-    name: course.title,
-    description: course.description,
-    provider: {
-      '@type': 'Organization',
-      name: 'SkillHub',
-      sameAs: 'https://taxomind.com'
-    },
-    image: (course as any)?.imageUrl || (course as any)?.image || undefined,
-    hasCourseInstance: {
-      '@type': 'CourseInstance',
-      courseMode: course.difficulty || 'All Levels',
-      startDate: course.createdAt?.toISOString?.() || undefined,
-      endDate: course.updatedAt?.toISOString?.() || undefined
-    },
-    aggregateRating: (course.reviews?.length || 0) > 0 ? {
-      '@type': 'AggregateRating',
-      ratingValue: Number(((course.reviews || []).reduce((a, r) => a + (r.rating || 0), 0) / (course.reviews || []).length).toFixed(1)),
-      reviewCount: (course.reviews || []).length
-    } : undefined,
-    offers: (course as any)?.price ? {
-      '@type': 'Offer',
-      price: (course as any)?.price,
-      priceCurrency: (course as any)?.currency || 'USD',
-      availability: 'https://schema.org/InStock'
-    } : undefined
   };
 
   return (
-    <div className="relative pt-4 md:pt-6 min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      {/* Fixed Theme Toggle Button - Top Right Corner */}
-      <div className="fixed top-4 right-4 z-50">
-        <ThemeToggle />
-      </div>
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+      {/* JSON-LD for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
 
-      <CourseCard
+      {/* Sticky Mini Header */}
+      <StickyMiniHeader
         course={course as any}
-        userId={user?.id}
         isEnrolled={!!enrollment}
       />
 
-      <div className="-mt-60 relative z-10">
-        <CoursePageTabs
-          course={course as any}
-          chapters={chapters}
-          courseId={courseId}
-          initialReviews={reviews}
-          isEnrolled={!!enrollment}
-          userId={user?.id}
-        />
+      {/* Category-Specific Hero - Using Client Wrapper for Enrollment */}
+      <HeroWrapper
+        variant={categoryLayout.variant}
+        course={course}
+        isEnrolled={!!enrollment}
+        userId={user?.id}
+        categorySpecificProps={getCategorySpecificProps()}
+      />
+
+      {/* Category-Specific Sections - NEW: Different content per category */}
+      <DynamicSections course={course} variant={categoryLayout.variant} />
+
+      {/* Mobile Enroll Bar */}
+      <MobileEnrollBar
+        course={course as any}
+        isEnrolled={!!enrollment}
+      />
+
+      {/* Tabs Section with Streaming */}
+      <div className="relative z-30 -mt-16 sm:-mt-20 md:-mt-24">
+        <Suspense fallback={<div className="h-96 animate-pulse bg-white/50 dark:bg-slate-800/50 rounded-2xl" />}>
+          <CoursePageTabs
+            course={course as any}
+            chapters={(course.chapters || []) as any}
+            courseId={courseId}
+            initialReviews={(course.reviews || []) as any}
+            isEnrolled={!!enrollment}
+            userId={user?.id}
+          />
+        </Suspense>
       </div>
 
-      <SimilarCoursesSection
-        courseId={courseId}
-        categoryId={course.categoryId}
-      />
+      {/* Similar Courses with Streaming */}
+      <Suspense fallback={<div className="h-96 animate-pulse bg-transparent" />}>
+        <SimilarCoursesSection
+          courseId={courseId}
+          categoryId={course.categoryId}
+        />
+      </Suspense>
 
       <CourseFooterEnterprise />
     </div>
-  )
-}
- 
+  );
+};
+
 export default CourseIdPage;

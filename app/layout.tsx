@@ -15,7 +15,6 @@ import { SAMGlobalProvider } from '@/sam-ai-tutor/components/global/sam-global-p
 import { SAMGlobalAssistantRedesigned } from '@/sam-ai-tutor/components/global/sam-global-assistant-redesigned';
 import { SAMMobileResponsive } from '@/sam-ai-tutor/components/ui/sam-mobile-responsive';
 import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
-import { GlobalNavigation } from '@/components/global-navigation';
 
 // Use auto dynamic rendering (Next.js will determine optimal rendering)
 // export const dynamic = 'force-dynamic'; // Commented out to fix SSR bailout issue
@@ -100,9 +99,6 @@ export default async function RootLayout({
           <ConfettiProvider />
           <ClientToaster />
           <SAMGlobalProvider>
-            {/* Global Navigation - Home button and Theme toggle */}
-            <GlobalNavigation />
-
             {/* All pages handle their own navigation and layout */}
             <main id="main-content" tabIndex={-1} className="min-h-screen">
               {children}

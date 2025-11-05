@@ -16,7 +16,7 @@ interface NavbarProps {
 }
 
 interface NavBodyProps {
-  children: React.ReactNode;
+  children: React.ReactNode | ((visible: boolean | undefined) => React.ReactNode);
   className?: string;
   visible?: boolean;
 }
@@ -87,7 +87,7 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
       animate={{
         backdropFilter: visible ? "blur(10px)" : "none",
         boxShadow: visible
-          ? "0 0 24px rgba(34, 42, 53, 0.06), 0 1px 1px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(34, 42, 53, 0.04), 0 0 4px rgba(34, 42, 53, 0.08), 0 16px 68px rgba(47, 48, 55, 0.05), 0 1px 0 rgba(255, 255, 255, 0.1) inset"
+          ? "0 2px 8px rgba(59, 130, 246, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05)"
           : "none",
         width: visible ? "80%" : "100%",
         y: visible ? 10 : 0,
@@ -102,11 +102,11 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
       }}
       className={cn(
         "relative z-[60] mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full bg-transparent px-4 py-2 lg:flex dark:bg-transparent",
-        visible && "bg-white/80 dark:bg-slate-800/80",
+        visible && "bg-blue-50 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-700/50",
         className,
       )}
     >
-      {children}
+      {typeof children === 'function' ? children(visible) : children}
     </motion.div>
   );
 };

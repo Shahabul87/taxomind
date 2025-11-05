@@ -363,6 +363,11 @@ const nextConfig = {
         hostname: 'api.dicebear.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.qrserver.com',
+        pathname: '/v1/**',
+      },
       // Security: Removed wildcard pattern - specify exact domains only
     ],
     // Optimized image settings

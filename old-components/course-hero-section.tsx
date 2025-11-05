@@ -45,6 +45,18 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
   const router = useRouter();
   const palette = getCategoryPalette(course.category?.name);
 
+  // Calculate dynamic minimum height based on content (reduced for a slimmer hero)
+  const hasDescription = Boolean(course.description);
+  const hasInstructor = Boolean(course.user);
+
+  // Further reduced min-height: more compact hero while still accommodating key info
+  const getMinHeight = () => {
+    let baseHeight = 160; // Further reduced base minimum
+    if (hasDescription) baseHeight += 20;
+    if (hasInstructor) baseHeight += 20;
+    return baseHeight;
+  };
+
   const handleEnroll = () => {
     if (!userId) {
       toast.error('Please sign in to enroll in this course');
@@ -93,6 +105,8 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
       className="relative w-full overflow-hidden"
       aria-label="Course overview hero"
       style={{
+        // Dynamic minimum height based on content
+        minHeight: `${getMinHeight()}px`,
         // Expose palette for children via CSS variables
         ['--hero-primary' as any]: palette.primary,
         ['--hero-secondary' as any]: palette.secondary,
@@ -109,10 +123,10 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
         showNoise={true}
       />
 
-      {/* Course Info Content */}
-      <div className="relative flex items-center py-12 md:py-16 lg:py-20">
+      {/* Course Info Content - More compact padding; tabs overlay via negative margin */}
+      <div className="relative flex items-center py-4 sm:py-5 md:py-6 pb-16 sm:pb-20 md:pb-20 lg:py-8 lg:pb-24 xl:pb-28 min-h-[inherit]">
         <motion.div
-          className="container mx-auto px-4 md:px-6 lg:px-8"
+          className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 max-w-7xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.6 }}
@@ -120,19 +134,19 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
           {/* Breadcrumb Navigation */}
           <HeroBreadcrumb items={breadcrumbItems} />
 
-          {/* Course Title - Enhanced Typography */}
+          {/* Course Title - Enhanced Typography with Better Mobile Scaling */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: prefersReducedMotion ? 0 : 0.3 }}
             className="
-              text-3xl sm:text-4xl md:text-5xl lg:text-6xl
+              text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl
               font-bold
               text-white
               capitalize
-              mb-6
-              max-w-screen-md md:max-w-4xl
-              leading-tight
+              mb-3 sm:mb-4 md:mb-5
+              max-w-full sm:max-w-screen-md md:max-w-4xl
+              leading-tight sm:leading-tight md:leading-tight
               tracking-tight
               break-words
               text-balance
@@ -147,7 +161,7 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: prefersReducedMotion ? 0 : 0.35 }}
-              className="text-white/90 max-w-screen-md md:max-w-3xl mb-5 clamp-2"
+              className="text-sm sm:text-base md:text-lg text-white/90 max-w-full sm:max-w-screen-md md:max-w-3xl mb-3 sm:mb-4 line-clamp-3 sm:line-clamp-2"
             >
               {cleanHtmlContent(course.description)}
             </motion.p>
@@ -196,7 +210,7 @@ export const CourseHeroSection = ({ course, userId, isEnrolled = false }: Course
           />
 
           {/* Compact trust indicators (mobile-first reassurance) */}
-          <div className="mt-4 block lg:hidden">
+          <div className="mt-2 block lg:hidden">
             <TrustIndicatorsCompact />
           </div>
         </motion.div>

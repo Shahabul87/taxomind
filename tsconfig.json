@@ -107,6 +107,8 @@
     "**/test-utils/**",
     "**/mocks/**",
     "sam-ai-tutor/**",
-    "scripts/**"
+    "scripts/**",
+    "SCALABLE_ARCHITECTURE_DOCS/**",
+    "old-components/**"
   ]
 }
