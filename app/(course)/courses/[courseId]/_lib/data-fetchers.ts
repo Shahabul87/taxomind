@@ -31,7 +31,18 @@ export const getCourseData = cache(async (courseId: string): Promise<BaseCourse>
   try {
     const course = await db.course.findUnique({
       where: { id: courseId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        imageUrl: true,
+        subtitle: true,
+        difficulty: true,
+        price: true,
+        isPublished: true,
+        categoryId: true,
+        createdAt: true,
+        updatedAt: true,
         category: true,
         user: {
           select: {
