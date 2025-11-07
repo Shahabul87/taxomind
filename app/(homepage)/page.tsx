@@ -22,14 +22,6 @@ const Home = async () => {
     <>
       <RemoveHashOnLoad />
 
-      {/* Skip to main content link for keyboard navigation */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-6 focus:py-3 focus:bg-purple-600 focus:text-white focus:rounded-lg focus:shadow-lg focus:ring-4 focus:ring-purple-500 focus:ring-offset-2 transition-all"
-      >
-        Skip to main content
-      </a>
-
       {/* Scroll-triggered navbar - Hidden initially, appears on scroll */}
       <HomeNavbar />
 

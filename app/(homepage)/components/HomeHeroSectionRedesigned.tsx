@@ -296,7 +296,7 @@ export default function HomeHeroSectionRedesigned() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 backdrop-blur-sm px-8 py-6 text-base font-semibold rounded-xl transition-all"
+                  className="w-full border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:hover:bg-slate-800/50 dark:hover:text-white backdrop-blur-sm px-8 py-6 text-base font-semibold rounded-xl transition-all"
                 >
                   Explore Courses
                 </Button>

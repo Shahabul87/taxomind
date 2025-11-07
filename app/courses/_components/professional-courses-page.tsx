@@ -28,8 +28,7 @@ import {
 
 // Import new Coursera-style components
 import { CoursesNavbarResizable } from "@/components/layout/CoursesNavbarResizable";
-import { HeroCarousel } from "@/components/hero/HeroCarousel";
-import { QuickActions } from "@/components/sections/QuickActions";
+import { EnhancedHero } from "./EnhancedHero";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -206,7 +205,7 @@ const ProfessionalCourseCard = ({ course, isPriority = false }: { course: Course
             </h3>
 
             {/* Description */}
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2 leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 leading-relaxed">
               {course.description}
             </p>
 
@@ -319,51 +318,6 @@ const ProfessionalCourseCard = ({ course, isPriority = false }: { course: Course
         </Card>
       </motion.div>
     </Link>
-  );
-};
-
-// Coursera-Style Hero Section Content (just the hero carousel and actions)
-const CourseraStyleHeroSectionContent = ({ totalLearners }: { totalLearners?: number }) => {
-  const heroSlides = [
-    {
-      id: "1",
-      variant: "primary" as const,
-      tag: "From Industry Leaders",
-      title: "Learn people management skills from industry leaders",
-      description: "Become a confident and effective leader with courses from top organizations.",
-      ctaLabel: "Enroll Now",
-      ctaHref: "/courses?category=management",
-    },
-    {
-      id: "2",
-      variant: "secondary" as const,
-      tag: "Career Growth",
-      title: "Start, switch, or advance your career",
-      description: `Grow with ${totalLearners ? (totalLearners >= 1000 ? `${Math.floor(totalLearners / 1000)}k+` : `${totalLearners}+`) : '5,000+'} courses from top organizations.`,
-      ctaLabel: "Join for Free",
-      ctaHref: "/auth/register",
-    },
-    {
-      id: "3",
-      variant: "primary" as const,
-      tag: "AI & Data Science",
-      title: "Master AI and Machine Learning",
-      description: "Learn cutting-edge AI skills from leading experts and build real-world projects.",
-      ctaLabel: "Explore Courses",
-      ctaHref: "/courses?category=ai",
-    },
-  ];
-
-  return (
-    <div className="pt-20 bg-gradient-to-b from-gray-50 to-white dark:from-slate-950 dark:to-slate-900">
-      <div className="container mx-auto px-4 py-8 md:py-12 lg:py-16">
-        {/* Hero Carousel */}
-        <HeroCarousel slides={heroSlides} autoPlayInterval={6000} />
-
-        {/* Quick Action Tiles */}
-        <QuickActions className="mt-8 md:mt-12" />
-      </div>
-    </div>
   );
 };
 
@@ -583,14 +537,33 @@ export function ProfessionalCoursesPage({
   initialCourses,
   filterOptions,
   totalCourses,
-  userId
+  userId,
+  searchQuery = "",
+  onSearchChange,
+  isLoading = false,
+  currentPage = 1,
+  totalPages = 1,
+  onPageChange
 }: {
   initialCourses: CourseData[];
   filterOptions: FilterOptions;
   totalCourses: number;
   userId?: string;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+  isLoading?: boolean;
+  currentPage?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }) {
-  const [courses] = useState(initialCourses);
+  const [courses, setCourses] = useState(initialCourses);
+
+  // Update courses when initialCourses changes (from search/filter in parent)
+  useEffect(() => {
+    setCourses(initialCourses);
+    // Scroll to top when courses update (pagination/search)
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [initialCourses]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<any>(null);
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
@@ -670,10 +643,18 @@ export function ProfessionalCoursesPage({
         selectedDifficulties={selectedDifficulties}
         onDifficultyToggle={handleDifficultyToggle}
         onClearAll={clearAllFilters}
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
       />
 
-      {/* Coursera-Style Hero Section (without navbar) */}
-      <CourseraStyleHeroSectionContent totalLearners={statistics?.totalLearners} />
+      {/* Enhanced Hero Section */}
+      <EnhancedHero
+        statistics={{
+          totalCourses: statistics?.publishedCourses || totalCourses,
+          totalEnrollments: statistics?.activeLearners || 0,
+          averageRating: statistics?.averageRating || 0
+        }}
+      />
 
       {/* Professional Stats Bar */}
       <ProfessionalStatsBar
@@ -823,18 +804,134 @@ export function ProfessionalCoursesPage({
 
         {/* All Courses Grid */}
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-6">
-            All Courses
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {courses.map((course, index) => (
-              <ProfessionalCourseCard
-                key={course.id}
-                course={course}
-                isPriority={index === 0}
-              />
-            ))}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+              All Courses
+            </h2>
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              Showing {((currentPage - 1) * 12) + 1}-{Math.min(currentPage * 12, totalCourses)} of {totalCourses} courses
+            </div>
           </div>
+
+          {/* Loading State */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="h-96 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-xl" />
+              ))}
+            </div>
+          ) : courses.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-xl text-slate-600 dark:text-slate-400">No courses found</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {courses.map((course, index) => (
+                <ProfessionalCourseCard
+                  key={course.id}
+                  course={course}
+                  isPriority={index === 0}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && onPageChange && (
+            <div className="mt-12 flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1 || isLoading}
+                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"
+              >
+                Previous
+              </Button>
+
+              <div className="flex gap-1">
+                {(() => {
+                  const pages = [];
+                  const showPages = 5;
+                  let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
+                  let endPage = Math.min(totalPages, startPage + showPages - 1);
+
+                  if (endPage - startPage < showPages - 1) {
+                    startPage = Math.max(1, endPage - showPages + 1);
+                  }
+
+                  if (startPage > 1) {
+                    pages.push(
+                      <Button
+                        key={1}
+                        variant={1 === currentPage ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => onPageChange(1)}
+                        disabled={isLoading}
+                        className={1 === currentPage
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                          : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"}
+                      >
+                        1
+                      </Button>
+                    );
+                    if (startPage > 2) {
+                      pages.push(<span key="ellipsis1" className="px-2">...</span>);
+                    }
+                  }
+
+                  for (let i = startPage; i <= endPage; i++) {
+                    pages.push(
+                      <Button
+                        key={i}
+                        variant={i === currentPage ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => onPageChange(i)}
+                        disabled={isLoading}
+                        className={i === currentPage
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                          : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"}
+                      >
+                        {i}
+                      </Button>
+                    );
+                  }
+
+                  if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                      pages.push(<span key="ellipsis2" className="px-2">...</span>);
+                    }
+                    pages.push(
+                      <Button
+                        key={totalPages}
+                        variant={totalPages === currentPage ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => onPageChange(totalPages)}
+                        disabled={isLoading}
+                        className={totalPages === currentPage
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                          : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"}
+                      >
+                        {totalPages}
+                      </Button>
+                    );
+                  }
+
+                  return pages;
+                })()}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || isLoading}
+                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
