@@ -121,7 +121,7 @@ const generateMockAnalytics = (courses: CourseData[]): AnalyticsMetrics => {
 /**
  * Generate enhanced course data with analytics
  */
-const enhanceCourseWithAnalytics = (course: CourseWithRelations): CourseEnhanced => {
+const enhanceCourseWithAnalytics = (course: CourseData): CourseEnhanced => {
   const revenue = (course._count?.Purchase || 0) * (course.price || 0);
   const previousRevenue = revenue * 0.85; // Mock previous period
 
@@ -183,7 +183,7 @@ const enhanceCourseWithAnalytics = (course: CourseWithRelations): CourseEnhanced
     performance,
     projections,
     reviews
-  };
+  } as CourseEnhanced;
 };
 
 /**
