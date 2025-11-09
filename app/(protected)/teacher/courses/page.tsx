@@ -5,7 +5,6 @@ import { CoursesDashboard } from "./_components/courses-dashboard";
 import { CoursesSkeleton } from "./_components/courses-skeleton";
 import { cn } from "@/lib/utils";
 import { Suspense } from "react";
-import { DynamicPageWrapper } from "./_components/dynamic-page-wrapper";
 
 const CoursesPage = async () => {
   const user = await currentUser();
@@ -40,20 +39,26 @@ const CoursesPage = async () => {
   const totalRevenue = courses.reduce((sum, c) => sum + ((c._count?.Purchase || 0) * (c.price || 0)), 0);
 
   return (
-    <DynamicPageWrapper>
-      <Suspense fallback={<CoursesSkeleton />}>
-        <CoursesDashboard
-          courses={courses}
-          stats={{
-            total: courses.length,
-            published: publishedCount,
-            draft: draftCount,
-            totalEnrollments,
-            totalRevenue
-          }}
-        />
-      </Suspense>
-    </DynamicPageWrapper>
+    <div className={cn(
+      "min-h-screen w-full",
+      "bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40",
+      "dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
+    )}>
+      <div className="w-full h-full py-8 lg:py-12 px-2 sm:px-0">
+        <Suspense fallback={<CoursesSkeleton />}>
+          <CoursesDashboard
+            courses={courses}
+            stats={{
+              total: courses.length,
+              published: publishedCount,
+              draft: draftCount,
+              totalEnrollments,
+              totalRevenue
+            }}
+          />
+        </Suspense>
+      </div>
+    </div>
   );
 };
 
