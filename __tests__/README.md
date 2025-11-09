@@ -1,8 +1,20 @@
-# Phase 4: Quality Assurance Testing Suite
+# Taxomind Testing Suite
+
+**Last Updated**: January 2025
+**Version**: 2.0 - Reorganized and Optimized
+**Status**: ✅ Fully Organized
 
 ## Overview
 
-This comprehensive testing suite validates all performance optimizations implemented in Phase 3 of the Enterprise Code Quality Plan. The suite includes unit tests, integration tests, and performance benchmarks to ensure code quality and performance improvements.
+This comprehensive testing suite validates all performance optimizations and ensures code quality across the Taxomind LMS. The suite includes unit tests, integration tests, E2E tests, and performance benchmarks.
+
+### Recent Reorganization (January 2025)
+
+✅ **E2E Tests Consolidated**: All E2E tests moved to root `e2e/` folder (Playwright standard)
+✅ **Root-Level Tests Organized**: Moved to appropriate subfolders
+✅ **Temp Folder Cleaned**: Non-test files moved to documentation
+✅ **Component Tests**: Kept co-located with components (industry best practice)
+✅ **Clear Structure**: 86+ test files properly organized by type
 
 ## Test Coverage Goals
 
@@ -14,25 +26,110 @@ This comprehensive testing suite validates all performance optimizations impleme
 ## Test Structure
 
 ```
-__tests__/
-├── unit/                      # Unit tests for individual modules
-│   ├── lib/
-│   │   ├── database/         # Database optimization tests
-│   │   │   ├── query-performance-monitor.test.ts
-│   │   │   ├── query-result-cache.test.ts
-│   │   │   └── connection-pool.test.ts
-│   │   ├── cache/            # Cache module tests
-│   │   │   └── redis-cache.test.ts
-│   │   └── performance/      # React optimization tests
-│   │       └── react-optimizations.test.tsx
+__tests__/                     # Main test directory (Jest/React Testing Library)
+├── actions/                   # Server action tests (27 files)
+│   ├── admin.test.ts
+│   ├── auth.test.ts
+│   ├── get-courses.test.ts
 │   └── ...
+├── api/                       # API endpoint tests
+│   ├── comprehensive/        # Comprehensive API tests
+│   │   ├── chapters-api.test.ts
+│   │   └── courses-api.test.ts
+│   ├── courses/
+│   │   └── route.test.ts
+│   └── ...
+├── components/                # Component tests
+│   ├── auth/
+│   │   └── login-form.test.tsx
+│   ├── ui/                   # UI component tests
+│   │   ├── badge.test.tsx
+│   │   ├── button.test.tsx
+│   │   └── progress.test.tsx
+│   └── ...
+├── hooks/                     # Custom hook tests
+│   ├── use-admin.test.ts
+│   ├── use-current-role.test.ts
+│   ├── use-current-user.test.ts
+│   └── use-debounce.test.ts
+├── lib/                       # Library/utility tests
+│   ├── queue/
+│   │   └── email-queue.test.ts
+│   ├── email-queue.test.ts
+│   ├── format.test.ts
+│   ├── password-utils.test.ts
+│   ├── rate-limit.test.ts
+│   └── utils.test.ts
 ├── integration/              # Integration tests
-│   └── api/
-│       └── performance-optimized.test.ts
+│   ├── api/
+│   │   ├── courses/[courseId]/route.test.ts
+│   │   ├── critical-endpoints.test.ts
+│   │   ├── performance-optimized.test.ts
+│   │   └── sam/blooms-analysis/route.test.ts
+│   ├── auth/
+│   │   └── auth-flow.test.ts
+│   └── environment-separation.test.ts
+├── unit/                     # Unit tests for modules
+│   ├── actions/
+│   │   └── get-courses.test.ts
+│   ├── lib/
+│   │   ├── auth/
+│   │   │   └── saml-provider.test.ts
+│   │   ├── cache/
+│   │   │   └── redis-cache.test.ts
+│   │   ├── database/         # Database optimization tests
+│   │   │   ├── connection-pool.test.ts
+│   │   │   ├── query-performance-monitor.test.ts
+│   │   │   └── query-result-cache.test.ts
+│   │   ├── performance/
+│   │   │   └── react-optimizations.test.tsx
+│   │   ├── encryption.test.ts
+│   │   └── sam-blooms-engine.test.ts
+│   └── middleware.test.ts
+├── accessibility/            # Accessibility tests
+│   └── blog.a11y.test.ts
 ├── performance/              # Performance benchmarks
 │   └── comprehensive-benchmarks.test.ts
-└── utils/                    # Test utilities
-    └── test-utilities.ts
+├── schemas/                  # Schema validation tests
+│   └── index.test.ts
+├── data/                     # Data layer tests
+│   └── user.test.ts
+├── simple/                   # Simple test examples
+│   ├── utils.test.ts
+│   └── simple.test.ts
+├── types/                    # Type definition tests
+├── utils/                    # Test utilities
+│   └── simple-utils.test.ts
+├── jest-dom.d.ts            # Jest DOM type definitions
+└── README.md                # This file
+
+e2e/                         # End-to-end tests (Playwright)
+├── tests/                   # E2E test files
+│   ├── accessibility.spec.ts
+│   ├── auth.spec.ts
+│   ├── course-enrollment.spec.ts
+│   ├── performance.spec.ts
+│   ├── sam-ui-behavior.spec.ts
+│   └── user-journeys.test.tsx
+├── visual-regression/       # Visual regression tests
+│   └── visual-regression.spec.ts
+├── fixtures/                # Test fixtures
+├── pages/                   # Page object models
+├── setup/                   # Test setup
+├── utils/                   # E2E test utilities
+├── types/                   # E2E type definitions
+├── auth.spec.ts            # Auth E2E tests
+├── course-creation.spec.ts # Course creation E2E
+├── student-learning.spec.ts # Student journey E2E
+├── global-setup.ts         # Playwright setup
+└── global-teardown.ts      # Playwright teardown
+
+Component Co-located Tests:
+app/(protected)/teacher/courses/[courseId]/chapters/[chapterId]/section/[sectionId]/_components/exam-creator/__tests__/
+├── ExamForm.test.tsx
+├── ExamList.test.tsx
+├── QuestionItem.test.tsx
+└── exam-reducer.test.ts
 ```
 
 ## Running Tests

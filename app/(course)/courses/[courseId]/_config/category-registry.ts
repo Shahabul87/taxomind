@@ -107,6 +107,6 @@ export const LAZY_HERO_COMPONENTS = {
  */
 export async function loadHeroComponentLazy(variant: CategoryLayoutVariant): Promise<HeroComponent> {
   const loader = LAZY_HERO_COMPONENTS[variant] ?? LAZY_HERO_COMPONENTS.default;
-  const module = await loader();
-  return module.default;
+  const heroModule = await loader();
+  return heroModule.default;
 }

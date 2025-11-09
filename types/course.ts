@@ -32,6 +32,19 @@ export interface CourseEnhanced extends CourseWithRelations {
 }
 
 /**
+ * Serialized version of CourseEnhanced for client components
+ * Converts Date objects to ISO strings for proper serialization
+ */
+export interface SerializedCourseEnhanced extends Omit<CourseWithRelations, 'createdAt' | 'updatedAt'> {
+  createdAt: string;
+  updatedAt: string;
+  analytics: CourseAnalytics;
+  performance: CoursePerformance;
+  projections: CourseProjections;
+  reviews?: CourseReviewSummary;
+}
+
+/**
  * Course analytics data
  */
 export interface CourseAnalytics {
@@ -162,7 +175,7 @@ export interface AnalyticsMetrics {
   engagement: {
     activeStudents: number;
     avgCompletionRate: number;
-    topPerformingCourses: CourseEnhanced[];
+    topPerformingCourses: SerializedCourseEnhanced[];
     engagementTrend: TrendData[];
   };
   performance: {

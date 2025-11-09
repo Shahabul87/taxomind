@@ -187,8 +187,10 @@ export const FeaturedBlogPostsSection = ({ posts }: FeaturedBlogPostsProps) => {
                         transition={{ delay: index * 0.1 }}
                       >
                         <MyPostCard
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          post={post as any}
+                          post={{
+                            ...post,
+                            createdAt: typeof post.createdAt === 'string' ? post.createdAt : post.createdAt.toISOString()
+                          }}
                         />
                       </motion.div>
                     ))

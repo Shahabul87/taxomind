@@ -25,16 +25,11 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
   const contentRefs = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Handle null/undefined chapters
-  if (!chapters || !Array.isArray(chapters) || chapters.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-10">
-        <p className="text-gray-500 dark:text-gray-400">No chapters available</p>
-      </div>
-    );
-  }
+  // Validate chapters data
+  const hasValidChapters = chapters && Array.isArray(chapters) && chapters.length > 0;
 
   useEffect(() => {
+    if (!hasValidChapters) return;
     const handleScroll = () => {
       if (!containerRef.current) return;
 
@@ -66,7 +61,7 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
       container.addEventListener('scroll', handleScroll);
       return () => container.removeEventListener('scroll', handleScroll);
     }
-  }, []);
+  }, [hasValidChapters]);
 
   const parseHtmlContent = (htmlString: string) => {
     if (!htmlString) return null;
@@ -101,6 +96,15 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
       }
     });
   };
+
+  // Early return after all hooks
+  if (!hasValidChapters) {
+    return (
+      <div className="flex items-center justify-center p-10">
+        <p className="text-gray-500 dark:text-gray-400">No chapters available</p>
+      </div>
+    );
+  }
 
   const activeChapter = chapters[activeChapterIndex];
 

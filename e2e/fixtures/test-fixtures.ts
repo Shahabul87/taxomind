@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+// Playwright test fixtures use 'use' callbacks - not React hooks
 import { test as base, expect } from '@playwright/test';
 import { percySnapshot } from '@percy/playwright';
 import AxeBuilder from '@axe-core/playwright';

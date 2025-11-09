@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { EnhancedHero } from "./EnhancedHero";
 import { TrustSection } from "./TrustSection";
 import { CategoryHub } from "./CategoryHub";
@@ -118,18 +119,18 @@ export function EnterpriseCoursesLanding({
             Join 50,000+ professionals who are already learning with us
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a
+            <Link
               href="/auth/register"
               className="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-full font-bold text-lg shadow-xl transition-all hover:scale-105"
             >
               Start Learning Free
-            </a>
-            <a
+            </Link>
+            <Link
               href="/courses"
               className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white hover:bg-white/20 px-8 py-4 rounded-full font-bold text-lg transition-all hover:scale-105"
             >
               Browse Courses
-            </a>
+            </Link>
           </div>
         </div>
       </section>

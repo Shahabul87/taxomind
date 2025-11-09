@@ -1010,15 +1010,16 @@ jest.mock('framer-motion', () => {
   ];
 
   htmlElements.forEach(element => {
+    // eslint-disable-next-line react/display-name
     motionComponents[element] = React.forwardRef(({ children, ...props }, ref) => {
       // Filter out motion-specific props
-      const { 
+      const {
         initial, animate, exit, transition, variants, whileHover, whileTap,
         whileInView, viewport, drag, dragConstraints, dragElastic,
         onAnimationStart, onAnimationComplete, layout, layoutId,
-        ...htmlProps 
+        ...htmlProps
       } = props;
-      
+
       return React.createElement(element, { ...htmlProps, ref }, children);
     });
     motionComponents[element].displayName = `motion.${element}`;

@@ -18,22 +18,16 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  // Handle null/undefined data early
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-10">
-        <p className="text-gray-500 dark:text-gray-400">No chapters available</p>
-      </div>
-    );
-  }
+  // Validate data
+  const hasValidData = data && Array.isArray(data) && data.length > 0;
 
   useEffect(() => {
-    console.log("FlipBook Data:", data); // Debug log
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!hasValidData) {
       logger.error("Invalid or empty data provided to FlipBook");
       return;
     }
-  }, [data]);
+    console.log("FlipBook Data:", data); // Debug log
+  }, [data, hasValidData]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -49,6 +43,15 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
       return () => window.removeEventListener('resize', updateDimensions);
     }
   }, []);
+
+  // Early return after all hooks
+  if (!hasValidData) {
+    return (
+      <div className="flex items-center justify-center p-10">
+        <p className="text-gray-500 dark:text-gray-400">No chapters available</p>
+      </div>
+    );
+  }
 
   const paginate = (newDirection: number) => {
     if (!data || !data.length) return;

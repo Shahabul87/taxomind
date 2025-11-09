@@ -1,176 +1,447 @@
-# 🚀 Quick Reference Guide
+# Quick Reference Guide
 
-**Project**: Taxomind - Intelligent Learning Platform
-**Last Updated**: 2025-01-12
-
----
-
-## 📁 Where to Find Things
-
-### Documentation
-```bash
-docs/admin/          # Admin features & fixes
-docs/auth/           # Authentication documentation
-docs/enterprise/     # Enterprise architecture
-docs/fixes/          # Bug fixes & solutions
-docs/design/         # UI/UX design documents
-docs/phases/         # Project phase reports
-docs/testing/        # Test documentation
-docs/implementation/ # Implementation guides
-```
-
-### Images
-```bash
-screenshots/admin/   # Admin UI screenshots
-screenshots/testing/ # Test screenshots
-screenshots/ui/      # UI flow screenshots
-```
-
-### Tests
-```bash
-__tests__/unit/         # Unit tests
-__tests__/integration/  # Integration tests
-__tests__/components/   # Component tests
-__tests__/hooks/        # Hook tests
-__tests__/actions/      # Server action tests
-```
-
-### Cleanup (Archived)
-```bash
-backups/_cleanup/jest-configs/  # Old Jest configurations
-backups/_cleanup/test-scripts/  # Temporary test scripts
-backups/_cleanup/logs/          # Log files & HTML dumps
-```
+**Scalable Course Architecture - Cheat Sheet**
 
 ---
 
-## 🔍 Quick Search Commands
+## 🎯 One-Minute Overview
 
-### Find documentation by topic
-```bash
-# Find auth docs
-grep -r "authentication" docs/
-
-# Find bug fixes
-grep -r "hydration" docs/fixes/
-
-# Find design docs
-ls -la docs/design/
-```
-
-### Find test files
-```bash
-# Find all tests for a feature
-find __tests__ -name "*auth*"
-
-# Run specific tests
-npm test __tests__/actions/auth.test.ts
-```
-
-### Search in code
-```bash
-# Find where something is used
-grep -r "useAuth" app/
-
-# Find component usage
-grep -r "Button" components/
-```
+**What**: Different course categories show different content sections
+**How**: Category detection → Section registry → Dynamic rendering
+**Result**: Programming courses ≠ Business courses ≠ Design courses
 
 ---
 
-## 📝 Common Tasks
+## 📁 File Locations
 
-### Need Authentication Docs?
-```bash
-# Location: docs/auth/
-# Key files:
-# - AUTHENTICATION_FLOW_AUDIT_REPORT.md
-# - COMPREHENSIVE_AUTH_AUDIT_REPORT.md
 ```
+app/(course)/courses/[courseId]/
 
-### Need to Fix a Bug?
-```bash
-# Check: docs/fixes/
-# Common fixes:
-# - Hydration: HYDRATION_ERROR_FIX.md
-# - JWT: JWT_ERROR_PROGRAMMATIC_SOLUTIONS.md
-# - Webpack: WEBPACK_CHUNK_LOADING_FIX.md
-```
+📄 page.tsx                              Main page (uses DynamicSections)
+📄 loading.tsx                           Loading skeleton
+📄 error.tsx                             Error boundary
 
-### Need Design Guidelines?
-```bash
-# Check: docs/design/
-# Key files:
-# - DYNAMIC_LAYOUT_SYSTEM.md
-# - MODAL_DESIGN_SUMMARY.md
-```
+📂 _lib/                                 Server utilities
+  ├─ data-fetchers.ts                   Database queries
+  ├─ category-detector.ts               Category → variant mapping
+  └─ metadata-generator.ts              SEO metadata
 
-### Need Test Information?
-```bash
-# Check: docs/testing/TEST_ORGANIZATION.md
-# Test structure: __tests__/
+📂 _config/                              Configuration
+  ├─ category-layouts.ts                Layout configs
+  ├─ category-registry.ts               Hero component mapping
+  ├─ feature-flags.ts                   Feature toggles
+  ├─ theme-config.ts                    Visual themes
+  └─ seo-config.ts                      SEO templates
+
+📂 _types/                               TypeScript types
+  ├─ category.types.ts
+  ├─ course.types.ts
+  └─ section.types.ts
+
+📂 _components/
+  📂 category-heroes/                   Hero variants (4)
+    ├─ programming-hero.tsx
+    ├─ ai-ml-hero.tsx
+    ├─ design-hero.tsx
+    └─ default-hero.tsx
+
+  📂 category-sections/                 Section components (17)
+    📂 programming/
+      ├─ tech-stack-section.tsx
+      ├─ code-playground-section.tsx
+      ├─ prerequisites-section.tsx
+      └─ index.ts
+
+    📂 ai-ml/
+      ├─ model-architecture-section.tsx
+      ├─ algorithms-section.tsx
+      ├─ datasets-section.tsx
+      └─ index.ts
+
+    📂 design/
+      ├─ portfolio-section.tsx
+      ├─ design-tools-section.tsx
+      └─ index.ts
+
+    📂 business/
+      ├─ case-studies-section.tsx
+      ├─ frameworks-section.tsx
+      └─ index.ts
+
+    📂 marketing/
+      ├─ strategies-section.tsx
+      ├─ tools-section.tsx
+      └─ index.ts
+
+    📂 data-science/
+      ├─ analytics-tools-section.tsx
+      ├─ visualization-section.tsx
+      └─ index.ts
+
+  📄 section-registry.ts                Section mapping (IMPORTANT!)
+  📄 dynamic-sections.tsx               Section orchestrator
+
+📂 _actions/                            Server Actions (3)
+  ├─ enroll-action.ts                   Enrollment logic
+  ├─ review-action.ts                   Review CRUD
+  └─ bookmark-action.ts                 Bookmark toggle
 ```
 
 ---
 
-## 🎯 Custom Commands
+## 🔄 Request Flow (Simple)
 
-### Use /find-docs
 ```
-/find-docs auth       # Find auth documentation
-/find-docs admin      # Find admin documentation
-/find-docs tests      # Find test information
+User visits course
+      ↓
+Fetch course from DB
+      ↓
+Detect category: "Programming" → variant: "programming"
+      ↓
+Select hero: ProgrammingHero
+      ↓
+Get section IDs: ['tech-stack', 'code-playground', 'prerequisites']
+      ↓
+Render sections with course data
+      ↓
+User sees programming-specific page
 ```
 
 ---
 
-## 📚 Important Files
+## 📋 Category → Sections Mapping
 
-### Project Documentation
-- `CLAUDE.md` - Project instructions
-- `ROOT_DIRECTORY_ORGANIZATION.md` - Complete file mapping
-- `docs/testing/TEST_ORGANIZATION.md` - Test structure guide
-
-### Configuration (Root Directory)
-- `package.json` - Dependencies
-- `next.config.js` - Next.js config
-- `tsconfig.json` - TypeScript config
-- `jest.config.working.js` - Jest config (recommended)
-- `tailwind.config.ts` - Tailwind config
+| Category | Variant | Sections |
+|----------|---------|----------|
+| **Programming** | `programming` | Tech Stack, Code Playground, Prerequisites |
+| **AI/ML** | `ai-ml` | Model Architecture, Algorithms, Datasets |
+| **Design** | `design` | Portfolio, Design Tools |
+| **Business** | `business` | Case Studies, Frameworks |
+| **Marketing** | `marketing` | Strategies, Tools |
+| **Data Science** | `data-science` | Analytics Tools, Visualization, Datasets |
+| **Unknown** | `default` | No custom sections |
 
 ---
 
-## 🚦 Quick Start for New Developers
+## 🛠️ Key Components
 
-1. **Read First**: `CLAUDE.md` - Project instructions
-2. **Understand Structure**: `ROOT_DIRECTORY_ORGANIZATION.md`
-3. **Find Documentation**: Use `/find-docs` command
-4. **Run Tests**: `npm test`
-5. **Start Development**: `npm run dev`
+### 1. page.tsx
+```typescript
+const categoryLayout = getCategoryLayout(course.category?.name);
+const HeroComponent = getHeroComponent(categoryLayout.variant);
+
+return (
+  <>
+    <HeroComponent {...props} />
+    <DynamicSections course={course} variant={categoryLayout.variant} />
+  </>
+);
+```
+
+### 2. section-registry.ts
+```typescript
+// Import sections
+import { TechStackSection } from './category-sections/programming';
+
+// Register sections
+const SECTION_REGISTRY = {
+  programming: {
+    'tech-stack': TechStackSection,
+  },
+};
+
+// Define order
+export const CATEGORY_SECTION_CONFIG = {
+  programming: ['tech-stack', 'code-playground', 'prerequisites'],
+};
+```
+
+### 3. dynamic-sections.tsx
+```typescript
+export function DynamicSections({ course, variant }) {
+  const sectionIds = getOrderedSectionIds(variant);
+  const sections = getCategorySections(variant);
+
+  return (
+    <div>
+      {sectionIds.map(id => {
+        const section = sections.find(s => s.id === id);
+        return <section.component course={course} variant={variant} />;
+      })}
+    </div>
+  );
+}
+```
 
 ---
 
-## 📞 Need Help?
+## ➕ Adding New Category (5 Steps)
 
-| Question | Where to Look |
-|----------|---------------|
-| How to authenticate? | `docs/auth/` |
-| How to fix a bug? | `docs/fixes/` |
-| Where are tests? | `__tests__/` or `docs/testing/` |
-| Design guidelines? | `docs/design/` |
-| Enterprise patterns? | `docs/enterprise/` |
-| What changed in Phase X? | `docs/phases/` |
+### Step 1: Create Section Components
+```bash
+mkdir -p app/(course)/courses/[courseId]/_components/category-sections/YOUR_CATEGORY
+```
+
+### Step 2: Write Section Components
+```typescript
+// YOUR_CATEGORY/your-section.tsx
+'use client';
+export function YourSection({ course }: BaseSectionProps) {
+  return <section>Your content</section>;
+}
+
+// YOUR_CATEGORY/index.ts
+export { YourSection } from './your-section';
+```
+
+### Step 3: Update section-registry.ts
+```typescript
+// Add import
+import { YourSection } from './category-sections/YOUR_CATEGORY';
+
+// Add to registry
+const SECTION_REGISTRY = {
+  'YOUR_CATEGORY': {
+    'your-section': YourSection,
+  },
+};
+
+// Add to config
+export const CATEGORY_SECTION_CONFIG = {
+  'YOUR_CATEGORY': ['your-section'],
+};
+```
+
+### Step 4: Update category-layouts.ts
+```typescript
+export type CategoryLayoutVariant =
+  | 'programming'
+  | 'YOUR_CATEGORY'  // ← Add this
+  | 'default';
+```
+
+### Step 5: Update category-detector.ts
+```typescript
+const CATEGORY_PATTERNS = {
+  'your category name': 'YOUR_CATEGORY',
+};
+```
+
+**Done!** Build and test.
 
 ---
 
-## 💡 Pro Tips
+## 🔍 Debugging Checklist
 
-1. **Use grep** for quick searches across all docs
-2. **Check backups/_cleanup/** before deleting - verify files are obsolete
-3. **Tests are co-located** with components in some cases (intentional)
-4. **Auth configs** in root are essential - don't move them
-5. **Use /find-docs** for quick navigation
+### Sections Not Appearing?
+- [ ] Check `<DynamicSections />` in page.tsx
+- [ ] Verify section registry imports
+- [ ] Check `CATEGORY_SECTION_CONFIG` has section IDs
+- [ ] Verify variant matches registry key
+
+### TypeScript Errors?
+- [ ] Run `npx tsc --noEmit`
+- [ ] Check all imports resolve
+- [ ] Verify export names match imports
+- [ ] Check index.ts files export correctly
+
+### Build Fails?
+- [ ] No dynamic imports: `import(\`../${var}/...\`)`
+- [ ] All imports are explicit and static
+- [ ] Run `rm -rf .next && npm run build`
+
+### Wrong Section Order?
+- [ ] Check `CATEGORY_SECTION_CONFIG` array order
+- [ ] Verify `getOrderedSectionIds()` returns correct array
 
 ---
 
-**Remember**: This is a living document. Update it as the project evolves!
+## 📊 Server Actions Usage
+
+### Enrollment
+```typescript
+import { enrollInCourse } from '../_actions/enroll-action';
+
+const result = await enrollInCourse(courseId);
+if (result.success) {
+  // Enrolled!
+}
+```
+
+### Review
+```typescript
+import { createCourseReview } from '../_actions/review-action';
+
+const result = await createCourseReview(courseId, rating, comment);
+```
+
+### Bookmark
+```typescript
+import { toggleCourseBookmark } from '../_actions/bookmark-action';
+
+const result = await toggleCourseBookmark(courseId);
+```
+
+---
+
+## 🎨 Section Component Template
+
+```typescript
+'use client';
+
+import { Icon } from 'lucide-react';
+import type { BaseSectionProps } from '../../../_types/section.types';
+
+export function YourSection({ course, variant }: BaseSectionProps) {
+  return (
+    <section className="py-16 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-slate-900 dark:to-blue-900/20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 mb-6">
+            <Icon className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+            Section Title
+          </h2>
+          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+            Section description
+          </p>
+        </div>
+
+        {/* Content */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Your content here */}
+        </div>
+
+      </div>
+    </section>
+  );
+}
+```
+
+---
+
+## 📝 Common Commands
+
+```bash
+# Development
+npm run dev                    # Start dev server
+
+# Build & Check
+npm run build                  # Production build
+npx tsc --noEmit              # TypeScript check
+npm run lint                   # ESLint check
+
+# Database
+npm run dev:docker:start       # Start PostgreSQL
+npx prisma studio             # View database
+
+# Clean
+rm -rf .next                  # Clean build cache
+```
+
+---
+
+## 🎯 Type Definitions
+
+```typescript
+// Category variant
+type CategoryLayoutVariant =
+  | 'programming'
+  | 'ai-ml'
+  | 'design'
+  | 'business'
+  | 'marketing'
+  | 'data-science'
+  | 'default';
+
+// Section props
+interface BaseSectionProps {
+  course: BaseCourse;
+  variant: CategoryLayoutVariant;
+}
+
+// Programming-specific
+interface ProgrammingSectionProps extends BaseSectionProps {
+  techStack?: string[];
+  prerequisites?: string[];
+}
+
+// AI/ML-specific
+interface AIMLSectionProps extends BaseSectionProps {
+  models?: string[];
+  datasets?: string[];
+}
+```
+
+---
+
+## ⚡ Performance Tips
+
+### Server Components (Default)
+- No JavaScript sent to browser
+- Faster initial load
+- Better SEO
+
+### Client Components (When Needed)
+```typescript
+'use client'; // Only when you need:
+// - useState, useEffect
+// - Event handlers
+// - Browser APIs
+```
+
+### Code Splitting
+- Each category only downloads its sections
+- Unused categories = not downloaded
+- Automatic with Next.js
+
+---
+
+## 🔐 Security Checklist
+
+### Server Actions
+- [x] Zod validation on all inputs
+- [x] Authentication checks (`currentUser()`)
+- [x] Authorization (user owns resource)
+- [x] No secrets in client code
+- [x] Path revalidation after mutations
+
+### Components
+- [x] HTML entities (`&apos;`, `&quot;`)
+- [x] No XSS vulnerabilities
+- [x] Prisma parameterized queries (no SQL injection)
+
+---
+
+## 📚 Further Reading
+
+- **Full Documentation**: `HOW_IT_WORKS.md`
+- **Implementation Report**: `IMPLEMENTATION_REPORT.md`
+- **Integration Tests**: `INTEGRATION_TEST_REPORT.md`
+- **Architecture Plan**: `SCALABLE_COURSE_ARCHITECTURE_PLAN.md`
+
+---
+
+## 🆘 Need Help?
+
+### Common Issues & Solutions
+
+**Issue**: Sections not rendering
+**Fix**: Check `DynamicSections` is in page.tsx
+
+**Issue**: TypeScript errors
+**Fix**: Run `npx tsc --noEmit` and fix errors
+
+**Issue**: Build fails
+**Fix**: Check for dynamic imports, use explicit imports
+
+**Issue**: Wrong section order
+**Fix**: Update `CATEGORY_SECTION_CONFIG` array
+
+---
+
+**Quick Reference Version**: 1.0.0
+**Last Updated**: November 4, 2025

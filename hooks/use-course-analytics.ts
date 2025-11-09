@@ -5,6 +5,7 @@ import {
   CourseWithRelations,
   SerializedCourseWithRelations,
   CourseEnhanced,
+  SerializedCourseEnhanced,
   AnalyticsMetrics,
   TimeSeriesData,
   CategoryRevenue,
@@ -120,8 +121,9 @@ const generateMockAnalytics = (courses: CourseData[]): AnalyticsMetrics => {
 
 /**
  * Generate enhanced course data with analytics
+ * Returns SerializedCourseEnhanced to handle both Date and string date types
  */
-const enhanceCourseWithAnalytics = (course: CourseData): CourseEnhanced => {
+const enhanceCourseWithAnalytics = (course: CourseData): SerializedCourseEnhanced => {
   const revenue = (course._count?.Purchase || 0) * (course.price || 0);
   const previousRevenue = revenue * 0.85; // Mock previous period
 
@@ -177,13 +179,23 @@ const enhanceCourseWithAnalytics = (course: CourseData): CourseEnhanced => {
     recentReviews: []
   };
 
+  // Ensure dates are strings for serialized output
+  const createdAt = typeof course.createdAt === 'string'
+    ? course.createdAt
+    : course.createdAt.toISOString();
+  const updatedAt = typeof course.updatedAt === 'string'
+    ? course.updatedAt
+    : course.updatedAt.toISOString();
+
   return {
     ...course,
+    createdAt,
+    updatedAt,
     analytics,
     performance,
     projections,
     reviews
-  } as CourseEnhanced;
+  };
 };
 
 /**
@@ -326,7 +338,7 @@ const generatePerformanceIndicators = (analytics: AnalyticsMetrics): Performance
 export const useCourseAnalytics = (courses: CourseData[]) => {
   const [isLoading, setIsLoading] = useState(true);
   const [analytics, setAnalytics] = useState<AnalyticsMetrics | null>(null);
-  const [enhancedCourses, setEnhancedCourses] = useState<CourseEnhanced[]>([]);
+  const [enhancedCourses, setEnhancedCourses] = useState<SerializedCourseEnhanced[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [insights, setInsights] = useState<DashboardInsight[]>([]);
   const [performanceIndicators, setPerformanceIndicators] = useState<PerformanceIndicator[]>([]);
@@ -390,7 +402,7 @@ export const useCourseAnalytics = (courses: CourseData[]) => {
   }, [courses]);
 
   // Get course by ID with analytics
-  const getCourseById = useCallback((courseId: string): CourseEnhanced | undefined => {
+  const getCourseById = useCallback((courseId: string): SerializedCourseEnhanced | undefined => {
     return enhancedCourses.find(c => c.id === courseId);
   }, [enhancedCourses]);
 
