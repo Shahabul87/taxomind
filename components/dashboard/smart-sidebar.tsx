@@ -92,13 +92,9 @@ export function SmartSidebar({ user }: SmartSidebarProps) {
     },
     {
       label: "Study Groups",
+      href: "/groups",
       icon: Users,
       roles: ["all"],
-      submenu: [
-        { label: "My Groups", href: "/groups/my-groups" },
-        { label: "Browse Groups", href: "/groups" },
-        { label: "Create Group", href: "/groups/create" },
-      ],
     },
     {
       label: "Calendar",

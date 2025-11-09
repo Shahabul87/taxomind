@@ -1,13 +1,14 @@
 import { db } from "@/lib/db";
 import { SearchInput } from "@/components/search-input";
 import { Search, Users, Grid3X3, List, PlusCircle, Filter } from "lucide-react";
-import ConditionalHeader from "@/app/(homepage)/user-header";
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
+import { SmartHeader } from "@/components/dashboard/smart-header";
+import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
 
 export const revalidate = 0;
 
@@ -83,16 +84,24 @@ export default async function GroupsPage(props: GroupsPageProps) {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
-      <ConditionalHeader user={user} />
-      
-      <main className="pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+      {/* Smart Header */}
+      <SmartHeader user={user as any} />
+
+      {/* Main Layout with Sidebar */}
+      <div className="flex">
+        {/* Smart Sidebar - Fixed position with 72px collapsed width */}
+        <SmartSidebar user={user as any} />
+
+        {/* Main Content Area - Left padding matches collapsed sidebar width (72px) */}
+        <main className="flex-1 pt-16 pl-[72px] transition-all duration-300">
+        <div className="py-6 px-4 sm:px-6 lg:px-8">
         {/* Hero Section with Background Image */}
-        <div className="relative bg-gradient-to-r from-indigo-600 to-purple-700 h-80">
+        <div className="relative bg-gradient-to-r from-indigo-600 to-purple-700 h-80 rounded-2xl overflow-hidden mb-6">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
           <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(transparent,white)] bg-grid-pattern"></div>
-          
-          <div className="container mx-auto px-4 h-full flex flex-col justify-center items-center relative z-10">
+
+          <div className="px-4 h-full flex flex-col justify-center items-center relative z-10">
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 text-center">
               Connect & Collaborate
             </h1>
@@ -116,7 +125,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
         </div>
         
         {/* Trending Groups Section */}
-        <section className="container mx-auto px-4 -mt-16 mb-12">
+        <section className="mb-12">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
@@ -155,7 +164,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
         </section>
         
         {/* Main Groups Section */}
-        <section className="container mx-auto px-4 mb-20">
+        <section className="mb-20">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <div className="flex flex-col md:flex-row gap-4 justify-between mb-8">
               <div>
@@ -339,7 +348,9 @@ export default async function GroupsPage(props: GroupsPageProps) {
             )}
           </div>
         </section>
-      </main>
+        </div>
+        </main>
+      </div>
     </div>
   );
 } 

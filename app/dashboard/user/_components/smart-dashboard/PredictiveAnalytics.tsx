@@ -241,33 +241,33 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 p-1 bg-slate-800/60 rounded-lg border border-slate-600/30">
+      <div className="flex flex-wrap gap-2 p-1 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
         <button
           onClick={() => setActiveTab('predictions')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             activeTab === 'predictions'
-              ? 'bg-purple-600 text-white'
-              : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700/50'
           }`}
         >
           AI Predictions
         </button>
         <button
           onClick={() => setActiveTab('schedule')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             activeTab === 'schedule'
-              ? 'bg-purple-600 text-white'
-              : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700/50'
           }`}
         >
           Study Schedule
         </button>
         <button
           onClick={() => setActiveTab('recommendations')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             activeTab === 'recommendations'
-              ? 'bg-purple-600 text-white'
-              : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700/50'
           }`}
         >
           Recommendations
@@ -281,14 +281,14 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-slate-800/90 to-slate-700/90 backdrop-blur-sm border border-slate-600/50">
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-purple-100">
-                    <Brain className="w-5 h-5 text-purple-600" />
+                  <div className="p-2 rounded-lg bg-purple-200 dark:bg-purple-800/50">
+                    <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <span className="text-white">Course Completion Prediction</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">Course Completion Prediction</span>
                 </div>
                 <Button 
                   variant="outline" 
@@ -312,36 +312,36 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
               ) : completionPrediction ? (
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="text-6xl font-bold text-purple-600 mb-2">
+                    <div className="text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
                       {completionPrediction.completionProbability}%
                     </div>
-                    <div className="text-lg text-slate-300 mb-1">Completion Probability</div>
-                    <div className="text-sm text-slate-500">
+                    <div className="text-lg text-slate-700 dark:text-slate-300 mb-1 font-medium">Completion Probability</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">
                       Confidence Score: {completionPrediction.confidenceScore}%
                     </div>
                   </div>
-                  
+
                   {completionPrediction.riskFactors.length > 0 && (
-                    <div className="p-4 bg-orange-900/20 border border-orange-600/30 rounded-lg">
-                      <h4 className="font-medium text-orange-300 mb-2 flex items-center gap-2">
+                    <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-600/30 rounded-lg">
+                      <h4 className="font-medium text-orange-700 dark:text-orange-300 mb-2 flex items-center gap-2">
                         <AlertCircle className="w-4 h-4" />
                         Risk Factors
                       </h4>
-                      <ul className="text-sm text-orange-200 space-y-1">
+                      <ul className="text-sm text-orange-600 dark:text-orange-200 space-y-1">
                         {completionPrediction.riskFactors.map((factor, index) => (
                           <li key={index}>• {factor}</li>
                         ))}
                       </ul>
                     </div>
                   )}
-                  
+
                   {completionPrediction.recommendations.length > 0 && (
-                    <div className="p-4 bg-blue-900/20 border border-blue-600/30 rounded-lg">
-                      <h4 className="font-medium text-blue-300 mb-2 flex items-center gap-2">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-600/30 rounded-lg">
+                      <h4 className="font-medium text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
                         <Lightbulb className="w-4 h-4" />
                         AI Recommendations
                       </h4>
-                      <ul className="text-sm text-blue-200 space-y-1">
+                      <ul className="text-sm text-blue-600 dark:text-blue-200 space-y-1">
                         {completionPrediction.recommendations.map((rec, index) => (
                           <li key={index}>• {rec}</li>
                         ))}
@@ -351,10 +351,10 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="text-slate-400">No prediction data available</div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <div className="text-slate-600 dark:text-slate-400">No prediction data available</div>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={refreshPrediction}
                     className="mt-2"
                   >
@@ -374,14 +374,14 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-slate-800/90 to-slate-700/90 backdrop-blur-sm border border-slate-600/50">
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-blue-100">
-                    <Clock className="w-5 h-5 text-blue-600" />
+                  <div className="p-2 rounded-lg bg-blue-200 dark:bg-blue-800/50">
+                    <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span className="text-white">Optimal Study Schedule</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">Optimal Study Schedule</span>
                 </div>
                 <Button 
                   variant="outline" 
@@ -405,47 +405,47 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
               ) : studySchedule ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-slate-800/60 rounded-lg border border-slate-600/30">
-                      <div className="text-3xl font-bold text-blue-600 mb-2">
+                    <div className="text-center p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+                      <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
                         {studySchedule.recommendedDailyMinutes}
                       </div>
-                      <div className="text-sm text-slate-300">Minutes/Day</div>
+                      <div className="text-sm text-slate-600 dark:text-slate-400 font-medium">Minutes/Day</div>
                     </div>
-                    <div className="text-center p-4 bg-slate-800/60 rounded-lg border border-slate-600/30">
-                      <div className="text-3xl font-bold text-green-600 mb-2">
+                    <div className="text-center p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+                      <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
                         {studySchedule.estimatedCompletionWeeks}
                       </div>
-                      <div className="text-sm text-slate-300">Weeks to Complete</div>
+                      <div className="text-sm text-slate-600 dark:text-slate-400 font-medium">Weeks to Complete</div>
                     </div>
                   </div>
-                  
-                  <div className="p-4 bg-slate-800/60 rounded-lg border border-slate-600/30">
-                    <h4 className="font-medium text-white mb-2">Best Study Times</h4>
+
+                  <div className="p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+                    <h4 className="font-medium text-slate-800 dark:text-slate-200 mb-2">Best Study Times</h4>
                     <div className="flex flex-wrap gap-2">
                       {studySchedule.bestStudyTimes.map((time, index) => (
-                        <Badge key={index} variant="outline" className="text-slate-300">
+                        <Badge key={index} variant="outline" className="border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                           {time}
                         </Badge>
                       ))}
                     </div>
                   </div>
-                  
-                  <div className="p-4 bg-slate-800/60 rounded-lg border border-slate-600/30">
-                    <h4 className="font-medium text-white mb-2">Weekly Goal</h4>
+
+                  <div className="p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+                    <h4 className="font-medium text-slate-800 dark:text-slate-200 mb-2">Weekly Goal</h4>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-purple-600">
+                      <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                         {studySchedule.weeklyGoal}
                       </span>
-                      <span className="text-slate-300">minutes per week</span>
+                      <span className="text-slate-600 dark:text-slate-400">minutes per week</span>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="text-slate-400">No schedule data available</div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <div className="text-slate-600 dark:text-slate-400">No schedule data available</div>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={refreshSchedule}
                     className="mt-2"
                   >
@@ -465,14 +465,14 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-slate-800/90 to-slate-700/90 backdrop-blur-sm border border-slate-600/50">
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-green-100">
-                    <Lightbulb className="w-5 h-5 text-green-600" />
+                  <div className="p-2 rounded-lg bg-green-200 dark:bg-green-800/50">
+                    <Lightbulb className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
-                  <span className="text-white">Personalized Recommendations</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">Personalized Recommendations</span>
                 </div>
                 <Button 
                   variant="outline" 
@@ -496,54 +496,54 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
               ) : personalizedRecommendations ? (
                 <div className="space-y-4">
                   {personalizedRecommendations.contentRecommendations.length > 0 && (
-                    <div className="p-4 bg-blue-900/20 border border-blue-600/30 rounded-lg">
-                      <h4 className="font-medium text-blue-300 mb-2 flex items-center gap-2">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-600/30 rounded-lg">
+                      <h4 className="font-medium text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
                         <Target className="w-4 h-4" />
                         Content Recommendations
                       </h4>
-                      <ul className="text-sm text-blue-200 space-y-1">
+                      <ul className="text-sm text-blue-600 dark:text-blue-200 space-y-1">
                         {personalizedRecommendations.contentRecommendations.map((rec, index) => (
                           <li key={index}>• {rec}</li>
                         ))}
                       </ul>
                     </div>
                   )}
-                  
+
                   {personalizedRecommendations.studyStrategies.length > 0 && (
-                    <div className="p-4 bg-purple-900/20 border border-purple-600/30 rounded-lg">
-                      <h4 className="font-medium text-purple-300 mb-2 flex items-center gap-2">
+                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-600/30 rounded-lg">
+                      <h4 className="font-medium text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-2">
                         <Brain className="w-4 h-4" />
                         Study Strategies
                       </h4>
-                      <ul className="text-sm text-purple-200 space-y-1">
+                      <ul className="text-sm text-purple-600 dark:text-purple-200 space-y-1">
                         {personalizedRecommendations.studyStrategies.map((strategy, index) => (
                           <li key={index}>• {strategy}</li>
                         ))}
                       </ul>
                     </div>
                   )}
-                  
+
                   {personalizedRecommendations.peerConnections.length > 0 && (
-                    <div className="p-4 bg-green-900/20 border border-green-600/30 rounded-lg">
-                      <h4 className="font-medium text-green-300 mb-2 flex items-center gap-2">
+                    <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-600/30 rounded-lg">
+                      <h4 className="font-medium text-green-700 dark:text-green-300 mb-2 flex items-center gap-2">
                         <Star className="w-4 h-4" />
                         Peer Connections
                       </h4>
-                      <ul className="text-sm text-green-200 space-y-1">
+                      <ul className="text-sm text-green-600 dark:text-green-200 space-y-1">
                         {personalizedRecommendations.peerConnections.map((connection, index) => (
                           <li key={index}>• {connection}</li>
                         ))}
                       </ul>
                     </div>
                   )}
-                  
+
                   {personalizedRecommendations.resourceSuggestions.length > 0 && (
-                    <div className="p-4 bg-orange-900/20 border border-orange-600/30 rounded-lg">
-                      <h4 className="font-medium text-orange-300 mb-2 flex items-center gap-2">
+                    <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-600/30 rounded-lg">
+                      <h4 className="font-medium text-orange-700 dark:text-orange-300 mb-2 flex items-center gap-2">
                         <Lightbulb className="w-4 h-4" />
                         Resource Suggestions
                       </h4>
-                      <ul className="text-sm text-orange-200 space-y-1">
+                      <ul className="text-sm text-orange-600 dark:text-orange-200 space-y-1">
                         {personalizedRecommendations.resourceSuggestions.map((resource, index) => (
                           <li key={index}>• {resource}</li>
                         ))}
@@ -553,10 +553,10 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="text-slate-400">No recommendations available</div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <div className="text-slate-600 dark:text-slate-400">No recommendations available</div>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={refreshRecommendations}
                     className="mt-2"
                   >
@@ -575,13 +575,13 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-slate-800/90 to-slate-700/90 backdrop-blur-sm border border-slate-600/50">
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-purple-100">
-                <BarChart3 className="w-5 h-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-purple-200 dark:bg-purple-800/50">
+                <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <span className="text-white">Performance Metrics</span>
+              <span className="text-slate-800 dark:text-slate-200 font-semibold">Performance Metrics</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -594,25 +594,25 @@ export function PredictiveAnalytics({ user }: PredictiveAnalyticsProps) {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="p-4 bg-slate-800/60 border border-slate-600/30 rounded-lg"
+                    className="p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-white">{metric.name}</h4>
+                      <h4 className="font-medium text-slate-800 dark:text-slate-200">{metric.name}</h4>
                       <TrendIcon className={`w-4 h-4 ${getTrendColor(metric.trend)}`} />
                     </div>
                     <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-2xl font-bold text-white">
+                      <span className="text-2xl font-bold text-slate-800 dark:text-white">
                         {metric.value}
                       </span>
-                      <span className="text-sm text-slate-400">{metric.unit}</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">{metric.unit}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-500">
+                      <span className="text-slate-600 dark:text-slate-500">
                         Benchmark: {metric.benchmark}{metric.unit}
                       </span>
                       {metric.change !== 0 && (
                         <span className={`font-medium ${
-                          metric.change > 0 ? 'text-green-600' : 'text-red-600'
+                          metric.change > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                         }`}>
                           {metric.change > 0 ? '+' : ''}{metric.change}%
                         </span>

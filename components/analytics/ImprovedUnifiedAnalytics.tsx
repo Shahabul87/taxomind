@@ -190,9 +190,9 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
               >
                 Courses
               </TabsTrigger>
-              <TabsTrigger 
-                value="posts" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
+              <TabsTrigger
+                value="posts"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
               >
                 Posts
               </TabsTrigger>

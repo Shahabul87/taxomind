@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ImprovedUnifiedAnalytics } from '@/components/analytics/ImprovedUnifiedAnalytics';
 import { AnalyticsErrorBoundary } from '@/components/analytics/ErrorBoundary';
+import { SmartHeader } from "@/components/dashboard/smart-header";
+import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
 
 // Stable demo user object to prevent unnecessary re-renders
 const DEMO_USER: User = {
@@ -99,31 +101,44 @@ export default function UserAnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* Debug Info */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="fixed top-20 right-4 z-50 bg-black/80 text-white p-4 rounded-lg text-xs">
-          <p>Session User Role: {session?.user?.role || "No role"}</p>
-          <p>Is Admin: {session?.user?.role === "ADMIN" ? "Yes" : "No"}</p>
-        </div>
-      )}
-      {error && (
-        <div className="container mx-auto px-4 py-4">
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
-            <p className="text-amber-700 dark:text-amber-300 text-sm">
-              {error} — Using demo data for analytics.
-            </p>
-          </div>
-        </div>
-      )}
-      
-      <AnalyticsErrorBoundary>
-        <ImprovedUnifiedAnalytics 
-          user={user as any} 
-          variant="fullpage"
-          className="min-h-screen"
-        />
-      </AnalyticsErrorBoundary>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+      {/* Smart Header */}
+      <SmartHeader user={user as any} />
+
+      {/* Main Layout with Sidebar */}
+      <div className="flex">
+        {/* Smart Sidebar - Fixed position with 72px collapsed width */}
+        <SmartSidebar user={user as any} />
+
+        {/* Main Content Area - Left padding matches collapsed sidebar width (72px) */}
+        <main className="flex-1 pt-16 pl-[72px] transition-all duration-300">
+          {/* Debug Info */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="fixed top-20 right-4 z-50 bg-black/80 text-white p-4 rounded-lg text-xs">
+              <p>Session User Role: {session?.user?.role || "No role"}</p>
+              <p>Is Admin: {session?.user?.role === "ADMIN" ? "Yes" : "No"}</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="container mx-auto px-4 py-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+                <p className="text-amber-700 dark:text-amber-300 text-sm">
+                  {error} — Using demo data for analytics.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <AnalyticsErrorBoundary>
+            <ImprovedUnifiedAnalytics
+              user={user as any}
+              variant="fullpage"
+              className="min-h-screen"
+            />
+          </AnalyticsErrorBoundary>
+        </main>
+      </div>
     </div>
   );
 }
