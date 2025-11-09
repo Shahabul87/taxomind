@@ -1,0 +1,68 @@
+
+> taxomind@1.0.0 prebuild
+> node scripts/validate-env.js
+
+🔧 Loading environment for: development
+✅ Found: .env.local
+✅ Found: .env.development
+✅ Found: .env
+📊 Environment Summary:
+   NODE_ENV: development
+   Database: Local (Local Docker)
+   App URL: http://localhost:3000
+   Redis: Disabled
+   Files loaded: .env.local, .env.development, .env
+❌ Could not load TypeScript validation module
+Make sure to run "npm run build" or install ts-node
+🔍 Basic Environment Validation: DEVELOPMENT
+
+📋 Basic Configuration:
+   - NODE_ENV: development
+   - Database: Configured
+   - Auth: Configured
+   - Redis: Not configured
+   - Google OAuth: Configured
+   - GitHub OAuth: Configured
+   - AI (OpenAI): Not configured
+   - AI (Anthropic): Configured
+   - Media (Cloudinary): Configured
+
+✅ Environment validation passed!
+
+
+> taxomind@1.0.0 build
+> NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && NODE_OPTIONS='--max-old-space-size=8192' next build
+
+🔧 Loading environment for: development
+✅ Found: .env.local
+✅ Found: .env.development
+✅ Found: .env
+📊 Environment Summary:
+   NODE_ENV: development
+   Database: Local (Local Docker)
+   App URL: http://localhost:3000
+   Redis: Disabled
+   Files loaded: .env.local, .env.development, .env
+   ▲ Next.js 16.0.1 (Turbopack)
+   - Environments: .env.local, .env.production, .env
+   - Experiments (use with caution):
+     · optimizePackageImports
+     · serverActions
+     ✓ webpackBuildWorker
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 17.0s
+   Running TypeScript ...
+Failed to compile.
+
+./app/(course)/courses/[courseId]/learn/[chapterId]/sections/[sectionId]/_components/section-content-tabs.tsx:221:13
+Type error: Type 'boolean' is not assignable to type 'true'.
+
+[0m [90m 219 |[39m             value[33m=[39m[32m"overview"[39m
+ [90m 220 |[39m             className[33m=[39m[32m"space-y-6 animate-in fade-in-50 duration-200 slide-in-from-bottom-2"[39m
+[31m[1m>[22m[39m[90m 221 |[39m             forceMount[33m=[39m{activeTab [33m===[39m [32m"overview"[39m}
+ [90m     |[39m             [31m[1m^[22m[39m
+ [90m 222 |[39m             hidden[33m=[39m{activeTab [33m!==[39m [32m"overview"[39m}
+ [90m 223 |[39m           [33m>[39m
+ [90m 224 |[39m             [33m<[39m[33mdiv[39m className[33m=[39m[32m"prose prose-sm dark:prose-invert max-w-none"[39m[33m>[39m[0m
+Next.js build worker exited with code: 1 and signal: null

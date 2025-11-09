@@ -247,7 +247,17 @@ model User {
   learningPathsCreated     LearningPath[]
   learningPathEnrollments  LearningPathEnrollment[]
   courseComparisons        CourseComparison[]
+
+  // Phase 3: Enterprise Payment System (from 15-payment-system.prisma)
+  paymentTransactions PaymentTransaction[]
   courseRecommendations    CourseRecommendation[]
+
+  // Video bookmarks
+  videoBookmarks VideoBookmark[]
+
+  // Discussions
+  discussions Discussion[]
+  discussionVotes DiscussionVote[]
 }
 
 model Account {
@@ -266,6 +276,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId]) // PERFORMANCE FIX: Index for getAccountByUserId query
 }
 
 model VerificationToken {

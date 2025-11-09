@@ -13,6 +13,8 @@ export const MobileEnrollBar: React.FC<MobileEnrollBarProps> = ({ course, isEnro
   const router = useRouter();
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+
+    // First, try to scroll to the main enroll button in the hero
     const el = document.getElementById('enroll-card');
     if (el) {
       const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -20,12 +22,11 @@ export const MobileEnrollBar: React.FC<MobileEnrollBarProps> = ({ course, isEnro
       return;
     }
 
-    // Fallback: if enroll card is not present in DOM, navigate to checkout
-    try {
-      if (course?.id) {
-        router.push(`/courses/${course.id}/checkout`);
-      }
-    } catch {}
+    // If enroll card not found, navigate to checkout page
+    // The checkout page will handle creating the Stripe session
+    if (course?.id) {
+      router.push(`/courses/${course.id}/checkout`);
+    }
   };
 
   if (isEnrolled) return null;

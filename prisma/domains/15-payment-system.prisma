@@ -1,0 +1,123 @@
+// ==========================================
+// Payment System Domain
+// ==========================================
+// Enterprise payment and enrollment system
+// Includes: Transactions, Webhooks, Email Queue
+//
+// Features:
+// - Multi-provider payment support
+// - Webhook event tracking
+// - Email notification queue
+// - Free and paid enrollments
+//
+// Note: EnrollmentStatus, EmailStatus, and AuditLog are defined in other domains
+// ==========================================
+
+// Payment status enum
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+// Payment provider enum
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+  FREE
+  MANUAL
+}
+
+// Enrollment type enum
+enum EnrollmentType {
+  FREE
+  PAID
+  SCHOLARSHIP
+  TRIAL
+  MANUAL
+}
+
+// Email template enum
+enum EmailTemplate {
+  ENROLLMENT_SUCCESS
+  ENROLLMENT_FAILED
+  PAYMENT_RECEIPT
+  COURSE_WELCOME
+  COURSE_COMPLETION
+  REFUND_PROCESSED
+}
+
+// Price type enum
+enum PriceType {
+  FREE
+  ONE_TIME
+  SUBSCRIPTION_MONTHLY
+  SUBSCRIPTION_YEARLY
+}
+
+// Payment transaction model
+model PaymentTransaction {
+  id                String          @id @default(uuid())
+  userId            String
+  courseId          String
+  amount            Decimal         @db.Decimal(10, 2)
+  currency          String          @default("USD")
+  status            PaymentStatus   @default(PENDING)
+  provider          PaymentProvider @default(STRIPE)
+  providerSessionId String?         @unique
+  providerTxnId     String?         @unique
+  metadata          Json?
+  errorCode         String?
+  errorMessage      String?
+  retryCount        Int             @default(0)
+  lastRetryAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+  @@index([providerSessionId])
+  @@index([createdAt])
+}
+
+// Webhook event log
+model WebhookEvent {
+  id             String    @id @default(uuid())
+  provider       String
+  eventType      String
+  eventId        String
+  payload        Json
+  processed      Boolean   @default(false)
+  processedAt    DateTime?
+  errorMessage   String?
+  retryCount     Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  @@unique([provider, eventId])
+  @@index([processed])
+  @@index([createdAt])
+}
+
+// Email notification queue
+model EmailQueue {
+  id           String        @id @default(uuid())
+  to           String
+  subject      String
+  template     EmailTemplate
+  data         Json
+  status       EmailStatus   @default(QUEUED)
+  sentAt       DateTime?
+  errorMessage String?
+  retryCount   Int           @default(0)
+  createdAt    DateTime      @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+}

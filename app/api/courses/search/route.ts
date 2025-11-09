@@ -234,6 +234,7 @@ export async function GET(request: NextRequest) {
       return {
         id: course.id,
         title: course.title,
+        subtitle: course.subtitle,
         description: course.description || "",
         imageUrl: course.imageUrl || "/images/course-placeholder.jpg",
         price: course.price || 0,
@@ -245,7 +246,7 @@ export async function GET(request: NextRequest) {
         chaptersCount: course._count.chapters,
         lessonsCount,
         duration: course.totalDuration || Math.round(totalDuration / 60), // Use materialized field or fallback to calculation
-        difficulty: course.difficulty,
+        difficulty: course.difficulty || "Beginner",
         instructor: course.user
           ? {
               id: course.user.id,

@@ -63,9 +63,10 @@ export const VideoPlayer = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleReady = (event: YouTubeEvent) => {
+  const handleReady = async (event: YouTubeEvent) => {
     playerRef.current = event.target;
-    setDuration(event.target.getDuration());
+    const duration = await event.target.getDuration();
+    setDuration(duration);
     setIsLoading(false);
   };
 
@@ -163,13 +164,13 @@ export const VideoPlayer = ({
     height: '100%',
     width: '100%',
     playerVars: {
-      autoplay: 0,
-      modestbranding: 1,
-      rel: 0,
-      showinfo: 0,
-      controls: 1,
-      fs: 1,
-      playsinline: 1,
+      autoplay: 0 as const,
+      modestbranding: 1 as const,
+      rel: 0 as const,
+      showinfo: 0 as const,
+      controls: 1 as const,
+      fs: 1 as const,
+      playsinline: 1 as const,
     },
   };
 

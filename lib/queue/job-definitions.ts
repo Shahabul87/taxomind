@@ -8,7 +8,7 @@ import { Job, JobsOptions } from 'bullmq';
 /**
  * Job Types - All possible job types in the system
  */
-export type JobType = 
+export type JobType =
   // Email jobs
   | 'send-welcome-email'
   | 'send-notification-email'
@@ -16,7 +16,7 @@ export type JobType =
   | 'send-password-reset'
   | 'send-course-completion-certificate'
   | 'send-bulk-announcement'
-  
+
   // Analytics jobs
   | 'process-user-activity'
   | 'calculate-course-analytics'
@@ -24,7 +24,7 @@ export type JobType =
   | 'update-user-progress'
   | 'compute-recommendation-scores'
   | 'aggregate-platform-metrics'
-  
+
   // AI generation jobs
   | 'generate-course-content'
   | 'generate-quiz-questions'
@@ -32,7 +32,7 @@ export type JobType =
   | 'analyze-course-effectiveness'
   | 'generate-personalized-content'
   | 'process-ai-feedback'
-  
+
   // File processing jobs
   | 'process-video-upload'
   | 'generate-video-thumbnail'
@@ -40,20 +40,26 @@ export type JobType =
   | 'optimize-image'
   | 'extract-video-captions'
   | 'process-batch-upload'
-  
+
   // Notification jobs
   | 'send-push-notification'
   | 'send-webhook'
   | 'update-user-badges'
   | 'trigger-achievement'
   | 'send-reminder-notification'
-  
+
   // Cleanup jobs
   | 'cleanup-temp-files'
   | 'archive-old-data'
   | 'update-cache'
   | 'optimize-database'
-  | 'cleanup-failed-jobs';
+  | 'cleanup-failed-jobs'
+
+  // Payment & Enrollment jobs (Phase 3)
+  | 'process-enrollment'
+  | 'process-webhook'
+  | 'send-enrollment-email'
+  | 'reconcile-payments';
 
 /**
  * Base job data interface

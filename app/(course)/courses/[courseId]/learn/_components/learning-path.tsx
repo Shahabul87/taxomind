@@ -29,7 +29,7 @@ interface Course {
       title: string;
       position: number;
       duration?: number | null;
-      userProgress: Array<{
+      user_progress: Array<{
         isCompleted: boolean;
       }>;
     }>;
@@ -43,7 +43,7 @@ interface LearningPathProps {
 
 export const LearningPath = ({ course, detailed = false }: LearningPathProps) => {
   // Create a flattened learning path
-  const learningPath = course.chapters.flatMap(chapter => 
+  const learningPath = course.chapters.flatMap(chapter =>
     chapter.sections.map(section => ({
       id: section.id,
       title: section.title,
@@ -51,7 +51,7 @@ export const LearningPath = ({ course, detailed = false }: LearningPathProps) =>
       chapterTitle: chapter.title,
       chapterPosition: chapter.position,
       sectionPosition: section.position,
-      isCompleted: section.userProgress.some(p => p.isCompleted),
+      isCompleted: section.user_progress?.some(p => p.isCompleted) || false,
       duration: section.duration || 10,
       globalPosition: (chapter.position - 1) * 100 + section.position
     }))

@@ -41,7 +41,8 @@ import {
   FileText,
   Grid3X3,
   List,
-  X
+  X,
+  Home
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -187,6 +188,41 @@ const ModernHeroSection = ({
   statistics?: BlogStatistics | null;
   isLoading?: boolean;
 }) => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const slides = [
+    {
+      id: 1,
+      tag: "Tech Insights",
+      title: "Ideas That Shape Tomorrow",
+      subtitle: "Explore cutting-edge insights on technology, innovation, and digital transformation. Join our community of forward-thinkers.",
+      gradient: "from-blue-600 via-indigo-600 to-purple-600"
+    },
+    {
+      id: 2,
+      tag: "Innovation Hub",
+      title: "Learn From Industry Experts",
+      subtitle: "Discover thought leadership, best practices, and real-world experiences from top technology professionals.",
+      gradient: "from-emerald-600 via-teal-600 to-cyan-600"
+    },
+    {
+      id: 3,
+      tag: "Knowledge Base",
+      title: "Master Modern Technologies",
+      subtitle: "Deep-dive tutorials, comprehensive guides, and practical insights to accelerate your technical journey.",
+      gradient: "from-purple-600 via-pink-600 to-rose-600"
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
+  const currentSlideData = slides[currentSlide];
+
   const formatNumber = (num: number) => {
     if (num >= 1000) {
       return `${Math.floor(num / 1000)}K+`;
@@ -195,126 +231,299 @@ const ModernHeroSection = ({
   };
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-slate-200/50 dark:bg-grid-slate-700/25 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,white)]" />
+    <div className="relative min-h-[85vh] flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse delay-2000" />
 
-      <div className="relative container mx-auto px-4 py-20">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left Content */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            {/* Blog Label */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-700 dark:text-blue-400 text-sm font-medium mb-6">
-              <PenSquare className="w-4 h-4" />
-              <span>Insights & Innovation</span>
-            </div>
+        {/* Animated Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)]" />
+      </div>
 
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 dark:from-white dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent tracking-tight">
-              Ideas That Shape Tomorrow
-            </h1>
-
-            <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
-              Explore cutting-edge insights on technology, innovation, and digital transformation.
-              Join our community of forward-thinkers.
-            </p>
-
-            {/* Stats */}
-            <div className="flex flex-wrap gap-6 mb-8">
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  {isLoading ? (
-                    <div className="text-2xl font-bold animate-pulse">--</div>
-                  ) : (
-                    <div className="text-2xl font-bold">
-                      {formatNumber(statistics?.publishedArticles || 0)}
-                    </div>
-                  )}
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Articles</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  {isLoading ? (
-                    <div className="text-2xl font-bold animate-pulse">--</div>
-                  ) : (
-                    <div className="text-2xl font-bold">
-                      {formatNumber(statistics?.totalReaders || 0)}
-                    </div>
-                  )}
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Readers</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                  <Award className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  {isLoading ? (
-                    <div className="text-2xl font-bold animate-pulse">--</div>
-                  ) : (
-                    <div className="text-2xl font-bold">
-                      {formatNumber(statistics?.totalAuthors || 0)}
-                    </div>
-                  )}
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Authors</div>
-                </div>
-              </div>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap gap-4">
-              <Button size="lg" className="group">
-                <Sparkles className="w-5 h-5 mr-2" />
-                Start Reading
-                <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
-              </Button>
-              <Button size="lg" variant="outline">
-                <PenSquare className="w-5 h-5 mr-2" />
-                Write an Article
-              </Button>
-            </div>
-          </motion.div>
-
-          {/* Right Content - Most Recent Articles Section */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="relative"
-          >
-            {/* Section Header */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Most Recent</h2>
-              </div>
-            </div>
-
-            {/* Scrollable Recent Articles Container - Shows all 5 items */}
-            <div className="space-y-2.5 max-h-[760px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-100 dark:[&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-slate-400 dark:[&::-webkit-scrollbar-thumb]:hover:bg-slate-500">
-              {featuredPosts.slice(0, 5).map((post, index) => (
-                <FeaturedArticleCard key={post.id} post={post} index={index} />
-              ))}
-            </div>
-          </motion.div>
+      {/* Breadcrumb Navigation */}
+      <div className="relative z-10 border-b border-white/10 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-3">
+          <nav className="flex items-center gap-2 text-sm">
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors group"
+            >
+              <Home className="w-4 h-4 transition-transform group-hover:scale-110" />
+              <span className="font-medium">Home</span>
+            </Link>
+            <ChevronRight className="w-4 h-4 text-slate-500" />
+            <span className="text-white font-semibold">Blog</span>
+          </nav>
         </div>
       </div>
 
-      {/* Decorative Elements */}
-      <div className="absolute top-20 right-10 w-72 h-72 bg-indigo-400 rounded-full blur-3xl opacity-20" />
-      <div className="absolute bottom-20 left-10 w-96 h-96 bg-blue-400 rounded-full blur-3xl opacity-20" />
+      <div className="relative flex-1 flex items-center container mx-auto px-4 py-20">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left Content */}
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            className="space-y-8"
+          >
+            {/* Tag Badge with Animation */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentSlide}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Badge className="bg-white/10 backdrop-blur-md border-white/20 text-white px-4 py-2 text-sm">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {currentSlideData.tag}
+                </Badge>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Main Heading with Slide Animation */}
+            <AnimatePresence mode="wait">
+              <motion.h1
+                key={`title-${currentSlide}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight"
+              >
+                <span className={cn(
+                  "bg-gradient-to-r bg-clip-text text-transparent",
+                  currentSlideData.gradient
+                )}>
+                  {currentSlideData.title.split(' ').slice(0, 2).join(' ')}
+                </span>
+                {' '}
+                <span className="text-white">
+                  {currentSlideData.title.split(' ').slice(2).join(' ')}
+                </span>
+              </motion.h1>
+            </AnimatePresence>
+
+            {/* Subtitle with Animation */}
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={`subtitle-${currentSlide}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="text-xl text-slate-300 leading-relaxed max-w-2xl"
+              >
+                {currentSlideData.subtitle}
+              </motion.p>
+            </AnimatePresence>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="flex flex-wrap gap-4"
+            >
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-xl px-8 py-6 text-lg group"
+              >
+                Start Reading
+                <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 px-8 py-6 text-lg group"
+              >
+                <PenSquare className="mr-2 w-5 h-5" />
+                Write an Article
+              </Button>
+            </motion.div>
+
+            {/* Live Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="flex flex-wrap gap-6 pt-4"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  {isLoading ? (
+                    <p className="text-2xl font-bold text-white animate-pulse">--</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-white">
+                      {formatNumber(statistics?.publishedArticles || 0)}
+                    </p>
+                  )}
+                  <p className="text-sm text-slate-400">Published Articles</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  {isLoading ? (
+                    <p className="text-2xl font-bold text-white animate-pulse">--</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-white">
+                      {formatNumber(statistics?.totalReaders || 0)}
+                    </p>
+                  )}
+                  <p className="text-sm text-slate-400">Active Readers</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+                  <Award className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  {isLoading ? (
+                    <p className="text-2xl font-bold text-white animate-pulse">--</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-white">
+                      {formatNumber(statistics?.totalAuthors || 0)}
+                    </p>
+                  )}
+                  <p className="text-sm text-slate-400">Expert Authors</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Right Content - Floating Cards Section */}
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="hidden lg:block relative"
+          >
+            <div className="relative">
+              {/* Floating Card 1 - Top */}
+              {featuredPosts[0] && (
+                <motion.div
+                  animate={{ y: [0, -20, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-0 right-0 w-80"
+                >
+                  <Link href={`/blog/${featuredPosts[0].id}`}>
+                    <Card className="overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-2xl hover:shadow-3xl transition-all cursor-pointer group">
+                      <div className="relative h-32">
+                        <Image
+                          src={featuredPosts[0].imageUrl || "/api/placeholder/800/400"}
+                          alt={featuredPosts[0].title}
+                          fill
+                          className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <Badge className="absolute top-2 left-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 text-xs px-2 py-1">
+                          Featured
+                        </Badge>
+                      </div>
+                      <CardContent className="p-4">
+                        <h3 className="font-bold text-sm line-clamp-2 text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {featuredPosts[0].title}
+                        </h3>
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            {featuredPosts[0].views.toLocaleString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {featuredPosts[0].readingTime}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
+              )}
+
+              {/* Floating Card 2 - Middle */}
+              {featuredPosts[1] && (
+                <motion.div
+                  animate={{ y: [0, 20, 0] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  className="absolute top-56 left-0 w-72"
+                >
+                  <Link href={`/blog/${featuredPosts[1].id}`}>
+                    <Card className="overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-2xl hover:shadow-3xl transition-all cursor-pointer group">
+                      <CardContent className="p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                            <TrendingUp className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm text-slate-900 dark:text-white">
+                              Trending Now
+                            </p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              {featuredPosts[1].views.toLocaleString()} views
+                            </p>
+                          </div>
+                        </div>
+                        <h4 className="text-xs font-medium text-slate-700 dark:text-slate-300 line-clamp-2">
+                          {featuredPosts[1].title}
+                        </h4>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
+              )}
+
+              {/* Floating Card 3 - Bottom Right */}
+              {featuredPosts[2] && (
+                <motion.div
+                  animate={{ y: [0, -15, 0] }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                  className="absolute top-[26rem] -right-10 w-64"
+                >
+                  <Card className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-2xl p-5 text-white">
+                    <BookOpen className="w-8 h-8 mb-3 opacity-90" />
+                    <p className="font-bold text-2xl mb-1">
+                      {formatNumber(statistics?.publishedArticles || 50)}
+                    </p>
+                    <p className="text-sm opacity-90">Articles Published</p>
+                    <div className="mt-3 flex items-center gap-2 text-xs">
+                      <div className="flex -space-x-2">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="w-6 h-6 rounded-full bg-white/30 border-2 border-purple-500" />
+                        ))}
+                      </div>
+                      <span className="opacity-75">+{formatNumber(statistics?.totalAuthors || 20)} authors</span>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Slide Indicators */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={cn(
+                "h-2 rounded-full transition-all",
+                index === currentSlide ? "w-8 bg-white" : "w-2 bg-white/30"
+              )}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

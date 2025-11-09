@@ -61,6 +61,7 @@ import { cn } from "@/lib/utils";
 interface CourseData {
   id: string;
   title: string;
+  subtitle?: string | null;
   description: string;
   imageUrl: string;
   previewVideo?: string;
@@ -401,6 +402,12 @@ export function CoursesPageClient({
       filterOptions={filterOptions}
       totalCourses={totalCount}
       userId={userId}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      isLoading={isLoading}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={setCurrentPage}
     />
   );
 }

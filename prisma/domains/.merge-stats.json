@@ -1,7 +1,7 @@
 {
-  "filesProcessed": 15,
-  "totalLines": 6153,
-  "timestamp": "2025-11-02T23:49:13.440Z",
+  "filesProcessed": 17,
+  "totalLines": 6379,
+  "timestamp": "2025-11-08T23:27:44.270Z",
   "domains": [
     "base",
     "enums",
@@ -17,6 +17,8 @@
     "events",
     "user-preferences",
     "course-enhancements",
-    "qa-system"
+    "qa-system",
+    "payment-system",
+    "discussion-forum"
   ]
 }

@@ -51,20 +51,18 @@ Make sure to run "npm run build" or install ts-node
      ✓ webpackBuildWorker
 
    Creating an optimized production build ...
- ✓ Compiled successfully in 16.3s
+ ✓ Compiled successfully in 17.3s
    Running TypeScript ...
 Failed to compile.
 
-./actions/admin/login.ts:186:47
-Type error: Type '{ userId: string; }' is not assignable to type 'Exact<(Without<TwoFactorConfirmationCreateInput, TwoFactorConfirmationUncheckedCreateInput> & TwoFactorConfirmationUncheckedCreateInput) | (Without<...> & TwoFactorConfirmationCreateInput), (Without<...> & TwoFactorConfirmationUncheckedCreateInput) | (Without<...> & TwoFactorConfirmationCreateInput)>'.
-  Type '{ userId: string; }' is not assignable to type '(Without<TwoFactorConfirmationCreateInput, TwoFactorConfirmationUncheckedCreateInput> & TwoFactorConfirmationUncheckedCreateInput) | { ...; }'.
-    Property 'id' is missing in type '{ userId: string; }' but required in type '{ User?: undefined; id: string; userId: string; }'.
+./app/(course)/courses/[courseId]/learn/[chapterId]/sections/[sectionId]/_components/keyboard-shortcuts.tsx:117:29
+Type error: Cannot find name 'HTMLTextarea'.
 
-[0m [90m 184 |[39m       }
- [90m 185 |[39m
-[31m[1m>[22m[39m[90m 186 |[39m       [36mawait[39m db[33m.[39mtwoFactorConfirmation[33m.[39mcreate({ data[33m:[39m { userId[33m:[39m existingUser[33m.[39mid } })[33m;[39m
- [90m     |[39m                                               [31m[1m^[22m[39m
- [90m 187 |[39m       console[33m.[39mlog([32m`[admin-login] Admin 2FA validated via ${verificationMethod}`[39m)[33m;[39m
- [90m 188 |[39m
- [90m 189 |[39m       [36mawait[39m authAuditHelpers[33m.[39mlogTwoFactorVerified(existingUser[33m.[39mid[33m,[39m existingUser[33m.[39memail)[33m;[39m[0m
+[0m [90m 115 |[39m       [36mif[39m (
+ [90m 116 |[39m         e[33m.[39mtarget [36minstanceof[39m [33mHTMLInputElement[39m [33m||[39m
+[31m[1m>[22m[39m[90m 117 |[39m         e[33m.[39mtarget [36minstanceof[39m [33mHTMLTextarea[39m [33m||[39m
+ [90m     |[39m                             [31m[1m^[22m[39m
+ [90m 118 |[39m         e[33m.[39mtarget [36minstanceof[39m [33mHTMLSelectElement[39m
+ [90m 119 |[39m       ) {
+ [90m 120 |[39m         [36mreturn[39m[33m;[39m[0m
 Next.js build worker exited with code: 1 and signal: null

@@ -1,0 +1,52 @@
+// ==========================================
+// Discussion Forum System
+// ==========================================
+// Discussions, replies, and voting for sections
+//
+// Total Models: 2
+// Priority: 1
+//
+// ==========================================
+
+model Discussion {
+  id        String   @id @default(cuid())
+  sectionId String
+  userId    String
+  content   String   @db.Text
+  parentId  String?  // For nested replies
+  isPinned  Boolean  @default(false)
+  isEdited  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  section  Section      @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Discussion?  @relation("DiscussionReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Discussion[] @relation("DiscussionReplies")
+  votes    DiscussionVote[]
+
+  @@index([sectionId, createdAt])
+  @@index([userId])
+  @@index([parentId])
+  @@index([isPinned])
+}
+
+model DiscussionVote {
+  id           String     @id @default(cuid())
+  discussionId String
+  userId       String
+  voteType     VoteType   // UPVOTE or DOWNVOTE
+  createdAt    DateTime   @default(now())
+
+  discussion Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([discussionId, userId])
+  @@index([discussionId])
+  @@index([userId])
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}

@@ -1,16 +1,34 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { Clock, BookOpen, Users, Star, BarChart, Plus, Search, Filter, CheckCircle2, Award, Zap, Trophy, TrendingUp, Calendar, Target, AlertTriangle, BarChart3 } from "lucide-react";
+import { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import {
+  Clock,
+  BookOpen,
+  Users,
+  Star,
+  BarChart,
+  Plus,
+  Search,
+  Filter,
+  CheckCircle2,
+  Award,
+  Zap,
+  Trophy,
+  TrendingUp,
+  Calendar,
+  Target,
+  AlertTriangle,
+  BarChart3,
+} from 'lucide-react';
 import { logger } from '@/lib/logger';
 
-import { CourseCard } from "./course-card";
-import { EmptyState } from "./empty-state";
-import { CoursesFilterMenu } from "./courses-filter-menu";
-import { CourseStats } from "./course-stats";
+import { CourseCard } from './course-card';
+import { EmptyState } from './empty-state';
+import { CoursesFilterMenu } from './courses-filter-menu';
+import { CourseStats } from './course-stats';
 
 interface MyCoursesDashboardProps {
   enrolledCourses: any[];
@@ -27,13 +45,13 @@ export const MyCoursesDashboard = ({
   createdCoursesError,
   user,
 }: MyCoursesDashboardProps) => {
-  const [tab, setTab] = useState<"enrolled" | "created">("enrolled");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [tab, setTab] = useState<'enrolled' | 'created'>('enrolled');
+  const [searchQuery, setSearchQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState({
-    category: "all",
-    progress: "all",
-    sortBy: "recent"
+    category: 'all',
+    progress: 'all',
+    sortBy: 'recent',
   });
 
   // Safe data processing with error protection
@@ -42,134 +60,148 @@ export const MyCoursesDashboard = ({
 
   // Filter courses based on search and filter settings
   const filteredEnrolledCourses = safeEnrolledCourses
-    .filter(course => {
+    .filter((course) => {
       try {
         // Search filter with safe string access
-        const title = course?.title || "";
+        const title = course?.title || '';
         if (searchQuery && !title.toLowerCase().includes(searchQuery.toLowerCase())) {
           return false;
         }
-        
+
         // Category filter with safe access
-        const categoryName = course?.category?.name || "";
-        if (filters.category !== "all" && categoryName !== filters.category) {
+        const categoryName = course?.category?.name || '';
+        if (filters.category !== 'all' && categoryName !== filters.category) {
           return false;
         }
-        
+
         // Progress filter with safe number access
         const completionPercentage = course?.completionPercentage || 0;
-        if (filters.progress === "completed" && completionPercentage < 100) {
+        if (filters.progress === 'completed' && completionPercentage < 100) {
           return false;
         }
-        if (filters.progress === "in-progress" && (completionPercentage === 0 || completionPercentage === 100)) {
+        if (
+          filters.progress === 'in-progress' &&
+          (completionPercentage === 0 || completionPercentage === 100)
+        ) {
           return false;
         }
-        if (filters.progress === "not-started" && completionPercentage > 0) {
+        if (filters.progress === 'not-started' && completionPercentage > 0) {
           return false;
         }
-        
+
         return true;
       } catch (error: any) {
-        logger.warn("Error filtering enrolled course:", error);
+        logger.warn('Error filtering enrolled course:', error);
         return false;
       }
     })
     .sort((a, b) => {
       try {
         // Sort based on filter with safe access
-        if (filters.sortBy === "recent") {
+        if (filters.sortBy === 'recent') {
           const dateA = new Date(a?.enrolledAt || a?.createdAt || 0).getTime();
           const dateB = new Date(b?.enrolledAt || b?.createdAt || 0).getTime();
           return dateB - dateA;
         }
-        if (filters.sortBy === "title") {
-          return (a?.title || "").localeCompare(b?.title || "");
+        if (filters.sortBy === 'title') {
+          return (a?.title || '').localeCompare(b?.title || '');
         }
-        if (filters.sortBy === "progress") {
+        if (filters.sortBy === 'progress') {
           return (b?.completionPercentage || 0) - (a?.completionPercentage || 0);
         }
-        if (filters.sortBy === "rating") {
+        if (filters.sortBy === 'rating') {
           return (b?.averageRating || 0) - (a?.averageRating || 0);
         }
         return 0;
       } catch (error: any) {
-        logger.warn("Error sorting enrolled courses:", error);
+        logger.warn('Error sorting enrolled courses:', error);
         return 0;
       }
     });
 
   const filteredCreatedCourses = safeCreatedCourses
-    .filter(course => {
+    .filter((course) => {
       try {
         // Search filter with safe string access
-        const title = course?.title || "";
+        const title = course?.title || '';
         if (searchQuery && !title.toLowerCase().includes(searchQuery.toLowerCase())) {
           return false;
         }
-        
+
         // Category filter with safe access
-        const categoryName = course?.category?.name || "";
-        if (filters.category !== "all" && categoryName !== filters.category) {
+        const categoryName = course?.category?.name || '';
+        if (filters.category !== 'all' && categoryName !== filters.category) {
           return false;
         }
-        
+
         return true;
       } catch (error: any) {
-        logger.warn("Error filtering created course:", error);
+        logger.warn('Error filtering created course:', error);
         return false;
       }
     })
     .sort((a, b) => {
       try {
         // Sort based on filter with safe access
-        if (filters.sortBy === "recent") {
+        if (filters.sortBy === 'recent') {
           const dateA = new Date(a?.createdAt || 0).getTime();
           const dateB = new Date(b?.createdAt || 0).getTime();
           return dateB - dateA;
         }
-        if (filters.sortBy === "title") {
-          return (a?.title || "").localeCompare(b?.title || "");
+        if (filters.sortBy === 'title') {
+          return (a?.title || '').localeCompare(b?.title || '');
         }
-        if (filters.sortBy === "students") {
+        if (filters.sortBy === 'students') {
           return (b?.totalEnrolled || 0) - (a?.totalEnrolled || 0);
         }
-        if (filters.sortBy === "rating") {
+        if (filters.sortBy === 'rating') {
           return (b?.averageRating || 0) - (a?.averageRating || 0);
         }
         return 0;
       } catch (error: any) {
-        logger.warn("Error sorting created courses:", error);
+        logger.warn('Error sorting created courses:', error);
         return 0;
       }
     });
 
   // Calculate dashboard stats with safe access
   const totalEnrolledCourses = safeEnrolledCourses.length;
-  const completedCourses = safeEnrolledCourses.filter(c => (c?.completionPercentage || 0) === 100).length;
-  const inProgressCourses = safeEnrolledCourses.filter(c => {
+  const completedCourses = safeEnrolledCourses.filter(
+    (c) => (c?.completionPercentage || 0) === 100
+  ).length;
+  const inProgressCourses = safeEnrolledCourses.filter((c) => {
     const progress = c?.completionPercentage || 0;
     return progress > 0 && progress < 100;
   }).length;
   const totalCreatedCourses = safeCreatedCourses.length;
-  const totalStudents = safeCreatedCourses.reduce((acc, course) => acc + (course?.totalEnrolled || 0), 0);
-  
+  const totalStudents = safeCreatedCourses.reduce(
+    (acc, course) => acc + (course?.totalEnrolled || 0),
+    0
+  );
+
   // Calculate average completion rate
-  const avgCompletionRate = totalEnrolledCourses > 0 
-    ? Math.round(safeEnrolledCourses.reduce((acc, course) => acc + (course?.completionPercentage || 0), 0) / totalEnrolledCourses)
-    : 0;
+  const avgCompletionRate =
+    totalEnrolledCourses > 0
+      ? Math.round(
+          safeEnrolledCourses.reduce(
+            (acc, course) => acc + (course?.completionPercentage || 0),
+            0
+          ) / totalEnrolledCourses
+        )
+      : 0;
 
   // Calculate learning streak (mock data for now)
   const learningStreak = 7;
 
   const variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: {
         duration: 0.5,
-      }
-    }
+      },
+    },
   };
 
   const containerVariants = {
@@ -177,9 +209,9 @@ export const MyCoursesDashboard = ({
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   return (
@@ -203,13 +235,13 @@ export const MyCoursesDashboard = ({
           >
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center sm:mr-4 flex-shrink-0">
               <span className="text-xl sm:text-2xl font-bold text-white">
-                {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
               </span>
             </div>
             <div className="text-center sm:text-left">
               <h2 className="text-sm sm:text-lg text-gray-300">Welcome back,</h2>
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
-                {user?.name || "Learner"}
+                {user?.name || 'Learner'}
               </h1>
             </div>
           </motion.div>
@@ -220,7 +252,8 @@ export const MyCoursesDashboard = ({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mt-3 sm:mt-4 text-sm sm:text-base lg:text-lg text-gray-300 max-w-3xl mx-auto px-2"
           >
-            Track your progress, manage your courses, and continue your educational adventure all in one place.
+            Track your progress, manage your courses, and continue your educational adventure all in
+            one place.
           </motion.p>
 
           {/* Quick Stats in Header - Responsive Grid */}
@@ -239,7 +272,9 @@ export const MyCoursesDashboard = ({
               <div className="text-xs sm:text-sm text-gray-300">Completed</div>
             </div>
             <div className="text-center p-3 sm:p-0">
-              <div className="text-xl sm:text-2xl font-bold text-purple-400">{totalCreatedCourses}</div>
+              <div className="text-xl sm:text-2xl font-bold text-purple-400">
+                {totalCreatedCourses}
+              </div>
               <div className="text-xs sm:text-sm text-gray-300">Created</div>
             </div>
             <div className="text-center p-3 sm:p-0">
@@ -257,7 +292,7 @@ export const MyCoursesDashboard = ({
         animate="visible"
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10"
       >
-        <CourseStats 
+        <CourseStats
           title="Enrolled Courses"
           value={totalEnrolledCourses}
           icon={<BookOpen className="w-5 h-5 text-blue-400" />}
@@ -265,8 +300,8 @@ export const MyCoursesDashboard = ({
           positive={true}
           color="blue"
         />
-        
-        <CourseStats 
+
+        <CourseStats
           title="Completed Courses"
           value={completedCourses}
           icon={<CheckCircle2 className="w-5 h-5 text-green-400" />}
@@ -274,17 +309,19 @@ export const MyCoursesDashboard = ({
           positive={true}
           color="green"
         />
-        
-        <CourseStats 
+
+        <CourseStats
           title="Created Courses"
           value={totalCreatedCourses}
           icon={<Award className="w-5 h-5 text-purple-400" />}
-          change={totalCreatedCourses > 0 ? `${totalStudents} total students` : "Create your first course"}
+          change={
+            totalCreatedCourses > 0 ? `${totalStudents} total students` : 'Create your first course'
+          }
           positive={totalCreatedCourses > 0}
           color="purple"
         />
-        
-        <CourseStats 
+
+        <CourseStats
           title="Learning Streak"
           value={`${learningStreak} days`}
           icon={<Zap className="w-5 h-5 text-amber-400" />}
@@ -293,7 +330,7 @@ export const MyCoursesDashboard = ({
           color="amber"
         />
 
-        <CourseStats 
+        <CourseStats
           title="In Progress"
           value={inProgressCourses}
           icon={<TrendingUp className="w-5 h-5 text-orange-400" />}
@@ -302,7 +339,7 @@ export const MyCoursesDashboard = ({
           color="orange"
         />
 
-        <CourseStats 
+        <CourseStats
           title="This Month"
           value="24h"
           icon={<Calendar className="w-5 h-5 text-indigo-400" />}
@@ -332,7 +369,8 @@ export const MyCoursesDashboard = ({
                     <h3 className="text-lg sm:text-xl font-bold">Course Creator Analytics</h3>
                   </div>
                   <p className="text-white/90 mb-3 sm:mb-4 text-sm sm:text-base">
-                    Track your impact! See how {totalStudents} learners are engaging with your {totalCreatedCourses} courses.
+                    Track your impact! See how {totalStudents} learners are engaging with your{' '}
+                    {totalCreatedCourses} courses.
                   </p>
                   <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
                     <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full whitespace-nowrap">
@@ -361,41 +399,45 @@ export const MyCoursesDashboard = ({
         <div className="flex flex-col sm:flex-row border-b border-gray-200/50 dark:border-gray-800/50">
           <div className="flex flex-1">
             <button
-              onClick={() => setTab("enrolled")}
+              onClick={() => setTab('enrolled')}
               className={`flex-1 sm:flex-none px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm flex items-center justify-center sm:justify-start transition-all duration-200 ${
-                tab === "enrolled"
-                  ? "text-purple-600 dark:text-purple-400 border-b-2 border-purple-500 bg-purple-50/50 dark:bg-purple-900/20"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                tab === 'enrolled'
+                  ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-500 bg-purple-50/50 dark:bg-purple-900/20'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50'
               }`}
             >
               <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               <span className="hidden xs:inline sm:inline">Enrolled</span>
               <span className="xs:hidden sm:hidden">Enrolled</span>
-              <span className={`ml-1 sm:ml-2 py-0.5 px-1.5 sm:px-2 rounded-full text-xs ${
-                tab === "enrolled"
-                  ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
-                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-              }`}>
+              <span
+                className={`ml-1 sm:ml-2 py-0.5 px-1.5 sm:px-2 rounded-full text-xs ${
+                  tab === 'enrolled'
+                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                    : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                }`}
+              >
                 {totalEnrolledCourses}
               </span>
             </button>
 
             <button
-              onClick={() => setTab("created")}
+              onClick={() => setTab('created')}
               className={`flex-1 sm:flex-none px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm flex items-center justify-center sm:justify-start transition-all duration-200 ${
-                tab === "created"
-                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                tab === 'created'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50'
               }`}
             >
               <Trophy className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               <span className="hidden xs:inline sm:inline">Created</span>
               <span className="xs:hidden sm:hidden">Created</span>
-              <span className={`ml-1 sm:ml-2 py-0.5 px-1.5 sm:px-2 rounded-full text-xs ${
-                tab === "created"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-              }`}>
+              <span
+                className={`ml-1 sm:ml-2 py-0.5 px-1.5 sm:px-2 rounded-full text-xs ${
+                  tab === 'created'
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                    : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                }`}
+              >
                 {totalCreatedCourses}
               </span>
             </button>
@@ -421,18 +463,18 @@ export const MyCoursesDashboard = ({
               aria-expanded={filterOpen}
               className={`p-2 border rounded-lg transition-all duration-200 flex-shrink-0 ${
                 filterOpen
-                  ? "bg-purple-100 border-purple-300 text-purple-700 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300"
-                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800/50 dark:border-gray-700/50 dark:text-gray-400 dark:hover:bg-gray-700/50"
+                  ? 'bg-purple-100 border-purple-300 text-purple-700 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800/50 dark:border-gray-700/50 dark:text-gray-400 dark:hover:bg-gray-700/50'
               }`}
             >
               <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
             </button>
           </div>
         </div>
-        
+
         {/* Filter Dropdown */}
         {filterOpen && (
-          <CoursesFilterMenu 
+          <CoursesFilterMenu
             filters={filters}
             setFilters={setFilters}
             onClose={() => setFilterOpen(false)}
@@ -442,7 +484,7 @@ export const MyCoursesDashboard = ({
 
         {/* Courses Grid - Full Width */}
         <div className="p-6">
-          {tab === "enrolled" && (
+          {tab === 'enrolled' && (
             <>
               {enrolledCoursesError && (
                 <motion.div
@@ -456,36 +498,33 @@ export const MyCoursesDashboard = ({
                   </div>
                 </motion.div>
               )}
-              
+
               {filteredEnrolledCourses.length === 0 ? (
-                <EmptyState 
+                <EmptyState
                   title="No enrolled courses found"
                   description={
-                    searchQuery 
-                      ? "Try adjusting your search or filters" 
-                      : "Explore our course catalog to start your learning journey"
+                    searchQuery
+                      ? 'Try adjusting your search or filters'
+                      : 'Explore our course catalog to start your learning journey'
                   }
                   icon={<BookOpen className="w-10 h-10 text-gray-500" />}
                   actionLink="/teacher/courses"
                   actionText="All Courses"
                 />
               ) : (
-                <motion.div 
+                <motion.div
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
                 >
                   {filteredEnrolledCourses.map((course, index) => (
-                    <motion.div 
+                    <motion.div
                       key={course?.id || index}
                       variants={variants}
                       whileHover={{ y: -5, transition: { duration: 0.2 } }}
                     >
-                      <CourseCard 
-                        course={course}
-                        type="enrolled"
-                      />
+                      <CourseCard course={course} type="enrolled" />
                     </motion.div>
                   ))}
                 </motion.div>
@@ -493,7 +532,7 @@ export const MyCoursesDashboard = ({
             </>
           )}
 
-          {tab === "created" && (
+          {tab === 'created' && (
             <>
               {createdCoursesError && (
                 <motion.div
@@ -507,7 +546,7 @@ export const MyCoursesDashboard = ({
                   </div>
                 </motion.div>
               )}
-              
+
               <div className="flex justify-between mb-6">
                 <Link href="/my-courses/analytics">
                   <motion.button
@@ -519,7 +558,7 @@ export const MyCoursesDashboard = ({
                     View Course Analytics
                   </motion.button>
                 </Link>
-                
+
                 <Link href="/teacher/courses/create">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -531,9 +570,9 @@ export const MyCoursesDashboard = ({
                   </motion.button>
                 </Link>
               </div>
-              
+
               {filteredCreatedCourses.length === 0 ? (
-                <EmptyState 
+                <EmptyState
                   title="You haven't created any courses yet"
                   description="Share your knowledge with the world by creating your first course"
                   icon={<Award className="w-10 h-10 text-gray-500" />}
@@ -541,22 +580,19 @@ export const MyCoursesDashboard = ({
                   actionText="Create Course"
                 />
               ) : (
-                <motion.div 
+                <motion.div
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
                 >
                   {filteredCreatedCourses.map((course, index) => (
-                    <motion.div 
+                    <motion.div
                       key={course?.id || index}
                       variants={variants}
                       whileHover={{ y: -5, transition: { duration: 0.2 } }}
                     >
-                      <CourseCard 
-                        course={course}
-                        type="created"
-                      />
+                      <CourseCard course={course} type="created" />
                     </motion.div>
                   ))}
                 </motion.div>
@@ -567,4 +603,4 @@ export const MyCoursesDashboard = ({
       </div>
     </div>
   );
-}; 
+};

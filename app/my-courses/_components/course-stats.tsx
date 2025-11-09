@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { motion } from 'framer-motion';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 
 interface CourseStatsProps {
   title: string;
@@ -7,63 +7,45 @@ interface CourseStatsProps {
   icon: React.ReactNode;
   change: string;
   positive: boolean;
-  color: "blue" | "green" | "purple" | "amber" | "orange" | "indigo";
+  color: 'blue' | 'green' | 'purple' | 'amber' | 'orange' | 'indigo';
 }
 
-export const CourseStats = ({
-  title,
-  value,
-  icon,
-  change,
-  positive,
-  color,
-}: CourseStatsProps) => {
+export const CourseStats = ({ title, value, icon, change, positive, color }: CourseStatsProps) => {
+  // Analytics page gradient card style
   const colorMap = {
     blue: {
-      bg: "bg-blue-900/20 dark:bg-blue-900/20",
-      border: "border-blue-800/30 dark:border-blue-800/30",
-      textAccent: "text-blue-600 dark:text-blue-400",
-      iconBg: "bg-blue-500/20 dark:bg-blue-500/20",
-      iconBorder: "border-blue-500/30 dark:border-blue-500/30",
+      gradient: 'from-blue-500 to-blue-600',
+      hoverGradient: 'from-blue-400/20 to-blue-700/20',
+      iconBg: 'bg-white/20',
     },
     green: {
-      bg: "bg-green-900/20 dark:bg-green-900/20",
-      border: "border-green-800/30 dark:border-green-800/30",
-      textAccent: "text-green-600 dark:text-green-400",
-      iconBg: "bg-green-500/20 dark:bg-green-500/20",
-      iconBorder: "border-green-500/30 dark:border-green-500/30",
+      gradient: 'from-emerald-500 to-emerald-600',
+      hoverGradient: 'from-emerald-400/20 to-emerald-700/20',
+      iconBg: 'bg-white/20',
     },
     purple: {
-      bg: "bg-purple-900/20 dark:bg-purple-900/20",
-      border: "border-purple-800/30 dark:border-purple-800/30",
-      textAccent: "text-purple-600 dark:text-purple-400",
-      iconBg: "bg-purple-500/20 dark:bg-purple-500/20",
-      iconBorder: "border-purple-500/30 dark:border-purple-500/30",
+      gradient: 'from-purple-500 to-purple-600',
+      hoverGradient: 'from-purple-400/20 to-purple-700/20',
+      iconBg: 'bg-white/20',
     },
     amber: {
-      bg: "bg-amber-900/20 dark:bg-amber-900/20",
-      border: "border-amber-800/30 dark:border-amber-800/30",
-      textAccent: "text-amber-600 dark:text-amber-400",
-      iconBg: "bg-amber-500/20 dark:bg-amber-500/20",
-      iconBorder: "border-amber-500/30 dark:border-amber-500/30",
+      gradient: 'from-amber-500 to-orange-500',
+      hoverGradient: 'from-amber-400/20 to-orange-700/20',
+      iconBg: 'bg-white/20',
     },
     orange: {
-      bg: "bg-orange-900/20 dark:bg-orange-900/20",
-      border: "border-orange-800/30 dark:border-orange-800/30",
-      textAccent: "text-orange-600 dark:text-orange-400",
-      iconBg: "bg-orange-500/20 dark:bg-orange-500/20",
-      iconBorder: "border-orange-500/30 dark:border-orange-500/30",
+      gradient: 'from-orange-500 to-red-500',
+      hoverGradient: 'from-orange-400/20 to-red-700/20',
+      iconBg: 'bg-white/20',
     },
     indigo: {
-      bg: "bg-indigo-900/20 dark:bg-indigo-900/20",
-      border: "border-indigo-800/30 dark:border-indigo-800/30",
-      textAccent: "text-indigo-600 dark:text-indigo-400",
-      iconBg: "bg-indigo-500/20 dark:bg-indigo-500/20",
-      iconBorder: "border-indigo-500/30 dark:border-indigo-500/30",
+      gradient: 'from-indigo-500 to-indigo-600',
+      hoverGradient: 'from-indigo-400/20 to-indigo-700/20',
+      iconBg: 'bg-white/20',
     },
   };
 
-  const styles = colorMap[color] || colorMap.blue; // Fallback to blue if color not found
+  const styles = colorMap[color] || colorMap.blue;
 
   return (
     <motion.div
@@ -71,33 +53,27 @@ export const CourseStats = ({
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0 },
       }}
-      className={`p-6 rounded-xl ${styles.bg} ${styles.border} border backdrop-blur-sm`}
+      className={`group relative overflow-hidden bg-gradient-to-br ${styles.gradient} border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-lg`}
     >
-      <div className="flex justify-between items-start">
-        <div className={`p-3 rounded-lg ${styles.iconBg} ${styles.iconBorder} border`}>
-          {icon}
+      {/* Hover overlay */}
+      <div
+        className={`absolute inset-0 bg-gradient-to-br ${styles.hoverGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+      />
+
+      {/* Content */}
+      <div className="relative p-3 sm:p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className={`p-2 ${styles.iconBg} rounded-lg`}>{icon}</div>
+          <span className="text-sm font-medium text-white/90">{title}</span>
         </div>
-        
-        <div className="flex items-center space-x-1">
-          {positive ? (
-            <ArrowUp className="h-3 w-3 text-green-400" />
-          ) : (
-            <ArrowDown className="h-3 w-3 text-red-400" />
-          )}
-          <span className={`text-xs font-medium ${positive ? 'text-green-400' : 'text-red-400'}`}>
-            {change}
-          </span>
-        </div>
-      </div>
-      
-      <div className="mt-4">
-        <h4 className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-          {title}
-        </h4>
-        <div className={`text-2xl font-bold mt-1 ${styles.textAccent}`}>
-          {value}
+
+        <div className="text-2xl font-bold text-white mb-1">{value}</div>
+
+        <div className="flex items-center gap-1 text-xs text-white/80">
+          {positive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+          <span>{change}</span>
         </div>
       </div>
     </motion.div>
   );
-}; 
+};

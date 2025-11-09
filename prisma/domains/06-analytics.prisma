@@ -260,6 +260,9 @@ model user_progress {
   @@index([courseId])
   @@index([isCompleted])
   @@index([userId])
+  @@index([userId, isCompleted])   // For progress tracking queries
+  @@index([sectionId, userId])     // For section progress lookup
+  @@index([lastAccessedAt])        // For recent activity queries
 }
 
 model EnterpriseAnalytics {

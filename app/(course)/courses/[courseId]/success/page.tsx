@@ -7,6 +7,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
+import { stripe } from "@/lib/stripe";
 
 interface CourseSuccessPageProps {
   params: Promise<{ courseId: string }>;
@@ -16,7 +17,7 @@ interface CourseSuccessPageProps {
 const CourseSuccessPage = async ({ params, searchParams }: CourseSuccessPageProps) => {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
-  
+
   const user = await currentUser();
 
   if (!user?.id) {
@@ -25,7 +26,8 @@ const CourseSuccessPage = async ({ params, searchParams }: CourseSuccessPageProp
 
   // Check if this is a success page (from checkout)
   const isSuccess = resolvedSearchParams.success === '1';
-  
+  const sessionId = resolvedSearchParams.session_id as string | undefined;
+
   if (!isSuccess) {
     return redirect(`/courses/${resolvedParams.courseId}`);
   }
@@ -33,7 +35,7 @@ const CourseSuccessPage = async ({ params, searchParams }: CourseSuccessPageProp
   // Verify enrollment exists with retry logic for webhook delays
   let enrollment = null;
   let retryCount = 0;
-  const maxRetries = 10; // Wait up to 30 seconds for webhook
+  const maxRetries = 5; // Wait up to 5 seconds for webhook (optimized UX)
 
   while (!enrollment && retryCount < maxRetries) {
     enrollment = await db.enrollment.findUnique({
@@ -72,14 +74,76 @@ const CourseSuccessPage = async ({ params, searchParams }: CourseSuccessPageProp
     if (!enrollment) {
       retryCount++;
       if (retryCount < maxRetries) {
-        // Wait 3 seconds before retrying
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Wait 1 second before retrying (optimized for faster UX)
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
   }
 
-  if (!enrollment) {
+  // FALLBACK: If enrollment not found but we have session_id, verify payment and create enrollment
+  if (!enrollment && sessionId) {
+    try {
+      // Verify the payment session with Stripe
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
 
+      if (session.payment_status === 'paid' && session.metadata?.courseId === resolvedParams.courseId) {
+        // Payment confirmed! Create enrollment directly as fallback
+        const course = await db.course.findUnique({
+          where: { id: resolvedParams.courseId },
+          include: {
+            chapters: {
+              include: {
+                user_progress: {
+                  where: { userId: user.id },
+                },
+              },
+              orderBy: { position: 'asc' },
+            },
+            user: true,
+            _count: {
+              select: { Enrollment: true },
+            },
+          },
+        });
+
+        if (course) {
+          // Create enrollment directly (fallback when webhooks/workers not working)
+          enrollment = await db.enrollment.create({
+            data: {
+              id: crypto.randomUUID(), // Generate unique ID
+              userId: user.id,
+              courseId: resolvedParams.courseId,
+              enrollmentType: 'PAID',
+              status: 'ACTIVE',
+              updatedAt: new Date(), // Required field without default
+            },
+            include: {
+              Course: {
+                include: {
+                  chapters: {
+                    include: {
+                      user_progress: {
+                        where: { userId: user.id },
+                      },
+                    },
+                    orderBy: { position: 'asc' },
+                  },
+                  user: true,
+                  _count: {
+                    select: { Enrollment: true },
+                  },
+                },
+              },
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[SUCCESS_PAGE_FALLBACK_ERROR]', error);
+    }
+  }
+
+  if (!enrollment) {
     return redirect(`/courses/${resolvedParams.courseId}?error=enrollment_not_found&debug=1`);
   }
 

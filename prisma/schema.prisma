@@ -10,8 +10,8 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-11-02T23:49:13.438Z
-// Source: 15 domain files
+// Generated: 2025-11-08T23:27:44.268Z
+// Source: 17 domain files
 // ==========================================
 
 
@@ -1100,7 +1100,17 @@ model User {
   learningPathsCreated     LearningPath[]
   learningPathEnrollments  LearningPathEnrollment[]
   courseComparisons        CourseComparison[]
+
+  // Phase 3: Enterprise Payment System (from 15-payment-system.prisma)
+  paymentTransactions PaymentTransaction[]
   courseRecommendations    CourseRecommendation[]
+
+  // Video bookmarks
+  videoBookmarks VideoBookmark[]
+
+  // Discussions
+  discussions Discussion[]
+  discussionVotes DiscussionVote[]
 }
 
 model Account {
@@ -1119,6 +1129,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId]) // PERFORMANCE FIX: Index for getAccountByUserId query
 }
 
 model VerificationToken {
@@ -1547,6 +1558,9 @@ model Course {
   originalPrice                Float?
   dealEndDate                  DateTime?
   averageRating                Float?
+  // Phase 3 - Enterprise Payment System
+  isFree                       Boolean?                       @default(false)
+  priceType                    String?                        @default("ONE_TIME")
   AIGeneratedContent           AIGeneratedContent[]
   attachments                  Attachment[]
   BloomsPerformanceMetric      BloomsPerformanceMetric[]
@@ -1697,7 +1711,16 @@ model Section {
   // Phase 2: Q&A System relations
   courseQuestions CourseQuestion[]
 
+  // Video bookmarks
+  videoBookmarks VideoBookmark[]
+
+  // Discussions
+  discussions Discussion[]
+
   @@index([chapterId])
+  @@index([chapterId, position]) // For ordered chapter queries
+  @@index([isPublished, isFree])  // For access control queries
+  @@index([createdAt])             // For sorting by date
 }
 
 model Video {
@@ -1751,6 +1774,23 @@ model Exam {
   @@index([isPublished, isActive])
 }
 
+model VideoBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  sectionId String
+  timestamp Int      // Seconds into video
+  note      String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sectionId, timestamp])
+  @@index([userId, sectionId])
+  @@index([createdAt])
+}
+
 model Question {
   id        String   @id @default(uuid())
   text      String
@@ -1802,17 +1842,23 @@ model Answer {
 }
 
 model Enrollment {
-  id        String   @id
-  userId    String
-  courseId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  Course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String   @id
+  userId                String
+  courseId              String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime
+  // Phase 3 - Enterprise Payment System
+  status                String?  @default("ACTIVE")
+  enrollmentType        String?  @default("FREE")
+  paymentTransactionId  String?
+  Course                Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  User                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
   @@index([courseId])
   @@index([userId])
+  @@index([status])
+  @@index([paymentTransactionId])
 }
 
 model ExamQuestion {
@@ -3218,7 +3264,7 @@ model user_achievements {
 }
 
 model user_progress {
-  id              String    @id
+  id              String    @id @default(cuid())
   userId          String
   courseId        String?
   chapterId       String?
@@ -3231,8 +3277,10 @@ model user_progress {
   attempts        Int       @default(0)
   lastAccessedAt  DateTime  @default(now())
   currentStreak   Int       @default(0)
+  completedItems  Json?
+  overallProgress Float?    @default(0)
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime  @updatedAt
   Chapter         Chapter?  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   Course          Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   Section         Section?  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
@@ -3242,6 +3290,9 @@ model user_progress {
   @@index([courseId])
   @@index([isCompleted])
   @@index([userId])
+  @@index([userId, isCompleted])   // For progress tracking queries
+  @@index([sectionId, userId])     // For section progress lookup
+  @@index([lastAccessedAt])        // For recent activity queries
 }
 
 model EnterpriseAnalytics {
@@ -6214,4 +6265,189 @@ model AnswerVote {
   @@unique([answerId, userId])
   @@index([answerId])
   @@index([userId])
+}
+
+// ==========================================
+// Source: 15-payment-system.prisma
+// ==========================================
+
+// ==========================================
+// Payment System Domain
+// ==========================================
+// Enterprise payment and enrollment system
+// Includes: Transactions, Webhooks, Email Queue
+//
+// Features:
+// - Multi-provider payment support
+// - Webhook event tracking
+// - Email notification queue
+// - Free and paid enrollments
+//
+// Note: EnrollmentStatus, EmailStatus, and AuditLog are defined in other domains
+// ==========================================
+
+// Payment status enum
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+// Payment provider enum
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+  FREE
+  MANUAL
+}
+
+// Enrollment type enum
+enum EnrollmentType {
+  FREE
+  PAID
+  SCHOLARSHIP
+  TRIAL
+  MANUAL
+}
+
+// Email template enum
+enum EmailTemplate {
+  ENROLLMENT_SUCCESS
+  ENROLLMENT_FAILED
+  PAYMENT_RECEIPT
+  COURSE_WELCOME
+  COURSE_COMPLETION
+  REFUND_PROCESSED
+}
+
+// Price type enum
+enum PriceType {
+  FREE
+  ONE_TIME
+  SUBSCRIPTION_MONTHLY
+  SUBSCRIPTION_YEARLY
+}
+
+// Payment transaction model
+model PaymentTransaction {
+  id                String          @id @default(uuid())
+  userId            String
+  courseId          String
+  amount            Decimal         @db.Decimal(10, 2)
+  currency          String          @default("USD")
+  status            PaymentStatus   @default(PENDING)
+  provider          PaymentProvider @default(STRIPE)
+  providerSessionId String?         @unique
+  providerTxnId     String?         @unique
+  metadata          Json?
+  errorCode         String?
+  errorMessage      String?
+  retryCount        Int             @default(0)
+  lastRetryAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+  @@index([providerSessionId])
+  @@index([createdAt])
+}
+
+// Webhook event log
+model WebhookEvent {
+  id             String    @id @default(uuid())
+  provider       String
+  eventType      String
+  eventId        String
+  payload        Json
+  processed      Boolean   @default(false)
+  processedAt    DateTime?
+  errorMessage   String?
+  retryCount     Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  @@unique([provider, eventId])
+  @@index([processed])
+  @@index([createdAt])
+}
+
+// Email notification queue
+model EmailQueue {
+  id           String        @id @default(uuid())
+  to           String
+  subject      String
+  template     EmailTemplate
+  data         Json
+  status       EmailStatus   @default(QUEUED)
+  sentAt       DateTime?
+  errorMessage String?
+  retryCount   Int           @default(0)
+  createdAt    DateTime      @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ==========================================
+// Source: 16-discussion-forum.prisma
+// ==========================================
+
+// ==========================================
+// Discussion Forum System
+// ==========================================
+// Discussions, replies, and voting for sections
+//
+// Total Models: 2
+// Priority: 1
+//
+// ==========================================
+
+model Discussion {
+  id        String   @id @default(cuid())
+  sectionId String
+  userId    String
+  content   String   @db.Text
+  parentId  String?  // For nested replies
+  isPinned  Boolean  @default(false)
+  isEdited  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  section  Section      @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Discussion?  @relation("DiscussionReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Discussion[] @relation("DiscussionReplies")
+  votes    DiscussionVote[]
+
+  @@index([sectionId, createdAt])
+  @@index([userId])
+  @@index([parentId])
+  @@index([isPinned])
+}
+
+model DiscussionVote {
+  id           String     @id @default(cuid())
+  discussionId String
+  userId       String
+  voteType     VoteType   // UPVOTE or DOWNVOTE
+  createdAt    DateTime   @default(now())
+
+  discussion Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([discussionId, userId])
+  @@index([discussionId])
+  @@index([userId])
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
 }

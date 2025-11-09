@@ -1,7 +1,24 @@
 import { redirect } from 'next/navigation';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { EnhancedSectionLearningPersonalized } from './_components/enhanced-section-learning-personalized';
+import { getLearningPageData, getUserProgress } from '@/lib/queries/learning-queries';
+import { EnterpriseSectionLearning } from './_components/enterprise-section-learning';
+import { LearningModeProvider } from '../../../_components/learning-mode-context';
+import { Suspense } from 'react';
+import { SectionLoadingSkeleton } from './_components/section-loading-skeleton';
+import { z } from 'zod';
+import { logger } from '@/lib/logger';
+
+// Disable caching for real-time data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// Input validation schema
+const SectionPageParamsSchema = z.object({
+  courseId: z.string().uuid("Invalid course ID format"),
+  chapterId: z.string().uuid("Invalid chapter ID format"),
+  sectionId: z.string().uuid("Invalid section ID format"),
+});
 
 interface SectionPageProps {
   params: Promise<{
@@ -12,62 +29,28 @@ interface SectionPageProps {
 }
 
 const SectionPage = async (props: SectionPageProps): Promise<JSX.Element> => {
-  const params = await props.params;
+  const rawParams = await props.params;
   const user = await currentUser();
 
-  if (!user?.id) {
-    return redirect("/auth/login");
+  // Validate parameters
+  let params: z.infer<typeof SectionPageParamsSchema>;
+  try {
+    params = SectionPageParamsSchema.parse(rawParams);
+  } catch (error) {
+    logger.error("Invalid section page parameters", error instanceof Error ? error : new Error(String(error)));
+    return redirect("/my-courses");
   }
 
-  // Verify enrollment
-  const enrollment = await db.enrollment.findUnique({
-    where: {
-      userId_courseId: {
-        userId: user.id,
-        courseId: params.courseId,
-      }
-    }
-  });
-
-  if (!enrollment) {
-    return redirect(`/courses/${params.courseId}`);
-  }
-
-  // Fetch course data with full relationships
-  const courseData = await db.course.findUnique({
-    where: {
-      id: params.courseId,
-    },
-    include: {
-      chapters: {
-        orderBy: {
-          position: "asc",
-        },
-        include: {
-          sections: {
-            orderBy: {
-              position: "asc",
-            },
-            include: {
-              user_progress: {
-                where: {
-                  userId: user.id,
-                },
-              },
-              videos: true,
-              blogs: true,
-              articles: true,
-              notes: true,
-              codeExplanations: true,
-            },
-          },
-        },
-      },
-    },
+  // ✅ SINGLE OPTIMIZED QUERY (was 3 queries before)
+  const courseData = await getLearningPageData({
+    courseId: params.courseId,
+    chapterId: params.chapterId,
+    sectionId: params.sectionId,
+    userId: user?.id ?? null,
   });
 
   if (!courseData) {
-    return redirect("/error");
+    return redirect("/courses");
   }
 
   // Find the current chapter and section
@@ -76,7 +59,7 @@ const SectionPage = async (props: SectionPageProps): Promise<JSX.Element> => {
   );
 
   if (!currentChapter) {
-    return redirect("/error");
+    return redirect("/courses");
   }
 
   const currentSection = currentChapter.sections.find(
@@ -84,7 +67,31 @@ const SectionPage = async (props: SectionPageProps): Promise<JSX.Element> => {
   );
 
   if (!currentSection) {
-    return redirect("/error");
+    return redirect("/courses");
+  }
+
+  // Check authentication for non-free content
+  if (!user?.id && !currentSection.isFree && !currentSection.isPreview) {
+    return redirect("/auth/login");
+  }
+
+  // Check if user is the teacher
+  const isTeacher = courseData.userId === user?.id;
+
+  // Get enrollment from the query result
+  const enrollment = courseData.Enrollment?.[0] ?? null;
+
+  // Determine access mode
+  let mode: "learning" | "preview" | "restricted" = "restricted";
+  if (isTeacher) {
+    mode = "preview";
+  } else if (enrollment) {
+    mode = "learning";
+  }
+
+  // If restricted mode and course is not published, redirect
+  if (mode === "restricted" && !courseData.isPublished) {
+    return redirect(`/courses/${params.courseId}`);
   }
 
   // Calculate progress data
@@ -94,9 +101,9 @@ const SectionPage = async (props: SectionPageProps): Promise<JSX.Element> => {
   );
   
   const completedSections = courseData.chapters.reduce(
-    (acc, chapter) => 
-      acc + chapter.sections.filter(section => 
-        section.user_progress.some(p => p.isCompleted)
+    (acc, chapter) =>
+      acc + chapter.sections.filter(section =>
+        section.user_progress?.some(p => p.isCompleted) ?? false
       ).length,
     0
   );
@@ -123,21 +130,40 @@ const SectionPage = async (props: SectionPageProps): Promise<JSX.Element> => {
     }
   }
 
+  // Fetch user progress if in learning mode
+  let userProgress = null;
+  if (mode === "learning" && user?.id) {
+    userProgress = await getUserProgress({
+      userId: user.id,
+      sectionId: params.sectionId,
+    });
+  }
+
   return (
-    <EnhancedSectionLearningPersonalized
-      user={user}
-      course={courseData}
-      currentChapter={currentChapter}
-      currentSection={currentSection}
-      nextSection={nextSection}
-      prevSection={prevSection}
-      nextChapterSection={nextChapterSection}
-      totalSections={totalSections}
-      completedSections={completedSections}
-      courseId={params.courseId}
-      chapterId={params.chapterId}
-      sectionId={params.sectionId}
-    />
+    <LearningModeProvider
+      mode={mode}
+      user={user ?? null}
+      enrollment={enrollment}
+      isTeacher={isTeacher}
+    >
+      <Suspense fallback={<SectionLoadingSkeleton />}>
+        <EnterpriseSectionLearning
+          user={user ?? null}
+          course={courseData as any}
+          currentChapter={currentChapter as any}
+          currentSection={currentSection as any}
+          nextSection={nextSection as any}
+          prevSection={prevSection as any}
+          nextChapterSection={nextChapterSection as any}
+          totalSections={totalSections}
+          completedSections={completedSections}
+          courseId={params.courseId}
+          chapterId={params.chapterId}
+          sectionId={params.sectionId}
+          userProgress={userProgress as any}
+        />
+      </Suspense>
+    </LearningModeProvider>
   );
 };
 

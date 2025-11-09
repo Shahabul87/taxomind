@@ -1,0 +1,69 @@
+
+> taxomind@1.0.0 prebuild
+> node scripts/validate-env.js
+
+🔧 Loading environment for: development
+✅ Found: .env.local
+✅ Found: .env.development
+✅ Found: .env
+📊 Environment Summary:
+   NODE_ENV: development
+   Database: Local (Local Docker)
+   App URL: http://localhost:3000
+   Redis: Disabled
+   Files loaded: .env.local, .env.development, .env
+❌ Could not load TypeScript validation module
+Make sure to run "npm run build" or install ts-node
+🔍 Basic Environment Validation: DEVELOPMENT
+
+📋 Basic Configuration:
+   - NODE_ENV: development
+   - Database: Configured
+   - Auth: Configured
+   - Redis: Not configured
+   - Google OAuth: Configured
+   - GitHub OAuth: Configured
+   - AI (OpenAI): Not configured
+   - AI (Anthropic): Configured
+   - Media (Cloudinary): Configured
+
+✅ Environment validation passed!
+
+
+> taxomind@1.0.0 build
+> NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && NODE_OPTIONS='--max-old-space-size=8192' next build
+
+🔧 Loading environment for: development
+✅ Found: .env.local
+✅ Found: .env.development
+✅ Found: .env
+📊 Environment Summary:
+   NODE_ENV: development
+   Database: Local (Local Docker)
+   App URL: http://localhost:3000
+   Redis: Disabled
+   Files loaded: .env.local, .env.development, .env
+   ▲ Next.js 16.0.1 (Turbopack)
+   - Environments: .env.local, .env.production, .env
+   - Experiments (use with caution):
+     · optimizePackageImports
+     · serverActions
+     ✓ webpackBuildWorker
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 16.7s
+   Running TypeScript ...
+Failed to compile.
+
+./app/(course)/courses/[courseId]/learn/[chapterId]/sections/[sectionId]/page.tsx:145:7
+Type error: Type '(User & { id: string; role: UserRole; isTwoFactorEnabled: boolean; isOAuth: boolean; }) | null | undefined' is not assignable to type '{ name: string | null; email: string | null; password: string | null; role: UserRole; isTwoFactorEnabled: boolean; phone: string | null; image: string | null; learningStyle: LearningStyle | null; ... 31 more ...; teacherActivatedAt: Date | null; } | null'.
+  Type 'undefined' is not assignable to type '{ name: string | null; email: string | null; password: string | null; role: UserRole; isTwoFactorEnabled: boolean; phone: string | null; image: string | null; learningStyle: LearningStyle | null; ... 31 more ...; teacherActivatedAt: Date | null; } | null'.
+
+[0m [90m 143 |[39m     [33m<[39m[33mLearningModeProvider[39m
+ [90m 144 |[39m       mode[33m=[39m{mode}
+[31m[1m>[22m[39m[90m 145 |[39m       user[33m=[39m{user}
+ [90m     |[39m       [31m[1m^[22m[39m
+ [90m 146 |[39m       enrollment[33m=[39m{enrollment}
+ [90m 147 |[39m       isTeacher[33m=[39m{isTeacher}
+ [90m 148 |[39m     [33m>[39m[0m
+Next.js build worker exited with code: 1 and signal: null

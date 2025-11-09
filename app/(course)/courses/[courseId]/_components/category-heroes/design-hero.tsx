@@ -48,10 +48,14 @@ export function DesignHero({ course, tools = [], isEnrolled = false, onEnroll }:
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
           <div className="space-y-6">
-            {/* Home Icon > Category Name */}
+            {/* Home Icon > Courses > Category Name */}
             <div className="flex items-center gap-2 text-sm text-pink-200/70">
               <Link href="/" className="flex items-center gap-1 hover:text-pink-200 transition-colors">
                 <Home className="h-4 w-4" />
+              </Link>
+              <ChevronRight className="h-3 w-3" />
+              <Link href="/courses" className="hover:text-pink-200 transition-colors">
+                <span>Courses</span>
               </Link>
               {course.category && (
                 <>
@@ -69,7 +73,7 @@ export function DesignHero({ course, tools = [], isEnrolled = false, onEnroll }:
                 <p className="text-xl text-pink-200">{course.subtitle}</p>
               )}
               {course.description && (
-                <p className="text-lg text-slate-300 leading-relaxed">
+                <p className="text-lg text-slate-300 leading-relaxed line-clamp-3">
                   {course.description}
                 </p>
               )}

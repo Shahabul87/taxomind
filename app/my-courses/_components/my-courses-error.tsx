@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { motion } from "framer-motion";
-import { AlertTriangle, RefreshCw, Home, BookOpen } from "lucide-react";
-import Link from "next/link";
+import { motion } from 'framer-motion';
+import { AlertTriangle, RefreshCw, Home, BookOpen } from 'lucide-react';
+import Link from 'next/link';
 
 interface MyCoursesErrorProps {
   error: string;
@@ -24,7 +24,7 @@ export function MyCoursesError({ error, onRetry }: MyCoursesErrorProps) {
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+          transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           className="inline-flex items-center justify-center w-20 h-20 bg-red-100 dark:bg-red-900/20 rounded-full mb-6"
         >
           <AlertTriangle className="w-10 h-10 text-red-600 dark:text-red-400" />
@@ -97,12 +97,10 @@ export function MyCoursesError({ error, onRetry }: MyCoursesErrorProps) {
             If this problem persists, please contact our support team.
           </p>
           <div className="flex flex-col sm:flex-row gap-2 text-sm">
-            <span className="text-gray-500 dark:text-gray-400">
-              Error details: {error}
-            </span>
+            <span className="text-gray-500 dark:text-gray-400">Error details: {error}</span>
           </div>
         </motion.div>
       </motion.div>
     </div>
   );
-} 
+}

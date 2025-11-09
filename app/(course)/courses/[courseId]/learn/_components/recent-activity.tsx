@@ -27,7 +27,7 @@ interface Course {
       id: string;
       title: string;
       type?: string | null;
-      userProgress: Array<{
+      user_progress: Array<{
         isCompleted: boolean;
       }>;
       videos: Array<{ id: string; title: string }>;
@@ -76,7 +76,7 @@ export const RecentActivity = ({ course }: RecentActivityProps) => {
     // Generate recent activities based on completed sections
     const recentActivities = course.chapters.flatMap((chapter, chapterIndex) =>
       chapter.sections
-        .filter(section => section.userProgress.some(p => p.isCompleted))
+        .filter(section => section.user_progress?.some(p => p.isCompleted))
         .map((section, sectionIndex) => ({
           id: section.id,
           type: 'completion' as const,
@@ -115,11 +115,11 @@ export const RecentActivity = ({ course }: RecentActivityProps) => {
       .slice(0, 6);
 
     // Generate stable minutes learned based on course progress
-    const completedSections = course.chapters.reduce((acc, chapter) => 
-      acc + chapter.sections.filter(section => 
-        section.userProgress.some(p => p.isCompleted)
+    const completedSections = course.chapters.reduce((acc, chapter) =>
+      acc + chapter.sections.filter(section =>
+        section.user_progress?.some(p => p.isCompleted)
       ).length, 0);
-    
+
     const minutesLearned = Math.floor(seededRandom(1) * 60) + (completedSections * 12) + 60;
 
     setClientData({
@@ -131,7 +131,7 @@ export const RecentActivity = ({ course }: RecentActivityProps) => {
   // Static data for server rendering
   const staticActivities = course.chapters.flatMap(chapter =>
     chapter.sections
-      .filter(section => section.userProgress.some(p => p.isCompleted))
+      .filter(section => section.user_progress?.some(p => p.isCompleted))
       .map(section => ({
         id: section.id,
         type: 'completion' as const,
@@ -233,13 +233,13 @@ export const RecentActivity = ({ course }: RecentActivityProps) => {
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    {isClient && clientData ? 
-                      clientData.activities.filter(a => 
+                    {isClient && clientData ?
+                      clientData.activities.filter(a =>
                         a.timestamp > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
                       ).length :
-                      course.chapters.reduce((acc, chapter) => 
-                        acc + chapter.sections.filter(section => 
-                          section.userProgress.some(p => p.isCompleted)
+                      course.chapters.reduce((acc, chapter) =>
+                        acc + chapter.sections.filter(section =>
+                          section.user_progress?.some(p => p.isCompleted)
                         ).length, 0)
                     }
                   </p>

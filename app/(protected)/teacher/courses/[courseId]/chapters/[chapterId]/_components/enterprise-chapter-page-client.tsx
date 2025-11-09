@@ -111,12 +111,14 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
               <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-1.5 sm:gap-2 h-7 sm:h-8 px-2 sm:px-3">
-                      <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="hidden sm:inline text-xs sm:text-sm">Preview</span>
-                    </Button>
+                    <Link href={`/courses/${params.courseId}/learn/${params.chapterId}`}>
+                      <Button variant="ghost" size="sm" className="gap-1.5 sm:gap-2 h-7 sm:h-8 px-2 sm:px-3">
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline text-xs sm:text-sm">Preview</span>
+                      </Button>
+                    </Link>
                   </TooltipTrigger>
-                  <TooltipContent>Preview as Student</TooltipContent>
+                  <TooltipContent>Preview Chapter as Student</TooltipContent>
                 </Tooltip>
 
                 <Badge variant={chapter.isPublished ? "default" : "secondary"} className="gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1">

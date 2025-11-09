@@ -1,0 +1,85 @@
+import { db } from "@/lib/db";
+import { unstable_cache } from "next/cache";
+
+export interface AuthPageStats {
+  totalLearners: number;
+  totalCourses: number;
+  averageRating: number;
+}
+
+/**
+ * Fetch authentication page statistics
+ * Cached for 1 hour to reduce database load
+ */
+export const getAuthPageStats = unstable_cache(
+  async (): Promise<AuthPageStats> => {
+    try {
+      // Fetch all stats in parallel for better performance
+      const [totalLearners, totalCourses, reviewStats] = await Promise.all([
+        // Count total users (learners)
+        db.user.count({
+          where: {
+            role: "USER",
+          },
+        }),
+
+        // Count published courses
+        db.course.count({
+          where: {
+            isPublished: true,
+          },
+        }),
+
+        // Calculate average rating from reviews
+        db.courseReview.aggregate({
+          _avg: {
+            rating: true,
+          },
+        }),
+      ]);
+
+      return {
+        totalLearners,
+        totalCourses,
+        averageRating: reviewStats._avg.rating || 4.5, // Fallback to 4.5 if no reviews
+      };
+    } catch (error) {
+      console.error("[AUTH_STATS_ERROR]", error);
+      // Return default values if database query fails
+      return {
+        totalLearners: 0,
+        totalCourses: 0,
+        averageRating: 4.5,
+      };
+    }
+  },
+  ["auth-page-stats"],
+  {
+    revalidate: 3600, // Cache for 1 hour
+    tags: ["auth-stats"],
+  }
+);
+
+/**
+ * Format number with K/M suffix for display
+ * @param num - Number to format
+ * @returns Formatted string (e.g., "1.2K", "5M")
+ */
+export const formatStatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toString();
+};
+
+/**
+ * Format rating for display
+ * @param rating - Rating number
+ * @returns Formatted rating string (e.g., "4.9★")
+ */
+export const formatRating = (rating: number): string => {
+  return `${rating.toFixed(1)}★`;
+};

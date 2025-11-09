@@ -13,7 +13,6 @@ import { CoursePageTabs } from './_components/course-page-tabs';
 import { SimilarCoursesSection } from './_components/similar-courses-section';
 import { MobileEnrollBar } from './_components/mobile-enroll-bar';
 import { StickyMiniHeader } from './_components/sticky-mini-header';
-import { DynamicSections } from './_components/dynamic-sections';
 import { HeroWrapper } from './_components/hero-wrapper';
 
 type Props = {
@@ -93,9 +92,6 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
         userId={user?.id}
         categorySpecificProps={getCategorySpecificProps()}
       />
-
-      {/* Category-Specific Sections - NEW: Different content per category */}
-      <DynamicSections course={course} variant={categoryLayout.variant} />
 
       {/* Mobile Enroll Bar */}
       <MobileEnrollBar

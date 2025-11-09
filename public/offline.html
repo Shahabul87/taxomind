@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Taxomind Learning</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 30px;
+            background: #f0f0f0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .features {
+            text-align: left;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .features h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .features li {
+            padding: 8px 0;
+            color: #666;
+            display: flex;
+            align-items: center;
+        }
+
+        .features li::before {
+            content: "✓";
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .button:hover {
+            background: #5a67d8;
+        }
+
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .status.offline {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .cached-content {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .cached-content h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .cached-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .cached-item {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📡</div>
+        <h1>You're Offline</h1>
+        <p>It looks like you've lost your internet connection. Don't worry, you can still access your cached content!</p>
+
+        <div class="features">
+            <h3>Available Offline:</h3>
+            <ul>
+                <li>Previously viewed sections</li>
+                <li>Downloaded resources</li>
+                <li>Completed quiz results</li>
+                <li>Your learning progress</li>
+            </ul>
+        </div>
+
+        <div id="connection-status" class="status offline">
+            <span id="status-text">Currently Offline</span>
+            <span id="checking" class="spinner" style="display: none;"></span>
+        </div>
+
+        <button class="button" id="retry-button" onclick="checkConnection()">
+            Check Connection
+        </button>
+
+        <div class="cached-content">
+            <h3>Your Cached Courses</h3>
+            <div id="cached-items" class="cached-items">
+                <!-- Cached items will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check connection status
+        function checkConnection() {
+            const statusEl = document.getElementById('connection-status');
+            const statusText = document.getElementById('status-text');
+            const checkingEl = document.getElementById('checking');
+            const retryButton = document.getElementById('retry-button');
+
+            // Show checking spinner
+            checkingEl.style.display = 'inline-block';
+            retryButton.disabled = true;
+            statusText.textContent = 'Checking connection...';
+
+            // Try to fetch a small resource
+            fetch('/api/health', { method: 'HEAD' })
+                .then(() => {
+                    // Online!
+                    statusEl.className = 'status online';
+                    statusText.textContent = 'Connection restored! Redirecting...';
+                    checkingEl.style.display = 'none';
+
+                    // Redirect to home after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                })
+                .catch(() => {
+                    // Still offline
+                    statusEl.className = 'status offline';
+                    statusText.textContent = 'Still Offline';
+                    checkingEl.style.display = 'none';
+                    retryButton.disabled = false;
+                });
+        }
+
+        // Load cached content from service worker
+        async function loadCachedContent() {
+            if ('caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    const dynamicCache = cacheNames.find(name => name.includes('dynamic'));
+
+                    if (dynamicCache) {
+                        const cache = await caches.open(dynamicCache);
+                        const requests = await cache.keys();
+
+                        const cachedItems = document.getElementById('cached-items');
+                        const courseUrls = requests.filter(req =>
+                            req.url.includes('/courses/') ||
+                            req.url.includes('/learn/')
+                        );
+
+                        if (courseUrls.length > 0) {
+                            cachedItems.innerHTML = courseUrls.slice(0, 5).map(url => {
+                                const path = new URL(url).pathname;
+                                const name = path.split('/').filter(Boolean).pop();
+                                return `<div class="cached-item">${name}</div>`;
+                            }).join('');
+                        } else {
+                            cachedItems.innerHTML = '<p style="color: #999;">No cached content yet</p>';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading cached content:', error);
+                }
+            }
+        }
+
+        // Auto-check connection every 30 seconds
+        setInterval(checkConnection, 30000);
+
+        // Load cached content on page load
+        loadCachedContent();
+
+        // Listen for online event
+        window.addEventListener('online', () => {
+            checkConnection();
+        });
+    </script>
+</body>
+</html>

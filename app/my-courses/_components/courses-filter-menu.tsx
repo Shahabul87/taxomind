@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
-import { X, CheckCircle } from "lucide-react";
+import { motion } from 'framer-motion';
+import { X, CheckCircle } from 'lucide-react';
 
 interface CoursesFilterMenuProps {
   filters: {
@@ -9,7 +9,7 @@ interface CoursesFilterMenuProps {
   };
   setFilters: (filters: any) => void;
   onClose: () => void;
-  activeTab: "enrolled" | "created";
+  activeTab: 'enrolled' | 'created';
 }
 
 export const CoursesFilterMenu = ({
@@ -20,35 +20,36 @@ export const CoursesFilterMenu = ({
 }: CoursesFilterMenuProps) => {
   // Sample category options (you may want to fetch these from your API)
   const categories = [
-    { value: "all", label: "All Categories" },
-    { value: "development", label: "Development" },
-    { value: "business", label: "Business" },
-    { value: "design", label: "Design" },
-    { value: "marketing", label: "Marketing" },
+    { value: 'all', label: 'All Categories' },
+    { value: 'development', label: 'Development' },
+    { value: 'business', label: 'Business' },
+    { value: 'design', label: 'Design' },
+    { value: 'marketing', label: 'Marketing' },
   ];
 
   // Progress filter options (only applicable for enrolled courses)
   const progressOptions = [
-    { value: "all", label: "All Progress" },
-    { value: "not-started", label: "Not Started" },
-    { value: "in-progress", label: "In Progress" },
-    { value: "completed", label: "Completed" },
+    { value: 'all', label: 'All Progress' },
+    { value: 'not-started', label: 'Not Started' },
+    { value: 'in-progress', label: 'In Progress' },
+    { value: 'completed', label: 'Completed' },
   ];
 
   // Sort options
-  const sortOptions = activeTab === "enrolled"
-    ? [
-        { value: "recent", label: "Recently Enrolled" },
-        { value: "title", label: "Title (A-Z)" },
-        { value: "progress", label: "Progress" },
-        { value: "rating", label: "Highest Rated" },
-      ]
-    : [
-        { value: "recent", label: "Recently Created" },
-        { value: "title", label: "Title (A-Z)" },
-        { value: "students", label: "Most Students" },
-        { value: "rating", label: "Highest Rated" },
-      ];
+  const sortOptions =
+    activeTab === 'enrolled'
+      ? [
+          { value: 'recent', label: 'Recently Enrolled' },
+          { value: 'title', label: 'Title (A-Z)' },
+          { value: 'progress', label: 'Progress' },
+          { value: 'rating', label: 'Highest Rated' },
+        ]
+      : [
+          { value: 'recent', label: 'Recently Created' },
+          { value: 'title', label: 'Title (A-Z)' },
+          { value: 'students', label: 'Most Students' },
+          { value: 'rating', label: 'Highest Rated' },
+        ];
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters({
@@ -62,8 +63,8 @@ export const CoursesFilterMenu = ({
       onClick={() => handleFilterChange(key, value)}
       className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
         activeValue === value
-          ? "bg-indigo-600/20 text-indigo-400"
-          : "text-gray-400 hover:bg-gray-800/40 hover:text-white"
+          ? 'bg-indigo-600/20 text-indigo-400'
+          : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'
       }`}
     >
       {activeValue === value && <CheckCircle className="h-3.5 w-3.5 mr-2 text-indigo-500" />}
@@ -97,20 +98,20 @@ export const CoursesFilterMenu = ({
           <div className="space-y-1">
             {categories.map((category) => (
               <div key={category.value}>
-                {renderFilterOption("category", category.value, category.label, filters.category)}
+                {renderFilterOption('category', category.value, category.label, filters.category)}
               </div>
             ))}
           </div>
         </div>
 
         {/* Progress Filter - Only for enrolled courses */}
-        {activeTab === "enrolled" && (
+        {activeTab === 'enrolled' && (
           <div>
             <h4 className="text-sm font-medium text-gray-400 mb-2">Progress</h4>
             <div className="space-y-1">
               {progressOptions.map((option) => (
                 <div key={option.value}>
-                  {renderFilterOption("progress", option.value, option.label, filters.progress)}
+                  {renderFilterOption('progress', option.value, option.label, filters.progress)}
                 </div>
               ))}
             </div>
@@ -123,7 +124,7 @@ export const CoursesFilterMenu = ({
           <div className="space-y-1">
             {sortOptions.map((option) => (
               <div key={option.value}>
-                {renderFilterOption("sortBy", option.value, option.label, filters.sortBy)}
+                {renderFilterOption('sortBy', option.value, option.label, filters.sortBy)}
               </div>
             ))}
           </div>
@@ -131,4 +132,4 @@ export const CoursesFilterMenu = ({
       </div>
     </motion.div>
   );
-}; 
+};

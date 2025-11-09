@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clear Cache - Taxomind</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 2.5em;
+    }
+    button {
+      background: white;
+      color: #667eea;
+      border: none;
+      padding: 15px 40px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin: 10px;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      min-height: 60px;
+    }
+    .success {
+      color: #4ade80;
+    }
+    .error {
+      color: #f87171;
+    }
+    pre {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Clear Cache Tool</h1>
+    <p>This page will clear all browser caches and service workers to fix hydration errors.</p>
+
+    <div>
+      <button onclick="clearEverything()">🚀 Clear All Cache & Reload</button>
+      <button onclick="clearServiceWorkers()">🔧 Clear Service Workers Only</button>
+    </div>
+
+    <div class="status" id="status">
+      Click a button above to start...
+    </div>
+
+    <details style="margin-top: 20px;">
+      <summary style="cursor: pointer; font-weight: bold;">🔍 Manual Console Command</summary>
+      <p>Copy and paste this into your browser console (F12):</p>
+      <pre><code id="consoleCode">// Clear everything
+(async () => {
+  // Unregister all service workers
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  for (let registration of registrations) {
+    await registration.unregister();
+    console.log('✅ Unregistered service worker');
+  }
+
+  // Clear all caches
+  const cacheNames = await caches.keys();
+  for (let name of cacheNames) {
+    await caches.delete(name);
+    console.log('✅ Deleted cache:', name);
+  }
+
+  // Clear localStorage
+  localStorage.clear();
+  console.log('✅ Cleared localStorage');
+
+  // Clear sessionStorage
+  sessionStorage.clear();
+  console.log('✅ Cleared sessionStorage');
+
+  console.log('🎉 All caches cleared! Reloading...');
+  location.reload(true);
+})();</code></pre>
+      <button onclick="copyCode()">📋 Copy Code</button>
+    </details>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+
+    function updateStatus(message, isError = false) {
+      statusEl.innerHTML = message;
+      statusEl.className = isError ? 'status error' : 'status success';
+    }
+
+    async function clearEverything() {
+      try {
+        updateStatus('🔄 Clearing service workers...');
+
+        // Unregister all service workers
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (let registration of registrations) {
+            await registration.unregister();
+            console.log('Unregistered service worker');
+          }
+        }
+
+        updateStatus('🔄 Clearing caches...');
+
+        // Clear all caches
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          for (let name of cacheNames) {
+            await caches.delete(name);
+            console.log('Deleted cache:', name);
+          }
+        }
+
+        // Clear storage
+        localStorage.clear();
+        sessionStorage.clear();
+
+        updateStatus('✅ All caches cleared! Reloading in 2 seconds...');
+
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+
+      } catch (error) {
+        updateStatus('❌ Error: ' + error.message, true);
+        console.error('Clear cache error:', error);
+      }
+    }
+
+    async function clearServiceWorkers() {
+      try {
+        updateStatus('🔄 Clearing service workers...');
+
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+
+          if (registrations.length === 0) {
+            updateStatus('ℹ️ No service workers found to clear');
+            return;
+          }
+
+          for (let registration of registrations) {
+            await registration.unregister();
+          }
+
+          updateStatus(`✅ Cleared ${registrations.length} service worker(s)! Reloading...`);
+          setTimeout(() => location.reload(true), 1500);
+        } else {
+          updateStatus('ℹ️ Service workers not supported', true);
+        }
+      } catch (error) {
+        updateStatus('❌ Error: ' + error.message, true);
+        console.error('Clear SW error:', error);
+      }
+    }
+
+    function copyCode() {
+      const code = document.getElementById('consoleCode').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('✅ Code copied to clipboard! Paste it in your browser console (F12)');
+      });
+    }
+
+    // Auto-detect and show warning if service worker is registered
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        if (registrations.length > 0) {
+          updateStatus(`⚠️ Found ${registrations.length} active service worker(s). Click the button above to clear.`, true);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

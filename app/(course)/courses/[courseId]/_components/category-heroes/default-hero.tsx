@@ -47,10 +47,14 @@ export function DefaultHero({ course, isEnrolled = false, onEnroll }: DefaultHer
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Content */}
           <div className="space-y-6">
-            {/* Home Icon > Category Name */}
+            {/* Home Icon > Courses > Category Name */}
             <div className="flex items-center gap-2 text-sm text-slate-400">
               <Link href="/" className="flex items-center gap-1 hover:text-slate-300 transition-colors">
                 <Home className="h-4 w-4" />
+              </Link>
+              <ChevronRight className="h-3 w-3" />
+              <Link href="/courses" className="hover:text-slate-300 transition-colors">
+                <span>Courses</span>
               </Link>
               {course.category && (
                 <>
@@ -68,7 +72,7 @@ export function DefaultHero({ course, isEnrolled = false, onEnroll }: DefaultHer
                 <p className="text-xl text-blue-200">{course.subtitle}</p>
               )}
               {course.description && (
-                <p className="text-lg text-slate-300 leading-relaxed">
+                <p className="text-lg text-slate-300 leading-relaxed line-clamp-3">
                   {course.description}
                 </p>
               )}

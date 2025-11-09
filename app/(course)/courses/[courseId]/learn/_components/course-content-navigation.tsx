@@ -62,7 +62,7 @@ interface Course {
       position: number;
       type?: string | null;
       duration?: number | null;
-      userProgress: Array<{
+      user_progress: Array<{
         isCompleted: boolean;
       }>;
       videos: Array<{ id: string; title: string; duration?: number | null }>;
@@ -108,19 +108,19 @@ export const CourseContentNavigation = ({ course }: CourseContentNavigationProps
 
   const filteredChapters = course.chapters.filter(chapter => {
     if (filter === 'all') return true;
-    
+
     const completedSections = chapter.sections.filter(
-      section => section.userProgress.some(p => p.isCompleted)
+      section => section.user_progress?.some(p => p.isCompleted)
     ).length;
-    
+
     if (filter === 'completed') {
       return completedSections === chapter.sections.length && chapter.sections.length > 0;
     }
-    
+
     if (filter === 'incomplete') {
       return completedSections < chapter.sections.length;
     }
-    
+
     return true;
   });
 
@@ -151,10 +151,10 @@ export const CourseContentNavigation = ({ course }: CourseContentNavigationProps
       <div className="space-y-4">
         {filteredChapters.map((chapter, chapterIndex) => {
           const completedSections = chapter.sections.filter(
-            section => section.userProgress.some(p => p.isCompleted)
+            section => section.user_progress?.some(p => p.isCompleted)
           ).length;
-          const progressPercentage = chapter.sections.length > 0 
-            ? (completedSections / chapter.sections.length) * 100 
+          const progressPercentage = chapter.sections.length > 0
+            ? (completedSections / chapter.sections.length) * 100
             : 0;
           const isExpanded = expandedChapters.includes(chapter.id);
 
@@ -228,15 +228,15 @@ export const CourseContentNavigation = ({ course }: CourseContentNavigationProps
                     >
                       <div className="p-4 space-y-2">
                         {chapter.sections.map((section, sectionIndex) => {
-                          const isCompleted = section.userProgress.some(p => p.isCompleted);
+                          const isCompleted = section.user_progress?.some(p => p.isCompleted) || false;
                           const ContentIcon = getContentIcon(section);
                           const iconColorClass = getContentIconColor(section);
-                          
-                          const totalContentItems = 
-                            section.videos.length + 
-                            section.blogs.length + 
-                            section.articles.length + 
-                            section.notes.length + 
+
+                          const totalContentItems =
+                            section.videos.length +
+                            section.blogs.length +
+                            section.articles.length +
+                            section.notes.length +
                             section.codeExplanations.length;
 
                           return (

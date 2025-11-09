@@ -90,20 +90,20 @@ export function HeroCarousel({
         <>
           <button
             onClick={handlePrevClick}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-white shadow-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white/95 dark:bg-slate-800/95 text-gray-800 dark:text-white shadow-xl hover:shadow-2xl hover:scale-110 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             aria-label="Previous slide"
             type="button"
           >
-            <ChevronLeft className="h-6 w-6" aria-hidden="true" />
+            <ChevronLeft className="h-6 w-6" aria-hidden="true" strokeWidth={2.5} />
           </button>
 
           <button
             onClick={handleNextClick}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-white shadow-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white/95 dark:bg-slate-800/95 text-gray-800 dark:text-white shadow-xl hover:shadow-2xl hover:scale-110 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             aria-label="Next slide"
             type="button"
           >
-            <ChevronRight className="h-6 w-6" aria-hidden="true" />
+            <ChevronRight className="h-6 w-6" aria-hidden="true" strokeWidth={2.5} />
           </button>
         </>
       )}
@@ -111,7 +111,7 @@ export function HeroCarousel({
       {/* Dots Indicator - Only show if more than 1 slide */}
       {slides.length > 1 && (
         <div
-          className="flex justify-center gap-2 mt-6"
+          className="flex justify-center gap-3 mt-8"
           role="tablist"
           aria-label="Slide navigation"
         >
@@ -120,10 +120,10 @@ export function HeroCarousel({
               key={slide.id}
               onClick={() => goToSlide(index)}
               className={cn(
-                "h-2 rounded-full transition-all duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                "h-2.5 rounded-full transition-all duration-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 shadow-md",
                 index === currentIndex
-                  ? "w-8 bg-blue-600 dark:bg-blue-500"
-                  : "w-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
+                  ? "w-10 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 shadow-lg scale-110"
+                  : "w-2.5 bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-500 hover:scale-110"
               )}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={index === currentIndex ? "true" : "false"}

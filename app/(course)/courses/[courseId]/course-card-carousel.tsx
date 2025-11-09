@@ -124,7 +124,7 @@ export const CourseCardsCarousel = ({ courseId, chapters }: CourseContentProps):
       role="button"
       tabIndex={0}
       aria-label={`Open chapter: ${cleanHtmlContent(chapter.title)}`}
-      className="w-[240px] sm:w-[260px] md:w-[280px] lg:w-[300px] h-[420px] sm:h-[460px] md:h-[500px] cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-0 rounded-xl"
+      className="w-[280px] sm:w-[300px] md:w-[320px] lg:w-[340px] h-[380px] sm:h-[420px] md:h-[460px] cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-0 rounded-xl touch-manipulation"
       whileHover={reducedMotion ? undefined : { y: -6, rotateX: 2, rotateY: -1, scale: 1.01 }}
       style={{ transformPerspective: 1000 }}
       transition={{ type: "spring", stiffness: 300, damping: 22 }}
@@ -132,7 +132,7 @@ export const CourseCardsCarousel = ({ courseId, chapters }: CourseContentProps):
       <Card className="relative h-full w-full rounded-xl border border-slate-200/80 dark:border-slate-800/70 bg-white/80 dark:bg-slate-900/50 backdrop-blur supports-[backdrop-filter]:backdrop-blur text-card-foreground shadow-sm transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300 dark:hover:border-slate-700">
         {/* Per-card accent bar */}
         <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-xl ${accentColors[index % accentColors.length]}`} aria-hidden="true" />
-        <CardContent className="p-5 sm:p-6 h-full flex flex-col">
+        <CardContent className="p-4 sm:p-5 md:p-6 h-full flex flex-col">
           <ChapterPreview
             title={chapter.title}
             description={chapter.description}
@@ -259,7 +259,7 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-start justify-center overflow-y-auto p-3 sm:p-4 md:p-6 py-4 sm:py-6 md:py-8"
       onClick={onClose}
     >
       <motion.div
@@ -268,7 +268,7 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
         transition={{ type: "spring", duration: 0.6, bounce: 0.25 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-5xl my-8 focus:outline-none"
+        className="relative w-full max-w-full sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] xl:max-w-[80vw] focus:outline-none"
         role="dialog" aria-modal="true" aria-labelledby="chapter-modal-title"
         ref={modalRef} tabIndex={-1} onKeyDown={trapFocus}
       >
@@ -278,9 +278,9 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
           <div className="absolute top-0 left-0 right-0 h-px bg-slate-200 dark:bg-slate-800" />
 
           {/* Modal Header */}
-          <div className="relative p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <div className="relative flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="relative p-3 sm:p-4 md:p-5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div className="relative flex items-start justify-between gap-2 sm:gap-3">
+              <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                 {/* Compact icon container */}
                 <motion.div
                   initial={{ scale: 0 }}
@@ -288,8 +288,8 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
                   transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
                   className="flex-shrink-0"
                 >
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 via-blue-600 to-cyan-600 flex items-center justify-center shadow-md">
-                    <BookOpen className="h-6 w-6 text-white" strokeWidth={2.5} />
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-500 via-blue-600 to-cyan-600 flex items-center justify-center shadow-md">
+                    <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" strokeWidth={2.5} />
                   </div>
                 </motion.div>
 
@@ -299,12 +299,12 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.15 }}
                   >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-slate-900 text-white dark:bg-white dark:text-slate-900">
+                    <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                      <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-semibold uppercase tracking-wider bg-slate-900 text-white dark:bg-white dark:text-slate-900">
                         Chapter Overview
                       </span>
                     </div>
-                    <h3 id="chapter-modal-title" className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white leading-tight mb-2">
+                    <h3 id="chapter-modal-title" className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white leading-tight mb-1.5 sm:mb-2 pr-2">
                       {cleanHtmlContent(chapter.title)}
                     </h3>
                   </motion.div>
@@ -314,20 +314,20 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="flex flex-wrap items-center gap-2"
+                    className="flex flex-wrap items-center gap-1.5 sm:gap-2"
                   >
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-500/10 rounded-md border border-blue-200/60 dark:border-blue-500/30">
-                      <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                      <div className="flex items-center gap-1">
-                        <span className="text-[9px] font-medium text-blue-600 dark:text-blue-400 uppercase">Sections</span>
-                        <span className="text-xs font-bold text-blue-700 dark:text-blue-300">{chapter.sections.length}</span>
+                    <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-blue-50 dark:bg-blue-500/10 rounded-md border border-blue-200/60 dark:border-blue-500/30">
+                      <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 dark:text-blue-400" />
+                      <div className="flex items-center gap-0.5 sm:gap-1">
+                        <span className="text-[8px] sm:text-[9px] font-medium text-blue-600 dark:text-blue-400 uppercase">Sections</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-blue-700 dark:text-blue-300">{chapter.sections.length}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-md border border-emerald-200/60 dark:border-emerald-500/30">
-                      <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      <div className="flex items-center gap-1">
-                        <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400 uppercase">Duration</span>
-                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">{chapter.estimatedTime || 'Multi-lesson'}</span>
+                    <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-md border border-emerald-200/60 dark:border-emerald-500/30">
+                      <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <div className="flex items-center gap-0.5 sm:gap-1">
+                        <span className="text-[8px] sm:text-[9px] font-medium text-emerald-600 dark:text-emerald-400 uppercase">Duration</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-300">{chapter.estimatedTime || 'Multi-lesson'}</span>
                       </div>
                     </div>
                   </motion.div>
@@ -344,8 +344,8 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
                 ref={closeRef}
                 aria-label="Close modal"
               >
-                <div className="relative p-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                  <X className="w-5 h-5" />
+                <div className="relative p-2 sm:p-2.5 md:p-3 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm active:scale-95">
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </motion.button>
             </div>
@@ -356,7 +356,7 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="p-8 sm:p-10 max-h-[calc(85vh-180px)] overflow-y-auto
+            className="p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8 max-h-[calc(85vh-200px)] sm:max-h-[calc(80vh-180px)] md:max-h-[calc(80vh-160px)] overflow-y-auto
                      scrollbar-thin scrollbar-thumb-rounded-full
                      scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600
                      hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500
@@ -370,27 +370,27 @@ const ChapterModal = ({ chapter, onClose }: ChapterModalProps): JSX.Element => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="p-4 border-t border-slate-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50"
+            className="p-3 sm:p-4 md:p-5 border-t border-slate-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50"
           >
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
+              <div className="hidden sm:flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Ready to start learning?</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Ready to start learning?</p>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={onClose}
-                  className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors active:scale-95"
                 >
                   Close
                 </button>
                 <a
                   href={courseIdFromLocation ? `/courses/${courseIdFromLocation}?tab=content&chapter=${chapter.id}${firstSectionId ? `&section=${firstSectionId}` : ''}` : '#'}
-                  className="flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 sm:flex-none px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 touch-manipulation"
                   ref={primaryRef}
                 >
                   <span>Start Learning</span>
-                  <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2.5} />
                 </a>
               </div>
             </div>
@@ -531,7 +531,7 @@ const DummyContent = ({ description, sections, chapter }: DummyContentProps): JS
         </div>
 
         <div className="relative group">
-          <div className="relative bg-white dark:bg-gray-800/50 border border-blue-100 dark:border-gray-700/50 rounded-2xl p-6 md:p-8 backdrop-blur-sm">
+          <div className="relative bg-white dark:bg-gray-800/50 border border-blue-100 dark:border-gray-700/50 rounded-2xl p-4 md:p-5 backdrop-blur-sm">
             {description ? (
               <div className="prose prose-lg dark:prose-invert max-w-none
                 prose-headings:text-gray-900 dark:prose-headings:text-white prose-headings:font-bold
@@ -645,7 +645,7 @@ const DummyContent = ({ description, sections, chapter }: DummyContentProps): JS
             </div>
 
             <div className="relative group">
-              <div className="relative bg-white dark:bg-gray-800/50 border border-purple-100 dark:border-gray-700/50 rounded-2xl p-6 md:p-8 backdrop-blur-sm">
+              <div className="relative bg-white dark:bg-gray-800/50 border border-purple-100 dark:border-gray-700/50 rounded-2xl p-4 md:p-5 backdrop-blur-sm">
                 <div className="space-y-4">
                   {outcomes.map((outcome: string, outcomeIndex: number) => (
                     <motion.div
@@ -693,7 +693,7 @@ const DummyContent = ({ description, sections, chapter }: DummyContentProps): JS
         </div>
 
         <div className="relative group">
-          <div className="relative bg-white dark:bg-gray-800/50 border border-emerald-100 dark:border-gray-700/50 rounded-2xl p-6 md:p-8 backdrop-blur-sm">
+          <div className="relative bg-white dark:bg-gray-800/50 border border-emerald-100 dark:border-gray-700/50 rounded-2xl p-4 md:p-5 backdrop-blur-sm">
             <div className="grid gap-3">
               {sections.map((section, index) => (
                 <motion.div

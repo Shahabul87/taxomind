@@ -26,17 +26,27 @@ export class QueueManager {
   private metricsCollectionInterval?: NodeJS.Timeout;
 
   constructor(redis?: Redis) {
-    this.redis = redis || new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
-    
+    // Initialize Upstash Redis only if credentials are provided
+    // This is optional and used for metrics persistence
+    if (redis) {
+      this.redis = redis;
+    } else if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      this.redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      });
+    } else {
+      // Upstash not configured - metrics will be in-memory only
+      logger.info('[QUEUE_MANAGER] Upstash Redis not configured - metrics will be in-memory only');
+      this.redis = null as any; // Will be checked before use
+    }
+
     // Create IORedis connection for BullMQ (which requires ioredis)
     const redisHost = process.env.REDIS_HOST || 'localhost';
     const redisPort = parseInt(process.env.REDIS_PORT || '6379');
     const redisPassword = process.env.REDIS_PASSWORD;
     const redisDb = parseInt(process.env.REDIS_DB || '0');
-    
+
     this.ioRedis = new IORedis({
       host: redisHost,
       port: redisPort,
@@ -49,7 +59,7 @@ export class QueueManager {
       enableReadyCheck: false,
       maxRetriesPerRequest: null,
     } as any);
-    
+
     this.initializeDefaultQueues();
     this.startHealthMonitoring();
     this.startMetricsCollection();
@@ -763,6 +773,12 @@ export class QueueManager {
    */
   private async persistFinalMetrics(): Promise<void> {
     try {
+      // Only persist to Upstash if configured
+      if (!this.redis) {
+        logger.info('[QUEUE_MANAGER] Skipping final metrics persistence - Upstash not configured');
+        return;
+      }
+
       const dashboardData = await this.getDashboardData();
       await this.redis.setex(
         'queue_manager:final_metrics',
@@ -926,19 +942,26 @@ export class QueueManager {
         // Update tracking fields
         metrics.lastMetricsCollection = currentTime;
         metrics.lastProcessedCount = metrics.processed;
-        
-        // Persist to Redis
-        await this.redis.setex(
-          `queue_metrics:${queueName}`,
-          300, // 5 minutes TTL
-          JSON.stringify({
-            ...metrics,
-            timestamp: new Date(),
-          })
-        );
+
+        // Persist to Redis (only if Upstash is configured)
+        if (this.redis) {
+          try {
+            await this.redis.setex(
+              `queue_metrics:${queueName}`,
+              300, // 5 minutes TTL
+              JSON.stringify({
+                ...metrics,
+                timestamp: new Date(),
+              })
+            );
+          } catch (redisError: any) {
+            // Log but don't fail - metrics are still available in memory
+            logger.warn('[QUEUE_MANAGER] Failed to persist metrics to Redis:', redisError.message);
+          }
+        }
       }
     } catch (error: any) {
-      logger.error('[QUEUE_MANAGER] Failed to collect and persist metrics:', error);
+      logger.error('[QUEUE_MANAGER] Failed to collect metrics:', error);
     }
   }
 

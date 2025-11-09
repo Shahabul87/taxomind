@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Video, BookOpen, Calculator, Code2, FileQuestion } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Import modular tab components
 import { VideoTab, BlogTab, MathTab, CodeTab } from "./tabs";
@@ -165,7 +166,7 @@ export const TabsContainer = ({
 
           <div className="mt-8">
             <TabsContent value="videos">
-              <VideoTab 
+              <VideoTab
                 courseId={courseId}
                 chapterId={chapterId}
                 sectionId={sectionId}
@@ -174,7 +175,7 @@ export const TabsContainer = ({
             </TabsContent>
 
             <TabsContent value="blogs">
-              <BlogTab 
+              <BlogTab
                 courseId={courseId}
                 chapterId={chapterId}
                 sectionId={sectionId}

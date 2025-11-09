@@ -28,7 +28,21 @@ import { FormSuccess } from "@/components/form-success";
 import { login } from "@/actions/login";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 
-export const LoginForm = () => {
+interface LoginFormProps {
+  stats?: {
+    totalLearners: string;
+    totalCourses: string;
+    averageRating: string;
+  };
+}
+
+const DEFAULT_STATS = {
+  totalLearners: "10,000+",
+  totalCourses: "500+",
+  averageRating: "4.8/5"
+};
+
+export const LoginForm = ({ stats = DEFAULT_STATS }: LoginFormProps) => {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams?.get("callbackUrl");
 
@@ -248,15 +262,15 @@ export const LoginForm = () => {
               <div className="p-6 rounded-xl bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-800/90 dark:via-slate-800/70 dark:to-slate-800/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow duration-300">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="group">
-                    <p className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">50K+</p>
+                    <p className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">{stats.totalLearners}</p>
                     <p className="text-xs font-medium text-slate-700 dark:text-gray-300 mt-1">Learners</p>
                   </div>
                   <div className="group">
-                    <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">10K+</p>
-                    <p className="text-xs font-medium text-slate-700 dark:text-gray-300 mt-1">AI Courses</p>
+                    <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">{stats.totalCourses}</p>
+                    <p className="text-xs font-medium text-slate-700 dark:text-gray-300 mt-1">Courses</p>
                   </div>
                   <div className="group">
-                    <p className="text-2xl font-bold bg-gradient-to-r from-cyan-600 to-emerald-600 dark:from-cyan-400 dark:to-emerald-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">4.9★</p>
+                    <p className="text-2xl font-bold bg-gradient-to-r from-cyan-600 to-emerald-600 dark:from-cyan-400 dark:to-emerald-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">{stats.averageRating}</p>
                     <p className="text-xs font-medium text-slate-700 dark:text-gray-300 mt-1">Rating</p>
                   </div>
                 </div>
@@ -541,7 +555,7 @@ export const LoginForm = () => {
                           variant="outline"
                           type="button"
                           onClick={() => signIn("google", { callbackUrl: DEFAULT_LOGIN_REDIRECT })}
-                          className="h-10 border border-slate-200 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-purple-500/50 transition-all duration-300 text-sm group"
+                          className="h-10 border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white hover:border-purple-500/50 transition-all duration-300 text-sm group"
                           disabled={isPending}
                         >
                           <GoogleIcon className="w-4 h-4 mr-2 transition-transform group-hover:scale-110" />
@@ -551,7 +565,7 @@ export const LoginForm = () => {
                           variant="outline"
                           type="button"
                           onClick={() => signIn("github", { callbackUrl: DEFAULT_LOGIN_REDIRECT })}
-                          className="h-10 border border-slate-200 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-purple-500/50 transition-all duration-300 text-sm group"
+                          className="h-10 border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white hover:border-purple-500/50 transition-all duration-300 text-sm group"
                           disabled={isPending}
                         >
                           <Github className="w-4 h-4 mr-2 transition-transform group-hover:scale-110" />

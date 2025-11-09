@@ -33,6 +33,10 @@ import { CourseContentNavigation } from "./course-content-navigation";
 import { LearningStats } from "./learning-stats";
 import { RecentActivity } from "./recent-activity";
 import { LearningPath } from "./learning-path";
+import { StreakTracker } from "./streak-tracker";
+import { SmartPredictions } from "./smart-predictions";
+import { SmartHeader } from "./smart-header";
+import { SmartSidebar } from "./smart-sidebar";
 
 interface Course {
   id: string;
@@ -134,82 +138,14 @@ export const CourseLearningDashboard = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900">
-      {/* Header */}
-      <div className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-700/50">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-            {/* Course Info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <Link 
-                  href={`/courses/${course.id}`}
-                  className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-sm"
-                >
-                  ← Back to Course
-                </Link>
-                {course.category && (
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                    {course.category.name}
-                  </Badge>
-                )}
-              </div>
-              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-800 dark:from-slate-100 dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent mb-2">
-                {course.title}
-              </h1>
-              <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                <div className="flex items-center gap-2">
-                  <Image
-                    src={course.user.image || "/placeholder-avatar.png"}
-                    alt={course.user.name || "Instructor"}
-                    width={24}
-                    height={24}
-                    className="rounded-full"
-                  />
-                  <span>by {course.user.name}</span>
-                </div>
-                <Separator orientation="vertical" className="h-4" />
-                <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  <span>{course._count.Enrollment} students</span>
-                </div>
-                <Separator orientation="vertical" className="h-4" />
-                <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  <span>{Math.ceil(estimatedTime / 60)}h total</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Progress Card */}
-            <Card className="w-full lg:w-80 bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0 shadow-xl">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-blue-100 text-sm">Your Progress</p>
-                    <p className="text-2xl font-bold">{Math.round(progressPercentage)}%</p>
-                  </div>
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                    {isCompleted ? (
-                      <Trophy className="w-6 h-6 text-yellow-300" />
-                    ) : (
-                      <Target className="w-6 h-6" />
-                    )}
-                  </div>
-                </div>
-                <Progress 
-                  value={progressPercentage} 
-                  className="h-2 mb-4 bg-blue-600"
-                />
-                <div className="flex items-center justify-between text-sm text-blue-100">
-                  <span>{completedSections} of {totalSections} sections</span>
-                  {isCompleted && <span className="text-yellow-300">🎉 Complete!</span>}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+      {/* Smart Header */}
+      <SmartHeader
+        course={course}
+        progressPercentage={progressPercentage}
+        completedSections={completedSections}
+        totalSections={totalSections}
+        nextSection={nextSection}
+      />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -312,38 +248,75 @@ export const CourseLearningDashboard = ({
           </div>
         </div>
 
-        {/* Tab Content */}
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {activeTab === 'overview' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
-                <LearningStats 
-                  course={course}
-                  progressPercentage={progressPercentage}
-                  totalSections={totalSections}
-                  completedSections={completedSections}
-                />
-                <RecentActivity course={course as any} />
-              </div>
-              <div>
-                <LearningPath course={course as any} />
-              </div>
+        {/* Main Layout with Sidebar */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Main Content Area - Left (3/4 width) */}
+          <div className="xl:col-span-3">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {activeTab === 'overview' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Main Content - Left Column */}
+                  <div className="space-y-6">
+                    {/* Smart Predictions - AI-Powered Learning Analytics */}
+                    <SmartPredictions
+                      course={course}
+                      userId={user.id}
+                      progressPercentage={progressPercentage}
+                      totalSections={totalSections}
+                      completedSections={completedSections}
+                    />
+
+                    {/* Original Learning Stats */}
+                    <LearningStats
+                      course={course}
+                      progressPercentage={progressPercentage}
+                      totalSections={totalSections}
+                      completedSections={completedSections}
+                    />
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    {/* Streak Tracker - Gamification & Engagement */}
+                    <StreakTracker
+                      courseId={course.id}
+                      userId={user.id}
+                    />
+
+                    {/* Original Recent Activity */}
+                    <RecentActivity course={course as any} />
+
+                    {/* Original Learning Path */}
+                    <LearningPath course={course as any} />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'content' && (
+                <CourseContentNavigation course={course as any} />
+              )}
+
+              {activeTab === 'progress' && (
+                <LearningPath course={course as any} detailed />
+              )}
+            </motion.div>
+          </div>
+
+          {/* Smart Sidebar - Right (1/4 width) - Sticky */}
+          <div className="xl:col-span-1 hidden xl:block">
+            <div className="sticky top-24">
+              <SmartSidebar
+                course={course}
+                userId={user.id}
+              />
             </div>
-          )}
-
-          {activeTab === 'content' && (
-            <CourseContentNavigation course={course as any} />
-          )}
-
-          {activeTab === 'progress' && (
-            <LearningPath course={course as any} detailed />
-          )}
-        </motion.div>
+          </div>
+        </div>
       </div>
     </div>
   );

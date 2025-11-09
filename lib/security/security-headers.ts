@@ -98,13 +98,13 @@ export class SecurityHeaders {
    */
   private buildCSPDirectives(): CSPDirectives {
     const isDev = this.config.environment === 'development';
-    const trustedDomains = ['&apos;self&apos;', ...this.config.trustedDomains];
+    const trustedDomains = ["'self'", ...this.config.trustedDomains];
 
     const baseDirectives: CSPDirectives = {
-      'default-src': ['&apos;self&apos;'],
+      'default-src': ["'self'"],
       'script-src': [
-        '&apos;self&apos;',
-        '&apos;wasm-unsafe-eval&apos;', // Required for WebAssembly
+        "'self'",
+        "'wasm-unsafe-eval'", // Required for WebAssembly
         'https://js.stripe.com',
         'https://checkout.stripe.com',
         'https://maps.googleapis.com',
@@ -112,18 +112,18 @@ export class SecurityHeaders {
         'https://www.google-analytics.com',
         'https://cdn.jsdelivr.net',
         'https://unpkg.com',
-        ...(isDev ? ['&apos;unsafe-eval&apos;'] : []),
-        ...(this.config.allowInlineScripts ? ['&apos;unsafe-inline&apos;'] : []),
+        ...(isDev ? ["'unsafe-eval'"] : []),
+        ...(this.config.allowInlineScripts ? ["'unsafe-inline'"] : []),
       ],
       'style-src': [
-        '&apos;self&apos;',
+        "'self'",
         'https://fonts.googleapis.com',
         'https://cdn.jsdelivr.net',
         'https://unpkg.com',
-        ...(this.config.allowInlineStyles ? ['&apos;unsafe-inline&apos;'] : []),
+        ...(this.config.allowInlineStyles ? ["'unsafe-inline'"] : []),
       ],
       'img-src': [
-        '&apos;self&apos;',
+        "'self'",
         'data:',
         'https:',
         'blob:',
@@ -137,13 +137,13 @@ export class SecurityHeaders {
         'https://www.google-analytics.com',
       ],
       'font-src': [
-        '&apos;self&apos;',
+        "'self'",
         'https://fonts.gstatic.com',
         'https://cdn.jsdelivr.net',
         'data:',
       ],
       'connect-src': [
-        '&apos;self&apos;',
+        "'self'",
         'https://api.stripe.com',
         'https://maps.googleapis.com',
         'https://www.google-analytics.com',
@@ -154,19 +154,19 @@ export class SecurityHeaders {
         ...(isDev ? ['ws://localhost:*', 'http://localhost:*'] : []),
         ...(this.config.allowedOrigins || []),
       ],
-      'media-src': ['&apos;self&apos;', 'https:', 'data:', 'blob:'],
-      'object-src': ['&apos;none&apos;'],
+      'media-src': ["'self'", 'https:', 'data:', 'blob:'],
+      'object-src': ["'none'"],
       'frame-src': [
-        '&apos;self&apos;',
+        "'self'",
         'https://js.stripe.com',
         'https://checkout.stripe.com',
         'https://www.youtube.com',
         'https://www.vimeo.com',
         'https://player.vimeo.com',
       ],
-      'frame-ancestors': ['&apos;none&apos;'], // Prevents embedding in frames
-      'form-action': ['&apos;self&apos;'],
-      'base-uri': ['&apos;self&apos;'],
+      'frame-ancestors': ["'none'"], // Prevents embedding in frames
+      'form-action': ["'self'"],
+      'base-uri': ["'self'"],
       'upgrade-insecure-requests': !isDev,
       'block-all-mixed-content': !isDev,
     };
