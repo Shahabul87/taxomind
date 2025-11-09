@@ -25,8 +25,40 @@ import {
 type CourseData = CourseWithRelations | SerializedCourseWithRelations;
 
 /**
- * Mock data generator for demo purposes
- * In production, this would fetch from API endpoints
+ * Fetch real analytics data from API
+ * REPLACED: Mock data generators with real API calls
+ */
+const fetchRealAnalytics = async (): Promise<{
+  analytics: AnalyticsMetrics;
+  recentActivity: RecentActivity[];
+  insights: DashboardInsight[];
+  performanceIndicators: PerformanceIndicator[];
+} | null> => {
+  try {
+    const response = await fetch('/api/teacher-analytics/courses-dashboard');
+
+    if (!response.ok) {
+      console.error('[useCourseAnalytics] API error:', response.statusText);
+      return null;
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      console.error('[useCourseAnalytics] API returned error:', result.error);
+      return null;
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('[useCourseAnalytics] Fetch error:', error);
+    return null;
+  }
+};
+
+/**
+ * DEPRECATED: Mock data generator - kept for fallback only
+ * Use fetchRealAnalytics() instead
  */
 const generateMockAnalytics = (courses: CourseData[]): AnalyticsMetrics => {
   const now = new Date();
@@ -351,54 +383,72 @@ export const useCourseAnalytics = (courses: CourseData[]) => {
   const [insights, setInsights] = useState<DashboardInsight[]>([]);
   const [performanceIndicators, setPerformanceIndicators] = useState<PerformanceIndicator[]>([]);
 
-  // Generate analytics data
+  // Fetch REAL analytics data from API
   useEffect(() => {
-    const generateData = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Fetch real analytics from API
+      const apiData = await fetchRealAnalytics();
 
-      // Generate mock analytics
-      const analyticsData = generateMockAnalytics(courses);
-      setAnalytics(analyticsData);
+      if (apiData) {
+        // Use real data from API
+        setAnalytics(apiData.analytics);
+        setRecentActivity(apiData.recentActivity);
+        setInsights(apiData.insights);
+        setPerformanceIndicators(apiData.performanceIndicators);
 
-      // Enhance courses with analytics
-      const enhanced = courses.map(enhanceCourseWithAnalytics);
-      setEnhancedCourses(enhanced);
+        // Enhance courses with analytics
+        const enhanced = courses.map(enhanceCourseWithAnalytics);
+        setEnhancedCourses(enhanced);
 
-      // Update top performing courses in analytics
-      const topCourses = enhanced
-        .sort((a, b) => b.performance.currentRevenue - a.performance.currentRevenue)
-        .slice(0, 5);
+        // Update top performing courses in analytics
+        const topCourses = enhanced
+          .sort((a, b) => b.performance.currentRevenue - a.performance.currentRevenue)
+          .slice(0, 5);
 
-      if (analyticsData) {
-        analyticsData.engagement.topPerformingCourses = topCourses;
+        if (apiData.analytics) {
+          apiData.analytics.engagement.topPerformingCourses = topCourses;
+        }
+      } else {
+        // Fallback to mock data only if API fails
+        console.warn('[useCourseAnalytics] API failed, using fallback data');
+        const analyticsData = generateMockAnalytics(courses);
+        setAnalytics(analyticsData);
+
+        const enhanced = courses.map(enhanceCourseWithAnalytics);
+        setEnhancedCourses(enhanced);
+
+        setRecentActivity(generateRecentActivity(courses));
+        setInsights(generateInsights(courses, analyticsData));
+        setPerformanceIndicators(generatePerformanceIndicators(analyticsData));
       }
-
-      // Generate other data
-      setRecentActivity(generateRecentActivity(courses));
-      setInsights(generateInsights(courses, analyticsData));
-      setPerformanceIndicators(generatePerformanceIndicators(analyticsData));
 
       setIsLoading(false);
     };
 
     if (courses.length > 0) {
-      generateData();
+      fetchData();
     } else {
       setIsLoading(false);
     }
   }, [courses]);
 
-  // Refresh analytics data
+  // Refresh analytics data from API
   const refreshAnalytics = useCallback(async () => {
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Fetch fresh data from API
+    const apiData = await fetchRealAnalytics();
 
-    if (courses.length > 0) {
+    if (apiData) {
+      setAnalytics(apiData.analytics);
+      setRecentActivity(apiData.recentActivity);
+      setInsights(apiData.insights);
+      setPerformanceIndicators(apiData.performanceIndicators);
+    } else if (courses.length > 0) {
+      // Fallback to mock data only if API fails
+      console.warn('[refreshAnalytics] API failed, using fallback data');
       const analyticsData = generateMockAnalytics(courses);
       setAnalytics(analyticsData);
       setRecentActivity(generateRecentActivity(courses));
