@@ -125,7 +125,7 @@ export interface RevenueMetrics {
  * Time series data for charts
  */
 export interface TimeSeriesData {
-  timestamp: Date;
+  timestamp: string;
   value: number;
   label?: string;
   category?: string;
@@ -201,7 +201,7 @@ export interface RecentActivity {
   id: string;
   type: 'enrollment' | 'review' | 'completion' | 'payment';
   message: string;
-  timestamp: Date;
+  timestamp: string;
   metadata?: Record<string, unknown>;
 }
 

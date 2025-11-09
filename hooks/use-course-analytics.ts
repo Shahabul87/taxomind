@@ -38,7 +38,7 @@ const generateMockAnalytics = (courses: CourseData[]): AnalyticsMetrics => {
     const date = new Date(now);
     date.setDate(date.getDate() - (29 - i));
     return {
-      timestamp: date,
+      timestamp: date.toISOString(),
       value: Math.floor(Math.random() * 5000) + 1000,
       label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     };
@@ -219,13 +219,17 @@ const generateRecentActivity = (courses: CourseData[]): RecentActivity[] => {
         id: `activity-${i}`,
         type,
         message: generateActivityMessage(type, course.title),
-        timestamp,
+        timestamp: timestamp.toISOString(),
         metadata: { courseId: course.id, courseTitle: course.title }
       });
     }
   }
 
-  return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  // Parse back to Date for sorting, then convert to ISO strings
+  const sortedActivities = activities
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return sortedActivities;
 };
 
 /**
