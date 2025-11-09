@@ -8,7 +8,7 @@ import { currentUser } from '@/lib/auth';
  * Fetches REAL analytics data for teacher's courses dashboard
  * - Real revenue from Purchase table
  * - Real enrollment counts
- * - Real ratings from CourseReview table
+ * - Real ratings from reviews table
  * - Real completion rates
  * - Recent activity from database
  */
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
           select: {
             Purchase: true,
             chapters: true,
-            CourseReview: true,
+            reviews: true,
           },
         },
         Purchase: {
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
             userId: true,
           },
         },
-        CourseReview: {
+        reviews: {
           select: {
             rating: true,
             createdAt: true,
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     const categoryBreakdown = calculateCategoryBreakdown(courses);
 
     // Calculate REAL average rating
-    const allReviews = courses.flatMap(c => c.CourseReview);
+    const allReviews = courses.flatMap(c => c.reviews);
     const avgRating = allReviews.length > 0
       ? allReviews.reduce((sum, review) => sum + review.rating, 0) / allReviews.length
       : 0;
@@ -170,7 +170,7 @@ async function calculateRevenueChart(userId: string) {
   // Get all purchases for this teacher's courses in the last 30 days
   const purchases = await db.purchase.findMany({
     where: {
-      course: {
+      Course: {
         userId,
       },
       createdAt: {
@@ -178,7 +178,7 @@ async function calculateRevenueChart(userId: string) {
       },
     },
     include: {
-      course: {
+      Course: {
         select: {
           price: true,
         },
@@ -204,7 +204,7 @@ async function calculateRevenueChart(userId: string) {
   purchases.forEach(purchase => {
     const dateStr = purchase.createdAt.toISOString().split('T')[0];
     const currentRevenue = revenueByDate.get(dateStr) || 0;
-    revenueByDate.set(dateStr, currentRevenue + (purchase.course.price || 0));
+    revenueByDate.set(dateStr, currentRevenue + (purchase.Course.price || 0));
   });
 
   // Convert to chart format
@@ -264,19 +264,14 @@ async function getRecentActivity(userId: string) {
   // Get recent purchases (enrollments)
   const recentPurchases = await db.purchase.findMany({
     where: {
-      course: {
+      Course: {
         userId,
       },
     },
     include: {
-      course: {
+      Course: {
         select: {
           title: true,
-        },
-      },
-      user: {
-        select: {
-          name: true,
         },
       },
     },
@@ -290,11 +285,11 @@ async function getRecentActivity(userId: string) {
     activities.push({
       id: `purchase-${purchase.id}`,
       type: 'enrollment',
-      message: `${purchase.user.name || 'A student'} enrolled in "${purchase.course.title}"`,
+      message: `A student enrolled in "${purchase.Course.title}"`,
       timestamp: purchase.createdAt.toISOString(),
       metadata: {
         courseId: purchase.courseId,
-        courseTitle: purchase.course.title,
+        courseTitle: purchase.Course.title,
       },
     });
   });

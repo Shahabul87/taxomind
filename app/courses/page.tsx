@@ -13,10 +13,15 @@ export const dynamic = 'force-dynamic';
 
 async function getInitialData() {
   try {
+    console.log('[CoursesPage] Step 1: Starting data fetch');
     const user = await currentUser();
+    console.log('[CoursesPage] Step 2: User auth complete', user ? `User ID: ${user.id}` : 'No user');
 
     // Get initial courses
-    const courses = await db.course.findMany({
+    console.log('[CoursesPage] Step 3: Fetching courses from database');
+    let courses;
+    try {
+      courses = await db.course.findMany({
       where: {
         isPublished: true,
       },
@@ -66,15 +71,28 @@ async function getInitialData() {
       },
       take: 12, // Initial page size
     });
+      console.log('[CoursesPage] Step 4: Successfully fetched courses', courses.length);
+    } catch (dbError) {
+      console.error('[CoursesPage] DATABASE ERROR - Course fetch failed:', dbError);
+      console.error('[CoursesPage] Error details:', {
+        message: dbError instanceof Error ? dbError.message : 'Unknown error',
+        name: dbError instanceof Error ? dbError.name : undefined,
+        stack: dbError instanceof Error ? dbError.stack : undefined,
+      });
+      throw new Error(`Failed to fetch courses: ${dbError instanceof Error ? dbError.message : 'Unknown database error'}`);
+    }
 
     // Get total count
+    console.log('[CoursesPage] Step 5: Counting total courses');
     const totalCourses = await db.course.count({
       where: {
         isPublished: true,
       },
     });
+    console.log('[CoursesPage] Step 6: Total courses count:', totalCourses);
 
     // Get categories for filters
+    console.log('[CoursesPage] Step 7: Fetching categories');
     const categories = await db.category.findMany({
       select: {
         id: true,
@@ -88,8 +106,10 @@ async function getInitialData() {
         },
       },
     });
+    console.log('[CoursesPage] Step 8: Categories fetched:', categories.length);
 
     // Transform courses to match frontend expectations
+    console.log('[CoursesPage] Step 9: Transforming courses data');
     const transformedCourses = courses.map((course) => {
       // Calculate average rating
       const avgRating = course.reviews.length > 0
@@ -201,6 +221,14 @@ async function getInitialData() {
       ],
     };
 
+    console.log('[CoursesPage] Step 10: Data transformation complete');
+    console.log('[CoursesPage] SUCCESS: Returning', {
+      coursesCount: transformedCourses.length,
+      totalCourses,
+      categoriesCount: categories.length,
+      hasUser: !!user,
+    });
+
     return {
       courses: transformedCourses,
       filterOptions,
@@ -208,7 +236,10 @@ async function getInitialData() {
       userId: user?.id,
     };
   } catch (error) {
-    console.error("Error fetching initial courses data:", error);
+    console.error("[CoursesPage] FATAL ERROR - Data fetch failed:", error);
+    console.error("[CoursesPage] Error type:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("[CoursesPage] Error message:", error instanceof Error ? error.message : String(error));
+    console.error("[CoursesPage] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
     return {
       courses: [],
       filterOptions: {
