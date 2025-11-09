@@ -14,11 +14,12 @@ export type CourseWithRelations = Course & {
 
 /**
  * Serialized version of CourseWithRelations for client components
- * Converts Date objects to ISO strings for proper serialization
+ * Converts ALL Date objects to ISO strings for proper serialization
  */
-export type SerializedCourseWithRelations = Omit<CourseWithRelations, 'createdAt' | 'updatedAt'> & {
+export type SerializedCourseWithRelations = Omit<CourseWithRelations, 'createdAt' | 'updatedAt' | 'dealEndDate'> & {
   createdAt: string;
   updatedAt: string;
+  dealEndDate: string | null;
 };
 
 /**
@@ -33,11 +34,12 @@ export interface CourseEnhanced extends CourseWithRelations {
 
 /**
  * Serialized version of CourseEnhanced for client components
- * Converts Date objects to ISO strings for proper serialization
+ * Converts ALL Date objects to ISO strings for proper serialization
  */
-export interface SerializedCourseEnhanced extends Omit<CourseWithRelations, 'createdAt' | 'updatedAt'> {
+export interface SerializedCourseEnhanced extends Omit<CourseWithRelations, 'createdAt' | 'updatedAt' | 'dealEndDate'> {
   createdAt: string;
   updatedAt: string;
+  dealEndDate: string | null;
   analytics: CourseAnalytics;
   performance: CoursePerformance;
   projections: CourseProjections;

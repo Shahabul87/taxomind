@@ -179,18 +179,22 @@ const enhanceCourseWithAnalytics = (course: CourseData): SerializedCourseEnhance
     recentReviews: []
   };
 
-  // Ensure dates are strings for serialized output
+  // Ensure ALL dates are strings for serialized output
   const createdAt = typeof course.createdAt === 'string'
     ? course.createdAt
     : course.createdAt.toISOString();
   const updatedAt = typeof course.updatedAt === 'string'
     ? course.updatedAt
     : course.updatedAt.toISOString();
+  const dealEndDate = course.dealEndDate
+    ? (typeof course.dealEndDate === 'string' ? course.dealEndDate : course.dealEndDate.toISOString())
+    : null;
 
   return {
     ...course,
     createdAt,
     updatedAt,
+    dealEndDate,
     analytics,
     performance,
     projections,

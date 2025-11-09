@@ -25,11 +25,12 @@ const CoursesPage = async () => {
   });
 
   // Serialize data to fix Server Component rendering in production
-  // Convert Date objects to ISO strings for proper serialization
+  // Convert ALL Date objects to ISO strings for proper serialization
   const courses = coursesData.map((course) => ({
     ...course,
     createdAt: course.createdAt.toISOString(),
     updatedAt: course.updatedAt.toISOString(),
+    dealEndDate: course.dealEndDate ? course.dealEndDate.toISOString() : null,
   }));
 
   // Stats based on fetched list
