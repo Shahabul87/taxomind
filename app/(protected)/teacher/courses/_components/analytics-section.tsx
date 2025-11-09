@@ -1,7 +1,7 @@
 "use client";
 
 import { useCourseAnalytics } from "@/hooks/use-course-analytics";
-import { CourseWithRelations } from "@/types/course";
+import { SerializedCourseWithRelations } from "@/types/course";
 import { MetricCard } from "./metric-card";
 import { RevenueChart } from "./revenue-chart";
 import { CategoryBreakdownChart } from "./category-breakdown-chart";
@@ -15,7 +15,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export interface AnalyticsSectionProps {
-  courses: CourseWithRelations[];
+  courses: SerializedCourseWithRelations[];
 }
 
 export const AnalyticsSection = ({ courses }: AnalyticsSectionProps) => {

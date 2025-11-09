@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   CourseWithRelations,
+  SerializedCourseWithRelations,
   CourseEnhanced,
   AnalyticsMetrics,
   TimeSeriesData,
@@ -18,10 +19,15 @@ import {
 } from '@/types/course';
 
 /**
+ * Type for course data that can be either serialized or non-serialized
+ */
+type CourseData = CourseWithRelations | SerializedCourseWithRelations;
+
+/**
  * Mock data generator for demo purposes
  * In production, this would fetch from API endpoints
  */
-const generateMockAnalytics = (courses: CourseWithRelations[]): AnalyticsMetrics => {
+const generateMockAnalytics = (courses: CourseData[]): AnalyticsMetrics => {
   const now = new Date();
   const totalRevenue = courses.reduce((sum, c) => sum + ((c._count?.Purchase || 0) * (c.price || 0)), 0);
   const totalEnrollments = courses.reduce((sum, c) => sum + (c._count?.Purchase || 0), 0);
@@ -183,7 +189,7 @@ const enhanceCourseWithAnalytics = (course: CourseWithRelations): CourseEnhanced
 /**
  * Generate recent activity items
  */
-const generateRecentActivity = (courses: CourseWithRelations[]): RecentActivity[] => {
+const generateRecentActivity = (courses: CourseData[]): RecentActivity[] => {
   const activities: RecentActivity[] = [];
   const types: RecentActivity['type'][] = ['enrollment', 'review', 'completion', 'payment'];
 
@@ -222,7 +228,7 @@ const generateActivityMessage = (type: RecentActivity['type'], courseTitle: stri
 /**
  * Generate dashboard insights
  */
-const generateInsights = (courses: CourseWithRelations[], analytics: AnalyticsMetrics): DashboardInsight[] => {
+const generateInsights = (courses: CourseData[], analytics: AnalyticsMetrics): DashboardInsight[] => {
   const insights: DashboardInsight[] = [];
 
   // Revenue insight
@@ -317,7 +323,7 @@ const generatePerformanceIndicators = (analytics: AnalyticsMetrics): Performance
 /**
  * Custom hook for course analytics
  */
-export const useCourseAnalytics = (courses: CourseWithRelations[]) => {
+export const useCourseAnalytics = (courses: CourseData[]) => {
   const [isLoading, setIsLoading] = useState(true);
   const [analytics, setAnalytics] = useState<AnalyticsMetrics | null>(null);
   const [enhancedCourses, setEnhancedCourses] = useState<CourseEnhanced[]>([]);
