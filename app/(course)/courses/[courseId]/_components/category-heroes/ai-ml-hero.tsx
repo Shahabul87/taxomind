@@ -34,6 +34,11 @@ interface AIMLHeroProps {
 }
 
 export function AIMLHero({ course, models = [], isEnrolled = false, onEnroll }: AIMLHeroProps) {
+  // Ensure image URLs use HTTPS for Next.js Image component in production
+  const secureImageUrl = course.imageUrl
+    ? course.imageUrl.replace(/^http:\/\//i, 'https://')
+    : null;
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-purple-900 via-indigo-900 to-pink-900">
       {/* Neural Network Background Pattern */}
@@ -138,10 +143,10 @@ export function AIMLHero({ course, models = [], isEnrolled = false, onEnroll }: 
 
           {/* Right Visual - Course Image with top spacing */}
           <div className="relative pt-12 lg:pt-16">
-            {course.imageUrl ? (
+            {secureImageUrl ? (
               <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-purple-400/30">
                 <Image
-                  src={course.imageUrl}
+                  src={secureImageUrl}
                   alt={course.title}
                   fill
                   className="object-cover"

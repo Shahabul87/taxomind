@@ -112,9 +112,9 @@ export function AdminWithSidebar({ user, children }: AdminWithSidebarProps) {
     >
       <Sidebar open={open} setOpen={setOpen}>
         <SidebarBody className="justify-between gap-10">
-          <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+          <div className="flex flex-1 flex-col overflow-hidden">
             {open ? <Logo /> : <LogoIcon />}
-            <div className="mt-8 flex flex-col gap-2">
+            <div className="mt-8 flex flex-col gap-2 overflow-y-auto no-scrollbar">
               {links.map((link, idx) => (
                 <SidebarLink key={idx} link={link} />
               ))}

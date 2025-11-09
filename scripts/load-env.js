@@ -50,16 +50,26 @@ function loadEnvironment() {
   
   if (loadedFiles.length === 0) {
     console.warn('⚠️  No environment files found');
-    return;
+
+    // In production, this is expected (Railway/Vercel inject env vars)
+    if (nodeEnv === 'production') {
+      console.log('📦 Running in production - using platform-injected environment variables');
+    }
   }
-  
+
   // Validate critical environment variables
   const critical = ['DATABASE_URL', 'AUTH_SECRET'];
   const missing = critical.filter(key => !process.env[key]);
-  
+
   if (missing.length > 0) {
     console.error(`❌ Missing critical environment variables: ${missing.join(', ')}`);
-    process.exit(1);
+
+    // Only exit in development - in production, let the app handle missing vars
+    if (nodeEnv !== 'production') {
+      process.exit(1);
+    } else {
+      console.warn('⚠️  App may fail to start without these variables');
+    }
   }
   
   // Show environment info

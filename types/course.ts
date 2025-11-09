@@ -13,6 +13,15 @@ export type CourseWithRelations = Course & {
 };
 
 /**
+ * Serialized version of CourseWithRelations for client components
+ * Converts Date objects to ISO strings for proper serialization
+ */
+export type SerializedCourseWithRelations = Omit<CourseWithRelations, 'createdAt' | 'updatedAt'> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
  * Enhanced course with analytics and performance metrics
  */
 export interface CourseEnhanced extends CourseWithRelations {
@@ -211,7 +220,7 @@ export interface PerformanceIndicator {
  * Props for the CoursesDashboard component
  */
 export interface CoursesDashboardProps {
-  courses: CourseWithRelations[];
+  courses: SerializedCourseWithRelations[];
   stats: CourseStats;
 }
 
@@ -224,7 +233,7 @@ export interface CourseTableData {
   category: { name: string } | null;
   price: number | null;
   isPublished: boolean;
-  createdAt: Date;
+  createdAt: string | Date; // Support both for compatibility
 }
 
 /**

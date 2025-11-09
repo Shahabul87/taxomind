@@ -10,55 +10,73 @@ export interface AuthPageStats {
 /**
  * Fetch authentication page statistics
  * Cached for 1 hour to reduce database load
+ *
+ * CRITICAL: Always returns a valid AuthPageStats object, never undefined
+ * Gracefully handles database errors and cache failures
  */
-export const getAuthPageStats = unstable_cache(
-  async (): Promise<AuthPageStats> => {
-    try {
-      // Fetch all stats in parallel for better performance
-      const [totalLearners, totalCourses, reviewStats] = await Promise.all([
-        // Count total users (learners)
-        db.user.count({
-          where: {
-            role: "USER",
-          },
-        }),
+export const getAuthPageStats = async (): Promise<AuthPageStats> => {
+  const defaultStats: AuthPageStats = {
+    totalLearners: 0,
+    totalCourses: 0,
+    averageRating: 4.5,
+  };
 
-        // Count published courses
-        db.course.count({
-          where: {
-            isPublished: true,
-          },
-        }),
+  try {
+    // Use unstable_cache for performance, but handle cache failures
+    const cachedFn = unstable_cache(
+      async (): Promise<AuthPageStats> => {
+        try {
+          // Fetch all stats in parallel for better performance
+          const [totalLearners, totalCourses, reviewStats] = await Promise.all([
+            // Count total users (learners)
+            db.user.count({
+              where: {
+                role: "USER",
+              },
+            }),
 
-        // Calculate average rating from reviews
-        db.courseReview.aggregate({
-          _avg: {
-            rating: true,
-          },
-        }),
-      ]);
+            // Count published courses
+            db.course.count({
+              where: {
+                isPublished: true,
+              },
+            }),
 
-      return {
-        totalLearners,
-        totalCourses,
-        averageRating: reviewStats._avg.rating || 4.5, // Fallback to 4.5 if no reviews
-      };
-    } catch (error) {
-      console.error("[AUTH_STATS_ERROR]", error);
-      // Return default values if database query fails
-      return {
-        totalLearners: 0,
-        totalCourses: 0,
-        averageRating: 4.5,
-      };
-    }
-  },
-  ["auth-page-stats"],
-  {
-    revalidate: 3600, // Cache for 1 hour
-    tags: ["auth-stats"],
+            // Calculate average rating from reviews
+            db.courseReview.aggregate({
+              _avg: {
+                rating: true,
+              },
+            }),
+          ]);
+
+          return {
+            totalLearners,
+            totalCourses,
+            averageRating: reviewStats._avg.rating || 4.5, // Fallback to 4.5 if no reviews
+          };
+        } catch (error) {
+          console.error("[AUTH_STATS_DB_ERROR]", error);
+          return defaultStats;
+        }
+      },
+      ["auth-page-stats"],
+      {
+        revalidate: 3600, // Cache for 1 hour
+        tags: ["auth-stats"],
+      }
+    );
+
+    const result = await cachedFn();
+
+    // Additional safety check: ensure we never return undefined
+    return result || defaultStats;
+  } catch (error) {
+    console.error("[AUTH_STATS_CACHE_ERROR]", error);
+    // Return default values if cache or database query fails
+    return defaultStats;
   }
-);
+};
 
 /**
  * Format number with K/M suffix for display

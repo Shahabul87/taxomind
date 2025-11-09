@@ -34,6 +34,11 @@ interface ProgrammingHeroProps {
 }
 
 export function ProgrammingHero({ course, techStack = [], isEnrolled = false, onEnroll }: ProgrammingHeroProps) {
+  // Ensure image URLs use HTTPS for Next.js Image component in production
+  const secureImageUrl = course.imageUrl
+    ? course.imageUrl.replace(/^http:\/\//i, 'https://')
+    : null;
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
       {/* Code Pattern Background */}
@@ -135,10 +140,10 @@ export function ProgrammingHero({ course, techStack = [], isEnrolled = false, on
 
           {/* Right Visual - Course Image with top spacing */}
           <div className="relative pt-12 lg:pt-16">
-            {course.imageUrl ? (
+            {secureImageUrl ? (
               <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-blue-400/30">
                 <Image
-                  src={course.imageUrl}
+                  src={secureImageUrl}
                   alt={course.title}
                   fill
                   className="object-cover"

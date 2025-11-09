@@ -34,6 +34,11 @@ interface DesignHeroProps {
 }
 
 export function DesignHero({ course, tools = [], isEnrolled = false, onEnroll }: DesignHeroProps) {
+  // Ensure image URLs use HTTPS for Next.js Image component in production
+  const secureImageUrl = course.imageUrl
+    ? course.imageUrl.replace(/^http:\/\//i, 'https://')
+    : null;
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-pink-900 via-rose-900 to-purple-900">
       {/* Creative Pattern Background */}
@@ -182,10 +187,10 @@ export function DesignHero({ course, tools = [], isEnrolled = false, onEnroll }:
 
           {/* Right Visual - Course Image with top spacing */}
           <div className="relative pt-12 lg:pt-16">
-            {course.imageUrl ? (
+            {secureImageUrl ? (
               <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-pink-400/30">
                 <Image
-                  src={course.imageUrl}
+                  src={secureImageUrl}
                   alt={course.title}
                   fill
                   className="object-cover"

@@ -15,7 +15,7 @@ const CoursesPage = async () => {
   }
 
   // Fetch full list for table (keeps current UX); can switch to server-driven later
-  const courses = await db.course.findMany({
+  const coursesData = await db.course.findMany({
     where: { userId: user.id },
     include: {
       category: { select: { name: true } },
@@ -23,6 +23,14 @@ const CoursesPage = async () => {
     },
     orderBy: { createdAt: 'desc' },
   });
+
+  // Serialize data to fix Server Component rendering in production
+  // Convert Date objects to ISO strings for proper serialization
+  const courses = coursesData.map((course) => ({
+    ...course,
+    createdAt: course.createdAt.toISOString(),
+    updatedAt: course.updatedAt.toISOString(),
+  }));
 
   // Stats based on fetched list
   const publishedCount = courses.filter(c => c.isPublished).length;

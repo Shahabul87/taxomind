@@ -8,11 +8,18 @@ const RegisterPage = async () => {
   // Fetch real statistics from database
   const rawStats = await getAuthPageStats();
 
+  // Fallback to default stats if query fails or returns undefined
+  const safeStats = rawStats || {
+    totalLearners: 0,
+    totalCourses: 0,
+    averageRating: 4.5,
+  };
+
   // Format stats for display
   const stats = {
-    totalLearners: formatStatNumber(rawStats.totalLearners),
-    totalCourses: formatStatNumber(rawStats.totalCourses),
-    averageRating: formatRating(rawStats.averageRating),
+    totalLearners: formatStatNumber(safeStats.totalLearners),
+    totalCourses: formatStatNumber(safeStats.totalCourses),
+    averageRating: formatRating(safeStats.averageRating),
   };
 
   return (

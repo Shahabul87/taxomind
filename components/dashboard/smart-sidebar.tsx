@@ -184,7 +184,12 @@ export function SmartSidebar({ user }: SmartSidebarProps) {
     >
       <div className="flex flex-col h-full">
         {/* Main Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+        <nav className={cn(
+          "flex-1 py-4",
+          isExpanded
+            ? "overflow-y-auto custom-scrollbar"
+            : "overflow-hidden"
+        )}>
           <div className="space-y-1 px-3">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;

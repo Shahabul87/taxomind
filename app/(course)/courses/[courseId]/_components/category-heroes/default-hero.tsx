@@ -33,6 +33,11 @@ interface DefaultHeroProps {
 }
 
 export function DefaultHero({ course, isEnrolled = false, onEnroll }: DefaultHeroProps) {
+  // Ensure image URLs use HTTPS for Next.js Image component in production
+  const secureImageUrl = course.imageUrl
+    ? course.imageUrl.replace(/^http:\/\//i, 'https://')
+    : null;
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800">
       {/* Subtle Pattern Background */}
@@ -106,10 +111,10 @@ export function DefaultHero({ course, isEnrolled = false, onEnroll }: DefaultHer
 
           {/* Right Visual - Course Image with top spacing */}
           <div className="relative pt-12 lg:pt-16">
-            {course.imageUrl ? (
+            {secureImageUrl ? (
               <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50">
                 <Image
-                  src={course.imageUrl}
+                  src={secureImageUrl}
                   alt={course.title}
                   fill
                   className="object-cover"

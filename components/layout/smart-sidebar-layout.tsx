@@ -123,8 +123,8 @@ export default function SmartSidebarLayout({ user, children, sidebar }: SmartSid
             : isFullWidthPage
               ? 'min-h-screen pt-0 px-0'
               : 'h-[calc(100vh-4rem)] pt-2 px-4 overflow-y-auto',
-          // Only add margin on desktop when sidebar is fixed
-          showSidebar && !isFullWidthPage && !isTablet ? 'ml-[94px]' : ''
+          // Only add margin on desktop when sidebar is fixed (72px collapsed width)
+          showSidebar && !isFullWidthPage && !isTablet ? 'ml-[72px]' : ''
         )}
       >
         {children}
