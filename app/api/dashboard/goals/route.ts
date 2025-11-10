@@ -14,7 +14,10 @@ export async function GET(req: NextRequest) {
     const pagination = paginationSchema.parse(Object.fromEntries(searchParams.entries()));
     const filters = goalFilterSchema.parse(Object.fromEntries(searchParams.entries()));
 
-    const where = { userId: user.id, ...(filters.status && { status: filters.status }) };
+    const where = {
+      userId: user.id,
+      ...(filters.status ? { status: filters.status } : {}),
+    };
     const total = await db.dashboardGoal.count({ where });
 
     const goals = await db.dashboardGoal.findMany({
