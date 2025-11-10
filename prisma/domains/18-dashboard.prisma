@@ -107,6 +107,19 @@ enum SortBy {
   POINTS
 }
 
+enum DashboardActivityType {
+  ASSIGNMENT
+  QUIZ
+  EXAM
+  READING
+  VIDEO
+  DISCUSSION
+  STUDY_SESSION
+  PROJECT
+  PRESENTATION
+  CUSTOM
+}
+
 // ==========================================
 // Activity Stream
 // ==========================================
@@ -116,7 +129,7 @@ model DashboardActivity {
   userId          String
   user            User           @relation("UserDashboardActivities", fields: [userId], references: [id], onDelete: Cascade)
 
-  type            ActivityType
+  type            DashboardActivityType
   title           String
   description     String?
 

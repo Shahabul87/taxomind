@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-11-10T01:06:01.675Z
+// Generated: 2025-11-10T06:37:41.183Z
 // Source: 18 domain files
 // ==========================================
 
@@ -325,9 +325,9 @@ enum GoalCategory {
 
 enum GoalStatus {
   ACTIVE
-  ACHIEVED
-  ABANDONED
-  OVERDUE
+  COMPLETED
+  PAUSED
+  CANCELLED
 }
 
 enum MetricType {
@@ -956,7 +956,6 @@ model User {
   LearningStyleAnalysis                   LearningStyleAnalysis[]
   Message_Message_recipientIdToUser       Message[]                            @relation("Message_recipientIdToUser")
   Message_Message_senderIdToUser          Message[]                            @relation("Message_senderIdToUser")
-  MessageTemplate_UserMessageTemplates    MessageTemplate[]                    @relation("UserMessageTemplates")
   Mind_Mind_userIdToUser                  Mind[]                               @relation("Mind_userIdToUser")
   MindLike                                MindLike[]
   MotivationProfile                       MotivationProfile[]
@@ -1633,6 +1632,7 @@ model Course {
   // Dashboard Relations (added 2025-01-09)
   dashboardActivities      DashboardActivity[]     @relation("CourseDashboardActivities")
   dashboardStudySessions   DashboardStudySession[] @relation("CourseStudySessions")
+  dashboardStudyPlans      DashboardStudyPlan[]    @relation("CourseStudyPlans")
   dashboardCoursePlans     DashboardCoursePlan[]   @relation("CourseCoursePlans")
   dashboardTodos           DashboardTodo[]         @relation("CourseTodos")
   dashboardGoals           DashboardGoal[]         @relation("CourseGoals")
@@ -3789,48 +3789,17 @@ model IdeaLike {
 }
 
 model Message {
-  id                             String              @id
+  id                             String   @id
   content                        String
-  read                           Boolean             @default(false)
-  createdAt                      DateTime            @default(now())
+  read                           Boolean  @default(false)
+  createdAt                      DateTime @default(now())
   senderId                       String
   recipientId                    String
-  User_Message_recipientIdToUser User                @relation("Message_recipientIdToUser", fields: [recipientId], references: [id], onDelete: Cascade)
-  User_Message_senderIdToUser    User                @relation("Message_senderIdToUser", fields: [senderId], references: [id], onDelete: Cascade)
-  attachments                    MessageAttachment[] @relation("MessageAttachments")
+  User_Message_recipientIdToUser User     @relation("Message_recipientIdToUser", fields: [recipientId], references: [id], onDelete: Cascade)
+  User_Message_senderIdToUser    User     @relation("Message_senderIdToUser", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([recipientId])
   @@index([senderId])
-}
-
-model MessageTemplate {
-  id          String   @id @default(cuid())
-  title       String
-  content     String   @db.Text
-  category    String
-  variables   String[] @default([])
-  isDefault   Boolean  @default(false)
-  userId      String?
-  user        User?    @relation("UserMessageTemplates", fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([userId])
-  @@index([category])
-  @@index([isDefault])
-}
-
-model MessageAttachment {
-  id          String   @id @default(cuid())
-  messageId   String
-  message     Message  @relation("MessageAttachments", fields: [messageId], references: [id], onDelete: Cascade)
-  fileName    String
-  fileUrl     String
-  fileType    String
-  fileSize    Int
-  createdAt   DateTime @default(now())
-
-  @@index([messageId])
 }
 
 model Mind {
@@ -6520,19 +6489,6 @@ enum VoteType {
 // Note: Enums ActivityType, SessionStatus, GoalStatus, NotificationType
 // are already defined in 01-enums.prisma - using those instead
 
-enum DashboardActivityType {
-  ASSIGNMENT
-  QUIZ
-  EXAM
-  READING
-  VIDEO
-  DISCUSSION
-  STUDY_SESSION
-  PROJECT
-  PRESENTATION
-  CUSTOM
-}
-
 enum DashboardActivityStatus {
   NOT_STARTED
   IN_PROGRESS
@@ -6592,19 +6548,6 @@ enum ContentGoal {
   KNOWLEDGE_SHARING
 }
 
-enum DashboardNotificationType {
-  ACTIVITY_DUE
-  ACTIVITY_GRADED
-  ACTIVITY_COMPLETED
-  DEADLINE_APPROACHING
-  DEADLINE_MISSED
-  ACHIEVEMENT_UNLOCKED
-  STREAK_MILESTONE
-  COURSE_UPDATE
-  REMINDER
-  SYSTEM
-}
-
 enum NotificationCategory {
   DONE
   MISSED
@@ -6642,6 +6585,19 @@ enum SortBy {
   CREATED_DATE
   PRIORITY
   POINTS
+}
+
+enum DashboardActivityType {
+  ASSIGNMENT
+  QUIZ
+  EXAM
+  READING
+  VIDEO
+  DISCUSSION
+  STUDY_SESSION
+  PROJECT
+  PRESENTATION
+  CUSTOM
 }
 
 // ==========================================
@@ -6700,12 +6656,28 @@ model DashboardStudyPlan {
   userId          String
   user            User           @relation("UserStudyPlans", fields: [userId], references: [id], onDelete: Cascade)
 
+  // Plan type: "enrolled" or "new"
+  planType        String         @default("enrolled")
+
+  // For enrolled courses
+  enrolledCourseId String?
+  enrolledCourse   Course?        @relation("CourseStudyPlans", fields: [enrolledCourseId], references: [id], onDelete: SetNull)
+
+  // For new courses to enroll
+  newCourseTitle       String?
+  newCourseDescription String?
+  newCourseUrl         String?
+  newCoursePlatform    String?
+
+  // Common fields
   title           String
   description     String?
 
   startDate       DateTime
   endDate         DateTime
   weeklyHoursGoal Int            @default(10)
+  dailyStudyTime  Int?
+  studyDaysPerWeek Int?
 
   status          PlanStatus     @default(ACTIVE)
 
@@ -6719,6 +6691,7 @@ model DashboardStudyPlan {
   updatedAt       DateTime       @updatedAt
 
   @@index([userId, status])
+  @@index([enrolledCourseId])
   @@map("dashboard_study_plans")
 }
 
@@ -6941,7 +6914,7 @@ model DashboardNotification {
   userId          String
   user            User           @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
 
-  type            DashboardNotificationType
+  type            NotificationType
   category        NotificationCategory
 
   title           String
