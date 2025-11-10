@@ -122,10 +122,24 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
-    console.error("[ACTIVITIES_GET]", error);
+    console.error("[ACTIVITIES_GET] Error details:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
+
+    // Check if it's a Prisma error related to missing table
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const isPrismaTableError = errorMessage.includes("does not exist") ||
+                               errorMessage.includes("relation") ||
+                               errorMessage.includes("dashboard_activities");
+
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
-      "Failed to fetch activities",
+      isPrismaTableError
+        ? "Database schema not migrated. Please run migrations in production."
+        : "Failed to fetch activities",
       HttpStatus.INTERNAL_ERROR
     );
   }
