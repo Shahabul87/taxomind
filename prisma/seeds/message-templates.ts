@@ -1,6 +1,13 @@
-import { db } from "@/lib/db";
+// import { db } from "@/lib/db";
+
+// TODO: MessageTemplate model needs to be added to Prisma schema
+// Currently disabled until the model is implemented
 
 export async function seedMessageTemplates() {
+  console.log("⚠️  Message templates seeding skipped - MessageTemplate model not yet implemented");
+  return;
+
+  /* Original implementation - commented out until MessageTemplate model exists
   const defaultTemplates = [
     {
       title: "Question about Course Material",
@@ -90,4 +97,5 @@ export async function seedMessageTemplates() {
   }
 
   console.log("Message templates seeding completed!");
+  */
 }

@@ -238,7 +238,7 @@ export const goalSchema = z.object({
 
 export const updateGoalSchema = goalSchema.partial().extend({
   id: z.string(),
-  status: z.enum(["ACTIVE", "ACHIEVED", "ABANDONED", "OVERDUE"]).optional(),
+  status: z.enum(["ACTIVE", "COMPLETED", "PAUSED", "CANCELLED"]).optional(),
   progress: z.number().int().min(0).max(100).optional(),
 });
 
@@ -294,7 +294,7 @@ export const activityFilterSchema = z.object({
 });
 
 export const goalFilterSchema = z.object({
-  status: z.enum(["ACTIVE", "ACHIEVED", "ABANDONED", "OVERDUE"]).optional(),
+  status: z.enum(["ACTIVE", "COMPLETED", "PAUSED", "CANCELLED"]).optional(),
   courseId: z.string().optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),

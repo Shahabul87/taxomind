@@ -105,18 +105,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const notificationSchema = z.object({
-      type: z.enum([
-        "ACTIVITY_DUE",
-        "ACTIVITY_GRADED",
-        "ACTIVITY_COMPLETED",
-        "DEADLINE_APPROACHING",
-        "DEADLINE_MISSED",
-        "ACHIEVEMENT_UNLOCKED",
-        "STREAK_MILESTONE",
-        "COURSE_UPDATE",
-        "REMINDER",
-        "SYSTEM",
-      ]),
+      type: z.enum(["EMAIL", "IN_APP", "SMS", "PUSH", "SLACK", "WEBHOOK"]),
       category: z.enum(["DONE", "MISSED", "UPCOMING", "ACHIEVEMENT"]),
       title: z.string().min(1).max(200),
       description: z.string().max(2000).optional(),

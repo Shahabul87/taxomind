@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db";
+// import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 
 // Validation schema for creating templates
@@ -21,6 +21,9 @@ const UpdateTemplateSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
+// TODO: MessageTemplate model needs to be added to Prisma schema
+// Currently disabled until the model is implemented
+
 // GET /api/messages/templates - Get message templates
 export async function GET(req: Request) {
   try {
@@ -29,6 +32,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // TODO: Implement once MessageTemplate model is added to schema
+    return NextResponse.json(
+      { error: "Message templates feature not yet implemented" },
+      { status: 501 }
+    );
+
+    /* Original implementation - commented out until MessageTemplate model exists
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category") || undefined;
     const includeDefaults = searchParams.get("includeDefaults") !== "false";
@@ -57,6 +67,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ templates });
+    */
   } catch (error) {
     console.error("[TEMPLATES_GET]", error);
     return NextResponse.json(
@@ -77,6 +88,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const validatedData = CreateTemplateSchema.parse(body);
 
+    // TODO: Implement once MessageTemplate model is added to schema
+    return NextResponse.json(
+      { error: "Message templates feature not yet implemented" },
+      { status: 501 }
+    );
+
+    /* Original implementation - commented out until MessageTemplate model exists
     const template = await db.messageTemplate.create({
       data: {
         title: validatedData.title,
@@ -89,6 +107,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(template, { status: 201 });
+    */
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -125,6 +144,13 @@ export async function PATCH(req: Request) {
 
     const validatedData = UpdateTemplateSchema.parse(updateData);
 
+    // TODO: Implement once MessageTemplate model is added to schema
+    return NextResponse.json(
+      { error: "Message templates feature not yet implemented" },
+      { status: 501 }
+    );
+
+    /* Original implementation - commented out until MessageTemplate model exists
     // Verify ownership
     const template = await db.messageTemplate.findFirst({
       where: {
@@ -151,6 +177,7 @@ export async function PATCH(req: Request) {
     });
 
     return NextResponse.json(updatedTemplate);
+    */
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -185,6 +212,13 @@ export async function DELETE(req: Request) {
       );
     }
 
+    // TODO: Implement once MessageTemplate model is added to schema
+    return NextResponse.json(
+      { error: "Message templates feature not yet implemented" },
+      { status: 501 }
+    );
+
+    /* Original implementation - commented out until MessageTemplate model exists
     // Verify ownership
     const template = await db.messageTemplate.findFirst({
       where: {
@@ -205,6 +239,7 @@ export async function DELETE(req: Request) {
     });
 
     return NextResponse.json({ success: true });
+    */
   } catch (error) {
     console.error("[TEMPLATES_DELETE]", error);
     return NextResponse.json(

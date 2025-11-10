@@ -14,6 +14,9 @@ const UploadAttachmentSchema = z.object({
   fileSize: z.number().max(MAX_FILE_SIZE),
 });
 
+// TODO: MessageAttachment model needs to be added to Prisma schema
+// Currently disabled until the model is implemented
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -24,6 +27,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const validatedData = UploadAttachmentSchema.parse(body);
 
+    // TODO: Implement once MessageAttachment model is added to schema
+    return NextResponse.json(
+      { error: "Message attachments feature not yet implemented" },
+      { status: 501 }
+    );
+
+    /* Original implementation - commented out until MessageAttachment model exists
     // Verify the message belongs to the user
     const message = await db.message.findFirst({
       where: {
@@ -50,6 +60,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(attachment);
+    */
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -80,6 +91,13 @@ export async function GET(req: Request) {
       );
     }
 
+    // TODO: Implement once MessageAttachment model is added to schema
+    return NextResponse.json(
+      { error: "Message attachments feature not yet implemented" },
+      { status: 501 }
+    );
+
+    /* Original implementation - commented out until MessageAttachment model exists
     // Verify the message belongs to the user
     const message = await db.message.findFirst({
       where: {
@@ -105,6 +123,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(attachments);
+    */
   } catch (error) {
     logger.error("[MESSAGE_ATTACHMENTS_GET]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
