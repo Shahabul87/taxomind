@@ -1,0 +1,245 @@
+"use client";
+
+import React, { useState } from "react";
+import type { User as NextAuthUser } from "next-auth";
+import { SmartHeader } from "@/components/dashboard/smart-header";
+import { NewDashboard } from "./NewDashboard";
+import { CreateStudyPlanModal, type StudyPlanData } from "./modals/CreateStudyPlanModal";
+import { CreateCoursePlanModal, type CoursePlanData } from "./modals/CreateCoursePlanModal";
+import { CreateBlogPlanModal, type BlogPlanData } from "./modals/CreateBlogPlanModal";
+import { ScheduleSessionModal, type SessionData } from "./modals/ScheduleSessionModal";
+import { AddTodoModal, type TodoData } from "./modals/AddTodoModal";
+import { SetGoalModal, type GoalData } from "./modals/SetGoalModal";
+
+interface DashboardClientProps {
+  user: NextAuthUser & {
+    role?: string;
+    isTeacher?: boolean;
+    isAffiliate?: boolean;
+  };
+}
+
+export function DashboardClient({ user }: DashboardClientProps) {
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+
+  // Modal states
+  const [isStudyPlanModalOpen, setIsStudyPlanModalOpen] = useState(false);
+  const [isCoursePlanModalOpen, setIsCoursePlanModalOpen] = useState(false);
+  const [isBlogPlanModalOpen, setIsBlogPlanModalOpen] = useState(false);
+  const [isScheduleSessionModalOpen, setIsScheduleSessionModalOpen] = useState(false);
+  const [isAddTodoModalOpen, setIsAddTodoModalOpen] = useState(false);
+  const [isSetGoalModalOpen, setIsSetGoalModalOpen] = useState(false);
+
+  // Quick action handlers
+  const quickActionHandlers = {
+    onCreateStudyPlan: () => setIsStudyPlanModalOpen(true),
+    onCreateCoursePlan: () => setIsCoursePlanModalOpen(true),
+    onCreateBlogPlan: () => setIsBlogPlanModalOpen(true),
+    onScheduleSession: () => setIsScheduleSessionModalOpen(true),
+    onAddTodo: () => setIsAddTodoModalOpen(true),
+    onSetGoal: () => setIsSetGoalModalOpen(true),
+  };
+
+  // Form submission handlers
+  const handleStudyPlanSubmit = async (data: StudyPlanData) => {
+    console.log("Study Plan:", data);
+    // TODO: API call to create study plan
+  };
+
+  const handleCoursePlanSubmit = async (data: CoursePlanData) => {
+    try {
+      const response = await fetch("/api/dashboard/course-plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          startDate: data.startDate.toISOString(),
+          targetCompletionDate: data.targetCompletionDate?.toISOString(),
+          daysPerWeek: data.daysPerWeek,
+          timePerSession: data.timePerSession,
+          difficultyLevel: data.difficultyLevel,
+          courseType: data.courseType,
+          learningGoals: data.learningGoals,
+          studyReminders: data.notifications.studyReminders,
+          progressCheckins: data.notifications.progressCheckins,
+          milestoneAlerts: data.notifications.milestoneAlerts,
+          syncToGoogleCalendar: data.syncToGoogleCalendar,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        console.log("Course plan created:", result.data);
+        // TODO: Show success toast
+        // TODO: Refresh dashboard data
+      } else {
+        console.error("Failed to create course plan:", result.error);
+        // TODO: Show error toast
+      }
+    } catch (error) {
+      console.error("Error creating course plan:", error);
+      // TODO: Show error toast
+    }
+  };
+
+  const handleBlogPlanSubmit = async (data: BlogPlanData) => {
+    try {
+      const response = await fetch("/api/dashboard/blog-plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          topics: data.topics,
+          startPublishingDate: data.startPublishingDate.toISOString(),
+          postFrequency: data.postFrequency,
+          specificDays: data.specificDays,
+          platform: data.platform,
+          targetAudience: data.targetAudience,
+          contentGoal: data.contentGoal,
+          writingReminders: data.notifications.writingReminders,
+          publishingReminders: data.notifications.publishingReminders,
+          deadlineAlerts: data.notifications.deadlineAlerts,
+          syncToGoogleCalendar: data.syncToGoogleCalendar,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        console.log("Blog plan created:", result.data);
+        // TODO: Show success toast
+      } else {
+        console.error("Failed to create blog plan:", result.error);
+        // TODO: Show error toast
+      }
+    } catch (error) {
+      console.error("Error creating blog plan:", error);
+      // TODO: Show error toast
+    }
+  };
+
+  const handleSessionSubmit = async (data: SessionData) => {
+    try {
+      const response = await fetch("/api/dashboard/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: data.title,
+          notes: data.notes,
+          startTime: data.startTime.toISOString(),
+          duration: data.duration,
+          syncToGoogleCalendar: data.syncToGoogleCalendar,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        console.log("Session created:", result.data);
+      } else {
+        console.error("Failed to create session:", result.error);
+      }
+    } catch (error) {
+      console.error("Error creating session:", error);
+    }
+  };
+
+  const handleTodoSubmit = async (data: TodoData) => {
+    try {
+      const response = await fetch("/api/dashboard/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          dueDate: data.dueDate?.toISOString(),
+          priority: data.priority,
+          tags: data.tags || [],
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        console.log("Todo created:", result.data);
+      } else {
+        console.error("Failed to create todo:", result.error);
+      }
+    } catch (error) {
+      console.error("Error creating todo:", error);
+    }
+  };
+
+  const handleGoalSubmit = async (data: GoalData) => {
+    try {
+      const response = await fetch("/api/dashboard/goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          type: data.type,
+          targetDate: data.targetDate.toISOString(),
+          milestones: data.milestones.map((m) => ({
+            title: m.title,
+            targetDate: m.targetDate.toISOString(),
+          })),
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        console.log("Goal created:", result.data);
+      } else {
+        console.error("Failed to create goal:", result.error);
+      }
+    } catch (error) {
+      console.error("Error creating goal:", error);
+    }
+  };
+
+  return (
+    <div className="min-h-screen">
+      <SmartHeader
+        user={user}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        quickActionHandlers={quickActionHandlers}
+      />
+      <main className="pt-16 pl-[72px]">
+        <NewDashboard user={user} viewMode={viewMode} />
+      </main>
+
+      {/* Modals */}
+      <CreateStudyPlanModal
+        isOpen={isStudyPlanModalOpen}
+        onClose={() => setIsStudyPlanModalOpen(false)}
+        onSubmit={handleStudyPlanSubmit}
+      />
+      <CreateCoursePlanModal
+        isOpen={isCoursePlanModalOpen}
+        onClose={() => setIsCoursePlanModalOpen(false)}
+        onSubmit={handleCoursePlanSubmit}
+      />
+      <CreateBlogPlanModal
+        isOpen={isBlogPlanModalOpen}
+        onClose={() => setIsBlogPlanModalOpen(false)}
+        onSubmit={handleBlogPlanSubmit}
+      />
+      <ScheduleSessionModal
+        isOpen={isScheduleSessionModalOpen}
+        onClose={() => setIsScheduleSessionModalOpen(false)}
+        onSubmit={handleSessionSubmit}
+      />
+      <AddTodoModal
+        isOpen={isAddTodoModalOpen}
+        onClose={() => setIsAddTodoModalOpen(false)}
+        onSubmit={handleTodoSubmit}
+      />
+      <SetGoalModal
+        isOpen={isSetGoalModalOpen}
+        onClose={() => setIsSetGoalModalOpen(false)}
+        onSubmit={handleGoalSubmit}
+      />
+    </div>
+  );
+}

@@ -10,8 +10,8 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-11-08T23:27:44.268Z
-// Source: 17 domain files
+// Generated: 2025-11-10T01:06:01.675Z
+// Source: 18 domain files
 // ==========================================
 
 
@@ -325,9 +325,9 @@ enum GoalCategory {
 
 enum GoalStatus {
   ACTIVE
-  COMPLETED
-  PAUSED
-  CANCELLED
+  ACHIEVED
+  ABANDONED
+  OVERDUE
 }
 
 enum MetricType {
@@ -956,6 +956,7 @@ model User {
   LearningStyleAnalysis                   LearningStyleAnalysis[]
   Message_Message_recipientIdToUser       Message[]                            @relation("Message_recipientIdToUser")
   Message_Message_senderIdToUser          Message[]                            @relation("Message_senderIdToUser")
+  MessageTemplate_UserMessageTemplates    MessageTemplate[]                    @relation("UserMessageTemplates")
   Mind_Mind_userIdToUser                  Mind[]                               @relation("Mind_userIdToUser")
   MindLike                                MindLike[]
   MotivationProfile                       MotivationProfile[]
@@ -1111,6 +1112,20 @@ model User {
   // Discussions
   discussions Discussion[]
   discussionVotes DiscussionVote[]
+
+  // Dashboard Relations (added 2025-01-09)
+  dashboardActivities        DashboardActivity[]        @relation("UserDashboardActivities")
+  dashboardStudyPlans        DashboardStudyPlan[]       @relation("UserStudyPlans")
+  dashboardStudySessions     DashboardStudySession[]    @relation("UserStudySessions")
+  dashboardCoursePlans       DashboardCoursePlan[]      @relation("UserCoursePlans")
+  dashboardBlogPlans         DashboardBlogPlan[]        @relation("UserBlogPlans")
+  dashboardTodos             DashboardTodo[]            @relation("UserTodos")
+  dashboardGoals             DashboardGoal[]            @relation("UserGoals")
+  dashboardNotifications     DashboardNotification[]    @relation("UserNotifications")
+  dashboardReminders         DashboardReminder[]        @relation("UserReminders")
+  dashboardNotes             DashboardNote[]            @relation("UserNotes")
+  googleCalendarConnection   GoogleCalendarConnection?  @relation("UserGoogleCalendar")
+  dashboardPreferences       DashboardPreferences?      @relation("UserDashboardPreferences")
 }
 
 model Account {
@@ -1614,6 +1629,14 @@ model Course {
   comparedInComparisons          CourseComparison[]         @relation("ComparedCourses")
   recommendationsReceived        CourseRecommendation[]     @relation("RecommendedCourse")
   recommendationsAsSource        CourseRecommendation[]     @relation("RecommendationSource")
+
+  // Dashboard Relations (added 2025-01-09)
+  dashboardActivities      DashboardActivity[]     @relation("CourseDashboardActivities")
+  dashboardStudySessions   DashboardStudySession[] @relation("CourseStudySessions")
+  dashboardCoursePlans     DashboardCoursePlan[]   @relation("CourseCoursePlans")
+  dashboardTodos           DashboardTodo[]         @relation("CourseTodos")
+  dashboardGoals           DashboardGoal[]         @relation("CourseGoals")
+  dashboardNotes           DashboardNote[]         @relation("CourseNotes")
 
   @@index([categoryId])
   @@index([organizationId])
@@ -3264,7 +3287,7 @@ model user_achievements {
 }
 
 model user_progress {
-  id              String    @id @default(cuid())
+  id              String    @id
   userId          String
   courseId        String?
   chapterId       String?
@@ -3272,15 +3295,14 @@ model user_progress {
   isCompleted     Boolean   @default(false)
   completedAt     DateTime?
   progressPercent Float     @default(0)
+  overallProgress Float?    @default(0) // Optional: legacy field for backward compatibility
   timeSpent       Int       @default(0)
   averageScore    Float?
   attempts        Int       @default(0)
   lastAccessedAt  DateTime  @default(now())
   currentStreak   Int       @default(0)
-  completedItems  Json?
-  overallProgress Float?    @default(0)
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  updatedAt       DateTime
   Chapter         Chapter?  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   Course          Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   Section         Section?  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
@@ -3767,17 +3789,48 @@ model IdeaLike {
 }
 
 model Message {
-  id                             String   @id
+  id                             String              @id
   content                        String
-  read                           Boolean  @default(false)
-  createdAt                      DateTime @default(now())
+  read                           Boolean             @default(false)
+  createdAt                      DateTime            @default(now())
   senderId                       String
   recipientId                    String
-  User_Message_recipientIdToUser User     @relation("Message_recipientIdToUser", fields: [recipientId], references: [id], onDelete: Cascade)
-  User_Message_senderIdToUser    User     @relation("Message_senderIdToUser", fields: [senderId], references: [id], onDelete: Cascade)
+  User_Message_recipientIdToUser User                @relation("Message_recipientIdToUser", fields: [recipientId], references: [id], onDelete: Cascade)
+  User_Message_senderIdToUser    User                @relation("Message_senderIdToUser", fields: [senderId], references: [id], onDelete: Cascade)
+  attachments                    MessageAttachment[] @relation("MessageAttachments")
 
   @@index([recipientId])
   @@index([senderId])
+}
+
+model MessageTemplate {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  category    String
+  variables   String[] @default([])
+  isDefault   Boolean  @default(false)
+  userId      String?
+  user        User?    @relation("UserMessageTemplates", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([category])
+  @@index([isDefault])
+}
+
+model MessageAttachment {
+  id          String   @id @default(cuid())
+  messageId   String
+  message     Message  @relation("MessageAttachments", fields: [messageId], references: [id], onDelete: Cascade)
+  fileName    String
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  createdAt   DateTime @default(now())
+
+  @@index([messageId])
 }
 
 model Mind {
@@ -6450,4 +6503,579 @@ model DiscussionVote {
 enum VoteType {
   UPVOTE
   DOWNVOTE
+}
+
+// ==========================================
+// Source: 18-dashboard.prisma
+// ==========================================
+
+// ==========================================
+// Dashboard & Activity Stream
+// ==========================================
+// Models for the new Canvas LMS-inspired dashboard
+// including activities, study plans, todos, goals
+// Created: 2025-11-09
+// ==========================================
+
+// Note: Enums ActivityType, SessionStatus, GoalStatus, NotificationType
+// are already defined in 01-enums.prisma - using those instead
+
+enum DashboardActivityType {
+  ASSIGNMENT
+  QUIZ
+  EXAM
+  READING
+  VIDEO
+  DISCUSSION
+  STUDY_SESSION
+  PROJECT
+  PRESENTATION
+  CUSTOM
+}
+
+enum DashboardActivityStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+  OVERDUE
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum PlanStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum DashboardGoalType {
+  COURSE_COMPLETION
+  SKILL_MASTERY
+  TIME_MILESTONE
+  GRADE_TARGET
+  CERTIFICATION
+  CUSTOM
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum CourseType {
+  VIDEO
+  READING
+  PRACTICE
+  MIXED
+}
+
+enum PostFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum ContentGoal {
+  TRAFFIC
+  PORTFOLIO
+  MONETIZATION
+  KNOWLEDGE_SHARING
+}
+
+enum DashboardNotificationType {
+  ACTIVITY_DUE
+  ACTIVITY_GRADED
+  ACTIVITY_COMPLETED
+  DEADLINE_APPROACHING
+  DEADLINE_MISSED
+  ACHIEVEMENT_UNLOCKED
+  STREAK_MILESTONE
+  COURSE_UPDATE
+  REMINDER
+  SYSTEM
+}
+
+enum NotificationCategory {
+  DONE
+  MISSED
+  UPCOMING
+  ACHIEVEMENT
+}
+
+enum ReminderChannel {
+  EMAIL
+  PUSH
+  IN_APP
+  SMS
+}
+
+enum ViewMode {
+  GRID
+  LIST
+}
+
+enum Density {
+  COMPACT
+  COMFORTABLE
+  SPACIOUS
+}
+
+enum GroupBy {
+  DATE
+  COURSE
+  TYPE
+  PRIORITY
+}
+
+enum SortBy {
+  DUE_DATE
+  CREATED_DATE
+  PRIORITY
+  POINTS
+}
+
+// ==========================================
+// Activity Stream
+// ==========================================
+
+model DashboardActivity {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation("UserDashboardActivities", fields: [userId], references: [id], onDelete: Cascade)
+
+  type            DashboardActivityType
+  title           String
+  description     String?
+
+  courseId        String?
+  course          Course?        @relation("CourseDashboardActivities", fields: [courseId], references: [id], onDelete: SetNull)
+
+  dueDate         DateTime?
+  completedAt     DateTime?
+  status          DashboardActivityStatus @default(NOT_STARTED)
+
+  points          Int            @default(0)
+  priority        Priority       @default(MEDIUM)
+
+  // Google Calendar Integration
+  googleEventId   String?        @unique
+  calendarSynced  Boolean        @default(false)
+  lastSyncedAt    DateTime?
+
+  // Metadata
+  estimatedMinutes Int?
+  actualMinutes   Int?
+  tags            String[]
+
+  // Relations
+  reminders       DashboardReminder[]
+  notes           DashboardNote[]
+  todos           DashboardTodo[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId, dueDate])
+  @@index([userId, status])
+  @@index([courseId])
+  @@map("dashboard_activities")
+}
+
+// ==========================================
+// Study Plan
+// ==========================================
+
+model DashboardStudyPlan {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation("UserStudyPlans", fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?
+
+  startDate       DateTime
+  endDate         DateTime
+  weeklyHoursGoal Int            @default(10)
+
+  status          PlanStatus     @default(ACTIVE)
+
+  // AI Generated
+  aiGenerated     Boolean        @default(false)
+  aiPrompt        String?
+
+  sessions        DashboardStudySession[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId, status])
+  @@map("dashboard_study_plans")
+}
+
+model DashboardStudySession {
+  id              String         @id @default(cuid())
+
+  studyPlanId     String?
+  studyPlan       DashboardStudyPlan? @relation(fields: [studyPlanId], references: [id], onDelete: SetNull)
+
+  userId          String
+  user            User           @relation("UserStudySessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId        String?
+  course          Course?        @relation("CourseStudySessions", fields: [courseId], references: [id], onDelete: SetNull)
+
+  title           String
+  startTime       DateTime
+  duration        Int            @default(60) // minutes
+
+  actualStartTime DateTime?
+  actualEndTime   DateTime?
+
+  status          SessionStatus  @default(ACTIVE)
+
+  // Google Calendar
+  syncToGoogleCalendar Boolean   @default(false)
+  googleEventId   String?        @unique
+  calendarSynced  Boolean        @default(false)
+
+  notes           String?
+  productivity    Int?           @default(0) // 0-100 rating
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId, startTime])
+  @@index([courseId])
+  @@map("dashboard_study_sessions")
+}
+
+// ==========================================
+// Course Plan
+// ==========================================
+
+model DashboardCoursePlan {
+  id                    String          @id @default(cuid())
+  userId                String
+  user                  User            @relation("UserCoursePlans", fields: [userId], references: [id], onDelete: Cascade)
+
+  title                 String
+  description           String?         @db.Text
+
+  startDate             DateTime
+  targetCompletionDate  DateTime?
+
+  daysPerWeek           Int             @default(3)
+  timePerSession        Int             @default(60) // minutes
+
+  difficultyLevel       DifficultyLevel @default(BEGINNER)
+  courseType            CourseType      @default(MIXED)
+
+  learningGoals         String?         @db.Text
+
+  // Notifications
+  studyReminders        Boolean         @default(true)
+  progressCheckins      Boolean         @default(true)
+  milestoneAlerts       Boolean         @default(true)
+
+  // Google Calendar
+  syncToGoogleCalendar  Boolean         @default(false)
+  googleCalendarIds     String[]        // Array of event IDs created
+
+  status                PlanStatus      @default(ACTIVE)
+
+  courseId              String?
+  course                Course?         @relation("CourseCoursePlans", fields: [courseId], references: [id], onDelete: SetNull)
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, startDate])
+  @@map("dashboard_course_plans")
+}
+
+// ==========================================
+// Blog Plan
+// ==========================================
+
+model DashboardBlogPlan {
+  id                    String          @id @default(cuid())
+  userId                String
+  user                  User            @relation("UserBlogPlans", fields: [userId], references: [id], onDelete: Cascade)
+
+  title                 String
+  description           String?         @db.Text
+  topics                String[]
+
+  startPublishingDate   DateTime
+  postFrequency         PostFrequency   @default(WEEKLY)
+  specificDays          String?         // e.g., "Monday, Thursday"
+
+  platform              String?
+  targetAudience        String?         @db.Text
+  contentGoal           ContentGoal     @default(KNOWLEDGE_SHARING)
+
+  // Notifications
+  writingReminders      Boolean         @default(true)
+  publishingReminders   Boolean         @default(true)
+  deadlineAlerts        Boolean         @default(true)
+
+  // Google Calendar
+  syncToGoogleCalendar  Boolean         @default(false)
+  googleCalendarIds     String[]        // Array of event IDs for writing/publishing
+
+  status                PlanStatus      @default(ACTIVE)
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, startPublishingDate])
+  @@map("dashboard_blog_plans")
+}
+
+// ==========================================
+// Todos
+// ==========================================
+
+model DashboardTodo {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation("UserTodos", fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?
+
+  completed       Boolean        @default(false)
+  completedAt     DateTime?
+
+  dueDate         DateTime?
+  priority        Priority       @default(MEDIUM)
+
+  courseId        String?
+  course          Course?        @relation("CourseTodos", fields: [courseId], references: [id], onDelete: SetNull)
+
+  activityId      String?        @unique
+  activity        DashboardActivity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  estimatedMinutes Int?
+  tags            String[]
+
+  position        Int            @default(0) // For ordering
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId, completed])
+  @@index([userId, dueDate])
+  @@map("dashboard_todos")
+}
+
+// ==========================================
+// Goals
+// ==========================================
+
+model DashboardGoal {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation("UserGoals", fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?
+
+  type            DashboardGoalType
+  targetDate      DateTime
+
+  status          GoalStatus     @default(ACTIVE)
+  progress        Int            @default(0) // 0-100
+
+  courseId        String?
+  course          Course?        @relation("CourseGoals", fields: [courseId], references: [id], onDelete: SetNull)
+
+  milestones      DashboardMilestone[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId, status])
+  @@map("dashboard_goals")
+}
+
+model DashboardMilestone {
+  id              String         @id @default(cuid())
+
+  goalId          String
+  goal            DashboardGoal  @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  title           String
+  targetDate      DateTime
+
+  completed       Boolean        @default(false)
+  completedAt     DateTime?
+
+  position        Int            @default(0)
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([goalId, position])
+  @@map("dashboard_milestones")
+}
+
+// ==========================================
+// Notifications
+// ==========================================
+
+model DashboardNotification {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  type            DashboardNotificationType
+  category        NotificationCategory
+
+  title           String
+  description     String?
+
+  read            Boolean        @default(false)
+  readAt          DateTime?
+
+  actionable      Boolean        @default(false)
+  actionUrl       String?
+  actionLabel     String?
+
+  metadata        Json?          // Extra data (courseId, points, etc.)
+
+  expiresAt       DateTime?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId, read])
+  @@index([userId, category])
+  @@map("dashboard_notifications")
+}
+
+// ==========================================
+// Reminders
+// ==========================================
+
+model DashboardReminder {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation("UserReminders", fields: [userId], references: [id], onDelete: Cascade)
+
+  activityId      String?
+  activity        DashboardActivity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?
+
+  remindAt        DateTime
+  reminded        Boolean        @default(false)
+  remindedAt      DateTime?
+
+  recurring       Boolean        @default(false)
+  recurringPattern String?       // cron-like pattern
+
+  channels        ReminderChannel[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId, remindAt])
+  @@index([remindAt, reminded])
+  @@map("dashboard_reminders")
+}
+
+// ==========================================
+// Notes
+// ==========================================
+
+model DashboardNote {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation("UserNotes", fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+  content         String         @db.Text
+
+  activityId      String?
+  activity        DashboardActivity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  courseId        String?
+  course          Course?        @relation("CourseNotes", fields: [courseId], references: [id], onDelete: SetNull)
+
+  tags            String[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([activityId])
+  @@map("dashboard_notes")
+}
+
+// ==========================================
+// Google Calendar Integration
+// ==========================================
+
+model GoogleCalendarConnection {
+  id              String         @id @default(cuid())
+  userId          String         @unique
+  user            User           @relation("UserGoogleCalendar", fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken     String         @db.Text
+  refreshToken    String         @db.Text
+  expiresAt       DateTime
+
+  calendarId      String         // Primary calendar ID
+  calendarName    String
+
+  syncEnabled     Boolean        @default(true)
+  lastSyncedAt    DateTime?
+
+  syncSettings    Json?          // What to sync, how often, etc.
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("google_calendar_connections")
+}
+
+// ==========================================
+// View Preferences
+// ==========================================
+
+model DashboardPreferences {
+  id              String         @id @default(cuid())
+  userId          String         @unique
+  user            User           @relation("UserDashboardPreferences", fields: [userId], references: [id], onDelete: Cascade)
+
+  viewMode        ViewMode       @default(LIST)
+  gridColumns     Int            @default(3)
+  listDensity     Density        @default(COMFORTABLE)
+
+  groupBy         GroupBy        @default(DATE)
+  sortBy          SortBy         @default(DUE_DATE)
+
+  showCompleted   Boolean        @default(false)
+  showCancelled   Boolean        @default(false)
+
+  defaultDateRange Int           @default(14) // days ahead
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("dashboard_preferences")
 }

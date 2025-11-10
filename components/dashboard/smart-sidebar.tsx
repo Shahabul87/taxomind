@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,7 +14,6 @@ import {
   HelpCircle,
   FileText,
   Award,
-  Calendar,
   MessageSquare,
   Heart,
   TrendingUp,
@@ -24,6 +23,7 @@ import {
   Video,
   Newspaper,
   User,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User as NextAuthUser } from "next-auth";
@@ -48,7 +48,50 @@ interface NavItem {
 export function SmartSidebar({ user }: SmartSidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const pathname = usePathname();
+
+  // Fetch unread messages count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch("/api/messages/unread/count", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // Add cache control to ensure fresh data
+          cache: "no-store",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUnreadMessagesCount(data.count || 0);
+        } else if (response.status === 401) {
+          // User is not authenticated, silently fail
+          setUnreadMessagesCount(0);
+        } else {
+          // Other errors, log but don't crash
+          console.warn("Failed to fetch unread count, status:", response.status);
+          setUnreadMessagesCount(0);
+        }
+      } catch (error) {
+        // Network error or server not available - fail silently
+        // This prevents errors when dev server is not running
+        setUnreadMessagesCount(0);
+      }
+    };
+
+    // Only fetch if we're in a browser environment
+    if (typeof window !== "undefined") {
+      fetchUnreadCount();
+
+      // Refresh count every 30 seconds
+      const interval = setInterval(fetchUnreadCount, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
 
   // Comprehensive navigation items based on existing sidebar
   const navigationItems: NavItem[] = [
@@ -56,6 +99,12 @@ export function SmartSidebar({ user }: SmartSidebarProps) {
       label: "Dashboard",
       href: user.role === "ADMIN" ? "/dashboard/admin" : "/dashboard",
       icon: LayoutDashboard,
+      roles: ["all"],
+    },
+    {
+      label: "My Plans",
+      href: "/my-plan",
+      icon: Briefcase,
       roles: ["all"],
     },
     {
@@ -97,22 +146,10 @@ export function SmartSidebar({ user }: SmartSidebarProps) {
       roles: ["all"],
     },
     {
-      label: "Calendar",
-      href: "/calendar",
-      icon: Calendar,
-      roles: ["all"],
-    },
-    {
-      label: "AI Tutor",
-      href: "/ai-tutor",
-      icon: BookOpen,
-      roles: ["all"],
-    },
-    {
       label: "Messages",
       href: "/messages",
       icon: MessageSquare,
-      badge: "3",
+      badge: unreadMessagesCount > 0 ? String(unreadMessagesCount) : undefined,
       roles: ["all"],
     },
     {
@@ -176,7 +213,7 @@ export function SmartSidebar({ user }: SmartSidebarProps) {
         duration: 0.3,
         ease: "easeInOut",
       }}
-      className="fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-r border-slate-200/50 dark:border-slate-700/50 z-40 overflow-hidden"
+      className="fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-r border-slate-200/50 dark:border-slate-700/50 z-30 overflow-hidden"
     >
       <div className="flex flex-col h-full">
         {/* Main Navigation */}

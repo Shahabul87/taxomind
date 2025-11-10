@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import { SimpleDashboard } from "./_components/SimpleDashboard";
-import { DashboardLayout } from "./_components/DashboardLayout";
+import { DashboardClient } from "./_components/DashboardClient";
+import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
 
 const DashboardPage = async () => {
   const user = await currentUser();
@@ -15,11 +15,12 @@ const DashboardPage = async () => {
     redirect("/dashboard/admin");
   }
 
-  // Regular users see the simplified dashboard with smart header and sidebar
+  // Regular users see the new Canvas LMS-inspired dashboard
   return (
-    <DashboardLayout user={user}>
-      <SimpleDashboard user={user} />
-    </DashboardLayout>
+    <>
+      <SmartSidebar user={user} />
+      <DashboardClient user={user} />
+    </>
   );
 };
 

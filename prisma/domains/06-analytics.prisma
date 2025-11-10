@@ -244,6 +244,7 @@ model user_progress {
   isCompleted     Boolean   @default(false)
   completedAt     DateTime?
   progressPercent Float     @default(0)
+  overallProgress Float?    @default(0) // Optional: legacy field for backward compatibility
   timeSpent       Int       @default(0)
   averageScore    Float?
   attempts        Int       @default(0)

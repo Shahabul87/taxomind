@@ -10,16 +10,26 @@ import {
   Settings,
   LogOut,
   User,
+  MessageSquare,
+  HelpCircle,
+  Plus,
+  Grid3x3,
+  List,
+  CheckSquare,
+  Target,
+  Clock,
+  Sparkles,
+  X,
   BookOpen,
   LayoutDashboard,
   ChevronDown,
   GraduationCap,
   BarChart3,
-  MessageSquare,
-  HelpCircle,
+  FileText,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import type { User as NextAuthUser } from "next-auth";
+import { cn } from "@/lib/utils";
 
 interface SmartHeaderProps {
   user: NextAuthUser & {
@@ -27,12 +37,31 @@ interface SmartHeaderProps {
     isTeacher?: boolean;
     isAffiliate?: boolean;
   };
+  viewMode?: "grid" | "list";
+  onViewModeChange?: (mode: "grid" | "list") => void;
+  quickActionHandlers?: {
+    onCreateStudyPlan: () => void;
+    onCreateCoursePlan: () => void;
+    onCreateBlogPlan: () => void;
+    onScheduleSession: () => void;
+    onAddTodo: () => void;
+    onSetGoal: () => void;
+  };
 }
 
-export function SmartHeader({ user }: SmartHeaderProps) {
+interface QuickAction {
+  icon: React.ElementType;
+  label: string;
+  description: string;
+  gradient: string;
+  onClick: () => void;
+}
+
+export function SmartHeader({ user, viewMode = "list", onViewModeChange, quickActionHandlers }: SmartHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
 
   const notifications = [
     { id: 1, title: "New course available", time: "2m ago", unread: true },
@@ -42,12 +71,76 @@ export function SmartHeader({ user }: SmartHeaderProps) {
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
+  // Quick action items
+  const quickActions: QuickAction[] = [
+    {
+      icon: BookOpen,
+      label: "Create Study Plan",
+      description: "AI-powered learning schedule",
+      gradient: "from-blue-500 to-indigo-500",
+      onClick: () => {
+        setIsQuickCreateOpen(false);
+        quickActionHandlers?.onCreateStudyPlan();
+      },
+    },
+    {
+      icon: GraduationCap,
+      label: "Create Course Plan",
+      description: "Plan your course structure",
+      gradient: "from-indigo-500 to-violet-500",
+      onClick: () => {
+        setIsQuickCreateOpen(false);
+        quickActionHandlers?.onCreateCoursePlan();
+      },
+    },
+    {
+      icon: FileText,
+      label: "Create Blog Plan",
+      description: "Organize your blog content",
+      gradient: "from-cyan-500 to-blue-500",
+      onClick: () => {
+        setIsQuickCreateOpen(false);
+        quickActionHandlers?.onCreateBlogPlan();
+      },
+    },
+    {
+      icon: Clock,
+      label: "Schedule Session",
+      description: "Sync with Google Calendar",
+      gradient: "from-emerald-500 to-teal-500",
+      onClick: () => {
+        setIsQuickCreateOpen(false);
+        quickActionHandlers?.onScheduleSession();
+      },
+    },
+    {
+      icon: CheckSquare,
+      label: "Add Todo",
+      description: "Quick task management",
+      gradient: "from-purple-500 to-pink-500",
+      onClick: () => {
+        setIsQuickCreateOpen(false);
+        quickActionHandlers?.onAddTodo();
+      },
+    },
+    {
+      icon: Target,
+      label: "Set Goal",
+      description: "Track your progress",
+      gradient: "from-orange-500 to-red-500",
+      onClick: () => {
+        setIsQuickCreateOpen(false);
+        quickActionHandlers?.onSetGoal();
+      },
+    },
+  ];
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-sm">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-sm">
+      <div className="h-full pl-[88px] pr-4 sm:pr-6 lg:pr-8">
         <div className="flex h-16 items-center justify-between">
           {/* Left: Logo & Navigation */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <Link href="/dashboard" className="flex items-center space-x-2">
               <BookOpen className="h-8 w-8 text-blue-500 dark:text-blue-400" />
               <span className="hidden sm:inline-block text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -85,6 +178,123 @@ export function SmartHeader({ user }: SmartHeaderProps) {
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Quick Create Plus Button */}
+            <div className="relative">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsQuickCreateOpen(!isQuickCreateOpen)}
+                className={cn(
+                  "p-2 rounded-lg transition-colors",
+                  "bg-gradient-to-r from-blue-500 to-indigo-500",
+                  "hover:from-blue-600 hover:to-indigo-600",
+                  "text-white shadow-md hover:shadow-lg"
+                )}
+                aria-label="Quick Create"
+              >
+                <Plus className="h-5 w-5" />
+              </motion.button>
+
+              {/* Quick Create Menu */}
+              <AnimatePresence>
+                {isQuickCreateOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-80 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-xl"
+                  >
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                          Quick Create
+                        </h3>
+                        <button
+                          onClick={() => setIsQuickCreateOpen(false)}
+                          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {quickActions.map((action, index) => {
+                          const Icon = action.icon;
+                          return (
+                            <motion.button
+                              key={action.label}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              onClick={action.onClick}
+                              className={cn(
+                                "w-full flex items-center gap-3 p-3 rounded-xl",
+                                "bg-slate-50 dark:bg-slate-700/50",
+                                "hover:bg-slate-100 dark:hover:bg-slate-700",
+                                "transition-all duration-200",
+                                "border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "p-2 rounded-lg bg-gradient-to-r",
+                                  action.gradient
+                                )}
+                              >
+                                <Icon className="h-4 w-4 text-white" />
+                              </div>
+                              <div className="flex-1 text-left">
+                                <p className="text-sm font-medium text-slate-900 dark:text-white">
+                                  {action.label}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  {action.description}
+                                </p>
+                              </div>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* View Mode Toggle */}
+            {onViewModeChange && (
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg p-1">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onViewModeChange("grid")}
+                  className={cn(
+                    "p-2 rounded-lg transition-all duration-200",
+                    viewMode === "grid"
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md"
+                      : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                  )}
+                  aria-label="Grid View"
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onViewModeChange("list")}
+                  className={cn(
+                    "p-2 rounded-lg transition-all duration-200",
+                    viewMode === "list"
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md"
+                      : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                  )}
+                  aria-label="List View"
+                >
+                  <List className="h-4 w-4" />
+                </motion.button>
+              </div>
+            )}
             {/* Search Button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -164,13 +374,14 @@ export function SmartHeader({ user }: SmartHeaderProps) {
               </AnimatePresence>
             </div>
 
-            {/* User Menu */}
+            {/* User Menu - Icon Only */}
             <div className="relative">
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 sm:gap-3 p-1 sm:p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                className="p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                aria-label="User Menu"
               >
                 {user.image ? (
                   <Image
@@ -185,23 +396,6 @@ export function SmartHeader({ user }: SmartHeaderProps) {
                     {user.name?.[0]?.toUpperCase() || "U"}
                   </div>
                 )}
-                <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">
-                    {user.name}
-                  </p>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">
-                    {user.role === "ADMIN"
-                      ? "Admin"
-                      : user.isTeacher
-                      ? "Instructor"
-                      : "Learner"}
-                  </p>
-                </div>
-                <ChevronDown
-                  className={`h-4 w-4 text-slate-600 dark:text-slate-300 transition-transform ${
-                    showUserMenu ? "rotate-180" : ""
-                  }`}
-                />
               </motion.button>
 
               {/* User Menu Dropdown */}

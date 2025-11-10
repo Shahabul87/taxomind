@@ -29,6 +29,8 @@
     "dev": "node scripts/load-env.js && next dev --turbo",
     "dev:clean": "node scripts/fix-css-dev.js && node scripts/load-env.js && next dev --turbo",
     "fix-css": "node scripts/fix-css-dev.js",
+    "socket:dev": "NODE_OPTIONS='--max-old-space-size=4096' npx tsx server/index.ts",
+    "socket:start": "NODE_OPTIONS='--max-old-space-size=4096' npx tsx server/index.ts",
     "build": "NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && NODE_OPTIONS='--max-old-space-size=8192' next build",
     "build:clean:basic": "./scripts/clean-before-build.sh && npm run build",
     "build:turbo": "NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && NODE_OPTIONS='--max-old-space-size=8192' next build --turbopack",

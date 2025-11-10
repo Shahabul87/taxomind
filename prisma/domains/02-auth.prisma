@@ -258,6 +258,20 @@ model User {
   // Discussions
   discussions Discussion[]
   discussionVotes DiscussionVote[]
+
+  // Dashboard Relations (added 2025-01-09)
+  dashboardActivities        DashboardActivity[]        @relation("UserDashboardActivities")
+  dashboardStudyPlans        DashboardStudyPlan[]       @relation("UserStudyPlans")
+  dashboardStudySessions     DashboardStudySession[]    @relation("UserStudySessions")
+  dashboardCoursePlans       DashboardCoursePlan[]      @relation("UserCoursePlans")
+  dashboardBlogPlans         DashboardBlogPlan[]        @relation("UserBlogPlans")
+  dashboardTodos             DashboardTodo[]            @relation("UserTodos")
+  dashboardGoals             DashboardGoal[]            @relation("UserGoals")
+  dashboardNotifications     DashboardNotification[]    @relation("UserNotifications")
+  dashboardReminders         DashboardReminder[]        @relation("UserReminders")
+  dashboardNotes             DashboardNote[]            @relation("UserNotes")
+  googleCalendarConnection   GoogleCalendarConnection?  @relation("UserGoogleCalendar")
+  dashboardPreferences       DashboardPreferences?      @relation("UserDashboardPreferences")
 }
 
 model Account {

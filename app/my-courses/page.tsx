@@ -6,7 +6,8 @@ import { MyCoursesDashboardEnterprise } from './_components/my-courses-dashboard
 import { MyCoursesLoading } from './_components/my-courses-loading';
 import { MyCoursesError } from './_components/my-courses-error';
 import { logger } from '@/lib/logger';
-import { DashboardLayout } from '@/app/dashboard/_components/DashboardLayout';
+import { SmartSidebar } from '@/components/dashboard/smart-sidebar';
+import { SmartHeader } from '@/components/dashboard/smart-header';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,15 +59,19 @@ const MyCoursesPage = async () => {
   }
 
   return (
-    <DashboardLayout user={session.user}>
-      <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-        <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6">
-          <Suspense fallback={<MyCoursesLoading />}>
-            <MyCoursesContent />
-          </Suspense>
+    <>
+      <SmartSidebar user={session.user} />
+      <div className="ml-[72px]">
+        <SmartHeader user={session.user} />
+        <div className="min-h-screen pt-16 w-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+          <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6">
+            <Suspense fallback={<MyCoursesLoading />}>
+              <MyCoursesContent />
+            </Suspense>
+          </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 };
 

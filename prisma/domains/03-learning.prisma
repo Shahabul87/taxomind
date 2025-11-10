@@ -101,6 +101,15 @@ model Course {
   recommendationsReceived        CourseRecommendation[]     @relation("RecommendedCourse")
   recommendationsAsSource        CourseRecommendation[]     @relation("RecommendationSource")
 
+  // Dashboard Relations (added 2025-01-09)
+  dashboardActivities      DashboardActivity[]     @relation("CourseDashboardActivities")
+  dashboardStudySessions   DashboardStudySession[] @relation("CourseStudySessions")
+  dashboardStudyPlans      DashboardStudyPlan[]    @relation("CourseStudyPlans")
+  dashboardCoursePlans     DashboardCoursePlan[]   @relation("CourseCoursePlans")
+  dashboardTodos           DashboardTodo[]         @relation("CourseTodos")
+  dashboardGoals           DashboardGoal[]         @relation("CourseGoals")
+  dashboardNotes           DashboardNote[]         @relation("CourseNotes")
+
   @@index([categoryId])
   @@index([organizationId])
 }

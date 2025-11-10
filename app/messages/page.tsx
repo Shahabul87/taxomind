@@ -12,22 +12,22 @@ export default async function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-      {/* Smart Header */}
-      <SmartHeader user={user as any} />
+    <>
+      {/* Smart Sidebar - Fixed position with 72px collapsed width */}
+      <SmartSidebar user={user as any} />
 
-      {/* Main Layout with Sidebar */}
-      <div className="flex">
-        {/* Smart Sidebar - Fixed position with 72px collapsed width */}
-        <SmartSidebar user={user as any} />
+      {/* Main Content Area - Left margin matches collapsed sidebar width (72px) */}
+      <div className="ml-[72px]">
+        {/* Smart Header - Full width, sticky to top */}
+        <SmartHeader user={user as any} />
 
-        {/* Main Content Area - Left padding matches collapsed sidebar width (72px) */}
-        <main className="flex-1 pt-16 pl-[72px] transition-all duration-300">
+        {/* Page Content */}
+        <main className="min-h-screen pt-16 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
           <div className="py-6 px-4 sm:px-6 lg:px-8">
             <MessageCenter userId={user.id!} />
           </div>
         </main>
       </div>
-    </div>
+    </>
   );
 } 

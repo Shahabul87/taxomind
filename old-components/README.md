@@ -1,21 +1,49 @@
 # Old Components Archive
 
-This folder contains components that have been replaced or are no longer actively used in the application. They are kept here for reference or potential future use.
+This directory contains deprecated/unused components that have been replaced or are no longer needed in the active codebase.
 
-## Components
+## Dashboard Components
 
-### CourseraStyleHeroSectionContent.tsx
-- **Original Location**: `app/courses/_components/professional-courses-page.tsx`
-- **Replaced By**: `EnhancedHero.tsx` (in `app/courses/_components/`)
-- **Date Moved**: November 6, 2025
-- **Reason**: Redesigned the courses landing page with a more modern, professional hero section
-- **Dependencies**:
-  - `@/components/hero/HeroCarousel`
-  - `@/components/sections/QuickActions`
-- **Description**: Original Coursera-style hero section with carousel slides and quick action tiles
+### Moved on: 2025-11-09
 
-## Notes
+The following dashboard components were moved here during refactoring to align with the actual authentication structure:
 
-- Components in this folder are not imported or used in the active codebase
-- They can be safely deleted if storage becomes an issue
-- Review before deletion to ensure no references exist
+1. **UnifiedDashboard.tsx** - Replaced by refactored SimpleDashboard with conditional sections
+2. **UnifiedDashboard.bak.tsx** - Backup file, no longer needed
+3. **AdminDashboard.tsx** - Unused component (admin has separate simple dashboard at `/dashboard/admin/page.tsx`)
+
+## Current Dashboard Architecture
+
+The new simplified structure:
+
+```
+User (role=USER)
+├─ isTeacher: false, isAffiliate: false → Learning dashboard only + "Become Instructor" CTA
+├─ isTeacher: true → Tabbed view with Learning + Teaching sections
+├─ isAffiliate: true → Tabbed view with Learning + Affiliate sections
+└─ isTeacher: true + isAffiliate: true → Tabbed view with all three sections
+
+Admin (role=ADMIN)
+└─ Completely separate dashboard at /dashboard/admin
+```
+
+## Why These Were Removed
+
+**Problem**: The old components treated `isTeacher` and `isAffiliate` as separate user roles, when they're actually optional capability flags on the `USER` role.
+
+**Solution**: Refactored `SimpleDashboard` to use a unified approach:
+- Everyone gets the learning dashboard
+- Additional sections conditionally appear based on capabilities
+- Cleaner code with less duplication
+- Better alignment with actual auth structure (ADMIN vs USER)
+
+## Can These Be Deleted?
+
+Yes, after verifying:
+1. No tests depend on these specific components
+2. No production code imports them
+3. The new dashboard works correctly for all user types
+
+## Restoration
+
+If needed, these components can be restored from this directory or from git history.

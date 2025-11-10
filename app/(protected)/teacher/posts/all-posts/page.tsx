@@ -1,9 +1,9 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { MyPostsDashboard } from "./_components/my-posts-dashboard";
+import { PostsPageLayout } from "./_components/posts-page-layout";
 import { db } from "@/lib/db";
 import { Metadata } from "next";
-import { DashboardLayout } from "@/app/dashboard/_components/DashboardLayout";
 
 export const metadata: Metadata = {
   title: "My Posts | Taxomind Teacher Dashboard",
@@ -105,8 +105,8 @@ const TeacherAllPostsPage = async () => {
   };
 
   return (
-    <DashboardLayout user={user}>
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 w-full">
+    <PostsPageLayout user={user}>
+      <div className="min-h-full bg-gradient-to-b from-gray-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 w-full">
         <MyPostsDashboard
           posts={posts}
           categories={categories as string[]}
@@ -120,7 +120,7 @@ const TeacherAllPostsPage = async () => {
           user={serializedUser}
         />
       </div>
-    </DashboardLayout>
+    </PostsPageLayout>
   );
 };
 
