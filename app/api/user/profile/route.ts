@@ -503,7 +503,7 @@ export async function GET(request: NextRequest) {
     const twitter = profileLinks.find((link) => link.platform === 'TWITTER')?.url || '';
     const linkedin = profileLinks.find((link) => link.platform === 'LINKEDIN')?.url || '';
     const github = profileLinks.find((link) => link.platform === 'GITHUB')?.url || '';
-    const website = profileLinks.find((link) => link.platform === 'WEBSITE')?.url || '';
+    const website = profileLinks.find((link) => link.platform === 'WEBSITE')?.url;
 
     // ==========================================
     // Build Profile Response
@@ -516,7 +516,7 @@ export async function GET(request: NextRequest) {
       image: user.image || '',
       bio: user.bio || '',
       location: user.location || '',
-      website: website || '',
+      website: website || null, // ✅ Use null for empty URL fields to match schema
       twitter: twitter || '',
       linkedin: linkedin || '',
       github: github || '',
