@@ -1,23 +1,175 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
+
+// ==========================================
+// Zod Validation Schemas
+// ==========================================
+
+const ProfileResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  image: z.string().optional(),
+  bio: z.string().optional(),
+  location: z.string().optional(),
+  website: z.string().url().optional().nullable(),
+  twitter: z.string().optional(),
+  linkedin: z.string().optional(),
+  github: z.string().optional(),
+  role: z.enum(['ADMIN', 'USER']),
+  createdAt: z.string(),
+  coursesEnrolled: z.number(),
+  coursesCompleted: z.number(),
+  certificatesEarned: z.number(),
+  totalLearningHours: z.number(),
+  currentStreak: z.number(),
+  longestStreak: z.number(),
+  achievements: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    icon: z.string(),
+    earnedAt: z.string(),
+    rarity: z.enum(['common', 'rare', 'epic', 'legendary']),
+  })),
+  recentActivity: z.array(z.object({
+    id: z.string(),
+    type: z.string(),
+    title: z.string(),
+    timestamp: z.string(),
+    progress: z.number().optional(),
+  })),
+  skills: z.array(z.object({
+    name: z.string(),
+    level: z.number(),
+    progress: z.number(),
+  })),
+  courses: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    instructor: z.string(),
+    progress: z.number(),
+    thumbnail: z.string(),
+    lastAccessed: z.string(),
+    totalChapters: z.number(),
+    completedChapters: z.number(),
+  })),
+});
+
+const ProfileUpdateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  bio: z.string().max(500).optional(),
+  location: z.string().max(100).optional(),
+  website: z.string().url().optional().nullable(),
+  twitter: z.string().max(50).optional(),
+  linkedin: z.string().max(100).optional(),
+  github: z.string().max(100).optional(),
+});
+
+// ==========================================
+// API Response Interface
+// ==========================================
+
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>
+  };
+  metadata?: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
+// ==========================================
+// Helper Functions
+// ==========================================
+
+function mapBadgeLevelToRarity(badgeLevel: string): 'common' | 'rare' | 'epic' | 'legendary' {
+  switch (badgeLevel) {
+    case 'BRONZE':
+      return 'common';
+    case 'SILVER':
+      return 'rare';
+    case 'GOLD':
+    case 'PLATINUM':
+      return 'epic';
+    case 'DIAMOND':
+      return 'legendary';
+    default:
+      return 'common';
+  }
+}
+
+function getAchievementIcon(achievementType: string): string {
+  const iconMap: Record<string, string> = {
+    FIRST_COURSE: '🎓',
+    COURSE_COMPLETION: '✅',
+    CHAPTER_COMPLETION: '📖',
+    PERFECT_QUIZ: '💯',
+    STUDY_STREAK: '🔥',
+    TIME_MILESTONE: '⏰',
+    SKILL_MASTERY: '🏆',
+    PEER_HELPER: '🤝',
+    EARLY_BIRD: '🌅',
+    NIGHT_OWL: '🦉',
+    CONSISTENT_LEARNER: '📚',
+    FAST_LEARNER: '🚀',
+    THOROUGH_LEARNER: '🔍',
+    QUESTION_MASTER: '❓',
+    DISCUSSION_CONTRIBUTOR: '💬',
+  };
+  return iconMap[achievementType] || '🏅';
+}
+
+// ==========================================
+// GET - Fetch User Profile
+// ==========================================
 
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Authentication required',
+        },
+      };
+      return NextResponse.json(response, { status: 401 });
     }
 
-    // Fetch user profile with related data
+    const userId = session.user.id;
+
+    // ==========================================
+    // Fetch User Data with Relations
+    // ==========================================
+
     const user = await db.user.findUnique({
-      where: { id: session.user.id },
-      include: {
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        phone: true,
+        bio: true,
+        location: true,
+        role: true,
+        createdAt: true,
+        // Include relations for profile data
         Enrollment: {
+          where: {
+            status: 'ACTIVE',
+          },
           include: {
             Course: {
               include: {
@@ -28,185 +180,527 @@ export async function GET(request: NextRequest) {
                 },
                 chapters: {
                   where: { isPublished: true },
-                  select: { id: true },
+                  select: {
+                    id: true,
+                  },
                 },
               },
             },
           },
           orderBy: {
-            createdAt: 'desc',
+            updatedAt: 'desc',
           },
         },
-        courses: {
+        certifications: {
           where: {
-            Purchase: {
-              some: {
-                userId: session.user.id,
-              },
-            },
+            isRevoked: false,
           },
-          include: {
-            Purchase: true,
+          select: {
+            id: true,
+            issuedAt: true,
+            courseId: true,
+          },
+        },
+        profileLinks: {
+          orderBy: {
+            createdAt: 'desc',
           },
         },
       },
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+      const response: ApiResponse = {
+        success: false,
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'User profile not found',
+        },
+      };
+      return NextResponse.json(response, { status: 404 });
+    }
+
+    // ==========================================
+    // Fetch Learning Metrics
+    // ==========================================
+
+    const learningMetrics = await db.learning_metrics.findMany({
+      where: { userId },
+      select: {
+        totalStudyTime: true,
+        totalSessions: true,
+        averageSessionDuration: true,
+      },
+    });
+
+    const totalLearningMinutes = learningMetrics.reduce(
+      (sum, metric) => sum + (metric.totalStudyTime || 0),
+      0
+    );
+    const totalLearningHours = Math.floor(totalLearningMinutes / 60);
+
+    // ==========================================
+    // Fetch Study Streaks
+    // ==========================================
+
+    const streaks = await db.study_streaks.findMany({
+      where: { userId },
+      select: {
+        currentStreak: true,
+        longestStreak: true,
+      },
+    });
+
+    const currentStreak = streaks.reduce(
+      (max, streak) => Math.max(max, streak.currentStreak || 0),
+      0
+    );
+    const longestStreak = streaks.reduce(
+      (max, streak) => Math.max(max, streak.longestStreak || 0),
+      0
+    );
+
+    // ==========================================
+    // Fetch Achievements
+    // ==========================================
+
+    const userAchievements = await db.user_achievements.findMany({
+      where: { userId },
+      orderBy: {
+        unlockedAt: 'desc',
+      },
+      take: 20,
+      select: {
+        id: true,
+        achievementType: true,
+        title: true,
+        description: true,
+        iconUrl: true,
+        badgeLevel: true,
+        unlockedAt: true,
+      },
+    });
+
+    const achievements = userAchievements.map((achievement) => ({
+      id: achievement.id,
+      title: achievement.title,
+      description: achievement.description,
+      icon: achievement.iconUrl || getAchievementIcon(achievement.achievementType),
+      earnedAt: achievement.unlockedAt.toISOString(),
+      rarity: mapBadgeLevelToRarity(achievement.badgeLevel),
+    }));
+
+    // ==========================================
+    // Fetch User Progress for Recent Activity
+    // ==========================================
+
+    const recentProgress = await db.user_progress.findMany({
+      where: {
+        userId,
+        courseId: { not: null },
+      },
+      orderBy: {
+        lastAccessedAt: 'desc',
+      },
+      take: 10,
+      include: {
+        Course: {
+          select: {
+            title: true,
+          },
+        },
+        Chapter: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    });
+
+    const recentActivity = recentProgress.map((progress) => {
+      const timeDiff = Date.now() - progress.lastAccessedAt.getTime();
+      const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+      const daysAgo = Math.floor(hoursAgo / 24);
+
+      let timestamp: string;
+      if (hoursAgo < 1) {
+        timestamp = 'Just now';
+      } else if (hoursAgo < 24) {
+        timestamp = `${hoursAgo} ${hoursAgo === 1 ? 'hour' : 'hours'} ago`;
+      } else {
+        timestamp = `${daysAgo} ${daysAgo === 1 ? 'day' : 'days'} ago`;
+      }
+
+      let type: string;
+      let title: string;
+
+      if (progress.isCompleted) {
+        type = progress.chapterId ? 'chapter_completed' : 'course_completed';
+        title = progress.chapterId
+          ? `Completed "${progress.Chapter?.title || 'Chapter'}" in "${progress.Course?.title || 'Course'}"`
+          : `Completed "${progress.Course?.title || 'Course'}"`;
+      } else {
+        type = 'course_progress';
+        title = progress.Chapter
+          ? `Continued "${progress.Chapter.title}" in "${progress.Course?.title || 'Course'}"`
+          : `Continued "${progress.Course?.title || 'Course'}"`;
+      }
+
+      return {
+        id: progress.id,
+        type,
+        title,
+        timestamp,
+        progress: progress.progressPercent,
+      };
+    });
+
+    // ==========================================
+    // Calculate Course Statistics
+    // ==========================================
+
+    const enrolledCourses = user.Enrollment || [];
+    const coursesEnrolled = enrolledCourses.length;
+
+    // Calculate completed courses
+    const courseProgressMap = new Map<string, number>();
+    const courseCompletionMap = new Map<string, { completed: number; total: number }>();
+
+    for (const enrollment of enrolledCourses) {
+      const courseId = enrollment.Course.id;
+      const totalChapters = enrollment.Course.chapters.length;
+
+      courseCompletionMap.set(courseId, { completed: 0, total: totalChapters });
+    }
+
+    const allProgress = await db.user_progress.findMany({
+      where: {
+        userId,
+        courseId: { in: enrolledCourses.map((e) => e.Course.id) },
+        chapterId: { not: null },
+      },
+      select: {
+        courseId: true,
+        chapterId: true,
+        isCompleted: true,
+        progressPercent: true,
+      },
+    });
+
+    // Group progress by course
+    for (const progress of allProgress) {
+      if (!progress.courseId) continue;
+
+      const courseStats = courseCompletionMap.get(progress.courseId);
+      if (courseStats && progress.chapterId && progress.isCompleted) {
+        courseStats.completed += 1;
+      }
+
+      // Calculate average progress for the course
+      const currentProgress = courseProgressMap.get(progress.courseId) || 0;
+      courseProgressMap.set(
+        progress.courseId,
+        currentProgress + progress.progressPercent
       );
     }
 
-    // Calculate statistics
-    const coursesEnrolled = user.Enrollment?.length || 0;
-    const coursesCompleted = user.courses?.filter(course => 
-      course.Purchase?.some((p: any) => p.userId === session.user.id)
-    ).length || 0; // Count courses with purchases
-
-    // Calculate learning hours (mock data for now)
-    const totalLearningHours = Math.floor(Math.random() * 200) + 50;
-
-    // Calculate streaks (mock data for now)
-    const currentStreak = Math.floor(Math.random() * 30);
-    const longestStreak = Math.max(currentStreak, Math.floor(Math.random() * 60));
-
-    // Get recent activity
-    const recentActivity: any[] = [];
-    
-    // Add recent enrollments as activity
-    if (user.Enrollment) {
-      user.Enrollment.slice(0, 3).forEach((enrollment: any) => {
-        recentActivity.push({
-          id: enrollment.id,
-          type: 'course_enrolled',
-          title: `Enrolled in "${enrollment.Course.title}"`,
-          timestamp: new Date(enrollment.createdAt).toLocaleString(),
-          progress: 0,
-        });
-      });
+    // Count completed courses (100% progress)
+    let coursesCompleted = 0;
+    for (const [courseId, stats] of courseCompletionMap.entries()) {
+      if (stats.total > 0 && stats.completed === stats.total) {
+        coursesCompleted += 1;
+      }
     }
 
-    // Mock achievements since they might not exist in the schema
-    const achievements = [
-      {
-        id: '1',
-        title: 'Fast Learner',
-        description: 'Complete 5 courses in 30 days',
-        icon: '🚀',
-        earnedAt: new Date().toISOString(),
-        rarity: 'rare',
-      },
-      {
-        id: '2',
-        title: 'Knowledge Seeker',
-        description: 'Complete 10 courses',
-        icon: '📚',
-        earnedAt: new Date().toISOString(),
-        rarity: 'epic',
-      },
-    ];
+    // ==========================================
+    // Transform Enrolled Courses
+    // ==========================================
 
-    // Mock skills
-    const skills = [
-      { name: 'React', level: 85, progress: 85 },
-      { name: 'TypeScript', level: 75, progress: 75 },
-      { name: 'Node.js', level: 70, progress: 70 },
-    ];
+    const courses = enrolledCourses.map((enrollment) => {
+      const courseId = enrollment.Course.id;
+      const totalChapters = enrollment.Course.chapters.length;
+      const completionStats = courseCompletionMap.get(courseId) || { completed: 0, total: totalChapters };
+      const completedChapters = completionStats.completed;
 
-    // Transform enrolled courses
-    const courses = user.Enrollment?.map((enrollment: any) => {
+      // Calculate overall progress
+      const progress = totalChapters > 0
+        ? Math.round((completedChapters / totalChapters) * 100)
+        : 0;
+
+      // Format last accessed time
+      const timeDiff = Date.now() - enrollment.updatedAt.getTime();
+      const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+      const daysAgo = Math.floor(hoursAgo / 24);
+
+      let lastAccessed: string;
+      if (hoursAgo < 1) {
+        lastAccessed = 'Just now';
+      } else if (hoursAgo < 24) {
+        lastAccessed = `${hoursAgo} ${hoursAgo === 1 ? 'hour' : 'hours'} ago`;
+      } else if (daysAgo < 30) {
+        lastAccessed = `${daysAgo} ${daysAgo === 1 ? 'day' : 'days'} ago`;
+      } else {
+        const monthsAgo = Math.floor(daysAgo / 30);
+        lastAccessed = `${monthsAgo} ${monthsAgo === 1 ? 'month' : 'months'} ago`;
+      }
+
       return {
         id: enrollment.Course.id,
         title: enrollment.Course.title,
-        instructor: enrollment.Course.user?.name || 'Unknown',
-        progress: Math.floor(Math.random() * 100), // Mock progress
+        instructor: enrollment.Course.user?.name || 'Unknown Instructor',
+        progress,
         thumbnail: enrollment.Course.imageUrl || '/api/placeholder/400/225',
-        lastAccessed: new Date(enrollment.createdAt).toLocaleString(),
-        totalChapters: enrollment.Course.chapters?.length || 0,
-        completedChapters: Math.floor(Math.random() * (enrollment.Course.chapters?.length || 0)),
+        lastAccessed,
+        totalChapters,
+        completedChapters,
       };
-    }) || [];
+    });
 
-    // Prepare profile response
+    // ==========================================
+    // Calculate Skills from Course Categories
+    // ==========================================
+
+    const skills: Array<{ name: string; level: number; progress: number }> = [];
+
+    // Extract unique categories from enrolled courses and calculate proficiency
+    const categoryMap = new Map<string, { totalProgress: number; count: number }>();
+
+    for (const enrollment of enrolledCourses) {
+      const category = enrollment.Course.categoryId || 'General';
+      const courseId = enrollment.Course.id;
+      const progress = courseProgressMap.get(courseId) || 0;
+
+      const totalChapters = enrollment.Course.chapters.length;
+      const avgProgress = totalChapters > 0 ? progress / totalChapters : 0;
+
+      const existing = categoryMap.get(category) || { totalProgress: 0, count: 0 };
+      categoryMap.set(category, {
+        totalProgress: existing.totalProgress + avgProgress,
+        count: existing.count + 1,
+      });
+    }
+
+    // Convert categories to skills with calculated levels
+    for (const [categoryId, stats] of categoryMap.entries()) {
+      const avgLevel = Math.round(stats.totalProgress / stats.count);
+
+      // Fetch category name (in a real scenario, you'd have a categories table)
+      skills.push({
+        name: categoryId,
+        level: avgLevel,
+        progress: avgLevel,
+      });
+    }
+
+    // Sort skills by level
+    skills.sort((a, b) => b.level - a.level);
+
+    // ==========================================
+    // Extract Social Links from ProfileLink
+    // ==========================================
+
+    const profileLinks = user.profileLinks || [];
+    const twitter = profileLinks.find((link) => link.platform === 'TWITTER')?.url || '';
+    const linkedin = profileLinks.find((link) => link.platform === 'LINKEDIN')?.url || '';
+    const github = profileLinks.find((link) => link.platform === 'GITHUB')?.url || '';
+    const website = profileLinks.find((link) => link.platform === 'WEBSITE')?.url || '';
+
+    // ==========================================
+    // Build Profile Response
+    // ==========================================
+
     const profile = {
       id: user.id,
       name: user.name || 'User',
       email: user.email || '',
       image: user.image || '',
-      bio: '', // These fields don't exist in the User model, using empty strings
-      location: '',
-      website: '',
-      twitter: '',
-      linkedin: '',
-      github: '',
+      bio: user.bio || '',
+      location: user.location || '',
+      website: website || '',
+      twitter: twitter || '',
+      linkedin: linkedin || '',
+      github: github || '',
       role: user.role,
       createdAt: user.createdAt.toISOString(),
       coursesEnrolled,
       coursesCompleted,
-      certificatesEarned: 0, // Mock value
+      certificatesEarned: user.certifications.length,
       totalLearningHours,
       currentStreak,
       longestStreak,
       achievements,
       recentActivity,
-      skills,
+      skills: skills.slice(0, 10), // Top 10 skills
       courses,
     };
 
-    return NextResponse.json(profile);
+    // ✅ Validate response before sending
+    const validatedProfile = ProfileResponseSchema.parse(profile);
+
+    const response: ApiResponse<typeof validatedProfile> = {
+      success: true,
+      data: validatedProfile,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        requestId: request.headers.get('x-request-id') || 'unknown',
+      },
+    };
+
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error('Error fetching user profile:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    if (error instanceof z.ZodError) {
+      logger.error('[PROFILE_GET] Validation error:', { error: error.errors });
+      const response: ApiResponse = {
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid profile data structure',
+          details: { errors: error.errors },
+        },
+      };
+      return NextResponse.json(response, { status: 400 });
+    }
+
+    logger.error('[PROFILE_GET] Unexpected error:', error);
+    const response: ApiResponse = {
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An unexpected error occurred while fetching profile',
+      },
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 }
+
+// ==========================================
+// PATCH - Update User Profile
+// ==========================================
 
 export async function PATCH(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      const response: ApiResponse = {
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Authentication required',
+        },
+      };
+      return NextResponse.json(response, { status: 401 });
     }
 
     const body = await request.json();
-    const { name } = body;
 
-    // Update user profile (only name is available in the User model)
+    // ✅ Validate input with Zod
+    const validatedData = ProfileUpdateSchema.parse(body);
+
+    // Update user profile
     const updatedUser = await db.user.update({
       where: { id: session.user.id },
       data: {
-        name,
+        name: validatedData.name,
+        bio: validatedData.bio,
+        location: validatedData.location,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        bio: true,
+        location: true,
+        role: true,
+        createdAt: true,
       },
     });
 
-    return NextResponse.json({
+    // Handle social links separately
+    if (validatedData.twitter || validatedData.linkedin || validatedData.github || validatedData.website) {
+      // Find existing profile links
+      const existingLinks = await db.profileLink.findMany({
+        where: {
+          userId: session.user.id,
+          platform: {
+            in: ['TWITTER', 'LINKEDIN', 'GITHUB', 'WEBSITE'],
+          },
+        },
+      });
+
+      const linkUpdates = [];
+
+      const updateOrCreateLink = async (platform: string, url: string) => {
+        const existingLink = existingLinks.find((link) => link.platform === platform);
+
+        if (existingLink) {
+          return db.profileLink.update({
+            where: { id: existingLink.id },
+            data: { url },
+          });
+        } else {
+          return db.profileLink.create({
+            data: {
+              userId: session.user.id,
+              platform,
+              url,
+            },
+          });
+        }
+      };
+
+      if (validatedData.twitter) {
+        linkUpdates.push(updateOrCreateLink('TWITTER', validatedData.twitter));
+      }
+
+      if (validatedData.linkedin) {
+        linkUpdates.push(updateOrCreateLink('LINKEDIN', validatedData.linkedin));
+      }
+
+      if (validatedData.github) {
+        linkUpdates.push(updateOrCreateLink('GITHUB', validatedData.github));
+      }
+
+      if (validatedData.website) {
+        linkUpdates.push(updateOrCreateLink('WEBSITE', validatedData.website));
+      }
+
+      await Promise.all(linkUpdates);
+    }
+
+    const response: ApiResponse<typeof updatedUser> = {
       success: true,
-      user: {
-        id: updatedUser.id,
-        name: updatedUser.name || '',
-        email: updatedUser.email || '',
-        // These fields don't exist in the schema, returning empty strings
-        bio: '',
-        location: '',
-        website: '',
-        twitter: '',
-        linkedin: '',
-        github: '',
+      data: updatedUser,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        requestId: request.headers.get('x-request-id') || 'unknown',
       },
-    });
+    };
+
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error('Error updating user profile:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    if (error instanceof z.ZodError) {
+      logger.error('[PROFILE_PATCH] Validation error:', { error: error.errors });
+      const response: ApiResponse = {
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid update data',
+          details: { errors: error.errors },
+        },
+      };
+      return NextResponse.json(response, { status: 400 });
+    }
+
+    logger.error('[PROFILE_PATCH] Unexpected error:', error);
+    const response: ApiResponse = {
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An unexpected error occurred while updating profile',
+      },
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 }

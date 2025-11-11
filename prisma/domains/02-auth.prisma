@@ -25,6 +25,8 @@ model User {
   totpVerified                            Boolean                              @default(false)
   recoveryCodes                           String[]                             @default([])
   phone                                   String?
+  bio                                     String?
+  location                                String?
   createdAt                               DateTime                             @default(now())
   isAccountLocked                         Boolean                              @default(false)
   lockReason                              String?

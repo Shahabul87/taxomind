@@ -122,12 +122,19 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!session?.user?.id) return;
-      
+
       try {
         const response = await fetch('/api/user/profile');
-        if (response.ok) {
-          const data = await response.json();
-          setProfile(data);
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile');
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setProfile(result.data);
+        } else {
+          toast.error(result.error?.message || 'Failed to load profile data');
         }
       } catch (error) {
         console.error('Failed to fetch profile:', error);
@@ -138,114 +145,7 @@ export default function ProfilePage() {
     };
 
     if (session?.user) {
-      // Mock data for demonstration
-      setProfile({
-        id: session.user.id,
-        name: session.user.name || 'User',
-        email: session.user.email || '',
-        image: session.user.image || '',
-        bio: 'Passionate learner and technology enthusiast. Always eager to explore new concepts and share knowledge with the community.',
-        location: 'San Francisco, CA',
-        website: 'https://myportfolio.com',
-        twitter: '@myhandle',
-        linkedin: 'in/myprofile',
-        github: 'mygithub',
-        role: session.user.role || 'USER',
-        createdAt: '2024-01-15',
-        coursesEnrolled: 12,
-        coursesCompleted: 8,
-        certificatesEarned: 6,
-        totalLearningHours: 156,
-        currentStreak: 7,
-        longestStreak: 21,
-        achievements: [
-          {
-            id: '1',
-            title: 'Fast Learner',
-            description: 'Complete 5 courses in 30 days',
-            icon: '🚀',
-            earnedAt: '2024-10-01',
-            rarity: 'rare'
-          },
-          {
-            id: '2',
-            title: 'Knowledge Seeker',
-            description: 'Complete 10 courses',
-            icon: '📚',
-            earnedAt: '2024-09-15',
-            rarity: 'epic'
-          },
-          {
-            id: '3',
-            title: 'Consistent Learner',
-            description: 'Maintain a 21-day learning streak',
-            icon: '🔥',
-            earnedAt: '2024-08-20',
-            rarity: 'legendary'
-          }
-        ],
-        recentActivity: [
-          {
-            id: '1',
-            type: 'course_progress',
-            title: 'Continued "Advanced React Patterns"',
-            timestamp: '2 hours ago',
-            progress: 75
-          },
-          {
-            id: '2',
-            type: 'course_completed',
-            title: 'Completed "TypeScript Fundamentals"',
-            timestamp: '1 day ago'
-          },
-          {
-            id: '3',
-            type: 'certificate_earned',
-            title: 'Earned certificate for "Node.js Masterclass"',
-            timestamp: '3 days ago'
-          }
-        ],
-        skills: [
-          { name: 'React', level: 85, progress: 85 },
-          { name: 'TypeScript', level: 75, progress: 75 },
-          { name: 'Node.js', level: 70, progress: 70 },
-          { name: 'Python', level: 60, progress: 60 },
-          { name: 'AWS', level: 50, progress: 50 }
-        ],
-        courses: [
-          {
-            id: '1',
-            title: 'Advanced React Patterns',
-            instructor: 'John Doe',
-            progress: 75,
-            thumbnail: '/api/placeholder/400/225',
-            lastAccessed: '2 hours ago',
-            totalChapters: 12,
-            completedChapters: 9
-          },
-          {
-            id: '2',
-            title: 'Node.js Microservices',
-            instructor: 'Jane Smith',
-            progress: 45,
-            thumbnail: '/api/placeholder/400/225',
-            lastAccessed: '1 day ago',
-            totalChapters: 15,
-            completedChapters: 7
-          },
-          {
-            id: '3',
-            title: 'Machine Learning Basics',
-            instructor: 'Dr. Alan Turing',
-            progress: 30,
-            thumbnail: '/api/placeholder/400/225',
-            lastAccessed: '3 days ago',
-            totalChapters: 20,
-            completedChapters: 6
-          }
-        ]
-      });
-      setIsLoading(false);
+      fetchProfile();
     }
   }, [session]);
 

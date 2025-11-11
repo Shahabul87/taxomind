@@ -6,7 +6,7 @@
 import { EventEmitter } from 'events';
 
 import axios from 'axios';
-import nodemailer from 'nodemailer';
+// import nodemailer from 'nodemailer'; // DISABLED: Using Resend instead
 import twilio from 'twilio';
 
 import { redis } from '@/lib/redis';
@@ -94,7 +94,7 @@ interface NotificationChannel {
 
 interface EmailChannel extends NotificationChannel {
   type: 'email';
-  transporter?: nodemailer.Transporter;
+  transporter?: any; // Disabled: Using Resend instead of nodemailer
 }
 
 interface SmsChannel extends NotificationChannel {
@@ -144,24 +144,24 @@ export class AlertManager {
    * Initialize notification channels
    */
   private async initializeNotificationChannels(): Promise<void> {
-    // Email configuration
-    if (process.env.SMTP_HOST) {
-      const transporter = nodemailer.createTransporter({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT ?? '587'),
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
-      
-      this.emailChannel = {
-        type: 'email',
-        enabled: true,
-        transporter,
-      };
-    }
+    // Email configuration - DISABLED (Using Resend instead)
+    // if (process.env.SMTP_HOST) {
+    //   const transporter = nodemailer.createTransporter({
+    //     host: process.env.SMTP_HOST,
+    //     port: parseInt(process.env.SMTP_PORT ?? '587'),
+    //     secure: process.env.SMTP_SECURE === 'true',
+    //     auth: {
+    //       user: process.env.SMTP_USER,
+    //       pass: process.env.SMTP_PASS,
+    //     },
+    //   });
+    //
+    //   this.emailChannel = {
+    //     type: 'email',
+    //     enabled: true,
+    //     transporter,
+    //   };
+    // }
     
     // Twilio configuration
     if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
@@ -619,42 +619,46 @@ export class AlertManager {
    * Send email alert
    */
   private async sendEmailAlert(config: Record<string, unknown>, alert: Alert): Promise<void> {
-    if (!this.emailChannel?.transporter || !this.emailChannel.enabled) return;
-    
-    const severityColors = {
-      [AlertSeverity.INFO]: '#17a2b8',
-      [AlertSeverity.WARNING]: '#ffc107',
-      [AlertSeverity.ERROR]: '#dc3545',
-      [AlertSeverity.CRITICAL]: '#721c24',
-    };
-    
-    await this.emailChannel.transporter.sendMail({
-      from: process.env.SMTP_FROM ?? 'alerts@taxomind.com',
-      to: config.to as string,
-      subject: `[${alert.severity.toUpperCase()}] ${alert.title}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: ${severityColors[alert.severity]}; color: white; padding: 20px;">
-            <h2 style="margin: 0;">${alert.title}</h2>
-          </div>
-          <div style="padding: 20px; background: #f8f9fa;">
-            <p><strong>Severity:</strong> ${alert.severity.toUpperCase()}</p>
-            <p><strong>Category:</strong> ${alert.category}</p>
-            <p><strong>Time:</strong> ${alert.timestamp.toISOString()}</p>
-            <p><strong>Message:</strong> ${alert.message}</p>
-            <p><strong>Current Value:</strong> ${alert.value}</p>
-            <p><strong>Threshold:</strong> ${alert.threshold}</p>
-            ${alert.metadata ? `<p><strong>Additional Info:</strong> ${JSON.stringify(alert.metadata, null, 2)}</p>` : ''}
-          </div>
-          <div style="padding: 10px; background: #dee2e6; text-align: center;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/monitoring/alerts/${alert.id}" 
-               style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
-              View Alert
-            </a>
-          </div>
-        </div>
-      `,
-    });
+    // DISABLED: Email alerts via nodemailer are disabled. Use Resend for email alerts.
+    console.warn('[AlertManager] Email alerts are disabled. Configure Resend for email notifications.');
+    return;
+
+    // if (!this.emailChannel?.transporter || !this.emailChannel.enabled) return;
+    //
+    // const severityColors = {
+    //   [AlertSeverity.INFO]: '#17a2b8',
+    //   [AlertSeverity.WARNING]: '#ffc107',
+    //   [AlertSeverity.ERROR]: '#dc3545',
+    //   [AlertSeverity.CRITICAL]: '#721c24',
+    // };
+    //
+    // await this.emailChannel.transporter.sendMail({
+    //   from: process.env.SMTP_FROM ?? 'alerts@taxomind.com',
+    //   to: config.to as string,
+    //   subject: `[${alert.severity.toUpperCase()}] ${alert.title}`,
+    //   html: `
+    //     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    //       <div style="background: ${severityColors[alert.severity]}; color: white; padding: 20px;">
+    //         <h2 style="margin: 0;">${alert.title}</h2>
+    //       </div>
+    //       <div style="padding: 20px; background: #f8f9fa;">
+    //         <p><strong>Severity:</strong> ${alert.severity.toUpperCase()}</p>
+    //         <p><strong>Category:</strong> ${alert.category}</p>
+    //         <p><strong>Time:</strong> ${alert.timestamp.toISOString()}</p>
+    //         <p><strong>Message:</strong> ${alert.message}</p>
+    //         <p><strong>Current Value:</strong> ${alert.value}</p>
+    //         <p><strong>Threshold:</strong> ${alert.threshold}</p>
+    //         ${alert.metadata ? `<p><strong>Additional Info:</strong> ${JSON.stringify(alert.metadata, null, 2)}</p>` : ''}
+    //       </div>
+    //       <div style="padding: 10px; background: #dee2e6; text-align: center;">
+    //         <a href="${process.env.NEXT_PUBLIC_APP_URL}/monitoring/alerts/${alert.id}"
+    //            style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+    //           View Alert
+    //         </a>
+    //       </div>
+    //     </div>
+    //   `,
+    // });
   }
   
   /**

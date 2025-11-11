@@ -299,7 +299,7 @@ export const SmartPredictions = ({
           </div>
 
           <p className="text-xs text-slate-600 dark:text-slate-400">
-            Studies show you're most productive during these hours
+            Studies show you&apos;re most productive during these hours
           </p>
         </div>
 

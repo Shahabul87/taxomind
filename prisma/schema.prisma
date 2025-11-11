@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-11-10T06:37:41.183Z
+// Generated: 2025-11-11T19:56:06.657Z
 // Source: 18 domain files
 // ==========================================
 
@@ -878,6 +878,8 @@ model User {
   totpVerified                            Boolean                              @default(false)
   recoveryCodes                           String[]                             @default([])
   phone                                   String?
+  bio                                     String?
+  location                                String?
   createdAt                               DateTime                             @default(now())
   isAccountLocked                         Boolean                              @default(false)
   lockReason                              String?
