@@ -29,6 +29,7 @@ FROM base AS deps
 
 # Set NODE_ENV to prevent husky from running during install
 ENV NODE_ENV=production
+ENV SKIP_POSTINSTALL=true
 
 # Copy package files
 COPY package.json package-lock.json* ./
@@ -37,7 +38,7 @@ COPY package.json package-lock.json* ./
 COPY scripts ./scripts
 COPY prisma ./prisma
 
-# Install dependencies with npm ci (exactly like Railway)
+# Install dependencies with npm ci (skip postinstall for now)
 RUN npm ci --only=production && \
     npm cache clean --force
 
@@ -47,6 +48,7 @@ FROM base AS deps-dev
 # Set NODE_ENV to prevent husky from running during install
 ENV NODE_ENV=production
 ENV CI=true
+# Don't skip postinstall here - we have all dependencies
 
 COPY package.json package-lock.json* ./
 
@@ -54,6 +56,7 @@ COPY package.json package-lock.json* ./
 COPY scripts ./scripts
 COPY prisma ./prisma
 
+# Install all dependencies (including dev) and run postinstall
 RUN npm ci && \
     npm cache clean --force
 
@@ -70,18 +73,18 @@ COPY --from=deps-dev /app/node_modules ./node_modules
 # Copy application source code
 COPY . .
 
+# Copy merged schema.prisma and generated Prisma client from deps-dev
+COPY --from=deps-dev /app/prisma/schema.prisma ./prisma/schema.prisma
+COPY --from=deps-dev /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=deps-dev /app/node_modules/@prisma ./node_modules/@prisma
+
 # Set production environment for build
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Railway's build command from railway.json:
-# "npx prisma generate && (npx prisma migrate deploy || npx prisma db push) && npm run build"
-
-# Step 1: Generate Prisma Client
-RUN npx prisma generate
-
-# Step 2: Build Next.js application
-# Note: Database migrations are skipped in build stage - they run at startup
+# Step 1: Build Next.js application
+# Note: Prisma client already generated in deps-dev stage
+# Database migrations run at startup, not during build
 RUN npm run build
 
 # ============================================
