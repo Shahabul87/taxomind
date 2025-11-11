@@ -9,6 +9,13 @@
 const fs = require('fs');
 const path = require('path');
 
+// Skip validation if SKIP_ENV_VALIDATION is set (e.g., during Docker builds)
+if (process.env.SKIP_ENV_VALIDATION === 'true') {
+  console.log('⏭️  Skipping environment validation (SKIP_ENV_VALIDATION=true)');
+  console.log('   Environment variables will be validated at runtime');
+  process.exit(0);
+}
+
 // Load environment variables based on NODE_ENV
 try {
   const { loadEnvironment } = require('./load-env');
