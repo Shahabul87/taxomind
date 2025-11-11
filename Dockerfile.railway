@@ -33,6 +33,10 @@ ENV NODE_ENV=production
 # Copy package files
 COPY package.json package-lock.json* ./
 
+# Copy scripts and prisma directories BEFORE npm install (needed for postinstall)
+COPY scripts ./scripts
+COPY prisma ./prisma
+
 # Install dependencies with npm ci (exactly like Railway)
 RUN npm ci --only=production && \
     npm cache clean --force
@@ -45,6 +49,11 @@ ENV NODE_ENV=production
 ENV CI=true
 
 COPY package.json package-lock.json* ./
+
+# Copy scripts and prisma directories BEFORE npm install (needed for postinstall)
+COPY scripts ./scripts
+COPY prisma ./prisma
+
 RUN npm ci && \
     npm cache clean --force
 
