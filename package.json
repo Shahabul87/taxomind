@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/Shahabul87/taxomind#readme",
   "engines": {
-    "node": ">=20.9.0",
+    "node": ">=22.12.0",
     "npm": ">=10.0.0"
   },
   "scripts": {
@@ -137,7 +137,7 @@
     "owasp:scan": "npx @cyclonedx/cyclonedx-npm --output-file sbom.json && npx better-npm-audit audit",
     "audit:fix": "npm audit fix",
     "audit:fix:force": "npm audit fix --force",
-    "prepare": "husky",
+    "prepare": "node -e \"if (process.env.NODE_ENV !== 'production' && process.env.CI !== 'true') { require('child_process').execSync('husky', {stdio: 'inherit'}) }\" || echo 'Skipping husky in production'",
     "observability:start": "docker-compose -f docker-compose.observability.yml up -d",
     "observability:stop": "docker-compose -f docker-compose.observability.yml down",
     "observability:logs": "docker-compose -f docker-compose.observability.yml logs -f",

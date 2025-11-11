@@ -12,7 +12,7 @@
 # ============================================
 # Stage 1: Base Image (Dependencies)
 # ============================================
-FROM node:20-alpine AS base
+FROM node:22.12-alpine AS base
 
 # Install required system dependencies (matching Railway/Nixpacks)
 RUN apk add --no-cache \
@@ -27,6 +27,9 @@ WORKDIR /app
 # ============================================
 FROM base AS deps
 
+# Set NODE_ENV to prevent husky from running during install
+ENV NODE_ENV=production
+
 # Copy package files
 COPY package.json package-lock.json* ./
 
@@ -36,6 +39,11 @@ RUN npm ci --only=production && \
 
 # Also create a dev dependencies install for the builder stage
 FROM base AS deps-dev
+
+# Set NODE_ENV to prevent husky from running during install
+ENV NODE_ENV=production
+ENV CI=true
+
 COPY package.json package-lock.json* ./
 RUN npm ci && \
     npm cache clean --force
