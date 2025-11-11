@@ -3,6 +3,19 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Award, ArrowLeft, Download, ExternalLink, Shield, Calendar, FileCheck } from "lucide-react";
 
+type Certificate = {
+  id: string;
+  courseName: string;
+  recipientName: string;
+  issuedDate: string;
+  certificateNumber: string;
+  verificationCode?: string;
+  pdfUrl?: string;
+  imageUrl?: string;
+  grade?: string;
+  finalScore?: number;
+};
+
 export default async function CertificatesPage() {
   const session = await auth();
 
@@ -48,7 +61,7 @@ export default async function CertificatesPage() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Verified</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {certificates.filter(c => c.verificationCode).length}
+                  {certificates.filter((c: Certificate) => c.verificationCode).length}
                 </p>
               </div>
               <Shield className="h-10 w-10 text-green-500" />
@@ -60,7 +73,7 @@ export default async function CertificatesPage() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">This Year</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {certificates.filter(c => new Date(c.issuedDate).getFullYear() === new Date().getFullYear()).length}
+                  {certificates.filter((c: Certificate) => new Date(c.issuedDate).getFullYear() === new Date().getFullYear()).length}
                 </p>
               </div>
               <Calendar className="h-10 w-10 text-purple-500" />
@@ -97,7 +110,7 @@ export default async function CertificatesPage() {
   );
 }
 
-async function fetchUserCertificates(userId: string) {
+async function fetchUserCertificates(userId: string): Promise<Certificate[]> {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/certificates/user`, {
       headers: {
@@ -120,18 +133,7 @@ async function fetchUserCertificates(userId: string) {
 }
 
 interface CertificateCardProps {
-  certificate: {
-    id: string;
-    courseName: string;
-    recipientName: string;
-    issuedDate: string;
-    certificateNumber: string;
-    verificationCode?: string;
-    pdfUrl?: string;
-    imageUrl?: string;
-    grade?: string;
-    finalScore?: number;
-  };
+  certificate: Certificate;
 }
 
 function CertificateCard({ certificate }: CertificateCardProps) {

@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getProfileData } from "@/app/actions/get-profile-data";
 import Link from "next/link";
-import { ArrowLeft, Heart, Video, BookOpen, Headphones, FileText, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { ArrowLeft, Heart, Video, BookOpen, Headphones, FileText, ExternalLink } from "lucide-react";
 
 export default async function FavoritesPage() {
   const session = await auth();
@@ -21,9 +21,8 @@ export default async function FavoritesPage() {
   const favoriteBlogs = userData.FavoriteBlog || [];
   const favoriteArticles = userData.FavoriteArticle || [];
   const favoriteAudios = userData.FavoriteAudio || [];
-  const favoriteImages = userData.FavoriteImage || [];
 
-  const totalFavorites = favoriteVideos.length + favoriteBlogs.length + favoriteArticles.length + favoriteAudios.length + favoriteImages.length;
+  const totalFavorites = favoriteVideos.length + favoriteBlogs.length + favoriteArticles.length + favoriteAudios.length;
 
   const categories = [
     {
@@ -61,15 +60,6 @@ export default async function FavoritesPage() {
       color: "from-purple-500 to-violet-500",
       bgColor: "bg-purple-100 dark:bg-purple-900/30",
       iconColor: "text-purple-600 dark:text-purple-400"
-    },
-    {
-      title: "Images",
-      count: favoriteImages.length,
-      icon: ImageIcon,
-      href: "/dashboard/user/favoriteimages",
-      color: "from-amber-500 to-orange-500",
-      bgColor: "bg-amber-100 dark:bg-amber-900/30",
-      iconColor: "text-amber-600 dark:text-amber-400"
     }
   ];
 
