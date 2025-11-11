@@ -31,10 +31,18 @@ interface ValidationResult {
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
 
-// Initialize Anthropic client with environment validation
-const anthropic = new Anthropic({
-  apiKey: validateEnvVar(ENV_VARS.ANTHROPIC_API_KEY),
-});
+// Lazy initialize Anthropic client to avoid build-time environment variable errors
+// Railway and other platforms don't expose secrets during Docker builds
+let anthropicClient: Anthropic | null = null;
+
+function getAnthropicClient(): Anthropic {
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({
+      apiKey: validateEnvVar(ENV_VARS.ANTHROPIC_API_KEY),
+    });
+  }
+  return anthropicClient;
+}
 
 // Enhanced exam generation request schema
 const AdvancedExamGenerationRequestSchema = z.object({
@@ -342,7 +350,8 @@ export async function POST(request: NextRequest) {
     // Generate sophisticated questions using Anthropic Claude
     try {
       const prompt = generator.generateAdvancedPrompt(fullRequest);
-      
+
+      const anthropic = getAnthropicClient();
       const completion = await anthropic.messages.create({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 6000, // Increased for more detailed responses

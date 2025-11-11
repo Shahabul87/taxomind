@@ -8,10 +8,20 @@ import { logger } from '@/lib/logger';
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+// Lazy initialize Anthropic client to avoid build-time environment variable errors
+// Railway and other platforms don't expose secrets during Docker builds
+let anthropicClient: Anthropic | null = null;
+
+function getAnthropicClient(): Anthropic {
+  if (!anthropicClient) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+    }
+    anthropicClient = new Anthropic({ apiKey });
+  }
+  return anthropicClient;
+}
 
 // Section content generation request schema
 const SectionContentGenerationRequestSchema = z.object({
@@ -301,6 +311,7 @@ export async function POST(request: NextRequest) {
         ? buildLearningObjectivesPrompt(contentRequest)
         : buildDescriptionPrompt(contentRequest);
 
+      const anthropic = getAnthropicClient();
       const completion = await anthropic.messages.create({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 2000,

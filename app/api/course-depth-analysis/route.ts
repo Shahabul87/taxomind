@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
-import anthropic from '@/lib/anthropic-client';
+import getAnthropicClient from '@/lib/anthropic-client';
 import { logger } from '@/lib/logger';
 
 // Import SAM evaluation engines
@@ -606,6 +606,7 @@ Use this exact JSON structure:
 
     // Retry logic for Anthropic API calls
     async function callAnthropicWithRetry(messageRequest: any, maxRetries: number = 3): Promise<any> {
+      const anthropic = getAnthropicClient();
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           return await anthropic.messages.create(messageRequest);

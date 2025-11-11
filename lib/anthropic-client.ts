@@ -2,10 +2,20 @@ import Anthropic from '@anthropic-ai/sdk';
 import { generateIntelligentCourseContent, type EnhancedContentRequest } from './ai-content-generator';
 import { logger } from '@/lib/logger';
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Lazy initialize Anthropic client to avoid build-time environment variable errors
+// Railway and other platforms don't expose secrets during Docker builds
+let anthropicClient: Anthropic | null = null;
+
+function getAnthropicClient(): Anthropic {
+  if (!anthropicClient) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+    }
+    anthropicClient = new Anthropic({ apiKey });
+  }
+  return anthropicClient;
+}
 
 // Course Blueprint Generation Types
 export interface CourseGenerationRequest {
@@ -151,7 +161,8 @@ export async function generateCourseBlueprint(
       
       // Fallback to the original generation method
       const prompt = createCourseGenerationPrompt(requirements);
-      
+
+      const anthropic = getAnthropicClient();
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 4000,
@@ -210,6 +221,7 @@ Provide a brief, encouraging, and helpful suggestion (1-2 sentences) that:
 
 Keep it concise and focused on helping them improve their course design.`;
 
+    const anthropic = getAnthropicClient();
     const response = await anthropic.messages.create({
       model: "claude-3-5-haiku-20241022",
       max_tokens: 150,
@@ -428,4 +440,5 @@ function extractIndustryContext(requirements: CourseGenerationRequest): string {
   return context;
 }
 
-export default anthropic;
+// Export the getter function for lazy initialization
+export default getAnthropicClient;

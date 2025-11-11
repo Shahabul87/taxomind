@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import anthropic from '@/lib/anthropic-client';
+import getAnthropicClient from '@/lib/anthropic-client';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
@@ -63,6 +63,7 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
       { role: "user" as const, content: message }
     ];
 
+    const anthropic = getAnthropicClient();
     const response = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 1500,

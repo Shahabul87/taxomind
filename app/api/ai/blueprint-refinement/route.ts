@@ -1,6 +1,6 @@
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import anthropic from "@/lib/anthropic-client";
+import getAnthropicClient from "@/lib/anthropic-client";
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -168,6 +168,7 @@ Please provide a comprehensive analysis and refinement plan that includes:
 Format your response as a JSON object with the structure matching the RefinementResult interface.`;
 
   try {
+    const anthropic = getAnthropicClient();
     const response = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 8000,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import anthropic from '@/lib/anthropic-client';
+import getAnthropicClient from '@/lib/anthropic-client';
 import { logger } from '@/lib/logger';
 
 // Bloom's Taxonomy levels and verbs
@@ -139,6 +139,7 @@ Generate the chapters now:`;
       { role: "user" as const, content: userPrompt }
     ];
 
+    const anthropic = getAnthropicClient();
     const response = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 1500,
