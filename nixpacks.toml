@@ -1,0 +1,21 @@
+# Nixpacks configuration for Railway deployment
+# Runs migrations at runtime, NOT during build
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "openssl"]
+
+[phases.install]
+cmds = [
+  "npm ci --only=production"
+]
+
+[phases.build]
+cmds = [
+  "npm run schema:merge",
+  "npx prisma generate",
+  "npm run build"
+]
+
+[start]
+# Run migrations BEFORE starting the app
+cmd = "sh -c 'node scripts/fix-failed-migrations.js && npx prisma migrate deploy && npm run start'"

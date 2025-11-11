@@ -234,7 +234,6 @@
     "@tiptap/starter-kit": "^2.11.9",
     "@types/bcryptjs": "^2.4.6",
     "@types/kafkajs": "^1.8.2",
-    "@types/node": "^20.17.5",
     "@types/puppeteer": "^5.4.7",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -342,7 +341,7 @@
     "@types/jest": "^29.5.8",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.16",
-    "@types/node": "^20.11.0",
+    "@types/node": "^20.19.24",
     "@types/opossum": "^8.0.0",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.2.48",
@@ -383,7 +382,7 @@
     "tailwindcss": "^3.3.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.4",
-    "typescript": "^5.6.3",
+    "typescript": "^5.9.3",
     "web-vitals": "^3.5.0",
     "webpack-bundle-analyzer": "^4.10.2"
   }

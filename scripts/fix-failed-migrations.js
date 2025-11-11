@@ -51,16 +51,22 @@ async function fixFailedMigrations() {
     // If database is not reachable (during build phase), skip gracefully
     if (error.message.includes("Can't reach database") ||
         error.message.includes("connect") ||
-        error.code === 'P1001') {
+        error.message.includes("ECONNREFUSED") ||
+        error.message.includes("postgres.railway.internal") ||
+        error.code === 'P1001' ||
+        error.code === 'P1002' ||
+        error.code === 'P1003') {
       console.log('ℹ️  Database not available (build phase) - skipping migration fix');
       console.log('   This is normal during Railway build. Migrations will run at deploy time.');
-      return; // Exit successfully
+      process.exit(0); // Exit with success code
     }
 
     console.error('❌ Error fixing migrations:', error.message);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    await prisma.$disconnect().catch(() => {
+      // Ignore disconnect errors if connection was never established
+    });
   }
 }
 
