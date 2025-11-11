@@ -87,23 +87,35 @@ const prismaClientSingleton = () => {
   }
 
   // CRITICAL: Validate DATABASE_URL exists
+  // During build (when SKIP_ENV_VALIDATION=true), allow import without throwing
+  // The actual database won't be accessed during static page generation
   const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
+  const isBuildTime = process.env.SKIP_ENV_VALIDATION === 'true';
+
+  if (!databaseUrl && !isBuildTime) {
     throw new Error(
       'DATABASE_URL environment variable is not set. ' +
       'Please check your .env.local file and ensure DATABASE_URL is configured.'
     );
   }
 
+  // During build time, use a placeholder URL to allow import (queries won't actually execute)
+  const effectiveDatabaseUrl = databaseUrl || 'postgresql://placeholder:placeholder@localhost:5432/placeholder';
+
   // Validate DATABASE_URL format before constructing URL
   let datasourceUrl: URL;
   try {
-    datasourceUrl = new URL(databaseUrl);
+    datasourceUrl = new URL(effectiveDatabaseUrl);
   } catch (error) {
-    throw new Error(
-      `Invalid DATABASE_URL format: ${databaseUrl}. ` +
-      'Please ensure DATABASE_URL is a valid PostgreSQL connection string (e.g., postgresql://user:password@host:port/database)'
-    );
+    // Only throw during runtime, not build time
+    if (!isBuildTime) {
+      throw new Error(
+        `Invalid DATABASE_URL format: ${effectiveDatabaseUrl}. ` +
+        'Please ensure DATABASE_URL is a valid PostgreSQL connection string (e.g., postgresql://user:password@host:port/database)'
+      );
+    }
+    // Fallback URL for build time
+    datasourceUrl = new URL('postgresql://placeholder:placeholder@localhost:5432/placeholder');
   }
 
   // Add connection pool parameters to URL

@@ -45,8 +45,8 @@ RUN npm ci --only=production && \
 # Also create a dev dependencies install for the builder stage
 FROM base AS deps-dev
 
-# Set NODE_ENV to prevent husky from running during install
-ENV NODE_ENV=production
+# Set CI=true to prevent husky from running during install
+# NOTE: Do NOT set NODE_ENV=production here - it prevents proper dev dependency installation
 ENV CI=true
 # Don't skip postinstall here - we have all dependencies
 
