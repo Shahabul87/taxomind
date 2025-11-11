@@ -84,7 +84,7 @@
     "env:production": "NODE_ENV=production node scripts/load-env.js",
     "env:development": "NODE_ENV=development node scripts/load-env.js",
     "build:production": "NODE_ENV=production npm run build",
-    "build:railway": "npx prisma generate && npx prisma migrate deploy && NODE_ENV=production npm run build",
+    "build:railway": "npx prisma generate && NODE_ENV=production npm run build",
     "start:production": "NODE_ENV=production npm run start",
     "start:railway": "NODE_ENV=production node scripts/load-env.js && next start",
     "check-production": "node scripts/check-production-config.js",

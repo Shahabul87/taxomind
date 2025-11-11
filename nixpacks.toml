@@ -1,15 +1,19 @@
 # Nixpacks configuration for Railway deployment
-# Runs migrations at runtime, NOT during build
+# CRITICAL: Migrations run at RUNTIME, NOT during build
+# Database is not accessible during Docker build phase
 
 [phases.setup]
 nixPkgs = ["nodejs_22", "openssl"]
 
 [phases.install]
+# Install all dependencies (including dev for build)
 cmds = [
-  "npm ci --only=production"
+  "npm ci"
 ]
 
 [phases.build]
+# Build commands - NO database operations here!
+# Only operations that don't require database connection
 cmds = [
   "npm run schema:merge",
   "npx prisma generate",
@@ -17,5 +21,6 @@ cmds = [
 ]
 
 [start]
+# Runtime startup - database IS available here
 # Run migrations BEFORE starting the app
-cmd = "sh -c 'node scripts/fix-failed-migrations.js && npx prisma migrate deploy && npm run start'"
+cmd = "sh -c 'npx prisma generate && node scripts/fix-failed-migrations.js && npx prisma migrate deploy && npm run start'"
