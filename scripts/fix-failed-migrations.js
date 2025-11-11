@@ -15,6 +15,9 @@ async function fixFailedMigrations() {
   try {
     console.log('🔍 Checking for failed migrations...');
 
+    // Test database connection first
+    await prisma.$connect();
+
     // Get all failed migrations (started but not finished)
     const failedMigrations = await prisma.$queryRaw`
       SELECT migration_name, started_at
@@ -45,6 +48,15 @@ async function fixFailedMigrations() {
     console.log('   Next migration deploy will proceed normally');
 
   } catch (error) {
+    // If database is not reachable (during build phase), skip gracefully
+    if (error.message.includes("Can't reach database") ||
+        error.message.includes("connect") ||
+        error.code === 'P1001') {
+      console.log('ℹ️  Database not available (build phase) - skipping migration fix');
+      console.log('   This is normal during Railway build. Migrations will run at deploy time.');
+      return; // Exit successfully
+    }
+
     console.error('❌ Error fixing migrations:', error.message);
     process.exit(1);
   } finally {
