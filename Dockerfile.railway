@@ -20,6 +20,9 @@ RUN apk add --no-cache \
     openssl \
     ca-certificates
 
+# Update npm to latest version (11.6.2) to suppress update notices
+RUN npm install -g npm@11.6.2
+
 WORKDIR /app
 
 # ============================================

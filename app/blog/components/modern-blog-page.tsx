@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import MyPostCard from "../blog-card";
 import {
   Search,
   Calendar,
@@ -528,240 +529,7 @@ const ModernHeroSection = ({
   );
 };
 
-// Modern Blog Card Component
-const ModernBlogCard = ({ post, index, viewMode = "grid" }: { post: BlogPost; index: number; viewMode?: "grid" | "list" }) => {
-  const [isBookmarked, setIsBookmarked] = useState(false);
-
-  const categoryColors: Record<string, string> = {
-    "Programming": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    "Design": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    "Data Science": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-    "AI/ML": "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
-    "DevOps": "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  };
-
-  // List view layout
-  if (viewMode === "list") {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: index * 0.05 }}
-        className="w-full"
-      >
-        <Card className="overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-lg transition-all duration-300 rounded-xl h-full">
-          <div className="flex gap-5 p-5">
-            {/* Image Thumbnail - Consistent Size */}
-            <div className="relative flex-shrink-0 w-40 h-40 rounded-lg overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
-              {post.imageUrl && (
-                <Image
-                  src={post.imageUrl}
-                  alt={post.title}
-                  fill
-                  className="object-cover transition-transform duration-300 hover:scale-105"
-                />
-              )}
-              {post.category && (
-                <Badge
-                  className={cn(
-                    "absolute top-2 left-2 text-xs h-5 px-2",
-                    categoryColors[post.category] || "bg-slate-100 text-slate-700"
-                  )}
-                >
-                  {post.category}
-                </Badge>
-              )}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0 flex flex-col">
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <div className="flex-1">
-                  {/* Author and Date */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <Avatar className="w-7 h-7">
-                      <AvatarImage src={post.user.image} />
-                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs">
-                        {post.user.name?.charAt(0) || "A"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {post.user.name || "Anonymous"} • {new Date(post.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </p>
-                  </div>
-
-                  {/* Title */}
-                  <Link href={`/blog/${post.id}`}>
-                    <h3 className="font-bold text-lg mb-2 line-clamp-2 text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                      {post.title}
-                    </h3>
-                  </Link>
-
-                  {/* Description */}
-                  <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2 mb-3">
-                    {post.description}
-                  </p>
-
-                  {/* Metrics */}
-                  <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      {post.readingTime}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5" />
-                      {post.views.toLocaleString()}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      {post.comments.length}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-9 w-9"
-                    onClick={() => setIsBookmarked(!isBookmarked)}
-                  >
-                    <Bookmark className={cn("w-4 h-4", isBookmarked && "fill-current text-blue-600 dark:text-blue-400")} />
-                  </Button>
-                  <Link href={`/blog/${post.id}`}>
-                    <Button size="sm" className="h-9 px-4">
-                      Read
-                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
-    );
-  }
-
-  // Grid view layout (default)
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.1 }}
-      whileHover={{ y: -4 }}
-      className="h-full"
-    >
-      <Card className="h-full flex flex-col overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-xl transition-all duration-300 rounded-xl">
-        {/* Image - Consistent Height */}
-        <div className="relative h-52 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
-          {post.imageUrl && (
-            <Image
-              src={post.imageUrl}
-              alt={post.title}
-              fill
-              className="object-cover transition-transform duration-500 hover:scale-110"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-
-          {/* Category Badge */}
-          {post.category && (
-            <Badge
-              className={cn(
-                "absolute top-3 left-3 h-6 px-2.5",
-                categoryColors[post.category] || "bg-slate-100 text-slate-700"
-              )}
-            >
-              {post.category}
-            </Badge>
-          )}
-
-          {/* Bookmark Button */}
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute top-3 right-3 h-9 w-9 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800"
-            onClick={() => setIsBookmarked(!isBookmarked)}
-          >
-            <Bookmark className={cn("w-4 h-4", isBookmarked && "fill-current text-blue-600 dark:text-blue-400")} />
-          </Button>
-        </div>
-
-        <CardContent className="p-5 flex-1 flex flex-col">
-          {/* Author and Date */}
-          <div className="flex items-center gap-3 mb-3">
-            <Avatar className="w-9 h-9">
-              <AvatarImage src={post.user.image} />
-              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs">
-                {post.user.name?.charAt(0) || "A"}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium">{post.user.name || "Anonymous"}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {new Date(post.createdAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric"
-                })}
-              </p>
-            </div>
-          </div>
-
-          {/* Title */}
-          <Link href={`/blog/${post.id}`}>
-            <h3 className="text-lg font-bold mb-2 line-clamp-2 text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer min-h-[3.5rem]">
-              {post.title}
-            </h3>
-          </Link>
-
-          {/* Description */}
-          <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-3 mb-4 flex-1">
-            {post.description}
-          </p>
-
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {post.tags.slice(0, 3).map((tag, i) => (
-                <Badge key={i} variant="secondary" className="text-xs h-5 px-2">
-                  <Hash className="w-3 h-3 mr-1" />
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Footer Metrics */}
-          <div className="flex items-center justify-between pt-3 border-t mt-auto">
-            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                {post.readingTime}
-              </span>
-              <span className="flex items-center gap-1">
-                <Eye className="w-3.5 h-3.5" />
-                {post.views.toLocaleString()}
-              </span>
-              <span className="flex items-center gap-1">
-                <MessageSquare className="w-3.5 h-3.5" />
-                {post.comments.length}
-              </span>
-            </div>
-            <Link href={`/blog/${post.id}`}>
-              <Button size="sm" variant="ghost" className="group h-8 px-3">
-                Read
-                <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
+// Old ModernBlogCard component removed - now using MyPostCard from blog-card.tsx
 
 // Trending Sidebar Component - Redesigned
 const TrendingSidebar = ({ posts }: { posts: BlogPost[] }) => {
@@ -1222,7 +990,19 @@ export function ModernBlogPage({
                 </div>
                 <div className="grid md:grid-cols-2 gap-6">
                   {featuredPosts.slice(1, 3).map((post, index) => (
-                    <ModernBlogCard key={post.id} post={post} index={index} viewMode="grid" />
+                    <MyPostCard
+                      key={post.id}
+                      post={{
+                        id: post.id,
+                        title: post.title,
+                        description: post.description,
+                        imageUrl: post.imageUrl || null,
+                        published: true,
+                        category: post.category || null,
+                        createdAt: post.createdAt.toISOString(),
+                        comments: post.comments,
+                      }}
+                    />
                   ))}
                 </div>
               </div>
@@ -1262,10 +1042,22 @@ export function ModernBlogPage({
 
               {filteredPosts.length > 0 ? (
                 <div className={cn(
-                  viewMode === "grid" ? "grid md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"
+                  viewMode === "grid" ? "grid md:grid-cols-2 xl:grid-cols-3 gap-6" : "grid md:grid-cols-2 xl:grid-cols-3 gap-6"
                 )}>
                   {filteredPosts.map((post, index) => (
-                    <ModernBlogCard key={post.id} post={post} index={index} viewMode={viewMode} />
+                    <MyPostCard
+                      key={post.id}
+                      post={{
+                        id: post.id,
+                        title: post.title,
+                        description: post.description,
+                        imageUrl: post.imageUrl || null,
+                        published: true,
+                        category: post.category || null,
+                        createdAt: post.createdAt.toISOString(),
+                        comments: post.comments,
+                      }}
+                    />
                   ))}
                 </div>
               ) : (

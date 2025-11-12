@@ -150,7 +150,7 @@ export const MyPostsDashboard = ({ posts, categories, stats, user }: MyPostsDash
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="container mx-auto px-4 sm:px-6 lg:px-8 mb-8"
+        className="w-full px-4 sm:px-6 lg:px-8 mb-8"
       >
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
@@ -250,7 +250,7 @@ export const MyPostsDashboard = ({ posts, categories, stats, user }: MyPostsDash
       </motion.div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
         <Tabs
           defaultValue="drafts"
@@ -374,13 +374,13 @@ export const MyPostsDashboard = ({ posts, categories, stats, user }: MyPostsDash
                 />
               ) : (
                 // Posts grid
-                <motion.div 
+                <motion.div
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
                   className={cn(
                     "p-6",
-                    viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"
+                    viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6" : "space-y-4"
                   )}
                 >
                   {filteredPosts.map((post) => (
