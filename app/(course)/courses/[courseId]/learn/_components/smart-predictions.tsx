@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Brain,
@@ -56,12 +56,7 @@ export const SmartPredictions = ({
     confidence: 85, // percentage
   });
 
-  useEffect(() => {
-    // Calculate smart predictions
-    calculatePredictions();
-  }, [course, completedSections, totalSections]);
-
-  const calculatePredictions = () => {
+  const calculatePredictions = useCallback(() => {
     // Get learning history from localStorage
     const historyKey = `learning_history_${course.id}_${userId}`;
     const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
@@ -105,37 +100,42 @@ export const SmartPredictions = ({
       burnoutRisk,
       confidence,
     });
-  };
 
-  const determineOptimalStudyTimes = (history: any[]): string[] => {
-    // Simple heuristic - in production, this would use actual user data
-    const morningProductivity = Math.random();
-    const afternoonProductivity = Math.random();
-    const eveningProductivity = Math.random();
+    function determineOptimalStudyTimes(history: any[]): string[] {
+      // Simple heuristic - in production, this would use actual user data
+      const morningProductivity = Math.random();
+      const afternoonProductivity = Math.random();
+      const eveningProductivity = Math.random();
 
-    const times = [
-      { time: '9:00 AM', score: morningProductivity },
-      { time: '2:00 PM', score: afternoonProductivity },
-      { time: '7:00 PM', score: eveningProductivity },
-    ];
+      const times = [
+        { time: '9:00 AM', score: morningProductivity },
+        { time: '2:00 PM', score: afternoonProductivity },
+        { time: '7:00 PM', score: eveningProductivity },
+      ];
 
-    return times
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 2)
-      .map(t => t.time);
-  };
+      return times
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 2)
+        .map(t => t.time);
+    }
 
-  const assessBurnoutRisk = (velocity: number, daysActive: number): 'low' | 'medium' | 'high' => {
-    if (velocity > 3 && daysActive > 14) return 'high';
-    if (velocity > 2 || daysActive > 30) return 'medium';
-    return 'low';
-  };
+    function assessBurnoutRisk(velocity: number, daysActive: number): 'low' | 'medium' | 'high' {
+      if (velocity > 3 && daysActive > 14) return 'high';
+      if (velocity > 2 || daysActive > 30) return 'medium';
+      return 'low';
+    }
 
-  const calculateConfidence = (historyLength: number, daysActive: number): number => {
-    const dataQuality = Math.min(100, (historyLength / 30) * 100);
-    const timeQuality = Math.min(100, (daysActive / 14) * 100);
-    return Math.round((dataQuality + timeQuality) / 2);
-  };
+    function calculateConfidence(historyLength: number, daysActive: number): number {
+      const dataQuality = Math.min(100, (historyLength / 30) * 100);
+      const timeQuality = Math.min(100, (daysActive / 14) * 100);
+      return Math.round((dataQuality + timeQuality) / 2);
+    }
+  }, [course, completedSections, totalSections, userId]);
+
+  useEffect(() => {
+    // Calculate smart predictions
+    calculatePredictions();
+  }, [calculatePredictions]);
 
   const getBurnoutColor = (risk: string) => {
     switch (risk) {

@@ -48,36 +48,29 @@ export function ServiceWorkerManager({
   const [cacheSize, setCacheSize] = useState<number>(0);
   const [offlineReady, setOfflineReady] = useState(false);
 
-  // Register service worker
-  useEffect(() => {
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      registerServiceWorker();
+  // Calculate cache size
+  const calculateCacheSize = useCallback(async () => {
+    if ('storage' in navigator && 'estimate' in navigator.storage) {
+      const estimate = await navigator.storage.estimate();
+      const usage = estimate.usage || 0;
+      setCacheSize(usage);
     }
-
-    // Check online status
-    setIsOnline(navigator.onLine);
-
-    // Add event listeners for online/offline
-    const handleOnline = () => {
-      setIsOnline(true);
-      toast.success("You're back online!");
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast.warning("You're offline. Some features may be limited.");
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
   }, []);
 
-  const registerServiceWorker = async () => {
+  // Update service worker - defined before registerServiceWorker to avoid dependency issues
+  const updateServiceWorker = useCallback(() => {
+    if (swRegistration && swRegistration.waiting) {
+      // Tell service worker to skip waiting
+      swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+
+      // Listen for controlling service worker to change
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    }
+  }, [swRegistration]);
+
+  const registerServiceWorker = useCallback(async () => {
     try {
       setIsInstalling(true);
 
@@ -125,29 +118,36 @@ export function ServiceWorkerManager({
       console.error('Service Worker registration failed:', error);
       setIsInstalling(false);
     }
-  };
+  }, [calculateCacheSize, updateServiceWorker]);
 
-  // Update service worker
-  const updateServiceWorker = useCallback(() => {
-    if (swRegistration && swRegistration.waiting) {
-      // Tell service worker to skip waiting
-      swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
-
-      // Listen for controlling service worker to change
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-      });
+  // Register service worker on mount
+  useEffect(() => {
+    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      registerServiceWorker();
     }
-  }, [swRegistration]);
 
-  // Calculate cache size
-  const calculateCacheSize = async () => {
-    if ('storage' in navigator && 'estimate' in navigator.storage) {
-      const estimate = await navigator.storage.estimate();
-      const usage = estimate.usage || 0;
-      setCacheSize(usage);
-    }
-  };
+    // Check online status
+    setIsOnline(navigator.onLine);
+
+    // Add event listeners for online/offline
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success("You're back online!");
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.warning("You're offline. Some features may be limited.");
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [registerServiceWorker]);
 
   // Clear cache
   const clearCache = async () => {

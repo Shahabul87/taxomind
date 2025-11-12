@@ -79,6 +79,64 @@ export function useLearningAnalyticsTracker({
   const isPageVisible = useRef<boolean>(true);
   const scrollDepth = useRef<number>(0);
 
+  // Generate unique session ID
+  const generateSessionId = () => {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // Flush events to server
+  const flushEvents = useCallback(async () => {
+    if (eventQueue.current.length === 0) return;
+
+    const eventsToSend = [...eventQueue.current];
+    eventQueue.current = [];
+
+    try {
+      await fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          events: eventsToSend,
+          courseId,
+          chapterId,
+          sectionId,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to send analytics:", error);
+      // Re-queue events on failure
+      eventQueue.current.unshift(...eventsToSend);
+    }
+  }, [courseId, chapterId, sectionId]);
+
+  // Track event
+  const trackEvent = useCallback(
+    (eventType: string, eventData?: Record<string, any>) => {
+      if (!canTrackProgress || mode !== "learning") return;
+
+      const event: AnalyticsEvent = {
+        eventType,
+        eventData: {
+          ...eventData,
+          pathname,
+          screenWidth: window.innerWidth,
+          screenHeight: window.innerHeight,
+        },
+        timestamp: Date.now(),
+        sessionId: sessionId.current,
+        userId: user?.id,
+      };
+
+      eventQueue.current.push(event);
+
+      // Batch events and send every 10 events or 5 seconds
+      if (eventQueue.current.length >= 10) {
+        flushEvents();
+      }
+    },
+    [canTrackProgress, mode, user, pathname, flushEvents]
+  );
+
   // Initialize session
   useEffect(() => {
     sessionId.current = generateSessionId();
@@ -108,7 +166,7 @@ export function useLearningAnalyticsTracker({
       // Flush any remaining events
       flushEvents();
     };
-  }, [courseId, chapterId, sectionId]);
+  }, [courseId, chapterId, sectionId, contentType, contentId, trackEvent, flushEvents]);
 
   // Track page visibility (for accurate time tracking)
   useEffect(() => {
@@ -188,7 +246,7 @@ export function useLearningAnalyticsTracker({
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [courseId, sectionId]);
+  }, [courseId, sectionId, trackEvent]);
 
   // Periodically send time spent data
   useEffect(() => {
@@ -207,65 +265,7 @@ export function useLearningAnalyticsTracker({
     }, 60000); // Every minute
 
     return () => clearInterval(interval);
-  }, [courseId, chapterId, sectionId]);
-
-  // Generate unique session ID
-  const generateSessionId = () => {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  };
-
-  // Track event
-  const trackEvent = useCallback(
-    (eventType: string, eventData?: Record<string, any>) => {
-      if (!canTrackProgress || mode !== "learning") return;
-
-      const event: AnalyticsEvent = {
-        eventType,
-        eventData: {
-          ...eventData,
-          pathname,
-          screenWidth: window.innerWidth,
-          screenHeight: window.innerHeight,
-        },
-        timestamp: Date.now(),
-        sessionId: sessionId.current,
-        userId: user?.id,
-      };
-
-      eventQueue.current.push(event);
-
-      // Batch events and send every 10 events or 5 seconds
-      if (eventQueue.current.length >= 10) {
-        flushEvents();
-      }
-    },
-    [canTrackProgress, mode, user, pathname]
-  );
-
-  // Flush events to server
-  const flushEvents = useCallback(async () => {
-    if (eventQueue.current.length === 0) return;
-
-    const eventsToSend = [...eventQueue.current];
-    eventQueue.current = [];
-
-    try {
-      await fetch("/api/analytics/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          events: eventsToSend,
-          courseId,
-          chapterId,
-          sectionId,
-        }),
-      });
-    } catch (error) {
-      console.error("Failed to send analytics:", error);
-      // Re-queue events on failure
-      eventQueue.current.unshift(...eventsToSend);
-    }
-  }, [courseId, chapterId, sectionId]);
+  }, [courseId, chapterId, sectionId, trackEvent]);
 
   // Auto-flush events periodically
   useEffect(() => {

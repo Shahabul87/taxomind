@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -87,7 +87,7 @@ export function SectionProgressTracker({
   }, [userProgress, section]);
 
   // Calculate overall progress
-  const calculateProgress = () => {
+  const calculateProgress = useCallback(() => {
     let totalItems = 0;
     let completedItems = 0;
 
@@ -98,21 +98,10 @@ export function SectionProgressTracker({
 
     if (totalItems === 0) return 0;
     return Math.round((completedItems / totalItems) * 100);
-  };
-
-  // Update progress
-  useEffect(() => {
-    const newProgress = calculateProgress();
-    setProgress(newProgress);
-
-    // Check for completion
-    if (newProgress === 100 && canTrackProgress) {
-      handleSectionComplete();
-    }
   }, [contentProgress]);
 
   // Handle section completion
-  const handleSectionComplete = async () => {
+  const handleSectionComplete = useCallback(async () => {
     if (!canTrackProgress || !user?.id) return;
 
     try {
@@ -129,7 +118,18 @@ export function SectionProgressTracker({
     } catch (error) {
       console.error("Error marking section complete:", error);
     }
-  };
+  }, [canTrackProgress, user?.id, sectionId, onComplete]);
+
+  // Update progress
+  useEffect(() => {
+    const newProgress = calculateProgress();
+    setProgress(newProgress);
+
+    // Check for completion
+    if (newProgress === 100 && canTrackProgress) {
+      handleSectionComplete();
+    }
+  }, [contentProgress, calculateProgress, canTrackProgress, handleSectionComplete]);
 
   // Get progress color
   const getProgressColor = (value: number) => {

@@ -307,7 +307,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                           id={course.id}
                           title={course.title}
                           cleanDescription={course.processedDescription}
-                          imageUrl={course.imageUrl || ""}
+                          imageUrl={course.imageUrl ?? ""}
                           chaptersLength={course.chapters?.length || 0}
                           price={course.price || 0}
                           category={course?.category?.name || "General"}

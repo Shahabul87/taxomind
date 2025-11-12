@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -31,7 +32,7 @@ interface ContactFormProps {
 export const ContactForm = ({ userId }: ContactFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       subject: "",
@@ -67,7 +68,7 @@ export const ContactForm = ({ userId }: ContactFormProps) => {
             onValueChange={(value) => form.setValue("category", value)}
             defaultValue={form.watch("category")}
           >
-            <SelectTrigger 
+            <SelectTrigger
               className={cn(
                 "w-full h-9 sm:h-10",
                 "bg-white/50 dark:bg-gray-800/50",
@@ -75,7 +76,8 @@ export const ContactForm = ({ userId }: ContactFormProps) => {
                 "text-gray-900 dark:text-gray-100",
                 "text-sm",
                 "focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20",
-                "placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                "placeholder:text-gray-500 dark:placeholder:text-gray-400",
+                form.formState.errors.category && "border-red-500 dark:border-red-500"
               )}
             >
               <SelectValue placeholder="Select category" />
@@ -116,6 +118,11 @@ export const ContactForm = ({ userId }: ContactFormProps) => {
               </SelectItem>
             </SelectContent>
           </Select>
+          {form.formState.errors.category && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+              {form.formState.errors.category.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -132,9 +139,15 @@ export const ContactForm = ({ userId }: ContactFormProps) => {
               "text-gray-900 dark:text-gray-100",
               "text-sm",
               "focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20",
-              "placeholder:text-gray-500 dark:placeholder:text-gray-400"
+              "placeholder:text-gray-500 dark:placeholder:text-gray-400",
+              form.formState.errors.subject && "border-red-500 dark:border-red-500"
             )}
           />
+          {form.formState.errors.subject && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+              {form.formState.errors.subject.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -152,9 +165,15 @@ export const ContactForm = ({ userId }: ContactFormProps) => {
               "text-sm",
               "focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20",
               "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-              "resize-y"
+              "resize-y",
+              form.formState.errors.message && "border-red-500 dark:border-red-500"
             )}
           />
+          {form.formState.errors.message && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+              {form.formState.errors.message.message}
+            </p>
+          )}
         </div>
       </div>
 
@@ -164,15 +183,30 @@ export const ContactForm = ({ userId }: ContactFormProps) => {
         size="sm"
         className={cn(
           "w-full h-9 sm:h-10",
-          "bg-purple-600 hover:bg-purple-700",
-          "dark:bg-purple-500 dark:hover:bg-purple-600",
+          "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700",
+          "dark:from-purple-500 dark:to-indigo-500 dark:hover:from-purple-600 dark:hover:to-indigo-600",
           "text-white",
           "text-xs sm:text-sm",
           "font-medium",
-          "transition-colors"
+          "transition-all duration-200",
+          "shadow-lg hover:shadow-xl",
+          "disabled:opacity-50 disabled:cursor-not-allowed"
         )}
       >
-        {isSubmitting ? "Submitting..." : "Submit Ticket"}
+        {isSubmitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            Submitting...
+          </span>
+        ) : (
+          <span className="flex items-center justify-center gap-2">
+            <Send className="w-4 h-4" />
+            Submit Ticket
+          </span>
+        )}
       </Button>
     </form>
   );

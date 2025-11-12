@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -174,11 +175,14 @@ export function MathLatexRenderer({
 
         {/* Image representation if available */}
         {math.imageUrl && (
-          <div className="mt-4">
-            <img
+          <div className="mt-4 relative w-full h-auto">
+            <Image
               src={math.imageUrl}
               alt={`Mathematical representation for ${math.title}`}
+              width={800}
+              height={400}
               className="w-full rounded-lg"
+              style={{ objectFit: 'contain' }}
             />
           </div>
         )}

@@ -38,14 +38,10 @@ const TeacherAllPostsPage = async () => {
     return redirect("/");
   }
 
-  // Debug: Log user ID
-  console.log('[TeacherAllPostsPage] Fetching posts for user:', user.id);
-
-  // TEMPORARY: Fetch all posts (remove userId filter for testing)
-  // TODO: Change back to filter by userId in production
+  // Fetch user's posts
   const postsData = await db.post.findMany({
     where: {
-      // userId: user.id // COMMENTED OUT to show all posts for testing
+      userId: user.id
     },
     include: {
       User: {
@@ -64,22 +60,21 @@ const TeacherAllPostsPage = async () => {
     }
   });
 
-  // Debug: Log fetched posts
-  console.log('[TeacherAllPostsPage] Fetched posts count:', postsData.length);
-  if (postsData.length > 0) {
-    console.log('[TeacherAllPostsPage] First post:', {
-      id: postsData[0].id,
-      title: postsData[0].title,
-      userId: postsData[0].userId,
-      published: postsData[0].published,
-    });
-  }
-
-  // Serialize posts to avoid Decimal field issues
+  // Serialize posts to match home page format and avoid serialization issues
   const posts = postsData.map(post => ({
-    ...post,
+    id: post.id,
+    title: post.title,
+    description: post.description || null,
+    imageUrl: post.imageUrl || null,
+    published: post.published,
+    category: post.category || null,
+    createdAt: post.createdAt.toISOString(),
+    updatedAt: post.updatedAt.toISOString(),
+    userId: post.userId,
+    views: post.views,
+    comments: post.comments,
     user: post.User,
-    User: undefined, // Remove the User field as we've copied it to lowercase 'user'
+    likes: [], // TODO: Add likes relation to Post model
   }));
 
   // Get post stats

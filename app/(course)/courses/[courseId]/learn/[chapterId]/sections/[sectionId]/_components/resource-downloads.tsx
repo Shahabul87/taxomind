@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -609,11 +610,16 @@ export function ResourceDownloads({
             )}
 
             {previewResource?.type === "image" && (
-              <img
-                src={previewResource.url}
-                alt={previewResource.title}
-                className="w-full h-auto"
-              />
+              <div className="relative w-full h-auto">
+                <Image
+                  src={previewResource.url}
+                  alt={previewResource.title}
+                  width={1200}
+                  height={800}
+                  className="w-full h-auto"
+                  style={{ objectFit: 'contain' }}
+                />
+              </div>
             )}
 
             {previewResource?.type === "video" && (

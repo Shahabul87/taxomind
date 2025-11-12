@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatPrice } from "@/lib/format";
@@ -17,6 +17,9 @@ interface CourseCardProps {
   category: string;
 }
 
+// Fallback image for when course image is not available - using inline SVG for reliability
+const FALLBACK_IMAGE = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkMSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjM2NkYxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQTg1NUY3O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICAgIDwvZGVmcz4KICAgICAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NTAiIGZpbGw9InVybCgjZ3JhZDEpIi8+CiAgICAgIDx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSIgZm9udC1zaXplPSI0MCIgZm9udC13ZWlnaHQ9ImJvbGQiPgogICAgICAgIENvdXJzZQogICAgICA8L3RleHQ+CiAgICA8L3N2Zz4=";
+
 export const CourseCardHome = ({
   id,
   title,
@@ -27,9 +30,19 @@ export const CourseCardHome = ({
   category,
 }: CourseCardProps) => {
   // Ensure image URLs use HTTPS for Next.js Image component in production
-  const secureImageUrl = imageUrl
+  const initialImageUrl = imageUrl
     ? imageUrl.replace(/^http:\/\//i, 'https://')
-    : '/default-image.webp';
+    : FALLBACK_IMAGE;
+
+  const [imgSrc, setImgSrc] = useState(initialImageUrl);
+  const [hasError, setHasError] = useState(false);
+
+  const handleImageError = () => {
+    if (!hasError) {
+      setHasError(true);
+      setImgSrc(FALLBACK_IMAGE);
+    }
+  };
 
   // Get category gradient based on category name
   const getCategoryGradient = (cat: string) => {
@@ -58,15 +71,16 @@ export const CourseCardHome = ({
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500 pointer-events-none z-10"></div>
 
       {/* Course Image with Enhanced Overlay */}
-      <div className="relative h-40 sm:h-44 w-full overflow-hidden">
+      <div className="relative h-40 sm:h-44 w-full overflow-hidden bg-slate-200 dark:bg-slate-700">
         <Image
-          src={secureImageUrl}
+          src={imgSrc}
           alt={title}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-700 group-hover:scale-110"
           quality={90}
-          unoptimized={!imageUrl}
+          unoptimized={hasError}
+          onError={handleImageError}
         />
 
         {/* Gradient Overlays */}

@@ -181,7 +181,7 @@ export function setup() {
   return { startTime: new Date() };
 }
 
-export default function (data) {
+export default function loadTestScenario(data) {
   activeUsers.add(1);
 
   // Select a random test user

@@ -287,16 +287,18 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
   // Initialize
   useEffect(() => {
     refreshAll();
-    
+
     if (enableWebSocket) {
       initializeWebSocket();
     }
 
+    // Capture ref value for cleanup
+    const currentWs = wsRef.current;
+
     return () => {
       stopAutoRefresh();
-      const ws = wsRef.current;
-      if (ws) {
-        ws.close();
+      if (currentWs) {
+        currentWs.close();
       }
     };
   }, [refreshAll, initializeWebSocket, enableWebSocket, stopAutoRefresh]);
@@ -314,11 +316,13 @@ export function useRealTimeAnalytics(options: UseRealTimeAnalyticsOptions = {}) 
 
   // Cleanup on unmount
   useEffect(() => {
+    // Capture ref value for cleanup
+    const currentWs = wsRef.current;
+
     return () => {
       stopAutoRefresh();
-      const ws = wsRef.current;
-      if (ws) {
-        ws.close();
+      if (currentWs) {
+        currentWs.close();
       }
     };
   }, [stopAutoRefresh]);

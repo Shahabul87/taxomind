@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Keyboard,
@@ -45,7 +45,8 @@ export const KeyboardShortcuts = ({
   const [isVisible, setIsVisible] = useState(false);
   const [showHint, setShowHint] = useState(true);
 
-  const shortcuts: Shortcut[] = [
+  // Memoize shortcuts array to prevent recreating on every render
+  const shortcuts: Shortcut[] = useMemo(() => [
     {
       keys: ["?"],
       description: "Show keyboard shortcuts",
@@ -106,7 +107,7 @@ export const KeyboardShortcuts = ({
       icon: <Keyboard className="w-4 h-4" />,
       category: "actions"
     }
-  ];
+  ], [isVisible, onNavigatePrev, onNavigateNext, onToggleFocus, onToggleNotes, onToggleBookmark]);
 
   // Handle keyboard events
   useEffect(() => {

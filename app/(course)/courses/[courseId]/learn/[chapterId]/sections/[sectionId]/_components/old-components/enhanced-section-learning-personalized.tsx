@@ -228,7 +228,7 @@ export const EnhancedSectionLearningPersonalized = ({
     } finally {
       setIsLoadingInsights(false);
     }
-  }, [user.id, courseId, sectionId, completedSections, totalSections, chapterId]);
+  }, [user.id]);
 
   // Load personalization data on mount
   useEffect(() => {

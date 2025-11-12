@@ -1,19 +1,35 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Award, ArrowLeft, Download, ExternalLink, Shield, Calendar, FileCheck } from "lucide-react";
+import { Award, Download, Shield, Calendar, FileCheck } from "lucide-react";
+import { certificateService } from "@/lib/certificate/service";
+import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
+import { SmartHeader } from "@/components/dashboard/smart-header";
 
 type Certificate = {
   id: string;
-  courseName: string;
-  recipientName: string;
-  issuedDate: string;
-  certificateNumber: string;
-  verificationCode?: string;
-  pdfUrl?: string;
-  imageUrl?: string;
-  grade?: string;
-  finalScore?: number;
+  userId: string;
+  courseId: string;
+  templateId?: string | null;
+  verificationCode: string;
+  issuedAt: Date;
+  expiresAt?: Date | null;
+  isRevoked: boolean;
+  revokedAt?: Date | null;
+  revokedReason?: string | null;
+  metadata?: any;
+  createdAt: Date;
+  updatedAt: Date;
+  course?: {
+    id: string;
+    title: string;
+    description: string | null;
+    imageUrl: string | null;
+  };
+  template?: {
+    name: string;
+    templateType: string;
+  } | null;
 };
 
 export default async function CertificatesPage() {
@@ -23,26 +39,25 @@ export default async function CertificatesPage() {
     redirect("/auth/login");
   }
 
-  // Fetch user certificates
-  const certificates = await fetchUserCertificates(session.user.id);
+  // Fetch user certificates directly from service
+  const certificates = await certificateService.getUserCertificates(session.user.id);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20 pb-10">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center mb-4">
-            <Link href="/dashboard" className="mr-4 bg-white dark:bg-gray-800 p-2 rounded-full shadow-sm hover:shadow-md transition-shadow">
-              <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+    <>
+      <SmartSidebar user={session.user} />
+      <SmartHeader user={session.user} />
+
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20 pt-16 pl-[88px]">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               My Certificates
             </h1>
+            <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
+              View and download your earned certificates. Share your achievements with employers and on social media.
+            </p>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
-            View and download your earned certificates. Share your achievements with employers and on social media.
-          </p>
-        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -73,7 +88,7 @@ export default async function CertificatesPage() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">This Year</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {certificates.filter((c: Certificate) => new Date(c.issuedDate).getFullYear() === new Date().getFullYear()).length}
+                  {certificates.filter((c: Certificate) => new Date(c.issuedAt).getFullYear() === new Date().getFullYear()).length}
                 </p>
               </div>
               <Calendar className="h-10 w-10 text-purple-500" />
@@ -105,31 +120,10 @@ export default async function CertificatesPage() {
             </Link>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
-}
-
-async function fetchUserCertificates(userId: string): Promise<Certificate[]> {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/certificates/user`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch certificates');
-      return [];
-    }
-
-    const result = await response.json();
-    return result.success ? result.certificates : [];
-  } catch (error) {
-    console.error('Error fetching certificates:', error);
-    return [];
-  }
 }
 
 interface CertificateCardProps {
@@ -137,11 +131,15 @@ interface CertificateCardProps {
 }
 
 function CertificateCard({ certificate }: CertificateCardProps) {
-  const formattedDate = new Date(certificate.issuedDate).toLocaleDateString('en-US', {
+  const formattedDate = new Date(certificate.issuedAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
+
+  // Extract metadata fields if available
+  const finalScore = certificate.metadata?.finalScore;
+  const certificateUrl = certificate.metadata?.certificateUrl;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all group">
@@ -151,16 +149,16 @@ function CertificateCard({ certificate }: CertificateCardProps) {
           <div className="text-center p-6">
             <Award className="h-16 w-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
             <h3 className="font-bold text-gray-900 dark:text-white text-lg line-clamp-2">
-              {certificate.courseName}
+              {certificate.course?.title || "Course"}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              {certificate.recipientName}
+              Certificate of Completion
             </p>
           </div>
         </div>
 
         {/* Verification Badge */}
-        {certificate.verificationCode && (
+        {certificate.verificationCode && !certificate.isRevoked && (
           <div className="absolute top-3 right-3">
             <div className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center shadow-lg">
               <Shield className="h-3 w-3 mr-1" />
@@ -169,11 +167,20 @@ function CertificateCard({ certificate }: CertificateCardProps) {
           </div>
         )}
 
+        {/* Revoked Badge */}
+        {certificate.isRevoked && (
+          <div className="absolute top-3 right-3">
+            <div className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+              Revoked
+            </div>
+          </div>
+        )}
+
         {/* Score Badge */}
-        {certificate.finalScore && (
+        {finalScore && (
           <div className="absolute top-3 left-3">
             <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
-              Score: {certificate.finalScore}%
+              Score: {finalScore}%
             </div>
           </div>
         )}
@@ -187,14 +194,14 @@ function CertificateCard({ certificate }: CertificateCardProps) {
         </div>
 
         <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          Certificate #{certificate.certificateNumber}
+          Verification Code: {certificate.verificationCode.substring(0, 8)}...
         </div>
 
         {/* Actions */}
         <div className="flex gap-2">
-          {certificate.pdfUrl && (
+          {certificateUrl && (
             <a
-              href={certificate.pdfUrl}
+              href={certificateUrl}
               download
               className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
             >
@@ -203,7 +210,7 @@ function CertificateCard({ certificate }: CertificateCardProps) {
             </a>
           )}
 
-          {certificate.verificationCode && (
+          {certificate.verificationCode && !certificate.isRevoked && (
             <Link
               href={`/api/certificates/verify?code=${certificate.verificationCode}`}
               target="_blank"

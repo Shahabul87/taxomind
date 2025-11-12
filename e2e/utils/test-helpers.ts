@@ -402,7 +402,7 @@ export async function retry<T>(
   throw lastError;
 }
 
-export default {
+const testHelpers = {
   waitForNetworkIdle,
   waitForImagesLoaded,
   takeFullPageScreenshot,
@@ -424,3 +424,5 @@ export default {
   generateTestData,
   retry,
 };
+
+export default testHelpers;

@@ -62,7 +62,7 @@ export const StreakTracker = ({ courseId, userId }: StreakTrackerProps) => {
         setTimeout(() => setIsAnimating(false), 1000);
       }
     }
-  }, [courseId, userId]);
+  }, [courseId, userId, streak]);
 
   const getStreakLevel = (days: number) => {
     if (days >= 30) return { level: 'Legendary', color: 'from-purple-500 to-pink-500', icon: Trophy };

@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Play,
   CheckCircle2,
-  Building2,
   Globe2,
   Zap
 } from "lucide-react";
@@ -65,16 +64,6 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
   }, [slides.length]);
 
   const currentSlideData = slides[currentSlide];
-
-  // Trusted company logos (placeholder)
-  const trustedCompanies = [
-    { name: "Google", logo: "🔷" },
-    { name: "Microsoft", logo: "🔶" },
-    { name: "Amazon", logo: "🟠" },
-    { name: "Meta", logo: "🔵" },
-    { name: "Apple", logo: "🍎" },
-    { name: "Netflix", logo: "🔴" },
-  ];
 
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
@@ -293,32 +282,6 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
             </div>
           </motion.div>
         </div>
-
-        {/* Trusted By Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="mt-20 pt-12 border-t border-white/10"
-        >
-          <p className="text-center text-slate-400 mb-8 text-sm uppercase tracking-wider">
-            Trusted by Leading Companies Worldwide
-          </p>
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
-            {trustedCompanies.map((company, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.9 + (index * 0.1) }}
-                className="flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-6 py-3 hover:bg-white/10 transition-all"
-              >
-                <span className="text-2xl">{company.logo}</span>
-                <span className="text-white font-medium">{company.name}</span>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
 
         {/* Slide Indicators */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">

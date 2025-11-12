@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -541,9 +542,11 @@ export function CompletionCertificate({
                     <p className="text-xs font-mono">{data.certificateId}</p>
                   </div>
                   {qrCodeUrl && (
-                    <img
+                    <Image
                       src={qrCodeUrl}
                       alt="QR Code"
+                      width={64}
+                      height={64}
                       className="h-16 w-16"
                     />
                   )}

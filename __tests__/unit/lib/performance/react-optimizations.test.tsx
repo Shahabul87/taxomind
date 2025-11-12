@@ -20,6 +20,7 @@ const OptimizedCourseList: React.FC<any> = () => <div>Course List</div>;
 
 // Mock Image component
 const OptimizedImage: React.FC<any> = ({ src, alt, width, height, ...props }) => (
+  // eslint-disable-next-line @next/next/no-img-element
   <img src={src} alt={alt} style={{ width, height }} {...props} />
 );
 
@@ -48,10 +49,12 @@ const VirtualScroll: React.FC<{
 
 // Mock hooks
 const useMemoizedCallback = (callback: () => any, deps: any[]) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return React.useCallback(callback, deps);
 };
 
 const useDeepCompareMemo = (fn: () => any, deps: any[]) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return React.useMemo(fn, deps);
 };
 
@@ -110,6 +113,7 @@ const ReactTest = {
 jest.mock('next/image', () => ({
   __esModule: true,
   default: ({ src, alt, ...props }: any) => (
+    // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt={alt} {...props} />
   ),
 }));

@@ -109,6 +109,47 @@ useEffect(() => {
 <span>User's Profile</span> // ❌ Use &apos;
 ```
 
+## Error Handling & Fallbacks
+
+### Critical Rules
+- **NEVER** use null assertions (`!`) on optional values
+- **ALWAYS** provide fallbacks for images and external resources
+- **ALWAYS** handle loading/error states in components
+
+### ✅ CORRECT: Image Handling
+```typescript
+// CourseCard with proper fallbacks
+<Image
+  src={imageUrl || '/placeholder.svg'}
+  alt={title}
+  onError={(e) => {
+    e.currentTarget.src = '/placeholder.svg';
+  }}
+/>
+
+// Safe null handling
+const displayImage = imageUrl ?? '/default-course.jpg';
+```
+
+### ❌ AVOID: Unsafe Patterns
+```typescript
+// ❌ Null assertion - crashes if null
+imageUrl={item.imageUrl!}
+
+// ❌ No error handling
+<Image src={imageUrl} alt="course" />
+
+// ❌ No fallback UI
+{isLoading && <div>Loading...</div>}
+```
+
+### Component Checklist
+- ✅ Default values for all optional props
+- ✅ Image onError handlers or fallback URLs
+- ✅ Loading states for async operations
+- ✅ Error boundaries for critical sections
+- ✅ Null coalescing (`??`) instead of assertions (`!`)
+
 ## Prisma Field Safety (Railway Deployments)
 
 ### Golden Rule

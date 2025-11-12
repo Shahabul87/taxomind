@@ -27,6 +27,14 @@ export const useRealTimeMessages = ({
   onMessageReceived,
   onMessageReadUpdate,
 }: UseRealTimeMessagesProps) => {
+  // Mark message as read via socket
+  const markMessageAsRead = useCallback(
+    (messageId: string) => {
+      emitMessageRead(messageId, conversationId);
+    },
+    [conversationId]
+  );
+
   // Listen for new messages
   useEffect(() => {
     const unsubscribe = onNewMessage((message: Message) => {
@@ -51,7 +59,7 @@ export const useRealTimeMessages = ({
     });
 
     return unsubscribe;
-  }, [conversationId, userId, onMessageReceived]);
+  }, [conversationId, userId, onMessageReceived, markMessageAsRead]);
 
   // Listen for message read updates
   useEffect(() => {
@@ -71,14 +79,6 @@ export const useRealTimeMessages = ({
   const sendMessage = useCallback((message: Message) => {
     emitMessageSent(message);
   }, []);
-
-  // Mark message as read via socket
-  const markMessageAsRead = useCallback(
-    (messageId: string) => {
-      emitMessageRead(messageId, conversationId);
-    },
-    [conversationId]
-  );
 
   return {
     sendMessage,

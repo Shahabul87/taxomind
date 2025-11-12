@@ -310,7 +310,14 @@ export function ProfessionalCoursesPage({
   isLoading = false,
   currentPage = 1,
   totalPages = 1,
-  onPageChange
+  onPageChange,
+  selectedCategories = [],
+  onCategoriesChange,
+  selectedPriceRange,
+  onPriceRangeChange,
+  selectedDifficulties = [],
+  onDifficultiesChange,
+  onClearFilters
 }: {
   initialCourses: CourseData[];
   filterOptions: FilterOptions;
@@ -322,8 +329,17 @@ export function ProfessionalCoursesPage({
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  selectedCategories?: string[];
+  onCategoriesChange?: (categories: string[]) => void;
+  selectedPriceRange?: { min: number; max: number } | null;
+  onPriceRangeChange?: (range: { min: number; max: number } | null) => void;
+  selectedDifficulties?: string[];
+  onDifficultiesChange?: (difficulties: string[]) => void;
+  onClearFilters?: () => void;
 }) {
   const [courses, setCourses] = useState(initialCourses);
+  const [statistics, setStatistics] = useState<PlatformStatistics | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   // Update courses when initialCourses changes (from search/filter in parent)
   useEffect(() => {
@@ -331,11 +347,6 @@ export function ProfessionalCoursesPage({
     // Scroll to top when courses update (pagination/search)
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [initialCourses]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedPriceRange, setSelectedPriceRange] = useState<any>(null);
-  const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
-  const [statistics, setStatistics] = useState<PlatformStatistics | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
 
   // Fetch platform statistics
   useEffect(() => {
@@ -368,25 +379,38 @@ export function ProfessionalCoursesPage({
   }, [totalCourses]);
 
   const handleCategoryToggle = (categoryId: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
+    console.log('[ProfessionalCoursesPage] Category toggled:', categoryId);
+    if (onCategoriesChange) {
+      const newCategories = selectedCategories.includes(categoryId)
+        ? selectedCategories.filter(id => id !== categoryId)
+        : [...selectedCategories, categoryId];
+      console.log('[ProfessionalCoursesPage] New categories:', newCategories);
+      onCategoriesChange(newCategories);
+    } else {
+      console.warn('[ProfessionalCoursesPage] onCategoriesChange is not defined!');
+    }
   };
 
   const handleDifficultyToggle = (difficulty: string) => {
-    setSelectedDifficulties(prev =>
-      prev.includes(difficulty)
-        ? prev.filter(d => d !== difficulty)
-        : [...prev, difficulty]
-    );
+    console.log('[ProfessionalCoursesPage] Difficulty toggled:', difficulty);
+    if (onDifficultiesChange) {
+      const newDifficulties = selectedDifficulties.includes(difficulty)
+        ? selectedDifficulties.filter(d => d !== difficulty)
+        : [...selectedDifficulties, difficulty];
+      console.log('[ProfessionalCoursesPage] New difficulties:', newDifficulties);
+      onDifficultiesChange(newDifficulties);
+    } else {
+      console.warn('[ProfessionalCoursesPage] onDifficultiesChange is not defined!');
+    }
   };
 
   const clearAllFilters = () => {
-    setSelectedCategories([]);
-    setSelectedPriceRange(null);
-    setSelectedDifficulties([]);
+    console.log('[ProfessionalCoursesPage] Clearing all filters');
+    if (onClearFilters) {
+      onClearFilters();
+    } else {
+      console.warn('[ProfessionalCoursesPage] onClearFilters is not defined!');
+    }
   };
 
   const activeFiltersCount = useMemo(() => {
@@ -406,7 +430,7 @@ export function ProfessionalCoursesPage({
         selectedCategories={selectedCategories}
         onCategoryToggle={handleCategoryToggle}
         selectedPriceRange={selectedPriceRange}
-        onPriceRangeChange={setSelectedPriceRange}
+        onPriceRangeChange={onPriceRangeChange}
         selectedDifficulties={selectedDifficulties}
         onDifficultyToggle={handleDifficultyToggle}
         onClearAll={clearAllFilters}
@@ -475,16 +499,16 @@ export function ProfessionalCoursesPage({
               <Link key={course.id} href={`/courses/${course.id}`} className="block group">
                 <Card className="overflow-hidden border-0 bg-white dark:bg-slate-800 shadow-md hover:shadow-xl transition-all duration-300">
                   <CardContent className="p-0">
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 h-full">
                       {/* Course Image */}
-                      <div className="relative w-32 h-32 flex-shrink-0 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600">
+                      <div className="relative w-40 flex-shrink-0 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600">
                         {course.imageUrl && (
                           <Image
                             src={course.imageUrl.replace(/^http:\/\//i, 'https://')}
                             alt={course.title}
                             fill
-                            sizes="128px"
-                            className="object-cover"
+                            sizes="160px"
+                            className="object-cover h-full"
                           />
                         )}
 
@@ -507,7 +531,19 @@ export function ProfessionalCoursesPage({
 
                       {/* Course Info */}
                       <div className="flex-1 py-4 pr-4 min-w-0">
-                        {/* Instructor/Category */}
+                        {/* Title */}
+                        <h3 className="font-bold text-base mb-2 line-clamp-1 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {course.title}
+                        </h3>
+
+                        {/* Description */}
+                        {course.description && (
+                          <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mb-2 leading-relaxed">
+                            {course.description}
+                          </p>
+                        )}
+
+                        {/* Instructor */}
                         <div className="flex items-center gap-2 mb-2">
                           {course.instructor?.avatar ? (
                             <div className="relative w-5 h-5 rounded-full overflow-hidden">
@@ -531,34 +567,30 @@ export function ProfessionalCoursesPage({
                           </span>
                         </div>
 
-                        {/* Title */}
-                        <h3 className="font-bold text-base mb-2 line-clamp-2 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {course.title}
-                        </h3>
+                        {/* Type Badge and Stats Row */}
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <Badge variant="outline" className="text-xs border-slate-200 dark:border-slate-700">
+                            {course.difficulty || "Beginner"}
+                          </Badge>
 
-                        {/* Type Badge */}
-                        <Badge variant="outline" className="mb-3 text-xs border-slate-200 dark:border-slate-700">
-                          {course.difficulty || "Specialization"}
-                        </Badge>
-
-                        {/* Stats Row */}
-                        <div className="flex items-center gap-4 text-xs">
-                          <div className="flex items-center gap-1">
-                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            <span className="font-semibold text-slate-900 dark:text-white">
-                              {course.rating?.toFixed(1)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                            <Users className="w-3.5 h-3.5" />
-                            <span>{course.enrolledCount?.toLocaleString()}</span>
-                          </div>
-                          {course.duration && (
-                            <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>{course.duration}h</span>
+                          <div className="flex items-center gap-4 text-xs">
+                            <div className="flex items-center gap-1">
+                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                              <span className="font-semibold text-slate-900 dark:text-white">
+                                {course.rating?.toFixed(1)}
+                              </span>
                             </div>
-                          )}
+                            <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                              <Users className="w-3.5 h-3.5" />
+                              <span>{course.enrolledCount?.toLocaleString()}</span>
+                            </div>
+                            {course.duration && (
+                              <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>{course.duration}h</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -570,7 +602,7 @@ export function ProfessionalCoursesPage({
         </div>
 
         {/* All Courses Grid */}
-        <div>
+        <div data-results-section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
               All Courses

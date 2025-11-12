@@ -85,9 +85,34 @@ export async function GET(request: NextRequest) {
     }
 
     // Difficulty filter
+    // Note: Frontend defaults NULL difficulty to "Beginner", so we need to handle that
     if (params.difficulties) {
       const difficulties = params.difficulties.split(",");
-      where.difficulty = { in: difficulties as any };
+      console.log('[API Search] Difficulty filter:', { difficulties, raw: params.difficulties });
+
+      // If "Beginner" is selected, also include courses with NULL difficulty
+      // since the frontend displays NULL as "Beginner"
+      if (difficulties.includes("Beginner")) {
+        // Create a separate OR condition for difficulty
+        const difficultyConditions = [
+          { difficulty: { in: difficulties as any } },
+          { difficulty: null }
+        ];
+
+        // If there's already an OR (from search), we need to combine them with AND
+        if (where.OR) {
+          const existingOr = where.OR;
+          delete where.OR;
+          where.AND = [
+            { OR: existingOr },
+            { OR: difficultyConditions }
+          ];
+        } else {
+          where.OR = difficultyConditions;
+        }
+      } else {
+        where.difficulty = { in: difficulties as any };
+      }
     }
 
     // Duration filter
@@ -145,6 +170,8 @@ export async function GET(request: NextRequest) {
 
     // Get total count for pagination
     const totalCount = await db.course.count({ where });
+    console.log('[API Search] Query:', JSON.stringify(where, null, 2));
+    console.log('[API Search] Total count:', totalCount);
 
     // Fetch courses with relations
     const courses = await db.course.findMany({

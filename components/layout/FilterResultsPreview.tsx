@@ -86,7 +86,7 @@ export function FilterResultsPreview({
 
         if (data.success && data.data.courses) {
           setResults(data.data.courses);
-          setTotalCount(data.data.total || data.data.courses.length);
+          setTotalCount(data.data.pagination?.totalCount || data.data.total || data.data.courses.length);
         }
       } catch (error) {
         console.error("Filter results error:", error);

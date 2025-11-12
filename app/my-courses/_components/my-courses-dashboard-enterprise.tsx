@@ -66,9 +66,15 @@ export const MyCoursesDashboardEnterprise = ({
     sortBy: 'recent',
   });
 
-  // Safe data processing
-  const safeEnrolledCourses = Array.isArray(enrolledCourses) ? enrolledCourses : [];
-  const safeCreatedCourses = Array.isArray(createdCourses) ? createdCourses : [];
+  // Safe data processing - wrap in useMemo to prevent recreating on every render
+  const safeEnrolledCourses = useMemo(
+    () => (Array.isArray(enrolledCourses) ? enrolledCourses : []),
+    [enrolledCourses]
+  );
+  const safeCreatedCourses = useMemo(
+    () => (Array.isArray(createdCourses) ? createdCourses : []),
+    [createdCourses]
+  );
 
   // Filter and sort courses
   const filteredEnrolledCourses = useMemo(() => {

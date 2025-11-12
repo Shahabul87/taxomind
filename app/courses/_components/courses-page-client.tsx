@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ProfessionalCoursesPage } from "./professional-courses-page";
@@ -151,66 +151,79 @@ export function CoursesPageClient({
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  // Initialize from URL params
+  // Track if component has been initialized
+  const hasInitialized = useRef(false);
+
+  // Initialize from URL params on mount (proper dependency tracking)
   useEffect(() => {
+    // Only initialize once
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     const params = new URLSearchParams(searchParams.toString());
+
+    // Batch all state updates
+    const updates: Array<() => void> = [];
 
     // Initialize search
     const search = params.get("search");
-    if (search) setSearchQuery(search);
+    if (search) updates.push(() => setSearchQuery(search));
 
     // Initialize view mode
     const view = params.get("view") as ViewMode;
-    if (view) setViewMode(view);
+    if (view) updates.push(() => setViewMode(view));
 
     // Initialize sort
     const sort = params.get("sort") as SortOption;
-    if (sort) setSortBy(sort);
+    if (sort) updates.push(() => setSortBy(sort));
 
     // Initialize page
     const page = params.get("page");
-    if (page) setCurrentPage(parseInt(page));
+    if (page) updates.push(() => setCurrentPage(parseInt(page)));
 
     // Initialize items per page
     const limit = params.get("limit");
-    if (limit) setItemsPerPage(parseInt(limit));
+    if (limit) updates.push(() => setItemsPerPage(parseInt(limit)));
 
     // Initialize filters
     const categories = params.get("categories");
-    if (categories) setSelectedCategories(categories.split(","));
+    if (categories) updates.push(() => setSelectedCategories(categories.split(",")));
 
     const difficulties = params.get("difficulties");
-    if (difficulties) setSelectedDifficulties(difficulties.split(","));
+    if (difficulties) updates.push(() => setSelectedDifficulties(difficulties.split(",")));
 
     const rating = params.get("rating");
-    if (rating) setSelectedRating(parseFloat(rating));
+    if (rating) updates.push(() => setSelectedRating(parseFloat(rating)));
 
     // Initialize price range
     const minPrice = params.get("minPrice");
     const maxPrice = params.get("maxPrice");
     if (minPrice || maxPrice) {
-      setSelectedPriceRange({
+      updates.push(() => setSelectedPriceRange({
         min: minPrice ? parseFloat(minPrice) : 0,
         max: maxPrice ? parseFloat(maxPrice) : 99999
-      });
+      }));
     }
 
     // Initialize duration
     const minDuration = params.get("minDuration");
     const maxDuration = params.get("maxDuration");
     if (minDuration || maxDuration) {
-      setSelectedDuration({
+      updates.push(() => setSelectedDuration({
         min: minDuration ? parseInt(minDuration) : 0,
         max: maxDuration ? parseInt(maxDuration) : 99999
-      });
+      }));
     }
 
     // Initialize features
     const features = params.get("features");
-    if (features) setSelectedFeatures(features.split(","));
+    if (features) updates.push(() => setSelectedFeatures(features.split(",")));
+
+    // Apply all updates
+    updates.forEach(update => update());
   }, [searchParams]);
 
-  // Update URL when filters change
+  // Update URL when filters change (without page reload)
   const updateURL = useCallback(() => {
     const params = new URLSearchParams();
 
@@ -247,7 +260,11 @@ export function CoursesPageClient({
     }
 
     const queryString = params.toString();
-    router.push(`/courses${queryString ? `?${queryString}` : ""}`, { scroll: false });
+    const newUrl = `/courses${queryString ? `?${queryString}` : ""}`;
+
+    // Use window.history.replaceState to update URL without page reload
+    window.history.replaceState(null, "", newUrl);
+    console.log('[CoursesPageClient] URL updated without reload:', newUrl);
   }, [
     searchQuery,
     viewMode,
@@ -259,12 +276,19 @@ export function CoursesPageClient({
     selectedRating,
     selectedPriceRange,
     selectedDuration,
-    selectedFeatures,
-    router
+    selectedFeatures
   ]);
 
   // Fetch courses when filters change
   const fetchCourses = useCallback(async () => {
+    console.log('[CoursesPageClient] Fetching courses with filters:', {
+      selectedCategories,
+      selectedPriceRange,
+      selectedDifficulties,
+      debouncedSearchQuery,
+      currentPage
+    });
+
     setIsLoading(true);
 
     try {
@@ -301,12 +325,15 @@ export function CoursesPageClient({
         params.set("features", selectedFeatures.join(","));
       }
 
+      console.log('[CoursesPageClient] API URL:', `/api/courses/search?${params.toString()}`);
       const response = await fetch(`/api/courses/search?${params.toString()}`);
       const data = await response.json();
 
+      console.log('[CoursesPageClient] API Response:', data);
       if (data.success) {
         setCourses(data.data.courses);
         setTotalCount(data.data.pagination.totalCount); // Update dynamic count
+        console.log('[CoursesPageClient] Updated courses:', data.data.courses.length, 'Total:', data.data.pagination.totalCount);
       }
     } catch (error) {
       console.error("Error fetching courses:", error);
@@ -345,9 +372,11 @@ export function CoursesPageClient({
     fetchCourses();
   }, [fetchCourses]);
 
-  // Update URL when state changes
+  // Update URL when state changes (but skip first render to avoid loop)
   useEffect(() => {
-    updateURL();
+    if (hasInitialized.current) {
+      updateURL();
+    }
   }, [updateURL]);
 
   // Clear all filters
@@ -408,6 +437,13 @@ export function CoursesPageClient({
       currentPage={currentPage}
       totalPages={totalPages}
       onPageChange={setCurrentPage}
+      selectedCategories={selectedCategories}
+      onCategoriesChange={setSelectedCategories}
+      selectedPriceRange={selectedPriceRange}
+      onPriceRangeChange={setSelectedPriceRange}
+      selectedDifficulties={selectedDifficulties}
+      onDifficultiesChange={setSelectedDifficulties}
+      onClearFilters={clearAllFilters}
     />
   );
 }

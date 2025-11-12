@@ -141,8 +141,17 @@ export function SmartHeader({ user, viewMode = "list", onViewModeChange, quickAc
         <div className="flex h-16 items-center justify-between">
           {/* Left: Logo & Navigation */}
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="flex items-center space-x-2">
-              <BookOpen className="h-8 w-8 text-blue-500 dark:text-blue-400" />
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="relative h-8 w-8 overflow-hidden rounded-full bg-white dark:bg-slate-900 shadow-md ring-2 ring-purple-500/20">
+                <Image
+                  src="/taxomind-logo.png"
+                  alt="Taxomind Logo"
+                  width={32}
+                  height={32}
+                  className="h-full w-full object-cover"
+                  priority
+                />
+              </div>
               <span className="hidden sm:inline-block text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 TaxoMind
               </span>

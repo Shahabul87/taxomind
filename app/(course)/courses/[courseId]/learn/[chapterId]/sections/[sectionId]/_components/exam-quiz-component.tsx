@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,51 +65,7 @@ export function ExamQuizComponent({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showExplanations, setShowExplanations] = useState(false);
 
-  // Timer countdown
-  useEffect(() => {
-    if (exam.timeLimit && timeRemaining > 0 && !isSubmitted) {
-      const timer = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            handleSubmit();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [timeRemaining, isSubmitted]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const handleAnswerChange = (value: any) => {
-    setAnswers({
-      ...answers,
-      [exam.questions[currentQuestion].id]: value,
-    });
-  };
-
-  const handleMultipleAnswerChange = (option: string, checked: boolean) => {
-    const current = answers[exam.questions[currentQuestion].id] || [];
-    if (checked) {
-      setAnswers({
-        ...answers,
-        [exam.questions[currentQuestion].id]: [...current, option],
-      });
-    } else {
-      setAnswers({
-        ...answers,
-        [exam.questions[currentQuestion].id]: current.filter((a: string) => a !== option),
-      });
-    }
-  };
-
-  const calculateScore = () => {
+  const calculateScore = useCallback(() => {
     let correct = 0;
     let totalPoints = 0;
 
@@ -135,9 +91,9 @@ export function ExamQuizComponent({
     });
 
     return Math.round((correct / totalPoints) * 100);
-  };
+  }, [exam.questions, answers]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     const finalScore = calculateScore();
     setScore(finalScore);
     setIsSubmitted(true);
@@ -166,6 +122,50 @@ export function ExamQuizComponent({
       onComplete?.(finalScore);
     } else {
       toast.error(`Score: ${finalScore}%. Keep practicing!`);
+    }
+  }, [calculateScore, canTrackProgress, user?.id, sectionId, answers, exam.id, exam.timeLimit, exam.passingScore, timeRemaining, onComplete]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (exam.timeLimit && timeRemaining > 0 && !isSubmitted) {
+      const timer = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            handleSubmit();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [timeRemaining, isSubmitted, exam.timeLimit, handleSubmit]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleAnswerChange = (value: any) => {
+    setAnswers({
+      ...answers,
+      [exam.questions[currentQuestion].id]: value,
+    });
+  };
+
+  const handleMultipleAnswerChange = (option: string, checked: boolean) => {
+    const current = answers[exam.questions[currentQuestion].id] || [];
+    if (checked) {
+      setAnswers({
+        ...answers,
+        [exam.questions[currentQuestion].id]: [...current, option],
+      });
+    } else {
+      setAnswers({
+        ...answers,
+        [exam.questions[currentQuestion].id]: current.filter((a: string) => a !== option),
+      });
     }
   };
 

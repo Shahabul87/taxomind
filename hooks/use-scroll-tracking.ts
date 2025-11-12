@@ -234,7 +234,7 @@ export function useScrollTracking(options: ScrollTrackingOptions = {}) {
   // Set up scroll listeners
   useEffect(() => {
     const element = container || window;
-    
+
     // Initial calculation
     handleScroll();
 
@@ -242,16 +242,18 @@ export function useScrollTracking(options: ScrollTrackingOptions = {}) {
     element.addEventListener('scroll', throttledHandleScroll);
     element.addEventListener('scroll', handleScrollEnd);
 
+    // Copy current timers ref to variable for cleanup
+    const currentTimers = positionTimers.current;
+
     return () => {
       element.removeEventListener('scroll', throttledHandleScroll);
       element.removeEventListener('scroll', handleScrollEnd);
-      
-      // Clear all position timers
-      const timers = positionTimers.current;
-      Object.values(timers).forEach(timer => {
+
+      // Clear all position timers using copied reference
+      Object.values(currentTimers).forEach(timer => {
         clearInterval(timer);
       });
-      
+
       // Send final metrics
       handleScrollEnd.flush();
     };

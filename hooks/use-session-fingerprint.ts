@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { 
   collectClientFingerprint, 
@@ -59,41 +59,41 @@ export function useSessionFingerprint(options: UseSessionFingerprintOptions = {}
   /**
    * Collect device fingerprint
    */
-  const collectFingerprint = async (): Promise<ClientFingerprint | null> => {
+  const collectFingerprint = useCallback(async (): Promise<ClientFingerprint | null> => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
+
       const fingerprint = await collectClientFingerprint();
-      
-      setState(prev => ({ 
-        ...prev, 
-        fingerprint, 
-        isLoading: false 
+
+      setState(prev => ({
+        ...prev,
+        fingerprint,
+        isLoading: false
       }));
-      
+
       return fingerprint;
     } catch (error) {
       console.error('Failed to collect fingerprint:', error);
       const errorMessage = 'Failed to collect device fingerprint';
-      
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: errorMessage 
+
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: errorMessage
       }));
-      
+
       if (showNotifications) {
         toast.error(errorMessage);
       }
-      
+
       return null;
     }
-  };
+  }, [showNotifications]);
 
   /**
    * Submit fingerprint to server for validation
    */
-  const submitFingerprintData = async (fingerprint?: ClientFingerprint): Promise<void> => {
+  const submitFingerprintData = useCallback(async (fingerprint?: ClientFingerprint): Promise<void> => {
     if (!session?.user?.id) return;
 
     const fingerprintToSubmit = fingerprint || state.fingerprint;
@@ -101,16 +101,16 @@ export function useSessionFingerprint(options: UseSessionFingerprintOptions = {}
 
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
+
       const result = await submitFingerprint(fingerprintToSubmit);
-      
+
       if (result.success) {
         const fingerprintHash = JSON.stringify(fingerprintToSubmit);
-        const hasChanged = lastFingerprintRef.current && 
+        const hasChanged = lastFingerprintRef.current &&
                           lastFingerprintRef.current !== fingerprintHash;
-        
+
         lastFingerprintRef.current = fingerprintHash;
-        
+
         setState(prev => ({
           ...prev,
           isSubmitted: true,
@@ -145,55 +145,55 @@ export function useSessionFingerprint(options: UseSessionFingerprintOptions = {}
     } catch (error) {
       console.error('Failed to submit fingerprint:', error);
       const errorMessage = 'Failed to validate device security';
-      
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: errorMessage 
+
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: errorMessage
       }));
-      
+
       if (showNotifications) {
         toast.error(errorMessage);
       }
     }
-  };
+  }, [session?.user?.id, state.fingerprint, showNotifications, monitorSecurity]);
 
   /**
    * Perform security check
    */
-  const performSecurityCheck = async (): Promise<void> => {
+  const performSecurityCheck = useCallback(async (): Promise<void> => {
     if (!session?.user?.id || status !== 'authenticated') return;
 
     const fingerprint = await collectFingerprint();
     if (fingerprint && autoSubmit) {
       await submitFingerprintData(fingerprint);
     }
-  };
+  }, [session?.user?.id, status, autoSubmit, collectFingerprint, submitFingerprintData]);
 
   /**
    * Start monitoring for security changes
    */
-  const startMonitoring = (): void => {
+  const startMonitoring = useCallback((): void => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
 
     intervalRef.current = setInterval(() => {
       if (monitorSecurity && session?.user?.id) {
-        performSecurityCheck();
+        void performSecurityCheck();
       }
     }, recheckInterval);
-  };
+  }, [monitorSecurity, session?.user?.id, recheckInterval, performSecurityCheck]);
 
   /**
    * Stop monitoring
    */
-  const stopMonitoring = (): void => {
+  const stopMonitoring = useCallback((): void => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = undefined;
     }
-  };
+  }, []);
 
   /**
    * Manual refresh of fingerprint and security status
@@ -207,7 +207,7 @@ export function useSessionFingerprint(options: UseSessionFingerprintOptions = {}
     if (status === 'authenticated' && session?.user?.id && autoCollect) {
       performSecurityCheck();
     }
-  }, [status, session?.user?.id, autoCollect]);
+  }, [status, session?.user?.id, autoCollect, performSecurityCheck]);
 
   // Start/stop monitoring based on session and options
   useEffect(() => {
@@ -220,14 +220,14 @@ export function useSessionFingerprint(options: UseSessionFingerprintOptions = {}
     return () => {
       stopMonitoring();
     };
-  }, [status, session?.user?.id, monitorSecurity, recheckInterval]);
+  }, [status, session?.user?.id, monitorSecurity, recheckInterval, startMonitoring, stopMonitoring]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopMonitoring();
     };
-  }, []);
+  }, [stopMonitoring]);
 
   // Monitor session security metadata if available
   useEffect(() => {
@@ -247,7 +247,7 @@ export function useSessionFingerprint(options: UseSessionFingerprintOptions = {}
         });
       }
     }
-  }, [(session as any)?.security, showNotifications]);
+  }, [session, showNotifications]);
 
   return {
     // State

@@ -2,7 +2,9 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getProfileData } from "@/app/actions/get-profile-data";
 import Link from "next/link";
-import { ArrowLeft, Heart, Video, BookOpen, Headphones, FileText, ExternalLink } from "lucide-react";
+import { Heart, Video, BookOpen, Headphones, FileText, ExternalLink } from "lucide-react";
+import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
+import { SmartHeader } from "@/components/dashboard/smart-header";
 
 export default async function FavoritesPage() {
   const session = await auth();
@@ -64,22 +66,21 @@ export default async function FavoritesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20 pb-10">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center mb-4">
-            <Link href="/dashboard" className="mr-4 bg-white dark:bg-gray-800 p-2 rounded-full shadow-sm hover:shadow-md transition-shadow">
-              <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+    <>
+      <SmartSidebar user={session.user} />
+      <SmartHeader user={session.user} />
+
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20 pt-16 pl-[88px]">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               My Favorites
             </h1>
+            <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
+              Access all your favorite content in one place. From videos to articles, keep track of everything you love.
+            </p>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
-            Access all your favorite content in one place. From videos to articles, keep track of everything you love.
-          </p>
-        </div>
 
         {/* Summary Card */}
         <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl shadow-lg p-6 mb-8 text-white">
@@ -161,8 +162,9 @@ export default async function FavoritesPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

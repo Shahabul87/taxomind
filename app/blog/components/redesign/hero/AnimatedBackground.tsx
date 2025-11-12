@@ -107,11 +107,11 @@ export function AnimatedBackground() {
       />
 
       {/* Gradient Mesh Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900" />
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-emerald-900/20 to-slate-950" />
 
       {/* Animated Gradient Orbs */}
       <motion.div
-        className="absolute top-0 -left-1/4 w-[600px] h-[600px] bg-purple-600/30 rounded-full blur-3xl"
+        className="absolute top-0 -left-1/4 w-[600px] h-[600px] bg-emerald-600/30 rounded-full blur-3xl"
         animate={{
           x: [0, 100, 0],
           y: [0, 50, 0],
@@ -124,7 +124,7 @@ export function AnimatedBackground() {
       />
 
       <motion.div
-        className="absolute top-1/2 -right-1/4 w-[600px] h-[600px] bg-blue-600/30 rounded-full blur-3xl"
+        className="absolute top-1/2 -right-1/4 w-[600px] h-[600px] bg-teal-600/30 rounded-full blur-3xl"
         animate={{
           x: [0, -100, 0],
           y: [0, -50, 0],
@@ -137,7 +137,7 @@ export function AnimatedBackground() {
       />
 
       <motion.div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-600/20 rounded-full blur-3xl"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-cyan-600/20 rounded-full blur-3xl"
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.2, 0.3, 0.2],

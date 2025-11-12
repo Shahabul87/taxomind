@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import Image from "next/image";
 import { logger } from '@/lib/logger';
 import {
   BookOpen,
@@ -951,7 +952,16 @@ const EnterpriseContentView = ({
               <div key={math.id} className="space-y-3 p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
                 <h3 className="font-bold text-purple-900 dark:text-purple-100">{math.title}</h3>
                 {math.imageUrl && (
-                  <img src={math.imageUrl} alt={math.title} className="max-w-full h-auto rounded" />
+                  <div className="relative w-full h-auto">
+                    <Image
+                      src={math.imageUrl}
+                      alt={math.title}
+                      width={800}
+                      height={400}
+                      className="max-w-full h-auto rounded"
+                      style={{ objectFit: 'contain' }}
+                    />
+                  </div>
                 )}
                 {math.explanation && (
                   <div className="prose prose-slate dark:prose-invert max-w-none prose-p:text-slate-700 dark:prose-p:text-slate-300">

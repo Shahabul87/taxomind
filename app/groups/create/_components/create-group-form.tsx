@@ -153,13 +153,22 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true);
+
+      // Filter out "none" courseId and convert to null
+      const payload = {
+        ...values,
+        courseId: values.courseId === "none" ? null : values.courseId,
+      };
+
       const response = await fetch("/api/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
+        const errorData = await response.text();
+        console.error("API Error:", errorData);
         throw new Error("Failed to create group");
       }
 
@@ -167,7 +176,8 @@ export const CreateGroupForm = ({ userId, enrolledCourses }: CreateGroupFormProp
       toast.success("Group created successfully!");
       router.push(`/groups/${group.id}`);
     } catch (error: any) {
-      toast.error("Something went wrong");
+      console.error("Group creation error:", error);
+      toast.error(error.message || "Something went wrong");
     } finally {
       setIsSubmitting(false);
     }

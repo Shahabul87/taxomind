@@ -52,14 +52,19 @@ interface PostCardProps {
 export const PostCard = ({ post, viewMode, onDelete }: PostCardProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Format the post date
-  const formattedDate = format(new Date(post.createdAt), "MMM d, yyyy");
-  const formattedTime = format(new Date(post.createdAt), "h:mm a");
+  // Format the post date - handle both Date objects and ISO strings
+  const postDate = typeof post.createdAt === 'string' ? new Date(post.createdAt) : post.createdAt;
+  const formattedDate = format(postDate, "MMM d, yyyy");
+  const formattedTime = format(postDate, "h:mm a");
 
   // Clean description from HTML tags
-  const cleanDescription = (desc: string | null) => {
-    if (!desc) return "No description available.";
-    const cleaned = desc.replace(/<[^>]*>/g, '');
+  const cleanDescription = (desc: string | null | undefined) => {
+    if (!desc) return "No description available for this post.";
+    // Remove HTML tags
+    const cleaned = desc.replace(/<[^>]*>/g, '').trim();
+    // If empty after cleaning, return default
+    if (!cleaned) return "No description available for this post.";
+    // Truncate if too long
     return cleaned.length > 100 ? cleaned.substring(0, 100) + '...' : cleaned;
   };
 
@@ -94,16 +99,16 @@ export const PostCard = ({ post, viewMode, onDelete }: PostCardProps) => {
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-pink-500/0 to-indigo-500/0 group-hover:from-purple-500/5 group-hover:via-pink-500/5 group-hover:to-indigo-500/5 transition-all duration-500 pointer-events-none z-10"></div>
 
           {/* Featured Image with Enhanced Overlay */}
-          <div className="relative h-40 sm:h-44 w-full overflow-hidden">
+          <div className="relative h-40 sm:h-44 w-full overflow-hidden bg-gradient-to-br from-purple-500/10 via-indigo-500/10 to-pink-500/10">
             {post.imageUrl && post.imageUrl.trim() ? (
               <Image
                 src={post.imageUrl}
-                alt={post.title}
+                alt={post.title || "Post image"}
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                 quality={90}
-                unoptimized={!post.imageUrl || post.imageUrl.includes('placeholder')}
+                priority={false}
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-500/20 via-indigo-500/20 to-pink-500/20">
@@ -210,7 +215,7 @@ export const PostCard = ({ post, viewMode, onDelete }: PostCardProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full h-8 text-xs bg-white/50 dark:bg-slate-900/50 border-slate-300/50 dark:border-slate-600/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-400/50"
+                  className="w-full h-8 text-xs bg-white/50 dark:bg-slate-900/50 border-slate-300/50 dark:border-slate-600/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-400/50 hover:text-blue-700 dark:hover:text-blue-200"
                 >
                   <Edit className="w-3 h-3 mr-1" />
                   Edit
@@ -290,15 +295,15 @@ export const PostCard = ({ post, viewMode, onDelete }: PostCardProps) => {
 
         <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 relative z-10">
           {/* Image Thumbnail */}
-          <div className="relative h-32 w-32 sm:h-28 sm:w-28 flex-shrink-0 rounded-lg overflow-hidden">
+          <div className="relative h-32 w-32 sm:h-28 sm:w-28 flex-shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-purple-500/10 via-indigo-500/10 to-pink-500/10">
             {post.imageUrl && post.imageUrl.trim() ? (
               <Image
                 src={post.imageUrl}
-                alt={post.title}
+                alt={post.title || "Post image"}
                 fill
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                 quality={90}
-                unoptimized={!post.imageUrl || post.imageUrl.includes('placeholder')}
+                priority={false}
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-500/20 via-indigo-500/20 to-pink-500/20">
@@ -382,7 +387,7 @@ export const PostCard = ({ post, viewMode, onDelete }: PostCardProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs bg-white/50 dark:bg-slate-900/50 border-slate-300/50 dark:border-slate-600/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-400/50"
+                  className="h-8 text-xs bg-white/50 dark:bg-slate-900/50 border-slate-300/50 dark:border-slate-600/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-400/50 hover:text-blue-700 dark:hover:text-blue-200"
                 >
                   <Edit className="w-3.5 h-3.5 mr-1.5" />
                   Edit
@@ -394,7 +399,7 @@ export const PostCard = ({ post, viewMode, onDelete }: PostCardProps) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs bg-white/50 dark:bg-slate-900/50 border-slate-300/50 dark:border-slate-600/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:border-emerald-400/50"
+                    className="h-8 text-xs bg-white/50 dark:bg-slate-900/50 border-slate-300/50 dark:border-slate-600/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:border-emerald-400/50 hover:text-emerald-700 dark:hover:text-emerald-200"
                   >
                     <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
                     View Live
@@ -405,7 +410,7 @@ export const PostCard = ({ post, viewMode, onDelete }: PostCardProps) => {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 bg-white/50 dark:bg-slate-900/50 border-slate-300/50 dark:border-slate-600/50 hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-red-400/50"
+                className="h-8 text-xs text-red-500 dark:text-red-400 bg-white/50 dark:bg-slate-900/50 border-slate-300/50 dark:border-slate-600/50 hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-red-400/50 hover:text-red-700 dark:hover:text-red-300"
                 onClick={() => setIsDeleteDialogOpen(true)}
               >
                 <Trash className="w-3.5 h-3.5 mr-1.5" />

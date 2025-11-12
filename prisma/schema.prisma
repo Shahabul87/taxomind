@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-11-11T19:56:06.657Z
+// Generated: 2025-11-12T03:24:34.011Z
 // Source: 18 domain files
 // ==========================================
 
@@ -3594,7 +3594,7 @@ model Reaction {
   commentId String?
   replyId   String?
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt DateTime @updatedAt
   comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
   Reply     Reply?   @relation(fields: [replyId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -3670,7 +3670,7 @@ model GroupDiscussionComment {
   discussionId    String
   authorId        String
   createdAt       DateTime        @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime        @updatedAt
   User            User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
   GroupDiscussion GroupDiscussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
 
@@ -3754,7 +3754,7 @@ model Idea {
   collaborators          Int           @default(0)
   userId                 String
   createdAt              DateTime      @default(now())
-  updatedAt              DateTime
+  updatedAt              DateTime      @updatedAt
   User_Idea_userIdToUser User          @relation("Idea_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
   IdeaComment            IdeaComment[]
   IdeaLike               IdeaLike[]
@@ -3769,7 +3769,7 @@ model IdeaComment {
   ideaId    String
   userId    String
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt DateTime @updatedAt
   Idea      Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -3818,7 +3818,7 @@ model Mind {
   shares                 Int        @default(0)
   userId                 String
   createdAt              DateTime   @default(now())
-  updatedAt              DateTime
+  updatedAt              DateTime   @updatedAt
   User_Mind_userIdToUser User       @relation("Mind_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
   MindLike               MindLike[]
   User_MindCollaborators User[]     @relation("MindCollaborators")
@@ -3870,7 +3870,7 @@ model SocialMediaAccount {
   followingCount  Int?           @default(0)
   postsCount      Int?           @default(0)
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime       @updatedAt
   User            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   SocialMetric    SocialMetric[]
   SocialPost      SocialPost[]
@@ -3896,7 +3896,7 @@ model SocialPost {
   mentions             String[]           @default([])
   socialMediaAccountId String
   createdAt            DateTime           @default(now())
-  updatedAt            DateTime
+  updatedAt            DateTime           @updatedAt
   SocialMediaAccount   SocialMediaAccount @relation(fields: [socialMediaAccountId], references: [id], onDelete: Cascade)
 
   @@unique([platformPostId, socialMediaAccountId])

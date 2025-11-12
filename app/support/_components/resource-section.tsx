@@ -13,26 +13,46 @@ import { cn } from "@/lib/utils";
 const resources = [
   {
     title: "Getting Started Guide",
-    description: "Learn the basics of using our platform",
+    description: "Learn the basics of using our platform and get up to speed quickly",
     icon: Book,
-    link: "/guides/getting-started",
+    link: "#faq",
     type: "guide"
   },
   {
     title: "Video Tutorials",
-    description: "Step-by-step video guides for common tasks",
+    description: "Step-by-step video guides for common tasks and features",
     icon: Video,
-    link: "/tutorials",
+    link: "#resources",
     type: "video"
   },
   {
     title: "Documentation",
-    description: "Detailed technical documentation and API references",
+    description: "Detailed technical documentation and best practices",
     icon: FileText,
-    link: "/docs",
+    link: "#faq",
     type: "docs"
   },
-  // Add more resources as needed
+  {
+    title: "Community Forum",
+    description: "Connect with other users and share knowledge",
+    icon: LinkIcon,
+    link: "#contact",
+    type: "community"
+  },
+  {
+    title: "API Reference",
+    description: "Complete API documentation for developers",
+    icon: FileText,
+    link: "#resources",
+    type: "api"
+  },
+  {
+    title: "Best Practices",
+    description: "Learn from experts and optimize your workflow",
+    icon: Book,
+    link: "#faq",
+    type: "guide"
+  },
 ];
 
 export const ResourceSection = () => {

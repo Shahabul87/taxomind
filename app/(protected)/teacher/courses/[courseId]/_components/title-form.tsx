@@ -5,7 +5,7 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -102,7 +102,7 @@ export const TitleForm = ({
     }
   }, [pendingSamData, isEditing, form]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = useCallback(async (values: z.infer<typeof formSchema>) => {
     try {
       await axios.patch(`/api/courses/${courseId}`, values);
       toast.success("Course title updated successfully");
@@ -112,7 +112,7 @@ export const TitleForm = ({
       logger.error("Title update error:", error);
       toast.error("Failed to update course title");
     }
-  };
+  }, [courseId, router]);
 
   const characterCount = form.watch("title")?.length || 0;
   const maxCharacters = 100;
@@ -137,7 +137,7 @@ export const TitleForm = ({
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isEditing, isValid, isSubmitting, form]);
+  }, [isEditing, isValid, isSubmitting, form, onSubmit]);
 
   return (
     <div className="space-y-4">

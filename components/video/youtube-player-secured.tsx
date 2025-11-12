@@ -83,6 +83,122 @@ export function YouTubePlayerSecured({
   // Extract video ID
   const videoId = extractYouTubeId(videoUrl);
 
+  const startProgressTracking = useCallback(() => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+
+    progressIntervalRef.current = setInterval(() => {
+      if (!playerRef.current) return;
+
+      const current = playerRef.current.getCurrentTime();
+      const total = playerRef.current.getDuration();
+
+      if (current && total) {
+        const progressPercent = (current / total) * 100;
+        setProgress(progressPercent);
+        setCurrentTime(current);
+
+        // Only send progress updates every 5 seconds
+        const now = Date.now();
+        if (now - lastProgressUpdate.current >= 5000) {
+          lastProgressUpdate.current = now;
+          onProgress?.(progressPercent, current);
+        }
+
+        // Auto-complete at 90%
+        if (progressPercent >= 90 && progressPercent < 91) {
+          onComplete?.();
+          toast.success('🎉 Section completed!');
+        }
+      }
+    }, 1000);
+  }, [onProgress, onComplete]);
+
+  const stopProgressTracking = useCallback(() => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  }, []);
+
+  const handleVideoComplete = useCallback(() => {
+    onComplete?.();
+    toast.success('🎉 Section completed!');
+  }, [onComplete]);
+
+  const initPlayer = useCallback(() => {
+    if (!window.YT || !videoId) return;
+
+    const handlePlayerReady = () => {
+      setIsLoading(false);
+      if (playerRef.current) {
+        setDuration(playerRef.current.getDuration());
+      }
+    };
+
+    const handlePlayerStateChange = (event: { data: number }) => {
+      if (!window.YT) return;
+
+      const state = event.data;
+
+      // Playing
+      if (state === window.YT.PlayerState.PLAYING) {
+        setIsPlaying(true);
+        startProgressTracking();
+      }
+      // Paused or Ended
+      else if (state === window.YT.PlayerState.PAUSED || state === window.YT.PlayerState.ENDED) {
+        setIsPlaying(false);
+        stopProgressTracking();
+      }
+
+      // Video ended
+      if (state === window.YT.PlayerState.ENDED) {
+        handleVideoComplete();
+      }
+    };
+
+    const handlePlayerError = (event: { data: number }) => {
+      const errorMessages: Record<number, string> = {
+        2: 'Invalid video ID',
+        5: 'HTML5 player error',
+        100: 'Video not found',
+        101: 'Video is private or restricted',
+        150: 'Video is private or restricted',
+      };
+
+      const message = errorMessages[event.data] || 'Failed to load video';
+      setError(message);
+      setIsLoading(false);
+      console.error('YouTube player error:', event.data);
+    };
+
+    try {
+      playerRef.current = new window.YT.Player('youtube-player-' + sectionId, {
+        videoId,
+        playerVars: {
+          autoplay: 0,
+          controls: 1,
+          modestbranding: 1,
+          rel: 0, // Don't show related videos
+          showinfo: 0,
+          origin: window.location.origin, // Security
+          enablejsapi: 1,
+        },
+        events: {
+          onReady: handlePlayerReady,
+          onStateChange: handlePlayerStateChange,
+          onError: handlePlayerError,
+        },
+      });
+    } catch (err) {
+      console.error('Failed to initialize YouTube player:', err);
+      setError('Failed to load video player');
+      setIsLoading(false);
+    }
+  }, [videoId, sectionId, startProgressTracking, stopProgressTracking, handleVideoComplete]);
+
   // Initialize YouTube IFrame API
   useEffect(() => {
     if (!hasAccess || !videoId) return;
@@ -113,122 +229,7 @@ export function YouTubePlayerSecured({
         playerRef.current.destroy();
       }
     };
-  }, [hasAccess, videoId]);
-
-  const initPlayer = useCallback(() => {
-    if (!window.YT || !videoId) return;
-
-    try {
-      playerRef.current = new window.YT.Player('youtube-player-' + sectionId, {
-        videoId,
-        playerVars: {
-          autoplay: 0,
-          controls: 1,
-          modestbranding: 1,
-          rel: 0, // Don't show related videos
-          showinfo: 0,
-          origin: window.location.origin, // Security
-          enablejsapi: 1,
-        },
-        events: {
-          onReady: handlePlayerReady,
-          onStateChange: handlePlayerStateChange,
-          onError: handlePlayerError,
-        },
-      });
-    } catch (err) {
-      console.error('Failed to initialize YouTube player:', err);
-      setError('Failed to load video player');
-      setIsLoading(false);
-    }
-  }, [videoId, sectionId]);
-
-  const handlePlayerReady = () => {
-    setIsLoading(false);
-    if (playerRef.current) {
-      setDuration(playerRef.current.getDuration());
-    }
-  };
-
-  const handlePlayerStateChange = (event: { data: number }) => {
-    if (!window.YT) return;
-
-    const state = event.data;
-
-    // Playing
-    if (state === window.YT.PlayerState.PLAYING) {
-      setIsPlaying(true);
-      startProgressTracking();
-    }
-    // Paused or Ended
-    else if (state === window.YT.PlayerState.PAUSED || state === window.YT.PlayerState.ENDED) {
-      setIsPlaying(false);
-      stopProgressTracking();
-    }
-
-    // Video ended
-    if (state === window.YT.PlayerState.ENDED) {
-      handleVideoComplete();
-    }
-  };
-
-  const handlePlayerError = (event: { data: number }) => {
-    const errorMessages: Record<number, string> = {
-      2: 'Invalid video ID',
-      5: 'HTML5 player error',
-      100: 'Video not found',
-      101: 'Video is private or restricted',
-      150: 'Video is private or restricted',
-    };
-
-    const message = errorMessages[event.data] || 'Failed to load video';
-    setError(message);
-    setIsLoading(false);
-    console.error('YouTube player error:', event.data);
-  };
-
-  const startProgressTracking = () => {
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-
-    progressIntervalRef.current = setInterval(() => {
-      if (!playerRef.current) return;
-
-      const current = playerRef.current.getCurrentTime();
-      const total = playerRef.current.getDuration();
-
-      if (current && total) {
-        const progressPercent = (current / total) * 100;
-        setProgress(progressPercent);
-        setCurrentTime(current);
-
-        // Only send progress updates every 5 seconds
-        const now = Date.now();
-        if (now - lastProgressUpdate.current >= 5000) {
-          lastProgressUpdate.current = now;
-          onProgress?.(progressPercent, current);
-        }
-
-        // Auto-complete at 90%
-        if (progressPercent >= 90 && progressPercent < 91) {
-          handleVideoComplete();
-        }
-      }
-    }, 1000);
-  };
-
-  const stopProgressTracking = () => {
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
-  };
-
-  const handleVideoComplete = () => {
-    onComplete?.();
-    toast.success('🎉 Section completed!');
-  };
+  }, [hasAccess, videoId, initPlayer]);
 
   // Player controls
   const togglePlay = () => {

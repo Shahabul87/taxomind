@@ -27,12 +27,14 @@ declare module 'k6/http' {
   export function get(url: string, options?: RequestOptions): Response;
   export function post(url: string, body?: any, options?: RequestOptions): Response;
   export function batch(requests: any[]): Response[];
-  
-  export default {
+
+  const httpModule = {
     get,
     post,
     batch
   };
+
+  export default httpModule;
 }
 
 declare module 'k6/options' {
