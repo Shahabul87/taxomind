@@ -28,6 +28,18 @@ This folder contains comprehensive documentation of Railway deployment errors an
 
 ---
 
+### 3. [Railway Deployment Warnings](./railway-deployment-warnings.md)
+
+**Problem:** Deployment logs cluttered with npm update notices, Prisma update notices, and punycode deprecation warnings
+
+**Root Cause:** Outdated npm version in Docker image, Prisma version mismatch, and deprecated dependencies using Node.js built-in punycode module
+
+**Solution:** Updated npm to 11.6.2 in Dockerfile, upgraded Prisma to 6.19.0, and suppressed punycode warnings with NODE_OPTIONS flag
+
+**Status:** ✅ RESOLVED
+
+---
+
 ## 🎯 Common Themes
 
 Both errors share the same fundamental issue:
@@ -151,8 +163,10 @@ error and solution/
 ├── README.md (this file)
 ├── railway-anthropic-build-error.md
 │   └── Comprehensive guide to SDK initialization error
-└── railway-database-build-error.md
-    └── Comprehensive guide to database connection error
+├── railway-database-build-error.md
+│   └── Comprehensive guide to database connection error
+└── railway-deployment-warnings.md
+    └── Comprehensive guide to deployment warning cleanup
 ```
 
 ## 🔗 Related Commits
@@ -165,9 +179,14 @@ error and solution/
 - **Fix:** `9706b81` - Remove database operations from build
 - **Docs:** `63144b5` - Documentation
 
+### Warning #3: Deployment Warnings
+- **Fix:** `515e956` - Update npm, Prisma, suppress punycode warnings
+- **Docs:** (current commit) - Documentation
+
 ### Supporting Changes
+- `1669a27` - Log directory permissions fix
+- `54932fa` - Remove nixpacks.toml to force Docker
 - `d4a0e0f` - Railway deployment improvements
-- `f37fc08` - First error documentation
 
 ## 🎓 Best Practices
 
@@ -254,13 +273,22 @@ When adding new error documentation:
 
 ## 🎯 Status Dashboard
 
-| Error | Status | Build Impact | Runtime Impact | Docs | Tests |
-|-------|--------|--------------|----------------|------|-------|
+| Error/Issue | Status | Build Impact | Runtime Impact | Docs | Tests |
+|-------------|--------|--------------|----------------|------|-------|
 | ANTHROPIC_API_KEY | ✅ Fixed | Critical | None | ✅ | ✅ |
 | Database Connection | ✅ Fixed | Critical | None | ✅ | ✅ |
+| Deployment Warnings | ✅ Fixed | Low (Cosmetic) | Low (Cosmetic) | ✅ | N/A |
+
+### Warning Details
+
+| Warning Type | Before | After | Files Changed |
+|--------------|--------|-------|---------------|
+| npm Update Notice | 10.9.0 | 11.6.2 ✅ | Dockerfile.railway |
+| Prisma Update | 6.18.0 | 6.19.0 ✅ | package.json |
+| punycode Deprecation | Visible | Suppressed ✅ | railway.json |
 
 ---
 
 **Last Updated:** November 11, 2025
 **Maintained By:** Development Team
-**Version:** 1.0
+**Version:** 1.1
