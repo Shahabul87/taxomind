@@ -275,6 +275,8 @@ const nextConfig = {
   
   // Essential image configuration
   images: {
+    // Configure image quality settings for premium display
+    qualities: [75, 90],
     remotePatterns: [
       {
         protocol: 'https',

@@ -29,6 +29,7 @@ import {
 // Import new Coursera-style components
 import { CoursesNavbarResizable } from "@/components/layout/CoursesNavbarResizable";
 import { EnhancedHero } from "./EnhancedHero";
+import { EnhancedCourseCard } from "./enhanced-course-card";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -86,240 +87,6 @@ interface PlatformStatistics {
   averageRating: number;
   completionRate: number;
 }
-
-// Professional Course Card with Analytics Color System
-const ProfessionalCourseCard = ({ course, isPriority = false }: { course: CourseData; isPriority?: boolean }) => {
-  const secureImageUrl = course.imageUrl?.replace(/^http:\/\//i, 'https://') || null;
-  const secureInstructorAvatar = course.instructor?.avatar?.replace(/^http:\/\//i, 'https://');
-
-  return (
-    <Link href={`/courses/${course.id}`} className="block group h-full">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        whileHover={{ y: -6 }}
-        className="h-full"
-      >
-        <Card className="h-full flex flex-col overflow-hidden border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl">
-          {/* Image Section */}
-          <div className="relative h-52 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
-            {secureImageUrl && (
-              <Image
-                src={secureImageUrl}
-                alt={course.title}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                priority={isPriority}
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
-              />
-            )}
-
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-            {/* Top Badges Row */}
-            <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
-              <div className="flex gap-2 flex-wrap">
-                {course.badges?.slice(0, 2).map((badge, index) => (
-                  <Badge
-                    key={index}
-                    className={cn(
-                      "backdrop-blur-md shadow-md font-medium px-2.5 py-0.5",
-                      badge === "Hot" && "bg-gradient-to-r from-orange-500 to-red-500 text-white border-0",
-                      badge === "New" && "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0",
-                      badge === "Bestseller" && "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0"
-                    )}
-                  >
-                    {badge === "Hot" && <Flame className="w-3 h-3 mr-1" />}
-                    {badge === "New" && <Sparkles className="w-3 h-3 mr-1" />}
-                    {badge === "Bestseller" && <Trophy className="w-3 h-3 mr-1" />}
-                    {badge}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Price Badge */}
-              <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl px-3 py-1.5 shadow-lg">
-                {course.price === 0 ? (
-                  <span className="text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                    FREE
-                  </span>
-                ) : (
-                  <div className="flex items-baseline gap-1.5">
-                    {course.originalPrice && (
-                      <span className="text-xs text-muted-foreground line-through">
-                        ${course.originalPrice}
-                      </span>
-                    )}
-                    <span className="text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                      ${course.price}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Bottom Category */}
-            <div className="absolute bottom-4 left-4">
-              <Badge className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md text-slate-700 dark:text-slate-300 border-slate-200/50 dark:border-slate-700/50 shadow-md">
-                {course.category.name}
-              </Badge>
-            </div>
-          </div>
-
-          <CardContent className="p-6 flex-1 flex flex-col">
-            {/* Instructor */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="relative w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500 shadow-md">
-                {secureInstructorAvatar ? (
-                  <Image
-                    src={secureInstructorAvatar}
-                    alt={course.instructor?.name || "Instructor"}
-                    fill
-                    sizes="36px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold">
-                    {course.instructor?.name?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-300 truncate">
-                  {course.instructor?.name}
-                </p>
-              </div>
-              {course.isEnrolled && (
-                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 shadow-md px-2 py-0.5">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  Enrolled
-                </Badge>
-              )}
-            </div>
-
-            {/* Title */}
-            <h3 className="font-bold text-lg mb-3 line-clamp-2 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-              {course.title}
-            </h3>
-
-            {/* Description */}
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 leading-relaxed">
-              {course.description}
-            </p>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg">
-                  <Star className="w-3.5 h-3.5 text-white" />
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">
-                    {course.rating?.toFixed(1)}
-                  </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    ({course.reviewsCount})
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
-                  <Users className="w-3.5 h-3.5 text-white" />
-                </div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {course.enrolledCount?.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-                  <Clock className="w-3.5 h-3.5 text-white" />
-                </div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {course.duration}h
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
-                  <BookOpen className="w-3.5 h-3.5 text-white" />
-                </div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {course.lessonsCount} lessons
-                </span>
-              </div>
-            </div>
-
-            {/* Features Pills */}
-            <div className="flex flex-wrap gap-2 mb-5">
-              {course.difficulty && (
-                <Badge variant="outline" className="text-xs border-slate-200 dark:border-slate-700">
-                  {course.difficulty}
-                </Badge>
-              )}
-              {course.hasCertificate && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Badge variant="outline" className="text-xs border-slate-200 dark:border-slate-700">
-                        <Award className="w-3 h-3 mr-1" />
-                        Certificate
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>Certificate of Completion</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              {course.hasExercises && (
-                <Badge variant="outline" className="text-xs border-slate-200 dark:border-slate-700">
-                  <Code2 className="w-3 h-3 mr-1" />
-                  Exercises
-                </Badge>
-              )}
-            </div>
-
-            {/* Progress (if enrolled) */}
-            {course.isEnrolled && course.progress !== null && (
-              <div className="mb-5">
-                <div className="flex justify-between text-xs mb-2">
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Your Progress</span>
-                  <span className="text-slate-900 dark:text-white font-bold">{course.progress}%</span>
-                </div>
-                <Progress value={course.progress} className="h-2 bg-slate-100 dark:bg-slate-700" />
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex gap-2.5 mt-auto">
-              <Button
-                className={cn(
-                  "flex-1 group/btn shadow-md transition-all duration-300",
-                  course.isEnrolled
-                    ? "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
-                    : "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white"
-                )}
-              >
-                {course.isEnrolled ? "Continue Learning" : "Enroll Now"}
-                <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover/btn:translate-x-1" />
-              </Button>
-              <Button
-                size="icon"
-                variant="outline"
-                className="shadow-md hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700"
-                aria-label={course.isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-              >
-                <Heart className={cn("w-4 h-4", course.isWishlisted && "fill-red-500 text-red-500")} />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    </Link>
-  );
-};
 
 // Professional Stats Bar
 const ProfessionalStatsBar = ({ stats, isLoading }: { stats: any; isLoading: boolean }) => {
@@ -827,10 +594,30 @@ export function ProfessionalCoursesPage({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {courses.map((course, index) => (
-                <ProfessionalCourseCard
+                <EnhancedCourseCard
                   key={course.id}
-                  course={course}
-                  isPriority={index === 0}
+                  id={course.id}
+                  title={course.title}
+                  description={course.description}
+                  imageUrl={course.imageUrl}
+                  chaptersLength={course.chaptersCount}
+                  lessonsCount={course.lessonsCount}
+                  price={course.price}
+                  originalPrice={course.originalPrice}
+                  category={course.category.name}
+                  difficulty={course.difficulty}
+                  duration={course.duration}
+                  enrolledCount={course.enrolledCount}
+                  rating={course.rating || 0}
+                  reviewsCount={course.reviewsCount}
+                  instructor={course.instructor}
+                  hasCertificate={course.hasCertificate}
+                  hasExercises={course.hasExercises}
+                  badges={course.badges}
+                  progress={course.progress}
+                  isEnrolled={course.isEnrolled}
+                  isWishlisted={course.isWishlisted}
+                  viewMode="grid"
                 />
               ))}
             </div>
