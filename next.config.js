@@ -283,10 +283,10 @@ const nextConfig = {
         hostname: 'res.cloudinary.com',
         pathname: '/**',
       },
-      // Support Cloudinary subdomain format (cloud-name.cloudinary.com)
+      // Support Cloudinary subdomain format (specific cloud name)
       {
         protocol: 'https',
-        hostname: '*.cloudinary.com',
+        hostname: 'daqnucc6t.cloudinary.com',
         pathname: '/**',
       },
       // SECURITY FIX: Removed HTTP protocol - HTTPS only for security

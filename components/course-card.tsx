@@ -8,6 +8,7 @@ import { useState } from "react";
 import { IconBadge } from "@/components/icon-badge";
 import { formatPrice } from "@/lib/format";
 import { CourseProgress } from "@/components/course-progress";
+import { ensureHttpsUrl, getFallbackImageUrl } from "@/lib/cloudinary-utils";
 
 interface CourseCardProps {
   id: string;
@@ -19,9 +20,6 @@ interface CourseCardProps {
   category: string;
 };
 
-// Fallback image for when course image is not available - using inline SVG for reliability
-const FALLBACK_IMAGE = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkMSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjM2NkYxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQTg1NUY3O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICAgIDwvZGVmcz4KICAgICAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NTAiIGZpbGw9InVybCgjZ3JhZDEpIi8+CiAgICAgIDx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSIgZm9udC1zaXplPSI0MCIgZm9udC13ZWlnaHQ9ImJvbGQiPgogICAgICAgIENvdXJzZQogICAgICA8L3RleHQ+CiAgICA8L3N2Zz4=";
-
 export const CourseCard = ({
   id,
   title,
@@ -31,7 +29,9 @@ export const CourseCard = ({
   progress,
   category
 }: CourseCardProps) => {
-  const [imgSrc, setImgSrc] = useState(imageUrl || FALLBACK_IMAGE);
+  // Ensure the image URL uses HTTPS
+  const secureImageUrl = ensureHttpsUrl(imageUrl) || getFallbackImageUrl('course');
+  const [imgSrc, setImgSrc] = useState(secureImageUrl);
   const [hasError, setHasError] = useState(false);
 
   // Debug logging in development
@@ -47,7 +47,7 @@ export const CourseCard = ({
     if (!hasError) {
       console.error(`[CourseCard] Image load error for ${title}:`, imgSrc);
       setHasError(true);
-      setImgSrc(FALLBACK_IMAGE);
+      setImgSrc(getFallbackImageUrl('course'));
     }
   };
 

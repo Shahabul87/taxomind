@@ -64,7 +64,13 @@ export async function POST(req: Request) {
       );
     });
 
-    return NextResponse.json(result);
+    // Return a consistent format that the frontend expects
+    // Cloudinary returns secure_url, but frontend expects url
+    return NextResponse.json({
+      url: (result as any).secure_url || (result as any).url,
+      secure_url: (result as any).secure_url,
+      public_id: (result as any).public_id
+    });
   } catch (error) {
     logger.error("[PROFILE_IMAGE_UPLOAD]", error);
     return new NextResponse("Internal Error", { status: 500 });
