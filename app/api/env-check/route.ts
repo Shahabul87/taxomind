@@ -33,7 +33,6 @@ export async function GET() {
         publicAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
         encryptionKey: !!process.env.ENCRYPTION_MASTER_KEY,
         cloudinary: !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-        uploadthing: !!process.env.UPLOADTHING_SECRET,
         stripe: !!process.env.STRIPE_SECRET_KEY,
         resend: !!process.env.RESEND_API_KEY,
       },

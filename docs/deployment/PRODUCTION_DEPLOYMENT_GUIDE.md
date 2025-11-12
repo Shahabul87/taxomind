@@ -46,7 +46,7 @@ This comprehensive guide covers the complete production deployment process for A
 
 - [ ] **Database**: PostgreSQL 14+ with read replicas
 - [ ] **Cache**: Redis 6+ (recommend Upstash for serverless)
-- [ ] **File Storage**: UploadThing or AWS S3 compatible storage
+- [ ] **File Storage**: Cloudinary (for images and media)
 - [ ] **CDN**: CloudFlare or AWS CloudFront
 - [ ] **Email Service**: AWS SES, SendGrid, or similar SMTP
 - [ ] **WebSocket Support**: Socket.IO compatible hosting (Vercel, Railway)
@@ -72,9 +72,10 @@ UPSTASH_REDIS_REST_URL=https://your-upstash-instance.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your-upstash-token
 REDIS_URL=redis://user:password@host:6379
 
-# File Storage (UploadThing)
-UPLOADTHING_SECRET=your-uploadthing-secret
-UPLOADTHING_APP_ID=your-uploadthing-app-id
+# File Storage (Cloudinary)
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 
 # Authentication Providers
 GOOGLE_CLIENT_ID=your-google-client-id

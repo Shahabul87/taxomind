@@ -86,27 +86,20 @@ export const ImageForm = ({
       )}
       {isEditing && (
         <div>
-          {/* <FileUpload
+          <UploadButton
             endpoint="courseImage"
-            onChange={(url) => {
-              if (url) {
-                onSubmit({ imageUrl: url });
+            courseId={courseId}
+            onClientUploadComplete={(res) => {
+              if (res?.[0]?.url) {
+                onSubmit({ imageUrl: res[0].url });
+                toast.success("Image uploaded successfully");
               }
             }}
-          /> */}
-          <UploadButton
-              endpoint="imageUploader"
-              onClientUploadComplete={(res) => {
-                onSubmit({ imageUrl: res?.[0].url });
+            onUploadError={(error: Error) => {
+              toast.error(`Upload failed: ${error.message}`);
+            }}
+          />
 
-                alert("Upload Completed");
-              }}
-              onUploadError={(error: Error) => {
-                // Do something with the error.
-                alert(`ERROR! ${error.message}`);
-              }}
-            />
-    
           <div className="text-xs text-muted-foreground mt-4">
             16:9 aspect ratio recommended
           </div>

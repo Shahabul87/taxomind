@@ -78,41 +78,20 @@ TypeScript generic syntax `<T>` is being interpreted as JSX opening tag in a `.t
 
 ---
 
-### 3. File Extension Mismatch - UploadThing
+### 3. File Upload Component (RESOLVED)
 
-**File:** `utils/uploadthing.ts`  
-**Lines:** 49-67  
-**Error Type:** File Extension Error  
+**File:** `utils/uploadthing.tsx`
+**Status:** ✅ RESOLVED - Now using Cloudinary direct upload via authenticated API
 
-#### Error Details
-```
-error TS1005: '>' expected.
-error TS1005: ')' expected.
-error TS1109: Expression expected.
-Multiple JSX syntax errors
-```
+#### Previous Issue (Historical)
+Previously used a client-side upload approach that required proper file extension handling.
 
-#### Code Context
-```typescript
-// JSX code in .ts file (should be .tsx)
-return (
-  <div className="relative">
-    <input
-      type="file"
-      accept="image/*"
-      onChange={handleFileChange}
-      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-    />
-    <div className="flex flex-col items-center justify-center p-6...">
-      <UploadCloud className="h-10 w-10 text-gray-400 mb-2" />
-      // ... more JSX
-    </div>
-  </div>
-);
-```
-
-#### Solution Required
-Rename `utils/uploadthing.ts` to `utils/uploadthing.tsx` to allow JSX syntax.
+#### Current Implementation
+- ✅ Uses secure authenticated API endpoint: `/api/courses/[courseId]/image`
+- ✅ Uploads to Cloudinary with server-side credentials
+- ✅ Proper file validation (size, type)
+- ✅ Loading states and error handling
+- ✅ No unsigned upload presets required
 
 ---
 
@@ -223,7 +202,7 @@ Multiple files reference environment variables without existence checks
    - `lib/ml/feature-engineering.ts:203`
 
 2. **Fix File Extensions:**
-   - Rename `utils/uploadthing.ts` → `utils/uploadthing.tsx`
+   - ✅ FIXED: `utils/uploadthing.tsx` - Now using Cloudinary API
    - Rename `__tests__/utils/test-utils.tsx` → `__tests__/utils/test-utils.ts`
 
 ### ⚡ **HIGH PRIORITY**
