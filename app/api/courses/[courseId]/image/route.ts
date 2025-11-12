@@ -55,6 +55,14 @@ export async function POST(
       );
     });
 
+    // Log the URL for debugging in development
+    if (process.env.NODE_ENV === 'development' && result && typeof result === 'object') {
+      logger.info('[COURSE_IMAGE_UPLOAD] Cloudinary URL:', {
+        secure_url: (result as any).secure_url,
+        url: (result as any).url,
+      });
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     logger.error("[COURSE_IMAGE_UPLOAD]", error);

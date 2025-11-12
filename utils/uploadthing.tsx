@@ -57,9 +57,19 @@ export const UploadButton: React.FC<UploadButtonProps> = ({
 
       const data = await response.json();
 
+      // Log for debugging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[UPLOAD_DEBUG] Cloudinary response:', {
+          secure_url: data.secure_url,
+          url: data.url,
+          public_id: data.public_id,
+        });
+      }
+
       if (data.secure_url) {
         onClientUploadComplete?.([{ url: data.secure_url }]);
       } else {
+        console.error('[UPLOAD_ERROR] No secure_url in response:', data);
         onUploadError?.(new Error("Upload failed - no URL returned"));
       }
     } catch (error: unknown) {

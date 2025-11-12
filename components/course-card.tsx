@@ -34,8 +34,18 @@ export const CourseCard = ({
   const [imgSrc, setImgSrc] = useState(imageUrl || FALLBACK_IMAGE);
   const [hasError, setHasError] = useState(false);
 
+  // Debug logging in development
+  if (process.env.NODE_ENV === 'development' && imageUrl) {
+    console.log(`[CourseCard] ${title}:`, {
+      imageUrl,
+      imgSrc,
+      hasError
+    });
+  }
+
   const handleImageError = () => {
     if (!hasError) {
+      console.error(`[CourseCard] Image load error for ${title}:`, imgSrc);
       setHasError(true);
       setImgSrc(FALLBACK_IMAGE);
     }
