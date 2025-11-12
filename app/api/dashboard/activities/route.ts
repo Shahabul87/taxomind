@@ -90,19 +90,31 @@ async function ensureTableExists() {
         ON "dashboard_activities"("userId", "dueDate");
       `;
 
-      // Add foreign keys
-      await db.$executeRaw`
-        DO $$ BEGIN
-          IF NOT EXISTS (
-            SELECT 1 FROM pg_constraint WHERE conname = 'dashboard_activities_userId_fkey'
-          ) THEN
-            ALTER TABLE "dashboard_activities"
-            ADD CONSTRAINT "dashboard_activities_userId_fkey"
-            FOREIGN KEY ("userId") REFERENCES "users"("id")
-            ON DELETE CASCADE ON UPDATE CASCADE;
-          END IF;
-        END $$;
+      // Add foreign keys only if referenced tables exist
+      const userTableExists = await db.$queryRaw`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables
+          WHERE table_schema = 'public'
+          AND table_name = 'users'
+        ) as exists;
       `;
+
+      if ((userTableExists as Array<{exists: boolean}>)[0]?.exists) {
+        await db.$executeRaw`
+          DO $$ BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM pg_constraint WHERE conname = 'dashboard_activities_userId_fkey'
+            ) THEN
+              ALTER TABLE "dashboard_activities"
+              ADD CONSTRAINT "dashboard_activities_userId_fkey"
+              FOREIGN KEY ("userId") REFERENCES "users"("id")
+              ON DELETE CASCADE ON UPDATE CASCADE;
+            END IF;
+          END $$;
+        `;
+      } else {
+        console.log("⚠️ Skipping foreign key for users table (table doesn't exist)");
+      }
 
       console.log("✅ dashboard_activities table created successfully");
     }
