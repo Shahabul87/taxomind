@@ -1,0 +1,14 @@
+Migration Trigger Timestamp: 2025-11-11 17:45:00
+
+This file triggers a Railway deployment to ensure dashboard_activities migration runs.
+
+Migration: 20251109223911_fix_dashboard_activity_type
+Table: dashboard_activities
+Status: Pending in production
+Issue: GET /api/dashboard/activities returns 500 error
+
+Deployment will run:
+1. npx prisma generate
+2. node scripts/fix-failed-migrations.js
+3. npx prisma migrate deploy  <-- This will create the table
+4. npm run start

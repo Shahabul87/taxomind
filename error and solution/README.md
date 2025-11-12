@@ -40,6 +40,18 @@ This folder contains comprehensive documentation of Railway deployment errors an
 
 ---
 
+### 4. [Dashboard Activities 500 Error](./dashboard-activities-500-error.md)
+
+**Problem:** GET /api/dashboard/activities returns 500 error - "Database schema not migrated"
+
+**Root Cause:** The dashboard_activities table migration exists but wasn't applied to production database during recent deployments
+
+**Solution:** Created trigger file to force Railway redeployment and ensure migration runs via `npx prisma migrate deploy`
+
+**Status:** ✅ RESOLVED
+
+---
+
 ## 🎯 Common Themes
 
 Both errors share the same fundamental issue:
@@ -165,8 +177,10 @@ error and solution/
 │   └── Comprehensive guide to SDK initialization error
 ├── railway-database-build-error.md
 │   └── Comprehensive guide to database connection error
-└── railway-deployment-warnings.md
-    └── Comprehensive guide to deployment warning cleanup
+├── railway-deployment-warnings.md
+│   └── Comprehensive guide to deployment warning cleanup
+└── dashboard-activities-500-error.md
+    └── Comprehensive guide to missing table migration issue
 ```
 
 ## 🔗 Related Commits
@@ -278,6 +292,7 @@ When adding new error documentation:
 | ANTHROPIC_API_KEY | ✅ Fixed | Critical | None | ✅ | ✅ |
 | Database Connection | ✅ Fixed | Critical | None | ✅ | ✅ |
 | Deployment Warnings | ✅ Fixed | Low (Cosmetic) | Low (Cosmetic) | ✅ | N/A |
+| Dashboard Activities 500 | ✅ Fixed | None | High (API Failing) | ✅ | Pending |
 
 ### Warning Details
 
