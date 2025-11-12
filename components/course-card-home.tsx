@@ -30,19 +30,10 @@ export const CourseCardHome = ({
   category,
 }: CourseCardProps) => {
   // Ensure image URLs use HTTPS for Next.js Image component in production
-  const initialImageUrl = imageUrl
+  // Use fallback if imageUrl is null, undefined, or empty string
+  const secureImageUrl = (imageUrl && imageUrl.trim())
     ? imageUrl.replace(/^http:\/\//i, 'https://')
     : FALLBACK_IMAGE;
-
-  const [imgSrc, setImgSrc] = useState(initialImageUrl);
-  const [hasError, setHasError] = useState(false);
-
-  const handleImageError = () => {
-    if (!hasError) {
-      setHasError(true);
-      setImgSrc(FALLBACK_IMAGE);
-    }
-  };
 
   // Get category gradient based on category name
   const getCategoryGradient = (cat: string) => {
@@ -73,14 +64,16 @@ export const CourseCardHome = ({
       {/* Course Image with Enhanced Overlay */}
       <div className="relative h-40 sm:h-44 w-full overflow-hidden bg-slate-200 dark:bg-slate-700">
         <Image
-          src={imgSrc}
+          src={secureImageUrl}
           alt={title}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-700 group-hover:scale-110"
           quality={90}
-          unoptimized={hasError}
-          onError={handleImageError}
+          onError={(e) => {
+            // Direct DOM manipulation for more reliable fallback
+            e.currentTarget.src = FALLBACK_IMAGE;
+          }}
         />
 
         {/* Gradient Overlays */}
