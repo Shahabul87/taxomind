@@ -495,22 +495,33 @@ export function ProfessionalCoursesPage({
 
           {/* Two Column Layout with List Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {courses.slice(0, 6).map((course, index) => (
-              <Link key={course.id} href={`/courses/${course.id}`} className="block group">
-                <Card className="overflow-hidden border-0 bg-white dark:bg-slate-800 shadow-md hover:shadow-xl transition-all duration-300">
-                  <CardContent className="p-0">
-                    <div className="flex gap-4 h-full">
-                      {/* Course Image */}
-                      <div className="relative w-40 flex-shrink-0 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600">
-                        {course.imageUrl && (
+            {courses.slice(0, 6).map((course, index) => {
+              // Fallback image for when course image is not available - using inline SVG for reliability
+              const FALLBACK_IMAGE = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkMSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjM2NkYxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQTg1NUY3O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICAgIDwvZGVmcz4KICAgICAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NTAiIGZpbGw9InVybCgjZ3JhZDEpIi8+CiAgICAgIDx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSIgZm9udC1zaXplPSI0MCIgZm9udC13ZWlnaHQ9ImJvbGQiPgogICAgICAgIENvdXJzZQogICAgICA8L3RleHQ+CiAgICA8L3N2Zz4=";
+
+              // Ensure image URL uses HTTPS and has fallback
+              const secureImageUrl = course.imageUrl
+                ? course.imageUrl.replace(/^http:\/\//i, 'https://')
+                : FALLBACK_IMAGE;
+
+              return (
+                <Link key={course.id} href={`/courses/${course.id}`} className="block group">
+                  <Card className="overflow-hidden border-0 bg-white dark:bg-slate-800 shadow-md hover:shadow-xl transition-all duration-300">
+                    <CardContent className="p-0">
+                      <div className="flex gap-4 h-full">
+                        {/* Course Image */}
+                        <div className="relative w-40 flex-shrink-0 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600">
                           <Image
-                            src={course.imageUrl.replace(/^http:\/\//i, 'https://')}
+                            src={secureImageUrl}
                             alt={course.title}
                             fill
                             sizes="160px"
                             className="object-cover h-full"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              target.src = FALLBACK_IMAGE;
+                            }}
                           />
-                        )}
 
                         {/* Badge Overlay */}
                         {course.badges?.[0] && (
@@ -597,7 +608,8 @@ export function ProfessionalCoursesPage({
                   </CardContent>
                 </Card>
               </Link>
-            ))}
+              );
+            })}
           </div>
         </div>
 
