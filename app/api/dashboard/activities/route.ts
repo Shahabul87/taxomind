@@ -15,8 +15,108 @@ import {
 import { z } from "zod";
 import { startOfDay, endOfDay, subDays, addDays } from "date-fns";
 
+async function ensureTableExists() {
+  try {
+    // Quick check if table exists
+    const tableCheck = await db.$queryRaw`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_name = 'dashboard_activities'
+      ) as exists;
+    `;
+
+    const tableExists = (tableCheck as Array<{exists: boolean}>)[0]?.exists || false;
+
+    if (!tableExists) {
+      console.log("⚠️ Creating dashboard_activities table on-demand...");
+
+      // Create enums
+      await db.$executeRaw`
+        DO $$ BEGIN
+          CREATE TYPE "DashboardActivityType" AS ENUM (
+            'ASSIGNMENT', 'QUIZ', 'EXAM', 'READING', 'VIDEO',
+            'DISCUSSION', 'STUDY_SESSION', 'PROJECT', 'PRESENTATION', 'CUSTOM'
+          );
+        EXCEPTION WHEN duplicate_object THEN null;
+        END $$;
+      `;
+
+      await db.$executeRaw`
+        DO $$ BEGIN
+          CREATE TYPE "DashboardActivityStatus" AS ENUM (
+            'NOT_STARTED', 'IN_PROGRESS', 'SUBMITTED', 'GRADED', 'OVERDUE', 'CANCELLED'
+          );
+        EXCEPTION WHEN duplicate_object THEN null;
+        END $$;
+      `;
+
+      await db.$executeRaw`
+        DO $$ BEGIN
+          CREATE TYPE "Priority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT');
+        EXCEPTION WHEN duplicate_object THEN null;
+        END $$;
+      `;
+
+      // Create table
+      await db.$executeRaw`
+        CREATE TABLE IF NOT EXISTS "dashboard_activities" (
+          "id" TEXT NOT NULL,
+          "userId" TEXT NOT NULL,
+          "type" "DashboardActivityType" NOT NULL,
+          "title" TEXT NOT NULL,
+          "description" TEXT,
+          "courseId" TEXT,
+          "dueDate" TIMESTAMP(3),
+          "completedAt" TIMESTAMP(3),
+          "status" "DashboardActivityStatus" NOT NULL DEFAULT 'NOT_STARTED',
+          "points" INTEGER NOT NULL DEFAULT 0,
+          "priority" "Priority" NOT NULL DEFAULT 'MEDIUM',
+          "googleEventId" TEXT,
+          "calendarSynced" BOOLEAN NOT NULL DEFAULT false,
+          "lastSyncedAt" TIMESTAMP(3),
+          "estimatedMinutes" INTEGER,
+          "actualMinutes" INTEGER,
+          "tags" TEXT[],
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "dashboard_activities_pkey" PRIMARY KEY ("id")
+        );
+      `;
+
+      // Create indexes
+      await db.$executeRaw`
+        CREATE INDEX IF NOT EXISTS "dashboard_activities_userId_dueDate_idx"
+        ON "dashboard_activities"("userId", "dueDate");
+      `;
+
+      // Add foreign keys
+      await db.$executeRaw`
+        DO $$ BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'dashboard_activities_userId_fkey'
+          ) THEN
+            ALTER TABLE "dashboard_activities"
+            ADD CONSTRAINT "dashboard_activities_userId_fkey"
+            FOREIGN KEY ("userId") REFERENCES "users"("id")
+            ON DELETE CASCADE ON UPDATE CASCADE;
+          END IF;
+        END $$;
+      `;
+
+      console.log("✅ dashboard_activities table created successfully");
+    }
+  } catch (error) {
+    console.error("Error ensuring table exists:", error);
+    // Don't throw - let the main function handle it
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
+    // Ensure table exists first
+    await ensureTableExists();
+
     const user = await currentUser();
     if (!user?.id) {
       return errorResponse(
@@ -147,6 +247,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Ensure table exists first
+    await ensureTableExists();
+
     const user = await currentUser();
     if (!user?.id) {
       return errorResponse(
