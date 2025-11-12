@@ -20,8 +20,15 @@ async function fixDashboardMigration() {
   try {
     console.log('🔧 Starting dashboard_activities migration fix...\n');
 
-    // Connect to database
+    // Connect to database with timeout
+    const connectTimeout = setTimeout(() => {
+      console.error('❌ Database connection timeout (30s)');
+      console.error('   Skipping migration fix - will retry on next deployment');
+      process.exit(0); // Exit gracefully to allow app to start
+    }, 30000);
+
     await prisma.$connect();
+    clearTimeout(connectTimeout);
     console.log('✅ Database connected\n');
 
     // Step 1: Check if table exists
@@ -160,10 +167,18 @@ async function fixDashboardMigration() {
 
   } catch (error) {
     console.error('❌ Error fixing migration:', error.message);
-    console.error('Stack:', error.stack);
-    process.exit(1);
+    console.error('   This is non-fatal - app will continue to start');
+    console.error('   The migration can be fixed manually or will retry on next deployment');
+
+    // Exit gracefully - don't block app startup
+    if (error.code === 'P2021') {
+      console.error('   Error code P2021: Table does not exist (expected)');
+    }
+
+    await prisma.$disconnect().catch(() => {});
+    process.exit(0); // Exit with success to allow app to start
   } finally {
-    await prisma.$disconnect();
+    await prisma.$disconnect().catch(() => {});
   }
 }
 
@@ -174,6 +189,7 @@ fixDashboardMigration()
     process.exit(0);
   })
   .catch((error) => {
-    console.error('❌ Script failed:', error);
-    process.exit(1);
+    console.error('❌ Script failed:', error.message);
+    console.error('   Exiting gracefully - app will start anyway');
+    process.exit(0); // Exit with success to allow app to continue
   });
