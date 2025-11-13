@@ -115,9 +115,9 @@ export default function HomeHeroSectionRedesigned() {
 
       {/* Subtle animated background pattern */}
       <div className="absolute inset-0 opacity-30" aria-hidden="true">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 dark:bg-blue-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-3xl animate-pulse" />
-        <div className="absolute top-40 right-20 w-96 h-96 bg-indigo-200 dark:bg-indigo-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute -bottom-20 left-1/3 w-80 h-80 bg-purple-200 dark:bg-purple-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 dark:bg-blue-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" />
+        <div className="absolute top-40 right-20 w-96 h-96 bg-indigo-200 dark:bg-indigo-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" style={{ animationDelay: '1s' }} />
+        <div className="absolute -bottom-20 left-1/3 w-80 h-80 bg-purple-200 dark:bg-purple-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" style={{ animationDelay: '2s' }} />
       </div>
 
       <div className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -132,6 +132,7 @@ export default function HomeHeroSectionRedesigned() {
               variants={fadeInUp}
               initial="hidden"
               animate={isInView ? 'visible' : 'hidden'}
+              style={{ willChange: 'transform, opacity' }}
             >
               {/* Create Badge */}
               <motion.div
@@ -219,6 +220,7 @@ export default function HomeHeroSectionRedesigned() {
               initial="hidden"
               animate={isInView ? 'visible' : 'hidden'}
               transition={{ delay: 0.2 }}
+              style={{ willChange: 'transform, opacity' }}
             >
               <h1
                 id="hero-heading"
@@ -238,6 +240,7 @@ export default function HomeHeroSectionRedesigned() {
               initial="hidden"
               animate={isInView ? 'visible' : 'hidden'}
               transition={{ delay: 0.3 }}
+              style={{ willChange: 'transform, opacity' }}
             >
               Master every cognitive level through AI-powered personalization. Track your growth across all 6 stages of Bloom&apos;s Taxonomy—from remembering to creating.
             </motion.p>
@@ -248,6 +251,7 @@ export default function HomeHeroSectionRedesigned() {
               variants={staggerContainer}
               initial="hidden"
               animate={isInView ? 'visible' : 'hidden'}
+              style={{ willChange: 'opacity' }}
             >
               <motion.div
                 variants={fadeInUp}
@@ -281,6 +285,7 @@ export default function HomeHeroSectionRedesigned() {
               initial="hidden"
               animate={isInView ? 'visible' : 'hidden'}
               transition={{ delay: 0.4 }}
+              style={{ willChange: 'transform, opacity' }}
             >
               <Link href="/auth/register" className="w-full sm:w-auto">
                 <Button
@@ -334,6 +339,7 @@ export default function HomeHeroSectionRedesigned() {
               initial="hidden"
               animate={isInView ? 'visible' : 'hidden'}
               transition={{ delay: 0.3 }}
+              style={{ willChange: 'transform, opacity' }}
             >
               {/* Center glassmorphism card */}
               <div className="absolute inset-0 flex items-center justify-center">
@@ -418,28 +424,34 @@ export default function HomeHeroSectionRedesigned() {
 
               {/* Floating AI indicator - Top Right */}
               <motion.div
-                className="absolute top-4 right-4 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-lg border border-purple-200 dark:border-purple-500/30"
-                animate={shouldReduceMotion ? {} : { y: [0, -8, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                className="absolute top-4 right-4 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-lg border border-purple-200 dark:border-purple-500/30 motion-safe:animate-float-slow motion-reduce:animate-none"
+                // Use CSS animation to reduce JS overhead; keep FM for initial reveal
+                initial={{ opacity: 0, y: -8 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
+                transition={{ duration: shouldReduceMotion ? 0.01 : 0.4 }}
+                style={{ willChange: 'transform, opacity' }}
               >
                 <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-purple-600 dark:text-purple-400 animate-pulse" />
+                  <Activity className="w-4 h-4 text-purple-600 dark:text-purple-400 motion-safe:animate-pulse motion-reduce:animate-none" />
                   <span className="text-sm font-semibold text-slate-900 dark:text-white">AI Analyzing</span>
                 </div>
               </motion.div>
 
               {/* Floating How It Works indicator - Bottom Left */}
               <motion.div
-                className="absolute -bottom-4 left-4"
-                animate={shouldReduceMotion ? {} : { y: [0, -8, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+                className="absolute -bottom-4 left-4 motion-safe:animate-float-slow motion-reduce:animate-none"
+                // Use CSS animation to reduce JS overhead; keep FM for initial reveal
+                initial={{ opacity: 0, y: 8 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+                transition={{ duration: shouldReduceMotion ? 0.01 : 0.4, delay: 0.2 }}
+                style={{ willChange: 'transform, opacity' }}
               >
                 <Link
                   href="/blooms-taxonomy"
                   className="group inline-flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-lg border border-blue-200 dark:border-blue-500/30 hover:border-blue-400 dark:hover:border-blue-400 hover:shadow-xl transition-all duration-300 cursor-pointer"
                   aria-label="Learn how Bloom's Taxonomy works"
                 >
-                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-pulse group-hover:scale-110 transition-transform" />
+                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 motion-safe:animate-pulse motion-reduce:animate-none group-hover:scale-110 transition-transform" />
                   <span className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     How It Works?
                   </span>

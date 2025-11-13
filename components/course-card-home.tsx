@@ -65,7 +65,7 @@ export const CourseCardHome = ({
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-700 group-hover:scale-110"
-          quality={90}
+          quality={75}
           priority={false}
           onError={(e) => {
             // Direct DOM manipulation for more reliable fallback
@@ -114,7 +114,7 @@ export const CourseCardHome = ({
         {/* Play/Continue Button Overlay - Enhanced */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-30 bg-slate-900/20">
           <div className="relative">
-            <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
+            <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-50 motion-safe:animate-pulse motion-reduce:animate-none"></div>
             <div className="relative p-3 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 backdrop-blur-sm border-2 border-white/40 text-white shadow-2xl transform scale-0 group-hover:scale-100 transition-transform duration-500">
               <Play className="h-5 w-5 fill-current" />
             </div>

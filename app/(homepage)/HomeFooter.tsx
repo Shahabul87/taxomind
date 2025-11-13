@@ -16,8 +16,8 @@ export const HomeFooter = () => {
         <div className="absolute top-0 left-0 w-full h-16 bg-slate-800" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 0)" }}></div>
         
         {/* Glowing orbs */}
-        <div className="absolute -top-40 -right-20 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20"></div>
-        <div className="absolute top-[30%] -left-20 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20"></div>
+        <div className="absolute -top-40 -right-20 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-[96px] sm:blur-[128px] opacity-20"></div>
+        <div className="absolute top-[30%] -left-20 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-[96px] sm:blur-[128px] opacity-20"></div>
         
         {/* Background pattern */}
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-center opacity-10"></div>
@@ -83,8 +83,8 @@ export const HomeFooter = () => {
       <footer className="bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-600 dark:text-gray-300 pt-20 pb-10 relative overflow-hidden">
         {/* Subtle background effects */}
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-center opacity-5"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-[150px] opacity-10"></div>
-        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-[150px] opacity-10"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-[120px] sm:blur-[150px] opacity-10"></div>
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-[120px] sm:blur-[150px] opacity-10"></div>
         
         <div className="container mx-auto px-4 relative">
           {/* Footer Grid */}

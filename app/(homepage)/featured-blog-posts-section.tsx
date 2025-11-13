@@ -94,8 +94,8 @@ export const FeaturedBlogPostsSection = ({ posts }: FeaturedBlogPostsProps) => {
     >
       {/* Subtle animated background pattern */}
       <div className="absolute inset-0 opacity-30" aria-hidden="true">
-        <div className="absolute top-20 right-10 w-72 h-72 bg-purple-200 dark:bg-purple-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-3xl animate-pulse" />
-        <div className="absolute bottom-40 left-20 w-96 h-96 bg-pink-200 dark:bg-pink-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-20 right-10 w-72 h-72 bg-purple-200 dark:bg-purple-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-2xl sm:blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" />
+        <div className="absolute bottom-40 left-20 w-96 h-96 bg-pink-200 dark:bg-pink-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-2xl sm:blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" style={{ animationDelay: '1s' }} />
       </div>
 
       <div className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -105,6 +105,7 @@ export const FeaturedBlogPostsSection = ({ posts }: FeaturedBlogPostsProps) => {
           variants={fadeInUp}
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
+          style={{ willChange: 'transform, opacity' }}
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-purple-200/50 dark:border-purple-500/30 shadow-sm mb-4">
             <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -178,6 +179,7 @@ export const FeaturedBlogPostsSection = ({ posts }: FeaturedBlogPostsProps) => {
                   variants={staggerContainer}
                   initial="hidden"
                   animate={isInView ? 'visible' : 'hidden'}
+                  style={{ willChange: 'opacity' }}
                 >
                   {filteredPosts.length > 0 ? (
                     filteredPosts.slice(0, 6).map((post, index) => (

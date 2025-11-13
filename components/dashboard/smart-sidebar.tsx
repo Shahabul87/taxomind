@@ -213,7 +213,7 @@ export function SmartSidebar({ user }: SmartSidebarProps) {
         duration: 0.3,
         ease: "easeInOut",
       }}
-      className="fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-r border-slate-200/50 dark:border-slate-700/50 z-30 overflow-hidden"
+      className="hidden lg:block fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-r border-slate-200/50 dark:border-slate-700/50 z-30 overflow-hidden"
     >
       <div className="flex flex-col h-full">
         {/* Main Navigation */}

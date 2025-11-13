@@ -293,7 +293,7 @@ const ModernHeroSection = ({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight"
               >
                 <span className={cn(
                   "bg-gradient-to-r bg-clip-text text-transparent",
@@ -316,7 +316,7 @@ const ModernHeroSection = ({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-xl text-slate-300 leading-relaxed max-w-2xl"
+                className="text-base sm:text-lg md:text-xl text-slate-300 leading-relaxed max-w-2xl"
               >
                 {currentSlideData.subtitle}
               </motion.p>
@@ -327,11 +327,11 @@ const ModernHeroSection = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="flex flex-wrap gap-4"
+              className="flex flex-col sm:flex-row flex-wrap gap-4"
             >
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-xl px-8 py-6 text-lg group"
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-xl px-8 py-6 text-lg group w-full sm:w-auto"
               >
                 Start Reading
                 <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
@@ -339,7 +339,7 @@ const ModernHeroSection = ({
               <Button
                 size="lg"
                 variant="outline"
-                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 px-8 py-6 text-lg group"
+                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 px-8 py-6 text-lg group w-full sm:w-auto"
               >
                 <PenSquare className="mr-2 w-5 h-5" />
                 Write an Article
@@ -351,51 +351,51 @@ const ModernHeroSection = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="flex flex-wrap gap-6 pt-4"
+              className="flex flex-wrap gap-4 sm:gap-6 pt-4"
             >
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
-                  <FileText className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-2 min-w-[140px]">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   {isLoading ? (
-                    <p className="text-2xl font-bold text-white animate-pulse">--</p>
+                    <p className="text-xl sm:text-2xl font-bold text-white animate-pulse">--</p>
                   ) : (
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-xl sm:text-2xl font-bold text-white">
                       {formatNumber(statistics?.publishedArticles || 0)}
                     </p>
                   )}
-                  <p className="text-sm text-slate-400">Published Articles</p>
+                  <p className="text-xs sm:text-sm text-slate-400 truncate">Published Articles</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                  <Users className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-2 min-w-[140px]">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   {isLoading ? (
-                    <p className="text-2xl font-bold text-white animate-pulse">--</p>
+                    <p className="text-xl sm:text-2xl font-bold text-white animate-pulse">--</p>
                   ) : (
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-xl sm:text-2xl font-bold text-white">
                       {formatNumber(statistics?.totalReaders || 0)}
                     </p>
                   )}
-                  <p className="text-sm text-slate-400">Active Readers</p>
+                  <p className="text-xs sm:text-sm text-slate-400 truncate">Active Readers</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-                  <Award className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-2 min-w-[140px]">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                  <Award className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   {isLoading ? (
-                    <p className="text-2xl font-bold text-white animate-pulse">--</p>
+                    <p className="text-xl sm:text-2xl font-bold text-white animate-pulse">--</p>
                   ) : (
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-xl sm:text-2xl font-bold text-white">
                       {formatNumber(statistics?.totalAuthors || 0)}
                     </p>
                   )}
-                  <p className="text-sm text-slate-400">Expert Authors</p>
+                  <p className="text-xs sm:text-sm text-slate-400 truncate">Expert Authors</p>
                 </div>
               </div>
             </motion.div>
@@ -775,7 +775,7 @@ export function ModernBlogPage({
       <div className="container mx-auto px-4 py-12">
         {/* Search and Filter Bar - Sticky */}
         <div className="sticky top-0 z-40 mb-8 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 pb-4 -mx-4 px-4 pt-4 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-700/50">
-          <div className="flex flex-col lg:flex-row gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
             {/* Search Input - Consistent Height */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 h-5 w-5" />
@@ -795,10 +795,10 @@ export function ModernBlogPage({
                 </button>
               )}
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {/* Sort Dropdown - Consistent Height */}
               <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                <SelectTrigger className="w-[160px] h-11 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 text-slate-900 dark:text-white">
+                <SelectTrigger className="w-full sm:w-[160px] h-11 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 text-slate-900 dark:text-white">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
@@ -811,7 +811,7 @@ export function ModernBlogPage({
               {/* Advanced Filters Popover - Consistent Height */}
               <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-11 px-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700/80">
+                  <Button variant="outline" className="h-11 px-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700/80 w-full sm:w-auto">
                     <Filter className="w-4 h-4 mr-2" />
                     Filters
                     {(minViews > 0 || dateRange !== "all") && (

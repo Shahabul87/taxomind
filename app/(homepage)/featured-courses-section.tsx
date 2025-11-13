@@ -155,8 +155,8 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
       <section className="relative overflow-hidden pt-20 pb-12 sm:pt-24 sm:pb-16">
         {/* Subtle animated background pattern */}
         <div className="absolute inset-0 opacity-30" aria-hidden="true">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 dark:bg-blue-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-3xl animate-pulse" />
-          <div className="absolute top-40 right-20 w-96 h-96 bg-indigo-200 dark:bg-indigo-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 dark:bg-blue-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-2xl sm:blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" />
+          <div className="absolute top-40 right-20 w-96 h-96 bg-indigo-200 dark:bg-indigo-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-2xl sm:blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" style={{ animationDelay: '1s' }} />
         </div>
 
         <div className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -166,6 +166,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
             variants={fadeInUp}
             initial="hidden"
             animate="visible"
+            style={{ willChange: 'transform, opacity' }}
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-blue-200/50 dark:border-blue-500/30 shadow-sm mb-4">
               <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -296,6 +297,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                     variants={staggerContainer}
                     initial="hidden"
                     animate={isInView ? 'visible' : 'hidden'}
+                    style={{ willChange: 'opacity' }}
                   >
                     {sortedCourses.slice(0, 12).map((course, index) => (
                       <motion.div

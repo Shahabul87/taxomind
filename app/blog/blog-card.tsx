@@ -95,7 +95,7 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            quality={90}
+            quality={75}
             unoptimized={!post.imageUrl}
           />
         ) : (
@@ -131,20 +131,20 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
         {/* Bottom Info on Image */}
         <div className="absolute bottom-2 left-2 right-2 z-20">
           {/* Quick Stats on Image */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <Eye className="w-3 h-3 text-white" />
-              <span className="text-white text-xs font-bold">2.4k</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
+              <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white flex-shrink-0" />
+              <span className="text-white text-[10px] sm:text-xs font-bold">2.4k</span>
             </div>
 
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <Heart className="w-3 h-3 text-red-300" />
-              <span className="text-white text-xs font-bold">156</span>
+            <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
+              <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-red-300 flex-shrink-0" />
+              <span className="text-white text-[10px] sm:text-xs font-bold">156</span>
             </div>
 
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <MessageCircle className="w-3 h-3 text-white" />
-              <span className="text-white text-xs font-bold">{post.comments?.length || 0}</span>
+            <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
+              <MessageCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white flex-shrink-0" />
+              <span className="text-white text-[10px] sm:text-xs font-bold">{post.comments?.length || 0}</span>
             </div>
           </div>
         </div>
@@ -152,7 +152,7 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
         {/* Play/Read Button Overlay - Enhanced */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-30 bg-slate-900/20">
           <div className="relative">
-            <div className="absolute inset-0 bg-purple-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
+            <div className="absolute inset-0 bg-purple-500 rounded-full blur-xl opacity-50 motion-safe:animate-pulse motion-reduce:animate-none"></div>
             <div className="relative p-3 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 backdrop-blur-sm border-2 border-white/40 text-white shadow-2xl transform scale-0 group-hover:scale-100 transition-transform duration-500">
               <Play className="h-5 w-5 fill-current" />
             </div>
@@ -178,22 +178,22 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
         </p>
 
         {/* Compact Stats Row */}
-        <div className="mt-auto pt-2 flex items-center justify-between border-t border-slate-200/50 dark:border-slate-700/50 gap-1">
-          <div className="flex flex-col items-center gap-0.5 flex-1 p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-            <MessageCircle className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-            <span className="text-xs font-bold text-slate-900 dark:text-white">
+        <div className="mt-auto pt-2 flex items-center justify-between border-t border-slate-200/50 dark:border-slate-700/50 gap-1 sm:gap-2">
+          <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 min-w-0">
+            <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white truncate w-full text-center">
               {post.comments?.length || 0}
             </span>
           </div>
 
-          <div className="flex flex-col items-center gap-0.5 flex-1 p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-            <Eye className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-            <span className="text-xs font-bold text-slate-900 dark:text-white">2.4k</span>
+          <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 min-w-0">
+            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white truncate w-full text-center">2.4k</span>
           </div>
 
-          <div className="flex flex-col items-center gap-0.5 flex-1 p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-            <Heart className="w-4 h-4 text-red-500 dark:text-red-400" />
-            <span className="text-xs font-bold text-slate-900 dark:text-white">156</span>
+          <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 min-w-0">
+            <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white truncate w-full text-center">156</span>
           </div>
         </div>
       </div>
