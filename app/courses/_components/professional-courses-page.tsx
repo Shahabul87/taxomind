@@ -23,7 +23,9 @@ import {
   Route,
   Code2,
   GraduationCap,
-  Filter
+  Filter,
+  SlidersHorizontal,
+  X
 } from "lucide-react";
 
 // Import new Coursera-style components
@@ -36,6 +38,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Tooltip,
   TooltipContent,
@@ -341,6 +351,7 @@ export function ProfessionalCoursesPage({
   const [courses, setCourses] = useState(initialCourses);
   const [statistics, setStatistics] = useState<PlatformStatistics | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   // Update courses when initialCourses changes (from search/filter in parent)
   useEffect(() => {
@@ -437,6 +448,7 @@ export function ProfessionalCoursesPage({
         onClearAll={clearAllFilters}
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
+        userId={userId}
       />
 
       {/* Enhanced Hero Section */}
@@ -466,7 +478,7 @@ export function ProfessionalCoursesPage({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-wrap gap-3 mb-10"
+          className="flex flex-wrap gap-2 md:gap-3 mb-10"
         >
           {[
             { icon: Brain, label: "AI Recommendations", color: "from-purple-500 to-pink-600" },
@@ -477,13 +489,13 @@ export function ProfessionalCoursesPage({
             <Button
               key={index}
               variant="outline"
-              className="group bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              className="group bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-xs md:text-sm px-3 md:px-4"
             >
-              <div className={cn("p-1.5 rounded-lg bg-gradient-to-br mr-2", action.color)}>
-                <action.icon className="w-4 h-4 text-white" />
+              <div className={cn("p-1 md:p-1.5 rounded-lg bg-gradient-to-br mr-1.5 md:mr-2", action.color)}>
+                <action.icon className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
               </div>
-              {action.label}
-              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+              <span className="whitespace-nowrap">{action.label}</span>
+              <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4 ml-1.5 md:ml-2 transition-transform group-hover:translate-x-1" />
             </Button>
           ))}
         </motion.div>
@@ -504,14 +516,14 @@ export function ProfessionalCoursesPage({
                 <Link key={course.id} href={`/courses/${course.id}`} className="block group">
                   <Card className="overflow-hidden border-0 bg-white dark:bg-slate-800 shadow-md hover:shadow-xl transition-all duration-300">
                     <CardContent className="p-0">
-                      <div className="flex gap-4 h-full">
+                      <div className="flex gap-3 md:gap-4 h-full">
                         {/* Course Image */}
-                        <div className="relative w-40 flex-shrink-0 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600">
+                        <div className="relative w-28 sm:w-32 md:w-40 flex-shrink-0 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600">
                           <Image
                             src={secureImageUrl}
                             alt={course.title}
                             fill
-                            sizes="160px"
+                            sizes="(max-width: 640px) 112px, (max-width: 768px) 128px, 160px"
                             className="object-cover h-full"
                             onError={(e) => {
                               e.currentTarget.src = getFallbackImageUrl('course');
@@ -536,9 +548,9 @@ export function ProfessionalCoursesPage({
                       </div>
 
                       {/* Course Info */}
-                      <div className="flex-1 py-4 pr-4 min-w-0">
+                      <div className="flex-1 py-3 pr-3 md:py-4 md:pr-4 min-w-0">
                         {/* Title */}
-                        <h3 className="font-bold text-base mb-2 line-clamp-1 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <h3 className="font-bold text-sm md:text-base mb-2 line-clamp-1 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {course.title}
                         </h3>
 
@@ -613,12 +625,67 @@ export function ProfessionalCoursesPage({
 
         {/* All Courses Grid */}
         <div data-results-section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+          <div className="flex items-center justify-between mb-6 gap-3">
+            <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
               All Courses
             </h2>
-            <div className="text-sm text-slate-600 dark:text-slate-400">
-              Showing {((currentPage - 1) * 12) + 1}-{Math.min(currentPage * 12, totalCourses)} of {totalCourses} courses
+            <div className="flex items-center gap-3">
+              {/* Mobile Filter Button */}
+              <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="lg:hidden bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-md"
+                  >
+                    <SlidersHorizontal className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Filters</span>
+                    {activeFiltersCount > 0 && (
+                      <Badge className="ml-2 bg-blue-600 text-white text-xs px-1.5 py-0.5 min-w-[20px] h-5">
+                        {activeFiltersCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] sm:w-[400px] overflow-y-auto">
+                  <SheetHeader>
+                    <SheetTitle className="flex items-center gap-2">
+                      <Filter className="w-5 h-5" />
+                      Filter Courses
+                    </SheetTitle>
+                    <SheetDescription>
+                      Refine your course search with filters
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-6">
+                    <ProfessionalFilterSidebar
+                      filterOptions={filterOptions}
+                      selectedCategories={selectedCategories}
+                      setSelectedCategories={onCategoriesChange || (() => {})}
+                      selectedPriceRange={selectedPriceRange}
+                      setSelectedPriceRange={onPriceRangeChange || (() => {})}
+                      selectedDifficulties={selectedDifficulties}
+                      setSelectedDifficulties={onDifficultiesChange || (() => {})}
+                      onClearAll={clearAllFilters}
+                      activeFiltersCount={activeFiltersCount}
+                    />
+
+                    {/* Apply Filters Button for Mobile */}
+                    <div className="sticky bottom-0 left-0 right-0 p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 mt-6 -mx-6 -mb-6">
+                      <Button
+                        onClick={() => setIsMobileFilterOpen(false)}
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+                      >
+                        View {totalCourses} Course{totalCourses !== 1 ? 's' : ''}
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 hidden sm:block">
+                Showing {((currentPage - 1) * 12) + 1}-{Math.min(currentPage * 12, totalCourses)} of {totalCourses} courses
+              </div>
             </div>
           </div>
 
@@ -667,21 +734,23 @@ export function ProfessionalCoursesPage({
 
           {/* Pagination */}
           {totalPages > 1 && onPageChange && (
-            <div className="mt-12 flex items-center justify-center gap-2">
+            <div className="mt-12 flex items-center justify-center gap-1 md:gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1 || isLoading}
-                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"
+                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm text-xs md:text-sm px-2 md:px-4"
               >
-                Previous
+                <span className="hidden sm:inline">Previous</span>
+                <span className="sm:hidden">Prev</span>
               </Button>
 
               <div className="flex gap-1">
                 {(() => {
                   const pages = [];
-                  const showPages = 5;
+                  // Show fewer pages on mobile (3) vs desktop (5)
+                  const showPages = typeof window !== 'undefined' && window.innerWidth < 640 ? 3 : 5;
                   let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
                   let endPage = Math.min(totalPages, startPage + showPages - 1);
 
@@ -697,15 +766,18 @@ export function ProfessionalCoursesPage({
                         size="sm"
                         onClick={() => onPageChange(1)}
                         disabled={isLoading}
-                        className={1 === currentPage
-                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
-                          : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"}
+                        className={cn(
+                          "min-w-[32px] h-8 px-2 text-xs md:text-sm md:min-w-[40px] md:h-9 md:px-3",
+                          1 === currentPage
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                            : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"
+                        )}
                       >
                         1
                       </Button>
                     );
                     if (startPage > 2) {
-                      pages.push(<span key="ellipsis1" className="px-2">...</span>);
+                      pages.push(<span key="ellipsis1" className="px-1 text-xs md:text-sm">...</span>);
                     }
                   }
 
@@ -717,9 +789,12 @@ export function ProfessionalCoursesPage({
                         size="sm"
                         onClick={() => onPageChange(i)}
                         disabled={isLoading}
-                        className={i === currentPage
-                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
-                          : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"}
+                        className={cn(
+                          "min-w-[32px] h-8 px-2 text-xs md:text-sm md:min-w-[40px] md:h-9 md:px-3",
+                          i === currentPage
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                            : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"
+                        )}
                       >
                         {i}
                       </Button>
@@ -728,7 +803,7 @@ export function ProfessionalCoursesPage({
 
                   if (endPage < totalPages) {
                     if (endPage < totalPages - 1) {
-                      pages.push(<span key="ellipsis2" className="px-2">...</span>);
+                      pages.push(<span key="ellipsis2" className="px-1 text-xs md:text-sm">...</span>);
                     }
                     pages.push(
                       <Button
@@ -737,9 +812,12 @@ export function ProfessionalCoursesPage({
                         size="sm"
                         onClick={() => onPageChange(totalPages)}
                         disabled={isLoading}
-                        className={totalPages === currentPage
-                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
-                          : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"}
+                        className={cn(
+                          "min-w-[32px] h-8 px-2 text-xs md:text-sm md:min-w-[40px] md:h-9 md:px-3",
+                          totalPages === currentPage
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                            : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"
+                        )}
                       >
                         {totalPages}
                       </Button>
@@ -755,7 +833,7 @@ export function ProfessionalCoursesPage({
                 size="sm"
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages || isLoading}
-                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"
+                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm text-xs md:text-sm px-2 md:px-4"
               >
                 Next
               </Button>

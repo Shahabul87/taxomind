@@ -68,6 +68,7 @@ interface CoursesNavbarResizableProps {
   onClearAll?: () => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  userId?: string;
 }
 
 // AI-Powered Smart Suggestions
@@ -134,6 +135,7 @@ const DIFFICULTY_VISUALS = {
   }
 };
 
+
 export function CoursesNavbarResizable({
   activeFiltersCount = 0,
   filterOptions,
@@ -145,7 +147,8 @@ export function CoursesNavbarResizable({
   onDifficultyToggle,
   onClearAll,
   searchQuery = "",
-  onSearchChange
+  onSearchChange,
+  userId
 }: CoursesNavbarResizableProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>("ai");
@@ -925,22 +928,291 @@ export function CoursesNavbarResizable({
             onSearch={onSearchChange ? (query: string) => onSearchChange(query) : undefined}
           />
 
-          {/* Mobile Actions */}
-          <div className="flex w-full flex-col gap-2 pt-2">
-            <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button
-                variant="outline"
-                className="w-full h-10 font-medium text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all duration-200"
-              >
-                Log In
-              </Button>
-            </Link>
-            <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button className="w-full h-10 rounded-full font-medium bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300">
-                Join for Free
-              </Button>
-            </Link>
+          {/* Mobile Filter Magic - Full Featured */}
+          <div className="w-full pt-4">
+            {/* Filter Magic Header */}
+            <div className="bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 rounded-2xl p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="p-2 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-lg shadow-lg"
+                  >
+                    <Brain className="w-4 h-4 text-white" />
+                  </motion.div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                      Filter Magic
+                      <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-[10px] px-1.5">
+                        BETA
+                      </Badge>
+                    </h3>
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400">
+                      AI-powered course filtering
+                    </p>
+                  </div>
+                </div>
+                {activeFiltersCount > 0 && onClearAll && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      onClearAll();
+                      setPriceSliderValue([0, 200]);
+                    }}
+                    className="h-7 px-2 text-xs bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white rounded-lg"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+
+              {/* Filter Progress */}
+              {filterProgress > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-slate-600 dark:text-slate-400">Precision</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{Math.round(filterProgress)}%</span>
+                  </div>
+                  <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-500"
+                      style={{ width: `${filterProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Scrollable Filters */}
+            <div className="space-y-4 max-h-[calc(100vh-350px)] overflow-y-auto pr-2">
+              {/* AI Suggestions */}
+              <div className="space-y-2">
+                <button
+                  onClick={() => toggleSection("ai")}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <Lightbulb className="w-3 h-3 text-purple-500" />
+                    AI Recommendations
+                  </h4>
+                  <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", expandedSection === "ai" && "rotate-180")} />
+                </button>
+
+                {expandedSection === "ai" && (
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    {AI_SUGGESTIONS.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        onClick={() => applySuggestion(suggestion)}
+                        className="p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all text-left"
+                      >
+                        <div className={cn("p-1.5 bg-gradient-to-br rounded-lg mb-1.5 inline-flex", suggestion.gradient)}>
+                          <suggestion.icon className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <div className="text-[11px] font-bold text-slate-900 dark:text-white mb-0.5">
+                          {suggestion.title}
+                        </div>
+                        <div className="text-[9px] text-slate-600 dark:text-slate-400 line-clamp-1">
+                          {suggestion.description}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Categories */}
+              {filterOptions?.categories && filterOptions.categories.length > 0 && (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => toggleSection("categories")}
+                    className="w-full flex items-center justify-between text-left"
+                  >
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <Grid3X3 className="w-3 h-3 text-blue-500" />
+                      Categories
+                      {selectedCategories.length > 0 && (
+                        <Badge className="bg-blue-500 text-white border-0 text-[9px] h-4 px-1.5">
+                          {selectedCategories.length}
+                        </Badge>
+                      )}
+                    </h4>
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", expandedSection === "categories" && "rotate-180")} />
+                  </button>
+
+                  {expandedSection === "categories" && (
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {filterOptions.categories.map((category) => {
+                        const isSelected = selectedCategories.includes(category.id);
+                        return (
+                          <button
+                            key={category.id}
+                            onClick={() => onCategoryToggle?.(category.id)}
+                            className={cn(
+                              "px-2.5 py-1 rounded-full text-[11px] font-medium transition-all",
+                              isSelected
+                                ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                            )}
+                          >
+                            {category.name}
+                            {isSelected && " ✓"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <Separator />
+
+              {/* Price Range */}
+              <div className="space-y-2">
+                <button
+                  onClick={() => toggleSection("price")}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <DollarSign className="w-3 h-3 text-emerald-500" />
+                    Price Range
+                    {selectedPriceRange && (
+                      <Badge className="bg-emerald-500 text-white border-0 text-[9px] h-4 px-1.5">
+                        ${selectedPriceRange.min}-${selectedPriceRange.max}
+                      </Badge>
+                    )}
+                  </h4>
+                  <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", expandedSection === "price" && "rotate-180")} />
+                </button>
+
+                {expandedSection === "price" && (
+                  <div className="pt-2 space-y-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { label: "Free", value: [0, 0] },
+                        { label: "<$50", value: [0, 50] },
+                        { label: "<$100", value: [0, 100] },
+                        { label: "All", value: [0, 500] }
+                      ].map((option) => (
+                        <button
+                          key={option.label}
+                          onClick={() => {
+                            setPriceSliderValue(option.value);
+                            handlePriceSliderChange(option.value);
+                          }}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all",
+                            priceSliderValue[0] === option.value[0] && priceSliderValue[1] === option.value[1]
+                              ? "bg-emerald-500 text-white shadow-md"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="px-2">
+                      <Slider
+                        value={priceSliderValue}
+                        onValueChange={handlePriceSliderChange}
+                        min={0}
+                        max={500}
+                        step={10}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">
+                          ${priceSliderValue[0]}
+                        </span>
+                        <span className="text-xs text-slate-400">-</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">
+                          ${priceSliderValue[1] === 500 ? "500+" : priceSliderValue[1]}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Difficulty */}
+              {filterOptions?.difficulties && filterOptions.difficulties.length > 0 && (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => toggleSection("difficulty")}
+                    className="w-full flex items-center justify-between text-left"
+                  >
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <BarChart3 className="w-3 h-3 text-purple-500" />
+                      Difficulty
+                      {selectedDifficulties.length > 0 && (
+                        <Badge className="bg-purple-500 text-white border-0 text-[9px] h-4 px-1.5">
+                          {selectedDifficulties.length}
+                        </Badge>
+                      )}
+                    </h4>
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", expandedSection === "difficulty" && "rotate-180")} />
+                  </button>
+
+                  {expandedSection === "difficulty" && (
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      {filterOptions.difficulties.map((diff) => {
+                        const visual = DIFFICULTY_VISUALS[diff.value as keyof typeof DIFFICULTY_VISUALS];
+                        const isSelected = selectedDifficulties.includes(diff.value);
+                        return (
+                          <button
+                            key={diff.value}
+                            onClick={() => onDifficultyToggle?.(diff.value)}
+                            className={cn(
+                              "p-2.5 rounded-xl border-2 transition-all text-center",
+                              isSelected
+                                ? `border-transparent bg-gradient-to-br ${visual.color}`
+                                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                            )}
+                          >
+                            <div className="text-xl mb-1">{visual.icon}</div>
+                            <div className={cn("text-[11px] font-bold", isSelected ? "text-white" : "text-slate-900 dark:text-white")}>
+                              {diff.label}
+                            </div>
+                            <div className={cn("text-[9px]", isSelected ? "text-white/80" : "text-slate-600 dark:text-slate-400")}>
+                              {visual.description}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Mobile Actions - Only show for non-logged-in users */}
+          {!userId && (
+            <div className="flex w-full flex-col gap-2 pt-2">
+              <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button
+                  variant="outline"
+                  className="w-full h-10 font-medium text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all duration-200"
+                >
+                  Log In
+                </Button>
+              </Link>
+              <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button className="w-full h-10 rounded-full font-medium bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                  Join for Free
+                </Button>
+              </Link>
+            </div>
+          )}
         </MobileNavMenu>
       </MobileNav>
     </Navbar>
