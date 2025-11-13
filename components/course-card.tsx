@@ -8,7 +8,7 @@ import { useState } from "react";
 import { IconBadge } from "@/components/icon-badge";
 import { formatPrice } from "@/lib/format";
 import { CourseProgress } from "@/components/course-progress";
-import { ensureHttpsUrl, getFallbackImageUrl, isCloudinaryUrl } from "@/lib/cloudinary-utils";
+import { ensureHttpsUrl, getFallbackImageUrl } from "@/lib/cloudinary-utils";
 
 interface CourseCardProps {
   id: string;
@@ -61,8 +61,8 @@ export const CourseCard = ({
             alt={title}
             src={imgSrc}
             onError={handleImageError}
-            unoptimized={isCloudinaryUrl(imgSrc) || hasError}
             priority={false}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         </div>
         <div className="flex flex-col pt-2">

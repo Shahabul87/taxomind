@@ -6,7 +6,7 @@ import Image from "next/image";
 import { formatPrice } from "@/lib/format";
 import { BookOpen, Star, Play, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ensureHttpsUrl, getFallbackImageUrl, isCloudinaryUrl } from "@/lib/cloudinary-utils";
+import { ensureHttpsUrl, getFallbackImageUrl } from "@/lib/cloudinary-utils";
 
 interface CourseCardProps {
   id: string;
@@ -66,7 +66,6 @@ export const CourseCardHome = ({
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-700 group-hover:scale-110"
           quality={90}
-          unoptimized={isCloudinaryUrl(secureImageUrl)}
           priority={false}
           onError={(e) => {
             // Direct DOM manipulation for more reliable fallback

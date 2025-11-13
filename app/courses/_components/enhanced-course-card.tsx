@@ -25,7 +25,7 @@ import { CourseProgress } from "@/components/course-progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ensureHttpsUrl, getFallbackImageUrl, isCloudinaryUrl } from "@/lib/cloudinary-utils";
+import { ensureHttpsUrl, getFallbackImageUrl } from "@/lib/cloudinary-utils";
 
 interface InstructorInfo {
   id: string;
@@ -165,7 +165,7 @@ export const EnhancedCourseCard = ({
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             alt={title}
             src={secureImageUrl}
-            unoptimized={isCloudinaryUrl(secureImageUrl)}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             priority={false}
           />
           {badges.length > 0 && (
@@ -244,7 +244,6 @@ export const EnhancedCourseCard = ({
                     width={24}
                     height={24}
                     className="rounded-full"
-                    unoptimized={isCloudinaryUrl(secureInstructorAvatar)}
                   />
                 )}
                 <span className="text-sm text-muted-foreground">by {instructor.name}</span>
@@ -357,7 +356,7 @@ export const EnhancedCourseCard = ({
           alt={title}
           fill
           className="object-cover transition-transform duration-700 group-hover:scale-110"
-          unoptimized={isCloudinaryUrl(secureImageUrl)}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           priority={false}
         />
 
@@ -444,7 +443,7 @@ export const EnhancedCourseCard = ({
                   alt={instructor.name}
                   fill
                   className="object-cover"
-                  unoptimized={isCloudinaryUrl(secureInstructorAvatar)}
+                  sizes="40px"
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
