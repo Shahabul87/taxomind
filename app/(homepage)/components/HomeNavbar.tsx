@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { UserMenu } from "@/app/(homepage)/_components/user-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { getFallbackImageUrl } from "@/lib/cloudinary-utils";
 
 interface NavItem {
   name: string;
@@ -96,6 +97,9 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
               height={32}
               className="h-full w-full object-cover"
               priority
+              onError={(e) => {
+                e.currentTarget.src = getFallbackImageUrl('default');
+              }}
             />
           </div>
           <span className="font-bold text-lg bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
@@ -174,6 +178,9 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
               height={28}
               className="h-full w-full object-cover"
               priority
+              onError={(e) => {
+                e.currentTarget.src = getFallbackImageUrl('default');
+              }}
             />
           </div>
           <span className="font-bold text-base bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">

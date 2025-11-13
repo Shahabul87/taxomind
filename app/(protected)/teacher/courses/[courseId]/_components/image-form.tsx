@@ -12,6 +12,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
 import { UploadButton } from "@/utils/uploadthing";
+import { ensureHttpsUrl, getFallbackImageUrl } from "@/lib/cloudinary-utils";
 
 interface ImageFormProps {
   initialData: Course
@@ -74,12 +75,15 @@ export const ImageForm = ({
             <ImageIcon className="h-10 w-10 text-slate-500" />
           </div>
         ) : (
-          <div className="relative aspect-video mt-2">
+          <div className="relative aspect-video mt-2 bg-slate-100 dark:bg-slate-700 rounded-md overflow-hidden">
             <Image
               alt="Upload"
               fill
               className="object-cover rounded-md"
-              src={initialData.imageUrl}
+              src={ensureHttpsUrl(initialData.imageUrl) || getFallbackImageUrl('course')}
+              onError={(e) => {
+                e.currentTarget.src = getFallbackImageUrl('course');
+              }}
             />
           </div>
         )

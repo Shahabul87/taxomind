@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ensureHttpsUrl, getFallbackImageUrl } from "@/lib/cloudinary-utils";
 
 interface CourseImageUploadProps {
   courseId: string;
@@ -21,8 +22,8 @@ export const CourseImageUpload = ({
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
 
-  // Ensure image URL uses HTTPS for Next.js Image component
-  const secureImageUrl = initialImage?.replace(/^http:\/\//i, 'https://') || null;
+  // Ensure image URL uses HTTPS and has proper fallback
+  const secureImageUrl = ensureHttpsUrl(initialImage) || null;
 
   const toggleEdit = () => setIsEditing((current) => !current);
 
@@ -72,12 +73,15 @@ export const CourseImageUpload = ({
         <div className="group relative">
           <div className="flex flex-col gap-4">
             {secureImageUrl ? (
-              <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+              <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700">
                 <Image
                   src={secureImageUrl}
                   alt="Course image"
                   fill
                   className="object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = getFallbackImageUrl('course');
+                  }}
                 />
               </div>
             ) : (

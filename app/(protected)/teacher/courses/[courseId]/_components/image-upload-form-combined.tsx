@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/fileupload/file-upload";
 import { cn } from "@/lib/utils";
+import { ensureHttpsUrl, getFallbackImageUrl } from "@/lib/cloudinary-utils";
 
 interface ImageFormProps {
   initialData: {
@@ -116,12 +117,15 @@ export const ImageFormCombined = ({
           animate={{ opacity: 1, y: 0 }}
           className="mt-6"
         >
-          <div className="relative aspect-video rounded-xl overflow-hidden group">
+          <div className="relative aspect-video rounded-xl overflow-hidden group bg-slate-100 dark:bg-slate-700">
             <Image
               alt="Upload"
               fill
               className="object-cover"
-              src={initialData.imageUrl}
+              src={ensureHttpsUrl(initialData.imageUrl) || getFallbackImageUrl('course')}
+              onError={(e) => {
+                e.currentTarget.src = getFallbackImageUrl('course');
+              }}
             />
             <div className="absolute inset-0 bg-black/30 transition-opacity opacity-0 group-hover:opacity-100" />
           </div>

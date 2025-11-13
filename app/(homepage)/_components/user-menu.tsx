@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  User, 
-  LogOut, 
-  Settings, 
-  LayoutDashboard, 
-  Bell, 
+import {
+  User,
+  LogOut,
+  Settings,
+  LayoutDashboard,
+  Bell,
   HelpCircle,
   Bookmark,
   Award,
@@ -27,6 +27,7 @@ interface MenuItem {
 }
 import { LogoutButton } from "@/components/auth/logout-button";
 import Image from "next/image";
+import { ensureHttpsUrl, getFallbackImageUrl } from "@/lib/cloudinary-utils";
 
 interface UserMenuProps {
   user: {
@@ -230,11 +231,14 @@ export const UserMenu = ({ user }: UserMenuProps) => {
           <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/40 hover:border-purple-400/60 group-hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
             {user?.image ? (
               <Image
-                src={user.image}
+                src={ensureHttpsUrl(user.image) || getFallbackImageUrl('user')}
                 alt={user.name || "User"}
                 fill
                 sizes="32px"
                 className="object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = getFallbackImageUrl('user');
+                }}
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-inner">
@@ -262,11 +266,14 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                   <div className="w-10 h-10 rounded-lg overflow-hidden border-2 border-purple-500/30 dark:border-purple-400/40 shadow-sm flex-shrink-0">
                     {user?.image ? (
                       <Image
-                        src={user.image}
+                        src={ensureHttpsUrl(user.image) || getFallbackImageUrl('user')}
                         alt={user.name || "User"}
                         width={40}
                         height={40}
                         className="object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = getFallbackImageUrl('user');
+                        }}
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
@@ -343,11 +350,14 @@ export const UserMenu = ({ user }: UserMenuProps) => {
                     <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-purple-500/30 dark:border-purple-400/40 shadow-sm">
                       {user?.image ? (
                         <Image
-                          src={user.image}
+                          src={ensureHttpsUrl(user.image) || getFallbackImageUrl('user')}
                           alt={user.name || "User"}
                           width={48}
                           height={48}
                           className="object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = getFallbackImageUrl('user');
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 flex items-center justify-center text-white font-semibold">

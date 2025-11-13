@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { TimeAgo } from '@/app/components/ui/time-ago';
 import { cn } from '@/lib/utils';
+import { ensureHttpsUrl, getFallbackImageUrl } from '@/lib/cloudinary-utils';
 
 interface CourseCardProps {
   course: any;
@@ -23,8 +24,8 @@ interface CourseCardProps {
 export const CourseCard = ({ course, type }: CourseCardProps) => {
   const isEnrolled = type === 'enrolled';
 
-  // Default image if none provided
-  const imageUrl = course.imageUrl || '/images/course-placeholder.jpg';
+  // Ensure image URL uses HTTPS and has proper fallback
+  const imageUrl = ensureHttpsUrl(course.imageUrl) || getFallbackImageUrl('course');
 
   // Format date text
   const datePrefix = isEnrolled ? 'Enrolled ' : 'Created ';
@@ -95,6 +96,9 @@ export const CourseCard = ({ course, type }: CourseCardProps) => {
           alt={course.title}
           fill
           className="object-cover transition-transform duration-700 group-hover:scale-110"
+          onError={(e) => {
+            e.currentTarget.src = getFallbackImageUrl('course');
+          }}
         />
 
         {/* Gradient Overlays */}
@@ -177,10 +181,13 @@ export const CourseCard = ({ course, type }: CourseCardProps) => {
             <div className="relative h-7 w-7 rounded-full overflow-hidden ring-2 ring-blue-500/50 dark:ring-blue-400/50 shadow-sm flex-shrink-0">
               {course.instructor.image ? (
                 <Image
-                  src={course.instructor.image}
+                  src={ensureHttpsUrl(course.instructor.image) || getFallbackImageUrl('user')}
                   alt={course.instructor.name || 'Instructor'}
                   fill
                   className="object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = getFallbackImageUrl('user');
+                  }}
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
