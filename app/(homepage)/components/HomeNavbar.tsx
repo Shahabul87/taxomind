@@ -10,10 +10,23 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { UserMenu } from "@/app/(homepage)/_components/user-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { getFallbackImageUrl } from "@/lib/cloudinary-utils";
+import { Menu, X, Home, BookOpen, FileText, Info, LogOut, User, Settings, ChevronRight, Palette } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface NavItem {
   name: string;
   link: string;
+  icon: React.ComponentType<{ className?: string }>;
+  description?: string;
 }
 
 interface HomeNavbarProps {
@@ -24,13 +37,34 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
   const { scrollY } = useScroll();
   const [isVisible, setIsVisible] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const user = useCurrentUser();
 
   const navItems: NavItem[] = [
-    { name: "Home", link: "/" },
-    { name: "Courses", link: "/courses" },
-    { name: "Blog", link: "/blog" },
-    { name: "About", link: "/about" },
+    {
+      name: "Home",
+      link: "/",
+      icon: Home,
+      description: "Back to homepage"
+    },
+    {
+      name: "Courses",
+      link: "/courses",
+      icon: BookOpen,
+      description: "Browse all courses"
+    },
+    {
+      name: "Blog",
+      link: "/blog",
+      icon: FileText,
+      description: "Read latest articles"
+    },
+    {
+      name: "About",
+      link: "/about",
+      icon: Info,
+      description: "Learn about us"
+    },
   ];
 
   // Show navbar only after scrolling past 100px
@@ -190,20 +224,174 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
 
         {/* Mobile Auth Section */}
         <div className="flex items-center gap-2">
-          <ThemeToggle />
-          {user ? (
-            <UserMenu user={user} />
-          ) : (
-            <Link href="/auth/login">
+          {/* Mobile Menu Button - Only show on smaller devices */}
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
               <Button
-                variant="default"
+                variant="ghost"
                 size="sm"
-                className="rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs"
+                className="md:hidden rounded-full p-2 hover:bg-blue-100 dark:hover:bg-slate-700"
+                aria-label="Open navigation menu"
               >
-                Sign In
+                <Menu className="h-5 w-5 text-slate-700 dark:text-slate-300" />
               </Button>
-            </Link>
-          )}
+            </SheetTrigger>
+            <SheetContent
+              side="right"
+              className="w-[320px] sm:w-[380px] p-0 border-l border-slate-200 dark:border-slate-800"
+            >
+              {/* Enterprise Header with Gradient */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 dark:from-blue-600 dark:via-indigo-600 dark:to-purple-700 p-6 pb-8">
+                {/* Decorative elements */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+
+                <div className="relative z-10">
+                  <SheetHeader className="space-y-2">
+                    <SheetTitle className="text-white text-xl font-bold text-left">
+                      Menu
+                    </SheetTitle>
+                    <SheetDescription className="text-blue-50 text-sm text-left">
+                      Navigate through Taxomind
+                    </SheetDescription>
+                  </SheetHeader>
+
+                  {/* User Profile Section */}
+                  {user && (
+                    <div className="mt-6 flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+                      <Avatar className="h-12 w-12 ring-2 ring-white/30">
+                        <AvatarImage
+                          src={user.image || ''}
+                          alt={user.name || 'User'}
+                        />
+                        <AvatarFallback className="bg-gradient-to-br from-purple-400 to-blue-400 text-white font-semibold">
+                          {user.name?.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-semibold text-sm truncate">
+                          {user.name || 'User'}
+                        </p>
+                        <p className="text-blue-100 text-xs truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Navigation Items */}
+              <nav className="p-4 space-y-1">
+                <p className="px-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                  Navigation
+                </p>
+                {navItems.map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={`mobile-nav-${idx}`}
+                      href={item.link}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="group flex items-center justify-between rounded-xl px-4 py-3.5 text-slate-700 dark:text-slate-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-slate-800 dark:hover:to-slate-800/50 transition-all duration-200 hover:shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/10 to-indigo-500/10 dark:from-blue-500/20 dark:to-indigo-500/20 group-hover:from-blue-500/20 group-hover:to-indigo-500/20 dark:group-hover:from-blue-500/30 dark:group-hover:to-indigo-500/30 transition-all">
+                          <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">
+                            {item.name}
+                          </p>
+                          {item.description && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <Separator className="my-4" />
+
+              {/* Quick Actions */}
+              <div className="px-4 pb-4 space-y-1">
+                <p className="px-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                  Quick Actions
+                </p>
+
+                {/* Dashboard Link (only for authenticated users) */}
+                {user && (
+                  <Link
+                    href={user.role === 'ADMIN' ? '/dashboard/admin' : '/dashboard/user'}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="group flex items-center gap-3 rounded-xl px-4 py-3 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                  >
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800">
+                      <Settings className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                    </div>
+                    <span className="font-medium text-sm">Dashboard</span>
+                  </Link>
+                )}
+
+                {/* Theme Toggle for Mobile */}
+                <div className="group flex items-center justify-between rounded-xl px-4 py-3 text-slate-700 dark:text-slate-300">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 dark:from-purple-500/20 dark:to-pink-500/20">
+                      <Palette className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <span className="font-medium text-sm">Appearance</span>
+                  </div>
+                  <ThemeToggle />
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
+                {user ? (
+                  <Link
+                    href="/auth/logout"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </Link>
+                ) : (
+                  <Link
+                    href="/auth/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <User className="h-4 w-4" />
+                    Sign In
+                  </Link>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Theme Toggle and User Menu - Only show on md devices and above */}
+          <div className="hidden md:flex items-center gap-2">
+            <ThemeToggle />
+            {user ? (
+              <UserMenu user={user} />
+            ) : (
+              <Link href="/auth/login">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs"
+                >
+                  Sign In
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       </motion.div>
     </motion.div>
