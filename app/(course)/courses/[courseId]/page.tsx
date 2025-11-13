@@ -67,7 +67,7 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 overflow-x-hidden">
       {/* JSON-LD for SEO */}
       <script
         type="application/ld+json"
