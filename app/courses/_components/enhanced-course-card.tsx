@@ -25,6 +25,7 @@ import { CourseProgress } from "@/components/course-progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ensureHttpsUrl, getFallbackImageUrl, isCloudinaryUrl } from "@/lib/cloudinary-utils";
 
 interface InstructorInfo {
   id: string;
@@ -105,8 +106,8 @@ export const EnhancedCourseCard = ({
   const [isPlaying, setIsPlaying] = useState(false);
 
   // Ensure image URLs use HTTPS for Next.js Image component
-  const secureImageUrl = imageUrl?.replace(/^http:\/\//i, 'https://') || '/default-course.jpg';
-  const secureInstructorAvatar = instructor?.avatar?.replace(/^http:\/\//i, 'https://');
+  const secureImageUrl = ensureHttpsUrl(imageUrl) || getFallbackImageUrl('course');
+  const secureInstructorAvatar = ensureHttpsUrl(instructor?.avatar);
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -164,6 +165,8 @@ export const EnhancedCourseCard = ({
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             alt={title}
             src={secureImageUrl}
+            unoptimized={isCloudinaryUrl(secureImageUrl)}
+            priority={false}
           />
           {badges.length > 0 && (
             <div className="absolute top-2 left-2 flex gap-1">
@@ -241,6 +244,7 @@ export const EnhancedCourseCard = ({
                     width={24}
                     height={24}
                     className="rounded-full"
+                    unoptimized={isCloudinaryUrl(secureInstructorAvatar)}
                   />
                 )}
                 <span className="text-sm text-muted-foreground">by {instructor.name}</span>
@@ -353,6 +357,8 @@ export const EnhancedCourseCard = ({
           alt={title}
           fill
           className="object-cover transition-transform duration-700 group-hover:scale-110"
+          unoptimized={isCloudinaryUrl(secureImageUrl)}
+          priority={false}
         />
 
         {/* Gradient Overlays */}
@@ -438,6 +444,7 @@ export const EnhancedCourseCard = ({
                   alt={instructor.name}
                   fill
                   className="object-cover"
+                  unoptimized={isCloudinaryUrl(secureInstructorAvatar)}
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">

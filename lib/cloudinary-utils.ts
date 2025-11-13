@@ -53,6 +53,16 @@ export function isValidCloudinaryUrl(url: string | null | undefined): boolean {
 }
 
 /**
+ * Checks if a URL is a Cloudinary URL
+ * @param url - The URL to check
+ * @returns True if it's a Cloudinary URL
+ */
+export function isCloudinaryUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return url.includes('cloudinary.com') || url.includes('res.cloudinary.com');
+}
+
+/**
  * Gets the secure Cloudinary URL from a response object
  * @param result - The Cloudinary upload response
  * @returns The secure URL or null

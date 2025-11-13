@@ -6,6 +6,7 @@ import Image from "next/image";
 import { formatPrice } from "@/lib/format";
 import { BookOpen, Star, Play, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ensureHttpsUrl, getFallbackImageUrl, isCloudinaryUrl } from "@/lib/cloudinary-utils";
 
 interface CourseCardProps {
   id: string;
@@ -16,9 +17,6 @@ interface CourseCardProps {
   price: number;
   category: string;
 }
-
-// Fallback image for when course image is not available - using inline SVG for reliability
-const FALLBACK_IMAGE = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkMSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjM2NkYxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQTg1NUY3O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICAgIDwvZGVmcz4KICAgICAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NTAiIGZpbGw9InVybCgjZ3JhZDEpIi8+CiAgICAgIDx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSIgZm9udC1zaXplPSI0MCIgZm9udC13ZWlnaHQ9ImJvbGQiPgogICAgICAgIENvdXJzZQogICAgICA8L3RleHQ+CiAgICA8L3N2Zz4=";
 
 export const CourseCardHome = ({
   id,
@@ -31,9 +29,7 @@ export const CourseCardHome = ({
 }: CourseCardProps) => {
   // Ensure image URLs use HTTPS for Next.js Image component in production
   // Use fallback if imageUrl is null, undefined, or empty string
-  const secureImageUrl = (imageUrl && imageUrl.trim())
-    ? imageUrl.replace(/^http:\/\//i, 'https://')
-    : FALLBACK_IMAGE;
+  const secureImageUrl = ensureHttpsUrl(imageUrl) || getFallbackImageUrl('course');
 
   // Get category gradient based on category name
   const getCategoryGradient = (cat: string) => {
@@ -70,9 +66,11 @@ export const CourseCardHome = ({
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-700 group-hover:scale-110"
           quality={90}
+          unoptimized={isCloudinaryUrl(secureImageUrl)}
+          priority={false}
           onError={(e) => {
             // Direct DOM manipulation for more reliable fallback
-            e.currentTarget.src = FALLBACK_IMAGE;
+            e.currentTarget.src = getFallbackImageUrl('course');
           }}
         />
 
