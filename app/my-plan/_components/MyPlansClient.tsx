@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from "react";
 import type { User as NextAuthUser } from "next-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SmartHeader } from "@/components/dashboard/smart-header";
-import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
+import { MobileLayout } from "@/components/layouts/MobileLayout";
 import { Loader2 } from "lucide-react";
 import { CoursePlansTab } from "./CoursePlansTab";
 import { BlogPlansTab } from "./BlogPlansTab";
@@ -22,12 +21,16 @@ export function MyPlansClient({ user }: MyPlansClientProps) {
   const [activeTab, setActiveTab] = useState("course-plans");
 
   return (
-    <>
-      <SmartSidebar user={user} />
-      <div className="ml-[72px]">
-        <SmartHeader user={user} />
-        <div className="min-h-screen pt-16 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-          <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <MobileLayout
+      user={user}
+      showHeader={true}
+      showSidebar={true}
+      showBottomBar={true}
+      enableGestures={true}
+      contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"
+    >
+      <div className="min-h-screen">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
             My Plans
@@ -56,9 +59,8 @@ export function MyPlansClient({ user }: MyPlansClientProps) {
             <StudyPlansTab />
           </TabsContent>
         </Tabs>
-          </div>
         </div>
       </div>
-    </>
+    </MobileLayout>
   );
 }

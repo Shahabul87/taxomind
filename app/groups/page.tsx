@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { SmartHeader } from "@/components/dashboard/smart-header";
-import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
+import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
 
 export const revalidate = 0;
 
@@ -84,17 +83,14 @@ export default async function GroupsPage(props: GroupsPageProps) {
   });
 
   return (
-    <>
-      {/* Smart Sidebar - Fixed position with 72px collapsed width */}
-      <SmartSidebar user={user as any} />
-
-      {/* Main Content Area - Left margin matches collapsed sidebar width (72px) */}
-      <div className="ml-[72px]">
-        {/* Smart Header - Full width, sticky to top */}
-        <SmartHeader user={user as any} />
-
-        {/* Page Content */}
-        <main className="min-h-screen pt-16 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+    <PageWithMobileLayout
+      showHeader={true}
+      showSidebar={true}
+      showBottomBar={true}
+      enableGestures={true}
+      contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
+    >
+      <main className="min-h-screen">
         <div className="py-6 px-4 sm:px-6 lg:px-8">
         {/* Hero Section with Background Image */}
         <div className="relative bg-gradient-to-r from-indigo-600 to-purple-700 h-80 rounded-2xl overflow-hidden mb-6">
@@ -349,8 +345,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
           </div>
         </section>
         </div>
-        </main>
-      </div>
-    </>
+      </main>
+    </PageWithMobileLayout>
   );
 } 

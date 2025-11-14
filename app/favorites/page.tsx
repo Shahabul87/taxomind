@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { getProfileData } from "@/app/actions/get-profile-data";
 import Link from "next/link";
 import { Heart, Video, BookOpen, Headphones, FileText, ExternalLink } from "lucide-react";
-import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
-import { SmartHeader } from "@/components/dashboard/smart-header";
+import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
 
 export default async function FavoritesPage() {
   const session = await auth();
@@ -66,11 +65,14 @@ export default async function FavoritesPage() {
   ];
 
   return (
-    <>
-      <SmartSidebar user={session.user} />
-      <SmartHeader user={session.user} />
-
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20 pt-16 pl-[88px]">
+    <PageWithMobileLayout
+      showHeader={true}
+      showSidebar={true}
+      showBottomBar={true}
+      enableGestures={true}
+      contentClassName="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20"
+    >
+      <div className="min-h-screen">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <div className="mb-8">
@@ -164,7 +166,7 @@ export default async function FavoritesPage() {
         )}
         </div>
       </div>
-    </>
+    </PageWithMobileLayout>
   );
 }
 

@@ -16,12 +16,7 @@ const DashboardPage = async () => {
   }
 
   // Regular users see the new Canvas LMS-inspired dashboard
-  return (
-    <>
-      <SmartSidebar user={user} />
-      <DashboardClient user={user} />
-    </>
-  );
+  return <DashboardClient user={user} />;
 };
 
 export default DashboardPage;

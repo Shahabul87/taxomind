@@ -1,7 +1,6 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
-import { SmartHeader } from "@/components/dashboard/smart-header";
+import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
 import { SupportHero } from "./_components/support-hero";
 import { QuickActions } from "./_components/quick-actions";
 import { FAQSection } from "./_components/faq-section";
@@ -17,11 +16,14 @@ export default async function SupportPage() {
   }
 
   return (
-    <>
-      <SmartSidebar user={user} />
-      <SmartHeader user={user} />
-
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 pt-16 pl-[88px]">
+    <PageWithMobileLayout
+      showHeader={true}
+      showSidebar={true}
+      showBottomBar={true}
+      enableGestures={true}
+      contentClassName="bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800"
+    >
+      <div className="min-h-screen">
         {/* Hero Section */}
         <SupportHero />
 
@@ -76,6 +78,6 @@ export default async function SupportPage() {
           </section>
         </div>
       </div>
-    </>
+    </PageWithMobileLayout>
   );
 } 

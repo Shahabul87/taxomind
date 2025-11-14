@@ -1,0 +1,217 @@
+/* Mobile Viewport Optimization */
+
+/* Dynamic viewport height for true full-screen experience */
+.mobile-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for modern browsers */
+  height: calc(var(--vh, 1vh) * 100); /* Fallback using custom property */
+  overflow: hidden;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  overscroll-behavior: contain;
+}
+
+/* iOS Safe Area Support */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Smooth scrolling with momentum */
+.smooth-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar on mobile for cleaner look */
+@media (max-width: 768px) {
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Gesture indicators */
+.edge-indicator-left {
+  background: linear-gradient(
+    to right,
+    rgba(59, 130, 246, 0.2),
+    transparent 20px
+  );
+}
+
+.edge-indicator-right {
+  background: linear-gradient(
+    to left,
+    rgba(59, 130, 246, 0.2),
+    transparent 20px
+  );
+}
+
+/* Pull-to-refresh styles */
+.pull-to-refresh {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Elastic overscroll effect */
+.elastic-scroll {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Bottom navigation elevation */
+.bottom-nav-elevated {
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1),
+              0 -2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Floating Action Button (FAB) styles */
+.fab-primary {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fab-primary.fab-hidden {
+  transform: translateX(-50%) translateY(150px);
+}
+
+/* Mobile-optimized touch targets (minimum 44x44px) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Disable hover effects on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects on touch devices */
+  [class*="hover:"]:hover {
+    background-color: transparent !important;
+  }
+
+  /* Preserve tap feedback */
+  button:active,
+  a:active {
+    opacity: 0.9;
+  }
+}
+
+/* Prevent text selection on interactive elements */
+.no-select {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Haptic feedback animation */
+@keyframes haptic-feedback {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+.haptic-feedback {
+  animation: haptic-feedback 0.1s ease-in-out;
+}
+
+/* Mobile landscape optimizations */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-fullscreen {
+    height: 100vh !important;
+  }
+
+  .hide-in-landscape-mobile {
+    display: none;
+  }
+
+  .compact-in-landscape {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* Optimize animations for mobile performance */
+@media (max-width: 768px) {
+  * {
+    animation-duration: 0.2s !important;
+  }
+
+  /* Use transform3d for GPU acceleration */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+}
+
+/* Custom scrollbar for mobile (when needed) */
+.custom-scrollbar-mobile {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+}
+
+.custom-scrollbar-mobile::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar-mobile::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar-mobile::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.3);
+  border-radius: 2px;
+}
+
+/* Prevent zoom on input focus (iOS) */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

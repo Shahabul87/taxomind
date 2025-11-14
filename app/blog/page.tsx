@@ -1,6 +1,7 @@
 import { BlogPageRedesigned } from './components/redesign/BlogPageRedesigned';
 import { ModernBlogPage } from './components/modern-blog-page';
 import { getSimplePostsForBlog } from '@/actions/get-simple-posts';
+import { PageWithMobileLayout } from '@/components/layouts/PageWithMobileLayout';
 
 // Fetch posts from database for initial SSR
 async function getPosts() {
@@ -43,12 +44,20 @@ export default async function BlogPage() {
 
   // Use modern design
   return (
-    <ModernBlogPage
-      featuredPosts={featuredPosts}
-      initialPosts={posts}
-      categories={categories}
-      trendingPosts={trendingPosts.length > 0 ? trendingPosts : posts.slice(0, 5)}
-    />
+    <PageWithMobileLayout
+      showHeader={true}
+      showSidebar={true}
+      showBottomBar={true}
+      enableGestures={true}
+      contentClassName="bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800"
+    >
+      <ModernBlogPage
+        featuredPosts={featuredPosts}
+        initialPosts={posts}
+        categories={categories}
+        trendingPosts={trendingPosts.length > 0 ? trendingPosts : posts.slice(0, 5)}
+      />
+    </PageWithMobileLayout>
   );
 }
 

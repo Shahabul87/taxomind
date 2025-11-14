@@ -1,0 +1,109 @@
+
+> taxomind@1.0.0 prebuild
+> node scripts/validate-env.js
+
+🔧 Loading environment for: development
+✅ Found: .env.local
+✅ Found: .env.development
+✅ Found: .env
+📊 Environment Summary:
+   NODE_ENV: development
+   Database: Local (Local Docker)
+   App URL: http://localhost:3000
+   Redis: Disabled
+   Files loaded: .env.local, .env.development, .env
+❌ Could not load TypeScript validation module
+Make sure to run "npm run build" or install ts-node
+🔍 Basic Environment Validation: DEVELOPMENT
+
+📋 Basic Configuration:
+   - NODE_ENV: development
+   - Database: Configured
+   - Auth: Configured
+   - Redis: Not configured
+   - Google OAuth: Configured
+   - GitHub OAuth: Configured
+   - AI (OpenAI): Not configured
+   - AI (Anthropic): Configured
+   - Media (Cloudinary): Configured
+
+✅ Environment validation passed!
+
+
+> taxomind@1.0.0 build
+> NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && NODE_OPTIONS='--max-old-space-size=8192' next build
+
+🔧 Loading environment for: development
+✅ Found: .env.local
+✅ Found: .env.development
+✅ Found: .env
+📊 Environment Summary:
+   NODE_ENV: development
+   Database: Local (Local Docker)
+   App URL: http://localhost:3000
+   Redis: Disabled
+   Files loaded: .env.local, .env.development, .env
+   ▲ Next.js 16.0.1 (Turbopack)
+   - Environments: .env.local, .env.production, .env
+   - Experiments (use with caution):
+     · optimizePackageImports
+     · serverActions
+     ✓ webpackBuildWorker
+
+   Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 2 errors:
+./app/courses/_components/professional-courses-page.tsx:32:1
+Module not found: Can't resolve './enhanced-course-card'
+[0m [90m 30 |[39m [36mimport[39m { [33mCoursesNavbarResizable[39m } [36mfrom[39m [32m"@/components/layout/CoursesNavbarResizable"[39m[33m;[39m
+ [90m 31 |[39m [36mimport[39m { [33mEnhancedHero[39m } [36mfrom[39m [32m"./EnhancedHero"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 32 |[39m [36mimport[39m { [33mEnhancedCourseCard[39m } [36mfrom[39m [32m"./enhanced-course-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 33 |[39m
+ [90m 34 |[39m [36mimport[39m { [33mButton[39m } [36mfrom[39m [32m"@/components/ui/button"[39m[33m;[39m
+ [90m 35 |[39m [36mimport[39m { [33mBadge[39m } [36mfrom[39m [32m"@/components/ui/badge"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/courses/_components/professional-courses-page.tsx [Client Component Browser]
+    ./app/courses/_components/courses-page-client.tsx [Client Component Browser]
+    ./app/courses/_components/courses-page-client.tsx [Server Component]
+    ./app/courses/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/courses/_components/professional-courses-page.tsx [Client Component SSR]
+    ./app/courses/_components/courses-page-client.tsx [Client Component SSR]
+    ./app/courses/_components/courses-page-client.tsx [Server Component]
+    ./app/courses/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./components/courses-list.tsx:3:1
+Module not found: Can't resolve '@/components/course-card'
+[0m [90m 1 |[39m [36mimport[39m { [33mCategory[39m[33m,[39m [33mCourse[39m } [36mfrom[39m [32m"@prisma/client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mCourseCard[39m } [36mfrom[39m [32m"@/components/course-card"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m type [33mCourseWithProgressWithCategory[39m [33m=[39m [33mCourse[39m [33m&[39m {
+ [90m 6 |[39m   category[33m:[39m [33mCategory[39m [33m|[39m [36mnull[39m[33m;[39m[0m
+
+Import map: aliased to relative './components/course-card' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./components/courses-list.tsx
+    ./app/(protected)/search/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (./app/courses/_components/professional-courses-page.tsx:32:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./components/courses-list.tsx:3:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)

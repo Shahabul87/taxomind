@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Award, Download, Shield, Calendar, FileCheck } from "lucide-react";
 import { certificateService } from "@/lib/certificate/service";
-import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
-import { SmartHeader } from "@/components/dashboard/smart-header";
+import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
 
 type Certificate = {
   id: string;
@@ -43,11 +42,14 @@ export default async function CertificatesPage() {
   const certificates = await certificateService.getUserCertificates(session.user.id);
 
   return (
-    <>
-      <SmartSidebar user={session.user} />
-      <SmartHeader user={session.user} />
-
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20 pt-16 pl-[88px]">
+    <PageWithMobileLayout
+      showHeader={true}
+      showSidebar={true}
+      showBottomBar={true}
+      enableGestures={true}
+      contentClassName="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20"
+    >
+      <div className="min-h-screen">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <div className="mb-8">
@@ -122,7 +124,7 @@ export default async function CertificatesPage() {
         )}
         </div>
       </div>
-    </>
+    </PageWithMobileLayout>
   );
 }
 
