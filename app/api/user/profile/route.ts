@@ -154,6 +154,9 @@ export async function GET(request: NextRequest) {
     // Fetch User Data with Relations
     // ==========================================
 
+    // ==========================================
+    // Fetch Basic User Data (without relations to avoid cascading failures)
+    // ==========================================
     let user;
     try {
       user = await db.user.findUnique({
@@ -168,46 +171,10 @@ export async function GET(request: NextRequest) {
           location: true,
           role: true,
           createdAt: true,
-          // Include relations for profile data
-          Enrollment: {
-            where: {
-              status: 'ACTIVE',
-            },
-            include: {
-              Course: {
-                include: {
-                  user: {
-                    select: {
-                      name: true,
-                    },
-                  },
-                  chapters: {
-                    where: { isPublished: true },
-                    select: {
-                      id: true,
-                    },
-                  },
-                },
-              },
-            },
-            orderBy: {
-              updatedAt: 'desc',
-            },
-          },
-          certifications: {
-            where: {
-              isRevoked: false,
-            },
-            select: {
-              id: true,
-              issuedAt: true,
-              courseId: true,
-            },
-          },
         },
       });
     } catch (error) {
-      logger.error('[PROFILE_GET] Failed to fetch user data:', {
+      logger.error('[PROFILE_GET] Failed to fetch basic user data:', {
         userId,
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
@@ -224,6 +191,75 @@ export async function GET(request: NextRequest) {
         },
       };
       return NextResponse.json(response, { status: 404 });
+    }
+
+    // ==========================================
+    // Fetch Enrollments (with fallback)
+    // ==========================================
+    let enrolledCourses: Array<{
+      Course: {
+        id: string;
+        title: string;
+        imageUrl: string | null;
+        categoryId: string | null;
+        user: { name: string | null } | null;
+        chapters: Array<{ id: string }>;
+      };
+      updatedAt: Date;
+    }> = [];
+
+    try {
+      enrolledCourses = await db.enrollment.findMany({
+        where: {
+          userId,
+          status: 'ACTIVE',
+        },
+        include: {
+          Course: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                },
+              },
+              chapters: {
+                where: { isPublished: true },
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
+    } catch (error) {
+      logger.warn('[PROFILE_GET] Failed to fetch enrollments (table may not exist):', error);
+      // Continue with empty array
+    }
+
+    // ==========================================
+    // Fetch Certifications (with fallback)
+    // ==========================================
+    let certifications: Array<{ id: string; issuedAt: Date; courseId: string | null }> = [];
+
+    try {
+      certifications = await db.certification.findMany({
+        where: {
+          userId,
+          isRevoked: false,
+        },
+        select: {
+          id: true,
+          issuedAt: true,
+          courseId: true,
+        },
+      });
+    } catch (error) {
+      logger.warn('[PROFILE_GET] Failed to fetch certifications (table may not exist):', error);
+      // Continue with empty array
     }
 
     // ==========================================
@@ -405,7 +441,6 @@ export async function GET(request: NextRequest) {
     // Calculate Course Statistics
     // ==========================================
 
-    const enrolledCourses = user.Enrollment || [];
     const coursesEnrolled = enrolledCourses.length;
 
     // Calculate completed courses
@@ -604,7 +639,7 @@ export async function GET(request: NextRequest) {
       createdAt: user.createdAt.toISOString(),
       coursesEnrolled,
       coursesCompleted,
-      certificatesEarned: user.certifications.length,
+      certificatesEarned: certifications.length,
       totalLearningHours,
       currentStreak,
       longestStreak,
