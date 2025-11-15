@@ -15,7 +15,7 @@ const ProfileResponseSchema = z.object({
   image: z.string().optional(),
   bio: z.string().optional(),
   location: z.string().optional(),
-  website: z.string().url().optional().nullable(),
+  website: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
   twitter: z.string().optional(),
   linkedin: z.string().optional(),
   github: z.string().optional(),
@@ -153,61 +153,71 @@ export async function GET(request: NextRequest) {
     // Fetch User Data with Relations
     // ==========================================
 
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        phone: true,
-        bio: true,
-        location: true,
-        role: true,
-        createdAt: true,
-        // Include relations for profile data
-        Enrollment: {
-          where: {
-            status: 'ACTIVE',
-          },
-          include: {
-            Course: {
-              include: {
-                user: {
-                  select: {
-                    name: true,
+    let user;
+    try {
+      user = await db.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          phone: true,
+          bio: true,
+          location: true,
+          role: true,
+          createdAt: true,
+          // Include relations for profile data
+          Enrollment: {
+            where: {
+              status: 'ACTIVE',
+            },
+            include: {
+              Course: {
+                include: {
+                  user: {
+                    select: {
+                      name: true,
+                    },
                   },
-                },
-                chapters: {
-                  where: { isPublished: true },
-                  select: {
-                    id: true,
+                  chapters: {
+                    where: { isPublished: true },
+                    select: {
+                      id: true,
+                    },
                   },
                 },
               },
             },
+            orderBy: {
+              updatedAt: 'desc',
+            },
           },
-          orderBy: {
-            updatedAt: 'desc',
+          certifications: {
+            where: {
+              isRevoked: false,
+            },
+            select: {
+              id: true,
+              issuedAt: true,
+              courseId: true,
+            },
+          },
+          profileLinks: {
+            orderBy: {
+              createdAt: 'desc',
+            },
           },
         },
-        certifications: {
-          where: {
-            isRevoked: false,
-          },
-          select: {
-            id: true,
-            issuedAt: true,
-            courseId: true,
-          },
-        },
-        profileLinks: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-        },
-      },
-    });
+      });
+    } catch (error) {
+      logger.error('[PROFILE_GET] Failed to fetch user data:', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw new Error(`Database query failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 
     if (!user) {
       const response: ApiResponse = {
@@ -413,19 +423,31 @@ export async function GET(request: NextRequest) {
       courseCompletionMap.set(courseId, { completed: 0, total: totalChapters });
     }
 
-    const allProgress = await db.user_progress.findMany({
-      where: {
-        userId,
-        courseId: { in: enrolledCourses.map((e) => e.Course.id) },
-        chapterId: { not: null },
-      },
-      select: {
-        courseId: true,
-        chapterId: true,
-        isCompleted: true,
-        progressPercent: true,
-      },
-    });
+    let allProgress: Array<{
+      courseId: string | null;
+      chapterId: string | null;
+      isCompleted: boolean;
+      progressPercent: number;
+    }> = [];
+
+    try {
+      allProgress = await db.user_progress.findMany({
+        where: {
+          userId,
+          courseId: { in: enrolledCourses.map((e) => e.Course.id) },
+          chapterId: { not: null },
+        },
+        select: {
+          courseId: true,
+          chapterId: true,
+          isCompleted: true,
+          progressPercent: true,
+        },
+      });
+    } catch (error) {
+      logger.warn('[PROFILE_GET] Failed to fetch user progress:', error);
+      // Continue with empty progress array
+    }
 
     // Group progress by course
     for (const progress of allProgress) {
@@ -543,7 +565,9 @@ export async function GET(request: NextRequest) {
     const twitter = profileLinks.find((link) => link.platform === 'TWITTER')?.url || '';
     const linkedin = profileLinks.find((link) => link.platform === 'LINKEDIN')?.url || '';
     const github = profileLinks.find((link) => link.platform === 'GITHUB')?.url || '';
-    const website = profileLinks.find((link) => link.platform === 'WEBSITE')?.url;
+    const websiteRaw = profileLinks.find((link) => link.platform === 'WEBSITE')?.url;
+    // Sanitize website URL - ensure it's either a valid URL or null
+    const website = websiteRaw && websiteRaw.trim() !== '' ? websiteRaw : null;
 
     // ==========================================
     // Build Profile Response
@@ -556,7 +580,7 @@ export async function GET(request: NextRequest) {
       image: user.image || '',
       bio: user.bio || '',
       location: user.location || '',
-      website: website || null, // ✅ Use null for empty URL fields to match schema
+      website, // Already sanitized to be valid URL or null
       twitter: twitter || '',
       linkedin: linkedin || '',
       github: github || '',
@@ -608,7 +632,9 @@ export async function GET(request: NextRequest) {
     logger.error('[PROFILE_GET] Unexpected error:', {
       message: errorMessage,
       stack: errorStack,
-      error
+      error,
+      userId: session?.user?.id,
+      timestamp: new Date().toISOString(),
     });
 
     // In development, return detailed error info
@@ -620,8 +646,8 @@ export async function GET(request: NextRequest) {
         code: 'INTERNAL_ERROR',
         message: isDev
           ? `Error: ${errorMessage}`
-          : 'An unexpected error occurred while fetching profile',
-        details: isDev ? { stack: errorStack } : undefined,
+          : 'Unable to load profile. Please try again or contact support if the issue persists.',
+        details: isDev ? { stack: errorStack, error: String(error) } : undefined,
       },
     };
     return NextResponse.json(response, { status: 500 });
