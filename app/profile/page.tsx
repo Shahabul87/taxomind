@@ -205,7 +205,6 @@ export default function ProfilePage() {
         {/* Profile Header Banner */}
         <div className="relative overflow-hidden">
           <div className="h-56 sm:h-64 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 relative">
-            <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
             <motion.div
               className="absolute inset-0"
               animate={{
