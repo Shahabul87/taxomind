@@ -204,11 +204,6 @@ export async function GET(request: NextRequest) {
               courseId: true,
             },
           },
-          profileLinks: {
-            orderBy: {
-              createdAt: 'desc',
-            },
-          },
         },
       });
     } catch (error) {
@@ -559,10 +554,30 @@ export async function GET(request: NextRequest) {
     skills.sort((a, b) => b.level - a.level);
 
     // ==========================================
+    // Fetch Profile Links (with fallback)
+    // ==========================================
+
+    let profileLinks: Array<{ platform: string; url: string }> = [];
+    try {
+      profileLinks = await db.profileLink.findMany({
+        where: { userId },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          platform: true,
+          url: true,
+        },
+      });
+    } catch (error) {
+      logger.warn('[PROFILE_GET] Failed to fetch profile links (table may not exist):', error);
+      // Continue with empty array
+    }
+
+    // ==========================================
     // Extract Social Links from ProfileLink
     // ==========================================
 
-    const profileLinks = user.profileLinks || [];
     const twitter = profileLinks.find((link) => link.platform === 'TWITTER')?.url || '';
     const linkedin = profileLinks.find((link) => link.platform === 'LINKEDIN')?.url || '';
     const github = profileLinks.find((link) => link.platform === 'GITHUB')?.url || '';

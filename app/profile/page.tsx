@@ -125,20 +125,32 @@ export default function ProfilePage() {
 
       try {
         const response = await fetch('/api/user/profile');
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile');
-        }
+
+        console.log('[Profile] API Response Status:', response.status);
 
         const result = await response.json();
+        console.log('[Profile] API Response:', result);
+
+        if (!response.ok) {
+          const errorMsg = result.error?.message || `API returned ${response.status}`;
+          console.error('[Profile] API Error:', {
+            status: response.status,
+            error: result.error,
+            details: result.error?.details
+          });
+          toast.error(errorMsg);
+          return;
+        }
 
         if (result.success && result.data) {
           setProfile(result.data);
         } else {
+          console.error('[Profile] Invalid response format:', result);
           toast.error(result.error?.message || 'Failed to load profile data');
         }
       } catch (error) {
-        console.error('Failed to fetch profile:', error);
-        toast.error('Failed to load profile data');
+        console.error('[Profile] Fetch error:', error);
+        toast.error(`Failed to load profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }
@@ -159,8 +171,21 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>No profile data available</p>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
+        <div className="text-center max-w-md">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            Unable to Load Profile
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">
+            We encountered an issue loading your profile data. Please check the browser console for details.
+          </p>
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+          >
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }

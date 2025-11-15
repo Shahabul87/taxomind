@@ -9,17 +9,15 @@ interface ProfilePageLayoutProps {
 }
 
 export function ProfilePageLayout({ children }: ProfilePageLayoutProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
-  if (!session?.user) {
-    return <>{children}</>;
-  }
-
-  const user = session.user as User & {
+  // Always render the layout wrapper, even during loading or if no session
+  // This ensures the header, sidebar, and navigation are always visible
+  const user = session?.user as (User & {
     role?: string;
     isTeacher?: boolean;
     isAffiliate?: boolean;
-  };
+  }) | undefined;
 
   return (
     <MobileLayout
