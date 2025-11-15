@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { FilterResultsPreview } from "./FilterResultsPreview";
 import { useToast } from "@/components/ui/use-toast";
+import { UserButton } from "@/components/auth/user-button";
 
 interface FilterOptions {
   categories?: Array<{ id: string; name: string; count: number }>;
@@ -880,21 +881,34 @@ export function CoursesNavbarResizable({
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Join Button with Glow */}
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
-                  asChild
-                  className="h-10 px-6 rounded-full font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
+              {/* User Authentication Section */}
+              {userId ? (
+                // Show User Avatar for logged-in users
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-center gap-2"
                 >
-                  <Link href="/auth/register">
-                    <span className="relative z-10">Join Free</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500" />
-                  </Link>
-                </Button>
-              </motion.div>
+                  <UserButton />
+                </motion.div>
+              ) : (
+                // Show Join Free button for guests
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    asChild
+                    className="h-10 px-6 rounded-full font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
+                  >
+                    <Link href="/auth/register">
+                      <span className="relative z-10">Join Free</span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500" />
+                    </Link>
+                  </Button>
+                </motion.div>
+              )}
             </div>
           </>
         )}
