@@ -133,8 +133,9 @@ function getAchievementIcon(achievementType: string): string {
 // ==========================================
 
 export async function GET(request: NextRequest) {
+  let session;
   try {
-    const session = await auth();
+    session = await auth();
 
     if (!session?.user?.id) {
       const response: ApiResponse = {
