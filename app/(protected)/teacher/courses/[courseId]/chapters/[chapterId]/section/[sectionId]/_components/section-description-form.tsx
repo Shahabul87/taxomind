@@ -20,7 +20,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import TipTapEditor from "@/components/tiptap/editor";
-import ContentViewer from "@/components/tiptap/content-viewer";
 import { AISectionContentGenerator } from "./ai-section-content-generator";
 
 interface SectionDescriptionFormProps {
@@ -136,26 +135,30 @@ export const SectionDescriptionForm = ({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2 w-full">
-                  <ContentViewer
-                    content={truncatedContent || initialData.description}
+                <div className="space-y-3 w-full">
+                  <div
                     className={cn(
-                      "text-slate-700 dark:text-slate-300 prose prose-sm max-w-none w-full",
-                      "prose-headings:text-sm prose-headings:text-slate-800 dark:prose-headings:text-slate-200",
-                      "prose-p:text-sm prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-p:leading-relaxed",
-                      "prose-strong:text-sm prose-strong:text-slate-800 dark:prose-strong:text-slate-200",
-                      "prose-ul:list-disc prose-ul:pl-5 prose-ul:text-sm",
-                      "prose-li:text-sm prose-li:text-slate-700 dark:prose-li:text-slate-300 prose-li:mb-1",
-                      "prose-ol:list-decimal prose-ol:pl-5 prose-ol:text-sm",
-                      "prose-a:text-sm prose-a:text-blue-600 dark:prose-a:text-blue-400"
+                      "prose prose-sm max-w-none w-full",
+                      "text-slate-700 dark:text-slate-300",
+                      "[&_p]:text-sm [&_p]:text-slate-700 dark:[&_p]:text-slate-300 [&_p]:leading-relaxed [&_p]:mb-3",
+                      "[&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-slate-800 dark:[&_h1]:text-slate-200 [&_h1]:mb-3",
+                      "[&_h2]:text-base [&_h2]:font-bold [&_h2]:text-slate-800 dark:[&_h2]:text-slate-200 [&_h2]:mb-2",
+                      "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-slate-800 dark:[&_h3]:text-slate-200 [&_h3]:mb-2",
+                      "[&_strong]:font-semibold [&_strong]:text-slate-800 dark:[&_strong]:text-slate-200",
+                      "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_ul]:space-y-1",
+                      "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3 [&_ol]:space-y-1",
+                      "[&_li]:text-sm [&_li]:text-slate-700 dark:[&_li]:text-slate-300",
+                      "[&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline",
+                      "[&>*:last-child]:mb-0"
                     )}
+                    dangerouslySetInnerHTML={{ __html: truncatedContent || initialData.description }}
                   />
                   {initialData.description && initialData.description.length > 300 && (
                     <Button
                       onClick={() => setIsExpanded(!isExpanded)}
                       variant="ghost"
                       size="sm"
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-xs font-medium"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-0 h-auto text-xs font-medium"
                     >
                       {isExpanded ? "Show Less" : "Show More"}
                     </Button>
@@ -277,7 +280,9 @@ export const SectionDescriptionForm = ({
                   "bg-white dark:bg-slate-800",
                   "border-slate-300 dark:border-slate-600",
                   "text-slate-700 dark:text-slate-300",
-                  "hover:bg-slate-50 dark:hover:bg-slate-700",
+                  "hover:bg-slate-100 dark:hover:bg-slate-700",
+                  "hover:text-slate-900 dark:hover:text-slate-100",
+                  "hover:border-slate-400 dark:hover:border-slate-500",
                   "font-semibold",
                   "transition-all duration-200"
                 )}

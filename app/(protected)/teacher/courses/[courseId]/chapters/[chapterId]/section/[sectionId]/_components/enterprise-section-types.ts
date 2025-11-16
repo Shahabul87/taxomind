@@ -47,8 +47,8 @@ export interface SectionVideo {
   rating?: number | null;
   isPublished?: boolean;
   userId?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface SectionBlog {
@@ -60,12 +60,12 @@ export interface SectionBlog {
   category?: string | null;
   excerpt?: string;
   author?: string | null;
-  publishedAt?: Date | null;
+  publishedAt?: Date | string | null;
   position?: number | null;
   rating?: number | null;
   isPublished?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface SectionArticle {
@@ -77,12 +77,12 @@ export interface SectionArticle {
   description?: string | null;
   category?: string | null;
   author?: string | null;
-  publishedAt?: Date | null;
+  publishedAt?: Date | string | null;
   position?: number | null;
   rating?: number | null;
   isPublished?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface SectionNote {
@@ -96,8 +96,8 @@ export interface SectionNote {
   isPublished?: boolean;
   sectionId?: string | null;
   userId?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface Section {
@@ -116,8 +116,8 @@ export interface Section {
   codeExplanations: CodeExplanation[];
   mathExplanations: MathExplanation[];
   chapterId: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface Chapter {
@@ -137,8 +137,8 @@ export interface Chapter {
     description?: string | null;
     imageUrl?: string | null;
   };
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface SectionPageParams {

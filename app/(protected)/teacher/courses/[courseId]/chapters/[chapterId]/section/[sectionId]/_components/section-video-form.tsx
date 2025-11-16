@@ -88,48 +88,60 @@ export const SectionYoutubeVideoForm = ({
           animate={{ opacity: 1, y: 0 }}
           className="space-y-3"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Video URL
             </span>
             <div className="flex items-center gap-2">
               <Button
                 onClick={() => setShowPreview(!showPreview)}
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className={cn(
-                  "h-9 px-4 text-xs font-medium",
-                  "bg-red-500/5 dark:bg-red-500/10",
-                  "text-red-600 dark:text-red-400",
-                  "hover:bg-red-500/10 dark:hover:bg-red-500/20",
-                  "border border-red-500/20 dark:border-red-500/30"
+                  "flex-shrink-0 h-9 px-4",
+                  "bg-white/80 dark:bg-slate-800/80",
+                  "border-slate-200 dark:border-slate-700",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-800",
+                  "hover:border-purple-300 dark:hover:border-purple-600",
+                  "hover:text-purple-600 dark:hover:text-purple-400",
+                  "font-semibold text-sm",
+                  "transition-all duration-200",
+                  "shadow-sm hover:shadow-md",
+                  "backdrop-blur-sm"
                 )}
               >
                 {showPreview ? (
                   <>
-                    <EyeOff className="h-3 w-3 mr-2" />
-                    Hide Preview
+                    <EyeOff className="h-4 w-4 mr-2" />
+                    Hide
                   </>
                 ) : (
                   <>
-                    <Eye className="h-3 w-3 mr-2" />
-                    Show Preview
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
                   </>
                 )}
               </Button>
               <Button
                 onClick={() => setIsEditing(true)}
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className={cn(
-                  "h-9 px-4 text-xs font-medium",
-                  "bg-red-500/5 dark:bg-red-500/10",
-                  "text-red-600 dark:text-red-400",
-                  "hover:bg-red-500/10 dark:hover:bg-red-500/20",
-                  "border border-red-500/20 dark:border-red-500/30"
+                  "flex-shrink-0 h-9 px-4",
+                  "bg-white/80 dark:bg-slate-800/80",
+                  "border-slate-200 dark:border-slate-700",
+                  "text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-50 dark:hover:bg-slate-800",
+                  "hover:border-purple-300 dark:hover:border-purple-600",
+                  "hover:text-purple-600 dark:hover:text-purple-400",
+                  "font-semibold text-sm",
+                  "transition-all duration-200",
+                  "shadow-sm hover:shadow-md",
+                  "backdrop-blur-sm"
                 )}
               >
-                <Pencil className="h-3 w-3 mr-2" />
+                <Pencil className="h-4 w-4 mr-2" />
                 Edit
               </Button>
             </div>
@@ -179,14 +191,9 @@ export const SectionYoutubeVideoForm = ({
           <Button
             onClick={() => setIsEditing(true)}
             size="sm"
-            className={cn(
-              "bg-red-600 hover:bg-red-700",
-              "text-white text-xs",
-              "shadow-sm",
-              "h-9 px-4"
-            )}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 px-4 shadow-sm"
           >
-            <Pencil className="h-3 w-3 mr-2" />
+            <Pencil className="h-4 w-4 mr-2" />
             Add Video URL
           </Button>
         </div>
@@ -225,24 +232,10 @@ export const SectionYoutubeVideoForm = ({
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {initialData.videoUrl ? "Edit Video URL" : "Add Video URL"}
             </span>
-            <Button
-              onClick={() => setIsEditing(false)}
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-9 px-4 text-xs font-medium",
-                "bg-muted/50",
-                "text-muted-foreground",
-                "hover:bg-muted",
-                "border border-border"
-              )}
-            >
-              Cancel
-            </Button>
           </div>
           
           <Form {...form}>
@@ -270,32 +263,33 @@ export const SectionYoutubeVideoForm = ({
                   </FormItem>
                 )}
               />
-              <div className="flex gap-2">
+              <div className="flex items-center justify-between gap-x-2">
+                <Button
+                  onClick={() => setIsEditing(false)}
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  className={cn(
+                    "h-9 px-4",
+                    "bg-white dark:bg-slate-800",
+                    "border-slate-300 dark:border-slate-600",
+                    "text-slate-700 dark:text-slate-300",
+                    "hover:bg-slate-100 dark:hover:bg-slate-700",
+                    "hover:text-slate-900 dark:hover:text-slate-100",
+                    "hover:border-slate-400 dark:hover:border-slate-500",
+                    "font-semibold",
+                    "transition-all duration-200"
+                  )}
+                >
+                  Cancel
+                </Button>
                 <Button
                   disabled={!isValid || isSubmitting}
                   type="submit"
                   size="sm"
-                  className={cn(
-                    "flex-1 bg-red-600 hover:bg-red-700",
-                    "text-white",
-                    "transition-all duration-200 shadow-sm",
-                    "h-9 px-4 text-xs font-medium",
-                    (!isValid || isSubmitting) && "opacity-50 cursor-not-allowed"
-                  )}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-x-2">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      >
-                        <Loader2 className="h-3 w-3" />
-                      </motion.div>
-                      <span>Saving...</span>
-                    </div>
-                  ) : (
-                    <>Save Changes</>
-                  )}
+                  {isSubmitting ? "Saving..." : "Save"}
                 </Button>
               </div>
             </form>

@@ -171,7 +171,7 @@ export const SectionLearningObjectivesForm = ({
                       onClick={() => setIsExpanded(!isExpanded)}
                       variant="ghost"
                       size="sm"
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-xs font-medium"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-0 h-auto text-xs font-medium"
                     >
                       {isExpanded ? "Show Less" : `Show More (${learningObjectivesArray.length - 3} more)`}
                     </Button>
@@ -293,7 +293,9 @@ export const SectionLearningObjectivesForm = ({
                   "bg-white dark:bg-slate-800",
                   "border-slate-300 dark:border-slate-600",
                   "text-slate-700 dark:text-slate-300",
-                  "hover:bg-slate-50 dark:hover:bg-slate-700",
+                  "hover:bg-slate-100 dark:hover:bg-slate-700",
+                  "hover:text-slate-900 dark:hover:text-slate-100",
+                  "hover:border-slate-400 dark:hover:border-slate-500",
                   "font-semibold",
                   "transition-all duration-200"
                 )}
