@@ -76,7 +76,7 @@ async function SectionContent(props: {
             description: true,
             author: true,
             position: true,
-            thumbnail: true,
+            // thumbnail: true, // TEMP: Commented out - column doesn't exist in production DB
           },
         },
         articles: {
