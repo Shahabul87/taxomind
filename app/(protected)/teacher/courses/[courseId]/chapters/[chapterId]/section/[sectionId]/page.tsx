@@ -24,14 +24,16 @@ async function SectionContent(props: {
   params: { courseId: string; chapterId: string; sectionId: string }
 }) {
   const { params } = props;
-  const user = await currentUser();
 
-  if (!user?.id) {
-    redirect("/");
-  }
+  try {
+    const user = await currentUser();
 
-  // OPTIMIZED: Single query with authorization check built-in
-  const sectionData = await db.section.findFirst({
+    if (!user?.id) {
+      redirect("/");
+    }
+
+    // OPTIMIZED: Single query with authorization check built-in
+    const sectionData = await db.section.findFirst({
     where: {
       id: params.sectionId,
       chapterId: params.chapterId,
@@ -97,33 +99,45 @@ async function SectionContent(props: {
     },
   });
 
-  if (!sectionData) {
-    logger.error("Section not found or user unauthorized");
-    redirect("/teacher/courses");
-  }
-
-  const section: SectionData = {
-    ...sectionData,
-    videos: sectionData.videos.filter((v): v is typeof v & { url: string } => v.url !== null),
-    chapter: {
-      ...sectionData.chapter,
-      sections: sectionData.chapter.sections.map(s => ({
-        ...s,
-        videos: (s.videos || []).filter((v): v is typeof v & { url: string } => v.url !== null),
-        blogs: (s.blogs || []).filter((b): b is typeof b & { url: string } => b.url !== null),
-        articles: (s.articles || []).filter((a): a is typeof a & { url: string } => a.url !== null),
-        notes: s.notes || [],
-      }))
+    if (!sectionData) {
+      logger.error("Section not found or user unauthorized");
+      redirect("/teacher/courses");
     }
-  };
 
-  return (
-    <EnterpriseSectionPageClient
-      section={section}
-      chapter={section.chapter}
-      params={params}
-    />
-  );
+    const section: SectionData = {
+      ...sectionData,
+      videos: sectionData.videos.filter((v): v is typeof v & { url: string } => v.url !== null),
+      chapter: {
+        ...sectionData.chapter,
+        sections: sectionData.chapter.sections.map(s => ({
+          ...s,
+          videos: (s.videos || []).filter((v): v is typeof v & { url: string } => v.url !== null),
+          blogs: (s.blogs || []).filter((b): b is typeof b & { url: string } => b.url !== null),
+          articles: (s.articles || []).filter((a): a is typeof a & { url: string } => a.url !== null),
+          notes: s.notes || [],
+        }))
+      }
+    };
+
+    return (
+      <EnterpriseSectionPageClient
+        section={section}
+        chapter={section.chapter}
+        params={params}
+      />
+    );
+  } catch (error) {
+    // Log detailed error for debugging (shows in server logs)
+    console.error("❌ SectionContent Error:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      params,
+    });
+    logger.error("Section page error", { error, params });
+
+    // Re-throw to let error.tsx handle it
+    throw error;
+  }
 }
 
 // Main page component
