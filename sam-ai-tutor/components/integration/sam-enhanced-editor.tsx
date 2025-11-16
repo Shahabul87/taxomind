@@ -7,9 +7,7 @@ import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import Underline from '@tiptap/extension-underline';
-import BulletList from '@tiptap/extension-bullet-list';
-import OrderedList from '@tiptap/extension-ordered-list';
-import ListItem from '@tiptap/extension-list-item';
+// BulletList, OrderedList, and ListItem are already included in StarterKit
 import { cn } from '@/lib/utils';
 import { SAMTipTapIntegration } from '@/sam/components/integration/sam-tiptap-integration';
 import { useSamAITutor } from '@/app/(protected)/teacher/_components/sam-ai-tutor-provider';
@@ -116,6 +114,8 @@ export const SAMEnhancedEditor = ({
   const { trackInteraction, awardPoints } = useSamAITutor();
   
   // Build extensions list
+  // Note: StarterKit already includes BulletList, OrderedList, and ListItem
+  // so we don't need to add them separately to avoid duplicate extension warnings
   const extensions = [
     StarterKit,
     Link.configure({
@@ -132,9 +132,7 @@ export const SAMEnhancedEditor = ({
       allowBase64: true,
     }),
     Underline,
-    BulletList,
-    OrderedList,
-    ListItem,
+    // Removed BulletList, OrderedList, ListItem - already included in StarterKit
   ];
   
   // Add optional extensions if available
@@ -158,6 +156,7 @@ export const SAMEnhancedEditor = ({
   const editor = useEditor({
     extensions,
     content: value,
+    immediatelyRender: false, // Prevent SSR hydration mismatches
     editorProps: {
       attributes: {
         class: cn(

@@ -215,6 +215,7 @@ export function SmartHeader({
               ? "bg-white/60 dark:bg-slate-800/60"
               : "bg-white/95 dark:bg-slate-800/95"
           )}
+          suppressHydrationWarning
         >
           <div className="h-full pl-4 lg:pl-[88px] pr-4 sm:pr-6 lg:pr-8">
             <motion.div

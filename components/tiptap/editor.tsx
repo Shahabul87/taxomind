@@ -6,9 +6,7 @@ import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import Underline from '@tiptap/extension-underline';
-import BulletList from '@tiptap/extension-bullet-list';
-import OrderedList from '@tiptap/extension-ordered-list';
-import ListItem from '@tiptap/extension-list-item';
+// BulletList, OrderedList, and ListItem are already included in StarterKit
 import { useCallback, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
@@ -112,6 +110,8 @@ export const TipTapEditor = ({
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   
   // Build our extensions list based on what's available
+  // Note: StarterKit already includes BulletList, OrderedList, and ListItem
+  // so we don't need to add them separately to avoid duplicate extension warnings
   const extensions = [
     StarterKit,
     Link.configure({
@@ -128,9 +128,7 @@ export const TipTapEditor = ({
       allowBase64: true,
     }),
     Underline,
-    BulletList,
-    OrderedList,
-    ListItem,
+    // Removed BulletList, OrderedList, ListItem - already included in StarterKit
   ];
   
   // Add optional extensions if they're available
@@ -155,6 +153,7 @@ export const TipTapEditor = ({
   const editor = useEditor({
     extensions,
     content: value,
+    immediatelyRender: false, // Prevent SSR hydration mismatches
     editorProps: {
       attributes: {
         class: cn(

@@ -70,13 +70,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      console.log('[Auth Redirect]', { url, baseUrl });
-
       // PRODUCTION FIX: Improved OAuth redirect handling
       // Handle callback URLs from OAuth providers
       // These come back as absolute URLs with the callback path
       if (url.includes('/api/auth/callback')) {
-        console.log('[Auth Redirect] OAuth callback detected, redirecting to dashboard');
         return `${baseUrl}/dashboard`;
       }
 

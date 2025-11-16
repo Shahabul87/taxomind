@@ -64,47 +64,26 @@ export const ExamCreationForm = ({
     sectionTitle: "",
   });
 
-  // Fetch data on mount
+  // Initialize course context from props (no API calls needed)
   useEffect(() => {
-    const fetchData = async () => {
+    const sectionTitle = initialData?.section?.title || "";
+    const chapterTitle = initialData?.chapter?.title || "";
+    const courseTitle = initialData?.course?.title || "";
+
+    setCourseContext({
+      courseId,
+      chapterId,
+      sectionId,
+      courseTitle,
+      chapterTitle,
+      sectionTitle,
+    });
+  }, [courseId, chapterId, sectionId, initialData]);
+
+  // Fetch existing exams on mount
+  useEffect(() => {
+    const fetchExams = async () => {
       try {
-        // Fetch section data
-        const sectionResponse = await axios.get(
-          `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`
-        );
-        const sectionTitle = sectionResponse.data.title || "";
-
-        // Fetch chapter data
-        let chapterTitle = "";
-        try {
-          const chapterResponse = await axios.get(
-            `/api/courses/${courseId}/chapters/${chapterId}`
-          );
-          chapterTitle = chapterResponse.data.title || "";
-        } catch (error: any) {
-          logger.warn("Failed to fetch chapter title:", error);
-        }
-
-        // Fetch course data
-        let courseTitle = "";
-        try {
-          const courseResponse = await axios.get(`/api/courses/${courseId}`);
-          courseTitle = courseResponse.data.title || "";
-        } catch (error: any) {
-          logger.warn("Failed to fetch course title:", error);
-        }
-
-        // Update course context
-        setCourseContext({
-          courseId,
-          chapterId,
-          sectionId,
-          courseTitle,
-          chapterTitle,
-          sectionTitle,
-        });
-
-        // Fetch existing exams
         const examsResponse = await axios.get(
           `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/exams`
         );
@@ -112,12 +91,12 @@ export const ExamCreationForm = ({
           dispatch({ type: "SET_EXISTING_EXAMS", payload: examsResponse.data.exams });
         }
       } catch (error: any) {
-        logger.error("Failed to fetch data:", error);
+        logger.error("Failed to fetch exams:", error);
       } finally {
         dispatch({ type: "SET_LOADING_EXAMS", payload: false });
       }
     };
-    fetchData();
+    fetchExams();
   }, [courseId, chapterId, sectionId]);
 
   // Event handlers

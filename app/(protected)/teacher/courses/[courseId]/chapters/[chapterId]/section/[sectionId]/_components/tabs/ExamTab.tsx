@@ -11,6 +11,12 @@ interface ExamTabProps {
     section?: {
       title: string;
     };
+    chapter?: {
+      title: string;
+    };
+    course?: {
+      title: string;
+    };
   };
 }
 

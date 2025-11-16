@@ -658,6 +658,12 @@ export const EnterpriseSectionPageClient = ({
                   initialData={{
                     section: {
                       title: section.title
+                    },
+                    chapter: {
+                      title: chapter.title
+                    },
+                    course: {
+                      title: chapter.course.title
                     }
                   }}
                 />

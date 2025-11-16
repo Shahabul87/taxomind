@@ -51,6 +51,12 @@ export interface ExamCreationFormProps {
     section?: {
       title: string;
     };
+    chapter?: {
+      title: string;
+    };
+    course?: {
+      title: string;
+    };
   };
 }
 
