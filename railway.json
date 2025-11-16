@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile.railway"
   },
   "deploy": {
-    "startCommand": "sh -c 'npx prisma generate && node scripts/fix-bio-location-fields.js && node scripts/fix-failed-migrations.js && node scripts/fix-dashboard-migration.js && node scripts/ensure-dashboard-activities-table.js && npx prisma migrate deploy && NODE_OPTIONS=\"--no-deprecation\" npm run start'",
+    "startCommand": "sh -c 'npm run migrate:production && NODE_OPTIONS=\"--no-deprecation\" npm run start'",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
