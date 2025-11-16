@@ -45,7 +45,18 @@ async function SectionContent(props: {
           },
         },
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        learningObjectives: true,
+        position: true,
+        isPublished: true,
+        isFree: true,
+        videoUrl: true,
+        chapterId: true,
+        createdAt: true,
+        updatedAt: true,
         videos: {
           select: {
             id: true,
@@ -149,30 +160,24 @@ async function SectionContent(props: {
       select: {
         id: true,
         title: true,
+        description: true,
+        learningObjectives: true,
         position: true,
         isPublished: true,
         isFree: true,
         videoUrl: true,
-        // Only include counts, not full relations
-        _count: {
-          select: {
-            videos: true,
-            blogs: true,
-            articles: true,
-            notes: true,
-            codeExplanations: true,
-            mathExplanations: true,
-          },
-        },
+        chapterId: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
     // Construct the section data with simplified structure
     const section: SectionData = {
       ...sectionData,
-      videos: (sectionData.videos || []).filter((v): v is typeof v & { url: string } => v.url !== null),
-      blogs: (sectionData.blogs || []).filter((b): b is typeof b & { url: string | null } => b.url !== null),
-      articles: (sectionData.articles || []).filter((a): a is typeof a & { url: string | null } => a.url !== null),
+      videos: (sectionData.videos || []).filter((v): v is typeof v & { url: string } => v.url !== null && v.url !== ''),
+      blogs: (sectionData.blogs || []).filter((b): b is typeof b & { url: string } => b.url !== null && b.url !== ''),
+      articles: (sectionData.articles || []).filter((a): a is typeof a & { url: string } => a.url !== null && a.url !== ''),
       notes: sectionData.notes || [],
       codeExplanations: sectionData.codeExplanations || [],
       mathExplanations: sectionData.mathExplanations || [],
@@ -181,18 +186,23 @@ async function SectionContent(props: {
         course: sectionData.chapter.course,
         // Use the lightweight sections from separate query
         sections: chapterSections.map(s => ({
-          ...s,
-          description: null,
-          learningObjectives: null,
+          id: s.id,
+          title: s.title,
+          description: s.description,
+          learningObjectives: s.learningObjectives,
+          position: s.position,
+          isPublished: s.isPublished,
+          isFree: s.isFree,
+          videoUrl: s.videoUrl,
+          chapterId: s.chapterId,
+          createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
           videos: [],
           blogs: [],
           articles: [],
           notes: [],
           codeExplanations: [],
           mathExplanations: [],
-          chapterId: params.chapterId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
         })),
       },
     };
