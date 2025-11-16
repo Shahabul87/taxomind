@@ -115,14 +115,32 @@ async function SectionContent(props: {
           blogs: (s.blogs || []).filter((b): b is typeof b & { url: string } => b.url !== null),
           articles: (s.articles || []).filter((a): a is typeof a & { url: string } => a.url !== null),
           notes: s.notes || [],
+          codeExplanations: s.codeExplanations || [],
+          mathExplanations: s.mathExplanations || [],
         }))
       }
     };
 
+    // Deep-serialize all Date instances to ISO strings to satisfy RSC serialization in production
+    const serializeDates = (value: unknown): any => {
+      if (value instanceof Date) return value.toISOString();
+      if (Array.isArray(value)) return value.map(serializeDates);
+      if (value && typeof value === 'object') {
+        const out: Record<string, any> = {};
+        for (const [k, v] of Object.entries(value as Record<string, any>)) {
+          out[k] = serializeDates(v);
+        }
+        return out;
+      }
+      return value;
+    };
+
+    const serializedSection = serializeDates(section) as SectionData;
+
     return (
       <EnterpriseSectionPageClient
-        section={section}
-        chapter={section.chapter}
+        section={serializedSection}
+        chapter={serializedSection.chapter}
         params={params}
       />
     );
