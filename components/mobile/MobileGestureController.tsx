@@ -171,6 +171,7 @@ export function MobileGestureController({
             }}
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
             className="h-full"
+            suppressHydrationWarning
           >
             {children}
           </motion.div>
@@ -182,6 +183,7 @@ export function MobileGestureController({
           }}
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
           className="h-full"
+          suppressHydrationWarning
         >
           {children}
         </motion.div>

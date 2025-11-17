@@ -135,6 +135,7 @@ export function EdgeSwipeHandler({
       onDragEnd={handleDragEnd}
       animate={controls}
       style={{ x }}
+      suppressHydrationWarning
     >
       {/* Left Edge Indicator */}
       {isLeftSwipeEnabled && (
