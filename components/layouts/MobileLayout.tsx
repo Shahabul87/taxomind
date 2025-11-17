@@ -48,9 +48,15 @@ export function MobileLayout({
   quickActionHandlers,
 }: MobileLayoutProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const { isMobile, isTablet, isDesktop } = useViewportHeight();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Prevent hydration mismatch by only rendering viewport-dependent features after mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Default quick action handlers if not provided
   const defaultQuickActionHandlers = {
@@ -101,7 +107,16 @@ export function MobileLayout({
   }, [pathname, isMobile]);
 
   // Determine padding based on device and sidebar state
+  // Use default desktop padding until mounted to prevent hydration mismatch
   const getContentPadding = () => {
+    if (!isMounted) {
+      // Default to desktop padding on server/initial render
+      return cn(
+        showHeader ? 'pt-16' : 'pt-0',
+        showSidebar ? 'pl-0 lg:pl-[72px]' : 'pl-0'
+      );
+    }
+
     if (isMobile) {
       return cn(
         showHeader ? 'pt-16' : 'pt-0',

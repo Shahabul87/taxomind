@@ -147,12 +147,14 @@ export function EdgeSwipeHandler({
               'pointer-events-none transition-opacity duration-300',
               showLeftIndicator ? 'opacity-100' : 'opacity-0'
             )}
+            suppressHydrationWarning
           />
           {swipeProgress > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: swipeProgress }}
               className="fixed left-0 top-0 h-full w-20 z-40 pointer-events-none"
+              suppressHydrationWarning
             >
               <div className="h-full bg-gradient-to-r from-blue-500/30 to-transparent" />
               <div
@@ -191,12 +193,14 @@ export function EdgeSwipeHandler({
               'pointer-events-none transition-opacity duration-300',
               showRightIndicator ? 'opacity-100' : 'opacity-0'
             )}
+            suppressHydrationWarning
           />
           {swipeProgress > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: swipeProgress }}
               className="fixed right-0 top-0 h-full w-20 z-40 pointer-events-none"
+              suppressHydrationWarning
             >
               <div className="h-full bg-gradient-to-l from-blue-500/30 to-transparent" />
               <div

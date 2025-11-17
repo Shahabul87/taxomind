@@ -1,9 +1,9 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { SmartHeader } from "@/components/dashboard/smart-header";
-import { CreatePostClient } from "./_components/create-post-client";
+import { TeacherCreateClient } from "./_components/teacher-create-client";
 
-export default async function CreateBlogLayout({
+export default async function TeacherCreateLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -17,9 +17,9 @@ export default async function CreateBlogLayout({
   return (
     <>
       <SmartHeader user={user} />
-      <CreatePostClient user={user}>
+      <TeacherCreateClient user={user}>
         {children}
-      </CreatePostClient>
+      </TeacherCreateClient>
     </>
   );
-} 
+}

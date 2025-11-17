@@ -30,8 +30,14 @@ export function MobileGestureController({
   const [isBottomBarVisible, setIsBottomBarVisible] = useState(true);
   const [isPulling, setIsPulling] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
   const touchStartY = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Prevent hydration mismatch by only rendering mobile features after mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Auto-hide bottom bar on scroll
   useEffect(() => {
@@ -106,8 +112,9 @@ export function MobileGestureController({
     };
   }, [enablePullToRefresh, scrollY, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
-  // Only apply mobile features on mobile devices
-  if (!isMobile) {
+  // Only apply mobile features on mobile devices after mounting
+  // This prevents hydration mismatch by ensuring server and initial client render are identical
+  if (!isMounted || !isMobile) {
     return <>{children}</>;
   }
 
@@ -130,6 +137,7 @@ export function MobileGestureController({
             y: pullDistance * 0.5
           }}
           className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+          suppressHydrationWarning
         >
           <div className={cn(
             "p-3 rounded-full shadow-lg",
@@ -230,6 +238,7 @@ function FirstTimeHint() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 pointer-events-none"
+        suppressHydrationWarning
       >
         {/* Left edge hint */}
         <motion.div
@@ -242,6 +251,7 @@ function FirstTimeHint() {
             delay: 0.5
           }}
           className="absolute left-0 top-1/2 -translate-y-1/2"
+          suppressHydrationWarning
         >
           <div className="bg-blue-500 text-white px-3 py-2 rounded-r-lg text-sm">
             Swipe from edge →
@@ -254,6 +264,7 @@ function FirstTimeHint() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 2 }}
           className="absolute bottom-24 left-1/2 -translate-x-1/2"
+          suppressHydrationWarning
         >
           <div className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap">
             Tap + for quick actions

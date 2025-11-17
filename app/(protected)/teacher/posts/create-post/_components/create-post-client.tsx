@@ -6,7 +6,7 @@ import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 import type { User as NextAuthUser } from 'next-auth';
 
-interface TeacherCoursesClientProps {
+interface CreatePostClientProps {
   children: React.ReactNode;
   user: NextAuthUser & {
     role?: string;
@@ -15,7 +15,7 @@ interface TeacherCoursesClientProps {
   };
 }
 
-export function TeacherCoursesClient({ children, user }: TeacherCoursesClientProps) {
+export function CreatePostClient({ children, user }: CreatePostClientProps) {
   const { isMobile } = useViewportHeight();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -33,7 +33,9 @@ export function TeacherCoursesClient({ children, user }: TeacherCoursesClientPro
         onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
 
-      {children}
+      <div className="min-h-screen pt-16 pb-20 lg:pb-16 lg:ml-[72px] transition-all duration-300">
+        {children}
+      </div>
     </MobileGestureController>
   );
 }

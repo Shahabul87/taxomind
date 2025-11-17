@@ -116,10 +116,7 @@ export function SmartBottomBar({
                     )}
                   >
                     <div className="relative">
-                      <Icon className={cn(
-                        'h-5 w-5 mb-1',
-                        isActive && 'animate-pulse'
-                      )} />
+                      <Icon className="h-5 w-5 mb-1" />
                       {isActive && (
                         <motion.div
                           layoutId="bottomActiveIndicator"
