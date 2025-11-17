@@ -51,7 +51,7 @@ Make sure to run "npm run build" or install ts-node
      ✓ webpackBuildWorker
 
    Creating an optimized production build ...
- ✓ Compiled successfully in 18.4s
+ ✓ Compiled successfully in 17.0s
    Running TypeScript ...
    Collecting page data ...
 prisma:query SELECT 1 as test
@@ -62,7 +62,7 @@ prisma:query
    Generating static pages (113/455) 
    Generating static pages (227/455) 
    Generating static pages (341/455) 
- ✓ Generating static pages (455/455) in 682.0ms
+ ✓ Generating static pages (455/455) in 624.4ms
    Finalizing page optimization ...
 
 Route (app)
@@ -387,6 +387,7 @@ Route (app)
 ├ ƒ /api/learning-paths/[pathId]/enroll
 ├ ƒ /api/learning-paths/enrollments
 ├ ƒ /api/learning-paths/enrollments/[enrollmentId]/status
+├ ƒ /api/log-error
 ├ ƒ /api/messages
 ├ ƒ /api/messages/courses
 ├ ƒ /api/messages/search

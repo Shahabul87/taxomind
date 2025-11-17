@@ -8,7 +8,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MathContentForm } from './MathContentForm';
-import { MathContentList } from './MathContentList';
+import { UnifiedMathView } from './UnifiedMathView';
 import { MathContentListSkeleton, MathContentFormSkeleton } from './MathContentSkeleton';
 import type { MathExplanation } from '../enterprise-section-types';
 
@@ -27,10 +27,8 @@ export const MathContentManager = ({
 }: MathContentManagerProps) => {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [mathExplanations, setMathExplanations] = useState<MathExplanation[]>(initialData);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const handleAdd = useCallback(async (data: { title: string; explanation: string; imageUrl?: string; latexEquation?: string }) => {
     setIsLoading(true);
@@ -59,26 +57,6 @@ export const MathContentManager = ({
       toast.error('Failed to add math content');
     } finally {
       setIsLoading(false);
-    }
-  }, [courseId, chapterId, sectionId, router]);
-
-  const handleDelete = useCallback(async (id: string) => {
-    setIsDeleting(id);
-    try {
-      const response = await axios.delete(
-        `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations/${id}`
-      );
-
-      if (response.data.success) {
-        setMathExplanations(prev => prev.filter(item => item.id !== id));
-        toast.success('Math content deleted successfully');
-        router.refresh();
-      }
-    } catch (error) {
-      console.error('Failed to delete math content:', error);
-      toast.error('Failed to delete math content');
-    } finally {
-      setIsDeleting(null);
     }
   }, [courseId, chapterId, sectionId, router]);
 
@@ -120,11 +98,10 @@ export const MathContentManager = ({
           {isLoading && !isAdding ? (
             <MathContentListSkeleton count={3} />
           ) : (
-            <MathContentList
-              items={mathExplanations}
-              onEdit={setEditingId}
-              onDelete={handleDelete}
-              isDeleting={isDeleting}
+            <UnifiedMathView
+              courseId={courseId}
+              chapterId={chapterId}
+              sectionId={sectionId}
             />
           )}
         </CardContent>

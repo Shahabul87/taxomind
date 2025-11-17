@@ -34,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
+import { Editor } from "@/components/editor";
 
 const PROGRAMMING_LANGUAGES = [
   { value: "typescript", label: "TypeScript" },
@@ -284,20 +285,25 @@ export const AddCodeExplanationForm = ({
                           </Button>
                         </div>
 
-                        {/* Editor Textarea */}
-                        <Textarea
-                          value={block.content}
-                          onChange={(e) => handleUpdateBlock(block.id, e.target.value)}
-                          placeholder={
-                            block.type === "code"
-                              ? "Enter your code here..."
-                              : "Enter your explanation here..."
-                          }
-                          className={`text-xs sm:text-sm min-h-[120px] sm:min-h-[150px] resize-y ${
-                            block.type === "code" ? "font-mono" : ""
-                          }`}
-                          disabled={isSaving}
-                        />
+                        {/* Editor - Code Textarea or Rich Text Editor */}
+                        {block.type === "code" ? (
+                          <Textarea
+                            value={block.content}
+                            onChange={(e) => handleUpdateBlock(block.id, e.target.value)}
+                            placeholder="Enter your code here..."
+                            className="text-xs sm:text-sm min-h-[120px] sm:min-h-[150px] resize-y font-mono"
+                            disabled={isSaving}
+                          />
+                        ) : (
+                          <div className="border rounded-md overflow-hidden">
+                            <Editor
+                              value={block.content}
+                              onChange={(value) => handleUpdateBlock(block.id, value)}
+                              placeholder="Enter your explanation here with rich formatting..."
+                              disabled={isSaving}
+                            />
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   );

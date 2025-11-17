@@ -48,10 +48,16 @@ interface NavItem {
 }
 
 export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: SmartSidebarProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const pathname = usePathname();
+
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Fetch unread messages count
   useEffect(() => {
@@ -202,6 +208,19 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
     }
     return pathname.startsWith(href);
   };
+
+  // Prevent hydration mismatch: render placeholder until mounted
+  if (!isMounted) {
+    return (
+      <>
+        {/* Desktop sidebar placeholder - matches final structure */}
+        <aside
+          className="hidden lg:block fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-r border-slate-200/50 dark:border-slate-700/50 z-30"
+          style={{ width: 72 }}
+        />
+      </>
+    );
+  }
 
   return (
     <>

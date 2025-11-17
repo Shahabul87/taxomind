@@ -2,23 +2,34 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { X, BookOpen, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { BlockMath } from 'react-katex';
+import "katex/dist/katex.min.css";
+import Image from "next/image";
+import { X, Calculator, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface ExplanationTooltipProps {
+interface MathExplanationTooltipProps {
   explanation: string;
   title: string;
   position: { x: number; y: number };
+  isVisualMode: boolean;
+  imageUrl?: string;
+  content?: string;
+  latexEquation?: string;
   onClose: () => void;
 }
 
-export const ExplanationTooltip = ({
+export const MathExplanationTooltip = ({
   explanation,
   title,
   position,
+  isVisualMode,
+  imageUrl,
+  content,
+  latexEquation,
   onClose
-}: ExplanationTooltipProps) => {
+}: MathExplanationTooltipProps) => {
   const [isMobile, setIsMobile] = useState(false);
   const [fontSize, setFontSize] = useState<'xs' | 'sm' | 'base' | 'lg' | 'xl'>('sm');
   const [size, setSize] = useState({ width: 384, height: 400 });
@@ -28,7 +39,7 @@ export const ExplanationTooltip = ({
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
+      setIsMobile(window.innerWidth < 768);
     };
 
     checkMobile();
@@ -109,7 +120,7 @@ export const ExplanationTooltip = ({
 
   // Get prose class based on font size
   const getProseClass = () => {
-    const baseClasses = "prose dark:prose-invert max-w-none prose-headings:text-blue-900 dark:prose-headings:text-blue-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white prose-ul:text-gray-700 dark:prose-ul:text-gray-300 prose-ol:text-gray-700 dark:prose-ol:text-gray-300 prose-li:marker:text-blue-500 dark:prose-li:marker:text-blue-400 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-code:text-pink-600 dark:prose-code:text-pink-400 prose-code:bg-pink-50 dark:prose-code:bg-pink-900/20 prose-code:px-1 prose-code:py-0.5 prose-code:rounded";
+    const baseClasses = "prose dark:prose-invert max-w-none prose-headings:text-purple-900 dark:prose-headings:text-purple-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white prose-ul:text-gray-700 dark:prose-ul:text-gray-300 prose-ol:text-gray-700 dark:prose-ol:text-gray-300 prose-li:marker:text-purple-500 dark:prose-li:marker:text-purple-400 prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-code:text-pink-600 dark:prose-code:text-pink-400 prose-code:bg-pink-50 dark:prose-code:bg-pink-900/20 prose-code:px-1 prose-code:py-0.5 prose-code:rounded";
 
     const sizeClass = {
       xs: 'prose-xs',
@@ -130,7 +141,6 @@ export const ExplanationTooltip = ({
         dragConstraints={{ top: 0 }}
         dragElastic={0.2}
         onDragEnd={(e, info) => {
-          // Close if dragged down more than 100px
           if (info.offset.y > 100) {
             onClose();
           }
@@ -139,15 +149,15 @@ export const ExplanationTooltip = ({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 100 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="fixed inset-x-0 bottom-0 z-50 max-h-[60vh]"
+        className="fixed inset-x-0 bottom-0 z-50 max-h-[70vh]"
       >
-        <div className="bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl border-t-2 border-blue-500/30 overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl border-t-2 border-purple-500/30 overflow-hidden">
           {/* Header - Drag handle */}
           <div className="flex flex-col items-center">
             <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mt-2 mb-1 cursor-grab active:cursor-grabbing" />
-            <div className="flex items-center justify-between w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+            <div className="flex items-center justify-between w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <BookOpen className="h-4 w-4 flex-shrink-0" />
+                <Calculator className="h-4 w-4 flex-shrink-0" />
                 <h4 className="font-semibold text-sm truncate">{title}</h4>
               </div>
 
@@ -189,13 +199,46 @@ export const ExplanationTooltip = ({
 
           {/* Content */}
           <ScrollArea
-            className="max-h-[calc(60vh-8rem)] p-4 bg-white dark:bg-gray-900"
+            className="max-h-[calc(70vh-8rem)] p-4 bg-white dark:bg-gray-900"
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <div
-              className={getProseClass()}
-              dangerouslySetInnerHTML={{ __html: explanation }}
-            />
+            {/* Render equation/image */}
+            {isVisualMode ? (
+              <div className="space-y-4 mb-4">
+                {imageUrl && (
+                  <div className="flex justify-center">
+                    <Image
+                      src={imageUrl}
+                      alt={title}
+                      width={300}
+                      height={200}
+                      className="max-w-full h-auto rounded-lg"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = '/placeholder-math-image.svg';
+                      }}
+                    />
+                  </div>
+                )}
+                {content && (
+                  <div className={getProseClass()} dangerouslySetInnerHTML={{ __html: content }} />
+                )}
+              </div>
+            ) : (
+              latexEquation && (
+                <div className="mb-4 flex justify-center">
+                  <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 p-4 rounded-lg w-fit max-w-full overflow-x-auto">
+                    <BlockMath math={latexEquation} />
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* Explanation */}
+            {explanation && (
+              <div className={getProseClass()} dangerouslySetInnerHTML={{ __html: explanation }} />
+            )}
           </ScrollArea>
 
           {/* Footer */}
@@ -228,11 +271,11 @@ export const ExplanationTooltip = ({
         maxWidth: '90vw',
       }}
     >
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl border-2 border-blue-500/30 overflow-hidden relative">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl border-2 border-purple-500/30 overflow-hidden relative">
         {/* Header - Drag handle with controls */}
-        <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white cursor-grab active:cursor-grabbing">
+        <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-purple-500 to-violet-600 text-white cursor-grab active:cursor-grabbing">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <BookOpen className="h-4 w-4 flex-shrink-0" />
+            <Calculator className="h-4 w-4 flex-shrink-0" />
             <h4 className="font-semibold text-sm truncate">{title}</h4>
           </div>
 
@@ -280,10 +323,43 @@ export const ExplanationTooltip = ({
           style={{ height: `${size.height}px`, maxHeight: '80vh' }}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <div
-            className={getProseClass()}
-            dangerouslySetInnerHTML={{ __html: explanation }}
-          />
+          {/* Render equation/image */}
+          {isVisualMode ? (
+            <div className="space-y-4 mb-4">
+              {imageUrl && (
+                <div className="flex justify-center">
+                  <Image
+                    src={imageUrl}
+                    alt={title}
+                    width={350}
+                    height={250}
+                    className="max-w-full h-auto rounded-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = '/placeholder-math-image.svg';
+                    }}
+                  />
+                </div>
+              )}
+              {content && (
+                <div className={getProseClass()} dangerouslySetInnerHTML={{ __html: content }} />
+              )}
+            </div>
+          ) : (
+            latexEquation && (
+              <div className="mb-4 flex justify-center">
+                <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 p-6 rounded-lg w-fit max-w-full overflow-x-auto">
+                  <BlockMath math={latexEquation} />
+                </div>
+              </div>
+            )
+          )}
+
+          {/* Explanation */}
+          {explanation && (
+            <div className={getProseClass()} dangerouslySetInnerHTML={{ __html: explanation }} />
+          )}
         </ScrollArea>
 
         {/* Footer with resize hint */}
@@ -300,8 +376,8 @@ export const ExplanationTooltip = ({
           className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize group"
           title="Drag to resize"
         >
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-blue-500 group-hover:border-blue-600 transition-colors" />
-          <Maximize2 className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 text-blue-500 group-hover:text-blue-600 transition-colors" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-purple-500 group-hover:border-purple-600 transition-colors" />
+          <Maximize2 className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 text-purple-500 group-hover:text-purple-600 transition-colors" />
         </div>
       </div>
     </motion.div>

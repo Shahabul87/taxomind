@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EdgeSwipeHandler } from './EdgeSwipeHandler';
 import { SmartBottomBar } from './SmartBottomBar';
@@ -50,13 +50,13 @@ export function MobileGestureController({
     }
   }, [scrollDirection, scrollY, isMobile, enableBottomBar]);
 
-  // Pull to refresh handler
-  const handleTouchStart = (e: TouchEvent) => {
+  // Pull to refresh handlers - memoized to prevent unnecessary re-renders
+  const handleTouchStart = useCallback((e: TouchEvent) => {
     if (!enablePullToRefresh || scrollY > 0) return;
     touchStartY.current = e.touches[0].clientY;
-  };
+  }, [enablePullToRefresh, scrollY]);
 
-  const handleTouchMove = (e: TouchEvent) => {
+  const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!enablePullToRefresh || scrollY > 0) return;
 
     const touchY = e.touches[0].clientY;
@@ -71,9 +71,9 @@ export function MobileGestureController({
         setPullDistance(100 + (distance - 100) * 0.3);
       }
     }
-  };
+  }, [enablePullToRefresh, scrollY]);
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = useCallback(() => {
     if (!enablePullToRefresh || !isPulling) return;
 
     if (pullDistance > 80) {
@@ -86,7 +86,7 @@ export function MobileGestureController({
 
     setIsPulling(false);
     setPullDistance(0);
-  };
+  }, [enablePullToRefresh, isPulling, pullDistance]);
 
   // Add touch event listeners
   useEffect(() => {
@@ -104,7 +104,7 @@ export function MobileGestureController({
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [enablePullToRefresh, scrollY]);
+  }, [enablePullToRefresh, scrollY, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // Only apply mobile features on mobile devices
   if (!isMobile) {

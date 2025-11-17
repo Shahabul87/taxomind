@@ -67,6 +67,7 @@ export function SmartHeader({
   quickActionHandlers,
   isMobileVisible = true,
 }: SmartHeaderProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -77,6 +78,11 @@ export function SmartHeader({
   const { isMobile } = useViewportHeight();
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [isPulledDown, setIsPulledDown] = useState(false);
+
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Auto-hide header on mobile based on scroll
   useEffect(() => {
@@ -92,11 +98,10 @@ export function SmartHeader({
     }
 
     // Hide on scroll down (with a threshold), always show on scroll up
-    if (scrollDirection === 'down' && scrollY > 100 && !isHeaderVisible) {
-      // Only hide if scrolling down significantly
+    // Note: React is smart enough to not re-render if state value doesn't change
+    if (scrollDirection === 'down' && scrollY > 100) {
       setIsHeaderVisible(false);
     } else if (scrollDirection === 'up' || scrollDirection === 'idle') {
-      // Always show when scrolling up or stopped
       setIsHeaderVisible(true);
     }
   }, [scrollDirection, scrollY, isAtTop, isNearTop, isMobile]);
@@ -175,6 +180,17 @@ export function SmartHeader({
 
   // Determine final visibility
   const shouldShowHeader = isMobileVisible && (isHeaderVisible || isPulledDown || !isMobile);
+
+  // Prevent hydration mismatch: render placeholder until mounted
+  if (!isMounted) {
+    return (
+      <header
+        className="fixed top-0 left-0 right-0 z-40 h-16 border-b border-slate-200/50 dark:border-slate-700/50 backdrop-blur-md bg-white/95 dark:bg-slate-800/95"
+      >
+        <div className="h-full pl-4 lg:pl-[88px] pr-4 sm:pr-6 lg:pr-8" />
+      </header>
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">

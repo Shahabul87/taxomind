@@ -236,14 +236,19 @@ export const DisplayExplanations = ({
 
                     {/* Explanation section */}
                     <div className="p-3 overflow-auto h-full bg-gradient-to-br from-white via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/10 dark:to-pink-900/10">
-                      <div className="prose prose-xs prose-gray dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
-                        <ReactMarkdown
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-blue-900 dark:prose-headings:text-blue-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white prose-ul:text-gray-700 dark:prose-ul:text-gray-300 prose-ol:text-gray-700 dark:prose-ol:text-gray-300 prose-li:marker:text-blue-500 dark:prose-li:marker:text-blue-400 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-code:text-pink-600 dark:prose-code:text-pink-400 prose-code:bg-pink-50 dark:prose-code:bg-pink-900/20 prose-code:px-1 prose-code:py-0.5 prose-code:rounded">
+                        {/* Render HTML from TipTap editor */}
+                        <div
+                          dangerouslySetInnerHTML={{ __html: currentBlock.explanation || '<p class="text-gray-500 dark:text-gray-400">No explanation available</p>' }}
+                        />
+                        {/* Fallback to ReactMarkdown for legacy content if needed */}
+                        {/* <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           rehypePlugins={[rehypeRaw]}
                           components={{
                             img: ({ node, ...props }) => (
                               <div className="my-2 flex justify-center">
-                                <Image 
+                                <Image
                                   src={props.src || ''}
                                   alt={props.alt || "Explanation image"}
                                   width={256}
@@ -267,7 +272,7 @@ export const DisplayExplanations = ({
                           }}
                         >
                           {currentBlock.explanation || 'No explanation available.'}
-                        </ReactMarkdown>
+                        </ReactMarkdown> */}
                       </div>
                     </div>
                   </div>

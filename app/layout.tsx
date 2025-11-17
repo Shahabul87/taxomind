@@ -92,7 +92,7 @@ export default async function RootLayout({
           <ClientToaster />
           <SAMGlobalProvider>
             {/* All pages handle their own navigation and layout */}
-            <div className="min-h-screen">
+            <div className="min-h-screen" suppressHydrationWarning>
               {children}
             </div>
 

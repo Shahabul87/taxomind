@@ -2,6 +2,110 @@
 
 **Taxomind** - Enterprise LMS with Next.js 15, AI-powered learning, and role-based access control.
 
+---
+
+## 🔥 THE GOLDEN RULES (Never Lose Data)
+
+**⚠️ READ THIS FIRST - These rules prevent production failures and data loss**
+
+### ✅ Rule #1: New Fields = Optional or Default
+
+**The Problem**: Adding required fields to existing database tables causes Railway builds to fail because existing rows have no data for the new field.
+
+```prisma
+// ✅ SAFE - Will deploy successfully
+model User {
+  id    String   @id @default(cuid())
+  email String   @unique
+  bio   String?              // Optional - existing users can have NULL
+  views Int      @default(0) // Has default - existing users get 0
+}
+
+// ❌ UNSAFE - WILL CRASH RAILWAY BUILD!
+model User {
+  id    String   @id @default(cuid())
+  email String   @unique
+  bio   String  // ERROR: Existing users have no bio data!
+}
+```
+
+**Safe Field Patterns:**
+| Type | Safe Pattern | Example |
+|------|-------------|---------|
+| String | `String?` or `@default("")` | `bio String?` |
+| Int | `Int?` or `@default(0)` | `views Int @default(0)` |
+| Boolean | `@default(false)` | `isActive Boolean @default(false)` |
+| DateTime | `@default(now())` | `joinedAt DateTime @default(now())` |
+| String[] | `@default([])` | `tags String[] @default([])` |
+| Relations | Always safe | `posts Post[]` |
+
+### ✅ Rule #2: Test Locally → Push → Auto-Deploy
+
+**Railway automatically deploys when you push - make sure it works locally first!**
+
+```bash
+# Your simple workflow:
+npx prisma migrate dev --name add_user_bio
+git add prisma/ && git commit -m "feat: add bio field" && git push
+
+# Railway automatically:
+# ✅ Validates migration
+# ✅ Applies it safely
+# ✅ Starts app with new schema
+```
+
+**Never run on Railway:**
+- ❌ `npx prisma migrate reset` (deletes all data)
+- ❌ `npx prisma db push --accept-data-loss` (can delete data)
+- ❌ Manual SQL commands that drop tables
+
+### ✅ Rule #3: Breaking Changes = Two Phases
+
+**Renaming fields or changing types? Do it in 2 steps to avoid data loss:**
+
+```prisma
+# Phase 1: Add new field (keep old one)
+model User {
+  age_old Int?        # Keep existing data
+  age_new String?     # Add new field
+}
+# Push → Backfill data → Test → Verify
+
+# Phase 2: Remove old field (after data migration)
+model User {
+  age_new String?     # Now safe to remove age_old
+}
+# Push again
+```
+
+**Why 2 phases?**
+- Railway deploys instantly when you push
+- If you rename directly, existing data is lost
+- Two phases = zero downtime + zero data loss
+
+---
+
+## 📖 MANDATORY: Read /read-first Command
+
+**Before starting ANY task**, you MUST read the `/read-first` command file:
+
+```bash
+# Read this file FIRST before any coding task:
+.claude/commands/read-first.md
+```
+
+This command contains:
+- ✅ Port 3000 management protocol
+- ✅ Enterprise standards review checklist
+- ✅ User permission requirements
+- ✅ File organization rules
+- ✅ Testing and validation steps
+- ✅ Git workflow with approval process
+
+**Key requirement**: The `/read-first` command MUST be executed at the start of every development session to ensure you follow all enterprise standards and avoid common pitfalls.
+
+---
+
 ## 🚨 CRITICAL RULES
 
 ### Code Quality
