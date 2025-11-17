@@ -28,6 +28,11 @@ import {
   GraduationCap,
   BarChart3,
   FileText,
+  Award,
+  AlertCircle,
+  Calendar,
+  Loader2,
+  ExternalLink,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import type { User as NextAuthUser } from 'next-auth';
@@ -72,6 +77,9 @@ export function SmartHeader({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Mobile auto-hide functionality
   const { scrollDirection, scrollY, isAtTop, isNearTop } = useScrollDirection();
@@ -106,13 +114,76 @@ export function SmartHeader({
     }
   }, [scrollDirection, scrollY, isAtTop, isNearTop, isMobile]);
 
-  const notifications = [
-    { id: 1, title: 'New course available', time: '2m ago', unread: true },
-    { id: 2, title: 'Quiz deadline tomorrow', time: '1h ago', unread: true },
-    { id: 3, title: 'Certificate ready', time: '3h ago', unread: false },
-  ];
+  // Fetch notifications when dropdown opens
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!showNotifications) return;
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+      setIsLoadingNotifications(true);
+      try {
+        const response = await fetch('/api/dashboard/notifications?limit=10&read=false');
+        const data = await response.json();
+
+        if (data.success) {
+          setNotifications(data.data || []);
+          setUnreadCount(data.metadata?.counts?.unread || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      } finally {
+        setIsLoadingNotifications(false);
+      }
+    };
+
+    fetchNotifications();
+  }, [showNotifications]);
+
+  // Get notification icon and color based on category
+  const getNotificationStyle = (category: string) => {
+    switch (category) {
+      case 'ACHIEVEMENT':
+        return { icon: Award, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-500/10' };
+      case 'MISSED':
+        return { icon: AlertCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-500/10' };
+      case 'UPCOMING':
+        return { icon: Calendar, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10' };
+      case 'DONE':
+        return { icon: CheckSquare, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-500/10' };
+      default:
+        return { icon: Bell, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-500/10' };
+    }
+  };
+
+  // Mark notification as read
+  const markAsRead = async (notificationId: string) => {
+    try {
+      await fetch(`/api/dashboard/notifications/${notificationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ read: true }),
+      });
+
+      // Update local state
+      setNotifications(prev => prev.map(n =>
+        n.id === notificationId ? { ...n, read: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  // Format time ago
+  const formatTimeAgo = (date: string) => {
+    const now = new Date();
+    const past = new Date(date);
+    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  };
 
   // Quick action items
   const quickActions: QuickAction[] = [
@@ -481,44 +552,124 @@ export function SmartHeader({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-80 rounded-lg border border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg"
+                        className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 top-20 sm:top-auto mt-0 sm:mt-2 w-auto sm:w-96 max-h-[calc(100vh-6rem)] rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white dark:bg-slate-800 shadow-xl z-50 overflow-hidden"
                       >
-                        <div className="p-4 border-b border-slate-200/50 dark:border-slate-700/50">
-                          <h3 className="font-semibold text-slate-900 dark:text-white">
-                            Notifications
-                          </h3>
-                          {unreadCount > 0 && (
-                            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-                              You have {unreadCount} unread notification
-                              {unreadCount > 1 ? 's' : ''}
-                            </p>
-                          )}
-                        </div>
-                        <div className="max-h-96 overflow-y-auto">
-                          {notifications.map((notification) => (
-                            <div
-                              key={notification.id}
-                              className={`p-4 border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
-                                notification.unread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
-                              }`}
+                        {/* Header */}
+                        <div className="p-4 border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-semibold text-slate-900 dark:text-white">
+                                Notifications
+                              </h3>
+                              {unreadCount > 0 && (
+                                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                                  {unreadCount} unread
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => setShowNotifications(false)}
+                              className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                             >
-                              <p className="text-sm font-medium text-slate-900 dark:text-white">
-                                {notification.title}
+                              <X className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="max-h-[calc(100vh-16rem)] overflow-y-auto">
+                          {isLoadingNotifications ? (
+                            <div className="flex items-center justify-center py-12">
+                              <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />
+                            </div>
+                          ) : notifications.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 px-4">
+                              <div className="p-3 rounded-full bg-slate-100 dark:bg-slate-700 mb-3">
+                                <Bell className="h-6 w-6 text-slate-400" />
+                              </div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-white mb-1">
+                                No notifications
                               </p>
-                              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-                                {notification.time}
+                              <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                                You&apos;re all caught up! Check back later.
                               </p>
                             </div>
-                          ))}
+                          ) : (
+                            notifications.map((notification, index) => {
+                              const style = getNotificationStyle(notification.category);
+                              const Icon = style.icon;
+
+                              return (
+                                <motion.div
+                                  key={notification.id}
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: index * 0.05 }}
+                                  onClick={() => !notification.read && markAsRead(notification.id)}
+                                  className={cn(
+                                    'p-4 border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all cursor-pointer',
+                                    !notification.read && 'bg-blue-50/30 dark:bg-blue-900/10'
+                                  )}
+                                >
+                                  <div className="flex gap-3">
+                                    {/* Icon */}
+                                    <div className={cn('p-2 rounded-lg flex-shrink-0', style.bg)}>
+                                      <Icon className={cn('h-4 w-4', style.color)} />
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <p className="text-sm font-medium text-slate-900 dark:text-white line-clamp-2">
+                                          {notification.title}
+                                        </p>
+                                        {!notification.read && (
+                                          <span className="flex-shrink-0 h-2 w-2 rounded-full bg-blue-500" />
+                                        )}
+                                      </div>
+
+                                      {notification.description && (
+                                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">
+                                          {notification.description}
+                                        </p>
+                                      )}
+
+                                      <div className="flex items-center gap-2 mt-2">
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                                          {formatTimeAgo(notification.createdAt)}
+                                        </span>
+
+                                        {notification.actionable && notification.actionUrl && (
+                                          <Link
+                                            href={notification.actionUrl}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
+                                          >
+                                            {notification.actionLabel || 'View'}
+                                            <ExternalLink className="h-3 w-3" />
+                                          </Link>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              );
+                            })
+                          )}
                         </div>
-                        <div className="p-3 text-center border-t border-slate-200/50 dark:border-slate-700/50">
-                          <Link
-                            href="/notifications"
-                            className="text-sm font-medium bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-indigo-700"
-                          >
-                            View all notifications
-                          </Link>
-                        </div>
+
+                        {/* Footer */}
+                        {notifications.length > 0 && (
+                          <div className="p-3 border-t border-slate-200/50 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">
+                            <Link
+                              href="/notifications"
+                              className="block text-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                              onClick={() => setShowNotifications(false)}
+                            >
+                              View all notifications
+                            </Link>
+                          </div>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
