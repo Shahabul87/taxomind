@@ -141,29 +141,27 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
       />
 
 
-      <div className="pt-3 sm:pt-4 md:pt-6 pb-8 sm:pb-12 md:pb-16 relative px-2 sm:px-0 z-10">
+      <div className="pt-3 sm:pt-4 md:pt-6 pb-8 sm:pb-12 md:pb-16 relative z-10">
         {/* Full-Width Course Setup Header with Glass Effects */}
         <div className="w-full mb-4 sm:mb-6 md:mb-8">
           {/* Banner for unpublished status */}
           {!course.isPublished && (
-            <div className="w-full mb-4 sm:mb-6 animate-in fade-in slide-in-from-top-4 duration-700">
-              <div className="mx-2 sm:mx-4 md:mx-6 lg:mx-8">
-                <div className="w-full bg-gradient-to-r from-amber-50/90 to-orange-50/90 dark:from-amber-950/50 dark:to-orange-950/50 backdrop-blur-md rounded-2xl border-2 border-amber-200/60 dark:border-amber-700/40 shadow-xl shadow-amber-500/10 dark:shadow-amber-900/20 p-3 sm:p-4 md:p-6 hover:shadow-2xl hover:shadow-amber-500/20 dark:hover:shadow-amber-900/30 transition-all duration-500 group">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="p-2.5 sm:p-3 md:p-3.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                      <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-100">
-                        This course is unpublished. It will not be visible to students.
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 mt-0.5 sm:mt-1 hidden sm:block">
-                        Complete at least {minSectionsRequired} sections and click publish to make it available.
-                      </p>
-                      <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-0.5 sm:hidden">
-                        Complete {minSectionsRequired}+ sections to publish
-                      </p>
-                    </div>
+            <div className="w-full mb-4 sm:mb-6 animate-in fade-in slide-in-from-top-4 duration-700 px-2 sm:px-4 md:px-6">
+              <div className="w-full bg-gradient-to-r from-amber-50/90 to-orange-50/90 dark:from-amber-950/50 dark:to-orange-950/50 backdrop-blur-md rounded-2xl border-2 border-amber-200/60 dark:border-amber-700/40 shadow-xl shadow-amber-500/10 dark:shadow-amber-900/20 p-3 sm:p-4 md:p-6 hover:shadow-2xl hover:shadow-amber-500/20 dark:hover:shadow-amber-900/30 transition-all duration-500 group">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="p-2.5 sm:p-3 md:p-3.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                    <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-100">
+                      This course is unpublished. It will not be visible to students.
+                    </p>
+                    <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 mt-0.5 sm:mt-1 hidden sm:block">
+                      Complete at least {minSectionsRequired} sections and click publish to make it available.
+                    </p>
+                    <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-0.5 sm:hidden">
+                      Complete {minSectionsRequired}+ sections to publish
+                    </p>
                   </div>
                 </div>
               </div>
@@ -171,11 +169,9 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
           )}
 
           {/* Main Course Setup Header - Full Width */}
-          <div className="w-full">
-            <div className="mx-2 sm:mx-4 md:mx-6 lg:mx-8">
-              <div className="w-full">
-                {/* Main glass container */}
-                <div className="w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 p-4 sm:p-6 md:p-8 lg:p-10">
+          <div className="w-full px-2 sm:px-4 md:px-6">
+            {/* Main glass container */}
+            <div className="w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 p-4 sm:p-6 md:p-8 lg:p-10">
                   {/* Header Section */}
                   <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
                     {/* Left: Icon and Title */}
@@ -254,9 +250,7 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
                         )}
                       </div>
                     </div>
-                  </div>
                 </div>
-              </div>
             </div>
           </div>
         </div>

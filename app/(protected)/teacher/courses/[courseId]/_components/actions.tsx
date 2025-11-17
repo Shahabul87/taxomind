@@ -103,39 +103,46 @@ export const Actions = ({
     <div className={cn(
       "flex items-center justify-center md:justify-start",
       "w-full md:w-auto",
-      "gap-2 sm:gap-3"
+      "gap-2 sm:gap-3",
+      "min-w-0"
     )}>
       <Button
         onClick={onClick}
         disabled={disabled || isPublishLoading}
-        variant={isPublished ? "enterprise-purple-outline" : "enterprise-purple"}
+        variant="ghost"
         size="sm"
         className={cn(
-          "text-xs sm:text-sm font-semibold",
+          "text-xs sm:text-sm font-medium",
           "h-9 sm:h-10",
-          "px-4 sm:px-6",
-          "flex items-center justify-center gap-2",
+          "px-3 sm:px-6",
+          "flex items-center justify-center gap-1.5 sm:gap-2",
           "relative overflow-hidden group",
-          disabled && "opacity-50 cursor-not-allowed hover:scale-100"
+          "whitespace-nowrap",
+          "flex-1 sm:flex-initial",
+          "rounded-xl",
+          "transition-all duration-200",
+          // Smart colors for Publish state
+          !isPublished && "border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:border-emerald-300 dark:hover:border-emerald-700/60 shadow-sm hover:shadow-md",
+          // Smart colors for Unpublish state
+          isPublished && "border border-purple-200 dark:border-purple-800/50 bg-purple-50/50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 hover:border-purple-300 dark:hover:border-purple-700/60 shadow-sm hover:shadow-md",
+          disabled && "opacity-50 cursor-not-allowed hover:scale-100 hover:shadow-sm"
         )}
       >
         {isPublishLoading ? (
-          <div className="flex items-center gap-x-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="hidden sm:inline">{isPublished ? "Unpublishing..." : "Publishing..."}</span>
-            <span className="sm:hidden">{isPublished ? "Unpub..." : "Pub..."}</span>
+          <div className="flex items-center gap-x-1.5 sm:gap-x-2">
+            <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+            <span>{isPublished ? "Unpublishing..." : "Publishing..."}</span>
           </div>
         ) : (
           <>
             {isPublished ? (
               <>
-                <EyeOff className="h-4 w-4" />
-                <span className="hidden sm:inline">Unpublish</span>
-                <span className="sm:hidden">Unpub</span>
+                <EyeOff className="h-4 w-4 flex-shrink-0" />
+                <span>Unpublish</span>
               </>
             ) : (
               <>
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Publish Course</span>
                 <span className="sm:hidden">Publish</span>
               </>
@@ -146,7 +153,7 @@ export const Actions = ({
       <ConfirmModal onConfirm={onDelete}>
         <Button
           disabled={isDeleteLoading}
-          variant="enterprise-danger-outline"
+          variant="ghost"
           size="sm"
           className={cn(
             "h-9 sm:h-10",
@@ -154,7 +161,15 @@ export const Actions = ({
             "flex items-center justify-center",
             "p-0",
             "group relative overflow-hidden",
-            isDeleteLoading && "opacity-50 cursor-not-allowed hover:scale-100"
+            "rounded-xl",
+            "border border-red-200 dark:border-red-800/50",
+            "bg-red-50/50 dark:bg-red-950/30",
+            "text-red-600 dark:text-red-400",
+            "hover:bg-red-100 dark:hover:bg-red-900/40",
+            "hover:border-red-300 dark:hover:border-red-700/60",
+            "shadow-sm hover:shadow-md",
+            "transition-all duration-200",
+            isDeleteLoading && "opacity-50 cursor-not-allowed hover:scale-100 hover:shadow-sm"
           )}
         >
           {isDeleteLoading ? (

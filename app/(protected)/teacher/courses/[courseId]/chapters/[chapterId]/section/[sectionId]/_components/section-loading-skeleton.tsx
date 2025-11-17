@@ -7,13 +7,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 export const SectionLoadingSkeleton = () => {
   return (
     <div className={cn(
-      "min-h-screen",
+      "min-h-[100dvh] w-full overflow-x-hidden",
       "bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100",
       "dark:from-gray-900 dark:via-gray-900 dark:to-gray-800"
     )}>
       {/* Header Skeleton */}
       <div className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 py-3">
+        <div className="w-full sm:container sm:mx-auto px-0 sm:px-4 py-3">
           <div className="flex items-center justify-between">
             {/* Breadcrumb Skeleton */}
             <div className="flex items-center space-x-2">
@@ -39,7 +39,7 @@ export const SectionLoadingSkeleton = () => {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full sm:container sm:mx-auto px-0 sm:px-4 py-8">
         {/* Page Header Card Skeleton */}
         <Card className="border-0 shadow-xl mb-8">
           <CardHeader className="pb-4">

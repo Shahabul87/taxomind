@@ -18,7 +18,7 @@ export function PostsPageLayout({ user, children }: PostsPageLayoutProps) {
   return (
     <>
       <SmartSidebar user={user} />
-      <div className="ml-[72px]">
+      <div className="lg:ml-[72px]">
         <div className="flex flex-col h-screen overflow-hidden">
           <SmartHeader user={user} />
           <div className="flex-1 overflow-y-auto pt-16">

@@ -18,7 +18,7 @@ export default async function PostEditLayout({
     <>
       <SmartHeader user={user} />
       <SmartSidebar user={user} />
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 ml-[72px] transition-all duration-300">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 lg:ml-[72px] transition-all duration-300">
         {children}
       </div>
     </>

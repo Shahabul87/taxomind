@@ -24,7 +24,7 @@ type Props = {
       <ComprehensiveSAMProvider>
         <>
           <SmartSidebar user={user} />
-          <div className="ml-[72px]" suppressHydrationWarning>
+          <div className="lg:ml-[72px]" suppressHydrationWarning>
             <SmartHeader user={user} />
             <div className="min-h-screen pt-16 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
               <TeacherPageContextInjector />

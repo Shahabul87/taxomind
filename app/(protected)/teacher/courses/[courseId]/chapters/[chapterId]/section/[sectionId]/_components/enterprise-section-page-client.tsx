@@ -172,26 +172,26 @@ export const EnterpriseSectionPageClient = ({
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
+      <div className="min-h-[100dvh] w-full overflow-x-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
         {/* Enterprise Header with Status Bar */}
         <div className="sticky top-0 z-40 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-b border-gray-200/70 dark:border-gray-800/70 shadow-sm">
-          <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3">
+          <div className="w-full sm:container sm:mx-auto px-2 sm:px-4 py-2 sm:py-3">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               {/* Breadcrumb Navigation */}
-              <nav className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm overflow-x-auto max-w-full">
-                <Link href="/teacher/courses" className="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
+              <nav className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm overflow-x-auto max-w-full w-full sm:w-auto px-1">
+                <Link href="/teacher/courses" className="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap flex-shrink-0">
                   Courses
                 </Link>
-                <span className="text-muted-foreground/50">/</span>
-                <Link href={`/teacher/courses/${params.courseId}`} className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[60px] sm:max-w-[100px]">
+                <span className="text-muted-foreground/50 flex-shrink-0">/</span>
+                <Link href={`/teacher/courses/${params.courseId}`} className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[100px] sm:max-w-[150px]">
                   {chapter.course.title}
                 </Link>
-                <span className="text-muted-foreground/50">/</span>
-                <Link href={`/teacher/courses/${params.courseId}/chapters/${params.chapterId}`} className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[60px] sm:max-w-[100px]">
+                <span className="text-muted-foreground/50 flex-shrink-0">/</span>
+                <Link href={`/teacher/courses/${params.courseId}/chapters/${params.chapterId}`} className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[100px] sm:max-w-[150px]">
                   {chapter.title}
                 </Link>
-                <span className="text-muted-foreground/50">/</span>
-                <span className="text-foreground font-medium truncate max-w-[80px] sm:max-w-none">{section.title || 'New Section'}</span>
+                <span className="text-muted-foreground/50 flex-shrink-0">/</span>
+                <span className="text-foreground font-medium truncate max-w-[120px] sm:max-w-none">{section.title || 'New Section'}</span>
               </nav>
 
               {/* Quick Actions */}
@@ -234,7 +234,7 @@ export const EnterpriseSectionPageClient = ({
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="container mx-auto px-2 sm:px-4 pt-2 sm:pt-4"
+              className="w-full sm:container sm:mx-auto px-2 sm:px-4 pt-2 sm:pt-4"
             >
               <Banner
                 variant="warning"
@@ -245,7 +245,7 @@ export const EnterpriseSectionPageClient = ({
         </AnimatePresence>
 
         {/* Main Content Area */}
-        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 md:py-8">
+        <div className="w-full sm:container sm:mx-auto px-2 sm:px-4 py-4 sm:py-6 md:py-8">
           {/* Page Header with Metrics */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
