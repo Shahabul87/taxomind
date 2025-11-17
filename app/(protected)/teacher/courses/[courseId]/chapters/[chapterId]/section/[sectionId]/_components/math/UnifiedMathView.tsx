@@ -17,17 +17,12 @@ import axios from "axios";
 
 interface MathEquation {
   id: string;
-  heading: string;
-  code: string;  // JSON string for visual mode or LaTeX string
+  title: string;
+  latexEquation: string | null;
+  imageUrl: string | null;
+  content: string | null;
   explanation: string | null;
   createdAt: string;
-}
-
-interface ParsedMathContent {
-  isVisualMode: boolean;
-  imageUrl: string;
-  content: string;
-  equation: string;
 }
 
 interface UnifiedMathViewProps {
@@ -35,29 +30,6 @@ interface UnifiedMathViewProps {
   chapterId: string;
   sectionId: string;
 }
-
-// Parse math equation content from the code field
-const parseMathEquationContent = (codeString: string): ParsedMathContent => {
-  try {
-    const data = JSON.parse(codeString);
-    if (data.isMathEquation && data.mode === "visual") {
-      return {
-        isVisualMode: true,
-        imageUrl: data.imageUrl || "",
-        content: data.content || "",
-        equation: ""
-      };
-    }
-    throw new Error("Not visual mode JSON");
-  } catch (e) {
-    return {
-      isVisualMode: false,
-      imageUrl: "",
-      content: "",
-      equation: codeString
-    };
-  }
-};
 
 export const UnifiedMathView = ({
   courseId,
@@ -82,7 +54,7 @@ export const UnifiedMathView = ({
         const response = await axios.get(
           `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations`
         );
-        setEquations(response.data || []);
+        setEquations(response.data.data || []);
       } catch (error) {
         console.error('Failed to fetch math equations:', error);
         toast.error('Failed to load math equations');
@@ -160,15 +132,13 @@ export const UnifiedMathView = ({
     const equation = equations.find(e => e.id === equationId);
     if (!equation) return;
 
-    const { isVisualMode, equation: latexEquation } = parseMathEquationContent(equation.code);
-
-    if (isVisualMode) {
+    if (!equation.latexEquation) {
       toast.info('Visual mode equations cannot be copied as text');
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(latexEquation);
+      await navigator.clipboard.writeText(equation.latexEquation);
       setCopiedEquationId(equationId);
       toast.success(`LaTeX equation copied!`);
       setTimeout(() => setCopiedEquationId(null), 2000);
@@ -216,7 +186,7 @@ export const UnifiedMathView = ({
         const response = await axios.get(
           `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations`
         );
-        setEquations(response.data || []);
+        setEquations(response.data.data || []);
       } catch (error) {
         console.error('Failed to fetch math equations:', error);
       }
@@ -275,7 +245,7 @@ export const UnifiedMathView = ({
       <CardContent className="p-0 relative" ref={containerRef}>
         <div className="relative">
           {equations.map((equation, index) => {
-            const { isVisualMode, imageUrl, content, equation: latexEquation } = parseMathEquationContent(equation.code);
+            const isVisualMode = !!equation.imageUrl && !equation.latexEquation;
 
             return (
               <motion.div
@@ -289,7 +259,7 @@ export const UnifiedMathView = ({
                 <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20 border-b border-purple-200 dark:border-purple-800">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-purple-900 dark:text-purple-100">
-                      {equation.heading}
+                      {equation.title}
                     </span>
                     <Badge variant="secondary" className="text-xs">
                       {isVisualMode ? '📷 Visual' : '📐 LaTeX'}
@@ -364,11 +334,11 @@ export const UnifiedMathView = ({
                 {/* Equation Preview */}
                 <div className="relative group p-4">
                   {isVisualMode ? (
-                    imageUrl && (
+                    equation.imageUrl && (
                       <div className="flex justify-center">
                         <Image
-                          src={imageUrl}
-                          alt={equation.heading}
+                          src={equation.imageUrl}
+                          alt={equation.title}
                           width={400}
                           height={300}
                           className="max-w-full h-auto rounded-lg"
@@ -381,10 +351,10 @@ export const UnifiedMathView = ({
                       </div>
                     )
                   ) : (
-                    latexEquation && (
+                    equation.latexEquation && (
                       <div className="flex justify-center">
                         <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 p-6 rounded-lg w-fit max-w-full overflow-x-auto">
-                          <BlockMath math={latexEquation} />
+                          <BlockMath math={equation.latexEquation} />
                         </div>
                       </div>
                     )
@@ -406,18 +376,18 @@ export const UnifiedMathView = ({
             const equation = equations.find(e => e.id === equationId);
             if (!equation) return null;
 
-            const parsed = parseMathEquationContent(equation.code);
+            const isVisualMode = !!equation.imageUrl && !equation.latexEquation;
 
             return (
               <MathExplanationTooltip
                 key={equationId}
                 explanation={equation.explanation || ''}
-                title={equation.heading}
+                title={equation.title}
                 position={position}
-                isVisualMode={parsed.isVisualMode}
-                imageUrl={parsed.imageUrl}
-                content={parsed.content}
-                latexEquation={parsed.equation}
+                isVisualMode={isVisualMode}
+                imageUrl={equation.imageUrl || ''}
+                content={equation.content || ''}
+                latexEquation={equation.latexEquation || ''}
                 onClose={() => handleTooltipClose(equationId)}
               />
             );
@@ -438,8 +408,10 @@ export const UnifiedMathView = ({
           sectionId={sectionId}
           equationId={editingEquation.id}
           initialData={{
-            heading: editingEquation.heading,
-            code: editingEquation.code,
+            title: editingEquation.title,
+            latexEquation: editingEquation.latexEquation,
+            imageUrl: editingEquation.imageUrl,
+            content: editingEquation.content,
             explanation: editingEquation.explanation,
           }}
           onSuccess={handleEditSuccess}

@@ -30,9 +30,9 @@ import { Editor } from "@/components/editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const formSchema = z.object({
-  heading: z.string().min(1, "Title is required"),
+  title: z.string().min(1, "Title is required"),
   mode: z.enum(["equation", "visual"]),
-  equation: z.string().optional(),
+  latexEquation: z.string().optional(),
   imageUrl: z.string().optional(),
   content: z.string().optional(),
   explanation: z.string().optional(),
@@ -46,35 +46,14 @@ interface MathEquationEditModalProps {
   sectionId: string;
   equationId: string;
   initialData: {
-    heading: string;
-    code: string;  // JSON string or LaTeX string
+    title: string;
+    latexEquation: string | null;
+    imageUrl: string | null;
+    content: string | null;
     explanation: string | null;
   };
   onSuccess: () => void;
 }
-
-// Parse the code field to extract mode and content
-const parseCodeField = (code: string) => {
-  try {
-    const data = JSON.parse(code);
-    if (data.isMathEquation && data.mode === "visual") {
-      return {
-        mode: "visual" as const,
-        equation: "",
-        imageUrl: data.imageUrl || "",
-        content: data.content || "",
-      };
-    }
-    throw new Error("Not visual mode");
-  } catch (e) {
-    return {
-      mode: "equation" as const,
-      equation: code,
-      imageUrl: "",
-      content: "",
-    };
-  }
-};
 
 export const MathEquationEditModal = ({
   isOpen,
@@ -90,16 +69,17 @@ export const MathEquationEditModal = ({
   const [isSaving, setIsSaving] = useState(false);
   const [currentMode, setCurrentMode] = useState<"equation" | "visual">("equation");
 
-  const parsed = parseCodeField(initialData.code);
+  // Determine initial mode based on data
+  const initialMode = initialData.imageUrl && !initialData.latexEquation ? "visual" : "equation";
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      heading: initialData.heading,
-      mode: parsed.mode,
-      equation: parsed.equation,
-      imageUrl: parsed.imageUrl,
-      content: parsed.content,
+      title: initialData.title,
+      mode: initialMode,
+      latexEquation: initialData.latexEquation || "",
+      imageUrl: initialData.imageUrl || "",
+      content: initialData.content || "",
       explanation: initialData.explanation || "",
     },
   });
@@ -107,14 +87,14 @@ export const MathEquationEditModal = ({
   // Reset form when modal opens with new data
   useEffect(() => {
     if (isOpen) {
-      const parsed = parseCodeField(initialData.code);
-      setCurrentMode(parsed.mode);
+      const mode = initialData.imageUrl && !initialData.latexEquation ? "visual" : "equation";
+      setCurrentMode(mode);
       form.reset({
-        heading: initialData.heading,
-        mode: parsed.mode,
-        equation: parsed.equation,
-        imageUrl: parsed.imageUrl,
-        content: parsed.content,
+        title: initialData.title,
+        mode: mode,
+        latexEquation: initialData.latexEquation || "",
+        imageUrl: initialData.imageUrl || "",
+        content: initialData.content || "",
         explanation: initialData.explanation || "",
       });
     }
@@ -124,22 +104,12 @@ export const MathEquationEditModal = ({
     try {
       setIsSaving(true);
 
-      // Prepare the code field based on mode
-      let codeField: string;
-      if (currentMode === "visual") {
-        codeField = JSON.stringify({
-          isMathEquation: true,
-          mode: "visual",
-          imageUrl: values.imageUrl || "",
-          content: values.content || "",
-        });
-      } else {
-        codeField = values.equation || "";
-      }
-
+      // Prepare the payload based on mode
       const payload = {
-        heading: values.heading,
-        code: codeField,
+        title: values.title,
+        latexEquation: currentMode === "equation" ? (values.latexEquation || null) : null,
+        imageUrl: currentMode === "visual" ? (values.imageUrl || null) : null,
+        content: currentMode === "visual" ? (values.content || null) : null,
         explanation: values.explanation || null,
       };
 
@@ -182,7 +152,7 @@ export const MathEquationEditModal = ({
             {/* Title */}
             <FormField
               control={form.control}
-              name="heading"
+              name="title"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Equation Title</FormLabel>
@@ -222,7 +192,7 @@ export const MathEquationEditModal = ({
                   {/* LaTeX Equation */}
                   <FormField
                     control={form.control}
-                    name="equation"
+                    name="latexEquation"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>LaTeX Equation</FormLabel>
