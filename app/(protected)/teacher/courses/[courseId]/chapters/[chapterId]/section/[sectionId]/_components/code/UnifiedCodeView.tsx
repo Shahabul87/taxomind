@@ -4,12 +4,14 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
-import { Copy, Download, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Copy, Download, Eye, EyeOff, Loader2, Pencil, Trash2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ExplanationTooltip } from "./ExplanationTooltip";
+import { CodeBlockEditModal } from "./CodeBlockEditModal";
+import { ConfirmModal } from "@/components/modals/confirm-modal";
 import axios from "axios";
 
 interface CodeBlock {
@@ -27,23 +29,21 @@ interface UnifiedCodeViewProps {
   courseId: string;
   chapterId: string;
   sectionId: string;
-  onEdit?: (blockId: string) => void;
-  onDelete?: (blockId: string) => void;
 }
 
 export const UnifiedCodeView = ({
   courseId,
   chapterId,
   sectionId,
-  onEdit,
-  onDelete
 }: UnifiedCodeViewProps) => {
   const [blocks, setBlocks] = useState<CodeBlock[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [openTooltips, setOpenTooltips] = useState<Map<string, { x: number; y: number }>>(new Map());
   const [showExplanations, setShowExplanations] = useState(true);
   const [copiedBlockId, setCopiedBlockId] = useState<string | null>(null);
+  const [editingBlock, setEditingBlock] = useState<CodeBlock | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch code blocks
@@ -81,27 +81,73 @@ export const UnifiedCodeView = ({
   const totalLines = unifiedCode.split('\n').length;
   const language = sortedBlocks[0]?.language || 'typescript';
 
-  // Handle mouse hover on code blocks
-  const handleBlockHover = (
-    blockId: string,
-    event: React.MouseEvent<HTMLDivElement>
-  ) => {
-    if (!showExplanations) return;
+  // Calculate smart tooltip position that stays within viewport
+  const calculateTooltipPosition = (buttonElement: HTMLElement) => {
+    const tooltipWidth = 384; // w-96 = 384px (24rem)
+    const tooltipHeight = 400; // Approximate max height
+    const offset = 10;
 
-    const block = blocks.find(b => b.id === blockId);
-    if (!block?.explanation) return;
+    const buttonRect = buttonElement.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
-    setHoveredBlockId(blockId);
+    // Start position near the button
+    let x = buttonRect.right + offset;
+    let y = buttonRect.top;
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    setTooltipPosition({
-      x: rect.right + 16,
-      y: rect.top
-    });
+    // Check right boundary - if tooltip would go off-screen, position it to the left
+    if (x + tooltipWidth > viewportWidth) {
+      x = buttonRect.left - tooltipWidth - offset;
+    }
+
+    // Check left boundary - ensure it does not go off left edge
+    if (x < 0) {
+      x = offset;
+    }
+
+    // Check bottom boundary
+    if (y + tooltipHeight > viewportHeight) {
+      y = viewportHeight - tooltipHeight - offset;
+    }
+
+    // Check top boundary
+    if (y < 0) {
+      y = offset;
+    }
+
+    return { x, y };
   };
 
-  const handleBlockLeave = () => {
-    setHoveredBlockId(null);
+  // Handle show explanation button click
+  const handleShowExplanation = (
+    blockId: string,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const block = blocks.find(b => b.id === blockId);
+    if (!block?.explanation) {
+      toast.info('No explanation available for this block');
+      return;
+    }
+
+    // If already open, do nothing
+    if (openTooltips.has(blockId)) {
+      toast.info('Explanation is already visible');
+      return;
+    }
+
+    // Add new tooltip to the map with its position
+    const position = calculateTooltipPosition(event.currentTarget);
+    setOpenTooltips(prev => new Map(prev).set(blockId, position));
+  };
+
+  // Handle tooltip close
+  const handleTooltipClose = (blockId: string) => {
+    // Remove from open tooltips
+    setOpenTooltips(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(blockId);
+      return newMap;
+    });
   };
 
   // Copy entire code to clipboard
@@ -141,6 +187,59 @@ export const UnifiedCodeView = ({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success('Code downloaded!');
+  };
+
+  // Edit block
+  const handleEdit = (block: CodeBlock) => {
+    setEditingBlock(block);
+    setIsEditModalOpen(true);
+  };
+
+  // Delete block
+  const handleDelete = async (blockId: string) => {
+    try {
+      setIsDeletingId(blockId);
+
+      await axios.delete(
+        `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/code-explanations/${blockId}`
+      );
+
+      // Remove from blocks state
+      setBlocks(prev => prev.filter(b => b.id !== blockId));
+
+      // Close any open tooltip for this block
+      setOpenTooltips(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(blockId);
+        return newMap;
+      });
+
+      toast.success('Code block deleted successfully!');
+    } catch (error) {
+      toast.error('Failed to delete code block');
+      console.error('Delete error:', error);
+    } finally {
+      setIsDeletingId(null);
+    }
+  };
+
+  // Handle edit success
+  const handleEditSuccess = () => {
+    // Refetch blocks
+    const fetchBlocks = async () => {
+      try {
+        const response = await axios.get(
+          `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/code-blocks`
+        );
+        if (response.data.success) {
+          setBlocks(response.data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch code blocks:', error);
+      }
+    };
+
+    fetchBlocks();
   };
 
   if (isLoading) {
@@ -233,8 +332,6 @@ export const UnifiedCodeView = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className="relative border-b border-gray-200 dark:border-gray-800 last:border-b-0"
-              onMouseEnter={(e) => handleBlockHover(block.id, e)}
-              onMouseLeave={handleBlockLeave}
             >
               {/* Block Header */}
               <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-b border-blue-200 dark:border-blue-800">
@@ -242,11 +339,6 @@ export const UnifiedCodeView = ({
                   <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">
                     {block.title}
                   </span>
-                  {block.explanation && showExplanations && (
-                    <Badge variant="secondary" className="text-xs">
-                      💡 Hover for explanation
-                    </Badge>
-                  )}
                   {!block.explanation && (
                     <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400">
                       No explanation yet
@@ -255,11 +347,30 @@ export const UnifiedCodeView = ({
                 </div>
 
                 <div className="flex items-center gap-1">
+                  {block.explanation && showExplanations && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleShowExplanation(block.id, e)}
+                      className={`h-7 px-2 text-xs font-medium ${
+                        openTooltips.has(block.id)
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                          : 'bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-700 dark:hover:text-white'
+                      }`}
+                    >
+                      <BookOpen className="h-3 w-3 mr-1" />
+                      {openTooltips.has(block.id) ? 'Shown' : 'Show Explanation'}
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleCopyBlock(block.id)}
-                    className="h-7 px-2 text-xs"
+                    className={`h-7 px-2 text-xs font-medium ${
+                      copiedBlockId === block.id
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-600 hover:text-white dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white'
+                    }`}
                   >
                     {copiedBlockId === block.id ? (
                       <>✓ Copied</>
@@ -270,16 +381,26 @@ export const UnifiedCodeView = ({
                       </>
                     )}
                   </Button>
-                  {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(block)}
+                    className="h-7 px-2 text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-600 hover:text-white dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-700 dark:hover:text-white"
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    Edit
+                  </Button>
+                  <ConfirmModal onConfirm={() => handleDelete(block.id)}>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onEdit(block.id)}
-                      className="h-7 px-2 text-xs"
+                      disabled={isDeletingId === block.id}
+                      className="h-7 px-2 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-900/40 dark:text-red-200 dark:hover:bg-red-700 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Edit
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      {isDeletingId === block.id ? 'Deleting...' : 'Delete'}
                     </Button>
-                  )}
+                  </ConfirmModal>
                 </div>
               </div>
 
@@ -305,8 +426,8 @@ export const UnifiedCodeView = ({
                   {block.code}
                 </SyntaxHighlighter>
 
-                {/* Hover overlay */}
-                {block.explanation && showExplanations && hoveredBlockId === block.id && (
+                {/* Active block overlay - shows when explanation is displayed */}
+                {openTooltips.has(block.id) && (
                   <div className="absolute inset-0 bg-blue-500/5 pointer-events-none" />
                 )}
               </div>
@@ -314,18 +435,46 @@ export const UnifiedCodeView = ({
           ))}
         </div>
 
-        {/* Explanation Tooltip */}
+        {/* Explanation Tooltips - Multiple can be open */}
         <AnimatePresence>
-          {hoveredBlockId && showExplanations && (
-            <ExplanationTooltip
-              explanation={blocks.find(b => b.id === hoveredBlockId)?.explanation || ''}
-              title={blocks.find(b => b.id === hoveredBlockId)?.title || ''}
-              position={tooltipPosition}
-              onClose={() => setHoveredBlockId(null)}
-            />
-          )}
+          {showExplanations && Array.from(openTooltips.entries()).map(([blockId, position]) => {
+            const block = blocks.find(b => b.id === blockId);
+            if (!block) return null;
+
+            return (
+              <ExplanationTooltip
+                key={blockId}
+                explanation={block.explanation || ''}
+                title={block.title}
+                position={position}
+                onClose={() => handleTooltipClose(blockId)}
+              />
+            );
+          })}
         </AnimatePresence>
       </CardContent>
+
+      {/* Edit Code Block Modal */}
+      {editingBlock && (
+        <CodeBlockEditModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingBlock(null);
+          }}
+          courseId={courseId}
+          chapterId={chapterId}
+          sectionId={sectionId}
+          blockId={editingBlock.id}
+          initialData={{
+            title: editingBlock.title,
+            language: editingBlock.language,
+            code: editingBlock.code,
+            explanation: editingBlock.explanation,
+          }}
+          onSuccess={handleEditSuccess}
+        />
+      )}
     </Card>
   );
 };

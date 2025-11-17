@@ -73,34 +73,6 @@ export const CodeBlockManager = ({
     router.refresh();
   }, [fetchCodeBlocks, router]);
 
-  const handleEdit = useCallback((blockId: string) => {
-    // TODO: Implement edit functionality
-    toast.info("Edit functionality coming soon!");
-  }, []);
-
-  const handleDelete = useCallback(async (blockId: string) => {
-    if (!confirm("Are you sure you want to delete this code block?")) {
-      return;
-    }
-
-    try {
-      const response = await axios.delete(
-        `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/code-blocks/${blockId}`
-      );
-
-      if (response.data.success) {
-        toast.success("Code block deleted successfully!");
-        fetchCodeBlocks();
-        router.refresh();
-      } else {
-        toast.error(response.data.error?.message || "Failed to delete code block");
-      }
-    } catch (err) {
-      console.error("[DELETE_CODE_BLOCK]", err);
-      toast.error("Failed to delete code block. Please try again.");
-    }
-  }, [courseId, chapterId, sectionId, fetchCodeBlocks, router]);
-
   if (isLoading) {
     return (
       <Card>
@@ -151,8 +123,6 @@ export const CodeBlockManager = ({
             courseId={courseId}
             chapterId={chapterId}
             sectionId={sectionId}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
           />
         </TabsContent>
 
