@@ -295,7 +295,7 @@ export function SmartHeader({
 
               {/* Center: View Mode Toggle - Mobile Only */}
               {onViewModeChange && (
-                <div className="lg:hidden flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg p-1">
+                <div className="lg:hidden flex items-center gap-0.5 bg-slate-100 dark:bg-slate-700/50 rounded-lg p-0.5">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -303,12 +303,12 @@ export function SmartHeader({
                     className={cn(
                       'p-2 rounded-lg transition-all duration-200',
                       viewMode === 'grid'
-                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                        ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                     )}
                     aria-label="Grid View"
                   >
-                    <Grid3x3 className="h-4 w-4" />
+                    <Grid3x3 className="h-5 w-5" />
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -317,12 +317,12 @@ export function SmartHeader({
                     className={cn(
                       'p-2 rounded-lg transition-all duration-200',
                       viewMode === 'list'
-                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                        ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                     )}
                     aria-label="List View"
                   >
-                    <List className="h-4 w-4" />
+                    <List className="h-5 w-5" />
                   </motion.button>
                 </div>
               )}
@@ -336,10 +336,10 @@ export function SmartHeader({
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setIsQuickCreateOpen(!isQuickCreateOpen)}
                     className={cn(
-                      'p-2 rounded-lg transition-colors',
-                      'bg-gradient-to-r from-blue-500 to-indigo-500',
-                      'hover:from-blue-600 hover:to-indigo-600',
-                      'text-white shadow-md hover:shadow-lg'
+                      'p-2 rounded-lg transition-all duration-200',
+                      'bg-blue-50 dark:bg-blue-500/10',
+                      'hover:bg-blue-100 dark:hover:bg-blue-500/20',
+                      'text-blue-600 dark:text-blue-400'
                     )}
                     aria-label="Quick Create"
                   >
@@ -354,7 +354,7 @@ export function SmartHeader({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-80 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-xl"
+                        className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 top-20 sm:top-auto mt-0 sm:mt-2 w-auto sm:w-80 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-xl z-50"
                       >
                         <div className="p-4">
                           <div className="flex items-center justify-between mb-4">
@@ -415,7 +415,7 @@ export function SmartHeader({
 
                 {/* View Mode Toggle - Desktop Only */}
                 {onViewModeChange && (
-                  <div className="hidden lg:flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg p-1">
+                  <div className="hidden lg:flex items-center gap-0.5 bg-slate-100 dark:bg-slate-700/50 rounded-lg p-0.5">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -423,12 +423,12 @@ export function SmartHeader({
                       className={cn(
                         'p-2 rounded-lg transition-all duration-200',
                         viewMode === 'grid'
-                          ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md'
-                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                          ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                       )}
                       aria-label="Grid View"
                     >
-                      <Grid3x3 className="h-4 w-4" />
+                      <Grid3x3 className="h-5 w-5" />
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
@@ -437,12 +437,12 @@ export function SmartHeader({
                       className={cn(
                         'p-2 rounded-lg transition-all duration-200',
                         viewMode === 'list'
-                          ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md'
-                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                          ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                       )}
                       aria-label="List View"
                     >
-                      <List className="h-4 w-4" />
+                      <List className="h-5 w-5" />
                     </motion.button>
                   </div>
                 )}
