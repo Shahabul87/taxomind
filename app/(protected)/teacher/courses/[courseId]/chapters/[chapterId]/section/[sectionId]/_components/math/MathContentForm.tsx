@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Editor } from '@/components/editor';
+import { MathImageUpload } from './MathImageUpload';
 
 const formSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200),
@@ -154,16 +155,16 @@ export const MathContentForm = ({
                     name="imageUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Image URL</FormLabel>
+                        <FormLabel>Equation Image</FormLabel>
                         <FormControl>
-                          <Input
+                          <MathImageUpload
+                            value={field.value || ''}
+                            onChange={field.onChange}
                             disabled={isSubmitting}
-                            placeholder="https://example.com/equation-image.png"
-                            {...field}
                           />
                         </FormControl>
                         <FormDescription>
-                          Provide a URL to an equation image (Cloudinary, etc.)
+                          Upload an equation image directly from your device
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
