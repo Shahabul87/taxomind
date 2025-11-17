@@ -55,7 +55,6 @@ export const MathTab = ({
           courseId={courseId}
           chapterId={chapterId}
           sectionId={sectionId}
-          initialData={initialData.mathExplanations || []}
         />
       </MathContentErrorBoundary>
     </div>

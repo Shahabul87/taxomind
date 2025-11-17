@@ -1,39 +1,74 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Plus, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MathContentForm } from './MathContentForm';
+import { Calculator, Loader2, AlertCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { UnifiedMathView } from './UnifiedMathView';
-import { MathContentListSkeleton, MathContentFormSkeleton } from './MathContentSkeleton';
-import type { MathExplanation } from '../enterprise-section-types';
+import { MathContentForm } from './MathContentForm';
+
+interface MathEquation {
+  id: string;
+  title: string;
+  latexEquation: string | null;
+  imageUrl: string | null;
+  content: string | null;
+  explanation: string | null;
+  createdAt: string;
+}
 
 interface MathContentManagerProps {
   courseId: string;
   chapterId: string;
   sectionId: string;
-  initialData: MathExplanation[];
 }
 
 export const MathContentManager = ({
   courseId,
   chapterId,
   sectionId,
-  initialData
 }: MathContentManagerProps) => {
+  const [mathEquations, setMathEquations] = useState<MathEquation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const [isAdding, setIsAdding] = useState(false);
-  const [mathExplanations, setMathExplanations] = useState<MathExplanation[]>(initialData);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchMathEquations = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await axios.get(
+        `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations`
+      );
+
+      if (response.data.success) {
+        setMathEquations(response.data.data || []);
+      } else {
+        setError(response.data.error?.message || 'Failed to load math equations');
+      }
+    } catch (err) {
+      console.error('[FETCH_MATH_EQUATIONS]', err);
+      setError('Failed to load math equations. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [courseId, chapterId, sectionId]);
+
+  useEffect(() => {
+    fetchMathEquations();
+  }, [fetchMathEquations]);
+
+  const handleSuccess = useCallback(() => {
+    fetchMathEquations();
+    router.refresh();
+  }, [fetchMathEquations, router]);
 
   const handleAdd = useCallback(async (data: { title: string; explanation: string; imageUrl?: string; latexEquation?: string }) => {
-    setIsLoading(true);
     try {
-      // Convert undefined to null for database
       const payload = {
         title: data.title,
         explanation: data.explanation,
@@ -47,65 +82,74 @@ export const MathContentManager = ({
       );
 
       if (response.data.success) {
-        setMathExplanations(prev => [...prev, response.data.data]);
-        setIsAdding(false);
-        toast.success('Math content added successfully');
-        router.refresh();
+        toast.success('Math equation added successfully');
+        handleSuccess();
       }
     } catch (error) {
-      console.error('Failed to add math content:', error);
-      toast.error('Failed to add math content');
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to add math equation:', error);
+      toast.error('Failed to add math equation');
     }
-  }, [courseId, chapterId, sectionId, router]);
+  }, [courseId, chapterId, sectionId, handleSuccess]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center justify-center text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">Loading math equations...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center justify-center text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+            <p className="font-medium text-destructive mb-2">Error loading math equations</p>
+            <p className="text-sm text-muted-foreground mb-4">{error}</p>
+            <button
+              onClick={fetchMathEquations}
+              className="text-sm text-primary underline underline-offset-4"
+            >
+              Try again
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <CardTitle className="text-lg font-semibold">
-            Math Content ({mathExplanations.length})
-          </CardTitle>
-          <Button
-            onClick={() => setIsAdding(true)}
-            disabled={isAdding || isLoading}
-            className="gap-2 w-full sm:w-auto"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-            <span className="hidden xs:inline">Add Math Content</span>
-            <span className="xs:hidden">Add Content</span>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {isAdding && (
-            <>
-              {isLoading ? (
-                <MathContentFormSkeleton />
-              ) : (
-                <MathContentForm
-                  onSubmit={handleAdd}
-                  onCancel={() => setIsAdding(false)}
-                />
-              )}
-            </>
-          )}
+      <Tabs defaultValue="view" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="view" className="gap-2">
+            <Calculator className="h-4 w-4" />
+            View Equations
+          </TabsTrigger>
+          <TabsTrigger value="add">Add Equation</TabsTrigger>
+        </TabsList>
 
-          {isLoading && !isAdding ? (
-            <MathContentListSkeleton count={3} />
-          ) : (
-            <UnifiedMathView
-              courseId={courseId}
-              chapterId={chapterId}
-              sectionId={sectionId}
-            />
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="view" className="mt-6">
+          <UnifiedMathView
+            courseId={courseId}
+            chapterId={chapterId}
+            sectionId={sectionId}
+          />
+        </TabsContent>
+
+        <TabsContent value="add" className="mt-6">
+          <MathContentForm
+            onSubmit={handleAdd}
+            onCancel={() => {}}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
