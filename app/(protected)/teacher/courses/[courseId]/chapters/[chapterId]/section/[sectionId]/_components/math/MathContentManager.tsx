@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { UnifiedMathView } from './UnifiedMathView';
 import { MathContentForm } from './MathContentForm';
+import { MathContentErrorBoundary } from './MathContentErrorBoundary';
 
 interface MathEquation {
   id: string;
@@ -136,15 +137,20 @@ export const MathContentManager = ({
         </TabsList>
 
         <TabsContent value="view" className="mt-6">
-          <UnifiedMathView
-            courseId={courseId}
-            chapterId={chapterId}
-            sectionId={sectionId}
-          />
+          <MathContentErrorBoundary>
+            <UnifiedMathView
+              courseId={courseId}
+              chapterId={chapterId}
+              sectionId={sectionId}
+            />
+          </MathContentErrorBoundary>
         </TabsContent>
 
         <TabsContent value="add" className="mt-6">
           <MathContentForm
+            courseId={courseId}
+            chapterId={chapterId}
+            sectionId={sectionId}
             onSubmit={handleAdd}
             onCancel={() => {}}
           />

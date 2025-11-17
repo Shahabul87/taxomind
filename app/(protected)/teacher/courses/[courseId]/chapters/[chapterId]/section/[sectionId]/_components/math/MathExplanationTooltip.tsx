@@ -2,12 +2,35 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { BlockMath } from 'react-katex';
-import "katex/dist/katex.min.css";
 import Image from "next/image";
 import { X, Calculator, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { KaTeXRenderer } from "./KaTeXRenderer";
+
+// Helper function to clean LaTeX delimiters
+const cleanLatex = (latex: string): string => {
+  if (!latex) return latex;
+
+  let cleaned = latex.trim();
+
+  // Remove display math delimiters: \[ ... \]
+  if (cleaned.startsWith('\\[') && cleaned.endsWith('\\]')) {
+    cleaned = cleaned.slice(2, -2).trim();
+  }
+
+  // Remove display math delimiters: $$ ... $$
+  if (cleaned.startsWith('$$') && cleaned.endsWith('$$')) {
+    cleaned = cleaned.slice(2, -2).trim();
+  }
+
+  // Remove inline math delimiters: $ ... $
+  if (cleaned.startsWith('$') && cleaned.endsWith('$') && !cleaned.startsWith('$$')) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+
+  return cleaned;
+};
 
 interface MathExplanationTooltipProps {
   explanation: string;
@@ -149,7 +172,7 @@ export const MathExplanationTooltip = ({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 100 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="fixed inset-x-0 bottom-0 z-50 max-h-[70vh]"
+        className="fixed inset-x-0 bottom-0 z-[9999] max-h-[70vh]"
       >
         <div className="bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl border-t-2 border-purple-500/30 overflow-hidden">
           {/* Header - Drag handle */}
@@ -229,7 +252,10 @@ export const MathExplanationTooltip = ({
               latexEquation && (
                 <div className="mb-4 flex justify-center">
                   <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 p-4 rounded-lg w-fit max-w-full overflow-x-auto">
-                    <BlockMath math={latexEquation} />
+                    <KaTeXRenderer
+                      math={cleanLatex(latexEquation)}
+                      displayMode={true}
+                    />
                   </div>
                 </div>
               )
@@ -262,7 +288,7 @@ export const MathExplanationTooltip = ({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className="fixed z-50 cursor-move"
+      className="fixed z-[9999] cursor-move"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
@@ -350,7 +376,10 @@ export const MathExplanationTooltip = ({
             latexEquation && (
               <div className="mb-4 flex justify-center">
                 <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 p-6 rounded-lg w-fit max-w-full overflow-x-auto">
-                  <BlockMath math={latexEquation} />
+                  <KaTeXRenderer
+                    math={cleanLatex(latexEquation)}
+                    displayMode={true}
+                  />
                 </div>
               </div>
             )

@@ -1,43 +1,84 @@
 'use client';
 
-import { CldUploadWidget } from 'next-cloudinary';
-import { CloudinaryUploadWidgetResults } from '@cloudinary-util/types';
 import Image from 'next/image';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { ImagePlus, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ensureHttpsUrl, getFallbackImageUrl } from '@/lib/cloudinary-utils';
 import { toast } from 'sonner';
 
-declare global {
-  // eslint-disable-next-line no-var
-  var cloudinary: unknown;
-}
-
-const uploadPreset = 'dk2uffum';
-
-interface MathImageUploadProps {
+export interface MathImageUploadProps {
+  courseId: string;
+  chapterId: string;
+  sectionId: string;
   onChange: (value: string) => void;
   value: string;
   disabled?: boolean;
 }
 
-export const MathImageUpload = ({ onChange, value, disabled }: MathImageUploadProps) => {
+export const MathImageUpload = ({
+  courseId,
+  chapterId,
+  sectionId,
+  onChange,
+  value,
+  disabled
+}: MathImageUploadProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   // Ensure image URL uses HTTPS and has proper fallback
   const secureImageUrl = ensureHttpsUrl(value) || null;
 
-  const handleUpload = useCallback((result: CloudinaryUploadWidgetResults) => {
-    if (result?.info && typeof result.info !== 'string') {
-      onChange(result.info.secure_url);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      const file = e.target.files?.[0];
+
+      if (!file) return;
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please select an image file");
+        return;
+      }
+
+      // Validate file size (4MB limit)
+      if (file.size > 4 * 1024 * 1024) {
+        toast.error("File size must be less than 4MB");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(
+        `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations/image`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+
+      // Update the form field with the uploaded image URL
+      onChange(data.secure_url || data.url);
+
       toast.success("Image uploaded!");
       setIsEditing(false);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error("Something went wrong during upload");
+    } finally {
       setUploading(false);
     }
-  }, [onChange]);
+  };
 
   const handleRemove = () => {
     onChange('');
@@ -123,49 +164,45 @@ export const MathImageUpload = ({ onChange, value, disabled }: MathImageUploadPr
       {/* Edit Mode */}
       {isEditing && (
         <div className="space-y-4">
-          <CldUploadWidget
-            onSuccess={handleUpload}
-            uploadPreset={uploadPreset}
-            options={{
-              maxFiles: 1,
-              resourceType: 'image',
-            }}
-            onOpen={() => setUploading(true)}
-            onClose={() => setUploading(false)}
-          >
-            {({ open }) => (
-              <div
-                onClick={() => !disabled && !uploading && open?.()}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-3",
-                  "w-full p-8",
-                  "border-2 border-dashed rounded-lg",
-                  "border-slate-300 dark:border-slate-600",
-                  "bg-slate-50 dark:bg-slate-900",
-                  (uploading || disabled)
-                    ? "cursor-not-allowed opacity-50"
-                    : "cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 hover:bg-slate-100 dark:hover:bg-slate-800",
-                  "transition-all duration-200"
-                )}
-              >
-                <div className="p-3 rounded-full bg-slate-200 dark:bg-slate-700">
-                  {uploading ? (
-                    <Loader2 className="h-6 w-6 text-slate-600 dark:text-slate-400 animate-spin" />
-                  ) : (
-                    <ImagePlus className="h-6 w-6 text-slate-600 dark:text-slate-400" />
-                  )}
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    {uploading ? "Uploading..." : "Click to upload an image"}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    PNG, JPG up to 5MB (drag and drop supported)
-                  </p>
-                </div>
-              </div>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+            id="mathImageUpload"
+            disabled={uploading || disabled}
+          />
+
+          <label
+            htmlFor="mathImageUpload"
+            className={cn(
+              "flex flex-col items-center justify-center gap-3",
+              "w-full p-8",
+              "border-2 border-dashed rounded-lg",
+              "border-slate-300 dark:border-slate-600",
+              "bg-slate-50 dark:bg-slate-900",
+              (uploading || disabled)
+                ? "cursor-not-allowed opacity-50"
+                : "cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 hover:bg-slate-100 dark:hover:bg-slate-800",
+              "transition-all duration-200"
             )}
-          </CldUploadWidget>
+          >
+            <div className="p-3 rounded-full bg-slate-200 dark:bg-slate-700">
+              {uploading ? (
+                <Loader2 className="h-6 w-6 text-slate-600 dark:text-slate-400 animate-spin" />
+              ) : (
+                <ImagePlus className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+              )}
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                {uploading ? "Uploading..." : "Click to upload an image"}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                PNG, JPG up to 4MB
+              </p>
+            </div>
+          </label>
 
           <div className="flex items-center justify-between gap-x-2">
             <Button

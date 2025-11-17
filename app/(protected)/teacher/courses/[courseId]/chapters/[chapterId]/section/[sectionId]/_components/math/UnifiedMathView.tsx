@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { BlockMath } from 'react-katex';
-import "katex/dist/katex.min.css";
+import { AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Copy, Calculator, Loader2, Pencil, Trash2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +11,7 @@ import { toast } from "sonner";
 import { MathExplanationTooltip } from "./MathExplanationTooltip";
 import { MathEquationEditModal } from "./MathEquationEditModal";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
+import { KaTeXRenderer } from "./KaTeXRenderer";
 import axios from "axios";
 
 interface MathEquation {
@@ -31,6 +30,30 @@ interface UnifiedMathViewProps {
   sectionId: string;
 }
 
+// Helper function to clean LaTeX delimiters
+const cleanLatex = (latex: string): string => {
+  if (!latex) return latex;
+
+  let cleaned = latex.trim();
+
+  // Remove display math delimiters: \[ ... \]
+  if (cleaned.startsWith('\\[') && cleaned.endsWith('\\]')) {
+    cleaned = cleaned.slice(2, -2).trim();
+  }
+
+  // Remove display math delimiters: $$ ... $$
+  if (cleaned.startsWith('$$') && cleaned.endsWith('$$')) {
+    cleaned = cleaned.slice(2, -2).trim();
+  }
+
+  // Remove inline math delimiters: $ ... $
+  if (cleaned.startsWith('$') && cleaned.endsWith('$') && !cleaned.startsWith('$$')) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+
+  return cleaned;
+};
+
 export const UnifiedMathView = ({
   courseId,
   chapterId,
@@ -44,6 +67,7 @@ export const UnifiedMathView = ({
   const [editingEquation, setEditingEquation] = useState<MathEquation | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const [renderKey, setRenderKey] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch math equations
@@ -180,19 +204,29 @@ export const UnifiedMathView = ({
   };
 
   // Handle edit success
-  const handleEditSuccess = () => {
-    const fetchEquations = async () => {
-      try {
-        const response = await axios.get(
-          `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations`
-        );
-        setEquations(response.data.data || []);
-      } catch (error) {
-        console.error('Failed to fetch math equations:', error);
-      }
-    };
+  const handleEditSuccess = async () => {
+    // Step 1: Close all tooltips and wait for animation to complete
+    setOpenTooltips(new Map());
 
-    fetchEquations();
+    // Step 2: Wait for tooltip exit animations to complete (300ms framer-motion exit)
+    // Plus extra buffer to ensure DOM cleanup is done
+    await new Promise(resolve => setTimeout(resolve, 350));
+
+    // Step 3: Fetch updated equations
+    try {
+      const response = await axios.get(
+        `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations`
+      );
+      setEquations(response.data.data || []);
+
+      // Step 4: Wait a frame before incrementing renderKey to allow state to settle
+      requestAnimationFrame(() => {
+        setRenderKey(prev => prev + 1);
+      });
+    } catch (error) {
+      console.error('Failed to fetch math equations:', error);
+      toast.error('Failed to refresh equations');
+    }
   };
 
   if (isLoading) {
@@ -248,11 +282,8 @@ export const UnifiedMathView = ({
             const isVisualMode = !!equation.imageUrl && !equation.latexEquation;
 
             return (
-              <motion.div
-                key={equation.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+              <div
+                key={`${equation.id}-${renderKey}`}
                 className="relative border-b border-gray-200 dark:border-gray-800 last:border-b-0"
               >
                 {/* Equation Header */}
@@ -335,8 +366,9 @@ export const UnifiedMathView = ({
                 <div className="relative group p-4">
                   {isVisualMode ? (
                     equation.imageUrl && (
-                      <div className="flex justify-center">
+                      <div className="flex justify-center" key={`image-${equation.id}-${equation.imageUrl}`}>
                         <Image
+                          key={equation.imageUrl}
                           src={equation.imageUrl}
                           alt={equation.title}
                           width={400}
@@ -352,9 +384,12 @@ export const UnifiedMathView = ({
                     )
                   ) : (
                     equation.latexEquation && (
-                      <div className="flex justify-center">
+                      <div className="flex justify-center" key={`latex-${equation.id}-${equation.latexEquation}`}>
                         <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 p-6 rounded-lg w-fit max-w-full overflow-x-auto">
-                          <BlockMath math={equation.latexEquation} />
+                          <KaTeXRenderer
+                            math={cleanLatex(equation.latexEquation)}
+                            displayMode={true}
+                          />
                         </div>
                       </div>
                     )
@@ -365,13 +400,13 @@ export const UnifiedMathView = ({
                     <div className="absolute inset-0 bg-purple-500/5 pointer-events-none" />
                   )}
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
 
         {/* Explanation Tooltips - Multiple can be open */}
-        <AnimatePresence>
+        <AnimatePresence mode="sync">
           {showExplanations && Array.from(openTooltips.entries()).map(([equationId, position]) => {
             const equation = equations.find(e => e.id === equationId);
             if (!equation) return null;
@@ -380,7 +415,7 @@ export const UnifiedMathView = ({
 
             return (
               <MathExplanationTooltip
-                key={equationId}
+                key={`tooltip-${equationId}-${renderKey}`}
                 explanation={equation.explanation || ''}
                 title={equation.title}
                 position={position}

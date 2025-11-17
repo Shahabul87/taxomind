@@ -33,12 +33,18 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface MathContentFormProps {
+  courseId: string;
+  chapterId: string;
+  sectionId: string;
   onSubmit: (data: FormValues) => Promise<void>;
   onCancel: () => void;
   initialData?: Partial<FormValues>;
 }
 
 export const MathContentForm = ({
+  courseId,
+  chapterId,
+  sectionId,
   onSubmit,
   onCancel,
   initialData
@@ -141,7 +147,7 @@ export const MathContentForm = ({
                           />
                         </FormControl>
                         <FormDescription>
-                          Enter your equation in LaTeX format (without $$ delimiters)
+                          Enter your equation in LaTeX format. Delimiters like $$, $, or \[ \] will be automatically removed.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -158,6 +164,9 @@ export const MathContentForm = ({
                         <FormLabel>Equation Image</FormLabel>
                         <FormControl>
                           <MathImageUpload
+                            courseId={courseId}
+                            chapterId={chapterId}
+                            sectionId={sectionId}
                             value={field.value || ''}
                             onChange={field.onChange}
                             disabled={isSubmitting}

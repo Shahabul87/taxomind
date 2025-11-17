@@ -241,7 +241,15 @@ export const TipTapEditor = ({
   return (
     <div className="relative border border-gray-200 dark:border-gray-700 rounded-md">
       {!readOnly && bubbleMenu && (
-        <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+        <div>
+          <BubbleMenu
+            editor={editor}
+            tippyOptions={{
+              duration: 100,
+              // Append to body to avoid removeChild errors when parent unmounts (e.g., dialogs/portals)
+              appendTo: () => document.body,
+            }}
+          >
           <div className="flex flex-wrap bg-white dark:bg-gray-800 p-1 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 gap-1">
             <button
               type="button"
@@ -322,6 +330,7 @@ export const TipTapEditor = ({
             </button>
           </div>
         </BubbleMenu>
+        </div>
       )}
       
       {!readOnly && (

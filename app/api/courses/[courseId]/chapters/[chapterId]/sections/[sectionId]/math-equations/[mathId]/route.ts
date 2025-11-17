@@ -8,8 +8,11 @@ export const runtime = 'nodejs';
 
 const UpdateSchema = z.object({
   title: z.string().min(3).max(200).optional(),
-  latexEquation: z.string().optional(),
-  imageUrl: z.string().url().optional(),
+  latexEquation: z.string().optional().nullable().transform(val => val || null),
+  imageUrl: z.string().optional().nullable().transform(val => val || null).refine(
+    (val) => !val || z.string().url().safeParse(val).success,
+    { message: 'Invalid image URL' }
+  ),
   explanation: z.string().min(10).optional(),
   position: z.number().int().min(0).optional(),
   isPublished: z.boolean().optional()

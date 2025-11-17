@@ -9,8 +9,11 @@ export const runtime = 'nodejs';
 // Validation Schema
 const MathExplanationSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200, 'Title must not exceed 200 characters'),
-  latexEquation: z.string().optional(),
-  imageUrl: z.string().url('Invalid image URL').optional(),
+  latexEquation: z.string().optional().nullable().transform(val => val || null),
+  imageUrl: z.string().optional().nullable().transform(val => val || null).refine(
+    (val) => !val || z.string().url().safeParse(val).success,
+    { message: 'Invalid image URL' }
+  ),
   explanation: z.string().min(10, 'Explanation must be at least 10 characters'),
 }).refine(
   (data) => data.latexEquation || data.imageUrl,

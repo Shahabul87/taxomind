@@ -283,7 +283,14 @@ export const SAMEnhancedEditor = ({
       
       {/* Bubble Menu */}
       {!readOnly && bubbleMenu && (
-        <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+        <BubbleMenu
+          editor={editor}
+          tippyOptions={{
+            duration: 100,
+            // Append to body to avoid removeChild errors when parent unmounts (e.g., dialogs/portals)
+            appendTo: () => document.body,
+          }}
+        >
           <div className="flex flex-wrap bg-white dark:bg-gray-800 p-1 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 gap-1">
             {samEnabled && (
               <>

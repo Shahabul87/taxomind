@@ -68,6 +68,7 @@ export const MathEquationEditModal = ({
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [currentMode, setCurrentMode] = useState<"equation" | "visual">("equation");
+  const [editorKey, setEditorKey] = useState(0);
 
   // Determine initial mode based on data
   const initialMode = initialData.imageUrl && !initialData.latexEquation ? "visual" : "equation";
@@ -89,6 +90,8 @@ export const MathEquationEditModal = ({
     if (isOpen) {
       const mode = initialData.imageUrl && !initialData.latexEquation ? "visual" : "equation";
       setCurrentMode(mode);
+      // Increment editorKey to force Editor remount and proper cleanup
+      setEditorKey(prev => prev + 1);
       form.reset({
         title: initialData.title,
         mode: mode,
@@ -119,9 +122,12 @@ export const MathEquationEditModal = ({
       );
 
       toast.success("Math equation updated successfully!");
-      onSuccess();
-      router.refresh();
+
+      // Close modal first to prevent DOM conflicts
       onClose();
+
+      // Then trigger data refresh with proper timing
+      onSuccess();
     } catch (error) {
       toast.error("Failed to update math equation");
       console.error("Update error:", error);
@@ -205,7 +211,7 @@ export const MathEquationEditModal = ({
                           />
                         </FormControl>
                         <FormDescription>
-                          Enter your equation in LaTeX format (without $$ delimiters)
+                          Enter your equation in LaTeX format. Delimiters like $$, $, or \[ \] will be automatically removed.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -256,6 +262,7 @@ export const MathEquationEditModal = ({
                         <FormControl>
                           <div className="border rounded-md overflow-hidden">
                             <Editor
+                              key={`content-editor-${editorKey}`}
                               value={field.value || ""}
                               onChange={field.onChange}
                               placeholder="Add additional visual content or context..."
@@ -281,6 +288,7 @@ export const MathEquationEditModal = ({
                   <FormControl>
                     <div className="border rounded-md overflow-hidden">
                       <Editor
+                        key={`explanation-editor-${editorKey}`}
                         value={field.value || ""}
                         onChange={field.onChange}
                         placeholder="Explain the equation, its meaning, and applications..."

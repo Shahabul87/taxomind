@@ -34,7 +34,17 @@ export class MathContentErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    console.error('MathContent Error Boundary caught an error:', error, errorInfo);
+    // Only log if it's not a known DOM manipulation error
+    // These errors are expected during React-KaTeX cleanup and are handled gracefully
+    const isDOMCleanupError =
+      error.message?.includes('removeChild') ||
+      error.message?.includes('not a child') ||
+      error.message?.includes('Cannot read properties of null');
+
+    if (!isDOMCleanupError) {
+      console.error('MathContent Error Boundary caught an error:', error, errorInfo);
+    }
+
     this.setState({
       error,
       errorInfo,
