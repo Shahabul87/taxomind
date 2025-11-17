@@ -33,6 +33,17 @@ interface BlogResourcesCardProps {
       notes: any[];
     }[];
   };
+  blogs: {
+    id: string;
+    title: string;
+    description: string | null;
+    url: string;
+    author: string | null;
+    position: number;
+    thumbnail?: string | null;
+    rating?: number | null;
+    siteName?: string | null;
+  }[];
   courseId: string;
   chapterId: string;
   sectionId: string;
@@ -40,12 +51,12 @@ interface BlogResourcesCardProps {
 
 export const BlogResourcesCard = ({
   chapter,
+  blogs,
   courseId,
   chapterId,
   sectionId
 }: BlogResourcesCardProps) => {
-  const currentSection = chapter.sections.find(section => section.id === sectionId);
-  const blogCount = currentSection?.blogs?.length || 0;
+  const blogCount = blogs?.length || 0;
   const [isCreating, setIsCreating] = useState(false);
 
   return (
@@ -89,6 +100,7 @@ export const BlogResourcesCard = ({
         <div>
           <BlogSectionForm
             chapter={chapter}
+            blogs={blogs}
             courseId={courseId}
             chapterId={chapterId}
             sectionId={sectionId}

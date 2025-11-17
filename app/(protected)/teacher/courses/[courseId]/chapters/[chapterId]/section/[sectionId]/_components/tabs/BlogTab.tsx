@@ -17,8 +17,9 @@ export const BlogTab = ({
 }: BlogTabProps) => {
   return (
     <div className="animate-fadeIn">
-      <BlogResourcesCard 
+      <BlogResourcesCard
         chapter={initialData.chapter || {id: "", title: "", sections: []}}
+        blogs={initialData.blogs || []}
         courseId={courseId}
         chapterId={chapterId}
         sectionId={sectionId}

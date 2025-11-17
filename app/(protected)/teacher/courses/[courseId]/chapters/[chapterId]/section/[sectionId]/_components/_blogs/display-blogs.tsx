@@ -13,15 +13,8 @@ interface Blog {
   title: string;
   description: string | null;
   url: string;
-  category: string | null;
-  position: number | null;
-  isPublished: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  sectionId: string | null;
-  userId: string;
   author: string | null;
-  publishedAt: Date | null;
+  position: number;
   rating?: number | null;
   thumbnail?: string | null;
   siteName?: string | null;

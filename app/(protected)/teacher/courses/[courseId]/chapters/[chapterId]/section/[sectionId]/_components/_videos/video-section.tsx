@@ -49,6 +49,15 @@ interface VideoSectionFormProps {
       }[];
     }[];
   };
+  videos: {
+    id: string;
+    title: string;
+    description: string | null;
+    url: string | null;
+    rating: number | null;
+    thumbnail?: string | null;
+    platform?: string | null;
+  }[];
   courseId: string;
   chapterId: string;
   sectionId: string;
@@ -99,6 +108,7 @@ const RatingStars = ({ rating }: { rating: number | null }) => {
 
 export const VideoSectionForm = ({
   chapter,
+  videos,
   courseId,
   chapterId,
   sectionId,
@@ -117,12 +127,6 @@ export const VideoSectionForm = ({
     embedUrl: string | null;
     author: string | null;
   } | null>(null);
-
-  // Filter chapter data to only include current section
-  const filteredChapter = {
-    ...chapter,
-    sections: chapter.sections.filter(section => section.id === sectionId)
-  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -530,8 +534,8 @@ export const VideoSectionForm = ({
         )}
       </AnimatePresence>
 
-      <DisplayVideos 
-        videos={filteredChapter.sections[0]?.videos || []}
+      <DisplayVideos
+        videos={videos}
         onVideoClick={handleVideoClick}
       />
     </div>

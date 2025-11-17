@@ -21,6 +21,15 @@ interface VideoResourcesCardProps {
       }[];
     }[];
   };
+  videos: {
+    id: string;
+    title: string;
+    description: string | null;
+    url: string | null;
+    rating: number | null;
+    thumbnail?: string | null;
+    platform?: string | null;
+  }[];
   courseId: string;
   chapterId: string;
   sectionId: string;
@@ -28,6 +37,7 @@ interface VideoResourcesCardProps {
 
 export const VideoResourcesCard = ({
   chapter,
+  videos,
   courseId,
   chapterId,
   sectionId
@@ -75,6 +85,7 @@ export const VideoResourcesCard = ({
         <div>
           <VideoSectionForm
             chapter={chapter}
+            videos={videos}
             courseId={courseId}
             chapterId={chapterId}
             sectionId={sectionId}

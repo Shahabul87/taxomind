@@ -66,6 +66,8 @@ async function SectionContent(props: {
             thumbnail: true,
             description: true,
             position: true,
+            rating: true,
+            platform: true,
           },
         },
         blogs: {
@@ -76,7 +78,9 @@ async function SectionContent(props: {
             description: true,
             author: true,
             position: true,
-            // thumbnail: true, // TEMP: Commented out - column doesn't exist in production DB
+            thumbnail: true,
+            rating: true,
+            siteName: true,
           },
         },
         articles: {

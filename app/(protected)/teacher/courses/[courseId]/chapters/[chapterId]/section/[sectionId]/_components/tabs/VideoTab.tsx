@@ -17,8 +17,9 @@ export const VideoTab = ({
 }: VideoTabProps) => {
   return (
     <div className="animate-fadeIn">
-      <VideoResourcesCard 
+      <VideoResourcesCard
         chapter={initialData.chapter || {id: "", title: "", sections: []}}
+        videos={initialData.videos || []}
         courseId={courseId}
         chapterId={chapterId}
         sectionId={sectionId}

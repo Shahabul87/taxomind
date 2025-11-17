@@ -55,6 +55,17 @@ interface BlogSectionFormProps {
       }[];
     }[];
   };
+  blogs: {
+    id: string;
+    title: string;
+    description: string | null;
+    url: string;
+    author: string | null;
+    position: number;
+    thumbnail?: string | null;
+    rating?: number | null;
+    siteName?: string | null;
+  }[];
   courseId: string;
   chapterId: string;
   sectionId: string;
@@ -82,6 +93,7 @@ interface BlogPreviewData {
 
 export const BlogSectionForm = ({
   chapter,
+  blogs,
   courseId,
   chapterId,
   sectionId,
@@ -94,10 +106,6 @@ export const BlogSectionForm = ({
   const [previewData, setPreviewData] = useState<BlogPreviewData | null>(null);
 
   const router = useRouter();
-
-  // Find the current section's blogs
-  const currentSection = chapter.sections.find(section => section.id === sectionId);
-  const blogs = currentSection?.blogs || [];
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
