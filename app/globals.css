@@ -223,6 +223,16 @@ body,
   pointer-events: none;
 }
 
+/* Enterprise shimmer animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
 
 .ql-container {
   font-size: 16px !important
