@@ -24,8 +24,10 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
   const [mounted, setMounted] = useState<boolean>(false);
   const [hoveredTab, setHoveredTab] = useState<number | null>(null);
   const [isSticky, setIsSticky] = useState<boolean>(false);
+  const [dragX, setDragX] = useState<number>(0);
 
   const controlsRef = useRef<HTMLDivElement>(null);
+  const constraintsRef = useRef<HTMLDivElement>(null);
 
   // Get chapters from the correct field
   const chapters = post.PostChapterSection || post.postchapter || [];
@@ -119,7 +121,8 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                   </div>
                 </div>
 
-                <div className="relative overflow-x-auto">
+                {/* Desktop: Horizontal scrollable tabs */}
+                <div className="hidden sm:block relative overflow-x-auto">
                   <div className="flex gap-2 py-1">
                     {readingModes.map((mode) => (
                       <motion.button
@@ -148,6 +151,73 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                           />
                         )}
                       </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mobile: Swipeable carousel */}
+                <div className="sm:hidden relative w-full overflow-hidden" ref={constraintsRef}>
+                  <motion.div
+                    drag="x"
+                    dragConstraints={constraintsRef}
+                    dragElastic={0.2}
+                    onDragEnd={(e, info) => {
+                      const threshold = 50;
+                      const visibleModes = readingModes.filter(mode => !mode.desktopOnly);
+                      const currentIndex = visibleModes.findIndex(m => m.id === activeMode);
+
+                      if (info.offset.x > threshold && currentIndex > 0) {
+                        // Swipe right - go to previous mode
+                        setActiveMode(visibleModes[currentIndex - 1].id);
+                      } else if (info.offset.x < -threshold && currentIndex < visibleModes.length - 1) {
+                        // Swipe left - go to next mode
+                        setActiveMode(visibleModes[currentIndex + 1].id);
+                      }
+                    }}
+                    className="flex gap-2 py-1 cursor-grab active:cursor-grabbing"
+                  >
+                    {readingModes.map((mode) => (
+                      !mode.desktopOnly && (
+                        <motion.button
+                          key={mode.id}
+                          onClick={() => setActiveMode(mode.id)}
+                          whileTap={{ scale: 0.98 }}
+                          className={cn(
+                            "relative px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all duration-200 flex-shrink-0",
+                            activeMode === mode.id
+                              ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md"
+                              : "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/50"
+                          )}
+                        >
+                          <mode.icon className="w-3.5 h-3.5" />
+                          <span className="text-xs font-medium whitespace-nowrap">{mode.name}</span>
+                          {activeMode === mode.id && (
+                            <motion.div
+                              layoutId="fixedActiveTabIndicatorMobile"
+                              className="absolute inset-0 rounded-md border-2 border-blue-400/50 dark:border-indigo-400/50 pointer-events-none"
+                              initial={false}
+                              transition={{ type: "spring", duration: 0.5 }}
+                            />
+                          )}
+                        </motion.button>
+                      )
+                    ))}
+                  </motion.div>
+
+                  {/* Swipe indicator dots */}
+                  <div className="flex justify-center gap-1.5 mt-2">
+                    {readingModes.filter(mode => !mode.desktopOnly).map((mode) => (
+                      <button
+                        key={mode.id}
+                        onClick={() => setActiveMode(mode.id)}
+                        className={cn(
+                          "w-1.5 h-1.5 rounded-full transition-all duration-200",
+                          activeMode === mode.id
+                            ? "w-4 bg-blue-500"
+                            : "bg-slate-300 dark:bg-slate-600"
+                        )}
+                        aria-label={`Switch to ${mode.name} mode`}
+                      />
                     ))}
                   </div>
                 </div>
@@ -189,7 +259,8 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
               </div>
             </div>
 
-            <div className="relative overflow-x-auto">
+            {/* Desktop: Horizontal scrollable tabs */}
+            <div className="hidden sm:block relative overflow-x-auto">
               <div className="flex gap-2 py-1">
                 {readingModes.map((mode) => (
                   <motion.button
@@ -226,6 +297,73 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                       />
                     )}
                   </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile: Swipeable carousel */}
+            <div className="sm:hidden relative w-full overflow-hidden">
+              <motion.div
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(e, info) => {
+                  const threshold = 50;
+                  const visibleModes = readingModes.filter(mode => !mode.desktopOnly);
+                  const currentIndex = visibleModes.findIndex(m => m.id === activeMode);
+
+                  if (info.offset.x > threshold && currentIndex > 0) {
+                    // Swipe right - go to previous mode
+                    setActiveMode(visibleModes[currentIndex - 1].id);
+                  } else if (info.offset.x < -threshold && currentIndex < visibleModes.length - 1) {
+                    // Swipe left - go to next mode
+                    setActiveMode(visibleModes[currentIndex + 1].id);
+                  }
+                }}
+                className="flex gap-2 py-1 cursor-grab active:cursor-grabbing"
+              >
+                {readingModes.map((mode) => (
+                  !mode.desktopOnly && (
+                    <motion.button
+                      key={mode.id}
+                      onClick={() => setActiveMode(mode.id)}
+                      whileTap={{ scale: 0.98 }}
+                      className={cn(
+                        "relative px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all duration-200 flex-shrink-0",
+                        activeMode === mode.id
+                          ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md"
+                          : "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/50"
+                      )}
+                    >
+                      <mode.icon className="w-3.5 h-3.5" />
+                      <span className="text-xs font-medium whitespace-nowrap">{mode.name}</span>
+                      {activeMode === mode.id && (
+                        <motion.div
+                          layoutId="activeTabIndicatorMobile"
+                          className="absolute inset-0 rounded-md border-2 border-blue-400/50 dark:border-indigo-400/50 pointer-events-none"
+                          initial={false}
+                          transition={{ type: "spring", duration: 0.5 }}
+                        />
+                      )}
+                    </motion.button>
+                  )
+                ))}
+              </motion.div>
+
+              {/* Swipe indicator dots */}
+              <div className="flex justify-center gap-1.5 mt-2">
+                {readingModes.filter(mode => !mode.desktopOnly).map((mode) => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setActiveMode(mode.id)}
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full transition-all duration-200",
+                      activeMode === mode.id
+                        ? "w-4 bg-blue-500"
+                        : "bg-slate-300 dark:bg-slate-600"
+                    )}
+                    aria-label={`Switch to ${mode.name} mode`}
+                  />
                 ))}
               </div>
             </div>
