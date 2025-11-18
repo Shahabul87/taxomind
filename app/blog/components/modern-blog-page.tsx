@@ -949,8 +949,10 @@ export function ModernBlogPage({
               )}
             </div>
           )}
+        </div>
 
-          {/* Category Tabs - Consistent Height */}
+        {/* Category Tabs - Non-Sticky, Below Search/Filter */}
+        <div className="mb-8">
           <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
             <TabsList className="w-full justify-start overflow-x-auto flex-nowrap bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 h-11">
               {categories.map(category => (
