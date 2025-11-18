@@ -52,13 +52,13 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
   }
 
   return (
-    <div className="max-w-[85rem] mx-auto space-y-16 px-4">
+    <div className="w-full mx-auto space-y-6 sm:space-y-10 md:space-y-16 px-0 sm:px-2 md:px-4 max-w-[85rem]">
       {data.map((chapter, index) => (
         <motion.article
           key={chapter.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ 
+          transition={{
             duration: 0.6,
             delay: index * 0.2,
             ease: [0.22, 1, 0.36, 1]
@@ -66,24 +66,24 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
           className={cn(
             "group relative",
             "backdrop-blur-xl transition-all duration-500",
-            "rounded-3xl overflow-hidden"
+            "rounded-xl sm:rounded-2xl md:rounded-3xl overflow-hidden"
           )}
         >
           {/* Background Gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-white/40 dark:from-gray-900/80 dark:to-gray-900/40 backdrop-blur-xl" />
-          
-          <div className="relative p-8 lg:p-12">
+
+          <div className="relative p-4 sm:p-6 md:p-8 lg:p-12">
             {/* Chapter Badge */}
-            <div className="flex items-center gap-6 mb-8">
+            <div className="flex items-center gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
               <div className={cn(
-                "px-4 py-2 rounded-full",
+                "px-3 py-1.5 sm:px-4 sm:py-2 rounded-full",
                 "bg-gradient-to-r from-purple-600/90 to-blue-600/90",
                 "dark:from-purple-400 dark:to-blue-400",
                 "shadow-lg shadow-purple-500/20",
                 "transform-gpu transition-transform duration-300",
                 "group-hover:scale-105"
               )}>
-                <span className="text-white text-sm font-medium tracking-wider">
+                <span className="text-white text-xs sm:text-sm font-medium tracking-wider">
                   Chapter {index + 1}
                 </span>
               </div>
@@ -92,7 +92,7 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
 
             {/* Title */}
             <h2 className={cn(
-              "text-4xl lg:text-5xl font-bold mb-10",
+              "text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-4 sm:mb-6 md:mb-8 lg:mb-10",
               "bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900",
               "dark:from-white dark:via-gray-100 dark:to-white",
               "bg-clip-text text-transparent",
@@ -105,7 +105,7 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
 
             {/* Image Container */}
             {chapter.imageUrl && (
-              <div className="relative w-full h-[400px] lg:h-[500px] mb-10 rounded-2xl overflow-hidden">
+              <div className="relative w-full h-[250px] sm:h-[300px] md:h-[400px] lg:h-[500px] mb-4 sm:mb-6 md:mb-8 lg:mb-10 rounded-lg sm:rounded-xl md:rounded-2xl overflow-hidden">
                 <Image
                   src={chapter.imageUrl}
                   alt={chapter.title}
@@ -116,6 +116,7 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
                     "group-hover:scale-105",
                     "filter saturate-[1.1]"
                   )}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 85rem"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </div>
@@ -124,7 +125,7 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
             {/* Description */}
             {chapter.description && (
               <div className={cn(
-                "prose prose-lg lg:prose-xl max-w-none",
+                "prose prose-sm sm:prose-base md:prose-lg lg:prose-xl max-w-none",
                 "dark:prose-invert",
                 "prose-p:text-gray-700 dark:prose-p:text-gray-300",
                 "prose-strong:text-gray-900 dark:prose-strong:text-white",
@@ -136,15 +137,15 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
             )}
 
             {/* Decorative Elements */}
-            <div className="flex items-center gap-4 mt-10">
-              <div className="h-2 w-2 rounded-full bg-purple-500/40 dark:bg-purple-400/60" />
-              <div className="h-2 w-2 rounded-full bg-blue-500/40 dark:bg-blue-400/60" />
-              <div className="h-2 w-2 rounded-full bg-cyan-500/40 dark:bg-cyan-400/60" />
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mt-4 sm:mt-6 md:mt-8 lg:mt-10">
+              <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-purple-500/40 dark:bg-purple-400/60" />
+              <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-blue-500/40 dark:bg-blue-400/60" />
+              <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-cyan-500/40 dark:bg-cyan-400/60" />
             </div>
           </div>
 
           {/* Border Gradients */}
-          <div className="absolute inset-0 border border-gradient-to-r from-purple-500/20 to-blue-500/20 dark:from-purple-400/30 dark:to-blue-400/30 rounded-3xl pointer-events-none" />
+          <div className="absolute inset-0 border border-gradient-to-r from-purple-500/20 to-blue-500/20 dark:from-purple-400/30 dark:to-blue-400/30 rounded-xl sm:rounded-2xl md:rounded-3xl pointer-events-none" />
         </motion.article>
       ))}
     </div>

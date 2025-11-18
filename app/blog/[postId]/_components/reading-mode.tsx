@@ -374,13 +374,13 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
 
       {/* Content Area */}
       <div className={cn(
-        "flex-1 w-full bg-white/80 dark:bg-slate-800/80 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm shadow-lg",
+        "flex-1 w-full bg-white/80 dark:bg-slate-800/80 rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm shadow-lg",
         activeMode === 5 || activeMode === 1 || activeMode === 4 ? "overflow-visible" : "overflow-hidden"
       )}>
         <div
           className={cn(
             "mx-auto max-w-full",
-            activeMode === 5 || activeMode === 1 || activeMode === 4 ? "p-0 h-full" : "px-2 sm:px-2 md:px-6 py-4 lg:py-6"
+            activeMode === 5 || activeMode === 1 || activeMode === 4 ? "p-0 h-full" : "px-0 sm:px-2 md:px-4 lg:px-6 py-3 sm:py-4 md:py-5 lg:py-6"
           )}
           style={{
             fontSize: `${fontSize}px`,
