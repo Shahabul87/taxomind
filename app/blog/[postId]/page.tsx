@@ -62,8 +62,8 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
       )}
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
         <div className="w-full max-w-7xl mx-auto">
-          <div className="w-full px-4 sm:px-6 lg:px-8 mx-auto">
-            <div className="mx-auto w-full py-8 lg:py-12">
+          <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 mx-auto">
+            <div className="mx-auto w-full py-4 sm:py-6 md:py-8 lg:py-12">
               {/* Enterprise Header */}
               <EnterprisePostHeader
                 postId={params.postId}
@@ -88,17 +88,17 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
                 isPremium={false}
               />
 
-              <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent my-12" />
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent my-6 sm:my-8 md:my-12" />
 
               {/* Featured Image with Toggle */}
               {post.imageUrl && (
-                <div className="mb-8">
+                <div className="mb-6 sm:mb-8">
                   <FeaturedImage imageUrl={post.imageUrl} title={post.title} />
                 </div>
               )}
 
               {/* Reading Modes */}
-              <div className="mb-12">
+              <div className="mb-6 sm:mb-8 md:mb-12">
                 <ReadingModes post={post} />
               </div>
 
@@ -110,7 +110,7 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
               />
 
               {/* Comments Section */}
-              <div className="mt-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl p-6 border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
+              <div className="mt-6 sm:mt-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
                 <FacebookCommentSection
                   postId={params.postId}
                   initialComments={post.comments as unknown as any[]}
