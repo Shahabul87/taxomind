@@ -135,10 +135,29 @@ const FacebookComment = ({
     }
   };
 
+  // Responsive indentation - minimal on mobile, larger on desktop
+  const getIndentClass = () => {
+    if (depth === 0) return "";
+    const clampedDepth = Math.min(depth, 3);
+    // Mobile: 8px per level (max 24px), Desktop: 32px per level (max 96px)
+    const indentMap: Record<number, string> = {
+      1: "ml-2 sm:ml-8",    // Mobile: 8px, Desktop: 32px
+      2: "ml-4 sm:ml-16",   // Mobile: 16px, Desktop: 64px
+      3: "ml-6 sm:ml-24",   // Mobile: 24px, Desktop: 96px
+    };
+    return indentMap[clampedDepth] || "";
+  };
+
+  // Visual nesting indicator for mobile
+  const getBorderClass = () => {
+    if (depth === 0) return "";
+    return "border-l-2 border-blue-200 dark:border-blue-800 pl-1.5 sm:pl-0 sm:border-l-0";
+  };
+
   return (
-    <div className={cn("flex gap-2", depth > 0 && "ml-8")}>
-      {/* Avatar */}
-      <Avatar className="w-8 h-8 mt-1">
+    <div className={cn("flex gap-1.5 sm:gap-2", getIndentClass(), getBorderClass())}>
+      {/* Avatar - smaller on mobile for nested comments */}
+      <Avatar className={cn("mt-1 flex-shrink-0", depth > 0 ? "w-6 h-6 sm:w-8 sm:h-8" : "w-8 h-8")}>
         <AvatarImage src={(comment.User?.image || comment.user?.image) || undefined} />
         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xs">
           {(comment.User?.name || comment.user?.name)?.charAt(0).toUpperCase() || "U"}
@@ -149,15 +168,15 @@ const FacebookComment = ({
         {/* Comment Bubble */}
         <div className="group relative">
           {isEditing ? (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3">
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl sm:rounded-2xl p-2 sm:p-3">
               <Textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="min-h-[60px] resize-none border-0 bg-transparent focus-visible:ring-0"
+                className="min-h-[50px] sm:min-h-[60px] text-xs sm:text-sm resize-none border-0 bg-transparent focus-visible:ring-0"
                 autoFocus
               />
-              <div className="flex gap-2 mt-2">
-                <Button size="sm" onClick={handleEditSubmit}>
+              <div className="flex gap-1.5 sm:gap-2 mt-1.5 sm:mt-2">
+                <Button size="sm" onClick={handleEditSubmit} className="h-7 sm:h-8 text-xs sm:text-sm px-2 sm:px-3">
                   Save
                 </Button>
                 <Button
@@ -167,19 +186,20 @@ const FacebookComment = ({
                     setIsEditing(false);
                     setEditContent(comment.content);
                   }}
+                  className="h-7 sm:h-8 text-xs sm:text-sm px-2 sm:px-3"
                 >
                   Cancel
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-3 py-2 inline-block max-w-full">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-sm text-gray-900 dark:text-white">
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl sm:rounded-2xl px-2.5 sm:px-3 py-1.5 sm:py-2 inline-block max-w-full">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                <span className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white">
                   {comment.User?.name || comment.user?.name || "Anonymous"}
                 </span>
               </div>
-              <p className="text-sm text-gray-900 dark:text-gray-100 break-words whitespace-pre-wrap">
+              <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 break-words whitespace-pre-wrap leading-relaxed">
                 {comment.content}
               </p>
             </div>
@@ -187,9 +207,9 @@ const FacebookComment = ({
 
           {/* Like Badge */}
           {likeCount > 0 && !isEditing && (
-            <div className="absolute -bottom-2 right-0 bg-white dark:bg-gray-700 rounded-full px-2 py-0.5 border border-gray-200 dark:border-gray-600 shadow-sm flex items-center gap-1">
-              <ThumbsUp className="w-3 h-3 text-blue-600 dark:text-blue-400 fill-current" />
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+            <div className="absolute -bottom-1.5 sm:-bottom-2 right-0 bg-white dark:bg-gray-700 rounded-full px-1.5 sm:px-2 py-0.5 border border-gray-200 dark:border-gray-600 shadow-sm flex items-center gap-0.5 sm:gap-1">
+              <ThumbsUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-600 dark:text-blue-400 fill-current" />
+              <span className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300">
                 {likeCount}
               </span>
             </div>
@@ -202,9 +222,9 @@ const FacebookComment = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute -right-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                  className="absolute -right-6 sm:-right-8 top-0.5 sm:top-1 opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 sm:h-6 sm:w-6 p-0"
                 >
-                  <MoreHorizontal className="w-4 h-4" />
+                  <MoreHorizontal className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -235,11 +255,11 @@ const FacebookComment = ({
 
         {/* Action Buttons */}
         {!isEditing && (
-          <div className="flex items-center gap-3 mt-1 ml-3">
+          <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1 ml-2 sm:ml-3">
             <button
               onClick={handleLike}
               className={cn(
-                "text-xs font-semibold transition-colors",
+                "text-[10px] sm:text-xs font-semibold transition-colors touch-manipulation",
                 isLiked
                   ? "text-blue-600 dark:text-blue-400"
                   : "text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
@@ -249,11 +269,11 @@ const FacebookComment = ({
             </button>
             <button
               onClick={() => setShowReplyBox(!showReplyBox)}
-              className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              className="text-[10px] sm:text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors touch-manipulation"
             >
               Reply
             </button>
-            <span className="text-xs text-gray-500 dark:text-gray-500">
+            <span className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-500 flex-shrink-0">
               {isMounted ? timeText : ""}
             </span>
           </div>
@@ -266,11 +286,11 @@ const FacebookComment = ({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-2 flex gap-2"
+              className="mt-1.5 sm:mt-2 flex gap-1.5 sm:gap-2"
             >
-              <Avatar className="w-6 h-6">
+              <Avatar className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0">
                 <AvatarImage src={session?.user?.image || undefined} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xs">
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-[10px] sm:text-xs">
                   {session?.user?.name?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
@@ -279,7 +299,7 @@ const FacebookComment = ({
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder="Write a reply..."
-                  className="min-h-[60px] resize-none rounded-2xl bg-gray-100 dark:bg-gray-800 border-0 pr-10"
+                  className="min-h-[50px] sm:min-h-[60px] text-xs sm:text-sm resize-none rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-gray-800 border-0 pr-8 sm:pr-10 py-1.5 sm:py-2"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -291,9 +311,9 @@ const FacebookComment = ({
                   size="sm"
                   onClick={handleReplySubmit}
                   disabled={!replyContent.trim()}
-                  className="absolute bottom-2 right-2 h-7 w-7 p-0 rounded-full"
+                  className="absolute bottom-1.5 sm:bottom-2 right-1.5 sm:right-2 h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-full"
                 >
-                  <Send className="w-3 h-3" />
+                  <Send className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 </Button>
               </div>
             </motion.div>
@@ -302,11 +322,11 @@ const FacebookComment = ({
 
         {/* Nested Replies */}
         {hasReplies && (
-          <div className="mt-3">
+          <div className="mt-2 sm:mt-3">
             {depth < 3 && (
               <button
                 onClick={() => setShowReplies(!showReplies)}
-                className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline mb-2"
+                className="text-[10px] sm:text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline mb-1.5 sm:mb-2 touch-manipulation"
               >
                 {showReplies
                   ? `Hide ${comment.replies?.length} ${
@@ -326,7 +346,7 @@ const FacebookComment = ({
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-3"
+                  className="space-y-2 sm:space-y-3"
                 >
                   {comment.replies.map((reply, index) => (
                     <FacebookComment
@@ -649,15 +669,15 @@ export const FacebookCommentSection = ({
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <MessageCircle className="w-5 h-5" />
-          Comments ({comments.length})
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 sm:gap-2">
+          <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="truncate">Comments ({comments.length})</span>
         </h3>
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as "newest" | "popular")}
-          className="text-sm bg-transparent border-0 text-gray-600 dark:text-gray-400 focus:ring-0 cursor-pointer"
+          className="text-xs sm:text-sm bg-transparent border-0 text-gray-600 dark:text-gray-400 focus:ring-0 cursor-pointer flex-shrink-0"
         >
           <option value="newest">Newest</option>
           <option value="popular">Most Relevant</option>
@@ -666,19 +686,19 @@ export const FacebookCommentSection = ({
 
       {/* Comment Input */}
       {session ? (
-        <div className="flex gap-2 mb-6">
-          <Avatar className="w-8 h-8 mt-1">
+        <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6">
+          <Avatar className="w-7 h-7 sm:w-8 sm:h-8 mt-1 flex-shrink-0">
             <AvatarImage src={session.user?.image || undefined} />
             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xs">
               {session.user?.name?.charAt(0).toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 relative">
+          <div className="flex-1 relative min-w-0">
             <Textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="min-h-[80px] resize-none rounded-2xl bg-gray-100 dark:bg-gray-800 border-0 pr-10"
+              className="min-h-[60px] sm:min-h-[80px] text-xs sm:text-sm resize-none rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-gray-800 border-0 pr-8 sm:pr-10 py-2"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -690,22 +710,22 @@ export const FacebookCommentSection = ({
               size="sm"
               onClick={handleAddComment}
               disabled={!newComment.trim() || isSubmitting}
-              className="absolute bottom-2 right-2 h-7 w-7 p-0 rounded-full"
+              className="absolute bottom-1.5 sm:bottom-2 right-1.5 sm:right-2 h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-full"
             >
-              <Send className="w-3 h-3" />
+              <Send className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             </Button>
           </div>
         </div>
       ) : (
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-6 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 text-center">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
             Please sign in to comment
           </p>
         </div>
       )}
 
       {/* Comments List */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {sortedComments.map((comment) => (
           <FacebookComment
             key={comment.id}
@@ -718,9 +738,9 @@ export const FacebookCommentSection = ({
         ))}
 
         {comments.length === 0 && (
-          <div className="text-center py-12">
-            <MessageCircle className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
-            <p className="text-gray-500 dark:text-gray-400">
+          <div className="text-center py-8 sm:py-12">
+            <MessageCircle className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 dark:text-gray-600 mb-2 sm:mb-3" />
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
               No comments yet. Be the first to comment!
             </p>
           </div>

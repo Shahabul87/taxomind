@@ -149,25 +149,25 @@ interface ReactionButtonProps {
 // Replace the existing ReactionButton component with this one
 const ReactionButton = ({ type, count, isActive, onClick }: ReactionButtonProps) => {
   const isLove = type === '❤️';
-  
+
   return (
     <motion.button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 px-3 py-1.5 rounded-full",
+        "flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full touch-manipulation",
         "transition-all duration-200",
-        isActive 
+        isActive
           ? isLove ? "bg-red-500/10 text-red-400" : "bg-blue-500/10 text-blue-400"
           : "hover:bg-gray-800/50 text-gray-400 hover:text-gray-300"
       )}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
     >
-      <span className="text-lg">{type}</span>
+      <span className="text-base sm:text-lg">{type}</span>
       {count > 0 && (
         <span className={cn(
-          "text-sm",
-          isActive 
+          "text-xs sm:text-sm",
+          isActive
             ? isLove ? "text-red-400" : "text-blue-400"
             : "text-gray-400"
         )}>
@@ -298,25 +298,26 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* New comment input */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <Textarea
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Write a comment..."
-          className="min-h-[100px]"
+          className="min-h-[80px] sm:min-h-[100px] text-sm sm:text-base"
         />
         <Button
           onClick={handleSubmitComment}
           disabled={isSubmitting || !newComment.trim()}
+          className="w-full sm:w-auto"
         >
-          Post Comment
+          {isSubmitting ? "Posting..." : "Post Comment"}
         </Button>
       </div>
 
       {/* Comments list */}
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 md:space-y-6">
         {comments.map((comment) => {
           const commentWithPostId = {
             ...comment,

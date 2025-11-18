@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Carousel, Card } from "./post-card-carousel-model";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,13 @@ interface PostCardModelTwoProps {
 export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchapter }) => {
   const [showModal, setShowModal] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<ChapterData | null>(null);
+  const [mounted, setMounted] = useState(false);
   const placeholderImage = 'https://via.placeholder.com/300';
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   // Handle null/undefined postchapter
   if (!postchapter || !Array.isArray(postchapter) || postchapter.length === 0) {
@@ -37,16 +44,19 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
     );
   }
 
-  const data = postchapter.map((chapter) => ({
+  const data = postchapter.map((chapter, index) => ({
     id: chapter.id,
     title: chapter.title,
     src: chapter.imageUrl || placeholderImage,
     content: (
-      <div onClick={() => {
-        setSelectedChapter(chapter);
-        setShowModal(true);
-      }}>
-        <DummyContent postchapter={[chapter]} />
+      <div
+        onClick={() => {
+          setSelectedChapter(chapter);
+          setShowModal(true);
+        }}
+        className="cursor-pointer"
+      >
+        <SimpleCard chapter={chapter} index={index} />
       </div>
     ),
   }));
@@ -55,39 +65,13 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
     <Card key={card.id} card={card} index={index} />
   ));
 
-  return (
-    <>
-      <div className="w-full h-full py-2 sm:py-3 md:py-4">
-        <div className="space-y-1 mb-3 sm:mb-4 md:mb-6 px-3 sm:px-4 md:px-6">
-          <h2 className={cn(
-            "max-w-7xl mx-auto",
-            "text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold",
-            "bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400",
-            "bg-clip-text text-transparent",
-            "tracking-tight leading-tight"
-          )}>
-            Explore Chapters
-          </h2>
-          <p className={cn(
-            "max-w-7xl mx-auto",
-            "text-xs sm:text-sm",
-            "text-slate-600 dark:text-slate-300",
-            "font-light"
-          )}>
-            Tap any chapter to view full details
-          </p>
-        </div>
-        <Carousel items={cards} />
-      </div>
-
-      {/* Modal - Full Screen on Mobile */}
-      {showModal && selectedChapter && (
-        <div className="fixed inset-0 z-50 bg-white dark:bg-slate-900">
+  const modalContent = showModal && selectedChapter && mounted && (
+        <div className="fixed inset-0 z-[9999] bg-white dark:bg-slate-900 overflow-hidden">
           {/* Mobile: Full Screen Layout */}
           <div className="h-full w-full flex flex-col md:hidden">
-            {/* Image at Top - Full Width */}
+            {/* Image at Top - Full Width, No Padding */}
             {selectedChapter.imageUrl && (
-              <div className="relative w-full h-[40vh] flex-shrink-0">
+              <div className="relative w-full h-[45vh] flex-shrink-0">
                 <Image
                   src={selectedChapter.imageUrl}
                   alt={selectedChapter.title}
@@ -95,31 +79,31 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
                   className="object-cover"
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10" />
 
-                {/* Close Button on Image */}
+                {/* Close Button on Image - Top Right Corner */}
                 <button
                   onClick={() => setShowModal(false)}
                   className={cn(
-                    "absolute top-3 right-3 z-10",
-                    "p-2 rounded-full",
-                    "bg-white/90 hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-800",
-                    "text-slate-900 dark:text-white",
+                    "absolute top-2 right-2 z-10",
+                    "p-2.5 rounded-full",
+                    "bg-white/95 hover:bg-white",
+                    "text-slate-900",
                     "transition-all duration-200",
-                    "shadow-xl backdrop-blur-sm"
+                    "shadow-2xl"
                   )}
                 >
                   <X className="w-5 h-5" />
                 </button>
 
-                {/* Chapter Badge on Image */}
-                <div className="absolute bottom-4 left-4 right-4">
+                {/* Chapter Badge on Image - Bottom Left */}
+                <div className="absolute bottom-3 left-3">
                   <span className={cn(
-                    "inline-block text-xs font-medium",
-                    "bg-gradient-to-r from-purple-500 to-blue-500",
+                    "inline-block text-xs font-semibold",
+                    "bg-gradient-to-r from-purple-600 to-blue-600",
                     "px-3 py-1.5 rounded-full",
                     "text-white",
-                    "shadow-lg"
+                    "shadow-xl"
                   )}>
                     Chapter {selectedChapter.position || 1}
                   </span>
@@ -127,12 +111,12 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
               </div>
             )}
 
-            {/* Content Area - Scrollable */}
+            {/* Content Area - Scrollable, Edge-to-Edge */}
             <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
-              <div className="p-4 space-y-4">
+              <div className="px-3 pt-3 pb-4 space-y-2.5">
                 {/* Title */}
                 <h3 className={cn(
-                  "text-2xl font-bold",
+                  "text-xl font-bold",
                   "text-slate-900 dark:text-white",
                   "tracking-tight leading-tight"
                 )}>
@@ -143,7 +127,8 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
                 <div className={cn(
                   "prose prose-sm dark:prose-invert max-w-none",
                   "text-slate-700 dark:text-slate-300",
-                  "leading-relaxed"
+                  "leading-relaxed",
+                  "prose-p:my-2 prose-headings:my-2"
                 )}>
                   <div
                     dangerouslySetInnerHTML={{
@@ -235,104 +220,95 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
             </div>
           </div>
         </div>
-      )}
+  );
+
+  return (
+    <>
+      <div className="w-full h-full py-2 sm:py-3 md:py-4">
+        <div className="space-y-1 mb-3 sm:mb-4 md:mb-6 px-3 sm:px-4 md:px-6">
+          <h2 className={cn(
+            "max-w-7xl mx-auto",
+            "text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold",
+            "bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400",
+            "bg-clip-text text-transparent",
+            "tracking-tight leading-tight"
+          )}>
+            Explore Chapters
+          </h2>
+          <p className={cn(
+            "max-w-7xl mx-auto",
+            "text-xs sm:text-sm",
+            "text-slate-600 dark:text-slate-300",
+            "font-light"
+          )}>
+            Tap any chapter to view full details
+          </p>
+        </div>
+        <Carousel items={cards} />
+      </div>
+
+      {/* Render modal via Portal to escape parent containers */}
+      {mounted && modalContent && createPortal(modalContent, document.body)}
     </>
   );
 };
 
-const DummyContent: React.FC<{ postchapter: ChapterData[] }> = ({ postchapter }) => {
-  const chapter = postchapter[0];
-
-  if (!chapter) {
-    return (
-      <div className={cn(
-        "text-center",
-        "bg-gradient-to-r from-purple-600/80 to-blue-600/80 dark:from-purple-200/80 dark:to-blue-200/80",
-        "bg-clip-text text-transparent",
-        "font-medium"
-      )}>
-        No chapter data available.
-      </div>
-    );
-  }
-
+// Simple, clean card component for carousel
+const SimpleCard: React.FC<{ chapter: ChapterData; index: number }> = ({ chapter, index }) => {
   return (
     <div className={cn(
-      "bg-white/90 dark:bg-slate-800/90",
-      "backdrop-blur-sm",
-      "p-3 sm:p-4 md:p-6 lg:p-10 rounded-xl md:rounded-2xl lg:rounded-3xl mb-2 md:mb-4",
-      "border border-slate-200/50 dark:border-slate-700/50 shadow-lg",
-      "cursor-pointer hover:shadow-xl transition-shadow duration-300"
+      "relative w-full h-[400px] sm:h-[450px] md:h-[500px]",
+      "rounded-2xl overflow-hidden",
+      "shadow-xl hover:shadow-2xl transition-all duration-300",
+      "group cursor-pointer"
     )}>
-      {/* Image First on Mobile */}
+      {/* Background Image */}
       {chapter.imageUrl && (
-        <div className="relative w-full h-[180px] sm:h-[200px] md:h-[240px] lg:h-[320px] mb-3 sm:mb-4 md:mb-6 group">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 dark:from-purple-500/10 to-blue-500/5 dark:to-blue-500/10 rounded-lg md:rounded-xl z-10" />
-          <Image
-            src={chapter.imageUrl}
-            alt={chapter.title || "Chapter image"}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className={cn(
-              "object-cover rounded-lg md:rounded-xl",
-              "transition-transform duration-500",
-              "group-hover:scale-105"
-            )}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 dark:from-black/50 to-transparent rounded-lg md:rounded-xl z-20" />
-
-          {/* Chapter Badge on Image */}
-          <div className="absolute top-2 left-2 z-30">
-            <span className={cn(
-              "text-xs font-medium",
-              "bg-gradient-to-r from-purple-500/95 to-blue-500/95",
-              "px-2.5 py-1 rounded-full",
-              "text-white shadow-lg"
-            )}>
-              Chapter {chapter.position || 1}
-            </span>
-          </div>
-        </div>
+        <Image
+          src={chapter.imageUrl}
+          alt={chapter.title || "Chapter image"}
+          fill
+          className="object-cover transition-transform duration-700 group-hover:scale-110"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
       )}
 
-      {/* Title */}
-      <h4 className={cn(
-        "text-base sm:text-lg md:text-xl lg:text-2xl font-bold mb-2 sm:mb-3 md:mb-4",
-        "text-slate-900 dark:text-white",
-        "line-clamp-2",
-        "tracking-tight leading-tight"
-      )}>
-        {chapter.title}
-      </h4>
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
 
-      {/* Description Preview */}
-      <div className={cn(
-        "prose prose-sm md:prose-base max-w-none",
-        "text-slate-700 dark:text-slate-300",
-        "line-clamp-3 sm:line-clamp-4"
-      )}>
-        <div
-          dangerouslySetInnerHTML={{
-            __html: chapter.description || "No description available",
-          }}
-          className={cn(
-            "prose-headings:text-slate-900 dark:prose-headings:text-white",
-            "prose-p:m-0"
-          )}
-        />
-      </div>
-
-      {/* Tap to view hint */}
-      <div className="mt-3 sm:mt-4 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-purple-400/40" />
-          <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-blue-400/40" />
-          <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-cyan-400/40" />
+      {/* Content */}
+      <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-6">
+        {/* Chapter Badge */}
+        <div className="mb-3">
+          <span className={cn(
+            "inline-block text-xs sm:text-sm font-semibold",
+            "bg-gradient-to-r from-purple-600 to-blue-600",
+            "px-3 py-1.5 rounded-full",
+            "text-white shadow-xl"
+          )}>
+            Chapter {index + 1}
+          </span>
         </div>
-        <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
-          Tap to read more →
-        </span>
+
+        {/* Title */}
+        <h3 className={cn(
+          "text-xl sm:text-2xl md:text-3xl font-bold mb-3",
+          "text-white",
+          "line-clamp-2",
+          "tracking-tight leading-tight"
+        )}>
+          {chapter.title}
+        </h3>
+
+        {/* Tap Indicator */}
+        <div className="flex items-center gap-2 text-white/80 text-sm">
+          <span>Tap to read</span>
+          <span className="text-lg">→</span>
+        </div>
       </div>
+
+      {/* Tap effect overlay */}
+      <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors duration-300" />
     </div>
   );
 };
