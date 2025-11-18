@@ -410,7 +410,8 @@ export const FacebookCommentSection = ({
       });
 
       // Ensure user data is included in the new comment
-      const newCommentData = {
+      // IMPORTANT: Initialize replies array to match the structure expected by the component
+      const newCommentData: Comment = {
         ...response.data,
         User: response.data.User || {
           id: session.user.id,
@@ -422,6 +423,10 @@ export const FacebookCommentSection = ({
           name: session.user.name,
           image: session.user.image,
         },
+        replies: [], // Initialize empty replies array for new comments
+        depth: 0,
+        isLiked: false,
+        likeCount: 0,
       };
 
       setComments([newCommentData, ...comments]);
@@ -493,7 +498,8 @@ export const FacebookCommentSection = ({
       }
 
       // Ensure user data is included in the new reply
-      const newReplyData = {
+      // IMPORTANT: Initialize replies array and other fields to match the structure expected by the component
+      const newReplyData: Comment = {
         ...response.data,
         User: response.data.User || {
           id: session.user.id,
@@ -505,6 +511,10 @@ export const FacebookCommentSection = ({
           name: session.user.name,
           image: session.user.image,
         },
+        replies: [], // Initialize empty replies array for consistency
+        depth: parentComment ? 1 : (parentReply ? 2 : 0), // Set appropriate depth
+        isLiked: false,
+        likeCount: 0,
       };
 
       // Update comments with new reply
