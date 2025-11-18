@@ -91,8 +91,8 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
   }
 
   const readingModes = [
-    { id: 1, name: "Book", icon: BookMarked, desktopOnly: false },
-    { id: 2, name: "Cards", icon: Book, desktopOnly: false },
+    { id: 1, name: "Book", icon: BookMarked, desktopOnly: true },
+    { id: 2, name: "Cards", icon: Book, desktopOnly: true },
     { id: 3, name: "Normal", icon: Layout, desktopOnly: false },
     { id: 4, name: "Carousel", icon: Layout, desktopOnly: false },
     { id: 5, name: "FlipBook", icon: BookOpen, desktopOnly: true },
