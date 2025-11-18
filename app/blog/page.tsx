@@ -42,13 +42,13 @@ async function getPosts() {
 export default async function BlogPage() {
   const { featuredPosts, posts, categories, trendingPosts } = await getPosts();
 
-  // Use modern design
+  // Use modern design - public page without navigation elements
   return (
     <PageWithMobileLayout
-      showHeader={true}
-      showSidebar={true}
-      showBottomBar={true}
-      enableGestures={true}
+      showHeader={false}
+      showSidebar={false}
+      showBottomBar={false}
+      enableGestures={false}
       contentClassName="bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800"
     >
       <ModernBlogPage
