@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Edit3, ArrowRight, Loader2, Tag, X, Sparkles, AlertCircle } from "lucide-react";
+import { Edit3, ArrowRight, Loader2, Tag, X, Plus } from "lucide-react";
 import { logger } from '@/lib/logger';
 import { CreatePostClientSchema, type CreatePostClientInput } from "@/lib/schemas/post.schemas";
 import type { ApiResponse, CreatePostResponse } from "@/lib/types/post.types";
@@ -25,12 +25,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
 const categories = [
-  "AI & ML", "Architecture", "Art & Design", "Biology", "Blockchain", 
-  "Business", "Chemistry", "Cloud Computing", "Cybersecurity", 
-  "Data Science", "DevOps", "Digital Marketing", "Engineering", 
-  "Environmental", "Game Development", "Health & Medicine", "IoT", 
-  "Mathematics", "Mobile Development", "Music & Audio", "Photography", 
-  "Physics", "Programming", "Psychology", "Science", "Space & Astronomy", 
+  "AI & ML", "Architecture", "Art & Design", "Biology", "Blockchain",
+  "Business", "Chemistry", "Cloud Computing", "Cybersecurity",
+  "Data Science", "DevOps", "Digital Marketing", "Engineering",
+  "Environmental", "Game Development", "Health & Medicine", "IoT",
+  "Mathematics", "Mobile Development", "Music & Audio", "Photography",
+  "Physics", "Programming", "Psychology", "Science", "Space & Astronomy",
   "Technology", "UI/UX Design", "Web Development", "Writing"
 ].sort();
 
@@ -40,7 +40,6 @@ const formSchema = CreatePostClientSchema;
 export const CreateBlogInputSection = () => {
   const router = useRouter();
   const [charCount, setCharCount] = useState(0);
-  const [isFocused, setIsFocused] = useState(false);
   const [isInputValid, setIsInputValid] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
   const [categoryInput, setCategoryInput] = useState("");
@@ -50,7 +49,7 @@ export const CreateBlogInputSection = () => {
   const DRAFT_KEY = "create-post-draft";
   const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
   const [draftSaveKey, setDraftSaveKey] = useState(0);
-  
+
   const form = useForm<CreatePostClientInput>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -90,8 +89,8 @@ export const CreateBlogInputSection = () => {
 
   useEffect(() => {
     if (categoryInput) {
-      const filtered = categories.filter(cat => 
-        cat.toLowerCase().includes(categoryInput.toLowerCase()) && 
+      const filtered = categories.filter(cat =>
+        cat.toLowerCase().includes(categoryInput.toLowerCase()) &&
         !selectedCategories.includes(cat)
       );
       setFilteredCategories(filtered);
@@ -251,8 +250,8 @@ export const CreateBlogInputSection = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCharCount(value.length);
-    form.setValue("title", value, { 
-      shouldValidate: true 
+    form.setValue("title", value, {
+      shouldValidate: true
     });
   };
 
@@ -278,97 +277,64 @@ export const CreateBlogInputSection = () => {
   const handleRemoveCategory = (category: string) => {
     const currentCategories = form.getValues("categories") || [];
     form.setValue(
-      "categories", 
+      "categories",
       currentCategories.filter(cat => cat !== category),
       { shouldValidate: true }
     );
   };
 
-  return ( 
+  return (
     <div className="w-full">
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-6"
         >
+          {/* Title Field */}
           <FormField
             control={form.control}
             name="title"
             render={({ field }) => (
-              <FormItem className="space-y-4">
-                <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
-                  <div className={cn(
-                    "absolute left-4 top-1/2 transform -translate-y-1/2 transition-all duration-200",
-                    field.value ? "opacity-0 -translate-x-2" : "opacity-100",
-                    isFocused ? "text-indigo-500" : "text-gray-400"
-                  )}>
-                    <Edit3 className="h-5 w-5" />
-                  </div>
-                  
-                  <FormControl>
+              <FormItem className="space-y-3">
+                <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Post Title
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Edit3 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
                       {...field}
                       disabled={isSubmitting}
-                      placeholder="Enter an engaging title for your blog post..."
+                      placeholder="Write an engaging title..."
                       className={cn(
-                        "w-full py-5 text-lg pr-4 relative",
-                        field.value ? "pl-4" : "pl-12",
-                        "bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm",
-                        "border-2 rounded-xl",
-                        "transition-all duration-300 ease-in-out",
-                        "text-gray-800 dark:text-gray-100",
-                        "placeholder:text-gray-400 dark:placeholder:text-gray-500",
-                        isFocused
-                          ? "border-indigo-500 dark:border-indigo-500 shadow-[0_0_0_1px_rgba(99,102,241,0.3)] dark:shadow-[0_0_0_1px_rgba(99,102,241,0.3)]"
-                          : "border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700"
+                        "pl-10 pr-4 py-5 text-base",
+                        "bg-white dark:bg-slate-900",
+                        "border border-slate-200 dark:border-slate-700",
+                        "rounded-lg",
+                        "text-slate-900 dark:text-slate-100",
+                        "placeholder:text-slate-400 dark:placeholder:text-slate-500",
+                        "focus:border-blue-500 dark:focus:border-blue-500",
+                        "focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500",
+                        "transition-colors duration-200"
                       )}
-                      onFocus={() => setIsFocused(true)}
-                      onBlur={() => setIsFocused(false)}
                       onChange={handleInputChange}
                       aria-label="Blog post title"
                       aria-required="true"
                       aria-invalid={!!form.formState.errors.title}
-                      aria-describedby={form.formState.errors.title ? "title-error" : "title-description"}
                       autoComplete="off"
                     />
-                  </FormControl>
-                </div>
-                
-                <div className="flex items-center justify-between px-1">
-                  <div id="title-error" role="alert" aria-live="polite">
-                    <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
                   </div>
-                  <div
-                    className={cn(
-                      "text-xs font-medium px-2 py-1 rounded-full transition-all duration-300",
-                      charCount > 0 ? (
-                        charCount > 80 ?
-                          "text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30" :
-                          "text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30"
-                      ) : "text-gray-500 dark:text-gray-400"
-                    )}
-                    aria-live="polite"
-                    aria-atomic="true"
-                  >
-                    {charCount} / 100 characters
-                  </div>
-                </div>
+                </FormControl>
 
-                <div id="title-description" className="sr-only">
-                  Enter a title for your blog post between 3 and 100 characters
+                <div className="flex items-center justify-between text-xs">
+                  <FormMessage className="text-red-500 dark:text-red-400" />
+                  <span className={cn(
+                    "font-medium",
+                    charCount > 80 ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"
+                  )}>
+                    {charCount} / 100
+                  </span>
                 </div>
-
-                {!isInputValid && field.value && field.value.length > 0 && (
-                  <div
-                    className="text-center text-xs text-indigo-600 dark:text-indigo-400 animate-pulse"
-                    role="status"
-                    aria-live="polite"
-                  >
-                    <AlertCircle className="w-3 h-3 inline mr-1" aria-hidden="true" />
-                    {field.value.length < 3 ? "Title must be at least 3 characters long" : "Title cannot exceed 100 characters"}
-                  </div>
-                )}
               </FormItem>
             )}
           />
@@ -378,34 +344,31 @@ export const CreateBlogInputSection = () => {
             control={form.control}
             name="categories"
             render={({ field }) => (
-              <FormItem className="space-y-4">
+              <FormItem className="space-y-3">
                 <div>
-                  <FormLabel className="flex items-center gap-2 text-gray-800 dark:text-gray-200 font-medium">
-                    <div className="p-1 bg-indigo-100 dark:bg-indigo-900/40 rounded-md">
-                      <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    </div>
+                  <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-slate-500" />
                     Categories
                   </FormLabel>
-                  <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">
-                    Add categories to help readers find your content
+                  <FormDescription className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Add up to 5 categories to improve discoverability
                   </FormDescription>
                 </div>
 
                 {/* Selected Categories */}
                 {selectedCategories.length > 0 && (
-                  <div className="flex flex-wrap gap-2 my-3 p-3 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-800/80">
+                  <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                     {selectedCategories.map((category) => (
-                      <Badge 
-                        key={category} 
-                        className="bg-gradient-to-r from-indigo-100 to-purple-100 hover:from-indigo-200 hover:to-purple-200 text-indigo-800 
-                                 dark:from-indigo-900/60 dark:to-purple-900/60 dark:text-indigo-300 dark:hover:from-indigo-800/80 dark:hover:to-purple-800/80 
-                                 py-1.5 px-3 rounded-full flex items-center gap-1.5 border border-indigo-200/50 dark:border-indigo-700/30 shadow-sm"
+                      <Badge
+                        key={category}
+                        variant="secondary"
+                        className="py-1 px-3 text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                       >
                         {category}
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleRemoveCategory(category)}
-                          className="ml-1 hover:bg-indigo-200/70 dark:hover:bg-indigo-800/70 rounded-full p-0.5"
+                          className="ml-1.5 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -415,8 +378,7 @@ export const CreateBlogInputSection = () => {
                 )}
 
                 {/* Category Search */}
-                <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-300/20 to-purple-300/20 dark:from-indigo-700/20 dark:to-purple-700/20 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+                <div className="relative">
                   <Input
                     type="text"
                     placeholder="Search categories..."
@@ -426,36 +388,30 @@ export const CreateBlogInputSection = () => {
                       setShowSuggestions(true);
                     }}
                     onFocus={() => setShowSuggestions(true)}
-                    className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 relative rounded-xl"
+                    className={cn(
+                      "bg-white dark:bg-slate-900",
+                      "border border-slate-200 dark:border-slate-700",
+                      "rounded-lg",
+                      "focus:border-blue-500 dark:focus:border-blue-500",
+                      "focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500",
+                      "transition-colors duration-200"
+                    )}
                     role="combobox"
                     aria-label="Search categories"
                     aria-expanded={showSuggestions && filteredCategories.length > 0}
-                    aria-controls="category-suggestions"
-                    aria-autocomplete="list"
                     autoComplete="off"
                   />
 
                   {showSuggestions && filteredCategories.length > 0 && (
                     <ul
-                      id="category-suggestions"
-                      role="listbox"
-                      className="absolute z-10 mt-1 w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg max-h-60 rounded-xl overflow-auto border border-gray-200 dark:border-gray-700"
+                      className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-900 shadow-lg max-h-60 rounded-lg overflow-auto border border-slate-200 dark:border-slate-700"
                       aria-label="Category suggestions"
                     >
-                      {filteredCategories.map((category, index) => (
+                      {filteredCategories.map((category) => (
                         <li
                           key={category}
-                          role="option"
-                          aria-selected={false}
-                          tabIndex={0}
-                          className="px-4 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer text-gray-800 dark:text-gray-200 transition-colors duration-200 focus:bg-indigo-50 dark:focus:bg-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer text-sm text-slate-700 dark:text-slate-300 transition-colors"
                           onClick={() => handleAddCategory(category)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              handleAddCategory(category);
-                            }
-                          }}
                         >
                           {category}
                         </li>
@@ -468,61 +424,85 @@ export const CreateBlogInputSection = () => {
                 <div className="flex gap-2">
                   <Input
                     type="text"
-                    placeholder="Or add a custom category..."
+                    placeholder="Add custom category..."
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
-                    className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 rounded-xl"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomCategory();
+                      }
+                    }}
+                    className={cn(
+                      "bg-white dark:bg-slate-900",
+                      "border border-slate-200 dark:border-slate-700",
+                      "rounded-lg",
+                      "focus:border-blue-500 dark:focus:border-blue-500",
+                      "focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500",
+                      "transition-colors duration-200"
+                    )}
                   />
-                  <Button 
+                  <Button
                     type="button"
                     onClick={handleAddCustomCategory}
-                    variant="outline"
-                    className="shrink-0 border-indigo-200 hover:border-indigo-300 dark:border-indigo-800 dark:hover:border-indigo-700 text-indigo-600 dark:text-indigo-400 rounded-xl"
                     disabled={!customCategory}
+                    className={cn(
+                      "shrink-0 px-4",
+                      "bg-white dark:bg-slate-900",
+                      "border border-slate-200 dark:border-slate-700",
+                      "text-slate-700 dark:text-slate-300",
+                      "hover:bg-slate-50 dark:hover:bg-slate-800",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      "rounded-lg",
+                      "transition-colors duration-200"
+                    )}
                   >
-                    Add
+                    <Plus className="w-4 h-4" />
                   </Button>
                 </div>
               </FormItem>
             )}
           />
-          
-          <div className="mt-8">
+
+          {/* Submit Button */}
+          <div className="pt-4">
             <Button
               id="create-post-submit"
               type="submit"
               disabled={!isInputValid || isSubmitting}
               className={cn(
-                "w-full md:w-auto md:min-w-[200px] md:float-right py-4 px-6 relative overflow-hidden group",
-                "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-size-200 bg-pos-0 hover:bg-pos-100",
-                "dark:from-indigo-700 dark:via-purple-700 dark:to-indigo-700",
-                "text-white font-medium text-base",
-                "rounded-xl transition-all duration-500",
-                "disabled:opacity-70 disabled:cursor-not-allowed",
-                "shadow-md hover:shadow-lg",
-                "border border-indigo-700/30",
+                "w-full sm:w-auto px-6 py-5",
+                "bg-blue-600 dark:bg-blue-600",
+                "text-white font-medium",
+                "hover:bg-blue-700 dark:hover:bg-blue-700",
+                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600",
+                "rounded-lg",
+                "transition-colors duration-200",
                 "flex items-center justify-center gap-2"
               )}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Creating Blog...</span>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Creating Post...</span>
                 </>
               ) : (
                 <>
                   <span>Continue to Content</span>
-                  <div className="relative">
-                    <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform duration-300" />
-                    <Sparkles className="absolute -top-1 -right-1 w-2 h-2 text-indigo-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </div>
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </Button>
-            <div className="clear-both"></div>
+
             {draftSavedAt && (
-              <div key={draftSaveKey} className="mt-2 text-xs text-gray-500 dark:text-gray-400 animate-fade-in">
-                {(() => { const d = draftSavedAt; if (!d) return ""; const hh = d.getHours().toString().padStart(2, '0'); const mm = d.getMinutes().toString().padStart(2, '0'); return `Draft saved at ${hh}:${mm}`; })()}
+              <div key={draftSaveKey} className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                {(() => {
+                  const d = draftSavedAt;
+                  if (!d) return "";
+                  const hh = d.getHours().toString().padStart(2, '0');
+                  const mm = d.getMinutes().toString().padStart(2, '0');
+                  return `Draft saved at ${hh}:${mm}`;
+                })()}
               </div>
             )}
           </div>
@@ -530,5 +510,4 @@ export const CreateBlogInputSection = () => {
       </Form>
     </div>
   );
-}
- 
+};
