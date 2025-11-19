@@ -33,6 +33,9 @@ import {
   Code
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PasswordChangeCard } from "./password-change-card";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -42,50 +45,77 @@ export default function SettingsPage() {
   const [autoBackup, setAutoBackup] = useState(true);
 
   return (
-    <div className="flex h-full w-full flex-1 flex-col gap-6 overflow-y-auto p-6 md:p-10">
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+      <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Page Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <motion.div
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Platform Settings</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Platform Settings
+            </h1>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
               Configure platform settings and preferences
             </p>
           </div>
-          <Button className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600">
+          <Button className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300">
             <Save className="mr-2 h-4 w-4" />
             Save All Changes
           </Button>
-        </div>
+        </motion.div>
 
         {/* Settings Tabs */}
-        <Tabs defaultValue="general" className="space-y-4">
-          <TabsList className="bg-slate-100 dark:bg-slate-900/50">
-            <TabsTrigger value="general" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800">
-              <Settings className="mr-2 h-4 w-4" />
-              General
-            </TabsTrigger>
-            <TabsTrigger value="security" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800">
-              <Shield className="mr-2 h-4 w-4" />
-              Security
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800">
-              <Bell className="mr-2 h-4 w-4" />
-              Notifications
-            </TabsTrigger>
-            <TabsTrigger value="billing" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800">
-              <CreditCard className="mr-2 h-4 w-4" />
-              Billing
-            </TabsTrigger>
-            <TabsTrigger value="advanced" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800">
-              <Code className="mr-2 h-4 w-4" />
-              Advanced
-            </TabsTrigger>
-          </TabsList>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Tabs defaultValue="general" className="space-y-6">
+            <TabsList className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+              <TabsTrigger
+                value="general"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                General
+              </TabsTrigger>
+              <TabsTrigger
+                value="security"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Security
+              </TabsTrigger>
+              <TabsTrigger
+                value="notifications"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
+              >
+                <Bell className="mr-2 h-4 w-4" />
+                Notifications
+              </TabsTrigger>
+              <TabsTrigger
+                value="billing"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                Billing
+              </TabsTrigger>
+              <TabsTrigger
+                value="advanced"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-amber-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
+              >
+                <Code className="mr-2 h-4 w-4" />
+                Advanced
+              </TabsTrigger>
+            </TabsList>
 
-          {/* General Settings */}
-          <TabsContent value="general" className="space-y-4">
-            <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
+            {/* General Settings */}
+            <TabsContent value="general" className="space-y-4">
+              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-slate-900 dark:text-slate-100">Platform Information</CardTitle>
                 <CardDescription className="text-slate-600 dark:text-slate-400">
@@ -146,9 +176,9 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-slate-900 dark:text-slate-100">Appearance</CardTitle>
+              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="text-slate-900 dark:text-slate-100">Appearance</CardTitle>
                 <CardDescription className="text-slate-600 dark:text-slate-400">
                   Customize platform appearance and theme
                 </CardDescription>
@@ -186,9 +216,9 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          {/* Security Settings */}
-          <TabsContent value="security" className="space-y-4">
-            <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
+            {/* Security Settings */}
+            <TabsContent value="security" className="space-y-4">
+              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-slate-900 dark:text-slate-100">Security Settings</CardTitle>
                 <CardDescription className="text-slate-600 dark:text-slate-400">
@@ -247,6 +277,8 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
+            <PasswordChangeCard />
+
             <Alert className="border-yellow-200 dark:border-yellow-900/50 bg-yellow-50 dark:bg-yellow-900/20">
               <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
               <AlertDescription className="text-slate-700 dark:text-slate-300">
@@ -255,9 +287,9 @@ export default function SettingsPage() {
             </Alert>
           </TabsContent>
 
-          {/* Notifications Settings */}
-          <TabsContent value="notifications" className="space-y-4">
-            <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
+            {/* Notifications Settings */}
+            <TabsContent value="notifications" className="space-y-4">
+              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-slate-900 dark:text-slate-100">Notification Preferences</CardTitle>
                 <CardDescription className="text-slate-600 dark:text-slate-400">
@@ -304,9 +336,9 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          {/* Billing Settings */}
-          <TabsContent value="billing" className="space-y-4">
-            <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
+            {/* Billing Settings */}
+            <TabsContent value="billing" className="space-y-4">
+              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-slate-900 dark:text-slate-100">Billing Configuration</CardTitle>
                 <CardDescription className="text-slate-600 dark:text-slate-400">
@@ -360,9 +392,9 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          {/* Advanced Settings */}
-          <TabsContent value="advanced" className="space-y-4">
-            <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
+            {/* Advanced Settings */}
+            <TabsContent value="advanced" className="space-y-4">
+              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-slate-900 dark:text-slate-100">Advanced Configuration</CardTitle>
                 <CardDescription className="text-slate-600 dark:text-slate-400">
@@ -415,9 +447,11 @@ export default function SettingsPage() {
                   Maintenance mode is enabled. The platform is not accessible to regular users.
                 </AlertDescription>
               </Alert>
-            )}
-          </TabsContent>
-        </Tabs>
+              )}
+            </TabsContent>
+          </Tabs>
+        </motion.div>
+      </div>
     </div>
   );
 }

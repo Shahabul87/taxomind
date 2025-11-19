@@ -13,6 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -66,6 +68,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import Image from "next/image";
+import { CreateAdminDialog } from "./create-admin-dialog";
 
 // Type definitions
 interface UserData {
@@ -111,6 +114,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
   const [editForm, setEditForm] = useState({
@@ -386,134 +390,155 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
   };
 
   return (
-    <div className="flex h-full w-full flex-1 flex-col gap-6 overflow-y-auto p-6 md:p-10">
-      {/* Page Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Users Management
-          </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Manage and monitor all platform users
-          </p>
-        </div>
-        <Button className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600">
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add New User
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Total Users
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.total}
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Total registered users
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Page Header */}
+        <motion.div
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Users Management
+            </h1>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              Manage and monitor all platform users
             </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Active Users
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.active}
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {stats.total > 0
-                ? `${Math.round((stats.active / stats.total) * 100)}% of total users`
-                : "Calculating..."}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Instructors
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.instructors}
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Including admins
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              New Today
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.newToday}
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              New registrations
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Search */}
-      <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-        <CardHeader>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-              <CardTitle className="text-lg text-slate-900 dark:text-slate-100">
-                All Users
-              </CardTitle>
-            </div>
-            <div className="flex flex-col gap-2 md:flex-row">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  placeholder="Search users..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-full md:w-[250px] bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600"
-                />
-              </div>
-              <Select value={filterRole} onValueChange={setFilterRole}>
-                <SelectTrigger className="w-full md:w-[150px] bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600">
-                  <SelectValue placeholder="Filter by role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="USER">Users</SelectItem>
-                  <SelectItem value="INSTRUCTOR">Instructors</SelectItem>
-                  <SelectItem value="ADMIN">Admins</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full md:w-[150px] bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                  <SelectItem value="Suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
-        </CardHeader>
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+          >
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add New User
+          </Button>
+        </motion.div>
+
+        {/* Stats Grid - Gradient Cards */}
+        <motion.div
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          initial="initial"
+          animate="animate"
+        >
+          {[
+            {
+              title: "Total Users",
+              value: stats.total.toString(),
+              description: "Total registered users",
+              icon: Users,
+              gradient: "from-blue-500 to-indigo-500",
+              hoverGradient: "from-blue-400/20 to-indigo-700/20"
+            },
+            {
+              title: "Active Users",
+              value: stats.active.toString(),
+              description: stats.total > 0
+                ? `${Math.round((stats.active / stats.total) * 100)}% of total users`
+                : "Calculating...",
+              icon: CheckCircle,
+              gradient: "from-emerald-500 to-teal-500",
+              hoverGradient: "from-emerald-400/20 to-teal-700/20"
+            },
+            {
+              title: "Instructors",
+              value: stats.instructors.toString(),
+              description: "Including admins",
+              icon: Shield,
+              gradient: "from-purple-500 to-pink-500",
+              hoverGradient: "from-purple-400/20 to-pink-700/20"
+            },
+            {
+              title: "New Today",
+              value: stats.newToday.toString(),
+              description: "New registrations",
+              icon: UserPlus,
+              gradient: "from-orange-500 to-red-500",
+              hoverGradient: "from-orange-400/20 to-red-700/20"
+            },
+          ].map((stat, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: idx * 0.1 }}
+            >
+              <Card className={cn(
+                "group relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]",
+                `bg-gradient-to-br ${stat.gradient}`
+              )}>
+                <div className={cn(
+                  "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+                  stat.hoverGradient
+                )} />
+                <div className="relative p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                      <stat.icon className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-white/90">{stat.title}</span>
+                  </div>
+                  <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+                  <div className="text-xs text-white/80">
+                    {stat.description}
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Filters and Search */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <CardTitle className="flex items-center gap-3 text-slate-900 dark:text-white">
+                  <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  All Users
+                </CardTitle>
+                <div className="flex flex-col gap-2 md:flex-row">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      placeholder="Search users..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 w-full md:w-[250px] bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-600/50 focus:bg-white dark:focus:bg-slate-900"
+                    />
+                  </div>
+                  <Select value={filterRole} onValueChange={setFilterRole}>
+                    <SelectTrigger className="w-full md:w-[150px] bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-600/50">
+                      <SelectValue placeholder="Filter by role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="USER">Users</SelectItem>
+                      <SelectItem value="INSTRUCTOR">Instructors</SelectItem>
+                      <SelectItem value="ADMIN">Admins</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-full md:w-[150px] bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-600/50">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      <SelectItem value="Suspended">Suspended</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
         <CardContent>
           {/* Error State */}
           {error && (
@@ -571,10 +596,13 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow
+                  {filteredUsers.map((user, idx) => (
+                    <motion.tr
                       key={user.id}
-                      className="border-slate-200 dark:border-slate-700"
+                      className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 + idx * 0.02 }}
                     >
                       <TableCell className="text-left">
                         <div className="flex items-center gap-3">
@@ -673,7 +701,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="hover:bg-slate-100 dark:hover:bg-slate-700"
+                              className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-200"
                             >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
@@ -740,23 +768,24 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
-                    </TableRow>
+                    </motion.tr>
                   ))}
                 </TableBody>
               </Table>
             )}
           </div>
 
-          {/* Results count */}
-          {filteredUsers.length > 0 && (
-            <div className="mt-4">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Showing {filteredUsers.length} of {users.length} users
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              {/* Results count */}
+              {filteredUsers.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Showing {filteredUsers.length} of {users.length} users
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
       {/* View User Details Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
@@ -1252,6 +1281,17 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+        {/* Create Admin Dialog */}
+        <CreateAdminDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          onSuccess={() => {
+            // Refresh users list
+            window.location.reload();
+          }}
+        />
+      </div>
     </div>
   );
 }

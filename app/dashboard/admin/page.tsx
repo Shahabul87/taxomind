@@ -1,149 +1,292 @@
-import { Metadata } from "next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Bell, Users, BookOpen, BarChart3, FileText, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { DashboardHeader } from "./_components/DashboardHeader";
+import { DashboardStats } from "./_components/DashboardStats";
+import { RecentActivity } from "./_components/RecentActivity";
+import { QuickActions } from "./_components/QuickActions";
+import { SystemStatus } from "./_components/SystemStatus";
+import { db } from "@/lib/db";
+import type { DashboardStats as StatsType } from "@/app/api/admin/dashboard/stats/route";
+import type { ActivityItem } from "@/app/api/admin/dashboard/activity/route";
 
-export const metadata: Metadata = {
-  title: "Admin Dashboard - Taxomind",
-  description: "Admin dashboard for managing the learning platform",
-};
+async function getDashboardStats(): Promise<StatsType> {
+  try {
+    // Calculate date ranges
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    // Fetch all stats in parallel for performance
+    const [
+      totalUsers,
+      totalCourses,
+      activeSessions,
+      pendingReports,
+      usersLastMonth,
+      newCoursesThisMonth,
+      activeSessionsToday,
+      newReportsToday,
+    ] = await Promise.all([
+      // Total users
+      db.user.count(),
+
+      // Total courses
+      db.course.count({
+        where: { isPublished: true },
+      }),
+
+      // Active sessions (logged in within last 24 hours)
+      db.activeSession.count({
+        where: {
+          expiresAt: { gte: now },
+        },
+      }),
+
+      // Pending reports (unpublished posts as placeholder)
+      db.post.count({
+        where: {
+          published: false,
+        },
+      }),
+
+      // Users from last month (for growth calculation)
+      db.user.count({
+        where: {
+          createdAt: {
+            gte: startOfLastMonth,
+            lte: endOfLastMonth,
+          },
+        },
+      }),
+
+      // New courses this month
+      db.course.count({
+        where: {
+          createdAt: { gte: startOfMonth },
+          isPublished: true,
+        },
+      }),
+
+      // Active sessions today
+      db.activeSession.count({
+        where: {
+          createdAt: { gte: startOfToday },
+        },
+      }),
+
+      // New reports today
+      db.post.count({
+        where: {
+          published: false,
+          createdAt: { gte: startOfToday },
+        },
+      }),
+    ]);
+
+    // Calculate user growth percentage
+    const userGrowth = usersLastMonth > 0
+      ? Math.round(((totalUsers - usersLastMonth) / usersLastMonth) * 100)
+      : 0;
+
+    return {
+      totalUsers,
+      totalCourses,
+      activeSessions,
+      pendingReports,
+      userGrowth,
+      newCoursesThisMonth,
+      activeSessionsToday,
+      newReportsToday,
+    };
+  } catch (error) {
+    console.error("[getDashboardStats]", error);
+    // Return default values on error
+    return {
+      totalUsers: 0,
+      totalCourses: 0,
+      activeSessions: 0,
+      pendingReports: 0,
+      userGrowth: 0,
+      newCoursesThisMonth: 0,
+      activeSessionsToday: 0,
+      newReportsToday: 0,
+    };
+  }
+}
+
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) {
+    return "just now";
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) {
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+  }
+
+  const months = Math.floor(days / 30);
+  return `${months} month${months === 1 ? "" : "s"} ago`;
+}
+
+async function getRecentActivity(): Promise<ActivityItem[]> {
+  try {
+    const now = new Date();
+
+    // Fetch recent activities from different sources
+    const [recentUsers, recentCourses, recentReports] = await Promise.all([
+      // Recent user registrations
+      db.user.findMany({
+        where: {
+          createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) }, // Last 24 hours
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+      }),
+
+      // Recently published courses
+      db.course.findMany({
+        where: {
+          isPublished: true,
+          updatedAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+        },
+        select: {
+          id: true,
+          title: true,
+          updatedAt: true,
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 3,
+      }),
+
+      // Recent reports (unpublished posts as placeholder)
+      db.post.findMany({
+        where: {
+          published: false,
+          createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+        },
+        select: {
+          id: true,
+          title: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 2,
+      }),
+    ]);
+
+    // Format activities
+    const activities: ActivityItem[] = [];
+
+    // Add user activities
+    recentUsers.forEach((user) => {
+      activities.push({
+        id: user.id,
+        type: "user",
+        title: "New user registered",
+        subtitle: user.email || user.name || "New user joined the platform",
+        time: formatTimeAgo(user.createdAt),
+        timestamp: user.createdAt,
+      });
+    });
+
+    // Add course activities
+    recentCourses.forEach((course) => {
+      activities.push({
+        id: course.id,
+        type: "course",
+        title: "Course published",
+        subtitle: `${course.title} is now live`,
+        time: formatTimeAgo(course.updatedAt),
+        timestamp: course.updatedAt,
+      });
+    });
+
+    // Add report activities
+    recentReports.forEach((report) => {
+      activities.push({
+        id: report.id,
+        type: "report",
+        title: "Report submitted",
+        subtitle: report.title || "New report ready for review",
+        time: formatTimeAgo(report.createdAt),
+        timestamp: report.createdAt,
+      });
+    });
+
+    // Add system activity (placeholder)
+    if (activities.length < 4) {
+      activities.push({
+        id: "system-1",
+        type: "system",
+        title: "System update",
+        subtitle: "Platform maintenance completed successfully",
+        time: "3 hours ago",
+        timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+      });
+    }
+
+    // Sort by timestamp (most recent first)
+    activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+    // Take only the most recent 8 activities
+    return activities.slice(0, 8);
+  } catch (error) {
+    console.error("[getRecentActivity]", error);
+    // Return empty array on error
+    return [];
+  }
+}
 
 export default async function AdminPage() {
+  // Fetch data in parallel for better performance
+  const [stats, activities] = await Promise.all([
+    getDashboardStats(),
+    getRecentActivity(),
+  ]);
+
   return (
-    <>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Admin Dashboard
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Welcome back, Admin! Here&apos;s your overview.
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Header */}
+        <DashboardHeader />
+
+        {/* Stats Grid */}
+        <DashboardStats {...stats} />
+
+        {/* Main Content Grid */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Recent Activity Card */}
+          <RecentActivity activities={activities} />
+
+          {/* Quick Actions Card */}
+          <QuickActions />
         </div>
-        <Button variant="outline" size="sm">
-          <Bell className="mr-2 h-4 w-4" />
-          Notifications
-        </Button>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          {
-            title: "Total Users",
-            value: "1,234",
-            change: "+12%",
-            icon: Users,
-          },
-          {
-            title: "Total Courses",
-            value: "56",
-            change: "+3 new",
-            icon: BookOpen,
-          },
-          {
-            title: "Active Sessions",
-            value: "89",
-            change: "+23",
-            icon: BarChart3,
-          },
-          {
-            title: "Reports",
-            value: "24",
-            change: "+5 pending",
-            icon: FileText,
-          },
-        ].map((stat, idx) => (
-          <Card key={idx} className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stat.value}</div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{stat.change}</p>
-            </CardContent>
-          </Card>
-        ))}
+        {/* System Status Cards */}
+        <SystemStatus
+          activeSessions={stats.activeSessions}
+          pendingReports={stats.pendingReports}
+        />
       </div>
-
-      {/* Activity Sections */}
-      <div className="grid flex-1 gap-4 md:grid-cols-2">
-        {/* Recent Activity */}
-        <Card className="flex flex-col bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-slate-900 dark:text-slate-100">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <div className="space-y-4">
-              {[
-                {
-                  title: "New user registered",
-                  time: "2 minutes ago",
-                  color: "bg-blue-500",
-                },
-                {
-                  title: "Course published",
-                  time: "15 minutes ago",
-                  color: "bg-green-500",
-                },
-                {
-                  title: "Report submitted",
-                  time: "1 hour ago",
-                  color: "bg-yellow-500",
-                },
-                {
-                  title: "System update",
-                  time: "3 hours ago",
-                  color: "bg-purple-500",
-                },
-              ].map((activity, idx) => (
-                <div key={idx} className="flex items-start gap-3">
-                  <div className={cn("mt-1 h-2 w-2 rounded-full", activity.color)} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {activity.title}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="flex flex-col bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-slate-900 dark:text-slate-100">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: "Add User", icon: Users },
-                { label: "Create Course", icon: BookOpen },
-                { label: "View Reports", icon: FileText },
-                { label: "System Settings", icon: Settings },
-              ].map((action, idx) => (
-                <Button
-                  key={idx}
-                  variant="outline"
-                  className="h-20 flex-col gap-2 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-300"
-                >
-                  <action.icon className="h-5 w-5" />
-                  <span className="text-xs">{action.label}</span>
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </>
+    </div>
   );
-} 
+}
