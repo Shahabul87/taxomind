@@ -16,7 +16,6 @@ export const getUserByEmail = async (email: string) => {
         name: true,
         email: true,
         password: true,
-        role: true,
         isTwoFactorEnabled: true,
         emailVerified: true,
         image: true,
@@ -71,7 +70,6 @@ export const getUserById = async (id: string) => {
         id: true,
         name: true,
         email: true,
-        role: true,
         emailVerified: true,
         image: true,
         isTwoFactorEnabled: true,
@@ -112,10 +110,10 @@ export const getAdminById = async (id: string) => {
   try {
     // Only log in development to reduce noise
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[ADMIN] Looking up admin user with id: ${id}`);
+      console.log(`[ADMIN] Looking up admin account with id: ${id}`);
     }
 
-    const admin = await db.user.findUnique({
+    const admin = await db.adminAccount.findUnique({
       where: { id },
       select: {
         id: true,
@@ -128,19 +126,12 @@ export const getAdminById = async (id: string) => {
         totpEnabled: true,
         totpVerified: true,
         createdAt: true,           // Required for MFA enforcement calculations
-        lastLoginAt: true,          // Track admin login patterns
         totpSecret: true,           // For 2FA verification
         recoveryCodes: true         // For account recovery
       }
     });
 
-    // Verify this is actually an admin user
-    if (admin && admin.role !== 'ADMIN') {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`[ADMIN] SECURITY WARNING: Non-admin user accessed via getAdminById: ${id}`);
-      }
-      return null;
-    }
+    // No role verification needed - AdminAccount table only contains admins (ADMIN or SUPERADMIN)
 
     if (process.env.NODE_ENV === 'development') {
       console.log(`[ADMIN] Admin lookup result: ${admin ? 'Found' : 'Not found'}`);

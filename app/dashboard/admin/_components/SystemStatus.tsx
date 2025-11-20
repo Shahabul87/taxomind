@@ -37,7 +37,7 @@ export function SystemStatus({ activeSessions, pendingReports }: SystemStatusPro
 
   return (
     <motion.div
-      className="grid gap-4 md:grid-cols-3"
+      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3 md:gap-4"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.6 }}
@@ -50,15 +50,15 @@ export function SystemStatus({ activeSessions, pendingReports }: SystemStatusPro
             `bg-gradient-to-br ${status.gradient}`
           )}
         >
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                <status.icon className="w-5 h-5 text-white" />
+          <CardContent className="p-3.5 sm:p-4 md:p-5">
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg backdrop-blur-sm shrink-0">
+                <status.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <span className="text-2xl font-bold text-white">{status.value}</span>
+              <span className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate ml-2">{status.value}</span>
             </div>
-            <h3 className="text-sm font-medium text-white/90 mb-1">{status.title}</h3>
-            <p className="text-xs text-white/70">{status.status}</p>
+            <h3 className="text-xs sm:text-sm font-medium text-white/90 mb-1 truncate">{status.title}</h3>
+            <p className="text-[10px] sm:text-xs text-white/70 line-clamp-2">{status.status}</p>
           </CardContent>
         </Card>
       ))}

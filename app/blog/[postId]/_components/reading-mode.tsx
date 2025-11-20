@@ -210,7 +210,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
             "mx-auto max-w-full",
             activeMode === 5 || activeMode === 1 || activeMode === 4 || activeMode === 6
               ? "p-0 h-full"
-              : "px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-3 md:py-4 lg:py-6"
+              : "px-1 sm:px-2 md:px-3 lg:px-4 xl:px-6 py-2 sm:py-3 md:py-4 lg:py-5 xl:py-6"
           )}
           style={{
             fontSize: `${fontSize}px`,
@@ -238,7 +238,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="w-full overflow-hidden"
+                  className="w-full overflow-hidden -mx-1 sm:-mx-2 md:-mx-3 lg:-mx-4 xl:-mx-6"
                 >
                   <PostCardModelTwo data={chapters} />
                 </motion.div>

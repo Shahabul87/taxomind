@@ -1,14 +1,13 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
-import { UserRole, Enrollment } from "@prisma/client";
+import { Enrollment } from "@prisma/client";
 
 export type LearningMode = "learning" | "preview" | "restricted";
 
 // Minimal user type that matches session user
 interface SessionUser {
   id: string;
-  role: UserRole;
   isTwoFactorEnabled: boolean;
   name?: string | null;
   email?: string | null;

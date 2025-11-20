@@ -1,12 +1,12 @@
 "use client";
 
 import { ResponsiveHeaderWrapper } from "./_components/responsive-header-wrapper";
-import { UserRole } from "@prisma/client";
+// UserRole removed - users no longer have roles
 
 interface ConditionalHeaderProps {
   user: {
     id: string;
-    role?: UserRole;
+    isTeacher?: boolean;
   } | null;
 }
 
@@ -26,6 +26,8 @@ const ConditionalHeader = ({ user }: ConditionalHeaderProps) => {
 };
 
 export default ConditionalHeader; 
+
+
 
 
 

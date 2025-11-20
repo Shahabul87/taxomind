@@ -274,7 +274,7 @@ export const ExamCreationForm = ({
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4 sm:space-y-6">
       {/* Existing Exams */}
       {!state.isLoadingExams && (
         <ExamList
@@ -297,7 +297,7 @@ export const ExamCreationForm = ({
 
       {/* Questions List */}
       {state.questions.length > 0 && state.isPreviewVisible && (
-        <div className="space-y-3">
+        <div className="space-y-2.5 sm:space-y-3">
           {state.questions.map((question, index) => (
             <QuestionItem
               key={question.id}
@@ -341,12 +341,12 @@ export const ExamCreationForm = ({
           <Button
             onClick={() => dispatch({ type: "SET_PREVIEW_VISIBLE", payload: true })}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm w-full sm:w-auto"
           >
-            <Eye className="h-4 w-4" />
+            <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Show Preview
             {state.previewingExam && (
-              <Badge variant="secondary" className="ml-1 text-xs">
+              <Badge variant="secondary" className="ml-1 text-[10px] sm:text-xs">
                 {state.previewingExam.title}
               </Badge>
             )}
@@ -356,20 +356,20 @@ export const ExamCreationForm = ({
 
       {/* Create New Exam */}
       {!state.isCreating ? (
-        <div className="flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-          <FileQuestion className="h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div className="flex flex-col items-center justify-center p-6 sm:p-8 bg-gray-50 dark:bg-gray-900/30 rounded-lg sm:rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+          <FileQuestion className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
             Create an Exam
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6 max-w-md">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center mb-4 sm:mb-6 max-w-md px-2">
             Create quizzes, assignments, and tests to assess your students&apos; understanding of the
             material
           </p>
           <Button
             onClick={() => dispatch({ type: "SET_CREATING", payload: true })}
-            className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 h-10 sm:h-11 px-4 sm:px-6 text-xs sm:text-sm w-full sm:w-auto"
           >
-            <PlusCircle className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
             Create New Exam
           </Button>
         </div>

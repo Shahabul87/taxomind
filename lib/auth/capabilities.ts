@@ -9,7 +9,6 @@
  */
 
 import { db } from "@/lib/db";
-import { UserRole } from "@prisma/client";
 import { cache } from "react";
 import {
   UserCapability,
@@ -36,7 +35,6 @@ export const getUserCapabilities = cache(async (userId: string): Promise<UserCap
       where: { id: userId },
       select: {
         id: true,
-        role: true,
         isTeacher: true,
         isAffiliate: true,
         teacherActivatedAt: true,
@@ -137,7 +135,6 @@ export async function grantCapability(
       select: {
         id: true,
         emailVerified: true,
-        role: true,
       },
     });
 
@@ -271,16 +268,13 @@ export async function getAvailableCapabilities(
 
 /**
  * Check if a user can access a specific route based on capabilities
+ * Note: Admin access control is handled separately via AdminAccount
  */
 export async function canAccessRoute(
   userId: string,
-  route: string,
-  userRole: UserRole
+  route: string
 ): Promise<boolean> {
-  // Admins can access everything
-  if (userRole === UserRole.ADMIN) {
-    return true;
-  }
+  // Note: Admin auth is completely separate from user auth
 
   // Define route patterns and required capabilities
   const routeCapabilities: Record<string, UserCapability[]> = {

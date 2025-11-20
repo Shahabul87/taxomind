@@ -10,7 +10,7 @@ const createJestConfig = nextJest({
 
 const customJestConfig = {
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.comprehensive.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   
   // Test patterns - exclude backups
   testMatch: [
@@ -73,7 +73,7 @@ const customJestConfig = {
   
   // Transform patterns
   transformIgnorePatterns: [
-    'node_modules/(?!(next-auth|@auth|jose|uuid|nanoid|uncrypto|@upstash|@panva)/)',
+    'node_modules/(?!(next-auth|@auth|jose|uuid|nanoid|uncrypto|@upstash|@panva|lucide-react)/)',
   ],
   
   // Globals

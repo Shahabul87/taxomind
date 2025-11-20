@@ -7,7 +7,7 @@
 export * from './api';
 
 // Auth Types (excluding duplicates from api)
-export type { UserRole, Permission } from './auth';
+export type { Permission } from './auth';
 
 // Model Types (excluding duplicates from api)
 export type { 

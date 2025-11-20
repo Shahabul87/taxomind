@@ -245,9 +245,9 @@ export const UnifiedCodeView = ({
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="py-12 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Loading code blocks...</p>
+        <CardContent className="py-8 sm:py-12 flex flex-col items-center justify-center gap-2 sm:gap-3">
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
+          <p className="text-xs sm:text-sm text-muted-foreground">Loading code blocks...</p>
         </CardContent>
       </Card>
     );
@@ -256,8 +256,8 @@ export const UnifiedCodeView = ({
   if (sortedBlocks.length === 0) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          No code blocks yet. Add your first code block to get started.
+        <CardContent className="py-6 sm:py-8 text-center text-muted-foreground px-3 sm:px-6">
+          <p className="text-xs sm:text-sm">No code blocks yet. Add your first code block to get started.</p>
         </CardContent>
       </Card>
     );
@@ -265,39 +265,41 @@ export const UnifiedCodeView = ({
 
   return (
     <Card className="relative overflow-hidden">
-      <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CardTitle className="text-xl font-bold">
+      <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900 p-3 sm:p-6">
+        <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <CardTitle className="text-base sm:text-lg md:text-xl font-bold">
               Complete Code Implementation
             </CardTitle>
-            <Badge variant="outline" className="gap-1">
+            <Badge variant="outline" className="gap-1 text-xs flex-shrink-0">
               {sortedBlocks.length} {sortedBlocks.length === 1 ? 'Block' : 'Blocks'}
             </Badge>
-            <Badge variant="secondary" className="gap-1">
+            <Badge variant="secondary" className="gap-1 text-xs flex-shrink-0">
               {totalLines} Lines
             </Badge>
-            <Badge variant="secondary">
+            <Badge variant="secondary" className="text-xs flex-shrink-0">
               {language}
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full xs:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowExplanations(!showExplanations)}
-              className="gap-2"
+              className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm flex-1 xs:flex-none"
             >
               {showExplanations ? (
                 <>
-                  <Eye className="h-4 w-4" />
-                  Hide Explanations
+                  <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Hide Explanations</span>
+                  <span className="xs:hidden">Hide</span>
                 </>
               ) : (
                 <>
-                  <EyeOff className="h-4 w-4" />
-                  Show Explanations
+                  <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Show Explanations</span>
+                  <span className="xs:hidden">Show</span>
                 </>
               )}
             </Button>
@@ -305,19 +307,21 @@ export const UnifiedCodeView = ({
               variant="outline"
               size="sm"
               onClick={handleCopyAll}
-              className="gap-2"
+              className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm flex-1 xs:flex-none"
             >
-              <Copy className="h-4 w-4" />
-              Copy All
+              <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Copy All</span>
+              <span className="xs:hidden">Copy</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={handleDownload}
-              className="gap-2"
+              className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm flex-1 xs:flex-none"
             >
-              <Download className="h-4 w-4" />
-              Download
+              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Download</span>
+              <span className="xs:hidden">DL</span>
             </Button>
           </div>
         </div>
@@ -334,39 +338,40 @@ export const UnifiedCodeView = ({
               className="relative border-b border-gray-200 dark:border-gray-800 last:border-b-0"
             >
               {/* Block Header */}
-              <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-b border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+              <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-3 px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-b border-blue-200 dark:border-blue-800">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                  <span className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-100 break-words">
                     {block.title}
                   </span>
                   {!block.explanation && (
-                    <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400">
+                    <Badge variant="outline" className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 flex-shrink-0">
                       No explanation yet
                     </Badge>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 w-full xs:w-auto">
                   {block.explanation && showExplanations && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={(e) => handleShowExplanation(block.id, e)}
-                      className={`h-7 px-2 text-xs font-medium ${
+                      className={`h-7 sm:h-8 px-1.5 sm:px-2 text-[10px] sm:text-xs font-medium flex-1 xs:flex-none ${
                         openTooltips.has(block.id)
                           ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                           : 'bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-700 dark:hover:text-white'
                       }`}
                     >
-                      <BookOpen className="h-3 w-3 mr-1" />
-                      {openTooltips.has(block.id) ? 'Shown' : 'Show Explanation'}
+                      <BookOpen className="h-2.5 w-2.5 sm:h-3 sm:w-3 sm:mr-1" />
+                      <span className="hidden xs:inline">{openTooltips.has(block.id) ? 'Shown' : 'Show Explanation'}</span>
+                      <span className="xs:hidden">{openTooltips.has(block.id) ? 'Shown' : 'Explain'}</span>
                     </Button>
                   )}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleCopyBlock(block.id)}
-                    className={`h-7 px-2 text-xs font-medium ${
+                    className={`h-7 sm:h-8 px-1.5 sm:px-2 text-[10px] sm:text-xs font-medium ${
                       copiedBlockId === block.id
                         ? 'bg-green-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-600 hover:text-white dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white'
@@ -376,8 +381,8 @@ export const UnifiedCodeView = ({
                       <>✓ Copied</>
                     ) : (
                       <>
-                        <Copy className="h-3 w-3 mr-1" />
-                        Copy
+                        <Copy className="h-2.5 w-2.5 sm:h-3 sm:w-3 sm:mr-1" />
+                        <span className="hidden xs:inline">Copy</span>
                       </>
                     )}
                   </Button>
@@ -385,46 +390,51 @@ export const UnifiedCodeView = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleEdit(block)}
-                    className="h-7 px-2 text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-600 hover:text-white dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-700 dark:hover:text-white"
+                    className="h-7 sm:h-8 px-1.5 sm:px-2 text-[10px] sm:text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-600 hover:text-white dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-700 dark:hover:text-white"
                   >
-                    <Pencil className="h-3 w-3 mr-1" />
-                    Edit
+                    <Pencil className="h-2.5 w-2.5 sm:h-3 sm:w-3 sm:mr-1" />
+                    <span className="hidden xs:inline">Edit</span>
                   </Button>
                   <ConfirmModal onConfirm={() => handleDelete(block.id)}>
                     <Button
                       variant="ghost"
                       size="sm"
                       disabled={isDeletingId === block.id}
-                      className="h-7 px-2 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-900/40 dark:text-red-200 dark:hover:bg-red-700 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="h-7 sm:h-8 px-1.5 sm:px-2 text-[10px] sm:text-xs font-medium bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-900/40 dark:text-red-200 dark:hover:bg-red-700 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      {isDeletingId === block.id ? 'Deleting...' : 'Delete'}
+                      <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 sm:mr-1" />
+                      <span className="hidden xs:inline">{isDeletingId === block.id ? 'Deleting...' : 'Delete'}</span>
+                      <span className="xs:hidden">{isDeletingId === block.id ? '...' : 'Del'}</span>
                     </Button>
                   </ConfirmModal>
                 </div>
               </div>
 
               {/* Code Block */}
-              <div className="relative group">
-                <SyntaxHighlighter
-                  language={block.language}
-                  style={vscDarkPlus}
-                  showLineNumbers
-                  startingLineNumber={block.lineStart || 1}
-                  customStyle={{
-                    margin: 0,
-                    padding: '1rem',
-                    background: 'transparent',
-                    fontSize: '0.875rem',
-                  }}
-                  lineNumberStyle={{
-                    minWidth: '3rem',
-                    paddingRight: '1rem',
-                    color: '#6B7280',
-                  }}
-                >
-                  {block.code}
-                </SyntaxHighlighter>
+              <div className="relative group overflow-x-auto">
+                <div className="p-2 sm:p-3 md:p-4">
+                  <SyntaxHighlighter
+                    language={block.language}
+                    style={vscDarkPlus}
+                    showLineNumbers
+                    startingLineNumber={block.lineStart || 1}
+                    customStyle={{
+                      margin: 0,
+                      padding: 0,
+                      background: 'transparent',
+                      fontSize: '0.7rem',
+                    }}
+                    lineNumberStyle={{
+                      minWidth: '2rem',
+                      paddingRight: '0.5rem',
+                      color: '#6B7280',
+                      fontSize: '0.65rem',
+                    }}
+                    PreTag="div"
+                  >
+                    {block.code}
+                  </SyntaxHighlighter>
+                </div>
 
                 {/* Active block overlay - shows when explanation is displayed */}
                 {openTooltips.has(block.id) && (

@@ -75,6 +75,7 @@ export async function testAllEndpoints(): Promise<Record<AuthEndpoint, RateLimit
     'admin-login': [],
     register: [],
     reset: [],
+    'admin-reset': [],
     verify: [],
     twoFactor: [],
     'mfa-recovery': [],

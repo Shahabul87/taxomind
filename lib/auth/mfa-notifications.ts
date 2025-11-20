@@ -7,6 +7,7 @@
  */
 
 import { db } from "@/lib/db";
+import { AdminRole } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import { AdminMFAInfo, calculateMFAEnforcementStatus } from "./mfa-enforcement";
 
@@ -42,7 +43,7 @@ export async function createMFANotification(
   metadata: Record<string, any> = {}
 ): Promise<MFANotification | null> {
   try {
-    const user = await db.user.findUnique({
+    const admin = await db.adminAccount.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -56,11 +57,11 @@ export async function createMFANotification(
       },
     });
 
-    if (!user || user.role !== "ADMIN") {
+    if (!admin || (admin.role !== AdminRole.ADMIN && admin.role !== AdminRole.SUPERADMIN)) {
       return null;
     }
 
-    const enforcementStatus = calculateMFAEnforcementStatus(user);
+    const enforcementStatus = calculateMFAEnforcementStatus(admin);
     const notificationData = getNotificationContent(type, enforcementStatus, metadata);
 
     if (!notificationData) {
@@ -107,9 +108,9 @@ export async function createMFANotification(
     // Send email notification if applicable
     if (notificationData.priority === "high" || notificationData.priority === "critical") {
       await sendMFAEmailNotification(
-        { email: user.email || "", name: user.name }, 
-        type, 
-        enforcementStatus, 
+        { email: admin.email, name: admin.name },
+        type,
+        enforcementStatus,
         notificationData
       );
     }
@@ -293,9 +294,8 @@ async function sendMFAEmailNotification(
  */
 export async function scheduleMFAReminders(): Promise<void> {
   try {
-    const adminsNeedingMFA = await db.user.findMany({
+    const adminsNeedingMFA = await db.adminAccount.findMany({
       where: {
-        role: "ADMIN",
         OR: [
           { isTwoFactorEnabled: false },
           { totpEnabled: false },

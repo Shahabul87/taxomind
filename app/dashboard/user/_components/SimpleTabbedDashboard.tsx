@@ -68,7 +68,6 @@ export function SimpleTabbedDashboard({ user }: SimpleTabbedDashboardProps) {
     <div className="relative min-h-screen">
       {/* Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 dark:from-slate-950 dark:via-purple-950/20 dark:to-blue-950/20">
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-center opacity-30 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0.3))]" />
         
         {/* Floating orbs */}
         <motion.div 

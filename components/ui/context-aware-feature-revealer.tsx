@@ -39,15 +39,16 @@ interface FeatureRevealCardProps {
 }
 
 const getFeatureIcon = (featureId: string) => {
+  const iconClass = "w-4 h-4 sm:w-5 sm:h-5";
   switch (featureId) {
-    case 'advanced-charts': return <TrendingUp className="w-5 h-5" />;
-    case 'risk-analysis': return <AlertCircle className="w-5 h-5" />;
-    case 'cognitive-analytics': return <Target className="w-5 h-5" />;
-    case 'ai-bulk-generation': return <Sparkles className="w-5 h-5" />;
-    case 'advanced-ai-settings': return <Crown className="w-5 h-5" />;
-    case 'smart-presets': return <Star className="w-5 h-5" />;
-    case 'intelligent-onboarding': return <BookOpen className="w-5 h-5" />;
-    default: return <Eye className="w-5 h-5" />;
+    case 'advanced-charts': return <TrendingUp className={iconClass} />;
+    case 'risk-analysis': return <AlertCircle className={iconClass} />;
+    case 'cognitive-analytics': return <Target className={iconClass} />;
+    case 'ai-bulk-generation': return <Sparkles className={iconClass} />;
+    case 'advanced-ai-settings': return <Crown className={iconClass} />;
+    case 'smart-presets': return <Star className={iconClass} />;
+    case 'intelligent-onboarding': return <BookOpen className={iconClass} />;
+    default: return <Eye className={iconClass} />;
   }
 };
 
@@ -142,9 +143,9 @@ const FeatureRevealCard = ({ feature, onUnlock, onDismiss, className }: FeatureR
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-current to-transparent opacity-5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
         
         {/* Category badge */}
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
           <Badge className={cn(
-            'text-xs font-medium',
+            'text-[10px] xs:text-xs font-medium',
             colors.button,
             'text-white border-0'
           )}>
@@ -152,36 +153,36 @@ const FeatureRevealCard = ({ feature, onUnlock, onDismiss, className }: FeatureR
           </Badge>
         </div>
 
-        <CardHeader className="pb-3">
-          <div className="flex items-start gap-3">
+        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+          <div className="flex items-start gap-2 sm:gap-3">
             <div className={cn(
-              'p-2 rounded-lg flex-shrink-0',
+              'p-1.5 sm:p-2 rounded-lg flex-shrink-0',
               colors.bg,
               colors.text
             )}>
               {getFeatureIcon(feature.id)}
             </div>
-            <div className="flex-1 min-w-0">
-              <CardTitle className={cn('text-lg mb-1', colors.text)}>
+            <div className="flex-1 min-w-0 pr-6 sm:pr-0">
+              <CardTitle className={cn('text-sm sm:text-base md:text-lg mb-0.5 sm:mb-1 break-words', colors.text)}>
                 {feature.name}
               </CardTitle>
-              <CardDescription className={cn('text-sm', colors.text, 'opacity-80')}>
+              <CardDescription className={cn('text-xs sm:text-sm break-words', colors.text, 'opacity-80')}>
                 {getFeatureDescription(feature.id)}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 p-3 sm:p-6">
           {/* Feature requirements */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className={cn('w-4 h-4', colors.accent)} />
-              <span className={cn('text-sm font-medium', colors.text)}>
+          <div className="mb-3 sm:mb-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+              <CheckCircle className={cn('w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0', colors.accent)} />
+              <span className={cn('text-xs sm:text-sm font-medium', colors.text)}>
                 Requirements Met
               </span>
             </div>
-            <ul className={cn('text-xs space-y-1', colors.text, 'opacity-70')}>
+            <ul className={cn('text-[10px] sm:text-xs space-y-0.5 sm:space-y-1 break-words', colors.text, 'opacity-70')}>
               {feature.dependencies && (
                 <li>✓ Prerequisites: {feature.dependencies.join(', ')}</li>
               )}
@@ -195,12 +196,12 @@ const FeatureRevealCard = ({ feature, onUnlock, onDismiss, className }: FeatureR
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2">
             <Button
               onClick={handleUnlock}
               disabled={isAnimating}
               className={cn(
-                'flex-1 text-white',
+                'flex-1 text-white h-9 sm:h-10 text-xs sm:text-sm',
                 colors.button
               )}
             >
@@ -209,17 +210,18 @@ const FeatureRevealCard = ({ feature, onUnlock, onDismiss, className }: FeatureR
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    className="w-4 h-4 mr-2"
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2"
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </motion.div>
-                  Unlocking...
+                  <span>Unlocking...</span>
                 </>
               ) : (
                 <>
-                  <Eye className="w-4 h-4 mr-2" />
-                  Unlock Feature
-                  <ChevronRight className="w-4 h-4 ml-2" />
+                  <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                  <span className="hidden xs:inline">Unlock Feature</span>
+                  <span className="xs:hidden">Unlock</span>
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 sm:ml-2 hidden xs:inline" />
                 </>
               )}
             </Button>
@@ -227,7 +229,7 @@ const FeatureRevealCard = ({ feature, onUnlock, onDismiss, className }: FeatureR
               variant="ghost"
               size="sm"
               onClick={() => onDismiss(feature.id)}
-              className={cn('px-3', colors.text)}
+              className={cn('px-3 h-9 sm:h-10 text-xs sm:text-sm', colors.text)}
             >
               Later
             </Button>
@@ -312,20 +314,20 @@ export const ContextAwareFeatureRevealer = ({
   }
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('space-y-3 sm:space-y-4', className)}>
       {/* Feature Progress Indicator */}
       {unlockedFeatures.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
+          className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-0"
         >
-          <div className="flex items-center gap-2">
-            <Crown className="w-5 h-5 text-purple-600" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
               Feature Progress
             </span>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-[10px] xs:text-xs">
               {unlockedFeatures.length} unlocked
             </Badge>
           </div>
@@ -333,7 +335,7 @@ export const ContextAwareFeatureRevealer = ({
             variant="ghost"
             size="sm"
             onClick={() => setShowFeatureProgress(!showFeatureProgress)}
-            className="text-xs"
+            className="text-xs h-8 sm:h-9 w-full xs:w-auto"
           >
             {showFeatureProgress ? 'Hide' : 'Show'} Details
           </Button>
@@ -350,21 +352,21 @@ export const ContextAwareFeatureRevealer = ({
             className="overflow-hidden"
           >
             <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20">
-              <CardContent className="p-4">
-                <div className="space-y-3">
+              <CardContent className="p-3 sm:p-4">
+                <div className="space-y-2.5 sm:space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Overall Progress</span>
-                    <span className="text-sm font-bold">{progressScore}%</span>
+                    <span className="text-xs sm:text-sm font-medium">Overall Progress</span>
+                    <span className="text-xs sm:text-sm font-bold">{progressScore}%</span>
                   </div>
-                  <Progress value={progressScore} className="h-2" />
-                  <div className="grid grid-cols-2 gap-4 text-xs">
+                  <Progress value={progressScore} className="h-1.5 sm:h-2" />
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs">
                     <div>
-                      <span className="text-gray-600 dark:text-gray-400">Unlocked Features</span>
-                      <div className="font-medium">{unlockedFeatures.length}</div>
+                      <span className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs">Unlocked Features</span>
+                      <div className="font-medium text-sm sm:text-base">{unlockedFeatures.length}</div>
                     </div>
                     <div>
-                      <span className="text-gray-600 dark:text-gray-400">Session Actions</span>
-                      <div className="font-medium">{userState.actionHistory.length}</div>
+                      <span className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs">Session Actions</span>
+                      <div className="font-medium text-sm sm:text-base">{userState.actionHistory.length}</div>
                     </div>
                   </div>
                 </div>
@@ -391,15 +393,15 @@ export const ContextAwareFeatureRevealer = ({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-8"
+          className="text-center py-4 sm:py-6 md:py-8 px-2"
         >
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="w-5 h-5 text-purple-600" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex flex-col xs:flex-row items-center justify-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
               Welcome to Progressive Feature Discovery
             </span>
           </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400">
+          <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 max-w-md mx-auto break-words">
             As you use the platform, new features will be unlocked automatically based on your usage patterns.
           </p>
         </motion.div>

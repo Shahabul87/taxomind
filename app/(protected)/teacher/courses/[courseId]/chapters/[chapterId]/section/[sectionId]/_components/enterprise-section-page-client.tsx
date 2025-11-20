@@ -175,42 +175,42 @@ export const EnterpriseSectionPageClient = ({
       <div className="min-h-[100dvh] w-full overflow-x-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
         {/* Enterprise Header with Status Bar */}
         <div className="sticky top-0 z-40 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-b border-gray-200/70 dark:border-gray-800/70 shadow-sm">
-          <div className="w-full sm:container sm:mx-auto px-2 sm:px-4 py-2 sm:py-3">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <div className="w-full sm:container sm:mx-auto px-3 sm:px-4 md:px-6 py-2.5 sm:py-3">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
               {/* Breadcrumb Navigation */}
-              <nav className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm overflow-x-auto max-w-full w-full sm:w-auto px-1">
+              <nav className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm overflow-x-auto w-full sm:w-auto scrollbar-hide -mx-3 sm:mx-0 px-3 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 <Link href="/teacher/courses" className="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap flex-shrink-0">
                   Courses
                 </Link>
                 <span className="text-muted-foreground/50 flex-shrink-0">/</span>
-                <Link href={`/teacher/courses/${params.courseId}`} className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[100px] sm:max-w-[150px]">
+                <Link href={`/teacher/courses/${params.courseId}`} className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[120px] xs:max-w-[150px] sm:max-w-[200px] md:max-w-none flex-shrink-0">
                   {chapter.course.title}
                 </Link>
                 <span className="text-muted-foreground/50 flex-shrink-0">/</span>
-                <Link href={`/teacher/courses/${params.courseId}/chapters/${params.chapterId}`} className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[100px] sm:max-w-[150px]">
+                <Link href={`/teacher/courses/${params.courseId}/chapters/${params.chapterId}`} className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[120px] xs:max-w-[150px] sm:max-w-[200px] md:max-w-none flex-shrink-0">
                   {chapter.title}
                 </Link>
                 <span className="text-muted-foreground/50 flex-shrink-0">/</span>
-                <span className="text-foreground font-medium truncate max-w-[120px] sm:max-w-none">{section.title || 'New Section'}</span>
+                <span className="text-foreground font-medium truncate max-w-[120px] xs:max-w-[150px] sm:max-w-[200px] md:max-w-none flex-shrink-0">{section.title || 'New Section'}</span>
               </nav>
 
               {/* Quick Actions */}
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 w-full sm:w-auto justify-between sm:justify-start">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href={`/courses/${params.courseId}/learn/${params.chapterId}/sections/${params.sectionId}`}>
-                      <Button variant="ghost" size="sm" className="gap-1.5 sm:gap-2 h-7 sm:h-8 px-2 sm:px-3">
-                        <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                        <span className="hidden sm:inline text-xs sm:text-sm">Preview</span>
+                    <Link href={`/courses/${params.courseId}/learn/${params.chapterId}/sections/${params.sectionId}`} className="flex-shrink-0">
+                      <Button variant="ghost" size="sm" className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm">
+                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="hidden xs:inline sm:inline">Preview</span>
                       </Button>
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent>Preview as Student (Ctrl+P)</TooltipContent>
                 </Tooltip>
 
-                <Badge variant={section.isPublished ? "default" : "secondary"} className="gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1">
-                  <Shield className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                  {section.isPublished ? 'Published' : 'Draft'}
+                <Badge variant={section.isPublished ? "default" : "secondary"} className="gap-1 text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 sm:py-1.5 flex-shrink-0">
+                  <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <span className="whitespace-nowrap">{section.isPublished ? 'Published' : 'Draft'}</span>
                 </Badge>
               </div>
             </div>
@@ -252,73 +252,75 @@ export const EnterpriseSectionPageClient = ({
             animate={{ opacity: 1, y: 0 }}
             className="mb-4 sm:mb-6 md:mb-8"
           >
-            <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
-              <CardHeader className="p-3 sm:p-4 md:p-6 pb-3 sm:pb-4">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
-                  <div className="space-y-2 sm:space-y-3">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            <Card className="shadow-md rounded-lg sm:rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
+              <CardHeader className="p-4 sm:p-5 md:p-6 pb-4 sm:pb-5">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-5 md:gap-6">
+                  <div className="space-y-3 sm:space-y-3.5 flex-1 min-w-0">
+                    <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2.5 sm:gap-3">
                       <Link
                         href={`/teacher/courses/${params.courseId}/chapters/${params.chapterId}`}
-                        className="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        className="inline-flex items-center px-2.5 sm:px-3 py-1.5 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-muted/50 hover:bg-muted transition-colors flex-shrink-0"
                       >
-                        <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                        <span className="hidden sm:inline">Back to Chapter</span>
-                        <span className="sm:hidden">Back</span>
+                        <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-1.5" />
+                        <span className="hidden xs:inline sm:inline">Back to Chapter</span>
+                        <span className="xs:hidden">Back</span>
                       </Link>
                       {section.isFree && (
-                        <Badge variant="outline" className="gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1">
-                          <Info className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                          Free Preview
+                        <Badge variant="outline" className="gap-1 text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 sm:py-1 flex-shrink-0">
+                          <Info className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          <span className="whitespace-nowrap">Free Preview</span>
                         </Badge>
                       )}
                     </div>
 
-                    <div>
-                      <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 dark:from-indigo-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                    <div className="min-w-0">
+                      <CardTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 dark:from-indigo-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent break-words">
                         Section Configuration
                       </CardTitle>
-                      <CardDescription className="text-xs sm:text-sm md:text-base mt-1 sm:mt-2 hidden sm:block">
+                      <CardDescription className="text-xs sm:text-sm md:text-base mt-1.5 sm:mt-2 hidden sm:block">
                         Build comprehensive learning content with videos, code examples, and interactive materials
                       </CardDescription>
-                      <CardDescription className="text-xs mt-1 sm:hidden">
+                      <CardDescription className="text-xs mt-1.5 sm:hidden">
                         Build learning content
                       </CardDescription>
                     </div>
                   </div>
 
                   {/* Completion Metrics */}
-                  <div className="flex flex-col items-start sm:items-end gap-2 sm:gap-3 md:gap-4">
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 sm:gap-2.5 md:gap-3 lg:gap-4 flex-shrink-0">
                     <div className="text-left sm:text-right">
-                      <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                      <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
                         {contentStats.completionPercentage}%
                       </div>
-                      <div className="text-xs sm:text-sm text-muted-foreground">
+                      <div className="text-[10px] sm:text-xs md:text-sm text-muted-foreground whitespace-nowrap">
                         {contentStats.requiredFieldsCompleted}/{contentStats.totalRequiredFields} Required Fields
                       </div>
                     </div>
 
-                    <SectionActions
-                      disabled={contentStats.completionPercentage < 100}
-                      courseId={params.courseId}
-                      chapterId={params.chapterId}
-                      sectionId={params.sectionId}
-                      isPublished={section.isPublished}
-                    />
+                    <div className="w-full sm:w-auto">
+                      <SectionActions
+                        disabled={contentStats.completionPercentage < 100}
+                        courseId={params.courseId}
+                        chapterId={params.chapterId}
+                        sectionId={params.sectionId}
+                        isPublished={section.isPublished}
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* Content Metrics Dashboard */}
                 <div className="mt-4 sm:mt-5 md:mt-6 pt-4 sm:pt-5 md:pt-6 border-t border-gray-200/70 dark:border-gray-800/70">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
-                    <h4 className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-3 sm:mb-4">
+                    <h4 className="text-[10px] sm:text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                       Content Analytics
                     </h4>
-                    <div className="flex gap-1 w-full sm:w-auto">
+                    <div className="flex gap-1.5 sm:gap-2 w-full sm:w-auto">
                       <Button
                         variant={activeMetricView === 'overview' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setActiveMetricView('overview')}
-                        className="flex-1 sm:flex-none h-7 sm:h-8 text-xs sm:text-sm"
+                        className="flex-1 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4"
                       >
                         Overview
                       </Button>
@@ -326,7 +328,7 @@ export const EnterpriseSectionPageClient = ({
                         variant={activeMetricView === 'detailed' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setActiveMetricView('detailed')}
-                        className="flex-1 sm:flex-none h-7 sm:h-8 text-xs sm:text-sm"
+                        className="flex-1 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4"
                       >
                         Detailed
                       </Button>
@@ -585,18 +587,18 @@ export const EnterpriseSectionPageClient = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <Card className="shadow-md rounded-xl border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
-              <CardHeader className="p-4 sm:p-5 md:p-6">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                      <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            <Card className="shadow-md rounded-lg sm:rounded-xl border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
+              <CardHeader className="p-3 sm:p-4 md:p-5 lg:p-6">
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="flex-shrink-0 w-9 h-9 xs:w-10 xs:h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                      <Brain className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-white" />
                     </div>
-                    <div className="flex-1 min-w-0 pt-1">
-                      <CardTitle className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+                    <div className="flex-1 min-w-0 pt-0.5 sm:pt-1">
+                      <CardTitle className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1 sm:mb-2">
                         Interactive Learning Materials
                       </CardTitle>
-                      <CardDescription className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
+                      <CardDescription className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
                         Enrich your section with supplementary content like videos, blog posts, articles, and code examples.
                         Share the best available resources to help students grasp concepts clearly and thoroughly.
                         Quality materials make complex topics accessible and engaging.
@@ -604,9 +606,9 @@ export const EnterpriseSectionPageClient = ({
                     </div>
                   </div>
                 </div>
-                <div className="mt-5 border-b border-slate-200/50 dark:border-slate-700/50" />
+                <div className="mt-3 sm:mt-4 md:mt-5 border-b border-slate-200/50 dark:border-slate-700/50" />
               </CardHeader>
-              <CardContent className="p-3 sm:p-4 md:p-6">
+              <CardContent className="p-2.5 sm:p-3 md:p-4 lg:p-6">
                 <TabsContainer
                   courseId={params.courseId}
                   chapterId={params.chapterId}
@@ -697,13 +699,14 @@ const MetricCard = ({ icon: Icon, label, value, color }: MetricCardProps) => {
 
   return (
     <div className={cn(
-      "p-2 sm:p-3 rounded-lg backdrop-blur-sm",
+      "p-2.5 sm:p-3 md:p-3.5 rounded-lg backdrop-blur-sm",
       colorClasses[color],
-      "transition-all duration-200 hover:scale-105 hover:shadow-lg"
+      "transition-all duration-200 hover:scale-105 hover:shadow-lg",
+      "min-h-[60px] sm:min-h-[70px] md:min-h-[80px] flex flex-col justify-between"
     )}>
-      <Icon className="h-3 w-3 sm:h-4 sm:w-4 mb-1" />
-      <div className="text-xl sm:text-2xl font-bold">{value}</div>
-      <div className="text-[10px] sm:text-xs opacity-70">{label}</div>
+      <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4.5 md:w-4.5 mb-1 sm:mb-1.5 flex-shrink-0" />
+      <div className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">{value}</div>
+      <div className="text-[10px] sm:text-xs md:text-sm opacity-70 leading-tight line-clamp-2">{label}</div>
     </div>
   );
 };

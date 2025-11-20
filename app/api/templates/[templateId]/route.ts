@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
 import { logger } from '@/lib/logger';
 
 export async function GET(
@@ -34,7 +33,13 @@ export async function GET(
     }
 
     // Check if user can access this template
-    if (!template.isPublic && template.creatorId !== user.id && user.role !== UserRole.ADMIN) {
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: user.id },
+    });
+    const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
+
+    if (!template.isPublic && template.creatorId !== user.id && !isAdmin) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
@@ -69,7 +74,12 @@ export async function PUT(
     }
 
     // Check permissions
-    if (template.creatorId !== user.id && user.role !== UserRole.ADMIN) {
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: user.id },
+    });
+    const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
+
+    if (template.creatorId !== user.id && !isAdmin) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
@@ -92,7 +102,7 @@ export async function PUT(
         ...(templateData && { templateData: JSON.stringify(templateData) }),
         ...(isPublic !== undefined && { isPublic }),
         ...(tags && { tags }),
-        ...(user.role === UserRole.ADMIN && { isOfficial: true })
+        ...(isAdmin && { isOfficial: true })
       },
       include: {
         User: {
@@ -137,7 +147,12 @@ export async function DELETE(
     }
 
     // Check permissions
-    if (template.creatorId !== user.id && user.role !== UserRole.ADMIN) {
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: user.id },
+    });
+    const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
+
+    if (template.creatorId !== user.id && !isAdmin) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 

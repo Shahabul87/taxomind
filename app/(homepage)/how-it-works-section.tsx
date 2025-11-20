@@ -125,7 +125,6 @@ export default function HowItWorksSection() {
   return (
     <div className="relative py-24 overflow-hidden bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-800">
       {/* Background elements */}
-      <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-center opacity-5"></div>
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 rounded-full blur-3xl"></div>
 

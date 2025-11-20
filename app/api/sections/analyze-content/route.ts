@@ -29,23 +29,12 @@ interface AIContentSuggestion {
 }
 
 export const POST = withAdminAuth(async (
-  request: NextRequest, 
+  request: NextRequest,
   context: APIAuthContext,
   props?: any
 ) => {
   try {
-    // Check user role
-    const dbUser = await db.user.findUnique({
-      where: { id: context.user.id },
-      select: { id: true, email: true, role: true }
-    });
-    
-    const userRole = dbUser?.role;
-    
-    if (userRole !== 'ADMIN') {
-      return new NextResponse(`Forbidden - Admin access required. Your role: ${userRole}`, { status: 403 });
-    }
-    
+    // Admin access already verified by withAdminAuth wrapper
     const body = await request.json();
     const { sectionId, chapterId, courseId, sectionData, context: requestContext } = body;
 

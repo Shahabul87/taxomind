@@ -7,10 +7,22 @@ import { Metadata } from "next";
 import EnterprisePostHeader from "./_components/enterprise-post-header";
 import { getPostData } from "@/app/actions/get-post-data";
 import YouMayLikeSection from "./_components/you-may-like-section";
-import FacebookCommentSection from "./_components/facebook-comment-section";
+import CommentSection from "./_components/facebook-comment-section";
 
 // Is the app running in development mode?
 const isDev = process.env.NODE_ENV === 'development';
+
+// Transform database replies to match Comment interface
+const transformReplies = (replies: any[]): any[] => {
+  if (!replies || !Array.isArray(replies)) return [];
+
+  return replies.map(reply => ({
+    ...reply,
+    parentId: reply.parentReplyId || null,
+    depth: reply.depth || 1,
+    replies: reply.other_Reply ? transformReplies(reply.other_Reply) : []
+  }));
+};
 
 const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
   const params = await props.params;
@@ -22,7 +34,11 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
   }
 
   // Calculate reading time based on post chapters
-  const calculateReadingTime = (postchapters: any[]) => {
+  interface PostChapter {
+    description?: string | null;
+  }
+
+  const calculateReadingTime = (postchapters: PostChapter[]) => {
     if (!postchapters || postchapters.length === 0) return 5;
     const wordsPerMinute = 200;
     const totalWords = postchapters.reduce((acc, chapter) => {
@@ -110,10 +126,15 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
               />
 
               {/* Comments Section */}
-              <div className="mt-6 sm:mt-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
-                <FacebookCommentSection
+              <div className="mt-4 sm:mt-6 md:mt-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
+                <CommentSection
                   postId={params.postId}
-                  initialComments={post.comments as unknown as any[]}
+                  initialComments={(post.comments || []).map(comment => ({
+                    ...comment,
+                    parentId: null,
+                    depth: 0,
+                    replies: transformReplies(comment.replies || [])
+                  }))}
                 />
               </div>
             </div>
@@ -132,23 +153,56 @@ export async function generateMetadata(props: { params: Promise<{ postId: string
   const params = await props.params;
   const post = await getPostData(params.postId);
 
-  const title = post?.title || 'Blog Post';
-  const description = post?.description || 'Article';
-  const images = post?.imageUrl ? [{ url: post.imageUrl, alt: post.title }] : [];
+  if (!post) {
+    return {
+      title: 'Blog Post Not Found',
+      description: 'The requested blog post could not be found.',
+    };
+  }
+
+  const title = `${post.title} | Taxomind Blog`;
+  const description = post.description || `Read ${post.title} on Taxomind - Your source for insightful articles and tutorials.`;
+  const images = post.imageUrl ? [{ url: post.imageUrl, alt: post.title, width: 1200, height: 630 }] : [];
+  const url = `${process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com'}/blog/${params.postId}`;
+  const publishedTime = post.createdAt?.toISOString?.() || new Date(post.createdAt).toISOString();
+  const modifiedTime = post.updatedAt?.toISOString?.() || new Date(post.updatedAt).toISOString();
+
   return {
     title,
     description,
+    keywords: post.category ? [post.category, 'blog', 'article', 'tutorial'] : ['blog', 'article'],
+    authors: post.User?.name ? [{ name: post.User.name }] : undefined,
+    creator: post.User?.name || 'Taxomind',
+    publisher: 'Taxomind',
+    alternates: {
+      canonical: url,
+    },
     openGraph: {
-      title,
+      title: post.title,
       description,
       type: 'article',
+      url,
       images,
+      siteName: 'Taxomind',
+      publishedTime,
+      modifiedTime,
+      authors: post.User?.name ? [post.User.name] : undefined,
+      tags: post.category ? [post.category] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title,
+      title: post.title,
       description,
-      images: images as any,
+      images: images.map(img => img.url),
+      creator: '@taxomind',
+    },
+    robots: {
+      index: post.published !== false,
+      follow: true,
+      googleBot: {
+        index: post.published !== false,
+        follow: true,
+      },
     },
   };
 }

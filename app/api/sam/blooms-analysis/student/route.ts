@@ -18,45 +18,89 @@ export async function GET(request: NextRequest) {
 
     // Check if requesting user has permission to view student data
     if (studentId !== user.id && user.role !== 'ADMIN') {
+      if (!courseId) {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      }
+
       // Check if user is the teacher of the course
-      if (courseId) {
-        const course = await db.course.findUnique({
-          where: { id: courseId },
-          select: { userId: true },
-        });
-        
-        if (course?.userId !== user.id) {
-          return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-        }
-      } else {
+      const course = await db.course.findUnique({
+        where: { id: courseId },
+        select: { userId: true },
+      });
+
+      if (course?.userId !== user.id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
     }
 
-    // Get student's Bloom's progress
-    const progressQuery = courseId 
-      ? { userId: studentId, courseId }
-      : { userId: studentId, courseId: null };
+    let studentProgress = null;
+    let performanceMetrics = [];
 
-    const studentProgress = await db.studentBloomsProgress.findUnique({
-      where: {
-        userId_courseId: progressQuery as any,
-      },
-    });
+    if (courseId) {
+      // Get course-specific data
+      studentProgress = await db.studentBloomsProgress.findUnique({
+        where: {
+          userId_courseId: {
+            userId: studentId,
+            courseId: courseId,
+          },
+        },
+      });
+
+      performanceMetrics = await db.bloomsPerformanceMetric.findMany({
+        where: {
+          userId: studentId,
+          courseId: courseId,
+        },
+        orderBy: { recordedAt: 'desc' },
+        take: 50,
+      });
+    } else {
+      // Get data across all courses for the user
+      const allProgress = await db.studentBloomsProgress.findMany({
+        where: { userId: studentId },
+      });
+
+      // Aggregate progress across all courses
+      if (allProgress.length > 0) {
+        const aggregatedScores = allProgress.reduce((acc, progress) => {
+          const scores = progress.bloomsScores as Record<string, number>;
+          Object.keys(scores).forEach(key => {
+            acc[key] = (acc[key] || 0) + scores[key];
+          });
+          return acc;
+        }, {} as Record<string, number>);
+
+        // Average the scores
+        Object.keys(aggregatedScores).forEach(key => {
+          aggregatedScores[key] = aggregatedScores[key] / allProgress.length;
+        });
+
+        // Aggregate strengths and weaknesses
+        const allStrengths = allProgress.flatMap(p => p.strengthAreas as string[]);
+        const allWeaknesses = allProgress.flatMap(p => p.weaknessAreas as string[]);
+
+        studentProgress = {
+          bloomsScores: aggregatedScores,
+          strengthAreas: [...new Set(allStrengths)],
+          weaknessAreas: [...new Set(allWeaknesses)],
+          progressHistory: [],
+          lastAssessedAt: allProgress.reduce((latest, p) =>
+            p.lastAssessedAt > latest ? p.lastAssessedAt : latest
+          , allProgress[0].lastAssessedAt),
+        };
+      }
+
+      performanceMetrics = await db.bloomsPerformanceMetric.findMany({
+        where: { userId: studentId },
+        orderBy: { recordedAt: 'desc' },
+        take: 50,
+      });
+    }
 
     // Get cognitive profile
     const cognitiveProfile = await db.studentCognitiveProfile.findUnique({
       where: { userId: studentId },
-    });
-
-    // Get performance metrics
-    const performanceMetrics = await db.bloomsPerformanceMetric.findMany({
-      where: {
-        userId: studentId,
-        ...(courseId && { courseId }),
-      },
-      orderBy: { recordedAt: 'desc' },
-      take: 50,
     });
 
     // Calculate aggregated metrics
@@ -114,7 +158,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
+    const {
       courseId,
       bloomsLevel,
       accuracy,
@@ -123,15 +167,19 @@ export async function POST(request: NextRequest) {
       isCorrect,
     } = await request.json();
 
-    // Update or create student progress
-    const progressData = {
-      userId: user.id,
-      courseId,
-    };
+    if (!courseId) {
+      return NextResponse.json(
+        { error: 'courseId is required' },
+        { status: 400 }
+      );
+    }
 
     const existingProgress = await db.studentBloomsProgress.findUnique({
       where: {
-        userId_courseId: progressData as any,
+        userId_courseId: {
+          userId: user.id,
+          courseId: courseId,
+        },
       },
     });
 
@@ -165,7 +213,10 @@ export async function POST(request: NextRequest) {
     // Update or create progress record
     await db.studentBloomsProgress.upsert({
       where: {
-        userId_courseId: progressData as any,
+        userId_courseId: {
+          userId: user.id,
+          courseId: courseId,
+        },
       },
       update: {
         bloomsScores,
@@ -175,7 +226,8 @@ export async function POST(request: NextRequest) {
         lastAssessedAt: new Date(),
       },
       create: {
-        ...progressData,
+        userId: user.id,
+        courseId: courseId,
         bloomsScores,
         strengthAreas,
         weaknessAreas,
@@ -285,7 +337,7 @@ function identifyStrengthsAndWeaknesses(bloomsScores: any): {
 
 async function recordPerformanceMetric(
   userId: string,
-  courseId: string | null,
+  courseId: string,
   bloomsLevel: BloomsLevel,
   accuracy: number,
   responseTime: number,

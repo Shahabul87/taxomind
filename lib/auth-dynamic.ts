@@ -9,7 +9,6 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   name?: string;
-  role: string;
 }
 
 /**
@@ -75,7 +74,6 @@ export async function authenticateApiRoute(request?: NextRequest): Promise<Authe
         id: true,
         email: true,
         name: true,
-        role: true,
         emailVerified: true,
       }
     });
@@ -94,7 +92,6 @@ export async function authenticateApiRoute(request?: NextRequest): Promise<Authe
       id: user.id,
       email: user.email ?? '',
       name: user.name || undefined,
-      role: user.role,
     };
     
   } catch (error: any) {
@@ -153,7 +150,6 @@ export async function authenticateBySession(): Promise<AuthenticatedUser | null>
         id: true,
         email: true,
         name: true,
-        role: true,
         emailVerified: true,
       }
     });
@@ -167,7 +163,6 @@ export async function authenticateBySession(): Promise<AuthenticatedUser | null>
       id: user.id,
       email: user.email ?? '',
       name: user.name || undefined,
-      role: user.role,
     };
     
   } catch (error: any) {
@@ -195,7 +190,6 @@ export async function authenticateWithOriginalAuth(): Promise<AuthenticatedUser 
       id: session.user.id,
       email: session.user.email || "",
       name: session.user.name || undefined,
-      role: (session.user as any).role || "USER",
     };
     
   } catch (error: any) {

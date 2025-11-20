@@ -22,82 +22,82 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
   return (
     <div className="w-full">
       {/* Hero Section with Course Preview */}
-      <Card className="p-6 md:p-8 backdrop-blur-md bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-cyan-500/10 border border-white/20 shadow-xl relative overflow-hidden mb-6">
+      <Card className="p-4 sm:p-5 md:p-6 lg:p-8 backdrop-blur-md bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-cyan-500/10 border-2 border-white/20 shadow-xl relative overflow-hidden mb-4 sm:mb-5 md:mb-6 rounded-xl sm:rounded-2xl">
         {/* Background Orbs */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-xl transform translate-x-16 -translate-y-16"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-xl transform -translate-x-12 translate-y-12"></div>
+        <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-xl transform translate-x-12 sm:translate-x-16 -translate-y-12 sm:-translate-y-16"></div>
+        <div className="absolute bottom-0 left-0 w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-xl transform -translate-x-10 sm:-translate-x-12 translate-y-10 sm:translate-y-12"></div>
         
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500">
-              <Eye className="h-6 w-6 text-white" />
+          <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
+            <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 shadow-lg">
+              <Eye className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 Course Preview
               </h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                 Review your course details before generation
               </p>
             </div>
           </div>
 
           {/* Course Title & Overview */}
-          <div className="mb-6 p-4 rounded-xl bg-white/30 dark:bg-slate-800/30 border border-white/20 backdrop-blur-sm">
-            <h4 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+          <div className="mb-4 sm:mb-5 md:mb-6 p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-800/60 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm shadow-sm">
+            <h4 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 mb-2 break-words">
               {formData.courseTitle || 'Untitled Course'}
             </h4>
-            <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed break-words">
               {formData.courseShortOverview || 'No description provided'}
             </p>
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-white/20 backdrop-blur-sm text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-3 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm text-center shadow-sm">
               <div className="flex items-center justify-center mb-2">
-                <BookOpen className="h-5 w-5 text-indigo-600" />
+                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              <div className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">
                 {formData.chapterCount}
               </div>
-              <div className="text-xs text-slate-600 dark:text-slate-400">
+              <div className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400">
                 Chapters
               </div>
             </div>
             
-            <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-white/20 backdrop-blur-sm text-center">
+            <div className="p-3 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm text-center shadow-sm">
               <div className="flex items-center justify-center mb-2">
-                <Target className="h-5 w-5 text-emerald-600" />
+                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              <div className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">
                 {formData.chapterCount * formData.sectionsPerChapter}
               </div>
-              <div className="text-xs text-slate-600 dark:text-slate-400">
+              <div className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400">
                 Sections
               </div>
             </div>
             
-            <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-white/20 backdrop-blur-sm text-center">
+            <div className="p-3 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm text-center shadow-sm">
               <div className="flex items-center justify-center mb-2">
-                <Brain className="h-5 w-5 text-purple-600" />
+                <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              <div className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">
                 {formData.courseGoals.length}
               </div>
-              <div className="text-xs text-slate-600 dark:text-slate-400">
+              <div className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400">
                 Objectives
               </div>
             </div>
             
-            <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-white/20 backdrop-blur-sm text-center">
+            <div className="p-3 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm text-center shadow-sm">
               <div className="flex items-center justify-center mb-2">
-                <Users className="h-5 w-5 text-blue-600" />
+                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              <div className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">
                 {formData.difficulty}
               </div>
-              <div className="text-xs text-slate-600 dark:text-slate-400">
+              <div className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400">
                 Level
               </div>
             </div>
@@ -106,60 +106,60 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
       </Card>
 
       {/* Main Content - Course Details */}
-      <div className="space-y-6 mb-6">
+      <div className="space-y-4 sm:space-y-5 md:space-y-6 mb-4 sm:mb-5 md:mb-6">
         {/* Course Information */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-5 md:space-y-6">
           {/* Basic Course Information */}
-          <Card className="p-6 backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl">
-            <div className="flex items-center gap-2 mb-6">
+          <Card className="p-4 sm:p-5 md:p-6 backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border-2 border-white/20 shadow-xl rounded-xl sm:rounded-2xl">
+            <div className="flex items-center gap-2.5 mb-4 sm:mb-5 md:mb-6">
               <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20">
-                <Star className="h-5 w-5 text-blue-600" />
+                <Star className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Course Information</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Course Information</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-white/50 dark:bg-slate-900/50 border border-white/20">
-                  <Label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">Category</Label>
-                  <div className="flex gap-2 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+                  <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Category</Label>
+                  <div className="flex flex-wrap gap-2 mt-2.5">
                     {formData.courseCategory && (
-                      <Badge className="backdrop-blur-sm bg-blue-600 border border-blue-700 text-white font-semibold shadow-lg">
+                      <Badge className="backdrop-blur-sm bg-blue-600 border-2 border-blue-700 text-white font-semibold shadow-md text-xs sm:text-sm px-2.5 py-1">
                         {formData.courseCategory}
                       </Badge>
                     )}
                     {formData.courseSubcategory && (
-                      <Badge variant="outline" className="backdrop-blur-sm bg-slate-100 dark:bg-slate-700 border-slate-400 dark:border-slate-500 text-slate-800 dark:text-slate-100 font-medium">
+                      <Badge variant="outline" className="backdrop-blur-sm bg-slate-100 dark:bg-slate-700 border-2 border-slate-400 dark:border-slate-500 text-slate-800 dark:text-slate-100 font-medium text-xs sm:text-sm px-2.5 py-1">
                         {formData.courseSubcategory}
                       </Badge>
                     )}
                   </div>
                 </div>
                 
-                <div className="p-4 rounded-lg bg-white/50 dark:bg-slate-900/50 border border-white/20">
-                  <Label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">Target Audience</Label>
-                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100 mt-2">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+                  <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Target Audience</Label>
+                  <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 mt-2.5 break-words">
                     {formData.targetAudience || 'Not specified'}
                   </p>
                 </div>
               </div>
               
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-white/50 dark:bg-slate-900/50 border border-white/20">
-                  <Label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">Learning Intent</Label>
-                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100 mt-2">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+                  <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Learning Intent</Label>
+                  <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 mt-2.5 break-words">
                     {formData.courseIntent || 'Not specified'}
                   </p>
                 </div>
                 
-                <div className="p-4 rounded-lg bg-white/50 dark:bg-slate-900/50 border border-white/20">
-                  <Label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">Difficulty Level</Label>
-                  <div className="flex items-center gap-2 mt-2">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+                  <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Difficulty Level</Label>
+                  <div className="flex items-center gap-2 mt-2.5">
                     <Badge className={cn(
-                      "text-xs",
-                      formData.difficulty === 'BEGINNER' && "bg-green-500/20 text-green-700 dark:text-green-300 border-green-300",
-                      formData.difficulty === 'INTERMEDIATE' && "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-300",
-                      formData.difficulty === 'ADVANCED' && "bg-red-500/20 text-red-700 dark:text-red-300 border-red-300"
+                      "text-xs sm:text-sm px-2.5 py-1 border-2",
+                      formData.difficulty === 'BEGINNER' && "bg-green-500/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-600",
+                      formData.difficulty === 'INTERMEDIATE' && "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-600",
+                      formData.difficulty === 'ADVANCED' && "bg-red-500/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-600"
                     )}>
                       {formData.difficulty}
                     </Badge>
@@ -170,24 +170,24 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
           </Card>
 
           {/* Learning Objectives */}
-          <Card className="p-6 backdrop-blur-md bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 border border-white/20 shadow-xl">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500">
-                <Target className="h-5 w-5 text-white" />
+          <Card className="p-4 sm:p-5 md:p-6 backdrop-blur-md bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 border-2 border-white/20 shadow-xl rounded-xl sm:rounded-2xl">
+            <div className="flex items-center gap-2.5 mb-3 sm:mb-4">
+              <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md">
+                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">
                 Learning Objectives ({formData.courseGoals.length})
               </h3>
             </div>
             
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
               {formData.courseGoals.map((goal, index) => (
-                <div key={index} className="p-4 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-white/20 backdrop-blur-sm">
+                <div key={index} className="p-3.5 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm shadow-sm">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center text-white text-xs font-bold">
+                    <div className="flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center text-white text-[10px] xs:text-xs font-bold shadow-sm">
                       {index + 1}
                     </div>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed break-words flex-1">
                       {goal}
                     </p>
                   </div>
@@ -196,22 +196,22 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
             </div>
           </Card>
           {/* Learning Framework */}
-          <Card className="p-6 backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border border-white/20 shadow-xl">
-          <div className="flex items-center gap-2 mb-6">
+          <Card className="p-4 sm:p-5 md:p-6 backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border-2 border-white/20 shadow-xl rounded-xl sm:rounded-2xl">
+          <div className="flex items-center gap-2.5 mb-4 sm:mb-5 md:mb-6">
             <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500/20 to-teal-500/20">
-              <Brain className="h-5 w-5 text-emerald-600" />
+              <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Learning Framework</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Learning Framework</h3>
           </div>
           
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-white/50 dark:bg-slate-900/50 border border-white/20">
-              <Label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3 block">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+              <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3 block">
                 Bloom&apos;s Taxonomy Focus ({formData.bloomsFocus.length})
               </Label>
               <div className="flex flex-wrap gap-2">
                 {formData.bloomsFocus.map((level) => (
-                  <Badge key={level} className="bg-emerald-600 border border-emerald-700 text-white font-semibold text-xs shadow-lg">
+                  <Badge key={level} className="bg-emerald-600 border-2 border-emerald-700 text-white font-semibold text-xs sm:text-sm shadow-md px-2.5 py-1">
                     {level}
                   </Badge>
                 ))}
@@ -221,13 +221,13 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
               </div>
             </div>
             
-            <div className="p-4 rounded-lg bg-white/50 dark:bg-slate-900/50 border border-white/20">
-              <Label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3 block">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+              <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3 block">
                 Content Types ({formData.preferredContentTypes.length})
               </Label>
               <div className="flex flex-wrap gap-2">
                 {formData.preferredContentTypes.map((type) => (
-                  <Badge key={type} variant="outline" className="bg-slate-200 dark:bg-slate-600 border-slate-400 dark:border-slate-500 text-slate-800 dark:text-slate-100 font-medium text-xs">
+                  <Badge key={type} variant="outline" className="bg-slate-200 dark:bg-slate-600 border-2 border-slate-400 dark:border-slate-500 text-slate-800 dark:text-slate-100 font-medium text-xs sm:text-sm px-2.5 py-1">
                     {type}
                   </Badge>
                 ))}
@@ -237,39 +237,39 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
               </div>
             </div>
             
-            <div className="p-4 rounded-lg bg-white/50 dark:bg-slate-900/50 border border-white/20">
-              <div className="flex items-start justify-between">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex-1">
-                  <Label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">Include Assessments</Label>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Include Assessments</Label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                     Quizzes, assignments, and progress tracking
                   </p>
                 </div>
                 <Switch
                   checked={formData.includeAssessments}
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includeAssessments: checked }))}
-                  className="ml-3"
+                  className="flex-shrink-0 sm:ml-3"
                 />
               </div>
             </div>
 
             {/* Course Structure Summary */}
-            <div className="p-4 rounded-lg bg-white/50 dark:bg-slate-900/50 border border-white/20">
-              <Label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3 block">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+              <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3 block">
                 Course Structure
               </Label>
-              <div className="space-y-2 text-xs">
+              <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600 dark:text-slate-400">Chapters:</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-100">{formData.chapterCount}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">{formData.chapterCount}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600 dark:text-slate-400">Sections per Chapter:</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-100">{formData.sectionsPerChapter}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">{formData.sectionsPerChapter}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600 dark:text-slate-400">Total Sections:</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-100">{formData.chapterCount * formData.sectionsPerChapter}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">{formData.chapterCount * formData.sectionsPerChapter}</span>
                 </div>
               </div>
             </div>
@@ -280,38 +280,38 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
 
       {/* Generation Status */}
       <Card className={cn(
-        "p-6 backdrop-blur-md border border-white/20 shadow-xl relative overflow-hidden",
+        "p-4 sm:p-5 md:p-6 backdrop-blur-md border-2 border-white/20 shadow-xl relative overflow-hidden rounded-xl sm:rounded-2xl",
         isFormComplete 
           ? "bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10"
           : "bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10"
       )}>
         {/* Background Orb */}
         <div className={cn(
-          "absolute top-0 right-0 w-32 h-32 rounded-full blur-xl transform translate-x-16 -translate-y-16",
+          "absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 rounded-full blur-xl transform translate-x-12 sm:translate-x-16 -translate-y-12 sm:-translate-y-16",
           isFormComplete 
             ? "bg-gradient-to-br from-green-400/20 to-emerald-400/20"
             : "bg-gradient-to-br from-amber-400/20 to-orange-400/20"
         )}></div>
         
         <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
             <div className={cn(
-              "p-3 rounded-xl",
+              "p-2 sm:p-2.5 md:p-3 rounded-xl shadow-lg",
               isFormComplete 
                 ? "bg-gradient-to-r from-green-500 to-emerald-500"
                 : "bg-gradient-to-r from-amber-500 to-orange-500"
             )}>
               {isFormComplete ? (
-                <Trophy className="h-6 w-6 text-white" />
+                <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               ) : (
-                <Sparkles className="h-6 w-6 text-white" />
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               )}
             </div>
-            <div>
-              <h4 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            <div className="flex-1 min-w-0">
+              <h4 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 break-words">
                 {isFormComplete ? 'Ready to Generate!' : 'Almost Ready...'}
               </h4>
-              <p className="text-slate-600 dark:text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words mt-1">
                 {isFormComplete 
                   ? 'Your course information is complete and ready for AI generation.'
                   : 'Complete a few more fields to enable course generation.'}
@@ -320,46 +320,46 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
           </div>
           
           {!isFormComplete && (
-            <div className="p-4 rounded-xl bg-white/40 dark:bg-slate-800/40 border border-white/20 backdrop-blur-sm">
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-3 flex items-center gap-2">
-                <ArrowRight className="h-4 w-4" />
-                Complete these requirements:
+            <div className="p-3 sm:p-4 rounded-xl bg-white/40 dark:bg-slate-800/40 border border-white/20 backdrop-blur-sm">
+              <p className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-300 mb-2.5 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
+                <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span>Complete these requirements:</span>
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {formData.courseTitle.length < 10 && (
-                  <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                    Course title (at least 10 characters)
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+                    <span className="break-words">Course title (at least 10 characters)</span>
                   </div>
                 )}
                 {formData.courseShortOverview.length < 50 && (
-                  <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                    Course overview (at least 50 characters)
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+                    <span className="break-words">Course overview (at least 50 characters)</span>
                   </div>
                 )}
                 {!formData.courseCategory && (
-                  <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                    Course category
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+                    <span className="break-words">Course category</span>
                   </div>
                 )}
                 {!formData.targetAudience && (
-                  <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                    Target audience
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+                    <span className="break-words">Target audience</span>
                   </div>
                 )}
                 {formData.courseGoals.length < 2 && (
-                  <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                    At least 2 learning objectives
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+                    <span className="break-words">At least 2 learning objectives</span>
                   </div>
                 )}
                 {formData.bloomsFocus.length < 2 && (
-                  <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                    At least 2 cognitive levels
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+                    <span className="break-words">At least 2 cognitive levels</span>
                   </div>
                 )}
               </div>

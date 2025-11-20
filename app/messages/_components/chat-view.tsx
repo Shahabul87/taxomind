@@ -13,7 +13,8 @@ import {
   File,
   X,
   Check,
-  CheckCheck
+  CheckCheck,
+  ArrowLeft
 } from "lucide-react";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -65,9 +66,10 @@ interface Message {
 interface ChatViewProps {
   chatId: string;
   userId: string;
+  onBack?: () => void;
 }
 
-export const ChatView = ({ chatId, userId }: ChatViewProps) => {
+export const ChatView = ({ chatId, userId, onBack }: ChatViewProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [category, setCategory] = useState("GENERAL");
@@ -284,26 +286,37 @@ export const ChatView = ({ chatId, userId }: ChatViewProps) => {
   return (
     <div className="h-full flex flex-col">
       {/* Chat Header */}
-      <div className="p-4 border-b border-slate-200/50 dark:border-slate-700/50
+      <div className="p-3 sm:p-4 border-b border-slate-200/50 dark:border-slate-700/50
                     bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-12 h-12 border-2 border-gradient-to-r from-blue-500 to-indigo-500">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            {/* Back button for mobile */}
+            {onBack && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onBack}
+                className="lg:hidden h-8 w-8 sm:h-9 sm:w-9 mr-1"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              </Button>
+            )}
+            <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-gradient-to-r from-blue-500 to-indigo-500 flex-shrink-0">
               <AvatarImage src={otherUser?.image || undefined} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white text-sm sm:text-base">
                 {otherUser?.name?.charAt(0) || "?"}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-slate-900 dark:text-white">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base truncate">
                   {otherUser?.name || "Unknown"}
                 </h3>
-                <Badge className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white text-xs">
+                <Badge className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white text-[10px] sm:text-xs flex-shrink-0">
                   Instructor
                 </Badge>
               </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 truncate">
                 Online • Avg response: 2-3 hours
               </p>
             </div>
@@ -311,8 +324,8 @@ export const ChatView = ({ chatId, userId }: ChatViewProps) => {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="w-5 h-5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
+                <MoreVertical className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -325,7 +338,7 @@ export const ChatView = ({ chatId, userId }: ChatViewProps) => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
         {messages.map((message) => {
           const isOwn = message.senderId === userId;
 
@@ -345,7 +358,7 @@ export const ChatView = ({ chatId, userId }: ChatViewProps) => {
                 </Avatar>
               )}
 
-              <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} max-w-[70%]`}>
+              <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} max-w-[85%] sm:max-w-[70%]`}>
                 {/* Message Header */}
                 <div className="flex items-center gap-2 mb-1">
                   {!isOwn && (
@@ -370,14 +383,14 @@ export const ChatView = ({ chatId, userId }: ChatViewProps) => {
                 {/* Message Bubble */}
                 <div
                   className={`
-                    relative p-3 rounded-2xl shadow-sm
+                    relative p-2.5 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm
                     ${isOwn
                       ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white"
                       : "bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700"
                     }
                   `}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
                     {message.content}
                   </p>
 
@@ -450,12 +463,12 @@ export const ChatView = ({ chatId, userId }: ChatViewProps) => {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 mb-[35px] border-t border-slate-200/50 dark:border-slate-700/50
+      <div className="p-3 sm:p-4 mb-[35px] sm:mb-0 border-t border-slate-200/50 dark:border-slate-700/50
                     bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         {/* Message Category Selector */}
-        <div className="mb-3 flex gap-2">
+        <div className="mb-2 sm:mb-3 flex flex-wrap gap-2">
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-[180px] bg-white dark:bg-slate-900">
+            <SelectTrigger className="w-full xs:w-[140px] sm:w-[180px] bg-white dark:bg-slate-900 h-9 sm:h-10 text-xs sm:text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -471,16 +484,18 @@ export const ChatView = ({ chatId, userId }: ChatViewProps) => {
             variant={priority === "URGENT" ? "default" : "outline"}
             size="sm"
             onClick={() => setPriority(priority === "URGENT" ? "NORMAL" : "URGENT")}
-            className={priority === "URGENT" ? "bg-gradient-to-r from-orange-500 to-red-500" : ""}
+            className={`h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4 ${
+              priority === "URGENT" ? "bg-gradient-to-r from-orange-500 to-red-500" : ""
+            }`}
           >
             {priority === "URGENT" ? "Urgent" : "Mark Urgent"}
           </Button>
         </div>
 
         {/* Input Area */}
-        <div className="flex gap-2">
-          <Button variant="ghost" size="icon">
-            <Paperclip className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+        <div className="flex gap-1.5 sm:gap-2">
+          <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0">
+            <Paperclip className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
           </Button>
 
           <Textarea
@@ -496,9 +511,9 @@ export const ChatView = ({ chatId, userId }: ChatViewProps) => {
                 handleSend();
               }
             }}
-            placeholder="Type your message... (Shift+Enter for new line)"
-            className="min-h-[44px] max-h-[120px] resize-none bg-white dark:bg-slate-900
-                     border-slate-200 dark:border-slate-700"
+            placeholder="Type your message..."
+            className="min-h-[36px] sm:min-h-[44px] max-h-[100px] sm:max-h-[120px] resize-none bg-white dark:bg-slate-900
+                     border-slate-200 dark:border-slate-700 text-sm sm:text-base flex-1"
             rows={1}
           />
 
@@ -507,25 +522,26 @@ export const ChatView = ({ chatId, userId }: ChatViewProps) => {
             currentCategory={category}
           />
 
-          <Button variant="ghost" size="icon">
-            <Smile className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 hidden sm:flex">
+            <Smile className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
           </Button>
 
           <Button
             onClick={handleSend}
             disabled={!newMessage.trim()}
             className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600
-                     text-white shadow-md hover:shadow-lg transition-all duration-300"
+                     text-white shadow-md hover:shadow-lg transition-all duration-300 h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0"
+            size="icon"
           >
-            <Send className="w-5 h-5" />
+            <Send className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </div>
 
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-xs text-slate-400">
+        <div className="mt-2 flex flex-col xs:flex-row items-start xs:items-center justify-between gap-1">
+          <span className="text-[10px] sm:text-xs text-slate-400">
             {newMessage.length}/2000
           </span>
-          <span className="text-xs text-slate-400">
+          <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">
             Press Enter to send • Shift+Enter for new line
           </span>
         </div>

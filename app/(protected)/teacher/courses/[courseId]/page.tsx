@@ -21,6 +21,7 @@ import { BlueprintIntegration } from "./_components/blueprint-integration";
 import { CourseDepthAnalyzer } from "./_components/course-depth-analyzer";
 // SAM Integration removed - using global SAM assistant instead
 import { SimpleCourseContext } from "@/app/(protected)/teacher/_components/simple-course-context";
+import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
 // import { TestComponent } from "@/app/(protected)/teacher/_components/test-component";
 
 interface CourseIdPageProps {
@@ -104,14 +105,13 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
   const completionPercentage = Math.round((completedSections / totalSections) * 100);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-300/20 dark:bg-purple-500/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 animate-blob"></div>
-        <div className="absolute top-0 -right-4 w-72 h-72 bg-indigo-300/20 dark:bg-indigo-500/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-300/20 dark:bg-blue-500/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
-      </div>
-
+    <PageWithMobileLayout
+      showHeader={false}
+      showSidebar={true}
+      showBottomBar={true}
+      enableGestures={true}
+      contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800"
+    >
       {/* Enhanced SAM Context Injection */}
       <SimpleCourseContext
         course={{
@@ -140,23 +140,22 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
         completionStatus={completionStatus}
       />
 
-
-      <div className="pt-3 sm:pt-4 md:pt-6 pb-8 sm:pb-12 md:pb-16 relative z-10">
+      <div className="min-h-screen w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-0 sm:pt-2 md:pt-4 lg:pt-6 pb-4 sm:pb-6 md:pb-8 lg:pb-12 max-w-7xl mx-auto">
         {/* Full-Width Course Setup Header with Glass Effects */}
         <div className="w-full mb-4 sm:mb-6 md:mb-8">
           {/* Banner for unpublished status */}
           {!course.isPublished && (
-            <div className="w-full mb-4 sm:mb-6 animate-in fade-in slide-in-from-top-4 duration-700 px-2 sm:px-4 md:px-6">
-              <div className="w-full bg-gradient-to-r from-amber-50/90 to-orange-50/90 dark:from-amber-950/50 dark:to-orange-950/50 backdrop-blur-md rounded-2xl border-2 border-amber-200/60 dark:border-amber-700/40 shadow-xl shadow-amber-500/10 dark:shadow-amber-900/20 p-3 sm:p-4 md:p-6 hover:shadow-2xl hover:shadow-amber-500/20 dark:hover:shadow-amber-900/30 transition-all duration-500 group">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="p-2.5 sm:p-3 md:p-3.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+            <div className="w-full mb-3 sm:mb-4 md:mb-6 animate-in fade-in slide-in-from-top-4 duration-700 px-2 sm:px-4 md:px-6">
+              <div className="w-full bg-gradient-to-r from-amber-50/90 to-orange-50/90 dark:from-amber-950/50 dark:to-orange-950/50 backdrop-blur-md rounded-xl sm:rounded-2xl border-2 border-amber-200/60 dark:border-amber-700/40 shadow-xl shadow-amber-500/10 dark:shadow-amber-900/20 p-3 sm:p-4 md:p-6 hover:shadow-2xl hover:shadow-amber-500/20 dark:hover:shadow-amber-900/30 transition-all duration-500 group">
+                <div className="flex items-start xs:items-center gap-2.5 sm:gap-3 md:gap-4">
+                  <div className="p-2 sm:p-2.5 md:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                    <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-100">
+                    <p className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-100 break-words">
                       This course is unpublished. It will not be visible to students.
                     </p>
-                    <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 mt-0.5 sm:mt-1 hidden sm:block">
+                    <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 mt-1 hidden sm:block">
                       Complete at least {minSectionsRequired} sections and click publish to make it available.
                     </p>
                     <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-0.5 sm:hidden">
@@ -171,29 +170,29 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
           {/* Main Course Setup Header - Full Width */}
           <div className="w-full px-2 sm:px-4 md:px-6">
             {/* Main glass container */}
-            <div className="w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 p-4 sm:p-6 md:p-8 lg:p-10">
+            <div className="w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 p-4 sm:p-5 md:p-6 lg:p-8 xl:p-10">
                   {/* Header Section */}
-                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
+                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-5 md:mb-6 lg:mb-8">
                     {/* Left: Icon and Title */}
-                    <div className="flex items-center gap-3 sm:gap-4 md:gap-6 flex-1 min-w-0">
-                      <div className="p-2 sm:p-3 md:p-4 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md flex-shrink-0">
-                        <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-white" />
+                    <div className="flex items-center gap-2.5 sm:gap-3 md:gap-4 lg:gap-6 flex-1 min-w-0 w-full lg:w-auto">
+                      <div className="p-2 sm:p-2.5 md:p-3 lg:p-4 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md flex-shrink-0">
+                        <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 lg:h-8 lg:w-8 text-white" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
+                        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight break-words">
                           Course Setup
                         </h1>
-                        <p className="text-slate-600 dark:text-slate-300 mt-1 sm:mt-2 text-xs sm:text-sm md:text-base font-medium hidden sm:block leading-relaxed">
+                        <p className="text-slate-600 dark:text-slate-300 mt-1 sm:mt-1.5 md:mt-2 text-xs sm:text-sm md:text-base font-medium hidden sm:block leading-relaxed">
                           Configure your course settings and content
                         </p>
-                        <p className="text-slate-600 dark:text-slate-300 mt-1 text-[10px] font-medium sm:hidden">
+                        <p className="text-slate-600 dark:text-slate-300 mt-0.5 sm:mt-1 text-[10px] font-medium sm:hidden">
                           Configure settings
                         </p>
                       </div>
                     </div>
 
                     {/* Right: Actions */}
-                    <div className="flex items-center gap-2 sm:gap-4 w-full lg:w-auto flex-shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-3 md:gap-4 w-full lg:w-auto flex-shrink-0">
                       <Actions
                         disabled={!isPublishable}
                         courseId={params.courseId}
@@ -203,15 +202,15 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
                   </div>
 
                   {/* Progress Section */}
-                  <div className="w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-md p-3 sm:p-4 md:p-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                  <div className="w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-md p-3 sm:p-4 md:p-5 lg:p-6">
+                    <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                       {/* Progress Info */}
-                      <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
-                        <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md">
-                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                      <div className="flex items-center gap-2.5 sm:gap-3 md:gap-4 flex-shrink-0">
+                        <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md">
+                          <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
                         </div>
-                        <div>
-                          <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white tracking-tight">
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white tracking-tight break-words">
                             Progress {completionText}
                           </p>
                           <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">
@@ -221,8 +220,8 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
                       </div>
 
                       {/* Progress Bar */}
-                      <div className="flex-1 w-full sm:w-auto min-w-0 sm:max-w-md">
-                        <div className="w-full h-2.5 sm:h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+                      <div className="flex-1 w-full sm:w-auto min-w-0 sm:max-w-md order-3 sm:order-2">
+                        <div className="w-full h-2 sm:h-2.5 md:h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
                           <div
                             className={cn(
                               "h-full rounded-full transition-all duration-700",
@@ -236,15 +235,15 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
                       </div>
 
                       {/* Publication Status */}
-                      <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+                      <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto order-2 sm:order-3">
                         {isPublishable ? (
                           <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-emerald-500/20 dark:bg-emerald-400/20 border border-emerald-500/40 dark:border-emerald-400/40 w-full sm:w-auto justify-center sm:justify-start">
-                            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                            <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                             <span className="text-[10px] sm:text-xs font-medium text-emerald-600 dark:text-emerald-400 truncate">Ready to publish</span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-amber-500/20 dark:bg-amber-400/20 border border-amber-500/40 dark:border-amber-400/40 w-full sm:w-auto justify-center sm:justify-start">
-                            <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                            <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                             <span className="text-[10px] sm:text-xs font-medium text-amber-600 dark:text-amber-400 truncate">Needs more content</span>
                           </div>
                         )}
@@ -288,21 +287,21 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
             {/* Left Column - Course Title, Description, and Learning Objectives */}
             <div className="space-y-3 sm:space-y-4">
               {/* Course Title */}
-              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
+              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 shadow-md flex-shrink-0">
-                    <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 shadow-md flex-shrink-0">
+                    <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+                  <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-900 dark:text-white flex-1 min-w-0 truncate tracking-tight">
                     Course Title
                   </h2>
                   {course.title && (
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
 
                 {/* Horizontal line separator */}
-                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+                <div className="mb-3 sm:mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
 
                 <TitleForm
                   initialData={{
@@ -314,41 +313,41 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
               </div>
 
               {/* Course Description */}
-              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
+              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md flex-shrink-0">
-                    <FileQuestion className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md flex-shrink-0">
+                    <FileQuestion className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+                  <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-900 dark:text-white flex-1 min-w-0 truncate tracking-tight">
                     Course Description
                   </h2>
                   {course.description && (
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
 
                 {/* Horizontal line separator */}
-                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+                <div className="mb-3 sm:mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
 
                 <DescriptionForm initialData={course} courseId={course.id} />
               </div>
 
               {/* Learning Objectives */}
-              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
+              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md flex-shrink-0">
-                    <Target className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md flex-shrink-0">
+                    <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+                  <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-900 dark:text-white flex-1 min-w-0 truncate tracking-tight">
                     Learning Objectives
                   </h2>
                   {completionStatus.learningObj && (
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
 
                 {/* Horizontal line separator */}
-                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+                <div className="mb-3 sm:mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
 
                 <CourseLearningOutcomeForm
                   initialData={{ 
@@ -364,21 +363,21 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
             {/* Right Column - Category, Price, Image */}
             <div className="space-y-3 sm:space-y-4">
               {/* Course Category */}
-              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
+              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md flex-shrink-0">
-                    <ListChecks className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md flex-shrink-0">
+                    <ListChecks className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+                  <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-900 dark:text-white flex-1 min-w-0 truncate tracking-tight">
                     Course Category
                   </h2>
                   {completionStatus.category && (
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
 
                 {/* Horizontal line separator */}
-                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+                <div className="mb-3 sm:mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
 
                 <CategoryForm
                   initialData={course}
@@ -391,41 +390,41 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
               </div>
 
               {/* Course Price */}
-              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
+              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 shadow-md flex-shrink-0">
-                    <CircleDollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 shadow-md flex-shrink-0">
+                    <CircleDollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+                  <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-900 dark:text-white flex-1 min-w-0 truncate tracking-tight">
                     Course Price
                   </h2>
                   {completionStatus.price && (
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
 
                 {/* Horizontal line separator */}
-                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+                <div className="mb-3 sm:mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
 
                 <PriceForm initialData={course} courseId={course.id} />
               </div>
 
               {/* Course Image */}
-              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
+              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 shadow-md flex-shrink-0">
-                    <File className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 shadow-md flex-shrink-0">
+                    <File className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
                   </div>
-                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+                  <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-900 dark:text-white flex-1 min-w-0 truncate tracking-tight">
                     Course Image
                   </h2>
                   {completionStatus.image && (
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
 
                 {/* Horizontal line separator */}
-                <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+                <div className="mb-3 sm:mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
 
                 <CourseImageUpload 
                   courseId={params.courseId}
@@ -438,16 +437,16 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
 
         {/* Course Chapters - Single Column */}
         <div className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8">
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6">
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 shadow-md flex-shrink-0">
-                <ListChecks className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 shadow-md flex-shrink-0">
+                <ListChecks className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
               </div>
-              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+              <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-900 dark:text-white flex-1 min-w-0 truncate tracking-tight">
                 Course Chapters
               </h2>
               {completionStatus.chapters && (
-                <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-emerald-500 flex-shrink-0" />
               )}
             </div>
             <ChaptersForm initialData={course} courseId={course.id} />
@@ -456,21 +455,21 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
 
         {/* Resources - Single Column */}
         <div className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8">
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6">
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-violet-500 to-purple-500 shadow-md flex-shrink-0">
-                <File className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-violet-500 to-purple-500 shadow-md flex-shrink-0">
+                <File className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
               </div>
-              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+              <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-900 dark:text-white flex-1 min-w-0 truncate tracking-tight">
                 Course Resources
               </h2>
               {completionStatus.attachments && (
-                <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 flex-shrink-0" />
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-emerald-500 flex-shrink-0" />
               )}
             </div>
 
             {/* Horizontal line separator */}
-            <div className="mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
+            <div className="mb-3 sm:mb-4 border-b border-slate-200/70 dark:border-slate-700/70" />
 
             <AttachmentForm initialData={course} courseId={course.id} />
           </div>
@@ -478,13 +477,13 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
 
         {/* Course Depth Analysis - Single Column */}
         <div className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8">
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl p-3 sm:p-4 md:p-6">
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6">
             {/* Header Section */}
-            <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 shadow-md flex-shrink-0">
-                <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 shadow-md flex-shrink-0">
+                <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
               </div>
-              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white flex-1 truncate tracking-tight">
+              <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-900 dark:text-white flex-1 min-w-0 truncate tracking-tight">
                 Course Depth Analysis
               </h2>
             </div>
@@ -501,6 +500,6 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
 
       {/* Global SAM Assistant is available via the floating button in the bottom-right corner */}
       {/* SimpleCourseContext provides course data to the global SAM */}
-    </div>
+    </PageWithMobileLayout>
   );
 }

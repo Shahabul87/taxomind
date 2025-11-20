@@ -240,28 +240,28 @@ export const YouMayLikeSection = ({
   ];
 
   return (
-    <section className="my-16 space-y-8">
+    <section className="my-8 sm:my-12 md:my-16 space-y-4 sm:space-y-6 md:space-y-8">
       {/* Header */}
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-2 sm:space-y-3 md:space-y-4 px-2 sm:px-0">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 dark:from-purple-400 dark:via-blue-400 dark:to-cyan-400 bg-clip-text text-transparent"
+          className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 dark:from-purple-400 dark:via-blue-400 dark:to-cyan-400 bg-clip-text text-transparent px-2"
         >
           You May Also Like
         </motion.h2>
-        <div className="h-1 w-24 mx-auto bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 dark:from-purple-400 dark:via-blue-400 dark:to-cyan-400 rounded-full" />
+        <div className="h-0.5 sm:h-1 w-16 sm:w-20 md:w-24 mx-auto bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 dark:from-purple-400 dark:via-blue-400 dark:to-cyan-400 rounded-full" />
       </div>
 
       {/* Tabs */}
-      <div className="flex justify-center">
-        <div className="inline-flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl gap-1">
+      <div className="flex justify-center px-2 sm:px-0">
+        <div className="inline-flex bg-gray-100 dark:bg-gray-800 p-0.5 sm:p-1 rounded-lg sm:rounded-xl gap-0.5 sm:gap-1 w-full sm:w-auto max-w-full overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <motion.button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "relative px-6 py-3 rounded-lg font-medium transition-all duration-300 flex items-center gap-2",
+                "relative px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 rounded-md sm:rounded-lg font-medium transition-all duration-300 flex items-center gap-1.5 sm:gap-2 flex-shrink-0",
                 activeTab === tab.id
                   ? "text-white"
                   : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
@@ -272,12 +272,12 @@ export const YouMayLikeSection = ({
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTabBg"
-                  className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg"
+                  className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-md sm:rounded-lg"
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
               )}
-              <tab.icon className="w-4 h-4 relative z-10" />
-              <span className="relative z-10 text-sm md:text-base">{tab.label}</span>
+              <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 flex-shrink-0" />
+              <span className="relative z-10 text-xs sm:text-sm md:text-base whitespace-nowrap">{tab.label}</span>
             </motion.button>
           ))}
         </div>
@@ -304,7 +304,7 @@ export const YouMayLikeSection = ({
 // Most Similar - Horizontal Card Layout (Image Left, Details Right)
 const SimilarPostsLayout = ({ posts, formatDate }: { posts: any[], formatDate: (date: string) => string }) => {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
       {posts.map((post, index) => (
         <motion.div
           key={post.id}
@@ -313,47 +313,48 @@ const SimilarPostsLayout = ({ posts, formatDate }: { posts: any[], formatDate: (
           transition={{ delay: index * 0.1 }}
         >
           <Link href={`/blog/${post.id}`}>
-            <div className="group flex gap-4 bg-white dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-purple-500 dark:hover:border-purple-500 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10">
-              {/* Image - Left Side */}
-              <div className="relative w-40 h-40 flex-shrink-0 overflow-hidden">
+            <div className="group flex flex-col sm:flex-row gap-3 sm:gap-4 bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-purple-500 dark:hover:border-purple-500 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10">
+              {/* Image - Top on Mobile, Left on Desktop */}
+              <div className="relative w-full sm:w-32 md:w-40 h-40 sm:h-32 md:h-40 flex-shrink-0 overflow-hidden rounded-t-lg sm:rounded-l-lg sm:rounded-t-none">
                 {post.imageUrl && (
                   <Image
                     src={post.imageUrl}
                     alt={post.title}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    sizes="(max-width: 640px) 100vw, 160px"
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 {post.category && (
-                  <div className="absolute bottom-2 left-2 px-2 py-1 bg-purple-600 text-white text-xs font-medium rounded">
+                  <div className="absolute bottom-2 left-2 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-600 text-white text-[10px] sm:text-xs font-medium rounded">
                     {post.category}
                   </div>
                 )}
               </div>
 
-              {/* Details - Right Side */}
-              <div className="flex-1 p-4 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors mb-2">
+              {/* Details - Bottom on Mobile, Right on Desktop */}
+              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors mb-1.5 sm:mb-2">
                     {post.title}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-3">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2 sm:mb-3">
                     {post.description}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <User className="w-3 h-3" />
-                    <span>{post.User?.name || 'Anonymous'}</span>
+                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 flex-wrap">
+                  <div className="flex items-center gap-0.5 sm:gap-1">
+                    <User className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
+                    <span className="truncate">{post.User?.name || 'Anonymous'}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
+                  <div className="flex items-center gap-0.5 sm:gap-1">
+                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
                     <span>{post.readTime} min</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <MessageCircle className="w-3 h-3" />
+                  <div className="flex items-center gap-0.5 sm:gap-1">
+                    <MessageCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
                     <span>{post.comments}</span>
                   </div>
                 </div>
@@ -369,7 +370,7 @@ const SimilarPostsLayout = ({ posts, formatDate }: { posts: any[], formatDate: (
 // Most Recent - Grid Card Layout (Image on Top)
 const RecentPostsLayout = ({ posts, formatDate }: { posts: any[], formatDate: (date: string) => string }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
       {posts.map((post, index) => (
         <motion.div
           key={post.id}
@@ -378,51 +379,52 @@ const RecentPostsLayout = ({ posts, formatDate }: { posts: any[], formatDate: (d
           transition={{ delay: index * 0.1 }}
         >
           <Link href={`/blog/${post.id}`}>
-            <div className="group bg-white dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10">
+            <div className="group bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 h-full flex flex-col">
               {/* Image - Top */}
-              <div className="relative w-full h-48 overflow-hidden">
+              <div className="relative w-full h-36 sm:h-40 md:h-48 overflow-hidden">
                 {post.imageUrl && (
                   <Image
                     src={post.imageUrl}
                     alt={post.title}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute top-3 right-3 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">
+                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 py-0.5 sm:px-3 sm:py-1 bg-blue-600 text-white text-[10px] sm:text-xs font-medium rounded-full">
                   New
                 </div>
               </div>
 
               {/* Details - Bottom */}
-              <div className="p-4 space-y-3">
+              <div className="p-3 sm:p-4 space-y-2 sm:space-y-3 flex-1 flex flex-col">
                 {post.category && (
-                  <span className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-medium rounded">
+                  <span className="inline-block px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] sm:text-xs font-medium rounded w-fit">
                     {post.category}
                   </span>
                 )}
 
-                <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   {post.title}
                 </h3>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 flex-1">
                   {post.description}
                 </p>
 
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
-                    <Calendar className="w-3 h-3" />
-                    <span>{formatDate(post.createdAt)}</span>
+                <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 dark:border-gray-800 gap-2">
+                  <div className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-gray-500 min-w-0">
+                    <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
+                    <span className="truncate">{formatDate(post.createdAt)}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
+                  <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-500 flex-shrink-0">
+                    <div className="flex items-center gap-0.5 sm:gap-1">
+                      <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                       <span>{post.views}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <MessageCircle className="w-3 h-3" />
+                    <div className="flex items-center gap-0.5 sm:gap-1">
+                      <MessageCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                       <span>{post.comments}</span>
                     </div>
                   </div>
@@ -439,7 +441,7 @@ const RecentPostsLayout = ({ posts, formatDate }: { posts: any[], formatDate: (d
 // Most Trending - Compact List Layout (Small Thumbnails)
 const TrendingPostsLayout = ({ posts, formatDate }: { posts: any[], formatDate: (date: string) => string }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
       {posts.map((post, index) => (
         <motion.div
           key={post.id}
@@ -448,41 +450,42 @@ const TrendingPostsLayout = ({ posts, formatDate }: { posts: any[], formatDate: 
           transition={{ delay: index * 0.1 }}
         >
           <Link href={`/blog/${post.id}`}>
-            <div className="group flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-orange-500 dark:hover:border-orange-500 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10">
+            <div className="group flex items-center gap-2 sm:gap-3 md:gap-4 p-3 sm:p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-orange-500 dark:hover:border-orange-500 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10">
               {/* Rank Badge */}
-              <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gradient-to-br from-orange-500 to-red-500 text-white font-bold rounded-lg text-lg">
+              <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-gradient-to-br from-orange-500 to-red-500 text-white font-bold rounded-md sm:rounded-lg text-sm sm:text-lg">
                 {index + 1}
               </div>
 
               {/* Thumbnail */}
-              <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 rounded-md sm:rounded-lg overflow-hidden">
                 {post.imageUrl && (
                   <Image
                     src={post.imageUrl}
                     alt={post.title}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-300"
+                    sizes="80px"
                   />
                 )}
               </div>
 
               {/* Details */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors mb-2">
+                <h3 className="font-semibold text-xs sm:text-sm md:text-base text-gray-900 dark:text-white line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors mb-1.5 sm:mb-2">
                   {post.title}
                 </h3>
 
-                <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3 text-orange-500" />
-                    <span className="font-medium text-orange-600 dark:text-orange-400">{post.views} views</span>
+                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-500 flex-wrap">
+                  <div className="flex items-center gap-0.5 sm:gap-1">
+                    <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-500 flex-shrink-0" />
+                    <span className="font-medium text-orange-600 dark:text-orange-400 truncate">{post.views} views</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
+                  <div className="flex items-center gap-0.5 sm:gap-1">
+                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
                     <span>{post.readTime} min</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <MessageCircle className="w-3 h-3" />
+                  <div className="flex items-center gap-0.5 sm:gap-1">
+                    <MessageCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
                     <span>{post.comments}</span>
                   </div>
                 </div>

@@ -61,17 +61,17 @@ export const CourseStats = ({ title, value, icon, change, positive, color }: Cou
       />
 
       {/* Content */}
-      <div className="relative p-3 sm:p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className={`p-2 ${styles.iconBg} rounded-lg`}>{icon}</div>
-          <span className="text-sm font-medium text-white/90">{title}</span>
+      <div className="relative p-2.5 sm:p-3 md:p-4">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+          <div className={`p-1.5 sm:p-2 ${styles.iconBg} rounded-lg flex-shrink-0`}>{icon}</div>
+          <span className="text-[10px] sm:text-xs md:text-sm font-medium text-white/90 truncate">{title}</span>
         </div>
 
-        <div className="text-2xl font-bold text-white mb-1">{value}</div>
+        <div className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-0.5 sm:mb-1">{value}</div>
 
-        <div className="flex items-center gap-1 text-xs text-white/80">
-          {positive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-          <span>{change}</span>
+        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-white/80">
+          {positive ? <ArrowUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" /> : <ArrowDown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+          <span className="truncate">{change}</span>
         </div>
       </div>
     </motion.div>

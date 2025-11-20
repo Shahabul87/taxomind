@@ -13,9 +13,12 @@ import NextAuth from "next-auth";
 import userAuthConfig from "@/auth.config.edge";
 import adminAuthConfig from "@/auth.config.admin.edge";
 import { NextResponse, NextRequest } from 'next/server';
-import type { UserRole } from "@prisma/client";
+import type { AdminRole } from "@prisma/client";
 import { applySecurityHeaders, getMinimalSecurityHeaders } from "@/lib/security/headers";
 import { UserCapability } from "@/lib/auth/capability-types";
+
+// NOTE: Users don't have roles - only AdminAccount has roles (AdminRole enum)
+// Admin sessions have role, user sessions don't
 
 import {
   DEFAULT_LOGIN_REDIRECT,
@@ -52,10 +55,12 @@ const CAPABILITY_ROUTES: Record<string, UserCapability[]> = {
 };
 
 /**
- * Get the appropriate redirect based on user role
+ * Get the appropriate redirect based on role
+ * NOTE: Only AdminAccount has roles (AdminRole enum)
+ * Regular users don't have roles
  */
-function getRoleBasedRedirect(role: UserRole): string {
-  if (role === "ADMIN") {
+function getRoleBasedRedirect(role?: string): string {
+  if (role === "ADMIN" || role === "SUPERADMIN") {
     return '/dashboard/admin';
   }
   return '/dashboard';
@@ -137,7 +142,8 @@ async function handleAdminRoute(req: NextRequest) {
     const pathname = nextUrl.pathname;
     const adminSession = req.auth;
     const isLoggedIn = !!adminSession?.user;
-    const userRole = adminSession?.user?.role as UserRole | undefined;
+    // Admin sessions have role from AdminAccount table
+    const userRole = adminSession?.user?.role as string | undefined;
 
     console.log('[Admin Proxy]', {
       pathname,
@@ -215,7 +221,9 @@ async function handleUserRoute(req: NextRequest) {
     const pathname = nextUrl.pathname;
     const userSession = req.auth;
     const isLoggedIn = !!userSession?.user;
-    const userRole = userSession?.user?.role as UserRole | undefined;
+    // NOTE: Users don't have roles - only AdminAccount has roles
+    // userRole is undefined for regular users, only used for backward compatibility
+    const userRole = userSession?.user?.role as string | undefined;
     const userCapabilities = isLoggedIn ? getUserCapabilities(userSession) : [];
 
     // SECURITY: Only log detailed info in development

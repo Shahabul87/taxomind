@@ -33,12 +33,16 @@ export function MobileStepNav({
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-40 lg:hidden",
+        "fixed left-0 right-0 z-[60] lg:hidden",
         "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl",
-        "border-t border-slate-200 dark:border-slate-800",
+        "border-t-2 border-slate-200 dark:border-slate-800",
         "shadow-2xl",
         className
       )}
+      style={{ 
+        bottom: '64px',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
+      }}
     >
       {/* Progress Bar */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-slate-100 dark:bg-slate-800">
@@ -53,23 +57,23 @@ export function MobileStepNav({
         />
       </div>
 
-      <div className="px-4 py-3 safe-area-inset-bottom">
+      <div className="px-3 sm:px-4 pt-3 sm:pt-4">
         {/* Step Indicator */}
-        <div className="text-center mb-3">
-          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+        <div className="text-center mb-2.5 sm:mb-3">
+          <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
             Step {currentStep} of {totalSteps}
           </span>
-          <div className="flex justify-center gap-1.5 mt-2">
+          <div className="flex justify-center gap-1.5 mt-1.5 sm:mt-2">
             {Array.from({ length: totalSteps }, (_, i) => (
               <div
                 key={i}
                 className={cn(
-                  "h-1.5 rounded-full transition-all duration-300",
+                  "h-1.5 sm:h-2 rounded-full transition-all duration-300",
                   i + 1 === currentStep
-                    ? 'w-8 bg-gradient-to-r from-indigo-600 to-purple-600'
+                    ? 'w-8 sm:w-10 bg-gradient-to-r from-indigo-600 to-purple-600'
                     : i + 1 < currentStep
-                    ? 'w-4 bg-indigo-400'
-                    : 'w-4 bg-slate-300 dark:bg-slate-700'
+                    ? 'w-4 sm:w-5 bg-indigo-400'
+                    : 'w-4 sm:w-5 bg-slate-300 dark:bg-slate-700'
                 )}
                 aria-hidden="true"
               />
@@ -78,22 +82,23 @@ export function MobileStepNav({
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <Button
             variant="outline"
             onClick={onBack}
             disabled={currentStep === 1}
             className={cn(
-              "flex-shrink-0 h-12 px-4",
+              "flex-shrink-0 h-11 sm:h-12 px-3 sm:px-4",
               "bg-white dark:bg-slate-800",
               "border-2 border-slate-200 dark:border-slate-700",
               "hover:bg-slate-50 dark:hover:bg-slate-700",
               "disabled:opacity-50 disabled:cursor-not-allowed",
-              "transition-all duration-200"
+              "transition-all duration-200",
+              "rounded-xl"
             )}
             aria-label="Go back to previous step"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
 
           {isLastStep ? (
@@ -101,26 +106,29 @@ export function MobileStepNav({
               onClick={onGenerate}
               disabled={!canProceed || isGenerating}
               className={cn(
-                "flex-1 h-12",
+                "flex-1 h-11 sm:h-12 text-sm sm:text-base font-semibold",
                 "bg-gradient-to-r from-indigo-600 to-purple-600",
                 "hover:from-indigo-700 hover:to-purple-700",
-                "text-white font-semibold",
+                "text-white",
                 "shadow-lg hover:shadow-xl",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
                 "transition-all duration-200",
+                "rounded-xl",
                 isGenerating && "animate-pulse"
               )}
               aria-label="Generate course with AI"
             >
               {isGenerating ? (
                 <>
-                  <div className="h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating...
+                  <div className="h-4 w-4 sm:h-5 sm:w-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span className="hidden xs:inline">Creating...</span>
+                  <span className="xs:hidden">Creating</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-5 w-5 mr-2" />
-                  Generate Course
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                  <span className="hidden xs:inline">Generate Course</span>
+                  <span className="xs:hidden">Generate</span>
                 </>
               )}
             </Button>
@@ -129,27 +137,31 @@ export function MobileStepNav({
               onClick={onNext}
               disabled={!canProceed}
               className={cn(
-                "flex-1 h-12",
+                "flex-1 h-11 sm:h-12 text-sm sm:text-base font-semibold",
                 "bg-gradient-to-r from-indigo-600 to-purple-600",
                 "hover:from-indigo-700 hover:to-purple-700",
-                "text-white font-semibold",
+                "text-white",
                 "shadow-lg hover:shadow-xl",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
-                "transition-all duration-200"
+                "transition-all duration-200",
+                "rounded-xl"
               )}
               aria-label={`Continue to ${nextStepTitle || 'next step'}`}
             >
-              <span className="truncate">
+              <span className="truncate hidden xs:inline">
                 {nextStepTitle ? `Next: ${nextStepTitle}` : 'Continue'}
               </span>
-              <ArrowRight className="h-5 w-5 ml-2 flex-shrink-0" />
+              <span className="truncate xs:hidden">
+                Next
+              </span>
+              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 ml-1.5 sm:ml-2 flex-shrink-0" />
             </Button>
           )}
         </div>
 
         {/* Error Message for incomplete form */}
         {!canProceed && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 text-center mt-2">
+          <p className="text-[10px] xs:text-xs text-amber-600 dark:text-amber-400 text-center mt-2 font-medium">
             Complete all required fields to continue
           </p>
         )}

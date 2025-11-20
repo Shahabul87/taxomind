@@ -96,24 +96,24 @@ export const CategoryForm = ({
       {/* Display Mode */}
       {!isEditing && (
         <div className="group relative">
-          <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4 transition-all duration-300">
-            <div className="flex-1 min-w-0">
+          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2.5 sm:gap-3 md:gap-4 transition-all duration-300">
+            <div className="flex-1 min-w-0 w-full xs:w-auto">
               {selectedOption ? (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400"></span>
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 dark:bg-blue-400 flex-shrink-0"></span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 break-words">
                     {selectedOption.label}
                   </span>
                 </div>
               ) : (
-                <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
-                  <div className="flex items-center gap-2 px-3">
-                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <div className="space-y-2 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                  <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3">
+                    <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                    <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
                       No category selected
                     </p>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                  <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-2 sm:px-3 break-words">
                     Choose a category to help students discover your course
                   </p>
                 </div>
@@ -124,20 +124,20 @@ export const CategoryForm = ({
               variant="outline"
               size="sm"
               className={cn(
-                "flex-shrink-0 h-9 px-4",
+                "flex-shrink-0 h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
                 "bg-white/80 dark:bg-slate-800/80",
                 "border-slate-200 dark:border-slate-700",
                 "text-slate-700 dark:text-slate-300",
                 "hover:bg-slate-50 dark:hover:bg-slate-800",
                 "hover:border-purple-300 dark:hover:border-purple-600",
                 "hover:text-purple-600 dark:hover:text-purple-400",
-                "font-semibold text-sm",
+                "font-semibold",
                 "transition-all duration-200",
                 "shadow-sm hover:shadow-md",
                 "backdrop-blur-sm"
               )}
             >
-              <Pencil className="h-4 w-4 mr-2" />
+              <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
               Edit
             </Button>
           </div>
@@ -172,8 +172,8 @@ export const CategoryForm = ({
                               "text-slate-900 dark:text-slate-100",
                               "focus:border-slate-400/70 dark:focus:border-slate-500/70",
                               "focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
-                              "text-sm font-normal",
-                              "h-11",
+                              "text-xs sm:text-sm font-normal",
+                              "h-10 sm:h-11",
                               "rounded-md",
                               "transition-all duration-200"
                             )}
@@ -185,7 +185,7 @@ export const CategoryForm = ({
                               <SelectItem
                                 key={option.value}
                                 value={option.value}
-                                className="text-sm text-slate-900 dark:text-slate-100 focus:bg-slate-100 dark:focus:bg-slate-800"
+                                className="text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:bg-slate-100 dark:focus:bg-slate-800"
                               >
                                 {option.label}
                               </SelectItem>
@@ -205,10 +205,10 @@ export const CategoryForm = ({
                     setUseCustomCategory(true);
                     form.setValue("categoryId", "");
                   }}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-xs font-medium"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-[10px] sm:text-xs font-medium break-words"
                 >
-                  <Plus className="h-3 w-3 mr-1" />
-                  Can&apos;t find your category? Add custom
+                  <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 flex-shrink-0" />
+                  <span className="break-words">Can&apos;t find your category? Add custom</span>
                 </Button>
               </>
             ) : (
@@ -230,8 +230,8 @@ export const CategoryForm = ({
                             "placeholder:text-slate-400 dark:placeholder:text-slate-500",
                             "focus:border-slate-400/70 dark:focus:border-slate-500/70",
                             "focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
-                            "text-sm font-normal",
-                            "h-11",
+                            "text-xs sm:text-sm font-normal",
+                            "h-10 sm:h-11",
                             "rounded-md",
                             "transition-all duration-200"
                           )}
@@ -249,13 +249,13 @@ export const CategoryForm = ({
                     setUseCustomCategory(false);
                     form.setValue("customCategory", "");
                   }}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-xs font-medium"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-[10px] sm:text-xs font-medium"
                 >
                   ← Back to category list
                 </Button>
               </>
             )}
-            <div className="flex items-center justify-between gap-x-2">
+            <div className="flex flex-col-reverse xs:flex-row items-stretch xs:items-center justify-between gap-2">
               <Button
                 onClick={() => {
                   toggleEdit();
@@ -265,7 +265,7 @@ export const CategoryForm = ({
                 size="sm"
                 type="button"
                 className={cn(
-                  "h-9 px-4",
+                  "h-10 sm:h-9 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
                   "bg-white dark:bg-slate-800",
                   "border-slate-300 dark:border-slate-600",
                   "text-slate-700 dark:text-slate-300",
@@ -280,9 +280,9 @@ export const CategoryForm = ({
                 disabled={!isValid || isSubmitting}
                 type="submit"
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 sm:h-9 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm"
               >
-                Save
+                {isSubmitting ? "Saving..." : "Save"}
               </Button>
             </div>
           </form>

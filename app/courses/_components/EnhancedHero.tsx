@@ -66,25 +66,25 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
   const currentSlideData = slides[currentSlide];
 
   return (
-    <section className="relative min-h-[70vh] md:min-h-[80vh] lg:min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
-      {/* Animated Background Elements */}
+    <section className="relative min-h-[60vh] xs:min-h-[65vh] sm:min-h-[70vh] md:min-h-[80vh] lg:min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
+      {/* Static Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse delay-2000" />
+        <div className="absolute top-0 left-1/4 w-64 h-64 xs:w-80 xs:h-80 sm:w-96 sm:h-96 bg-blue-500/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 xs:w-80 xs:h-80 sm:w-96 sm:h-96 bg-purple-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 xs:w-80 xs:h-80 sm:w-96 sm:h-96 bg-pink-500/10 rounded-full blur-3xl" />
 
         {/* Animated Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:2rem_2rem] xs:bg-[size:3rem_3rem] sm:bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)]" />
       </div>
 
-      <div className="relative container mx-auto px-4 py-20">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="relative container mx-auto px-3 xs:px-4 sm:px-6 py-12 xs:py-16 sm:py-20">
+        <div className="grid lg:grid-cols-2 gap-6 xs:gap-8 sm:gap-10 md:gap-12 items-center">
           {/* Left Column - Content */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
-            className="space-y-8"
+            className="space-y-4 xs:space-y-5 sm:space-y-6 md:space-y-8"
           >
             {/* Tag Badge */}
             <AnimatePresence mode="wait">
@@ -95,8 +95,8 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5 }}
               >
-                <Badge className="bg-white/10 backdrop-blur-md border-white/20 text-white px-4 py-2 text-sm">
-                  <Sparkles className="w-4 h-4 mr-2" />
+                <Badge className="bg-white/10 backdrop-blur-md border-white/20 text-white px-2.5 xs:px-3 sm:px-4 py-1.5 xs:py-2 text-xs xs:text-sm">
+                  <Sparkles className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 mr-1.5 xs:mr-2" />
                   {currentSlideData.tag}
                 </Badge>
               </motion.div>
@@ -110,7 +110,7 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight"
+                className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight break-words"
               >
                 <span className={cn(
                   "bg-gradient-to-r bg-clip-text text-transparent",
@@ -133,7 +133,7 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-xl text-slate-300 leading-relaxed max-w-2xl"
+                className="text-sm xs:text-base sm:text-lg md:text-xl text-slate-300 leading-relaxed max-w-2xl break-words"
               >
                 {currentSlideData.subtitle}
               </motion.p>
@@ -147,15 +147,15 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="flex flex-wrap gap-3"
+                className="flex flex-wrap gap-2 xs:gap-2.5 sm:gap-3"
               >
                 {currentSlideData.features.map((feature, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2"
+                    className="flex items-center gap-1.5 xs:gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-2.5 xs:px-3 sm:px-4 py-1.5 xs:py-2"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span className="text-sm text-white font-medium">{feature}</span>
+                    <CheckCircle2 className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0" />
+                    <span className="text-xs xs:text-sm text-white font-medium break-words">{feature}</span>
                   </div>
                 ))}
               </motion.div>
@@ -166,26 +166,26 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="flex flex-wrap gap-4"
+              className="flex flex-wrap gap-2.5 xs:gap-3 sm:gap-4"
             >
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-xl px-8 py-6 text-lg group"
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-xl px-4 xs:px-6 sm:px-8 py-3 xs:py-4 sm:py-6 text-sm xs:text-base sm:text-lg group w-full xs:w-auto"
                 asChild
               >
                 <Link href="/auth/register">
                   Start Learning Free
-                  <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="ml-1.5 xs:ml-2 w-4 h-4 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 px-8 py-6 text-lg group"
+                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 px-4 xs:px-6 sm:px-8 py-3 xs:py-4 sm:py-6 text-sm xs:text-base sm:text-lg group w-full xs:w-auto"
                 asChild
               >
                 <Link href="#demo">
-                  <Play className="mr-2 w-5 h-5" />
+                  <Play className="mr-1.5 xs:mr-2 w-4 h-4 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5" />
                   Watch Demo
                 </Link>
               </Button>
@@ -196,33 +196,33 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
-              className="flex flex-wrap gap-6 pt-4"
+              className="flex flex-wrap gap-4 xs:gap-5 sm:gap-6 pt-3 xs:pt-4"
             >
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                  <Users className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-1.5 xs:gap-2">
+                <div className="w-10 h-10 xs:w-11 xs:h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                  <Users className="w-5 h-5 xs:w-5.5 xs:h-5.5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{(statistics.totalEnrollments || 0).toLocaleString()}+</p>
-                  <p className="text-sm text-slate-400">Active Learners</p>
+                  <p className="text-xl xs:text-2xl font-bold text-white">{(statistics.totalEnrollments || 0).toLocaleString()}+</p>
+                  <p className="text-xs xs:text-sm text-slate-400">Active Learners</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-                  <TrendingUp className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-1.5 xs:gap-2">
+                <div className="w-10 h-10 xs:w-11 xs:h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                  <TrendingUp className="w-5 h-5 xs:w-5.5 xs:h-5.5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{statistics.totalCourses}+</p>
-                  <p className="text-sm text-slate-400">Expert Courses</p>
+                  <p className="text-xl xs:text-2xl font-bold text-white">{statistics.totalCourses}+</p>
+                  <p className="text-xs xs:text-sm text-slate-400">Expert Courses</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
-                  <Award className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-1.5 xs:gap-2">
+                <div className="w-10 h-10 xs:w-11 xs:h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                  <Award className="w-5 h-5 xs:w-5.5 xs:h-5.5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{statistics.averageRating.toFixed(1)}★</p>
-                  <p className="text-sm text-slate-400">Average Rating</p>
+                  <p className="text-xl xs:text-2xl font-bold text-white">{statistics.averageRating.toFixed(1)}★</p>
+                  <p className="text-xs xs:text-sm text-slate-400">Average Rating</p>
                 </div>
               </div>
             </motion.div>

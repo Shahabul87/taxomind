@@ -19,7 +19,6 @@ const ProfileResponseSchema = z.object({
   twitter: z.string().optional(),
   linkedin: z.string().optional(),
   github: z.string().optional(),
-  role: z.enum(['ADMIN', 'USER']),
   createdAt: z.string(),
   coursesEnrolled: z.number(),
   coursesCompleted: z.number(),
@@ -169,7 +168,6 @@ export async function GET(request: NextRequest) {
           phone: true,
           bio: true,
           location: true,
-          role: true,
           createdAt: true,
         },
       });
@@ -635,7 +633,6 @@ export async function GET(request: NextRequest) {
       twitter: twitter || '',
       linkedin: linkedin || '',
       github: github || '',
-      role: user.role,
       createdAt: user.createdAt.toISOString(),
       coursesEnrolled,
       coursesCompleted,
@@ -744,7 +741,6 @@ export async function PATCH(request: NextRequest) {
         image: true,
         bio: true,
         location: true,
-        role: true,
         createdAt: true,
       },
     });

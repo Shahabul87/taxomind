@@ -3,7 +3,7 @@
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { getAdminCookieConfig, SessionDurations } from "@/lib/security/cookie-config";
-import type { UserRole } from "@prisma/client";
+import type { AdminRole } from "@prisma/client";
 
 // IMPORTANT: This mirrors admin settings from auth.config.admin.ts but remains Edge-safe.
 export default {
@@ -40,7 +40,7 @@ export default {
       // Extract custom fields from JWT token into session
       if (token && session.user) {
         session.user.id = token.sub as string;
-        session.user.role = token.role as UserRole;
+        session.user.role = token.role as AdminRole;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.isTwoFactorEnabled = token.isTwoFactorEnabled as boolean;

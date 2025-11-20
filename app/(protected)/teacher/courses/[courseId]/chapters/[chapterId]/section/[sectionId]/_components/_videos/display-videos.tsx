@@ -58,18 +58,18 @@ export const DisplayVideos = ({
 }: DisplayVideosProps) => {
   if (!videos.length) {
     return (
-      <div className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-3 sm:mt-4">
         No videos added to this section yet
       </div>
     );
   }
 
   return (
-    <div className="mt-6">
-      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+    <div className="mt-4 sm:mt-6">
+      <h4 className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 sm:mb-4">
         {videos.length} Video {videos.length === 1 ? 'Resource' : 'Resources'}
       </h4>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3">
         {videos.map((video, index) => (
           <motion.div
             key={video.id}
@@ -78,7 +78,7 @@ export const DisplayVideos = ({
             transition={{ delay: index * 0.05 }}
             onClick={() => video.url && onVideoClick(video.url)}
             className={cn(
-              "group flex gap-3 p-3 rounded-lg",
+              "group flex flex-col xs:flex-row gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg",
               "bg-white dark:bg-slate-900",
               "border border-slate-200 dark:border-slate-700",
               "hover:border-blue-300 dark:hover:border-blue-600",
@@ -87,8 +87,8 @@ export const DisplayVideos = ({
               "cursor-pointer"
             )}
           >
-            {/* Thumbnail - Left Side */}
-            <div className="relative w-40 h-24 flex-shrink-0 rounded-md overflow-hidden">
+            {/* Thumbnail - Top on mobile, Left on larger screens */}
+            <div className="relative w-full xs:w-32 sm:w-40 h-32 xs:h-20 sm:h-24 flex-shrink-0 rounded-md overflow-hidden">
               {getVideoThumbnail(video) ? (
                 <Image
                   src={getVideoThumbnail(video)!}
@@ -109,23 +109,23 @@ export const DisplayVideos = ({
 
               {/* Play button overlay */}
               <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="bg-white/90 dark:bg-slate-900/90 rounded-full p-2 transform scale-90 group-hover:scale-100 transition-transform">
-                  <Play className="h-5 w-5 text-blue-600 dark:text-blue-400 fill-blue-600 dark:fill-blue-400" />
+                <div className="bg-white/90 dark:bg-slate-900/90 rounded-full p-1.5 sm:p-2 transform scale-90 group-hover:scale-100 transition-transform">
+                  <Play className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400 fill-blue-600 dark:fill-blue-400" />
                 </div>
               </div>
 
               {/* Platform badge */}
               {video.platform && (
-                <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded text-[10px] text-white font-medium">
+                <div className="absolute top-1 left-1 sm:top-1.5 sm:left-1.5 bg-black/70 backdrop-blur-sm px-1 sm:px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] text-white font-medium">
                   {video.platform}
                 </div>
               )}
             </div>
 
-            {/* Details - Right Side */}
+            {/* Details - Bottom on mobile, Right Side on larger screens */}
             <div className="flex-1 min-w-0 flex flex-col">
               <h4 className={cn(
-                "text-sm font-semibold leading-snug mb-1",
+                "text-xs sm:text-sm font-semibold leading-snug mb-1",
                 "text-slate-900 dark:text-slate-100",
                 "group-hover:text-blue-600 dark:group-hover:text-blue-400",
                 "transition-colors duration-300",
@@ -136,7 +136,7 @@ export const DisplayVideos = ({
 
               {video.description && (
                 <p className={cn(
-                  "text-xs leading-relaxed mb-2",
+                  "text-[10px] sm:text-xs leading-relaxed mb-1.5 sm:mb-2",
                   "text-slate-600 dark:text-slate-400",
                   "line-clamp-2"
                 )}>
@@ -152,24 +152,24 @@ export const DisplayVideos = ({
                       <Star
                         key={star}
                         className={cn(
-                          "h-3 w-3",
+                          "h-2.5 w-2.5 sm:h-3 sm:w-3",
                           star <= (video.rating || 0)
                             ? "text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400"
                             : "text-slate-300 dark:text-slate-600"
                         )}
                       />
                     ))}
-                    <span className="text-xs text-slate-600 dark:text-slate-400 ml-1">
+                    <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 ml-0.5 sm:ml-1">
                       {video.rating}/5
                     </span>
                   </div>
                 ) : (
-                  <div className="text-xs text-slate-500 dark:text-slate-500">
+                  <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500">
                     No rating
                   </div>
                 )}
 
-                <ExternalLink className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" />
+                <ExternalLink className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors flex-shrink-0" />
               </div>
             </div>
           </motion.div>

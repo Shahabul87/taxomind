@@ -2,11 +2,12 @@
 
 import * as z from "zod";
 import { AuthError } from "next-auth";
+import { headers } from "next/headers";
 
 import { db } from "@/lib/db";
 import { adminSignIn } from "@/auth.admin"; // PHASE 2: Use admin-specific signIn
 import { LoginSchema } from "@/schemas";
-import { getUserByEmail } from "@/data/user";
+import { getAdminAccountByEmail } from "@/data/admin";
 import { getTwoFactorTokenByEmail } from "@/data/two-factor-token";
 import { queueVerificationEmail, queue2FAEmail } from "@/lib/queue/email-queue-simple";
 import {
@@ -14,8 +15,8 @@ import {
   generateTwoFactorToken
 } from "@/lib/tokens";
 import {
-  getTwoFactorConfirmationByUserId
-} from "@/data/two-factor-confirmation";
+  getTwoFactorConfirmationByAdminId
+} from "@/data/admin-two-factor-confirmation";
 import {
   decryptTOTPSecret,
   verifyTOTPToken,
@@ -25,21 +26,54 @@ import { rateLimitAuth } from "@/lib/rate-limit-server";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
 
 /**
+ * Get client IP address from request headers
+ * Checks multiple headers in order of reliability
+ */
+const getClientIp = async (): Promise<string> => {
+  const headersList = await headers();
+
+  // Check common proxy headers
+  const forwardedFor = headersList.get('x-forwarded-for');
+  if (forwardedFor) {
+    // x-forwarded-for can contain multiple IPs, take the first one (client IP)
+    const ips = forwardedFor.split(',').map(ip => ip.trim());
+    return ips[0];
+  }
+
+  const realIp = headersList.get('x-real-ip');
+  if (realIp) {
+    return realIp;
+  }
+
+  const cfConnectingIp = headersList.get('cf-connecting-ip'); // Cloudflare
+  if (cfConnectingIp) {
+    return cfConnectingIp;
+  }
+
+  const trueClientIp = headersList.get('true-client-ip'); // Akamai/Cloudflare
+  if (trueClientIp) {
+    return trueClientIp;
+  }
+
+  return 'unknown';
+};
+
+/**
  * Admin Login Action - Separate from user login
  *
  * Enhanced security for administrator authentication:
  * - Stricter rate limiting
  * - ADMIN role verification
  * - Enhanced audit logging
+ * - IP address tracking
  * - Future: Mandatory MFA enforcement
  */
 export const login = async (
   values: z.infer<typeof LoginSchema>,
   callbackUrl?: string | null,
 ) => {
-  console.log('[admin-login] Admin login attempt started');
-
-  const ip = 'unknown';
+  const ip = await getClientIp();
+  console.log('[admin-login] Admin login attempt started from IP:', ip);
 
   const validatedFields = LoginSchema.safeParse(values);
 
@@ -71,37 +105,28 @@ export const login = async (
     };
   }
 
-  const existingUser = await getUserByEmail(email);
+  const existingAdmin = await getAdminAccountByEmail(email);
 
-  if (!existingUser || !existingUser.email || !existingUser.password) {
-    console.log('[admin-login] Invalid credentials - user not found');
-    await authAuditHelpers.logSignInFailed(email, 'Admin login - User not found or invalid credentials', 'credentials');
+  if (!existingAdmin || !existingAdmin.email || !existingAdmin.password) {
+    console.log('[admin-login] Invalid credentials - admin not found');
+    await authAuditHelpers.logSignInFailed(email, 'Admin login - Admin not found or invalid credentials', 'credentials');
     return { error: "Invalid admin credentials!" };
   }
 
-  // CRITICAL: Verify user has ADMIN role
-  if (existingUser.role !== 'ADMIN') {
-    console.log('[admin-login] SECURITY ALERT - Non-admin attempted admin login:', email);
-    await authAuditHelpers.logSuspiciousActivity(
-      existingUser.id,
-      email,
-      'UNAUTHORIZED_ADMIN_ACCESS_ATTEMPT',
-      'User without ADMIN role attempted to access admin login'
-    );
-    return { error: "Access denied. This portal is for administrators only." };
-  }
+  // Role verification (SUPERADMIN or ADMIN allowed)
+  console.log('[admin-login] Admin found with role:', existingAdmin.role);
 
-  if (!existingUser.emailVerified) {
+  if (!existingAdmin.emailVerified) {
     const verificationToken = await generateVerificationToken(
-      existingUser.email,
+      existingAdmin.email,
     );
 
     await queueVerificationEmail({
       userEmail: verificationToken.email,
-      userName: existingUser.name || "Admin",
+      userName: existingAdmin.name || "Admin",
       verificationToken: verificationToken.token,
       expiresAt: verificationToken.expires,
-      userId: existingUser.id,
+      userId: existingAdmin.id,
       timestamp: new Date(),
       isResend: true,
     });
@@ -110,37 +135,37 @@ export const login = async (
     return { success: "Admin verification email sent!" };
   }
 
-  if (existingUser.isTwoFactorEnabled && existingUser.email) {
+  if (existingAdmin.isTwoFactorEnabled && existingAdmin.email) {
     if (code) {
       let isCodeValid = false;
       let verificationMethod = '';
 
-      type UserWithTotp = typeof existingUser & {
+      type AdminWithTotp = typeof existingAdmin & {
         totpEnabled?: boolean;
         totpVerified?: boolean;
         totpSecret?: string;
         recoveryCodes?: string[];
       };
-      const userWithTotp = existingUser as UserWithTotp;
+      const adminWithTotp = existingAdmin as AdminWithTotp;
 
-      if (userWithTotp.totpEnabled && userWithTotp.totpVerified && userWithTotp.totpSecret) {
+      if (adminWithTotp.totpEnabled && adminWithTotp.totpVerified && adminWithTotp.totpSecret) {
         try {
           if (code.length === 6 && /^\d{6}$/.test(code)) {
-            const decryptedSecret = await decryptTOTPSecret(userWithTotp.totpSecret);
+            const decryptedSecret = await decryptTOTPSecret(adminWithTotp.totpSecret);
             isCodeValid = verifyTOTPToken(code, decryptedSecret);
             verificationMethod = 'TOTP';
             console.log('[admin-login] TOTP verification attempted');
           }
 
           if (!isCodeValid && code.length > 6) {
-            const recoveryResult = await verifyRecoveryCode(code, userWithTotp.recoveryCodes || []);
+            const recoveryResult = await verifyRecoveryCode(code, adminWithTotp.recoveryCodes || []);
             if (recoveryResult.isValid) {
               isCodeValid = true;
               verificationMethod = 'Recovery Code';
 
               if (recoveryResult.remainingCodes) {
-                await db.user.update({
-                  where: { id: existingUser.id },
+                await db.adminAccount.update({
+                  where: { id: existingAdmin.id },
                   data: { recoveryCodes: recoveryResult.remainingCodes }
                 });
               }
@@ -172,30 +197,30 @@ export const login = async (
 
       if (!isCodeValid) {
         console.log('[admin-login] 2FA invalid code');
-        await authAuditHelpers.logTwoFactorFailed(existingUser.id, existingUser.email, {
+        await authAuditHelpers.logTwoFactorFailed(existingAdmin.id, existingAdmin.email, {
           failureReason: 'Invalid 2FA code (admin login)'
         });
         return { error: "Invalid admin 2FA code!" };
       }
 
-      const existingConfirmation = await getTwoFactorConfirmationByUserId(existingUser.id);
+      const existingConfirmation = await getTwoFactorConfirmationByAdminId(existingAdmin.id);
       if (existingConfirmation) {
-        await db.twoFactorConfirmation.delete({ where: { id: existingConfirmation.id } });
+        await db.adminTwoFactorConfirmation.delete({ where: { id: existingConfirmation.id } });
       }
 
-      await db.twoFactorConfirmation.create({ data: { userId: existingUser.id } });
+      await db.adminTwoFactorConfirmation.create({ data: { adminId: existingAdmin.id } });
       console.log(`[admin-login] Admin 2FA validated via ${verificationMethod}`);
 
-      await authAuditHelpers.logTwoFactorVerified(existingUser.id, existingUser.email);
+      await authAuditHelpers.logTwoFactorVerified(existingAdmin.id, existingAdmin.email);
     } else {
-      const twoFactorToken = await generateTwoFactorToken(existingUser.email);
+      const twoFactorToken = await generateTwoFactorToken(existingAdmin.email);
 
       await queue2FAEmail({
         userEmail: twoFactorToken.email,
-        userName: existingUser.name || "Admin",
+        userName: existingAdmin.name || "Admin",
         code: twoFactorToken.token,
         expiresAt: twoFactorToken.expires,
-        userId: existingUser.id,
+        userId: existingAdmin.id,
         timestamp: new Date(),
         ipAddress: ip,
       });
@@ -204,14 +229,14 @@ export const login = async (
 
       return {
         twoFactor: true,
-        totpEnabled: existingUser.totpEnabled && existingUser.totpVerified
+        totpEnabled: existingAdmin.totpEnabled && existingAdmin.totpVerified
       };
     }
   }
 
   // Verify password using passwordUtils (supports both bcrypt and noble/hashes)
   const { verifyPassword } = await import("@/lib/passwordUtils");
-  const passwordMatches = await verifyPassword(password, existingUser.password);
+  const passwordMatches = await verifyPassword(password, existingAdmin.password);
 
   if (!passwordMatches) {
     console.log('[admin-login] Invalid credentials - wrong password');
@@ -222,8 +247,8 @@ export const login = async (
   console.log('[admin-login] Admin credentials validated, calling adminSignIn');
 
   // Enhanced audit logging for admin logins
-  await authAuditHelpers.logSignInSuccess(existingUser.id, existingUser.email, 'credentials', {
-    userRole: existingUser.role
+  await authAuditHelpers.logSignInSuccess(existingAdmin.id, existingAdmin.email, 'credentials', {
+    userRole: existingAdmin.role
   });
 
   // PHASE 2: Call adminSignIn to establish admin session

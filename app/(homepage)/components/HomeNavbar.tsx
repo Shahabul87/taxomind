@@ -190,21 +190,28 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
           boxShadow: isVisible
             ? "0 4px 20px rgba(59, 130, 246, 0.1), 0 2px 6px rgba(59, 130, 246, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05)"
             : "none",
+          width: isVisible ? "85%" : "100%",
+          y: isVisible ? 8 : 0,
+        }}
+        transition={{
+          type: "spring",
+          stiffness: 200,
+          damping: 50,
+        }}
+        style={{
+          minWidth: "280px",
         }}
         className={cn(
-          "relative z-[60] mx-auto flex w-full max-w-xl flex-row items-center justify-between rounded-full px-4 py-3 lg:hidden",
+          "relative z-[60] mx-auto flex flex-row items-center justify-between rounded-full px-3 py-2.5 sm:px-4 sm:py-3 lg:hidden",
           isVisible && "bg-blue-50 dark:bg-slate-800/95 border border-blue-100 dark:border-slate-700/50"
         )}
-        style={{
-          margin: "10px 16px",
-        }}
       >
         {/* Mobile Logo */}
         <Link
           href="/"
-          className="relative z-20 flex items-center space-x-2 py-1"
+          className="relative z-20 flex items-center space-x-1.5 sm:space-x-2 py-1 flex-shrink-0"
         >
-          <div className="relative h-7 w-7 overflow-hidden rounded-full bg-white dark:bg-slate-900 shadow-md ring-2 ring-purple-500/20">
+          <div className="relative h-6 w-6 sm:h-7 sm:w-7 overflow-hidden rounded-full bg-white dark:bg-slate-900 shadow-md ring-2 ring-purple-500/20">
             <Image
               src="/taxomind-logo.png"
               alt="Taxomind Logo"
@@ -217,23 +224,23 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
               }}
             />
           </div>
-          <span className="font-bold text-base bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+          <span className="font-bold text-sm sm:text-base bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent whitespace-nowrap">
             Taxomind
           </span>
         </Link>
 
         {/* Mobile Auth Section */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {/* Mobile Menu Button - Only show on smaller devices */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="md:hidden rounded-full p-2 hover:bg-blue-100 dark:hover:bg-slate-700"
+                className="md:hidden rounded-full p-1.5 sm:p-2 hover:bg-blue-100 dark:hover:bg-slate-700"
                 aria-label="Open navigation menu"
               >
-                <Menu className="h-5 w-5 text-slate-700 dark:text-slate-300" />
+                <Menu className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700 dark:text-slate-300" />
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -376,7 +383,7 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
           </Sheet>
 
           {/* Theme Toggle and User Menu - Only show on md devices and above */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
             <ThemeToggle />
             {user ? (
               <UserMenu user={user} />
@@ -385,7 +392,7 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
                 <Button
                   variant="default"
                   size="sm"
-                  className="rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs"
+                  className="rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs px-3 py-1.5"
                 >
                   Sign In
                 </Button>

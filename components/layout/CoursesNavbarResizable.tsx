@@ -415,7 +415,7 @@ export function CoursesNavbarResizable({
                     </div>
 
                     {/* Scrollable Content with Sections */}
-                    <div className="overflow-y-auto max-h-[calc(85vh-10rem)] px-6 py-6 space-y-6">
+                    <div className="overflow-y-auto max-h-[calc(85vh-10rem)] px-3 xs:px-4 sm:px-6 py-4 xs:py-5 sm:py-6 space-y-4 xs:space-y-5 sm:space-y-6">
 
                       {/* AI Suggestions Section */}
                       <motion.div

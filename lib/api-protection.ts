@@ -1,5 +1,11 @@
+/**
+ * @deprecated Regular users no longer have roles.
+ * Role-based protections only work with admin authentication.
+ * Admin authentication is completely separate from user authentication.
+ */
+
 import { NextRequest } from "next/server";
-import { UserRole } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
 import { currentUser, currentRole } from "@/lib/auth";
 import { adminAuth } from "@/auth.admin";
 import { hasPermission, Permission } from "@/lib/role-management";
@@ -34,7 +40,7 @@ export async function requireAuth() {
         console.log("[requireAuth] Admin session found:", {
           id: adminSession.user.id,
           email: adminSession.user.email,
-          role: adminSession.user.role
+          role: (adminSession.user as any).role // Admin user has role
         });
         user = adminSession.user;
       } else {
@@ -54,11 +60,11 @@ export async function requireAuth() {
   return user;
 }
 
-export async function requireRole(allowedRoles: UserRole | UserRole[]) {
+export async function requireRole(allowedRoles: AdminRole | AdminRole[]) {
   console.log("[requireRole] Checking role authorization...");
 
   const user = await requireAuth();
-  let role = await currentRole();
+  let role: AdminRole | null = await currentRole();
   console.log("[requireRole] Regular role:", role || "not found");
 
   // If no regular role, try admin role
@@ -66,7 +72,7 @@ export async function requireRole(allowedRoles: UserRole | UserRole[]) {
     try {
       console.log("[requireRole] Trying admin role...");
       const adminSession = await adminAuth();
-      role = adminSession?.user?.role;
+      role = adminSession?.user?.role || null;
       console.log("[requireRole] Admin role:", role || "not found");
     } catch (error) {
       console.error("[requireRole] Admin role check failed:", error instanceof Error ? error.message : String(error));
@@ -102,11 +108,15 @@ export async function requirePermission(permission: Permission) {
 }
 
 export async function requireAdminRole() {
-  return requireRole(UserRole.ADMIN);
+  return requireRole(AdminRole.ADMIN);
 }
 
+/**
+ * @deprecated Users don't have roles. This now only checks for admin role.
+ */
 export async function requireTeacherOrAdmin() {
-  return requireRole([UserRole.USER, UserRole.ADMIN]);
+  // Users don't have roles anymore - only check for admin
+  return requireRole(AdminRole.ADMIN);
 }
 
 export function withAuth<T extends any[]>(
@@ -138,7 +148,7 @@ export function withAuth<T extends any[]>(
 }
 
 export function withRole<T extends any[]>(
-  allowedRoles: UserRole | UserRole[],
+  allowedRoles: AdminRole | AdminRole[],
   handler: (...args: T) => Promise<Response>
 ) {
   return async (...args: T): Promise<Response> => {
@@ -201,13 +211,13 @@ export async function validateResourceOwnership(
 ) {
   const user = await requireAuth();
   const role = await currentRole();
-  
+
   const isOwner = user.id === resourceUserId;
-  const isAdmin = allowAdminOverride && role === UserRole.ADMIN;
-  
+  const isAdmin = allowAdminOverride && role === AdminRole.ADMIN;
+
   if (!isOwner && !isAdmin) {
     throw new ForbiddenError("Access denied: insufficient permissions for this resource");
   }
-  
+
   return { user, role, isOwner, isAdmin };
 }

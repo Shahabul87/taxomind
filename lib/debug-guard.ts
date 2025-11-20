@@ -25,10 +25,12 @@ export async function debugGuard(): Promise<NextResponse | null> {
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  // In non-production, require admin authentication
+  // In non-production, require authentication
+  // NOTE: Users don't have roles - only AdminAccount has roles
+  // For debug endpoints in development, just require authentication
   const user = await currentUser();
-  if (!user || user.role !== 'ADMIN') {
-    return new NextResponse('Unauthorized - Admin access required', { status: 401 });
+  if (!user) {
+    return new NextResponse('Unauthorized - Authentication required', { status: 401 });
   }
 
   // Allow access

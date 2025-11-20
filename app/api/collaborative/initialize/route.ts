@@ -242,13 +242,13 @@ async function checkEnablePermission(userId: string, contentType: string, conten
       if (post) return true;
     }
 
-    // Check if user is admin
-    const user = await db.user.findUnique({
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
       where: { id: userId },
       select: { role: true },
     });
 
-    return user?.role === 'ADMIN';
+    return adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
   } catch (error: any) {
     logger.error('Error checking enable permission:', error);
     return false;

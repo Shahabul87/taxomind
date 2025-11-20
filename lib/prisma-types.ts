@@ -1,6 +1,10 @@
-import { UserRole as PrismaUserRole } from "@prisma/client";
+// DEPRECATED: UserRole enum no longer exists in Prisma
+// Users don't have roles - only AdminAccount has roles (AdminRole enum)
+// This file is kept for backward compatibility but exports nothing
 
-// Export the UserRole enum from Prisma
-export { PrismaUserRole as UserRole };
+// If you need admin roles, import AdminRole from @prisma/client instead:
+// import { AdminRole } from '@prisma/client';
 
-// Add any additional types that were in the original file but are still needed 
+// For user permissions, use the Permission system in lib/permissions.ts
+
+export {}; // Empty export to make this a valid module

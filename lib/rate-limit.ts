@@ -34,6 +34,11 @@ export const AUTH_RATE_LIMITS = {
     window: '1 h',
     endpoint: '/api/auth/reset'
   },
+  'admin-reset': {
+    requests: 3,
+    window: '1 h',
+    endpoint: '/admin/auth/reset'
+  },
   verify: {
     requests: 5,
     window: '15 m',

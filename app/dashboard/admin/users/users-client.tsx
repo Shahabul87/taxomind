@@ -75,7 +75,6 @@ interface UserData {
   id: string;
   name: string | null;
   email: string | null;
-  role: string;
   status: "Active" | "Inactive" | "Suspended";
   joinDate: string;
   lastActive: string;
@@ -105,7 +104,6 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [stats, setStats] = useState<Stats>(initialStats);
   const { toast } = useToast();
@@ -120,7 +118,6 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
-    role: "",
     emailVerified: false,
     isTwoFactorEnabled: false,
     isAccountLocked: false,
@@ -140,10 +137,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
       );
     }
 
-    // Role filter
-    if (filterRole !== "all") {
-      filtered = filtered.filter((user) => user.role === filterRole);
-    }
+    // Role filter removed - users no longer have roles
 
     // Status filter
     if (filterStatus !== "all") {
@@ -151,7 +145,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
     }
 
     setFilteredUsers(filtered);
-  }, [searchQuery, filterRole, filterStatus, users]);
+  }, [searchQuery, filterStatus, users]);
 
   // Handle view user details
   const handleViewUser = (user: UserData) => {
@@ -165,7 +159,6 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
     setEditForm({
       name: user.name || "",
       email: user.email || "",
-      role: user.role,
       emailVerified: !!user.emailVerified,
       isTwoFactorEnabled: user.isTwoFactorEnabled,
       isAccountLocked: user.isAccountLocked,
@@ -183,7 +176,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
       // Track if any update fails
       const updates: Promise<Response>[] = [];
 
-      // Update basic fields (name, email, role)
+      // Update basic fields (name, email)
       updates.push(
         fetch("/api/admin/users", {
           method: "PATCH",
@@ -196,7 +189,6 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
             data: {
               name: editForm.name,
               email: editForm.email,
-              role: editForm.role,
             },
           }),
         })
@@ -376,49 +368,39 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "ADMIN":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
-      case "INSTRUCTOR":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-      case "USER":
-        return "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400";
-      default:
-        return "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400";
-    }
-  };
+  // getRoleColor removed - users no longer have roles
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-      <div className="container mx-auto px-4 py-8 space-y-8">
+      <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-6 md:py-8 space-y-4 sm:space-y-6 md:space-y-8">
         {/* Page Header */}
         <motion.div
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
               Users Management
             </h1>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
               Manage and monitor all platform users
             </p>
           </div>
           <Button
             onClick={() => setCreateDialogOpen(true)}
-            className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+            className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto min-h-[44px] text-sm sm:text-base"
           >
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add New User
+            <UserPlus className="mr-2 h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">Add New User</span>
+            <span className="sm:hidden">Add User</span>
           </Button>
         </motion.div>
 
         {/* Stats Grid - Gradient Cards */}
         <motion.div
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid grid-cols-1 gap-2.5 sm:gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-4"
           initial="initial"
           animate="animate"
         >
@@ -472,15 +454,15 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                   "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300",
                   stat.hoverGradient
                 )} />
-                <div className="relative p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                      <stat.icon className="w-5 h-5 text-white" />
+                <div className="relative p-3.5 sm:p-4 md:p-5">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg backdrop-blur-sm shrink-0">
+                      <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-white/90">{stat.title}</span>
+                    <span className="text-xs sm:text-sm font-medium text-white/90 truncate">{stat.title}</span>
                   </div>
-                  <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                  <div className="text-xs text-white/80">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">{stat.value}</div>
+                  <div className="text-[10px] sm:text-xs text-white/80 line-clamp-2">
                     {stat.description}
                   </div>
                 </div>
@@ -496,37 +478,26 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
           transition={{ duration: 0.5, delay: 0.4 }}
         >
           <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="pb-4">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <CardTitle className="flex items-center gap-3 text-slate-900 dark:text-white">
-                  <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
-                    <Users className="w-5 h-5 text-white" />
+            <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6 pt-3 sm:pt-6">
+              <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
+                <CardTitle className="flex items-center gap-2 sm:gap-3 text-slate-900 dark:text-white">
+                  <div className="p-1.5 sm:p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg shrink-0">
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
-                  All Users
+                  <span className="text-base sm:text-lg font-semibold">All Users</span>
                 </CardTitle>
-                <div className="flex flex-col gap-2 md:flex-row">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <Input
                       placeholder="Search users..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 w-full md:w-[250px] bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-600/50 focus:bg-white dark:focus:bg-slate-900"
+                      className="pl-9 w-full md:w-[250px] bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-600/50 focus:bg-white dark:focus:bg-slate-900 min-h-[44px] text-base sm:text-sm"
                     />
                   </div>
-                  <Select value={filterRole} onValueChange={setFilterRole}>
-                    <SelectTrigger className="w-full md:w-[150px] bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-600/50">
-                      <SelectValue placeholder="Filter by role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Roles</SelectItem>
-                      <SelectItem value="USER">Users</SelectItem>
-                      <SelectItem value="INSTRUCTOR">Instructors</SelectItem>
-                      <SelectItem value="ADMIN">Admins</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-full md:w-[150px] bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-600/50">
+                    <SelectTrigger className="w-full md:w-[150px] bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-600/50 min-h-[44px] text-base sm:text-sm">
                       <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -539,27 +510,168 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                 </div>
               </div>
             </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
           {/* Error State */}
           {error && (
             <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <AlertDescription className="text-sm">{error}</AlertDescription>
             </Alert>
           )}
 
-          {/* Users Table */}
-          <div className="overflow-x-auto">
-            {loading ? (
-              <div className="flex justify-center items-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
+          {/* Mobile Card View / Desktop Table View */}
+          {loading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-slate-400 mx-auto mb-2" />
+              <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">No users found</p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card View */}
+              <div className="block md:hidden space-y-3">
+                {filteredUsers.map((user, idx) => (
+                  <motion.div
+                    key={user.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                  >
+                    <Card className="bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:shadow-md transition-all">
+                      <CardContent className="p-4 space-y-3">
+                        {/* User Header */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden relative shrink-0">
+                              {user.image ? (
+                                <Image
+                                  src={user.image}
+                                  alt={user.name || "User"}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                  {user.name
+                                    ? user.name
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")
+                                        .toUpperCase()
+                                    : user.email?.[0]?.toUpperCase() || "U"}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100 truncate text-sm">
+                                {user.name || "No name"}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                {user.email || "No email"}
+                              </p>
+                            </div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 text-slate-500 dark:text-slate-400"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[calc(100vw-4rem)]">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleViewUser(user)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit User
+                              </DropdownMenuItem>
+                              {!user.emailVerified && (
+                                <DropdownMenuItem onClick={() => handleUserAction(user.id, "verify-email")}>
+                                  <Mail className="mr-2 h-4 w-4" />
+                                  Verify Email
+                                </DropdownMenuItem>
+                              )}
+                              {user.status === "Suspended" ? (
+                                <DropdownMenuItem onClick={() => handleUserAction(user.id, "activate")}>
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  Activate User
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => handleUserAction(user.id, "suspend")}>
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  Suspend User
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                className="text-red-600 dark:text-red-400"
+                                onClick={() => handleDeleteClick(user)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        {/* User Details Grid */}
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                          <div>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Status</p>
+                            <Badge className={cn("mt-1 text-[10px]", getStatusColor(user.status))}>
+                              {user.status}
+                            </Badge>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Courses</p>
+                            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{user.courses}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Join Date</p>
+                            <p className="mt-1 text-xs text-slate-900 dark:text-slate-100">{user.joinDate}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Last Active</p>
+                            <p className="mt-1 text-xs text-slate-900 dark:text-slate-100 truncate">{user.lastActive}</p>
+                          </div>
+                        </div>
+
+                        {/* Security Indicators */}
+                        <div className="flex items-center gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                          <div className="flex items-center gap-1.5">
+                            {user.isTwoFactorEnabled ? (
+                              <Shield className="h-3.5 w-3.5 text-green-500" />
+                            ) : (
+                              <Shield className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600" />
+                            )}
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">2FA</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {user.emailVerified ? (
+                              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                            ) : (
+                              <X className="h-3.5 w-3.5 text-red-500" />
+                            )}
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">Email</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
               </div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 text-slate-400 mx-auto mb-2" />
-                <p className="text-slate-500 dark:text-slate-400">No users found</p>
-              </div>
-            ) : (
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-slate-200 dark:border-slate-700">
@@ -634,16 +746,6 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                               {user.email || "No email"}
                             </p>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center">
-                          <Badge className={getRoleColor(user.role)}>
-                            {user.role === "USER"
-                              ? "Student"
-                              : user.role.charAt(0) +
-                                user.role.slice(1).toLowerCase()}
-                          </Badge>
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
@@ -772,44 +874,45 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                   ))}
                 </TableBody>
               </Table>
-            )}
-          </div>
+              </div>
+            </>
+          )}
 
-              {/* Results count */}
-              {filteredUsers.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Showing {filteredUsers.length} of {users.length} users
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+          {/* Results count */}
+          {filteredUsers.length > 0 && (
+            <div className="mt-3 sm:mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 text-center sm:text-left">
+                Showing {filteredUsers.length} of {users.length} users
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
 
       {/* View User Details Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-2xl bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-slate-200 dark:border-slate-700 shadow-2xl">
-          <DialogHeader className="space-y-3 pb-4 border-b border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
-                <Eye className="h-6 w-6 text-white" />
+        <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-full bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-slate-200 dark:border-slate-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shrink-0">
+                <Eye className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div>
-                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 dark:from-blue-400 dark:via-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 dark:from-blue-400 dark:via-cyan-400 dark:to-blue-400 bg-clip-text text-transparent truncate">
                   User Details
                 </DialogTitle>
-                <DialogDescription className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
                   View complete information about this user
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
           {selectedUser && (
-            <div className="max-h-[60vh] overflow-y-auto space-y-6 py-6 px-1 scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-500">
+            <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 py-4 sm:py-6 px-1 scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-500">
               {/* User Profile Card */}
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
-                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-200 dark:border-blue-700 flex items-center justify-center overflow-hidden relative shadow-md">
+              <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-200 dark:border-blue-700 flex items-center justify-center overflow-hidden relative shadow-md shrink-0">
                   {selectedUser.image ? (
                     <Image
                       src={selectedUser.image}
@@ -829,11 +932,11 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                     </span>
                   )}
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 truncate">
                     {selectedUser.name || "No name"}
                   </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 truncate">
                     {selectedUser.email || "No email"}
                   </p>
                 </div>
@@ -841,29 +944,14 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
 
               {/* Information Section Header */}
               <div className="flex items-center gap-2">
-                <div className="h-1 w-1 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                <div className="h-1 w-1 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 shrink-0"></div>
+                <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100">
                   Account Information
                 </h3>
               </div>
 
               {/* User Information Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Role */}
-                <div className="p-4 rounded-lg bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
-                  <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    Role
-                  </Label>
-                  <div className="mt-2">
-                    <Badge className={getRoleColor(selectedUser.role)}>
-                      {selectedUser.role === "USER"
-                        ? "Student"
-                        : selectedUser.role.charAt(0) +
-                          selectedUser.role.slice(1).toLowerCase()}
-                    </Badge>
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
                 {/* Status */}
                 <div className="p-4 rounded-lg bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
                   <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
@@ -983,13 +1071,13 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
               </div>
             </div>
           )}
-          <DialogFooter className="border-t border-slate-200 dark:border-slate-700 pt-6">
+          <DialogFooter className="border-t border-slate-200 dark:border-slate-700 pt-4 sm:pt-6 flex-shrink-0">
             <Button
               variant="outline"
               onClick={() => setViewDialogOpen(false)}
-              className="border-2 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+              className="w-full sm:w-auto border-2 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 min-h-[44px] text-sm sm:text-base"
             >
-              <X className="mr-2 h-4 w-4" />
+              <X className="mr-2 h-4 w-4 shrink-0" />
               Close
             </Button>
           </DialogFooter>
@@ -998,7 +1086,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
 
       {/* Delete Confirmation Alert Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+        <AlertDialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-red-500" />
@@ -1022,26 +1110,26 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
               </div>
             )}
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <AlertDialogCancel
               disabled={loading}
-              className="border-slate-300 dark:border-slate-600"
+              className="w-full sm:w-auto border-slate-300 dark:border-slate-600 min-h-[44px] text-sm sm:text-base order-2 sm:order-1"
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={loading}
-              className="bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white"
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white min-h-[44px] text-sm sm:text-base order-1 sm:order-2"
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
                   Deleting...
                 </>
               ) : (
                 <>
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <Trash2 className="mr-2 h-4 w-4 shrink-0" />
                   Delete User
                 </>
               )}
@@ -1052,23 +1140,23 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
 
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-lg bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-slate-200 dark:border-slate-700 shadow-2xl">
-          <DialogHeader className="space-y-3 pb-4 border-b border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg">
-                <Edit className="h-6 w-6 text-white" />
+        <DialogContent className="max-w-lg w-[calc(100vw-1rem)] sm:w-full bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-slate-200 dark:border-slate-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg shrink-0">
+                <Edit className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div>
-                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 dark:from-purple-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 dark:from-purple-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
                   Edit User Profile
                 </DialogTitle>
-                <DialogDescription className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
                   Update user information and permissions
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
-          <div className="space-y-6 py-6">
+          <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 py-4 sm:py-6 px-1">
             {/* Basic Information Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -1088,7 +1176,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                   onChange={(e) =>
                     setEditForm({ ...editForm, name: e.target.value })
                   }
-                  className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 h-11"
+                  className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 min-h-[44px] text-base sm:text-sm"
                   placeholder="Enter user&apos;s full name"
                 />
               </div>
@@ -1106,47 +1194,9 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                   onChange={(e) =>
                     setEditForm({ ...editForm, email: e.target.value })
                   }
-                  className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 h-11"
+                  className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 min-h-[44px] text-base sm:text-sm"
                   placeholder="user@example.com"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label
-                  htmlFor="edit-role"
-                  className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                >
-                  User Role
-                </Label>
-                <Select
-                  value={editForm.role}
-                  onValueChange={(value) =>
-                    setEditForm({ ...editForm, role: value })
-                  }
-                >
-                  <SelectTrigger className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 h-11">
-                    <SelectValue placeholder="Select user role" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                    <SelectItem value="USER" className="hover:bg-slate-100 dark:hover:bg-slate-700">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-slate-400"></div>
-                        Student
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="INSTRUCTOR" className="hover:bg-slate-100 dark:hover:bg-slate-700">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-blue-400"></div>
-                        Instructor
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="ADMIN" className="hover:bg-slate-100 dark:hover:bg-slate-700">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-purple-400"></div>
-                        Admin
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 
@@ -1249,30 +1299,30 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
               </div>
             </div>
           </div>
-          <DialogFooter className="border-t border-slate-200 dark:border-slate-700 pt-6">
-            <div className="flex gap-3 w-full sm:w-auto">
+          <DialogFooter className="border-t border-slate-200 dark:border-slate-700 pt-4 sm:pt-6 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
               <Button
                 variant="outline"
                 onClick={() => setEditDialogOpen(false)}
                 disabled={loading}
-                className="flex-1 sm:flex-initial border-2 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                className="w-full sm:flex-initial border-2 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 min-h-[44px] text-sm sm:text-base"
               >
-                <X className="mr-2 h-4 w-4" />
+                <X className="mr-2 h-4 w-4 shrink-0" />
                 Cancel
               </Button>
               <Button
                 onClick={handleSaveEdit}
                 disabled={loading}
-                className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:flex-initial bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] text-sm sm:text-base"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
                     Saving Changes...
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="mr-2 h-4 w-4" />
+                    <CheckCircle className="mr-2 h-4 w-4 shrink-0" />
                     Save Changes
                   </>
                 )}

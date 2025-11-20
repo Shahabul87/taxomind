@@ -12,7 +12,7 @@
  */
 
 import { db } from "@/lib/db";
-import { UserRole } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
 import { logger } from "@/lib/logger";
 
 // Configuration constants - these should be moved to environment variables
@@ -58,7 +58,7 @@ export interface MFAEnforcementStatus {
 export interface AdminMFAInfo {
   userId: string;
   email: string;
-  role: UserRole;
+  role: AdminRole;
   isTwoFactorEnabled: boolean;
   totpEnabled: boolean;
   totpVerified: boolean;
@@ -74,9 +74,9 @@ export function calculateMFAEnforcementStatus(
   user: {
     createdAt: Date;
     isTwoFactorEnabled: boolean;
-    totpEnabled: boolean;
-    totpVerified: boolean;
-    role: UserRole;
+    totpEnabled: boolean | null;
+    totpVerified: boolean | null;
+    role: AdminRole;
   }
 ): MFAEnforcementStatus {
   // If MFA enforcement is globally disabled
@@ -95,7 +95,7 @@ export function calculateMFAEnforcementStatus(
   }
 
   // If user is not an admin, no enforcement needed
-  if (user.role !== "ADMIN") {
+  if (user.role !== AdminRole.ADMIN && user.role !== AdminRole.SUPERADMIN) {
     return {
       isRequired: false,
       hasGracePeriod: false,
@@ -184,7 +184,7 @@ export function calculateMFAEnforcementStatus(
  */
 export async function getAdminMFAInfo(userId: string): Promise<AdminMFAInfo | null> {
   try {
-    const user = await db.user.findUnique({
+    const admin = await db.adminAccount.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -194,25 +194,30 @@ export async function getAdminMFAInfo(userId: string): Promise<AdminMFAInfo | nu
         totpEnabled: true,
         totpVerified: true,
         createdAt: true,
-        lastLoginAt: true,
+        activeSessions: {
+          where: { isActive: true },
+          orderBy: { lastActiveAt: 'desc' },
+          take: 1,
+          select: { lastActiveAt: true },
+        },
       },
     });
 
-    if (!user) {
+    if (!admin) {
       return null;
     }
 
-    const mfaEnforcementStatus = calculateMFAEnforcementStatus(user);
+    const mfaEnforcementStatus = calculateMFAEnforcementStatus(admin);
 
     return {
-      userId: user.id,
-      email: user.email || "",
-      role: user.role,
-      isTwoFactorEnabled: user.isTwoFactorEnabled,
-      totpEnabled: user.totpEnabled,
-      totpVerified: user.totpVerified,
-      createdAt: user.createdAt,
-      lastLoginAt: user.lastLoginAt,
+      userId: admin.id,
+      email: admin.email,
+      role: admin.role,
+      isTwoFactorEnabled: admin.isTwoFactorEnabled,
+      totpEnabled: admin.totpEnabled ?? false,
+      totpVerified: admin.totpVerified ?? false,
+      createdAt: admin.createdAt,
+      lastLoginAt: admin.activeSessions[0]?.lastActiveAt ?? null,
       mfaEnforcementStatus,
     };
   } catch (error) {
@@ -242,7 +247,7 @@ export async function shouldBlockAdminAccess(
   }
 
   // If user is not an admin, don&apos;t block
-  if (mfaInfo.role !== "ADMIN") {
+  if (mfaInfo.role !== AdminRole.ADMIN && mfaInfo.role !== AdminRole.SUPERADMIN) {
     return { shouldBlock: false };
   }
 
@@ -280,17 +285,17 @@ export async function shouldBlockAdminAccess(
  * Check if MFA should be enforced during sign-in
  */
 export function shouldEnforceMFAOnSignIn(user: {
-  role: UserRole;
+  role: AdminRole;
   isTwoFactorEnabled: boolean;
-  totpEnabled: boolean;
-  totpVerified: boolean;
+  totpEnabled: boolean | null;
+  totpVerified: boolean | null;
   createdAt: Date;
 }): { enforce: boolean; reason: string } {
   if (!MFA_ENFORCEMENT_CONFIG.ENFORCEMENT_ENABLED) {
     return { enforce: false, reason: "MFA enforcement is disabled" };
   }
 
-  if (user.role !== "ADMIN") {
+  if (user.role !== AdminRole.ADMIN && user.role !== AdminRole.SUPERADMIN) {
     return { enforce: false, reason: "User is not an admin" };
   }
 
@@ -361,8 +366,7 @@ export async function logMFAEnforcementAction(
  */
 export async function getMFAEnforcementStats() {
   try {
-    const allAdmins = await db.user.findMany({
-      where: { role: "ADMIN" },
+    const allAdmins = await db.adminAccount.findMany({
       select: {
         id: true,
         email: true,
@@ -371,7 +375,6 @@ export async function getMFAEnforcementStats() {
         totpEnabled: true,
         totpVerified: true,
         createdAt: true,
-        lastLoginAt: true,
       },
     });
 

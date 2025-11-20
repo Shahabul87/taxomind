@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserRole } from "@prisma/client";
+// UserRole removed - users no longer have roles, use isTeacher flag instead
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,28 +29,28 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Edit, Users, Shield, GraduationCap } from "lucide-react";
+import { Trash2, Edit, Users, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 
 interface User {
   id: string;
   name: string | null;
   email: string | null;
-  role: UserRole;
+  isTeacher: boolean;
   createdAt: string;
   emailVerified: Date | null;
 }
 
-const roleConfig = {
-  [UserRole.USER]: {
-    label: "User",
-    color: "bg-blue-100 text-blue-800",
+const userTypeConfig = {
+  teacher: {
+    label: "Teacher",
+    color: "bg-purple-100 text-purple-800",
     icon: GraduationCap
   },
-  [UserRole.ADMIN]: {
-    label: "Admin",
-    color: "bg-purple-100 text-purple-800",
-    icon: Shield
+  user: {
+    label: "User",
+    color: "bg-blue-100 text-blue-800",
+    icon: Users
   }
 };
 
@@ -58,7 +58,7 @@ export function UserManagementTable() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newRole, setNewRole] = useState<UserRole | "">("");
+  const [newUserType, setNewUserType] = useState<"teacher" | "user" | "">("");
 
   useEffect(() => {
     fetchUsers();
@@ -80,27 +80,27 @@ export function UserManagementTable() {
     }
   };
 
-  const handleRoleChange = async (userId: string, role: UserRole) => {
+  const handleUserTypeChange = async (userId: string, isTeacher: boolean) => {
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ isTeacher }),
       });
 
       if (response.ok) {
-        toast.success("Role updated successfully");
+        toast.success("User type updated successfully");
         fetchUsers();
         setEditingUser(null);
-        setNewRole("");
+        setNewUserType("");
       } else {
         const data = await response.json();
-        toast.error(data.error || "Failed to update role");
+        toast.error(data.error || "Failed to update user type");
       }
     } catch (error: any) {
-      toast.error("Error updating role");
+      toast.error("Error updating user type");
     }
   };
 
@@ -124,22 +124,24 @@ export function UserManagementTable() {
     }
   };
 
-  const getRoleStats = () => {
+  const getUserTypeStats = () => {
     const stats = {
-      [UserRole.USER]: 0,
-      [UserRole.ADMIN]: 0,
+      teacher: 0,
+      user: 0,
     };
-    
+
     users.forEach(user => {
-      if (user.role in stats) {
-        stats[user.role as keyof typeof stats]++;
+      if (user.isTeacher) {
+        stats.teacher++;
+      } else {
+        stats.user++;
       }
     });
-    
+
     return stats;
   };
 
-  const stats = getRoleStats();
+  const stats = getUserTypeStats();
 
   if (loading) {
     return <div className="flex justify-center p-8">Loading users...</div>;
@@ -147,12 +149,12 @@ export function UserManagementTable() {
 
   return (
     <div className="space-y-6">
-      {/* Role Statistics */}
+      {/* User Type Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {Object.entries(roleConfig).map(([role, config]) => {
+        {Object.entries(userTypeConfig).map(([type, config]) => {
           const Icon = config.icon;
           return (
-            <Card key={role}>
+            <Card key={type}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   {config.label}s
@@ -161,7 +163,7 @@ export function UserManagementTable() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {stats[role as keyof typeof stats] || 0}
+                  {stats[type as keyof typeof stats] || 0}
                 </div>
               </CardContent>
             </Card>
@@ -180,7 +182,7 @@ export function UserManagementTable() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Verified</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>Actions</TableHead>
@@ -188,9 +190,10 @@ export function UserManagementTable() {
             </TableHeader>
             <TableBody>
               {users.map((user) => {
-                const roleInfo = roleConfig[user.role as keyof typeof roleConfig];
-                const Icon = roleInfo?.icon;
-                
+                const userType = user.isTeacher ? "teacher" : "user";
+                const userInfo = userTypeConfig[userType];
+                const Icon = userInfo.icon;
+
                 return (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
@@ -198,9 +201,9 @@ export function UserManagementTable() {
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge className={roleInfo?.color || "bg-gray-100 text-gray-800"}>
-                        {Icon && <Icon className="w-3 h-3 mr-1" />}
-                        {roleInfo?.label || user.role}
+                      <Badge className={userInfo.color}>
+                        <Icon className="w-3 h-3 mr-1" />
+                        {userInfo.label}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -220,7 +223,7 @@ export function UserManagementTable() {
                               size="sm"
                               onClick={() => {
                                 setEditingUser(user);
-                                setNewRole(user.role);
+                                setNewUserType(user.isTeacher ? "teacher" : "user");
                               }}
                             >
                               <Edit className="w-4 h-4" />
@@ -228,22 +231,22 @@ export function UserManagementTable() {
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Edit User Role</DialogTitle>
+                              <DialogTitle>Edit User Type</DialogTitle>
                               <DialogDescription>
-                                Change the role for {user.name || user.email}
+                                Change the user type for {user.name || user.email}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="py-4">
                               <Select
-                                value={newRole}
-                                onValueChange={(value: UserRole) => setNewRole(value)}
+                                value={newUserType}
+                                onValueChange={(value: "teacher" | "user") => setNewUserType(value)}
                               >
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select a role" />
+                                  <SelectValue placeholder="Select a type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {Object.entries(roleConfig).map(([role, config]) => (
-                                    <SelectItem key={role} value={role}>
+                                  {Object.entries(userTypeConfig).map(([type, config]) => (
+                                    <SelectItem key={type} value={type}>
                                       <div className="flex items-center">
                                         <config.icon className="w-4 h-4 mr-2" />
                                         {config.label}
@@ -256,13 +259,13 @@ export function UserManagementTable() {
                             <DialogFooter>
                               <Button
                                 onClick={() => {
-                                  if (newRole && editingUser) {
-                                    handleRoleChange(editingUser.id, newRole);
+                                  if (newUserType && editingUser) {
+                                    handleUserTypeChange(editingUser.id, newUserType === "teacher");
                                   }
                                 }}
-                                disabled={!newRole || newRole === user.role}
+                                disabled={!newUserType || (newUserType === "teacher") === user.isTeacher}
                               >
-                                Update Role
+                                Update Type
                               </Button>
                             </DialogFooter>
                           </DialogContent>

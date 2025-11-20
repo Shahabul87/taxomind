@@ -65,7 +65,6 @@ export function TabbedDashboard({ user }: TabbedDashboardProps) {
       <div className="flex-1 overflow-hidden">
         {/* Background Elements */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-center opacity-30 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0.3))]" />
           <motion.div 
             animate={{ 
               x: [0, 20, 0],

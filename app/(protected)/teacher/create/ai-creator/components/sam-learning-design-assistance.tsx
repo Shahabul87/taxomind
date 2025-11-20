@@ -144,46 +144,47 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-3 sm:space-y-4", className)}>
       <div className="text-center">
-        <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+        <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent mb-1.5 sm:mb-2">
           SAM&apos;s Learning Design Assistance
         </h3>
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 px-2 break-words">
           Get AI-powered suggestions for learning objectives and cognitive focus
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* AI Learning Objectives Suggestions */}
-        <Card className="p-4 backdrop-blur-md bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-white/20 shadow-xl">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-blue-600" />
+        <Card className="p-3 sm:p-4 backdrop-blur-md bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-white/20 shadow-xl rounded-xl sm:rounded-2xl">
+          <div className="flex items-center justify-between mb-2.5 sm:mb-3">
+            <h3 className="font-semibold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2">
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
               AI Learning Objectives
             </h3>
             <Button 
               size="sm" 
               variant="outline" 
               onClick={() => setShowObjectiveSuggestions(!showObjectiveSuggestions)}
+              className="h-7 w-7 sm:h-8 sm:w-8 p-0"
             >
-              {showObjectiveSuggestions ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {showObjectiveSuggestions ? <ChevronUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
             </Button>
           </div>
           
-          <div className="text-xs mb-3 p-2 rounded-lg bg-white/30 dark:bg-slate-800/30 border border-white/20 text-blue-600 dark:text-blue-400">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-current opacity-60"></div>
-              <span className="font-medium">SAM can generate SMART learning objectives based on your course details</span>
+          <div className="text-[10px] xs:text-xs mb-2.5 sm:mb-3 p-2 rounded-lg bg-white/30 dark:bg-slate-800/30 border border-white/20 text-blue-600 dark:text-blue-400">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-current opacity-60 flex-shrink-0"></div>
+              <span className="font-medium break-words">SAM can generate SMART learning objectives based on your course details</span>
             </div>
           </div>
 
           {/* Objective Count Slider */}
-          <div className="mb-3 p-3 rounded-lg bg-white/40 dark:bg-slate-800/40 border border-white/20">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-blue-600" />
-                <Label className="text-sm font-medium">Number of Objectives: {objectiveCount}</Label>
+          <div className="mb-2.5 sm:mb-3 p-2.5 sm:p-3 rounded-lg bg-white/40 dark:bg-slate-800/40 border border-white/20">
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
+                <Label className="text-xs sm:text-sm font-medium">Number of Objectives: {objectiveCount}</Label>
               </div>
             </div>
             <Slider
@@ -194,51 +195,51 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
               step={1}
               className="w-full"
             />
-            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            <div className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400 mt-1 break-words">
               Choose how many learning objectives SAM should generate (3-10 objectives)
             </div>
           </div>
 
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-2 mb-2.5 sm:mb-3">
             <Button
               variant="outline"
               size="sm"
               onClick={generateLearningObjectives}
               disabled={!formData.courseTitle || !formData.courseShortOverview || isGeneratingObjectives}
-              className="flex-1 bg-white/50 dark:bg-slate-800/50 border-white/20 backdrop-blur-sm"
+              className="flex-1 bg-white/50 dark:bg-slate-800/50 border-white/20 backdrop-blur-sm h-9 sm:h-10 text-xs sm:text-sm"
             >
               {isGeneratingObjectives ? (
-                <><Loader2 className="h-3 w-3 mr-2 animate-spin" />Generating...</>
+                <><Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5 sm:mr-2 animate-spin" />Generating...</>
               ) : (
-                <><Sparkles className="h-3 w-3 mr-2" />Generate Objectives</>
+                <><Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5 sm:mr-2" />Generate Objectives</>
               )}
             </Button>
           </div>
           
           {showObjectiveSuggestions && (
-            <div className="space-y-3 max-h-64 overflow-y-auto">
+            <div className="space-y-2.5 sm:space-y-3 max-h-64 overflow-y-auto">
               {objectiveSuggestions.map((objective, index) => (
-                <div key={index} className="p-3 backdrop-blur-sm bg-white/70 dark:bg-slate-800/70 rounded-lg border border-white/20 shadow-lg hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-200">
-                  <div className="flex items-start justify-between mb-2">
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1 pr-2">
+                <div key={index} className="p-2.5 sm:p-3 backdrop-blur-sm bg-white/70 dark:bg-slate-800/70 rounded-lg border border-white/20 shadow-lg hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-200">
+                  <div className="flex items-start justify-between mb-2 gap-2">
+                    <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 flex-1 break-words">
                       {objective.text}
                     </p>
-                    <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-300/30">
+                    <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-300/30 text-[9px] xs:text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 flex-shrink-0">
                       {objective.bloomsLevel}
                     </Badge>
                   </div>
                   
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                  <p className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400 mb-2 break-words">
                     {objective.reasoning}
                   </p>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <div className="text-xs text-slate-500">Confidence:</div>
-                      <Progress value={objective.confidence * 100} className="w-16 h-1" />
-                      <span className="text-xs text-slate-500">{Math.round(objective.confidence * 100)}%</span>
+                  <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="text-[10px] xs:text-xs text-slate-500">Confidence:</div>
+                      <Progress value={objective.confidence * 100} className="w-12 xs:w-16 h-1" />
+                      <span className="text-[10px] xs:text-xs text-slate-500">{Math.round(objective.confidence * 100)}%</span>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => insertObjective(objective.text)} className="bg-white/50 dark:bg-slate-800/50 border-white/20 backdrop-blur-sm">
+                    <Button size="sm" variant="outline" onClick={() => insertObjective(objective.text)} className="bg-white/50 dark:bg-slate-800/50 border-white/20 backdrop-blur-sm h-8 sm:h-9 text-[10px] xs:text-xs w-full xs:w-auto">
                       <Plus className="h-3 w-3 mr-1" />
                       Add
                     </Button>
@@ -250,66 +251,67 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
         </Card>
 
         {/* AI Bloom's Taxonomy Recommendations */}
-        <Card className="p-4 backdrop-blur-md bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 border border-white/20 shadow-xl">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-green-600" />
+        <Card className="p-3 sm:p-4 backdrop-blur-md bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 border border-white/20 shadow-xl rounded-xl sm:rounded-2xl">
+          <div className="flex items-center justify-between mb-2.5 sm:mb-3">
+            <h3 className="font-semibold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2">
+              <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
               SAM&apos;s Bloom&apos;s Recommendations
             </h3>
             <Button 
               size="sm" 
               variant="outline" 
               onClick={() => setShowBloomsRecommendations(!showBloomsRecommendations)}
+              className="h-7 w-7 sm:h-8 sm:w-8 p-0"
             >
-              {showBloomsRecommendations ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {showBloomsRecommendations ? <ChevronUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
             </Button>
           </div>
           
-          <div className="text-xs mb-3 p-2 rounded-lg bg-white/30 dark:bg-slate-800/30 border border-white/20 text-green-600 dark:text-green-400">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-current opacity-60"></div>
-              <span className="font-medium">Get cognitive level recommendations based on your course design</span>
+          <div className="text-[10px] xs:text-xs mb-2.5 sm:mb-3 p-2 rounded-lg bg-white/30 dark:bg-slate-800/30 border border-white/20 text-green-600 dark:text-green-400">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-current opacity-60 flex-shrink-0"></div>
+              <span className="font-medium break-words">Get cognitive level recommendations based on your course design</span>
             </div>
           </div>
 
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-2 mb-2.5 sm:mb-3">
             <Button
               variant="outline"
               size="sm"
               onClick={generateBloomsRecommendations}
               disabled={!formData.courseTitle || !formData.courseShortOverview || isGeneratingBlooms}
-              className="flex-1 bg-white/50 dark:bg-slate-800/50 border-white/20 backdrop-blur-sm"
+              className="flex-1 bg-white/50 dark:bg-slate-800/50 border-white/20 backdrop-blur-sm h-9 sm:h-10 text-xs sm:text-sm"
             >
               {isGeneratingBlooms ? (
-                <><Loader2 className="h-3 w-3 mr-2 animate-spin" />Analyzing...</>
+                <><Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5 sm:mr-2 animate-spin" />Analyzing...</>
               ) : (
-                <><Lightbulb className="h-3 w-3 mr-2" />Get Recommendations</>
+                <><Lightbulb className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5 sm:mr-2" />Get Recommendations</>
               )}
             </Button>
           </div>
           
           {showBloomsRecommendations && bloomsRecommendations && (
-            <div className="space-y-3 max-h-64 overflow-y-auto">
+            <div className="space-y-2.5 sm:space-y-3 max-h-64 overflow-y-auto">
               {/* Reasoning */}
-              <div className="p-3 backdrop-blur-sm bg-white/70 dark:bg-slate-800/70 rounded-lg border border-white/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Info className="h-3 w-3 text-blue-600" />
-                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">SAM&apos;s Analysis</span>
+              <div className="p-2.5 sm:p-3 backdrop-blur-sm bg-white/70 dark:bg-slate-800/70 rounded-lg border border-white/20">
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                  <Info className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600 flex-shrink-0" />
+                  <span className="text-[10px] xs:text-xs font-medium text-blue-600 dark:text-blue-400">SAM&apos;s Analysis</span>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
+                <p className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400 break-words">
                   {bloomsRecommendations.recommendations?.reasoning}
                 </p>
               </div>
 
               {/* Primary Recommendations */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Recommended Levels</span>
+                <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-2">
+                  <span className="text-[10px] xs:text-xs font-medium text-slate-700 dark:text-slate-300">Recommended Levels</span>
                   <Button 
                     size="sm" 
                     variant="outline" 
                     onClick={() => applyAllBloomsRecommendations(bloomsRecommendations.recommendations?.recommendations)}
-                    className="bg-white/50 dark:bg-slate-800/50 border-white/20 backdrop-blur-sm"
+                    className="bg-white/50 dark:bg-slate-800/50 border-white/20 backdrop-blur-sm h-8 sm:h-9 text-[10px] xs:text-xs w-full xs:w-auto"
                     disabled={!Array.isArray(bloomsRecommendations.recommendations?.recommendations)}
                   >
                     Apply All
@@ -318,19 +320,19 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
                 {Array.isArray(bloomsRecommendations.recommendations?.recommendations) && bloomsRecommendations.recommendations.recommendations.map((level: string, index: number) => {
                   const levelInfo = BLOOMS_LEVELS.find(l => l.value === level);
                   return (
-                    <div key={index} className="p-2 backdrop-blur-sm bg-white/60 dark:bg-slate-800/60 rounded border border-white/20 flex items-center justify-between">
-                      <div>
-                        <div className="text-xs font-medium text-slate-700 dark:text-slate-300">{levelInfo?.label}</div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">{levelInfo?.description}</div>
+                    <div key={index} className="p-2 sm:p-2.5 backdrop-blur-sm bg-white/60 dark:bg-slate-800/60 rounded border border-white/20 flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] xs:text-xs font-medium text-slate-700 dark:text-slate-300 break-words">{levelInfo?.label}</div>
+                        <div className="text-[9px] xs:text-[10px] text-slate-500 dark:text-slate-400 break-words">{levelInfo?.description}</div>
                       </div>
                       <Button 
                         size="sm" 
                         variant="outline" 
                         onClick={() => applyBloomsRecommendation(level)}
-                        className="bg-white/50 dark:bg-slate-800/50 border-white/20 backdrop-blur-sm"
+                        className="bg-white/50 dark:bg-slate-800/50 border-white/20 backdrop-blur-sm h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0"
                         disabled={formData.bloomsFocus.includes(level)}
                       >
-                        {formData.bloomsFocus.includes(level) ? <CheckCircle className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                        {formData.bloomsFocus.includes(level) ? <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
                       </Button>
                     </div>
                   );
@@ -340,7 +342,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
               {/* Warnings */}
               {bloomsRecommendations.recommendations?.warnings && bloomsRecommendations.recommendations.warnings.length > 0 && (
                 <div className="space-y-2">
-                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Considerations</span>
+                  <span className="text-[10px] xs:text-xs font-medium text-amber-600 dark:text-amber-400">Considerations</span>
                   {bloomsRecommendations.recommendations.warnings.map((warning: any, index: number) => (
                     <div key={index} className={cn(
                       "p-2 rounded border",
@@ -348,9 +350,9 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
                       warning.severity === 'medium' ? "bg-yellow-50/50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-700" :
                       "bg-blue-50/50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-700"
                     )}>
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle className="h-3 w-3 mt-0.5 text-current" />
-                        <span className="text-xs">{warning.message}</span>
+                      <div className="flex items-start gap-1.5 sm:gap-2">
+                        <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5 mt-0.5 text-current flex-shrink-0" />
+                        <span className="text-[10px] xs:text-xs break-words">{warning.message}</span>
                       </div>
                     </div>
                   ))}

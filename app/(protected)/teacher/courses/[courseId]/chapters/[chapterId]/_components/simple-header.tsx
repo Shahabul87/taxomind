@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { UserRole } from "@prisma/client";
+// UserRole removed - users no longer have roles
 
 interface SimpleHeaderProps {
   user: {
     id: string | undefined;
     name?: string | null;
     image?: string | null;
-    role?: UserRole;
+    isTeacher?: boolean;
     isTwoFactorEnabled?: boolean;
     isOAuth?: boolean;
   } | null;

@@ -93,7 +93,7 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
   }
 
   return ( 
-    <div className="p-6">
+    <div className="p-3 sm:p-4 md:p-6">
       <Form {...form}>
         <form
           id="create-course-form"
@@ -101,14 +101,14 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
           data-purpose="create-new-course"
           data-entity-type="course"
           onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-8"
+          className="space-y-6 sm:space-y-8"
         >
           <FormField
             control={form.control}
             name="title"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-900 dark:text-gray-200 font-semibold">
+                <FormLabel className="text-sm sm:text-base text-gray-900 dark:text-gray-200 font-semibold">
                   Course Title
                 </FormLabel>
                 <FormControl>
@@ -121,7 +121,7 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
                     data-validation="required,min:3,max:100"
                     data-content-type="course-title"
                     className={cn(
-                      "text-base font-medium transition-all duration-200",
+                      "text-sm sm:text-base font-medium transition-all duration-200 h-10 sm:h-11",
                       "bg-white dark:bg-gray-900/50",
                       "border-gray-200 dark:border-gray-700/50",
                       "text-gray-900 dark:text-gray-200",
@@ -130,43 +130,45 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
                     )}
                   />
                 </FormControl>
-                <FormDescription className="text-gray-600 dark:text-gray-400">
+                <FormDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                   Choose a clear and engaging title that describes your course content.
                 </FormDescription>
-                <FormMessage className="text-rose-600 dark:text-rose-400" />
+                <FormMessage className="text-rose-600 dark:text-rose-400 text-xs sm:text-sm" />
               </FormItem>
             )}
           />
-          <div className="flex items-center gap-x-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-x-2">
             {onBack ? (
               <Button
                 type="button"
                 variant="ghost"
                 onClick={onBack}
                 className={cn(
-                  "flex items-center gap-2",
+                  "flex items-center justify-center gap-2 h-9 sm:h-10 text-xs sm:text-sm",
                   "text-gray-600 dark:text-gray-400",
                   "hover:text-gray-900 dark:hover:text-white",
-                  "transition-colors"
+                  "transition-colors w-full sm:w-auto"
                 )}
               >
-                <ArrowLeft className="h-4 w-4" />
-                Back to selection
+                <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Back to selection</span>
+                <span className="xs:hidden">Back</span>
               </Button>
             ) : (
-              <Link href="/teacher/courses">
+              <Link href="/teacher/courses" className="w-full sm:w-auto">
                 <Button
                   type="button"
                   variant="ghost"
                   className={cn(
-                    "flex items-center gap-2",
+                    "flex items-center justify-center gap-2 h-9 sm:h-10 text-xs sm:text-sm w-full sm:w-auto",
                     "text-gray-600 dark:text-gray-400",
                     "hover:text-gray-900 dark:hover:text-white",
                     "transition-colors"
                   )}
                 >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to courses
+                  <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Back to courses</span>
+                  <span className="xs:hidden">Back</span>
                 </Button>
               </Link>
             )}
@@ -174,7 +176,7 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
               type="submit"
               disabled={!isValid || isSubmitting}
               className={cn(
-                "ml-auto transition-all duration-200",
+                "w-full sm:w-auto sm:ml-auto transition-all duration-200 h-9 sm:h-10 text-xs sm:text-sm",
                 "bg-purple-600 hover:bg-purple-700",
                 "dark:bg-purple-500 dark:hover:bg-purple-600",
                 "text-white"
@@ -182,7 +184,7 @@ export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionPro
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
                   Creating...
                 </>
               ) : (

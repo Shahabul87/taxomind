@@ -92,38 +92,38 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
 
         {/* Enterprise Header with Status Bar */}
         <div className="sticky top-0 z-40 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800">
-          <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <div className="container mx-auto px-3 sm:px-4 md:px-6 py-2.5 sm:py-3">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
               {/* Breadcrumb Navigation */}
-              <nav className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm overflow-x-auto max-w-full">
-                <Link href="/teacher/courses" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors whitespace-nowrap">
+              <nav className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm overflow-x-auto w-full sm:w-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] -mx-3 sm:mx-0 px-3 sm:px-0">
+                <Link href="/teacher/courses" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors whitespace-nowrap flex-shrink-0">
                   Courses
                 </Link>
-                <span className="text-gray-400 dark:text-gray-600">/</span>
-                <Link href={`/teacher/courses/${params.courseId}`} className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors truncate max-w-[100px] sm:max-w-[200px]">
+                <span className="text-gray-400 dark:text-gray-600 flex-shrink-0">/</span>
+                <Link href={`/teacher/courses/${params.courseId}`} className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors truncate max-w-[120px] xs:max-w-[150px] sm:max-w-[200px] md:max-w-none flex-shrink-0">
                   {chapter.course.title}
                 </Link>
-                <span className="text-gray-400 dark:text-gray-600">/</span>
-                <span className="text-gray-900 dark:text-gray-200 font-medium truncate max-w-[100px] sm:max-w-none">{chapter.title || 'New Chapter'}</span>
+                <span className="text-gray-400 dark:text-gray-600 flex-shrink-0">/</span>
+                <span className="text-gray-900 dark:text-gray-200 font-medium truncate max-w-[120px] xs:max-w-[150px] sm:max-w-[200px] md:max-w-none flex-shrink-0">{chapter.title || 'New Chapter'}</span>
               </nav>
 
               {/* Quick Actions */}
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 w-full sm:w-auto justify-between sm:justify-start">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href={`/courses/${params.courseId}/learn/${params.chapterId}`}>
-                      <Button variant="ghost" size="sm" className="gap-1.5 sm:gap-2 h-7 sm:h-8 px-2 sm:px-3">
-                        <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                        <span className="hidden sm:inline text-xs sm:text-sm">Preview</span>
+                    <Link href={`/courses/${params.courseId}/learn/${params.chapterId}`} className="flex-shrink-0">
+                      <Button variant="ghost" size="sm" className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm">
+                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="hidden xs:inline sm:inline">Preview</span>
                       </Button>
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent>Preview Chapter as Student</TooltipContent>
                 </Tooltip>
 
-                <Badge variant={chapter.isPublished ? "default" : "secondary"} className="gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1">
-                  <Shield className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                  {chapter.isPublished ? 'Published' : 'Draft'}
+                <Badge variant={chapter.isPublished ? "default" : "secondary"} className="gap-1 text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 sm:py-1.5 flex-shrink-0">
+                  <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <span className="whitespace-nowrap">{chapter.isPublished ? 'Published' : 'Draft'}</span>
                 </Badge>
               </div>
             </div>
@@ -166,71 +166,73 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
             className="mb-4 sm:mb-6 md:mb-8"
           >
             <Card className="shadow-xl border-gray-200 dark:border-gray-800 bg-white/40 dark:bg-gray-800/60 backdrop-blur-sm">
-              <CardHeader className="p-3 sm:p-4 md:p-6 pb-3 sm:pb-4">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
-                  <div className="space-y-2 sm:space-y-3">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+              <CardHeader className="p-4 sm:p-5 md:p-6 pb-4 sm:pb-5">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-5 md:gap-6">
+                  <div className="space-y-3 sm:space-y-3.5 flex-1 min-w-0">
+                    <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2.5 sm:gap-3">
                       <Link
                         href={`/teacher/courses/${params.courseId}`}
-                        className="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-white/50 dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                        className="inline-flex items-center px-2.5 sm:px-3 py-1.5 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-white/50 dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-800 transition-colors flex-shrink-0"
                       >
-                        <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                        <span className="hidden sm:inline">Back to Course</span>
-                        <span className="sm:hidden">Back</span>
+                        <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-1.5" />
+                        <span className="hidden xs:inline sm:inline">Back to Course</span>
+                        <span className="xs:hidden">Back</span>
                       </Link>
                       {chapter.isFree && (
-                        <Badge variant="outline" className="gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1">
-                          <Info className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                          Free Preview
+                        <Badge variant="outline" className="gap-1 text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 sm:py-1 flex-shrink-0">
+                          <Info className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          <span className="whitespace-nowrap">Free Preview</span>
                         </Badge>
                       )}
                     </div>
 
-                    <div>
-                      <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 dark:from-purple-400 dark:via-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent">
+                    <div className="min-w-0">
+                      <CardTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 dark:from-purple-400 dark:via-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent break-words">
                         Chapter Configuration
                       </CardTitle>
-                      <CardDescription className="text-xs sm:text-sm md:text-base mt-1 sm:mt-2 hidden sm:block">
+                      <CardDescription className="text-xs sm:text-sm md:text-base mt-1.5 sm:mt-2 hidden sm:block">
                         Build comprehensive chapter content with sections and learning materials
                       </CardDescription>
-                      <CardDescription className="text-xs mt-1 sm:hidden">
+                      <CardDescription className="text-xs mt-1.5 sm:hidden">
                         Build chapter content
                       </CardDescription>
                     </div>
                   </div>
 
                   {/* Completion Metrics */}
-                  <div className="flex flex-col items-start sm:items-end gap-2 sm:gap-3 md:gap-4">
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 sm:gap-2.5 md:gap-3 lg:gap-4 flex-shrink-0">
                     <div className="text-left sm:text-right">
-                      <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                      <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">
                         {contentStats.completionPercentage}%
                       </div>
-                      <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         {contentStats.requiredFieldsCompleted}/{contentStats.totalRequiredFields} Required Fields
                       </div>
                     </div>
 
-                    <ChapterActions
-                      disabled={contentStats.completionPercentage < 100}
-                      courseId={params.courseId}
-                      chapterId={params.chapterId}
-                      isPublished={chapter.isPublished}
-                    />
+                    <div className="w-full sm:w-auto">
+                      <ChapterActions
+                        disabled={contentStats.completionPercentage < 100}
+                        courseId={params.courseId}
+                        chapterId={params.chapterId}
+                        isPublished={chapter.isPublished}
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* Content Metrics Dashboard */}
                 <div className="mt-4 sm:mt-5 md:mt-6 pt-4 sm:pt-5 md:pt-6 border-t border-gray-200 dark:border-gray-800">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
-                    <h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-3 sm:mb-4">
+                    <h4 className="text-[10px] sm:text-xs md:text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Content Analytics
                     </h4>
-                    <div className="flex gap-1 w-full sm:w-auto">
+                    <div className="flex gap-1.5 sm:gap-2 w-full sm:w-auto">
                       <Button
                         variant={activeMetricView === 'overview' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setActiveMetricView('overview')}
-                        className="flex-1 sm:flex-none h-7 sm:h-8 text-xs sm:text-sm"
+                        className="flex-1 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4"
                       >
                         Overview
                       </Button>
@@ -238,7 +240,7 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
                         variant={activeMetricView === 'detailed' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setActiveMetricView('detailed')}
-                        className="flex-1 sm:flex-none h-7 sm:h-8 text-xs sm:text-sm"
+                        className="flex-1 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4"
                       >
                         Detailed
                       </Button>
@@ -252,7 +254,7 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
-                        className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4"
+                        className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 md:gap-4"
                       >
                         <MetricCard
                           icon={Video}
@@ -535,13 +537,14 @@ const MetricCard = ({ icon: Icon, label, value, color }: MetricCardProps) => {
 
   return (
     <div className={cn(
-      "p-2 sm:p-2.5 md:p-3 rounded-lg backdrop-blur-sm",
+      "p-2.5 sm:p-3 md:p-3.5 rounded-lg backdrop-blur-sm",
       colorClasses[color],
-      "transition-all duration-200 hover:scale-105 hover:shadow-lg"
+      "transition-all duration-200 hover:scale-105 hover:shadow-lg",
+      "min-h-[60px] sm:min-h-[70px] md:min-h-[80px] flex flex-col justify-between"
     )}>
-      <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 mb-0.5 sm:mb-1" />
-      <div className="text-lg sm:text-xl md:text-2xl font-bold">{value}</div>
-      <div className="text-[10px] sm:text-xs opacity-70">{label}</div>
+      <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4.5 md:w-4.5 mb-1 sm:mb-1.5 flex-shrink-0" />
+      <div className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">{value}</div>
+      <div className="text-[10px] sm:text-xs md:text-sm opacity-70 leading-tight line-clamp-2">{label}</div>
     </div>
   );
 };

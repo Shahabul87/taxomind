@@ -6,15 +6,17 @@
 import { User } from '@prisma/client';
 
 /**
- * User Roles
+ * User Roles - DEPRECATED
+ * Users no longer have roles. Admin authentication is separate.
+ * Use isTeacher flag to distinguish between regular users and teachers.
  */
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  USER = 'USER',
-  TEACHER = 'TEACHER',
-  STUDENT = 'STUDENT',
-  GUEST = 'GUEST'
-}
+// export enum UserRole {
+//   ADMIN = 'ADMIN',
+//   USER = 'USER',
+//   TEACHER = 'TEACHER',
+//   STUDENT = 'STUDENT',
+//   GUEST = 'GUEST'
+// }
 
 /**
  * Authenticated User
@@ -23,7 +25,6 @@ export interface AuthenticatedUser {
   id: string;
   name: string | null;
   email: string | null;
-  role: UserRole;
   image: string | null;
   isOAuth?: boolean;
   isTwoFactorEnabled?: boolean;
@@ -55,7 +56,6 @@ export interface AuthToken {
   sub?: string;
   email?: string;
   name?: string;
-  role?: UserRole;
   isTwoFactorEnabled?: boolean;
   isOAuth?: boolean;
   sessionToken?: string;
@@ -82,7 +82,6 @@ export interface RegistrationData {
   email: string;
   password: string;
   name: string;
-  role?: UserRole;
   acceptTerms: boolean;
   newsletterOptIn?: boolean;
 }
@@ -107,7 +106,6 @@ export interface OAuthProvider {
 export interface JWTPayload {
   userId: string;
   email: string;
-  role: UserRole;
   sessionId?: string;
   iat: number;
   exp: number;

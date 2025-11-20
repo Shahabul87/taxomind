@@ -160,27 +160,27 @@ export const TitleForm = ({
       {/* Display Mode */}
       {!isEditing && (
         <div className="group relative">
-          <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4 transition-all duration-300">
-            <div className="flex-1 min-w-0">
+          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2.5 sm:gap-3 md:gap-4 transition-all duration-300">
+            <div className="flex-1 min-w-0 w-full xs:w-auto">
               {initialData.title ? (
                 <div className="space-y-2">
-                  <h3 className="text-base sm:text-lg font-medium leading-relaxed tracking-normal break-words text-slate-700 dark:text-slate-300">
+                  <h3 className="text-sm sm:text-base md:text-lg font-medium leading-relaxed tracking-normal break-words text-slate-700 dark:text-slate-300">
                     {initialData.title}
                   </h3>
-                  <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 shadow-sm">
+                  <div className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 text-[10px] sm:text-[11px] md:text-xs text-slate-600 dark:text-slate-400 shadow-sm">
                     <span className="font-semibold tabular-nums">{characterCount}</span>
                     <span className="opacity-70">/ 100 chars</span>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
-                  <div className="flex items-center gap-2 px-3">
-                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                    <p className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-200">
+                <div className="space-y-2 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                  <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3">
+                    <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                    <p className="text-xs sm:text-sm md:text-base font-semibold text-slate-700 dark:text-slate-200">
                       No title set
                     </p>
                   </div>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                  <p className="text-[10px] sm:text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-2 sm:px-3 break-words">
                     Add a clear, descriptive title that captures what students will learn. Make it compelling and searchable.
                   </p>
                 </div>
@@ -191,20 +191,20 @@ export const TitleForm = ({
               variant="outline"
               size="sm"
               className={cn(
-                "flex-shrink-0 h-9 px-4",
+                "flex-shrink-0 h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto",
                 "bg-white/80 dark:bg-slate-800/80",
                 "border-slate-200 dark:border-slate-700",
                 "text-slate-700 dark:text-slate-300",
                 "hover:bg-slate-50 dark:hover:bg-slate-800",
                 "hover:border-purple-300 dark:hover:border-purple-600",
                 "hover:text-purple-600 dark:hover:text-purple-400",
-                "font-semibold text-sm",
+                "font-semibold text-xs sm:text-sm",
                 "transition-all duration-200",
                 "shadow-sm hover:shadow-md",
                 "backdrop-blur-sm"
               )}
             >
-              <Pencil className="h-4 w-4 mr-2" />
+              <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
               Edit
             </Button>
           </div>
@@ -241,23 +241,23 @@ export const TitleForm = ({
                           data-validation="required,min:1,max:100"
                           data-content-type="course-title"
                           className={cn(
-                            "pr-20",
+                            "pr-16 sm:pr-20",
                             "bg-white dark:bg-slate-900",
                             "border border-slate-300/60 dark:border-slate-600/60",
                             "text-slate-900 dark:text-slate-100",
                             "placeholder:text-slate-400 dark:placeholder:text-slate-500",
                             "focus:border-slate-400/70 dark:focus:border-slate-500/70",
                             "focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
-                            "text-base font-normal",
-                            "h-11",
+                            "text-sm sm:text-base font-normal",
+                            "h-10 sm:h-11",
                             "rounded-md",
                             "transition-all duration-200"
                           )}
                         />
                         <div
                           className={cn(
-                            "absolute right-3 top-1/2 -translate-y-1/2",
-                            "px-2.5 py-1 rounded-md text-xs font-bold",
+                            "absolute right-2 sm:right-3 top-1/2 -translate-y-1/2",
+                            "px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs font-bold",
                             "transition-colors duration-200",
                             characterCount > maxCharacters
                               ? "bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400"
@@ -270,20 +270,20 @@ export const TitleForm = ({
                         </div>
                       </div>
                     </FormControl>
-                    <FormMessage className="text-rose-600 dark:text-rose-400 text-sm font-medium" />
+                    <FormMessage className="text-rose-600 dark:text-rose-400 text-xs sm:text-sm font-medium" />
                   </FormItem>
                 )}
               />
 
               {/* Action buttons with keyboard shortcuts hint */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2 flex-1">
+              <div className="flex flex-col-reverse xs:flex-row items-stretch xs:items-center justify-between gap-2.5 sm:gap-3">
+                <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 flex-1">
                   <Button
                     disabled={!isValid || isSubmitting}
                     type="submit"
                     size="sm"
                     className={cn(
-                      "flex-1 sm:flex-initial h-10",
+                      "flex-1 xs:flex-initial h-10 sm:h-10 text-xs sm:text-sm",
                       "bg-gradient-to-r from-purple-600 to-indigo-600",
                       "hover:from-purple-700 hover:to-indigo-700",
                       "text-white font-bold",
@@ -294,8 +294,8 @@ export const TitleForm = ({
                     )}
                   >
                     {isSubmitting ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                         <span>Saving...</span>
                       </div>
                     ) : (
@@ -312,7 +312,7 @@ export const TitleForm = ({
                     }}
                     disabled={isSubmitting}
                     className={cn(
-                      "flex-1 sm:flex-initial h-10",
+                      "flex-1 xs:flex-initial h-10 sm:h-10 text-xs sm:text-sm",
                       "text-slate-700 dark:text-slate-300",
                       "border-slate-300 dark:border-slate-600",
                       "bg-white dark:bg-slate-800",
@@ -327,13 +327,13 @@ export const TitleForm = ({
                   </Button>
                 </div>
 
-                <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                  <kbd className="px-2 py-0.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded font-mono text-xs">
+                <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <kbd className="px-1.5 sm:px-2 py-0.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded font-mono text-[10px] sm:text-xs">
                     {typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}+S
                   </kbd>
                   <span>to save</span>
                   <span className="text-slate-400 dark:text-slate-500">•</span>
-                  <kbd className="px-2 py-0.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded font-mono text-xs">
+                  <kbd className="px-1.5 sm:px-2 py-0.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded font-mono text-[10px] sm:text-xs">
                     Esc
                   </kbd>
                   <span>to cancel</span>

@@ -37,10 +37,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    // Check access permissions
-    const hasAccess = course.userId === user.id || 
+    // Check access permissions - check if user is admin from AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: user.id },
+    });
+    const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
+
+    const hasAccess = course.userId === user.id ||
       (course.organizationId && await checkOrganizationAccess(user.id, course.organizationId)) ||
-      user.role === 'ADMIN';
+      isAdmin;
 
     if (!hasAccess) {
       // For students, check if they are enrolled
@@ -62,7 +67,6 @@ export async function POST(request: NextRequest) {
       {
         userId,
         courseId,
-        role: user.role,
         enginePreferences,
       },
       analysisDepth as any

@@ -460,12 +460,12 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50/40 via-orange-50/30 to-yellow-50/40 dark:from-amber-950/20 dark:via-orange-950/15 dark:to-yellow-950/20 p-6">
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-8 border border-slate-200/50 dark:border-slate-700/50">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Analyzing Your Course Market Value</h3>
-            <p className="text-slate-600 dark:text-slate-400">AI is researching current market trends for your skills...</p>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50/40 via-orange-50/30 to-yellow-50/40 dark:from-amber-950/20 dark:via-orange-950/15 dark:to-yellow-950/20 p-3 sm:p-4 md:p-6">
+        <div className="flex items-center justify-center py-12 sm:py-16 md:py-20">
+          <div className="text-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-slate-200/50 dark:border-slate-700/50 max-w-md mx-auto">
+            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-amber-500 mx-auto mb-3 sm:mb-4"></div>
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-2 break-words">Analyzing Your Course Market Value</h3>
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 break-words leading-relaxed">AI is researching current market trends for your skills...</p>
           </div>
         </div>
       </div>
@@ -473,108 +473,108 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50/40 via-orange-50/30 to-yellow-50/40 dark:from-amber-950/20 dark:via-orange-950/15 dark:to-yellow-950/20 p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50/40 via-orange-50/30 to-yellow-50/40 dark:from-amber-950/20 dark:via-orange-950/15 dark:to-yellow-950/20 p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 md:space-y-6">
       {/* Header with Course-Based Market Intelligence */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 dark:from-amber-400 dark:via-orange-400 dark:to-yellow-400 text-transparent bg-clip-text mb-2">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-4 sm:p-6 md:p-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 md:mb-6 gap-4 sm:gap-0">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 dark:from-amber-400 dark:via-orange-400 dark:to-yellow-400 text-transparent bg-clip-text mb-2 break-words">
               Course Market Intelligence
             </h2>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 break-words leading-relaxed">
               AI-powered analysis of your courses&apos; market value and career potential
             </p>
           </div>
-          <div className="text-right space-y-2">
-            <div className="text-sm text-slate-600 dark:text-slate-400">Courses Analyzed</div>
-            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{displayData.length}</div>
+          <div className="text-left sm:text-right space-y-2 w-full sm:w-auto">
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Courses Analyzed</div>
+            <div className="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{displayData.length}</div>
             
             {/* Auto-refresh Status */}
-            <div className="flex items-center space-x-2 text-sm">
-              <div className={`w-2 h-2 rounded-full ${autoRefreshEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-              <span className="text-slate-600 dark:text-slate-400">
+            <div className="flex items-center space-x-2 text-xs sm:text-sm">
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${autoRefreshEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+              <span className="text-slate-600 dark:text-slate-400 break-words">
                 {autoRefreshEnabled ? `Auto-refresh: ${formatCountdown(refreshCountdown)}` : 'Auto-refresh disabled'}
               </span>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-                className="p-1 h-6 w-6"
+                className="p-1 h-6 w-6 flex-shrink-0 touch-manipulation"
               >
                 {autoRefreshEnabled ? '⏸️' : '▶️'}
               </Button>
             </div>
             
-            <div className="text-xs text-slate-500 dark:text-slate-500">
+            <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500">
               Last updated: {lastRefresh.toLocaleTimeString()}
             </div>
           </div>
         </div>
         
         {/* Market Overview Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="text-center p-6 bg-emerald-50/50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200/50 dark:border-emerald-700/50">
-            <div className="flex items-center justify-center mb-3">
-              <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 shadow-sm">
-                <TrendingUp className="h-6 w-6 text-white" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          <div className="text-center p-4 sm:p-5 md:p-6 bg-emerald-50/50 dark:bg-emerald-900/20 rounded-lg sm:rounded-xl border border-emerald-200/50 dark:border-emerald-700/50">
+            <div className="flex items-center justify-center mb-2 sm:mb-3">
+              <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 shadow-sm">
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
             </div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-500 dark:from-emerald-400 dark:to-green-300 text-transparent bg-clip-text">
+            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-500 dark:from-emerald-400 dark:to-green-300 text-transparent bg-clip-text break-words">
               {Math.round(displayData.reduce((sum, course) => sum + course.marketPercentile, 0) / displayData.length)}%
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Avg Market Percentile</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 break-words">Avg Market Percentile</div>
           </div>
           
-          <div className="text-center p-6 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl border border-blue-200/50 dark:border-blue-700/50">
-            <div className="flex items-center justify-center mb-3">
-              <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm">
-                <DollarSign className="h-6 w-6 text-white" />
+          <div className="text-center p-4 sm:p-5 md:p-6 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg sm:rounded-xl border border-blue-200/50 dark:border-blue-700/50">
+            <div className="flex items-center justify-center mb-2 sm:mb-3">
+              <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm">
+                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
             </div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300 text-transparent bg-clip-text">
+            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300 text-transparent bg-clip-text break-words">
               ${Math.round(displayData.reduce((sum, course) => sum + course.averageSalary, 0) / displayData.length / 1000)}K
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Avg Salary Potential</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 break-words">Avg Salary Potential</div>
           </div>
           
-          <div className="text-center p-6 bg-purple-50/50 dark:bg-purple-900/20 rounded-xl border border-purple-200/50 dark:border-purple-700/50">
-            <div className="flex items-center justify-center mb-3">
-              <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-violet-500 shadow-sm">
-                <Briefcase className="h-6 w-6 text-white" />
+          <div className="text-center p-4 sm:p-5 md:p-6 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg sm:rounded-xl border border-purple-200/50 dark:border-purple-700/50">
+            <div className="flex items-center justify-center mb-2 sm:mb-3">
+              <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-purple-500 to-violet-500 shadow-sm">
+                <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
             </div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-violet-500 dark:from-purple-400 dark:to-violet-300 text-transparent bg-clip-text">
+            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-violet-500 dark:from-purple-400 dark:to-violet-300 text-transparent bg-clip-text break-words">
               {displayData.reduce((sum, course) => sum + course.jobOpenings, 0).toLocaleString()}
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Total Job Openings</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 break-words">Total Job Openings</div>
           </div>
           
-          <div className="text-center p-6 bg-orange-50/50 dark:bg-orange-900/20 rounded-xl border border-orange-200/50 dark:border-orange-700/50">
-            <div className="flex items-center justify-center mb-3">
-              <div className="p-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 shadow-sm">
-                <Target className="h-6 w-6 text-white" />
+          <div className="text-center p-4 sm:p-5 md:p-6 bg-orange-50/50 dark:bg-orange-900/20 rounded-lg sm:rounded-xl border border-orange-200/50 dark:border-orange-700/50">
+            <div className="flex items-center justify-center mb-2 sm:mb-3">
+              <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 shadow-sm">
+                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
             </div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-500 dark:from-orange-400 dark:to-amber-300 text-transparent bg-clip-text">
+            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-500 dark:from-orange-400 dark:to-amber-300 text-transparent bg-clip-text break-words">
               {Math.round(displayData.reduce((sum, course) => sum + course.competitivenessScore, 0) / displayData.length)}%
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Competitiveness Score</div>
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 break-words">Competitiveness Score</div>
           </div>
         </div>
       </div>
 
       {/* Course Portfolio Analysis */}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-5 md:space-y-6">
         {displayData.map((course, index) => (
-          <div key={course.id} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div key={course.id} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 md:p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
               
               {/* Course Info & Market Value */}
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{course.title}</h3>
-                    <Badge variant="secondary" className="bg-amber-100/80 text-amber-700 border-amber-200/50 dark:bg-amber-900/80 dark:text-amber-300 dark:border-amber-700/50">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 dark:text-white mb-2 break-words">{course.title}</h3>
+                    <Badge variant="secondary" className="bg-amber-100/80 text-amber-700 border-amber-200/50 dark:bg-amber-900/80 dark:text-amber-300 dark:border-amber-700/50 text-xs sm:text-sm">
                       {course.category}
                     </Badge>
                   </div>
@@ -583,34 +583,34 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
                     variant="outline"
                     onClick={() => performDeepMarketResearch(course.id)}
                     disabled={isAnalyzing}
-                    className="bg-white/50 dark:bg-slate-700/50 border-amber-200/50 dark:border-amber-700/50"
+                    className="bg-white/50 dark:bg-slate-700/50 border-amber-200/50 dark:border-amber-700/50 flex-shrink-0 min-h-[36px] sm:min-h-[32px] touch-manipulation"
                   >
-                    {isAnalyzing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    {isAnalyzing ? <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                   </Button>
                 </div>
                 
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-slate-600 dark:text-slate-400">Course Progress</span>
                     <span className="font-medium text-slate-900 dark:text-white">{course.completionPercentage}%</span>
                   </div>
-                  <Progress value={course.completionPercentage} className="h-2" />
+                  <Progress value={course.completionPercentage} className="h-1.5 sm:h-2" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="p-3 bg-green-50/50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-700/50">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">${(course.averageSalary / 1000).toFixed(0)}K</div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">Avg Salary</div>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 text-center">
+                  <div className="p-2.5 sm:p-3 bg-green-50/50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-700/50">
+                    <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400 break-words">${(course.averageSalary / 1000).toFixed(0)}K</div>
+                    <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1">Avg Salary</div>
                   </div>
-                  <div className="p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{course.marketPercentile}%</div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">Market Percentile</div>
+                  <div className="p-2.5 sm:p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
+                    <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 break-words">{course.marketPercentile}%</div>
+                    <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1">Market Percentile</div>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {course.skills.map((skill, skillIndex) => (
-                    <Badge key={skillIndex} variant="outline" className="text-xs bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-200/50 dark:border-yellow-700/50">
+                    <Badge key={skillIndex} variant="outline" className="text-[10px] sm:text-xs bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-200/50 dark:border-yellow-700/50 break-words">
                       {skill}
                     </Badge>
                   ))}
@@ -618,14 +618,14 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
               </div>
 
               {/* Cognitive Development Analysis */}
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Cognitive Progression</h4>
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-center space-x-2 mb-2 sm:mb-3">
+                  <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                  <h4 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white break-words">Cognitive Progression</h4>
                 </div>
                 
-                <div className="bg-gradient-to-br from-purple-50/30 to-indigo-50/30 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-xl p-4">
-                  <ResponsiveContainer width="100%" height={200}>
+                <div className="bg-gradient-to-br from-purple-50/30 to-indigo-50/30 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <ResponsiveContainer width="100%" height={160} className="sm:h-[180px] md:h-[200px]">
                     <RadarChart data={[
                       { level: 'Remember', value: course.cognitiveProgress.remember },
                       { level: 'Understand', value: course.cognitiveProgress.understand },
@@ -635,26 +635,26 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
                       { level: 'Create', value: course.cognitiveProgress.create }
                     ]}>
                       <PolarGrid stroke="#e2e8f0" />
-                      <PolarAngleAxis dataKey="level" className="text-slate-600 dark:text-slate-400 text-xs" />
+                      <PolarAngleAxis dataKey="level" className="text-slate-600 dark:text-slate-400 text-[10px] sm:text-xs" />
                       <PolarRadiusAxis angle={90} domain={[0, 100]} className="text-slate-500" />
                       <Radar dataKey="value" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.3} />
-                      <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
+                      <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px' }} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   {Object.entries(course.cognitiveProgress).map(([level, value]) => (
-                    <div key={level} className="flex items-center justify-between text-sm">
-                      <span className="text-slate-600 dark:text-slate-400 capitalize">{level}</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-1">
+                    <div key={level} className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="text-slate-600 dark:text-slate-400 capitalize break-words">{level}</span>
+                      <div className="flex items-center space-x-1.5 sm:space-x-2">
+                        <div className="w-16 sm:w-20 bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-1">
                           <div 
                             className="h-1 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500"
                             style={{ width: `${value}%` }}
                           />
                         </div>
-                        <span className="font-medium text-slate-900 dark:text-white w-8">{value}%</span>
+                        <span className="font-medium text-slate-900 dark:text-white w-7 sm:w-8 text-right">{value}%</span>
                       </div>
                     </div>
                   ))}
@@ -662,46 +662,46 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
               </div>
 
               {/* Market Competitiveness */}
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-3">
-                  <BarChart3 className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                  <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Market Position</h4>
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-center space-x-2 mb-2 sm:mb-3">
+                  <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                  <h4 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white break-words">Market Position</h4>
                 </div>
 
-                <div className="text-center p-4 bg-gradient-to-br from-orange-50/50 to-amber-50/50 dark:from-orange-950/30 dark:to-amber-950/30 rounded-xl border border-orange-200/50 dark:border-orange-700/50">
-                  <div className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-500 dark:from-orange-400 dark:to-amber-300 text-transparent bg-clip-text mb-2">
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-orange-50/50 to-amber-50/50 dark:from-orange-950/30 dark:to-amber-950/30 rounded-lg sm:rounded-xl border border-orange-200/50 dark:border-orange-700/50">
+                  <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-500 dark:from-orange-400 dark:to-amber-300 text-transparent bg-clip-text mb-1 sm:mb-2 break-words">
                     {course.competitivenessScore}%
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">Competitiveness Score</div>
+                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words">Competitiveness Score</div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-emerald-50/50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200/50 dark:border-emerald-700/50">
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Market Demand</span>
-                    <div className="flex items-center space-x-2">
-                      <TrendingUp className="h-4 w-4 text-emerald-500" />
-                      <span className="font-medium text-emerald-600 dark:text-emerald-400">{course.marketDemand}%</span>
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex items-center justify-between p-2.5 sm:p-3 bg-emerald-50/50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200/50 dark:border-emerald-700/50">
+                    <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words">Market Demand</span>
+                    <div className="flex items-center space-x-1.5 sm:space-x-2">
+                      <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                      <span className="font-medium text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm">{course.marketDemand}%</span>
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Job Openings</span>
-                    <span className="font-medium text-blue-600 dark:text-blue-400">{course.jobOpenings.toLocaleString()}</span>
+                  <div className="flex items-center justify-between p-2.5 sm:p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
+                    <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words">Job Openings</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 text-xs sm:text-sm">{course.jobOpenings.toLocaleString()}</span>
                   </div>
                   
-                  <div className="flex items-center justify-between p-3 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg border border-purple-200/50 dark:border-purple-700/50">
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Growth Projection</span>
-                    <span className="font-medium text-purple-600 dark:text-purple-400">+{course.growthProjection}%</span>
+                  <div className="flex items-center justify-between p-2.5 sm:p-3 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg border border-purple-200/50 dark:border-purple-700/50">
+                    <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words">Growth Projection</span>
+                    <span className="font-medium text-purple-600 dark:text-purple-400 text-xs sm:text-sm">+{course.growthProjection}%</span>
                   </div>
                 </div>
 
                 {/* AI Recommendations */}
-                <div className="mt-4 p-3 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 dark:from-amber-950/20 dark:to-yellow-950/20 rounded-lg border border-amber-200/50 dark:border-amber-700/50">
+                <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 dark:from-amber-950/20 dark:to-yellow-950/20 rounded-lg border border-amber-200/50 dark:border-amber-700/50">
                   <div className="flex items-start space-x-2">
-                    <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">AI Recommendation</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">
+                    <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] sm:text-xs font-medium text-amber-700 dark:text-amber-300 mb-1 break-words">AI Recommendation</div>
+                      <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed break-words">
                         {course.cognitiveProgress.create < 70 
                           ? "Focus on creative problem-solving to reach senior levels"
                           : course.cognitiveProgress.analyze < 75
@@ -719,16 +719,16 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
       </div>
 
       {/* Market Positioning & Competitive Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
         {/* Overall Market Position */}
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <Target className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Your Market Position</h3>
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 md:p-6">
+          <div className="flex items-center space-x-2 mb-3 sm:mb-4">
+            <Target className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white break-words">Your Market Position</h3>
           </div>
           
-          <div className="bg-gradient-to-br from-purple-50/30 to-indigo-50/30 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-xl p-4 mb-4">
-            <ResponsiveContainer width="100%" height={200}>
+          <div className="bg-gradient-to-br from-purple-50/30 to-indigo-50/30 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
+            <ResponsiveContainer width="100%" height={160} className="sm:h-[180px] md:h-[200px]">
               <PieChart>
                 <Pie
                   data={[
@@ -738,7 +738,8 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
                   ]}
                   cx="50%"
                   cy="50%"
-                  outerRadius={60}
+                  outerRadius={50}
+                  className="sm:outerRadius-[60px]"
                   dataKey="value"
                   label={(entry) => `${entry.name}: ${entry.value}`}
                 />
@@ -747,15 +748,15 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
             </ResponsiveContainer>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {[
               { label: 'Strong Competitive Edge', count: displayData.filter(c => c.competitivenessScore >= 80).length, color: 'emerald' },
               { label: 'Moderate Position', count: displayData.filter(c => c.competitivenessScore >= 60 && c.competitivenessScore < 80).length, color: 'amber' },
               { label: 'Needs Development', count: displayData.filter(c => c.competitivenessScore < 60).length, color: 'red' }
             ].map((item, index) => (
-              <div key={index} className={`flex items-center justify-between p-3 bg-${item.color}-50/50 dark:bg-${item.color}-900/20 rounded-lg border border-${item.color}-200/50 dark:border-${item.color}-700/50`}>
-                <span className="text-sm text-slate-600 dark:text-slate-400">{item.label}</span>
-                <Badge variant="secondary" className={`bg-${item.color}-100/80 text-${item.color}-700 border-${item.color}-200/50 dark:bg-${item.color}-900/80 dark:text-${item.color}-300 dark:border-${item.color}-700/50`}>
+              <div key={index} className={`flex items-center justify-between p-2.5 sm:p-3 bg-${item.color}-50/50 dark:bg-${item.color}-900/20 rounded-lg border border-${item.color}-200/50 dark:border-${item.color}-700/50`}>
+                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words flex-1">{item.label}</span>
+                <Badge variant="secondary" className={`bg-${item.color}-100/80 text-${item.color}-700 border-${item.color}-200/50 dark:bg-${item.color}-900/80 dark:text-${item.color}-300 dark:border-${item.color}-700/50 text-xs flex-shrink-0 ml-2`}>
                   {item.count} course{item.count !== 1 ? 's' : ''}
                 </Badge>
               </div>
@@ -764,13 +765,13 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
         </div>
 
         {/* Cognitive Development Summary */}
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Cognitive Growth Areas</h3>
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 md:p-6">
+          <div className="flex items-center space-x-2 mb-3 sm:mb-4">
+            <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white break-words">Cognitive Growth Areas</h3>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create'].map((level) => {
               const avgScore = Math.round(
                 displayData.reduce((sum, course) => sum + course.cognitiveProgress[level as keyof typeof course.cognitiveProgress], 0) / displayData.length
@@ -778,24 +779,24 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
               const isWeakArea = avgScore < 70;
               
               return (
-                <div key={level} className={`p-3 rounded-lg border ${isWeakArea ? 'bg-red-50/50 dark:bg-red-900/20 border-red-200/50 dark:border-red-700/50' : 'bg-green-50/50 dark:bg-green-900/20 border-green-200/50 dark:border-green-700/50'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-900 dark:text-white capitalize">{level}</span>
-                    <div className="flex items-center space-x-2">
-                      {isWeakArea && <AlertTriangle className="h-4 w-4 text-red-500" />}
-                      <span className={`font-bold ${isWeakArea ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                <div key={level} className={`p-2.5 sm:p-3 rounded-lg border ${isWeakArea ? 'bg-red-50/50 dark:bg-red-900/20 border-red-200/50 dark:border-red-700/50' : 'bg-green-50/50 dark:bg-green-900/20 border-green-200/50 dark:border-green-700/50'}`}>
+                  <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <span className="text-xs sm:text-sm font-medium text-slate-900 dark:text-white capitalize break-words">{level}</span>
+                    <div className="flex items-center space-x-1.5 sm:space-x-2">
+                      {isWeakArea && <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />}
+                      <span className={`font-bold text-xs sm:text-sm ${isWeakArea ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                         {avgScore}%
                       </span>
                     </div>
                   </div>
-                  <div className="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-2">
+                  <div className="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-1.5 sm:h-2">
                     <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${isWeakArea ? 'bg-gradient-to-r from-red-500 to-orange-500' : 'bg-gradient-to-r from-green-500 to-emerald-500'}`}
+                      className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${isWeakArea ? 'bg-gradient-to-r from-red-500 to-orange-500' : 'bg-gradient-to-r from-green-500 to-emerald-500'}`}
                       style={{ width: `${avgScore}%` }}
                     />
                   </div>
                   {isWeakArea && (
-                    <div className="mt-2 text-xs text-red-600 dark:text-red-400">
+                    <div className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-red-600 dark:text-red-400 leading-relaxed break-words">
                       Focus area: Needs improvement for career advancement
                     </div>
                   )}
@@ -807,26 +808,26 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
       </div>
 
       {/* AI Career Intelligence Complete Suite */}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-5 md:space-y-6">
         
         {/* Career Pathways Intelligence */}
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500/20 to-violet-500/20">
-                <MapPin className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 md:mb-6 gap-3 sm:gap-0">
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-purple-500/20 to-violet-500/20 flex-shrink-0">
+                <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">AI Career Pathways</h3>
-                <p className="text-slate-600 dark:text-slate-400">Optimized career progression routes</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white break-words">AI Career Pathways</h3>
+                <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 break-words">Optimized career progression routes</p>
               </div>
             </div>
-            <Badge variant="secondary" className="bg-purple-100/80 text-purple-700 border-purple-200/50 dark:bg-purple-900/80 dark:text-purple-300 dark:border-purple-700/50">
+            <Badge variant="secondary" className="bg-purple-100/80 text-purple-700 border-purple-200/50 dark:bg-purple-900/80 dark:text-purple-300 dark:border-purple-700/50 text-xs sm:text-sm w-fit sm:w-auto">
               Auto-Generated
             </Badge>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
             {[
               {
                 title: "Senior Full Stack Developer",
@@ -847,40 +848,40 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
                 marketDemand: "Extremely High"
               }
             ].map((pathway, index) => (
-              <div key={index} className="bg-gradient-to-br from-purple-50/50 to-violet-50/50 dark:from-purple-950/30 dark:to-violet-950/30 rounded-xl p-4 border border-purple-200/50 dark:border-purple-700/50">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="text-lg font-semibold text-slate-900 dark:text-white">{pathway.title}</h4>
-                      <div className="flex items-center space-x-4 text-sm text-slate-600 dark:text-slate-400 mt-1">
+              <div key={index} className="bg-gradient-to-br from-purple-50/50 to-violet-50/50 dark:from-purple-950/30 dark:to-violet-950/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-purple-200/50 dark:border-purple-700/50">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white break-words">{pathway.title}</h4>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
                         <span>📅 {pathway.timeline}</span>
                         <span>💰 {pathway.salaryRange}</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{pathway.probability}%</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">Success Rate</div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{pathway.probability}%</div>
+                      <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">Success Rate</div>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                     <div className="bg-white/50 dark:bg-slate-800/50 rounded-lg p-2">
-                      <div className="text-slate-600 dark:text-slate-400">Difficulty</div>
-                      <div className="font-medium text-slate-900 dark:text-white">{pathway.difficulty}</div>
+                      <div className="text-slate-600 dark:text-slate-400 break-words">Difficulty</div>
+                      <div className="font-medium text-slate-900 dark:text-white break-words">{pathway.difficulty}</div>
                     </div>
                     <div className="bg-white/50 dark:bg-slate-800/50 rounded-lg p-2">
-                      <div className="text-slate-600 dark:text-slate-400">Market Demand</div>
-                      <div className="font-medium text-slate-900 dark:text-white">{pathway.marketDemand}</div>
+                      <div className="text-slate-600 dark:text-slate-400 break-words">Market Demand</div>
+                      <div className="font-medium text-slate-900 dark:text-white break-words">{pathway.marketDemand}</div>
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-sm font-medium text-slate-900 dark:text-white mb-2">Key Milestones</div>
+                    <div className="text-xs sm:text-sm font-medium text-slate-900 dark:text-white mb-1.5 sm:mb-2 break-words">Key Milestones</div>
                     <div className="space-y-1">
                       {pathway.keyMilestones.map((milestone, mIndex) => (
-                        <div key={mIndex} className="flex items-center space-x-2 text-sm">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-slate-600 dark:text-slate-400">{milestone}</span>
+                        <div key={mIndex} className="flex items-center space-x-2 text-xs sm:text-sm">
+                          <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                          <span className="text-slate-600 dark:text-slate-400 break-words leading-relaxed">{milestone}</span>
                         </div>
                       ))}
                     </div>
@@ -892,26 +893,26 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
         </div>
 
         {/* Salary Intelligence */}
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20">
-                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 md:mb-6 gap-3 sm:gap-0">
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 flex-shrink-0">
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Salary Intelligence</h3>
-                <p className="text-slate-600 dark:text-slate-400">Market-based compensation analysis</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white break-words">Salary Intelligence</h3>
+                <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 break-words">Market-based compensation analysis</p>
               </div>
             </div>
-            <Badge variant="secondary" className="bg-green-100/80 text-green-700 border-green-200/50 dark:bg-green-900/80 dark:text-green-300 dark:border-green-700/50">
+            <Badge variant="secondary" className="bg-green-100/80 text-green-700 border-green-200/50 dark:bg-green-900/80 dark:text-green-300 dark:border-green-700/50 text-xs sm:text-sm w-fit sm:w-auto">
               Live Data
             </Badge>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
             <div className="lg:col-span-2">
-              <div className="bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl p-4">
-                <ResponsiveContainer width="100%" height={250}>
+              <div className="bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                <ResponsiveContainer width="100%" height={200} className="sm:h-[220px] md:h-[250px]">
                   <ComposedChart data={[
                     { skill: 'Current', salary: 75, market: 82, projected: 85 },
                     { skill: '+6mo', salary: 82, market: 88, projected: 92 },
@@ -938,24 +939,24 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl p-4 border border-green-200/50 dark:border-green-700/50">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-green-200/50 dark:border-green-700/50">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">$125K</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">3-Year Projection</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400 mb-1 break-words">$125K</div>
+                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words">3-Year Projection</div>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {[
                   { factor: "Course Completion", impact: "+$12K", color: "green" },
                   { factor: "Market Demand", impact: "+$18K", color: "blue" },
                   { factor: "Geographic Location", impact: "+$8K", color: "purple" },
                   { factor: "Certification", impact: "+$15K", color: "orange" }
                 ].map((factor, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
-                    <span className="text-sm text-slate-600 dark:text-slate-400">{factor.factor}</span>
-                    <span className={`text-sm font-medium text-${factor.color}-600 dark:text-${factor.color}-400`}>{factor.impact}</span>
+                  <div key={index} className="flex items-center justify-between p-2.5 sm:p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                    <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words flex-1">{factor.factor}</span>
+                    <span className={`text-xs sm:text-sm font-medium text-${factor.color}-600 dark:text-${factor.color}-400 flex-shrink-0 ml-2`}>{factor.impact}</span>
                   </div>
                 ))}
               </div>
@@ -964,70 +965,70 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
         </div>
 
         {/* Skills Gap Analysis */}
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500/20 to-amber-500/20">
-                <Target className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 md:mb-6 gap-3 sm:gap-0">
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-orange-500/20 to-amber-500/20 flex-shrink-0">
+                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400" />
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Skills Gap Analysis</h3>
-                <p className="text-slate-600 dark:text-slate-400">AI-powered skill optimization recommendations</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white break-words">Skills Gap Analysis</h3>
+                <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 break-words">AI-powered skill optimization recommendations</p>
               </div>
             </div>
-            <Badge variant="secondary" className="bg-orange-100/80 text-orange-700 border-orange-200/50 dark:bg-orange-900/80 dark:text-orange-300 dark:border-orange-700/50">
+            <Badge variant="secondary" className="bg-orange-100/80 text-orange-700 border-orange-200/50 dark:bg-orange-900/80 dark:text-orange-300 dark:border-orange-700/50 text-xs sm:text-sm w-fit sm:w-auto">
               Priority Ranked
             </Badge>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h4 className="font-semibold text-slate-900 dark:text-white">Critical Skills to Acquire</h4>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
+            <div className="space-y-3 sm:space-y-4">
+              <h4 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white break-words">Critical Skills to Acquire</h4>
               {[
                 { skill: "Docker & Kubernetes", demand: 95, salary: "$22K", timeToLearn: "3-4 months", priority: "High" },
                 { skill: "AWS Cloud Architecture", demand: 92, salary: "$25K", timeToLearn: "4-6 months", priority: "High" },
                 { skill: "GraphQL & Advanced APIs", demand: 78, salary: "$15K", timeToLearn: "2-3 months", priority: "Medium" }
               ].map((skill, index) => (
-                <div key={index} className="bg-gradient-to-r from-orange-50/50 to-amber-50/50 dark:from-orange-950/30 dark:to-amber-950/30 rounded-xl p-4 border border-orange-200/50 dark:border-orange-700/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <h5 className="font-medium text-slate-900 dark:text-white">{skill.skill}</h5>
-                    <Badge variant={skill.priority === 'High' ? 'destructive' : 'secondary'} className="text-xs">
+                <div key={index} className="bg-gradient-to-r from-orange-50/50 to-amber-50/50 dark:from-orange-950/30 dark:to-amber-950/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-orange-200/50 dark:border-orange-700/50">
+                  <div className="flex items-center justify-between mb-2 gap-2">
+                    <h5 className="font-medium text-sm sm:text-base text-slate-900 dark:text-white break-words flex-1">{skill.skill}</h5>
+                    <Badge variant={skill.priority === 'High' ? 'destructive' : 'secondary'} className="text-[10px] sm:text-xs flex-shrink-0">
                       {skill.priority}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 text-xs sm:text-sm">
                     <div>
-                      <div className="text-slate-600 dark:text-slate-400">Market Demand</div>
-                      <div className="font-medium text-slate-900 dark:text-white">{skill.demand}%</div>
+                      <div className="text-slate-600 dark:text-slate-400 break-words">Market Demand</div>
+                      <div className="font-medium text-slate-900 dark:text-white break-words">{skill.demand}%</div>
                     </div>
                     <div>
-                      <div className="text-slate-600 dark:text-slate-400">Salary Impact</div>
-                      <div className="font-medium text-green-600 dark:text-green-400">+{skill.salary}</div>
+                      <div className="text-slate-600 dark:text-slate-400 break-words">Salary Impact</div>
+                      <div className="font-medium text-green-600 dark:text-green-400 break-words">+{skill.salary}</div>
                     </div>
                     <div>
-                      <div className="text-slate-600 dark:text-slate-400">Learning Time</div>
-                      <div className="font-medium text-slate-900 dark:text-white">{skill.timeToLearn}</div>
+                      <div className="text-slate-600 dark:text-slate-400 break-words">Learning Time</div>
+                      <div className="font-medium text-slate-900 dark:text-white break-words">{skill.timeToLearn}</div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="space-y-4">
-              <h4 className="font-semibold text-slate-900 dark:text-white">Learning Roadmap</h4>
-              <div className="bg-gradient-to-br from-amber-50/30 to-yellow-50/30 dark:from-amber-950/30 dark:to-yellow-950/30 rounded-xl p-4">
-                <div className="space-y-3">
+            <div className="space-y-3 sm:space-y-4">
+              <h4 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white break-words">Learning Roadmap</h4>
+              <div className="bg-gradient-to-br from-amber-50/30 to-yellow-50/30 dark:from-amber-950/30 dark:to-yellow-950/30 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                <div className="space-y-2 sm:space-y-3">
                   {[
                     { phase: "Phase 1 (Next 3 months)", focus: "Container Technologies", skills: ["Docker", "Kubernetes Basics"] },
                     { phase: "Phase 2 (Months 4-6)", focus: "Cloud Infrastructure", skills: ["AWS Fundamentals", "Infrastructure as Code"] },
                     { phase: "Phase 3 (Months 7-9)", focus: "Advanced Architecture", skills: ["Microservices", "System Design"] }
                   ].map((phase, index) => (
-                    <div key={index} className="bg-white/50 dark:bg-slate-800/50 rounded-lg p-3">
-                      <div className="font-medium text-slate-900 dark:text-white mb-1">{phase.phase}</div>
-                      <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">Focus: {phase.focus}</div>
+                    <div key={index} className="bg-white/50 dark:bg-slate-800/50 rounded-lg p-2.5 sm:p-3">
+                      <div className="font-medium text-xs sm:text-sm text-slate-900 dark:text-white mb-1 break-words">{phase.phase}</div>
+                      <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-1.5 sm:mb-2 break-words">Focus: {phase.focus}</div>
                       <div className="flex flex-wrap gap-1">
                         {phase.skills.map((skill, sIndex) => (
-                          <Badge key={sIndex} variant="outline" className="text-xs bg-amber-50/50 dark:bg-amber-900/20">
+                          <Badge key={sIndex} variant="outline" className="text-[10px] sm:text-xs bg-amber-50/50 dark:bg-amber-900/20 break-words">
                             {skill}
                           </Badge>
                         ))}
@@ -1041,24 +1042,24 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
         </div>
 
         {/* Quick Action Intelligence Panel */}
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">AI Career Intelligence Hub</h3>
-              <p className="text-slate-600 dark:text-slate-400">Advanced market research and career optimization tools</p>
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 md:mb-6 gap-3 sm:gap-0">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white break-words">AI Career Intelligence Hub</h3>
+              <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 break-words leading-relaxed">Advanced market research and career optimization tools</p>
             </div>
-            <Badge variant="secondary" className="bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 border-purple-200/50 dark:bg-gradient-to-r dark:from-purple-900 dark:to-blue-900 dark:text-purple-300 dark:border-purple-700/50">
+            <Badge variant="secondary" className="bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 border-purple-200/50 dark:bg-gradient-to-r dark:from-purple-900 dark:to-blue-900 dark:text-purple-300 dark:border-purple-700/50 text-xs sm:text-sm w-fit sm:w-auto">
               AI-Powered Suite
             </Badge>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <Button 
               onClick={() => refreshMarketData()}
-              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0 shadow-sm transition-all duration-300 h-auto p-4 flex flex-col items-center space-y-2"
+              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0 shadow-sm transition-all duration-300 h-auto min-h-[44px] sm:min-h-[auto] p-3 sm:p-4 flex flex-col items-center space-y-1.5 sm:space-y-2 touch-manipulation"
             >
-              <RefreshCw className="h-5 w-5" />
-              <span className="text-sm">Refresh Market Data</span>
+              <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-xs sm:text-sm break-words text-center">Refresh Market Data</span>
             </Button>
             
             <Button 
@@ -1068,19 +1069,19 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
                 setTimeout(() => setIsAnalyzing(false), 3000);
               }}
               disabled={isAnalyzing}
-              className="bg-white/50 dark:bg-slate-700/50 border-amber-200/50 dark:border-amber-700/50 text-amber-700 dark:text-amber-300 hover:bg-amber-50/80 dark:hover:bg-amber-900/20 transition-all duration-300 h-auto p-4 flex flex-col items-center space-y-2"
+              className="bg-white/50 dark:bg-slate-700/50 border-amber-200/50 dark:border-amber-700/50 text-amber-700 dark:text-amber-300 hover:bg-amber-50/80 dark:hover:bg-amber-900/20 transition-all duration-300 h-auto min-h-[44px] sm:min-h-[auto] p-3 sm:p-4 flex flex-col items-center space-y-1.5 sm:space-y-2 touch-manipulation"
             >
-              {isAnalyzing ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
-              <span className="text-sm">{isAnalyzing ? 'Analyzing...' : 'Deep Market Research'}</span>
+              {isAnalyzing ? <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" /> : <Search className="h-4 w-4 sm:h-5 sm:w-5" />}
+              <span className="text-xs sm:text-sm break-words text-center">{isAnalyzing ? 'Analyzing...' : 'Deep Market Research'}</span>
             </Button>
             
             <Button 
               variant="outline"
               onClick={() => initializeCareerCoach()}
-              className="bg-white/50 dark:bg-slate-700/50 border-purple-200/50 dark:border-purple-700/50 text-purple-700 dark:text-purple-300 hover:bg-purple-50/80 dark:hover:bg-purple-900/20 transition-all duration-300 h-auto p-4 flex flex-col items-center space-y-2"
+              className="bg-white/50 dark:bg-slate-700/50 border-purple-200/50 dark:border-purple-700/50 text-purple-700 dark:text-purple-300 hover:bg-purple-50/80 dark:hover:bg-purple-900/20 transition-all duration-300 h-auto min-h-[44px] sm:min-h-[auto] p-3 sm:p-4 flex flex-col items-center space-y-1.5 sm:space-y-2 touch-manipulation"
             >
-              <Brain className="h-5 w-5" />
-              <span className="text-sm">AI Career Coach</span>
+              <Brain className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-xs sm:text-sm break-words text-center">AI Career Coach</span>
             </Button>
             
             <Button 
@@ -1095,24 +1096,24 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
                 a.download = 'career-intelligence-report.txt';
                 a.click();
               }}
-              className="bg-white/50 dark:bg-slate-700/50 border-green-200/50 dark:border-green-700/50 text-green-700 dark:text-green-300 hover:bg-green-50/80 dark:hover:bg-green-900/20 transition-all duration-300 h-auto p-4 flex flex-col items-center space-y-2"
+              className="bg-white/50 dark:bg-slate-700/50 border-green-200/50 dark:border-green-700/50 text-green-700 dark:text-green-300 hover:bg-green-50/80 dark:hover:bg-green-900/20 transition-all duration-300 h-auto min-h-[44px] sm:min-h-[auto] p-3 sm:p-4 flex flex-col items-center space-y-1.5 sm:space-y-2 touch-manipulation"
             >
-              <ExternalLink className="h-5 w-5" />
-              <span className="text-sm">Export Report</span>
+              <ExternalLink className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-xs sm:text-sm break-words text-center">Export Report</span>
             </Button>
           </div>
 
           {/* AI Insights Summary */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 dark:from-amber-950/20 dark:to-yellow-950/20 rounded-xl border border-amber-200/50 dark:border-amber-700/50">
-            <div className="flex items-start space-x-3">
-              <Lightbulb className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <div className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-2">🤖 AI Market Intelligence Summary</div>
-                <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                  <p>• Your strongest market position is in <strong>{displayData.find(c => c.competitivenessScore === Math.max(...displayData.map(course => course.competitivenessScore)))?.category}</strong> with {Math.max(...displayData.map(course => course.competitivenessScore))}% competitiveness</p>
-                  <p>• Highest earning potential: <strong>${Math.max(...displayData.map(course => course.averageSalary)).toLocaleString()}</strong> in {displayData.find(c => c.averageSalary === Math.max(...displayData.map(course => course.averageSalary)))?.title}</p>
-                  <p>• Priority skill gap: <strong>Docker & Kubernetes</strong> could increase your salary by $22K within 4 months</p>
-                  <p>• Career progression: <strong>92% probability</strong> of reaching Senior Full Stack Developer role within 18 months</p>
+          <div className="mt-4 sm:mt-5 md:mt-6 p-3 sm:p-4 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 dark:from-amber-950/20 dark:to-yellow-950/20 rounded-lg sm:rounded-xl border border-amber-200/50 dark:border-amber-700/50">
+            <div className="flex items-start space-x-2 sm:space-x-3">
+              <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-300 mb-1.5 sm:mb-2 break-words">🤖 AI Market Intelligence Summary</div>
+                <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 space-y-1 leading-relaxed">
+                  <p className="break-words">• Your strongest market position is in <strong>{displayData.find(c => c.competitivenessScore === Math.max(...displayData.map(course => course.competitivenessScore)))?.category}</strong> with {Math.max(...displayData.map(course => course.competitivenessScore))}% competitiveness</p>
+                  <p className="break-words">• Highest earning potential: <strong>${Math.max(...displayData.map(course => course.averageSalary)).toLocaleString()}</strong> in {displayData.find(c => c.averageSalary === Math.max(...displayData.map(course => course.averageSalary)))?.title}</p>
+                  <p className="break-words">• Priority skill gap: <strong>Docker & Kubernetes</strong> could increase your salary by $22K within 4 months</p>
+                  <p className="break-words">• Career progression: <strong>92% probability</strong> of reaching Senior Full Stack Developer role within 18 months</p>
                 </div>
               </div>
             </div>
@@ -1122,58 +1123,58 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
 
       {/* AI Career Coach Modal/Interface */}
       {showCareerCoach && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-2xl w-full max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col">
             
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-200/50 dark:border-slate-700/50">
-              <div className="flex items-center space-x-3">
-                <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 shadow-lg">
-                  <Brain className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-between p-3 sm:p-4 md:p-6 border-b border-slate-200/50 dark:border-slate-700/50">
+              <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 shadow-lg flex-shrink-0">
+                  <Brain className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" />
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400 text-transparent bg-clip-text">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400 text-transparent bg-clip-text break-words">
                     AI Career Coach
                   </h2>
-                  <p className="text-slate-600 dark:text-slate-400">Personalized career guidance powered by your data</p>
+                  <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 break-words">Personalized career guidance powered by your data</p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowCareerCoach(false)}
-                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex-shrink-0 min-h-[36px] sm:min-h-[32px] touch-manipulation"
               >
                 ✕
               </Button>
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
               
               {/* Left Panel - Recommendations & Goals */}
-              <div className="w-1/3 border-r border-slate-200/50 dark:border-slate-700/50 p-6 space-y-6 overflow-y-auto">
+              <div className="w-full sm:w-1/3 border-b sm:border-b-0 sm:border-r border-slate-200/50 dark:border-slate-700/50 p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 md:space-y-6 overflow-y-auto">
                 
                 {/* Career Goals */}
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">🎯 Your Career Goals</h3>
-                  <div className="space-y-3">
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4 break-words">🎯 Your Career Goals</h3>
+                  <div className="space-y-2 sm:space-y-3">
                     {coachingSession.goals.length === 0 ? (
-                      <div className="text-sm text-slate-600 dark:text-slate-400 italic">
+                      <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 italic break-words leading-relaxed">
                         No goals set yet. Chat with me to define your objectives!
                       </div>
                     ) : (
                       coachingSession.goals.map((goal, index) => (
-                        <div key={index} className="p-3 bg-green-50/50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-700/50">
-                          <div className="text-sm text-slate-900 dark:text-white">{goal}</div>
+                        <div key={index} className="p-2.5 sm:p-3 bg-green-50/50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-700/50">
+                          <div className="text-xs sm:text-sm text-slate-900 dark:text-white break-words leading-relaxed">{goal}</div>
                         </div>
                       ))
                     )}
                   </div>
                   
                   {/* Quick Goal Buttons */}
-                  <div className="mt-4 space-y-2">
-                    <div className="text-sm font-medium text-slate-900 dark:text-white">Quick Goals:</div>
+                  <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
+                    <div className="text-xs sm:text-sm font-medium text-slate-900 dark:text-white break-words">Quick Goals:</div>
                     {[
                       "Increase salary by 30% in 12 months",
                       "Transition to Senior Developer role",
@@ -1185,7 +1186,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => setCareerGoal(goal)}
-                        className="w-full text-left justify-start text-xs bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-purple-50/80 dark:hover:bg-purple-900/20"
+                        className="w-full text-left justify-start text-[10px] sm:text-xs bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-purple-50/80 dark:hover:bg-purple-900/20 min-h-[36px] sm:min-h-[32px] touch-manipulation break-words leading-relaxed"
                       >
                         + {goal}
                       </Button>
@@ -1195,21 +1196,21 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
 
                 {/* AI Recommendations */}
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">💡 AI Recommendations</h3>
-                  <div className="space-y-3">
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4 break-words">💡 AI Recommendations</h3>
+                  <div className="space-y-2 sm:space-y-3">
                     {coachingSession.recommendations.map((rec) => (
-                      <div key={rec.id} className="p-3 bg-gradient-to-br from-amber-50/50 to-yellow-50/50 dark:from-amber-950/30 dark:to-yellow-950/30 rounded-lg border border-amber-200/50 dark:border-amber-700/50">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="text-sm font-medium text-slate-900 dark:text-white">{rec.title}</div>
-                          <Badge variant={rec.priority === 'High' ? 'destructive' : 'secondary'} className="text-xs">
+                      <div key={rec.id} className="p-2.5 sm:p-3 bg-gradient-to-br from-amber-50/50 to-yellow-50/50 dark:from-amber-950/30 dark:to-yellow-950/30 rounded-lg border border-amber-200/50 dark:border-amber-700/50">
+                        <div className="flex items-start justify-between mb-1.5 sm:mb-2 gap-2">
+                          <div className="text-xs sm:text-sm font-medium text-slate-900 dark:text-white break-words flex-1">{rec.title}</div>
+                          <Badge variant={rec.priority === 'High' ? 'destructive' : 'secondary'} className="text-[10px] sm:text-xs flex-shrink-0">
                             {rec.priority}
                           </Badge>
                         </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mb-2">{rec.description}</div>
-                        <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mb-1.5 sm:mb-2 break-words leading-relaxed">{rec.description}</div>
+                        <div className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400 font-medium break-words">
                           📅 {rec.timeline}
                         </div>
-                        <div className="text-xs text-slate-700 dark:text-slate-300 mt-1">
+                        <div className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300 mt-1 break-words leading-relaxed">
                           Action: {rec.action}
                         </div>
                       </div>
@@ -1219,28 +1220,28 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
               </div>
 
               {/* Right Panel - Chat Interface */}
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col min-h-0">
                 
                 {/* Chat Messages */}
-                <div className="flex-1 p-6 overflow-y-auto space-y-4">
+                <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto space-y-3 sm:space-y-4">
                   {coachingSession.chatMessages.map((message) => (
                     <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[70%] p-4 rounded-2xl ${
+                      <div className={`max-w-[85%] sm:max-w-[70%] p-3 sm:p-4 rounded-xl sm:rounded-2xl ${
                         message.type === 'user' 
-                          ? 'bg-purple-500 text-white ml-4' 
-                          : `bg-white/80 dark:bg-slate-700/80 text-slate-900 dark:text-white border border-slate-200/50 dark:border-slate-600/50 mr-4 ${(message as any).isLoading ? 'animate-pulse' : ''}`
+                          ? 'bg-purple-500 text-white ml-2 sm:ml-4' 
+                          : `bg-white/80 dark:bg-slate-700/80 text-slate-900 dark:text-white border border-slate-200/50 dark:border-slate-600/50 mr-2 sm:mr-4 ${(message as any).isLoading ? 'animate-pulse' : ''}`
                       }`}>
-                        <div className="text-sm whitespace-pre-wrap">
+                        <div className="text-xs sm:text-sm whitespace-pre-wrap break-words leading-relaxed">
                           {(message as any).isLoading ? (
                             <div className="flex items-center space-x-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
-                              <span>{message.content}</span>
+                              <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-purple-500 flex-shrink-0"></div>
+                              <span className="break-words">{message.content}</span>
                             </div>
                           ) : (
                             message.content
                           )}
                         </div>
-                        <div className={`text-xs mt-2 ${
+                        <div className={`text-[10px] sm:text-xs mt-1.5 sm:mt-2 ${
                           message.type === 'user' 
                             ? 'text-purple-100' 
                             : 'text-slate-500 dark:text-slate-400'
@@ -1253,12 +1254,12 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
                 </div>
 
                 {/* Chat Input */}
-                <div className="p-6 border-t border-slate-200/50 dark:border-slate-700/50">
-                  <div className="flex space-x-3">
+                <div className="p-3 sm:p-4 md:p-6 border-t border-slate-200/50 dark:border-slate-700/50">
+                  <div className="flex space-x-2 sm:space-x-3">
                     <input
                       type="text"
                       placeholder="Ask me about your career, skills, salary, or goals..."
-                      className="flex-1 px-4 py-3 bg-white/50 dark:bg-slate-700/50 border border-slate-200/50 dark:border-slate-600/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-slate-900 dark:text-white placeholder-slate-500"
+                      className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white/50 dark:bg-slate-700/50 border border-slate-200/50 dark:border-slate-600/50 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-500"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                           addChatMessage(e.currentTarget.value, 'user');
@@ -1274,14 +1275,14 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
                           input.value = '';
                         }
                       }}
-                      className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white border-0 shadow-sm transition-all duration-300 px-6"
+                      className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white border-0 shadow-sm transition-all duration-300 px-4 sm:px-6 min-h-[40px] sm:min-h-[36px] text-xs sm:text-sm touch-manipulation"
                     >
                       Send
                     </Button>
                   </div>
                   
                   {/* Quick Questions */}
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
                     {[
                       "How can I increase my salary?",
                       "What skills should I learn next?",
@@ -1293,7 +1294,7 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => addChatMessage(question, 'user')}
-                        className="text-xs bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-purple-50/80 dark:hover:bg-purple-900/20"
+                        className="text-[10px] sm:text-xs bg-white/50 dark:bg-slate-700/50 border-slate-200/50 dark:border-slate-600/50 hover:bg-purple-50/80 dark:hover:bg-purple-900/20 min-h-[32px] sm:min-h-[28px] touch-manipulation break-words"
                       >
                         {question}
                       </Button>
@@ -1304,20 +1305,20 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
             </div>
 
             {/* Footer Stats */}
-            <div className="border-t border-slate-200/50 dark:border-slate-700/50 p-4 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-950/30">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center space-x-6">
-                  <div className="text-slate-600 dark:text-slate-400">
+            <div className="border-t border-slate-200/50 dark:border-slate-700/50 p-3 sm:p-4 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-950/30">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 text-xs sm:text-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 md:space-x-6">
+                  <div className="text-slate-600 dark:text-slate-400 break-words">
                     📊 Market Position: <span className="font-medium text-slate-900 dark:text-white">{Math.round(displayData.reduce((sum, course) => sum + course.marketPercentile, 0) / displayData.length)}th percentile</span>
                   </div>
-                  <div className="text-slate-600 dark:text-slate-400">
+                  <div className="text-slate-600 dark:text-slate-400 break-words">
                     💰 Salary Potential: <span className="font-medium text-green-600 dark:text-green-400">${Math.round(displayData.reduce((sum, course) => sum + course.averageSalary, 0) / displayData.length).toLocaleString()}</span>
                   </div>
-                  <div className="text-slate-600 dark:text-slate-400">
+                  <div className="text-slate-600 dark:text-slate-400 break-words">
                     🎯 Goals Set: <span className="font-medium text-purple-600 dark:text-purple-400">{coachingSession.goals.length}</span>
                   </div>
                 </div>
-                <Badge variant="secondary" className="bg-purple-100/80 text-purple-700 border-purple-200/50 dark:bg-purple-900/80 dark:text-purple-300 dark:border-purple-700/50">
+                <Badge variant="secondary" className="bg-purple-100/80 text-purple-700 border-purple-200/50 dark:bg-purple-900/80 dark:text-purple-300 dark:border-purple-700/50 text-[10px] sm:text-xs w-fit sm:w-auto mt-2 sm:mt-0">
                   🤖 AI-Powered Coaching
                 </Badge>
               </div>

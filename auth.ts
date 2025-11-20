@@ -1,5 +1,4 @@
 import NextAuth from "next-auth"
-import { UserRole } from "@prisma/client";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { JWT } from "next-auth/jwt";
 import type { Session, User } from "next-auth";
@@ -198,13 +197,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Skip session fingerprint validation for now (req parameter not available)
         // This can be re-enabled when NextAuth provides request context
       }
-      
-      if (token.role && session.user) {
-        session.user.role = token.role as UserRole;
-        
-        // Store role in session for dynamic session config
-        // Session expiry is handled by NextAuth based on jwt.maxAge
-      }
 
       if (session.user) {
         session.user.isTwoFactorEnabled = !!token.isTwoFactorEnabled;
@@ -233,7 +225,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.isOAuth = !!existingAccount;
         token.name = existingUser.name || null;
         token.email = existingUser.email || null;
-        token.role = existingUser.role;
         token.isTwoFactorEnabled = !!existingUser.isTwoFactorEnabled;
 
         // Generate or maintain session token for fingerprinting

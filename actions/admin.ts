@@ -2,15 +2,15 @@
 
 import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
-import { UserRole } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
 import { logger } from '@/lib/logger';
 
 export async function getAdminDashboardData() {
   try {
     const session = await adminAuth();
-    
+
     // Check if user is authenticated and is an admin
-    if (!session?.user || session.user.role !== UserRole.ADMIN) {
+    if (!session?.user || (session.user.role !== AdminRole.ADMIN && session.user.role !== AdminRole.SUPERADMIN)) {
       throw new Error("Unauthorized: Admin access required");
     }
 
@@ -62,7 +62,7 @@ export async function getAdminDashboardData() {
         id: true,
         name: true,
         email: true,
-        role: true,
+        isTeacher: true,
         image: true,
         createdAt: true,
         emailVerified: true
@@ -142,7 +142,7 @@ export async function getAdminDashboardData() {
 export async function admin() {
   const session = await adminAuth();
 
-  if (session?.user?.role !== UserRole.ADMIN) {
+  if (!session?.user?.role || (session.user.role !== AdminRole.ADMIN && session.user.role !== AdminRole.SUPERADMIN)) {
     return {
       error: "Forbidden: Admin access required"
     }

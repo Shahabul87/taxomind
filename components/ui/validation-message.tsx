@@ -16,18 +16,18 @@ export const ValidationMessageComponent = ({
   className,
   compact = false 
 }: ValidationMessageProps) => {
-  const getIcon = () => {
+  const getIcon = (size: string = "h-4 w-4") => {
     switch (validation.type) {
       case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className={`${size} text-green-600`} />;
       case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
+        return <AlertTriangle className={`${size} text-yellow-600`} />;
       case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-600" />;
+        return <AlertCircle className={`${size} text-red-600`} />;
       case 'info':
-        return <Info className="h-4 w-4 text-blue-600" />;
+        return <Info className={`${size} text-blue-600`} />;
       default:
-        return <Lightbulb className="h-4 w-4 text-purple-600" />;
+        return <Lightbulb className={`${size} text-purple-600`} />;
     }
   };
   
@@ -64,12 +64,14 @@ export const ValidationMessageComponent = ({
   if (compact) {
     return (
       <div className={cn(
-        "flex items-center gap-2 px-2 py-1 rounded border",
+        "flex items-center gap-1.5 sm:gap-2 px-2 py-1 rounded border",
         getBackgroundColor(),
         className
       )}>
-        {getIcon()}
-        <span className={cn("text-xs font-medium", getTextColor())}>
+        <div className="flex-shrink-0">
+          {getIcon("h-3.5 w-3.5 sm:h-4 sm:w-4")}
+        </div>
+        <span className={cn("text-[10px] xs:text-xs font-medium break-words", getTextColor())}>
           {validation.message}
         </span>
       </div>
@@ -78,19 +80,19 @@ export const ValidationMessageComponent = ({
 
   return (
     <div className={cn(
-      "flex items-start gap-3 p-3 rounded-lg border backdrop-blur-sm",
+      "flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border backdrop-blur-sm",
       getBackgroundColor(),
       className
     )}>
       <div className="flex-shrink-0 mt-0.5">
-        {getIcon()}
+        {getIcon("h-4 w-4 sm:h-5 sm:w-5")}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={cn("text-sm font-medium", getTextColor())}>
+        <p className={cn("text-xs sm:text-sm font-medium break-words", getTextColor())}>
           {validation.message}
         </p>
         {validation.suggestion && (
-          <p className={cn("text-xs mt-1 opacity-80", getTextColor())}>
+          <p className={cn("text-[10px] xs:text-xs mt-1 opacity-80 break-words", getTextColor())}>
             💡 {validation.suggestion}
           </p>
         )}

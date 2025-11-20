@@ -78,19 +78,19 @@ export function BloomsTaxonomyMap({ levels }: BloomsTaxonomyMapProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5 md:space-y-6">
       {/* Pyramid Visualization */}
-      <Card className="border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
-            <div className="p-2 bg-slate-200 dark:bg-slate-700 rounded-lg">
-              <Search className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+      <Card className="border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
+        <CardHeader className="px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+          <CardTitle className="flex items-center gap-2 sm:gap-3 text-slate-900 dark:text-white text-base sm:text-lg md:text-xl">
+            <div className="p-1.5 sm:p-2 bg-slate-200 dark:bg-slate-700 rounded-lg flex-shrink-0">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-300" />
             </div>
-            Bloom&apos;s Taxonomy Cognitive Pyramid
+            <span className="break-words">Bloom&apos;s Taxonomy Cognitive Pyramid</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+        <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
+          <div className="space-y-2 sm:space-y-3">
             {levels.map((level, index) => {
               const Icon = bloomsIcons[level.level as keyof typeof bloomsIcons];
               const TrendIcon = getTrendIcon(level.score);
@@ -103,27 +103,27 @@ export function BloomsTaxonomyMap({ levels }: BloomsTaxonomyMapProps) {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className={`relative mx-auto cursor-pointer transition-all duration-300 hover:scale-105 ${
+                  className={`relative mx-auto cursor-pointer transition-all duration-300 hover:scale-105 touch-manipulation active:scale-[0.98] ${
                     selectedLevel === level.level ? 'ring-2 ring-purple-400' : ''
                   }`}
                   style={{ width }}
                   onClick={() => setSelectedLevel(selectedLevel === level.level ? null : level.level)}
                 >
-                  <div className={`bg-gradient-to-r ${level.color} p-4 rounded-lg border-2 border-purple-200 shadow-lg`}>
-                    <div className="flex items-center justify-between text-blue-50">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50/30 rounded-lg">
-                          <Icon className="w-5 h-5" />
+                  <div className={`bg-gradient-to-r ${level.color} p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 border-purple-200 shadow-lg`}>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-blue-50 gap-3 sm:gap-0">
+                      <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                        <div className="p-1.5 sm:p-2 bg-blue-50/30 rounded-lg flex-shrink-0">
+                          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-                        <div>
-                          <h3 className="font-bold text-lg">{level.level}</h3>
-                          <p className="text-blue-50/90 text-sm">{level.description}</p>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-sm sm:text-base md:text-lg break-words">{level.level}</h3>
+                          <p className="text-blue-50/90 text-xs sm:text-sm break-words leading-tight">{level.description}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-2 mb-1">
-                          <TrendIcon className="w-4 h-4" />
-                          <span className="text-2xl font-bold">{level.score}%</span>
+                      <div className="text-left sm:text-right w-full sm:w-auto flex sm:block items-center justify-between sm:justify-end">
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                          <TrendIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                          <span className="text-xl sm:text-2xl md:text-3xl font-bold">{level.score}%</span>
                         </div>
                         <div className="text-blue-50/90 text-xs">
                           {level.correct}/{level.questions} correct
@@ -131,10 +131,10 @@ export function BloomsTaxonomyMap({ levels }: BloomsTaxonomyMapProps) {
                       </div>
                     </div>
                     
-                    <div className="mt-3">
+                    <div className="mt-2 sm:mt-3">
                       <Progress 
                         value={level.score} 
-                        className="h-2 bg-blue-50/30"
+                        className="h-1.5 sm:h-2 bg-blue-50/30"
                       />
                     </div>
                   </div>
@@ -146,7 +146,7 @@ export function BloomsTaxonomyMap({ levels }: BloomsTaxonomyMapProps) {
       </Card>
 
       {/* Detailed Level Analysis */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
         {levels.map((level, index) => {
           const Icon = bloomsIcons[level.level as keyof typeof bloomsIcons];
           const isExpanded = selectedLevel === level.level;
@@ -161,30 +161,30 @@ export function BloomsTaxonomyMap({ levels }: BloomsTaxonomyMapProps) {
               transition={{ delay: index * 0.1 }}
               className={`transition-all duration-300 ${isExpanded ? 'md:col-span-2' : ''}`}
             >
-              <Card className={`border-2 transition-all duration-300 ${cardColor} ${
+              <Card className={`border-2 transition-all duration-300 ${cardColor} rounded-xl sm:rounded-2xl ${
                 isExpanded 
                   ? 'border-opacity-80 shadow-lg' 
                   : 'hover:border-opacity-80'
               }`}>
                 <CardHeader 
-                  className="cursor-pointer"
+                  className="cursor-pointer px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 touch-manipulation"
                   onClick={() => setSelectedLevel(isExpanded ? null : level.level)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 bg-gradient-to-r ${level.color} rounded-lg`}>
-                        <Icon className="w-5 h-5 text-blue-50" />
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                      <div className={`p-1.5 sm:p-2 bg-gradient-to-r ${level.color} rounded-lg flex-shrink-0`}>
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-50" />
                       </div>
-                      <div>
-                        <CardTitle className={textColor}>{level.level}</CardTitle>
-                        <p className={`text-sm ${textColor} opacity-80`}>{level.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className={`${textColor} text-base sm:text-lg break-words`}>{level.level}</CardTitle>
+                        <p className={`text-xs sm:text-sm ${textColor} opacity-80 break-words leading-tight`}>{level.description}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className={getPerformanceColor(level.score)}>
+                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                      <Badge className={`${getPerformanceColor(level.score)} text-xs sm:text-sm`}>
                         {level.score}%
                       </Badge>
-                      <ChevronRight className={`w-5 h-5 ${textColor} opacity-70 transition-transform ${
+                      <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 ${textColor} opacity-70 transition-transform flex-shrink-0 ${
                         isExpanded ? 'rotate-90' : ''
                       }`} />
                     </div>
@@ -192,55 +192,55 @@ export function BloomsTaxonomyMap({ levels }: BloomsTaxonomyMapProps) {
                 </CardHeader>
                 
                 {isExpanded && (
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6 pb-4 sm:pb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                       <div className="space-y-2">
-                        <h4 className={`font-semibold ${textColor} flex items-center gap-2`}>
-                          <TrendingUp className="w-4 h-4 text-emerald-500" />
+                        <h4 className={`font-semibold ${textColor} flex items-center gap-2 text-sm sm:text-base`}>
+                          <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 flex-shrink-0" />
                           Performance Insights
                         </h4>
-                        <ul className="space-y-1">
+                        <ul className="space-y-1.5">
                           {level.improvements.map((improvement, idx) => (
-                            <li key={idx} className={`text-sm ${textColor} opacity-80 flex items-start gap-2`}>
-                              <div className={`w-1.5 h-1.5 bg-current rounded-full mt-2 flex-shrink-0 opacity-60`}></div>
-                              {improvement}
+                            <li key={idx} className={`text-xs sm:text-sm ${textColor} opacity-80 flex items-start gap-2 leading-relaxed break-words`}>
+                              <div className={`w-1.5 h-1.5 bg-current rounded-full mt-1.5 sm:mt-2 flex-shrink-0 opacity-60`}></div>
+                              <span className="flex-1">{improvement}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
                       
                       <div className="space-y-2">
-                        <h4 className={`font-semibold ${textColor} flex items-center gap-2`}>
-                          <Info className="w-4 h-4 text-blue-500" />
+                        <h4 className={`font-semibold ${textColor} flex items-center gap-2 text-sm sm:text-base`}>
+                          <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
                           Example Activities
                         </h4>
-                        <ul className="space-y-1">
+                        <ul className="space-y-1.5">
                           {level.examples.map((example, idx) => (
-                            <li key={idx} className={`text-sm ${textColor} opacity-80 flex items-start gap-2`}>
-                              <div className={`w-1.5 h-1.5 bg-current rounded-full mt-2 flex-shrink-0 opacity-60`}></div>
-                              {example}
+                            <li key={idx} className={`text-xs sm:text-sm ${textColor} opacity-80 flex items-start gap-2 leading-relaxed break-words`}>
+                              <div className={`w-1.5 h-1.5 bg-current rounded-full mt-1.5 sm:mt-2 flex-shrink-0 opacity-60`}></div>
+                              <span className="flex-1">{example}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
                       
-                      <div className="space-y-3">
-                        <h4 className={`font-semibold ${textColor}`}>Performance Metrics</h4>
+                      <div className="space-y-2 sm:space-y-3">
+                        <h4 className={`font-semibold ${textColor} text-sm sm:text-base`}>Performance Metrics</h4>
                         <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
+                          <div className="flex justify-between text-xs sm:text-sm">
                             <span className={`${textColor} opacity-80`}>Accuracy</span>
                             <span className={`font-medium ${textColor}`}>
                               {Math.round((level.correct / level.questions) * 100)}%
                             </span>
                           </div>
-                          <Progress value={(level.correct / level.questions) * 100} className="h-2" />
+                          <Progress value={(level.correct / level.questions) * 100} className="h-1.5 sm:h-2" />
                           
-                          <div className="flex justify-between text-sm">
+                          <div className="flex justify-between text-xs sm:text-sm">
                             <span className={`${textColor} opacity-80`}>Questions Attempted</span>
                             <span className={`font-medium ${textColor}`}>{level.questions}</span>
                           </div>
                           
-                          <div className="flex justify-between text-sm">
+                          <div className="flex justify-between text-xs sm:text-sm">
                             <span className={`${textColor} opacity-80`}>Correct Answers</span>
                             <span className={`font-medium ${textColor}`}>{level.correct}</span>
                           </div>
@@ -256,24 +256,24 @@ export function BloomsTaxonomyMap({ levels }: BloomsTaxonomyMapProps) {
       </div>
 
       {/* Quick Actions */}
-      <Card className="border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-3">
-            <Button variant="outline" size="sm" className="gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Practice Lower Levels
+      <Card className="border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 pb-4 sm:pb-6">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[36px] text-xs sm:text-sm font-medium touch-manipulation flex-1 sm:flex-none px-3 sm:px-4">
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="break-words">Practice Lower Levels</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Search className="w-4 h-4" />
-              Focus on Analysis
+            <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[36px] text-xs sm:text-sm font-medium touch-manipulation flex-1 sm:flex-none px-3 sm:px-4">
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="break-words">Focus on Analysis</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Palette className="w-4 h-4" />
-              Creative Exercises
+            <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[36px] text-xs sm:text-sm font-medium touch-manipulation flex-1 sm:flex-none px-3 sm:px-4">
+              <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="break-words">Creative Exercises</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Scale className="w-4 h-4" />
-              Critical Thinking
+            <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[36px] text-xs sm:text-sm font-medium touch-manipulation flex-1 sm:flex-none px-3 sm:px-4">
+              <Scale className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="break-words">Critical Thinking</span>
             </Button>
           </div>
         </CardContent>

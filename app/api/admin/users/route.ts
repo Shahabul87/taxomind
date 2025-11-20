@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { UserRole, Prisma } from "@prisma/client";
+import { AdminRole, Prisma } from "@prisma/client";
 import { withRole } from "@/lib/api-protection";
-import { assignRole } from "@/lib/role-management";
 import { db } from "@/lib/db";
 import { z } from "zod";
 
 // Input validation schema
 const GetUsersSchema = z.object({
   search: z.string().optional(),
-  role: z.enum(["all", "USER", "ADMIN"]).optional().default("all"),
+  userType: z.enum(["all", "teacher", "user"]).optional().default("all"),
   status: z.enum(["all", "Active", "Inactive", "Suspended"]).optional().default("all"),
   page: z.number().min(1).optional().default(1),
   limit: z.number().min(1).max(100).optional().default(10),
@@ -21,7 +20,7 @@ interface UserData {
   id: string;
   name: string | null;
   email: string | null;
-  role: string;
+  isTeacher: boolean;
   status: "Active" | "Inactive" | "Suspended";
   joinDate: string;
   lastActive: string;
@@ -53,13 +52,13 @@ interface ApiResponse<T = unknown> {
   };
 }
 
-export const GET = withRole(UserRole.ADMIN, async (request: NextRequest) => {
+export const GET = withRole(AdminRole.ADMIN, async (request: NextRequest) => {
   try {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const params = {
       search: searchParams.get("search") || undefined,
-      role: searchParams.get("role") || "all",
+      userType: searchParams.get("userType") || "all",
       status: searchParams.get("status") || "all",
       page: parseInt(searchParams.get("page") || "1"),
       limit: parseInt(searchParams.get("limit") || "10"),
@@ -81,9 +80,9 @@ export const GET = withRole(UserRole.ADMIN, async (request: NextRequest) => {
       ];
     }
 
-    // Role filter
-    if (validatedParams.role !== "all") {
-      whereClause.role = validatedParams.role;
+    // User type filter
+    if (validatedParams.userType !== "all") {
+      whereClause.isTeacher = validatedParams.userType === "teacher";
     }
 
     // Status filter - map to actual database fields
@@ -122,7 +121,7 @@ export const GET = withRole(UserRole.ADMIN, async (request: NextRequest) => {
         id: true,
         name: true,
         email: true,
-        role: true,
+        isTeacher: true,
         image: true,
         createdAt: true,
         lastLoginAt: true,
@@ -180,7 +179,7 @@ export const GET = withRole(UserRole.ADMIN, async (request: NextRequest) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        isTeacher: user.isTeacher,
         status,
         joinDate: user.createdAt.toLocaleDateString(),
         lastActive,
@@ -252,10 +251,10 @@ export const GET = withRole(UserRole.ADMIN, async (request: NextRequest) => {
   }
 });
 
-export const PATCH = withRole(UserRole.ADMIN, async (request: NextRequest) => {
+export const PATCH = withRole(AdminRole.ADMIN, async (request: NextRequest) => {
   try {
     const body = await request.json();
-    const { userId, role, action, data } = body;
+    const { userId, isTeacher, action, data } = body;
 
     if (!userId) {
       return NextResponse.json(
@@ -290,22 +289,10 @@ export const PATCH = withRole(UserRole.ADMIN, async (request: NextRequest) => {
 
     let updateData: Prisma.UserUpdateInput = {};
 
-    // Handle role update
-    if (role) {
-      if (!Object.values(UserRole).includes(role)) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "VALIDATION_ERROR",
-              message: "Invalid role"
-            }
-          },
-          { status: 400 }
-        );
-      }
-      await assignRole(userId, role);
-      updateData.role = role;
+    // Handle teacher status update
+    if (isTeacher !== undefined) {
+      updateData.isTeacher = Boolean(isTeacher);
+      updateData.teacherActivatedAt = Boolean(isTeacher) ? new Date() : null;
     }
 
     // Handle other actions
@@ -336,21 +323,9 @@ export const PATCH = withRole(UserRole.ADMIN, async (request: NextRequest) => {
               }
               updateData.email = data.email;
             }
-            if (data.role !== undefined) {
-              if (!Object.values(UserRole).includes(data.role as UserRole)) {
-                return NextResponse.json(
-                  {
-                    success: false,
-                    error: {
-                      code: "VALIDATION_ERROR",
-                      message: "Invalid role"
-                    }
-                  },
-                  { status: 400 }
-                );
-              }
-              await assignRole(userId, data.role as UserRole);
-              updateData.role = data.role as UserRole;
+            if (data.isTeacher !== undefined) {
+              updateData.isTeacher = Boolean(data.isTeacher);
+              updateData.teacherActivatedAt = Boolean(data.isTeacher) ? new Date() : null;
             }
           }
           break;
@@ -408,7 +383,7 @@ export const PATCH = withRole(UserRole.ADMIN, async (request: NextRequest) => {
         id: true,
         name: true,
         email: true,
-        role: true,
+        isTeacher: true,
         isAccountLocked: true,
         isTwoFactorEnabled: true,
       },
@@ -440,7 +415,7 @@ export const PATCH = withRole(UserRole.ADMIN, async (request: NextRequest) => {
 });
 
 // DELETE endpoint for removing a user
-export const DELETE = withRole(UserRole.ADMIN, async (request: NextRequest) => {
+export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => {
   const requestId = crypto.randomUUID();
   console.log(`[DELETE /api/admin/users] [${requestId}] Request received`);
 
@@ -481,7 +456,7 @@ export const DELETE = withRole(UserRole.ADMIN, async (request: NextRequest) => {
         id: true,
         email: true,
         name: true,
-        role: true,
+        isTeacher: true,
       },
     });
 
@@ -507,7 +482,7 @@ export const DELETE = withRole(UserRole.ADMIN, async (request: NextRequest) => {
     console.log(`[DELETE /api/admin/users] [${requestId}] User found:`, {
       id: user.id,
       email: user.email,
-      role: user.role
+      isTeacher: user.isTeacher
     });
 
     // Get current admin user from requireAuth (already called by withRole)
@@ -559,25 +534,8 @@ export const DELETE = withRole(UserRole.ADMIN, async (request: NextRequest) => {
       );
     }
 
-    // Prevent deleting other admin users (optional protection)
-    if (user.role === UserRole.ADMIN) {
-      console.log(`[DELETE /api/admin/users] [${requestId}] FORBIDDEN: Attempting to delete admin user`);
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "FORBIDDEN",
-            message: "Cannot delete administrator accounts. Contact system administrator if this is necessary.",
-          },
-          metadata: {
-            timestamp: new Date().toISOString(),
-            requestId,
-            version: "1.0.0",
-          },
-        },
-        { status: 403 }
-      );
-    }
+    // Note: Users no longer have admin roles - admins are in AdminAccount table
+    // Regular users and teachers in User table can be deleted by admins
 
     console.log(`[DELETE /api/admin/users] [${requestId}] Proceeding with user deletion:`, userId);
 

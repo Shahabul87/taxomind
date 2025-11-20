@@ -83,26 +83,26 @@ export const MetricCard = ({
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-blue-700/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <div className="relative p-5">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 bg-white/20 rounded-lg">
-            <Icon className={cn("w-4 h-4", iconColor)} />
+      <div className="relative p-3 sm:p-4 md:p-5">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+          <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg flex-shrink-0">
+            <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", iconColor)} />
           </div>
-          <span className="text-sm font-medium text-white/90">{title}</span>
+          <span className="text-[10px] sm:text-xs md:text-sm font-medium text-white/90 truncate">{title}</span>
         </div>
-        <div className="text-2xl font-bold text-white">{value}</div>
+        <div className="text-lg sm:text-xl md:text-2xl font-bold text-white">{value}</div>
 
         {/* Trend or Subtitle */}
         {change !== undefined && (
-          <div className="flex items-center gap-1 mt-2">
-            <TrendIcon className="w-3 h-3 text-white/80" />
-            <span className="text-xs font-medium text-white/80">
+          <div className="flex items-center gap-1 mt-1.5 sm:mt-2">
+            <TrendIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white/80 flex-shrink-0" />
+            <span className="text-[9px] sm:text-xs font-medium text-white/80">
               {change > 0 ? '+' : ''}{change.toFixed(1)}%
             </span>
           </div>
         )}
         {subtitle && !change && (
-          <div className="text-xs text-white/80 mt-2">
+          <div className="text-[9px] sm:text-xs text-white/80 mt-1.5 sm:mt-2">
             {subtitle}
           </div>
         )}

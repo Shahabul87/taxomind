@@ -22,25 +22,11 @@ export const currentUser = async () => {
   return session?.user;
 };
 
+/**
+ * @deprecated Users no longer have roles. Admin authentication is separate.
+ * Use isTeacher flag or check against admin auth system instead.
+ */
 export const currentRole = async () => {
-  const session = await auth();
-
-  // If we have a session but need to verify the user still exists
-  if (session?.user?.id) {
-    // Quick check if user exists in database
-    const userExists = await db.user.findUnique({
-      where: { id: session.user.id },
-      select: { role: true }
-    });
-
-    if (!userExists) {
-      console.warn(`[currentRole] Session contains non-existent user ID: ${session.user.id}`);
-      return null;
-    }
-
-    // Return the actual role from database (in case it changed)
-    return userExists.role;
-  }
-
-  return session?.user?.role;
+  console.warn('[currentRole] DEPRECATED: Users no longer have roles. Admin auth is separate.');
+  return null;
 };

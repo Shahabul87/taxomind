@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
@@ -10,6 +9,12 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
+
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: user.id },
+    });
+    const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
 
     const { searchParams } = new URL(request.url);
     const templateIds = searchParams.get("templateIds")?.split(",") || [];
@@ -35,12 +40,12 @@ export async function GET(request: NextRequest) {
 
     if (authorId) {
       where.authorId = authorId;
-    } else if (user.role !== UserRole.ADMIN) {
+    } else if (!isAdmin) {
       where.authorId = user.id;
     }
 
     // Ensure user can only export templates they have access to
-    if (user.role !== UserRole.ADMIN) {
+    if (!isAdmin) {
       where.OR = [
         { authorId: user.id },
         { isPublic: true }

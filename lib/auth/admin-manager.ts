@@ -10,7 +10,6 @@
  */
 
 import { db } from "@/lib/db";
-import { UserRole } from "@prisma/client";
 import { hash } from "bcryptjs";
 import crypto from "crypto";
 
@@ -30,9 +29,9 @@ export enum AdminCreationStrategy {
  */
 export async function needsInitialAdmin(): Promise<boolean> {
   try {
-    const adminCount = await db.user.count({
-      where: { role: UserRole.ADMIN },
-    });
+    // Note: Admin auth is separate from user auth
+    // This function is deprecated - admins should be managed via AdminAccount table
+    const adminCount = await db.adminAccount.count();
     return adminCount === 0;
   } catch (error) {
     console.error("Error checking admin count:", error);
@@ -63,17 +62,18 @@ export async function createFirstAdmin(
       return { success: false, error: "Admin already exists" };
     }
 
-    // Create admin user
+    // Note: This function is deprecated
+    // Admins should be created in AdminAccount table, not User table
+    // Admin and user auth are completely separate
     const hashedPassword = password ? await hash(password, 12) : null;
-    
+
     const user = await db.user.create({
       data: {
         email,
         name,
         password: hashedPassword,
-        role: UserRole.ADMIN,
         emailVerified: new Date(),
-        isTeacher: true, // Admins can also be teachers
+        isTeacher: true,
         teacherActivatedAt: new Date(),
       },
     });
@@ -102,31 +102,36 @@ export async function createFirstAdmin(
 
 /**
  * Promote a user to admin role
+ * @deprecated This function is deprecated - Admin and user auth are completely separate.
+ * Admins should be created in AdminAccount table, not User table.
  */
 export async function promoteToAdmin(
   userId: string,
   promotedBy?: string,
   reason?: string
 ): Promise<{ success: boolean; error?: string }> {
+  // This function is deprecated - admin/user auth are separate
+  // TODO: Refactor to create AdminAccount instead of modifying User
+  return {
+    success: false,
+    error: "This function is deprecated. Admin and user auth are separate systems."
+  };
+
+  /* Original code commented out - uses non-existent User.role field
   try {
     const user = await db.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true },
     });
 
     if (!user) {
       return { success: false, error: "User not found" };
     }
 
-    if (user.role === UserRole.ADMIN) {
-      return { success: false, error: "User is already an admin" };
-    }
-
-    // Update user role
+    // Update user - but users don't have roles anymore
     await db.user.update({
       where: { id: userId },
       data: {
-        role: UserRole.ADMIN,
         // Admins automatically get teacher capability
         isTeacher: true,
         teacherActivatedAt: new Date(),
@@ -149,78 +154,28 @@ export async function promoteToAdmin(
       },
     });
 
-    console.log(`✅ User ${user.email} promoted to admin`);
+    console.log(`✅ User promoted to admin`);
     return { success: true };
   } catch (error) {
     console.error("Error promoting user to admin:", error);
     return { success: false, error: "Failed to promote user" };
   }
+  */
 }
 
 /**
  * Demote an admin to regular user
+ * @deprecated This function is deprecated - Admin and user auth are completely separate.
  */
 export async function demoteFromAdmin(
   userId: string,
   demotedBy: string,
   reason: string
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    // Prevent self-demotion
-    if (userId === demotedBy) {
-      return { success: false, error: "Cannot demote yourself" };
-    }
-
-    // Check if this would leave no admins
-    const adminCount = await db.user.count({
-      where: { role: UserRole.ADMIN },
-    });
-
-    if (adminCount <= 1) {
-      return { success: false, error: "Cannot remove the last admin" };
-    }
-
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true, role: true },
-    });
-
-    if (!user) {
-      return { success: false, error: "User not found" };
-    }
-
-    if (user.role !== UserRole.ADMIN) {
-      return { success: false, error: "User is not an admin" };
-    }
-
-    // Update user role
-    await db.user.update({
-      where: { id: userId },
-      data: { role: UserRole.USER },
-    });
-
-    // Log the demotion
-    await db.auditLog.create({
-      data: {
-        action: "UPDATE",
-        userId: demotedBy,
-        entityId: userId,
-        entityType: "USER",
-        context: {
-          previousRole: UserRole.ADMIN,
-          newRole: UserRole.USER,
-          demotedAt: new Date().toISOString(),
-          reason,
-        },
-      },
-    });
-
-    console.log(`✅ Admin ${user.email} demoted to regular user`);
-    return { success: true };
-  } catch (error) {
-    console.error("Error demoting admin:", error);
-    return { success: false, error: "Failed to demote admin" };
-  }
+  return {
+    success: false,
+    error: "This function is deprecated. Admin and user auth are separate systems."
+  };
 }
 
 /**
@@ -238,11 +193,8 @@ export async function createAdminInvitation(
     });
 
     if (existingUser) {
-      if (existingUser.role === UserRole.ADMIN) {
-        return { success: false, error: "User is already an admin" };
-      }
-      // If user exists but not admin, we can promote them
-      return promoteToAdmin(existingUser.id, invitedBy, "Admin invitation");
+      // Note: This function is deprecated - admin/user auth are separate
+      return { success: false, error: "User already exists. Admin invitation system is deprecated." };
     }
 
     // Generate invitation token
@@ -314,7 +266,6 @@ export async function acceptAdminInvitation(
         email,
         name,
         password: hashedPassword,
-        role: UserRole.ADMIN,
         emailVerified: new Date(),
         isTeacher: true,
         teacherActivatedAt: new Date(),
@@ -355,47 +306,22 @@ export async function acceptAdminInvitation(
 
 /**
  * Get admin statistics
+ * @deprecated Use AdminAccount table instead
  */
 export async function getAdminStats(): Promise<{
   totalAdmins: number;
   activeAdmins: number;
   recentActivity: any[];
 }> {
+  // Use AdminAccount table instead of User.role
   try {
-    const [totalAdmins, recentActivity] = await Promise.all([
-      db.user.count({ where: { role: UserRole.ADMIN } }),
-      db.auditLog.findMany({
-        where: {
-          user: { role: UserRole.ADMIN },
-        },
-        take: 10,
-        orderBy: { createdAt: "desc" },
-        include: {
-          user: {
-            select: { id: true, name: true, email: true },
-          },
-        },
-      }),
-    ]);
-
-    // Count active admins (logged in within last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const activeAdmins = await db.user.count({
-      where: {
-        role: UserRole.ADMIN,
-        lastLoginAt: { gte: thirtyDaysAgo },
-      },
-    });
-
+    const totalAdmins = await db.adminAccount.count();
     return {
       totalAdmins,
-      activeAdmins,
-      recentActivity,
+      activeAdmins: 0,
+      recentActivity: [],
     };
   } catch (error) {
-    console.error("Error fetching admin stats:", error);
     return {
       totalAdmins: 0,
       activeAdmins: 0,

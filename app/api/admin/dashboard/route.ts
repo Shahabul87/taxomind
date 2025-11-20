@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
-import { UserRole } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
 import { logger } from '@/lib/logger';
 
 // Mark this route as dynamic to prevent static generation attempts
@@ -10,9 +10,9 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const session = await adminAuth();
-    
+
     // Check if user is authenticated and is an admin
-    if (!session || !session.user || session.user.role !== UserRole.ADMIN) {
+    if (!session || !session.user || (session.user.role !== AdminRole.ADMIN && session.user.role !== AdminRole.SUPERADMIN)) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -37,11 +37,11 @@ export async function GET() {
       }
     });
 
-    // Get user roles distribution
-    const usersByRole = await db.user.groupBy({
-      by: ['role'],
+    // Get user type distribution (teachers vs regular users)
+    const usersByType = await db.user.groupBy({
+      by: ['isTeacher'],
       _count: {
-        role: true
+        isTeacher: true
       }
     });
 
@@ -59,7 +59,7 @@ export async function GET() {
         id: true,
         name: true,
         email: true,
-        role: true,
+        isTeacher: true,
         createdAt: true,
         emailVerified: true
       }
@@ -77,7 +77,7 @@ export async function GET() {
         lastWeekUsers,
         verifiedUsers,
         unverifiedUsers: totalUsers - verifiedUsers,
-        usersByRole,
+        usersByType,
         oauthAccounts,
         credentialUsers,
         totalCourses,

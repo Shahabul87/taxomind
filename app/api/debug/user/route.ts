@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
           email: session.user?.email,
           name: session.user?.name,
           image: session.user?.image,
-          role: session.user?.role,
           // emailVerified: session.user?.emailVerified, // Not available on session user
           isTwoFactorEnabled: session.user?.isTwoFactorEnabled,
           isOAuth: session.user?.isOAuth
@@ -140,7 +139,6 @@ export async function GET(request: NextRequest) {
                 email: userData.email,
                 image: userData.image,
                 phone: userData.phone,
-                role: userData.role,
                 emailVerified: userData.emailVerified,
                 isTwoFactorEnabled: userData.isTwoFactorEnabled,
                 createdAt: userData.createdAt,

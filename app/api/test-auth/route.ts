@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { currentUser, currentRole } from "@/lib/auth";
-import { Permission, UserRole as AppUserRole } from "@/types/auth";
-import { UserRole } from "@prisma/client";
-import { hasPermission } from "@/lib/auth/permissions";
+import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
     const user = await currentUser();
-    const role = await currentRole();
 
     if (!user) {
       return NextResponse.json(
@@ -17,17 +14,16 @@ export async function GET() {
       );
     }
 
-    // Test different permission levels
-    const permissions = {
-      canCreateCourse: role ? hasPermission(role as AppUserRole, Permission.CREATE_COURSE) : false,
-      canManageUsers: role ? hasPermission(role as AppUserRole, Permission.CREATE_USER) : false,
-      canAccessAdmin: role ? hasPermission(role as AppUserRole, Permission.ACCESS_ADMIN_PANEL) : false,
-      canViewAllAnalytics: role ? hasPermission(role as AppUserRole, Permission.VIEW_ALL_ANALYTICS) : false,
-    };
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: user.id },
+    });
+    const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
 
     const roleInfo = {
-      isAdmin: role === UserRole.ADMIN,
-      isUser: role === UserRole.USER,
+      isAdmin,
+      isUser: !isAdmin,
+      adminRole: adminAccount?.role || null,
     };
 
     return NextResponse.json({
@@ -36,10 +32,8 @@ export async function GET() {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: role,
       },
       roleInfo,
-      permissions,
       timestamp: new Date().toISOString(),
     });
 
@@ -56,7 +50,6 @@ export async function GET() {
 export async function POST() {
   try {
     const user = await currentUser();
-    const role = await currentRole();
 
     if (!user) {
       return NextResponse.json(
@@ -65,8 +58,13 @@ export async function POST() {
       );
     }
 
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: user.id },
+    });
+
     // Admin-only operation
-    if (role !== UserRole.ADMIN) {
+    if (!adminAccount || (adminAccount.role !== 'ADMIN' && adminAccount.role !== 'SUPERADMIN')) {
       return NextResponse.json(
         { error: "Forbidden", message: "Admin role required for this operation" },
         { status: 403 }
@@ -79,7 +77,7 @@ export async function POST() {
       operationBy: {
         id: user.id,
         name: user.name,
-        role: role,
+        adminRole: adminAccount.role,
       },
       timestamp: new Date().toISOString(),
     });

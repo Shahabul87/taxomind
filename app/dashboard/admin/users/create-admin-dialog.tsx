@@ -123,17 +123,17 @@ export function CreateAdminDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-white dark:bg-slate-800">
-        <DialogHeader>
-          <DialogTitle className="text-slate-900 dark:text-slate-100">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-[500px] bg-white dark:bg-slate-800 max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="text-lg sm:text-xl text-slate-900 dark:text-slate-100">
             Create New Admin User
           </DialogTitle>
-          <DialogDescription className="text-slate-600 dark:text-slate-400">
+          <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
             Add a new admin or regular user to the platform
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-3 sm:space-y-4 py-4 px-1">
           {/* Error Alert */}
           {error && (
             <Alert variant="destructive">
@@ -171,7 +171,7 @@ export function CreateAdminDialog({
               }
               disabled={loading}
               required
-              className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600"
+              className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 min-h-[44px] text-base sm:text-sm"
             />
           </div>
 
@@ -190,7 +190,7 @@ export function CreateAdminDialog({
               }
               disabled={loading}
               required
-              className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600"
+              className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 min-h-[44px] text-base sm:text-sm"
             />
           </div>
 
@@ -206,7 +206,7 @@ export function CreateAdminDialog({
               }
               disabled={loading}
             >
-              <SelectTrigger className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600">
+              <SelectTrigger className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 min-h-[44px] text-base sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -207,7 +207,7 @@ export const ChaptersForm = ({
 
   return (
     <div className={cn(
-      "relative p-4 mt-6 rounded-xl",
+      "relative p-2.5 sm:p-3 md:p-4 mt-3 sm:mt-4 md:mt-6 rounded-lg sm:rounded-xl",
       "border border-gray-200 dark:border-gray-700/50",
       "bg-white/50 dark:bg-gray-800/50",
       "hover:bg-gray-50 dark:hover:bg-gray-800/70",
@@ -215,72 +215,76 @@ export const ChaptersForm = ({
       "transition-all duration-200"
     )}>
       {(isUpdating || isDeleting || isGeneratingAI) && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
-          <Loader2 className="h-6 w-6 animate-spin text-purple-600 dark:text-purple-400" />
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm z-10">
+          <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 animate-spin text-purple-600 dark:text-purple-400" />
         </div>
       )}
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="space-y-1">
-          <div className="flex items-center gap-x-2">
-            <div className="p-2 w-fit rounded-md bg-purple-50 dark:bg-purple-500/10">
-              <BookOpen className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-base sm:text-lg font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
-                Course Chapters
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Organize your course content
-              </p>
+      <div className="font-medium flex flex-col gap-2.5 sm:gap-3 md:gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 md:gap-2">
+          <div className="space-y-0.5 sm:space-y-1">
+            <div className="flex items-center gap-x-1.5 sm:gap-x-2">
+              <div className="p-1 sm:p-1.5 md:p-2 w-fit rounded-md bg-purple-50 dark:bg-purple-500/10">
+                <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
+                  Course Chapters
+                </p>
+                <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                  Organize your course content
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <AIChapterPreferencesDialog
-            onGenerate={generateChaptersWithAI}
-            isGenerating={isGeneratingAI}
-            disabled={!initialData.title || !initialData.description || isGeneratingAI}
-            courseTitle={initialData.title}
-            courseDescription={initialData.description || undefined}
-            trigger={
-              <Button
-                size="sm"
-                disabled={isGeneratingAI || !initialData.title || !initialData.description}
-                className={cn(
-                  // Elegant AI button - sky blue gradient (fresh & modern)
-                  "relative overflow-hidden group",
-                  "bg-gradient-to-r from-sky-500 to-blue-500",
-                  "hover:from-sky-600 hover:to-blue-600",
-                  "text-white font-semibold",
-                  "border-0",
-                  "shadow-lg shadow-sky-500/30 hover:shadow-xl hover:shadow-blue-500/40",
-                  "w-full sm:w-auto",
-                  "justify-center",
-                  "transition-all duration-300 ease-out",
-                  "hover:scale-[1.02]",
-                  "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
-                  // Shine effect
-                  "before:absolute before:inset-0",
-                  "before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent",
-                  "before:translate-x-[-200%] group-hover:before:translate-x-[200%]",
-                  "before:transition-transform before:duration-700"
-                )}
-              >
-                {isGeneratingAI ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="relative z-10">Generating...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 animate-pulse" />
-                    <span className="relative z-10">Generate with AI</span>
-                  </div>
-                )}
-              </Button>
-            }
-          />
-          <Button
+          <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
+            <AIChapterPreferencesDialog
+              onGenerate={generateChaptersWithAI}
+              isGenerating={isGeneratingAI}
+              disabled={!initialData.title || !initialData.description || isGeneratingAI}
+              courseTitle={initialData.title}
+              courseDescription={initialData.description || undefined}
+              trigger={
+                <Button
+                  size="sm"
+                  disabled={isGeneratingAI || !initialData.title || !initialData.description}
+                  className={cn(
+                    // Elegant AI button - sky blue gradient (fresh & modern)
+                    "relative overflow-hidden group",
+                    "bg-gradient-to-r from-sky-500 to-blue-500",
+                    "hover:from-sky-600 hover:to-blue-600",
+                    "text-white font-semibold",
+                    "border-0",
+                    "shadow-lg shadow-sky-500/30 hover:shadow-xl hover:shadow-blue-500/40",
+                    "w-full sm:w-auto",
+                    "justify-center",
+                    "h-9 sm:h-10",
+                    "text-xs sm:text-sm",
+                    "transition-all duration-300 ease-out",
+                    "hover:scale-[1.02]",
+                    "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
+                    // Shine effect
+                    "before:absolute before:inset-0",
+                    "before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent",
+                    "before:translate-x-[-200%] group-hover:before:translate-x-[200%]",
+                    "before:transition-transform before:duration-700"
+                  )}
+                >
+                  {isGeneratingAI ? (
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                      <span className="relative z-10">Generating...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-pulse" />
+                      <span className="relative z-10 hidden sm:inline">Generate with AI</span>
+                      <span className="relative z-10 sm:hidden">AI Generate</span>
+                    </div>
+                  )}
+                </Button>
+              }
+            />
+            <Button
             onClick={() => setIsCreating(!isCreating)}
             variant="ghost"
             size="sm"
@@ -289,19 +293,23 @@ export const ChaptersForm = ({
               "hover:text-purple-800 dark:hover:text-purple-200",
               "hover:bg-purple-50 dark:hover:bg-purple-500/10",
               "w-full sm:w-auto",
-              "justify-center"
+              "justify-center",
+              "h-9 sm:h-10",
+              "text-xs sm:text-sm"
             )}
           >
             {isCreating ? (
               "Cancel"
             ) : (
               <>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add chapter
+                <PlusCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                <span className="hidden sm:inline">Add chapter</span>
+                <span className="sm:hidden">Add</span>
               </>
             )}
           </Button>
         </div>
+      </div>
       </div>
 
       <AnimatePresence>
@@ -314,7 +322,7 @@ export const ChaptersForm = ({
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4 mt-4"
+                className="space-y-3 sm:space-y-4 mt-3 sm:mt-4"
               >
                 <FormField
                   control={form.control}
@@ -334,11 +342,12 @@ export const ChaptersForm = ({
                             "placeholder:text-gray-500 dark:placeholder:text-gray-400",
                             "focus:ring-purple-500/20",
                             "text-sm sm:text-base font-medium",
+                            "h-9 sm:h-10",
                             "transition-all duration-200"
                           )}
                         />
                       </FormControl>
-                      <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
+                      <FormMessage className="text-rose-500 dark:text-rose-400 text-xs sm:text-sm" />
                     </FormItem>
                   )}
                 />
@@ -354,12 +363,14 @@ export const ChaptersForm = ({
                     "hover:text-purple-800 dark:hover:text-purple-200",
                     "w-full sm:w-auto",
                     "justify-center",
+                    "h-9 sm:h-10",
+                    "text-xs sm:text-sm",
                     "transition-all duration-200"
                   )}
                 >
                   {isSubmitting ? (
-                    <div className="flex items-center gap-x-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="flex items-center gap-x-1.5 sm:gap-x-2">
+                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                       <span>Creating...</span>
                     </div>
                   ) : (
@@ -376,7 +387,7 @@ export const ChaptersForm = ({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mt-4"
+          className="mt-3 sm:mt-4"
         >
           <ChaptersList
             onEdit={onEdit}
@@ -385,12 +396,12 @@ export const ChaptersForm = ({
             items={initialData.chapters || []}
           />
           {initialData.chapters.length === 0 && (
-            <div className="mt-4 text-center space-y-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+            <div className="mt-3 sm:mt-4 text-center space-y-1.5 sm:space-y-2 px-2">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 italic">
                 No chapters yet
               </p>
               {(!initialData.title || !initialData.description) && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
+                <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400">
                   Add course title and description to use AI generation
                 </p>
               )}

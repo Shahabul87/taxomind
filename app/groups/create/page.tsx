@@ -4,8 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { BookOpen, Users, PenLine, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
-import { SmartHeader } from "@/components/dashboard/smart-header";
+import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
 
 export default async function CreateGroupPage() {
   const user = await currentUser();
@@ -41,50 +40,52 @@ export default async function CreateGroupPage() {
   const courses = enrolledCourses.map(enrollment => enrollment.Course);
 
   return (
-    <>
-      <SmartSidebar user={user} />
-      <SmartHeader user={user} />
-
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16">
-        <main className="pl-[88px] pb-16">
-          {/* Page Header */}
-          <div className="bg-gradient-to-r from-violet-700 to-indigo-800 px-6 py-12">
-            <div className="max-w-7xl mx-auto">
-              <Link
-                href="/groups"
-                className="inline-flex items-center text-white/80 hover:text-white mb-4 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                Back to Groups
-              </Link>
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Create Your Study Community
-              </h1>
-              <p className="text-white/90 text-lg max-w-2xl">
-                Connect with like-minded learners and create a space for collaboration
-              </p>
-            </div>
+    <PageWithMobileLayout
+      showHeader={true}
+      showSidebar={true}
+      showBottomBar={true}
+      enableGestures={true}
+      contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
+    >
+      <main className="min-h-screen">
+        {/* Page Header - Mobile Optimized */}
+        <div className="bg-gradient-to-r from-violet-700 to-indigo-800 px-4 sm:px-6 py-8 sm:py-12">
+          <div className="max-w-7xl mx-auto">
+            <Link
+              href="/groups"
+              className="inline-flex items-center text-white/80 hover:text-white mb-3 sm:mb-4 transition-colors text-sm sm:text-base"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to Groups
+            </Link>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 leading-tight">
+              Create Your Study Community
+            </h1>
+            <p className="text-white/90 text-sm sm:text-base lg:text-lg max-w-2xl leading-relaxed">
+              Connect with like-minded learners and create a space for collaboration
+            </p>
           </div>
+        </div>
 
-          {/* Main content */}
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Info Sidebar */}
-              <div className="lg:col-span-1 order-2 lg:order-1">
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-6 space-y-6">
+        {/* Main content - Mobile Optimized */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
+            {/* Info Sidebar - Hidden on mobile, shown on desktop */}
+            <div className="hidden lg:block lg:col-span-1">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-6 space-y-6 sticky top-6">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Group Benefits</h3>
                   <ul className="space-y-4">
                     <li className="flex">
-                      <Users className="h-5 w-5 text-indigo-500 mr-3 flex-shrink-0" />
+                      <Users className="h-5 w-5 text-indigo-500 mr-3 flex-shrink-0 mt-0.5" />
                       <span className="text-sm text-gray-600 dark:text-gray-300">Connect with peers who share your interests</span>
                     </li>
                     <li className="flex">
-                      <BookOpen className="h-5 w-5 text-indigo-500 mr-3 flex-shrink-0" />
+                      <BookOpen className="h-5 w-5 text-indigo-500 mr-3 flex-shrink-0 mt-0.5" />
                       <span className="text-sm text-gray-600 dark:text-gray-300">Share resources and valuable materials</span>
                     </li>
                     <li className="flex">
-                      <PenLine className="h-5 w-5 text-indigo-500 mr-3 flex-shrink-0" />
+                      <PenLine className="h-5 w-5 text-indigo-500 mr-3 flex-shrink-0 mt-0.5" />
                       <span className="text-sm text-gray-600 dark:text-gray-300">Discuss complex topics and solve problems together</span>
                     </li>
                   </ul>
@@ -127,17 +128,18 @@ export default async function CreateGroupPage() {
               </div>
             </div>
             
-              {/* Form */}
-              <div className="lg:col-span-3 order-1 lg:order-2">
-                <CreateGroupForm
-                  userId={user.id!}
-                  enrolledCourses={courses}
-                />
-              </div>
+            {/* Form - Full width on mobile, 3 cols on desktop */}
+            <div className="lg:col-span-3">
+              <CreateGroupForm
+                userId={user.id!}
+                enrolledCourses={courses}
+                categories={categories}
+                courses={courses}
+              />
             </div>
           </div>
-        </main>
-      </div>
-    </>
+        </div>
+      </main>
+    </PageWithMobileLayout>
   );
 } 

@@ -32,13 +32,13 @@ export const registerTeacher = async (values: z.infer<typeof RegisterTeacherSche
     // Parse subjects string into array
     const subjectsArray = subjects.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
-    // Create user with USER role (all content creation capabilities included)
+    // Create user - teacher status will be granted after verification
     const user = await db.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: "USER", // All users can create content
+        isTeacher: false, // Will be set to true after admin verification
       },
     });
 

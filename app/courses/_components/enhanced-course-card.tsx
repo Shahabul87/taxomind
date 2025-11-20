@@ -344,19 +344,19 @@ export const EnhancedCourseCard = ({
   return (
     <Link
       href={`/courses/${id}`}
-      className="group relative bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl overflow-hidden border border-slate-200/50 dark:border-slate-700/50 h-full flex flex-col transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 hover:border-blue-400/50 dark:hover:border-blue-500/50 cursor-pointer"
+      className="group relative bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl overflow-hidden border border-slate-200/50 dark:border-slate-700/50 h-full flex flex-col transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 hover:border-blue-400/50 dark:hover:border-blue-500/50 cursor-pointer"
     >
       {/* Hover Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500 pointer-events-none z-10"></div>
 
       {/* Course Image with Enhanced Overlay */}
-      <div className="relative h-40 sm:h-44 w-full overflow-hidden">
+      <div className="relative h-36 xs:h-40 sm:h-44 w-full overflow-hidden">
         <Image
           src={secureImageUrl}
           alt={title}
           fill
           className="object-cover transition-transform duration-700 group-hover:scale-110"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          sizes="(max-width: 475px) 100vw, (max-width: 768px) 50vw, (max-width: 1200px) 50vw, 33vw"
           priority={false}
         />
 
@@ -365,12 +365,12 @@ export const EnhancedCourseCard = ({
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
         {/* Top Badges Row */}
-        <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-2 z-20">
+        <div className="absolute top-1.5 xs:top-2 left-1.5 xs:left-2 right-1.5 xs:right-2 flex items-start justify-between gap-1.5 xs:gap-2 z-20">
           {/* Status Badge */}
           {badgeStyle && (
             <div
               className={cn(
-                "px-2 py-1 rounded-lg text-[10px] font-bold text-white backdrop-blur-md shadow-md border flex items-center gap-1",
+                "px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md xs:rounded-lg text-[9px] xs:text-[10px] font-bold text-white backdrop-blur-md shadow-md border flex items-center gap-0.5 xs:gap-1",
                 badgeStyle.bg,
                 badgeStyle.borderColor
               )}
@@ -380,42 +380,42 @@ export const EnhancedCourseCard = ({
           )}
 
           {/* Price Badge */}
-          <div className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-blue-600/95 text-white backdrop-blur-md border border-blue-400/50 shadow-md">
+          <div className="px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md xs:rounded-lg text-[9px] xs:text-[10px] font-semibold bg-blue-600/95 text-white backdrop-blur-md border border-blue-400/50 shadow-md">
             {formatPrice(price)}
           </div>
         </div>
 
         {/* Category Badge (Bottom Left of Image) */}
         {category && (
-          <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-[10px] font-semibold bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white backdrop-blur-md border border-white/50 dark:border-slate-700/50 shadow-md z-20">
+          <div className="absolute top-1.5 xs:top-2 right-1.5 xs:right-2 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md xs:rounded-lg text-[9px] xs:text-[10px] font-semibold bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white backdrop-blur-md border border-white/50 dark:border-slate-700/50 shadow-md z-20">
             {category}
           </div>
         )}
 
         {/* Bottom Info on Image */}
-        <div className="absolute bottom-2 left-2 right-2 z-20">
+        <div className="absolute bottom-1.5 xs:bottom-2 left-1.5 xs:left-2 right-1.5 xs:right-2 z-20">
           {/* Title on Image */}
-          <h3 className="text-white font-bold text-base sm:text-lg leading-tight line-clamp-2 drop-shadow-lg mb-2">
+          <h3 className="text-white font-bold text-sm xs:text-base sm:text-lg leading-tight line-clamp-2 drop-shadow-lg mb-1.5 xs:mb-2 break-words">
             {title}
           </h3>
 
           {/* Quick Stats on Image */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <Star className="w-3 h-3 text-yellow-300 fill-yellow-300" />
-              <span className="text-white text-xs font-bold">
+          <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 flex-wrap">
+            <div className="flex items-center gap-0.5 xs:gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
+              <Star className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-yellow-300 fill-yellow-300 flex-shrink-0" />
+              <span className="text-white text-[10px] xs:text-xs font-bold">
                 {rating > 0 ? rating.toFixed(1) : "0.0"}
               </span>
             </div>
 
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <Users className="w-3 h-3 text-white" />
-              <span className="text-white text-xs font-bold">{enrolledCount}</span>
+            <div className="flex items-center gap-0.5 xs:gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
+              <Users className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-white flex-shrink-0" />
+              <span className="text-white text-[10px] xs:text-xs font-bold">{enrolledCount}</span>
             </div>
 
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <BookOpen className="w-3 h-3 text-white" />
-              <span className="text-white text-xs font-bold">{chaptersLength}</span>
+            <div className="flex items-center gap-0.5 xs:gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
+              <BookOpen className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-white flex-shrink-0" />
+              <span className="text-white text-[10px] xs:text-xs font-bold">{chaptersLength}</span>
             </div>
           </div>
         </div>
@@ -424,38 +424,38 @@ export const EnhancedCourseCard = ({
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-30 bg-slate-900/20">
           <div className="relative">
             <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
-            <div className="relative p-3 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 backdrop-blur-sm border-2 border-white/40 text-white shadow-2xl transform scale-0 group-hover:scale-100 transition-transform duration-500">
-              <Play className="h-5 w-5 fill-current" />
+            <div className="relative p-2.5 xs:p-3 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 backdrop-blur-sm border-2 border-white/40 text-white shadow-2xl transform scale-0 group-hover:scale-100 transition-transform duration-500">
+              <Play className="h-4 w-4 xs:h-5 xs:w-5 fill-current" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Course Content - Compact */}
-      <div className="flex flex-col flex-1 p-3 relative z-20">
+      <div className="flex flex-col flex-1 p-2.5 xs:p-3 relative z-20">
         {/* Instructor Info - Compact */}
         {instructor && (
-          <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200/50 dark:border-slate-700/50">
-            <div className="relative h-7 w-7 rounded-full overflow-hidden ring-2 ring-blue-500/50 dark:ring-blue-400/50 shadow-sm flex-shrink-0">
+          <div className="flex items-center gap-1.5 xs:gap-2 mb-1.5 xs:mb-2 pb-1.5 xs:pb-2 border-b border-slate-200/50 dark:border-slate-700/50">
+            <div className="relative h-6 w-6 xs:h-7 xs:w-7 rounded-full overflow-hidden ring-2 ring-blue-500/50 dark:ring-blue-400/50 shadow-sm flex-shrink-0">
               {secureInstructorAvatar ? (
                 <Image
                   src={secureInstructorAvatar}
                   alt={instructor.name}
                   fill
                   className="object-cover"
-                  sizes="40px"
+                  sizes="(max-width: 475px) 24px, 28px"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[10px] xs:text-xs font-bold">
                   {instructor.name ? instructor.name[0] : "?"}
                 </div>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-[9px] xs:text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                 Instructor
               </p>
-              <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+              <p className="text-[10px] xs:text-xs font-semibold text-slate-900 dark:text-white truncate">
                 {instructor.name}
               </p>
             </div>
@@ -463,14 +463,14 @@ export const EnhancedCourseCard = ({
         )}
 
         {/* Description */}
-        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mb-3">
+        <p className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mb-2 xs:mb-3 break-words">
           {description}
         </p>
 
         {/* Difficulty Badge */}
         {difficulty && (
-          <div className="mb-3">
-            <Badge className={cn("text-xs", getDifficultyColor(difficulty))} variant="outline">
+          <div className="mb-2 xs:mb-3">
+            <Badge className={cn("text-[9px] xs:text-[10px] sm:text-xs", getDifficultyColor(difficulty))} variant="outline">
               {difficulty}
             </Badge>
           </div>
@@ -478,16 +478,16 @@ export const EnhancedCourseCard = ({
 
         {/* Progress Bar (for enrolled courses) - Compact */}
         {isEnrolled && progress !== null && progress !== undefined && (
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+          <div className="mb-2 xs:mb-3">
+            <div className="flex items-center justify-between mb-0.5 xs:mb-1">
+              <span className="text-[9px] xs:text-[10px] font-semibold text-slate-600 dark:text-slate-400">
                 Progress
               </span>
-              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+              <span className="text-[9px] xs:text-[10px] font-bold text-blue-600 dark:text-blue-400">
                 {progress}%
               </span>
             </div>
-            <div className="relative h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+            <div className="relative h-1.5 xs:h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
               <div
                 className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-500 shadow-sm"
                 style={{ width: `${progress}%` }}
@@ -499,32 +499,32 @@ export const EnhancedCourseCard = ({
         )}
 
         {/* Compact Stats Row */}
-        <div className="mt-auto pt-2 flex items-center justify-between border-t border-slate-200/50 dark:border-slate-700/50 gap-1">
-          <div className="flex flex-col items-center gap-0.5 flex-1 p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-            <Users className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-            <span className="text-xs font-bold text-slate-900 dark:text-white">
+        <div className="mt-auto pt-1.5 xs:pt-2 flex items-center justify-between border-t border-slate-200/50 dark:border-slate-700/50 gap-0.5 xs:gap-1">
+          <div className="flex flex-col items-center gap-0.5 flex-1 p-1 xs:p-1.5 rounded-md xs:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
+            <Users className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+            <span className="text-[10px] xs:text-xs font-bold text-slate-900 dark:text-white">
               {enrolledCount}
             </span>
           </div>
 
-          <div className="flex flex-col items-center gap-0.5 flex-1 p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-            <BookOpen className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xs font-bold text-slate-900 dark:text-white">
+          <div className="flex flex-col items-center gap-0.5 flex-1 p-1 xs:p-1.5 rounded-md xs:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
+            <BookOpen className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-indigo-500 dark:text-indigo-400 flex-shrink-0" />
+            <span className="text-[10px] xs:text-xs font-bold text-slate-900 dark:text-white">
               {chaptersLength}
             </span>
           </div>
 
-          <div className="flex flex-col items-center gap-0.5 flex-1 p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-            <Star className="w-4 h-4 text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400" />
-            <span className="text-xs font-bold text-slate-900 dark:text-white">
+          <div className="flex flex-col items-center gap-0.5 flex-1 p-1 xs:p-1.5 rounded-md xs:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
+            <Star className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400 flex-shrink-0" />
+            <span className="text-[10px] xs:text-xs font-bold text-slate-900 dark:text-white">
               {rating > 0 ? rating.toFixed(1) : "0.0"}
             </span>
           </div>
 
           {hasCertificate && (
-            <div className="flex flex-col items-center gap-0.5 flex-1 p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-              <Award className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-              <span className="text-[10px] font-bold text-slate-900 dark:text-white">Cert</span>
+            <div className="flex flex-col items-center gap-0.5 flex-1 p-1 xs:p-1.5 rounded-md xs:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
+              <Award className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+              <span className="text-[9px] xs:text-[10px] font-bold text-slate-900 dark:text-white">Cert</span>
             </div>
           )}
         </div>

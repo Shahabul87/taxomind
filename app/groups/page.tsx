@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { SearchInput } from "@/components/search-input";
 import { Search, Users, Grid3X3, List, PlusCircle, Filter } from "lucide-react";
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -8,6 +7,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
+import { MobileGroupFilters } from "./_components/mobile-group-filters";
+import { GroupsSearchInput } from "./_components/groups-search-input";
 
 export const revalidate = 0;
 
@@ -91,28 +92,29 @@ export default async function GroupsPage(props: GroupsPageProps) {
       contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
     >
       <main className="min-h-screen">
-        <div className="py-6 px-4 sm:px-6 lg:px-8">
-        {/* Hero Section with Background Image */}
-        <div className="relative bg-gradient-to-r from-indigo-600 to-purple-700 h-80 rounded-2xl overflow-hidden mb-6">
+        <div className="py-4 sm:py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        {/* Hero Section with Background Image - Mobile Optimized */}
+        <div className="relative bg-gradient-to-r from-indigo-600 to-purple-700 h-[280px] sm:h-[320px] md:h-80 rounded-xl sm:rounded-2xl overflow-hidden mb-4 sm:mb-6 shadow-xl">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
           <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(transparent,white)] bg-grid-pattern"></div>
 
-          <div className="px-4 h-full flex flex-col justify-center items-center relative z-10">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 text-center">
+          <div className="px-4 sm:px-6 h-full flex flex-col justify-center items-center relative z-10">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 sm:mb-4 text-center leading-tight">
               Connect & Collaborate
             </h1>
-            <p className="text-xl text-white/90 max-w-2xl text-center mb-8">
+            <p className="text-base sm:text-lg md:text-xl text-white/90 max-w-2xl text-center mb-6 sm:mb-8 px-2 leading-relaxed">
               Join knowledge communities where ideas flourish and learning becomes a shared journey
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl">
-              <SearchInput 
-                placeholder="Find your perfect study group..." 
-                className="flex-1 bg-white/20 backdrop-blur-lg border-transparent focus-within:bg-white/95 text-white placeholder:text-white/70 transition-all duration-300"
-              />
-              <Link href="/groups/create">
-                <Button size="lg" variant="default" className="bg-white text-indigo-700 hover:bg-white/90 hover:text-indigo-800">
-                  <PlusCircle className="w-5 h-5 mr-2" />
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-2xl px-2">
+              <div className="flex-1 relative [&_input]:bg-white/20 [&_input]:backdrop-blur-lg [&_input]:border-transparent [&_input]:text-white [&_input]:placeholder:text-white/70 [&_input:focus]:bg-white/95 [&_input:focus]:text-gray-700 [&_input:focus]:placeholder:text-gray-500 [&_svg]:text-white/70 [&:has(input:focus)_svg]:text-gray-500 [&_input]:h-11 sm:[&_input]:h-12 [&_input]:text-sm sm:[&_input]:text-base">
+                <GroupsSearchInput 
+                  placeholder="Find your perfect study group..." 
+                />
+              </div>
+              <Link href="/groups/create" className="w-full sm:w-auto">
+                <Button size="lg" variant="default" className="w-full sm:w-auto bg-white text-indigo-700 hover:bg-white/90 hover:text-indigo-800 h-11 sm:h-12 text-sm sm:text-base font-semibold shadow-lg">
+                  <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Create Group
                 </Button>
               </Link>
@@ -120,36 +122,36 @@ export default async function GroupsPage(props: GroupsPageProps) {
           </div>
         </div>
         
-        {/* Trending Groups Section */}
-        <section className="mb-12">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                <Users className="w-5 h-5 mr-2 text-indigo-500" />
-                Trending Study Groups
+        {/* Trending Groups Section - Mobile Optimized */}
+        <section className="mb-8 sm:mb-12">
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 border border-gray-100 dark:border-gray-700/50">
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 dark:text-white flex items-center">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-500" />
+                <span>Trending Study Groups</span>
               </h2>
               <Link href="/groups/trending">
-                <Button variant="ghost" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800">
+                <Button variant="ghost" size="sm" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 text-xs sm:text-sm h-8 sm:h-9">
                   View all
                 </Button>
               </Link>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
               {trendingGroups.map((group) => (
-                <Link key={group.id} href={`/groups/${group.id}`}>
-                  <div className="bg-slate-50 dark:bg-gray-900 rounded-lg p-4 hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-gray-700 h-full flex flex-col">
-                    <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-3">
-                      <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                <Link key={group.id} href={`/groups/${group.id}`} className="group">
+                  <div className="bg-slate-50 dark:bg-gray-900 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:shadow-md active:scale-[0.98] transition-all duration-300 border border-gray-100 dark:border-gray-700 h-full flex flex-col">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-2 sm:mb-3 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
+                      <Users className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400" />
                     </div>
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-1 line-clamp-1">{group.name}</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">{group.description}</p>
+                    <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-1 line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{group.name}</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2 sm:mb-3 line-clamp-2 leading-relaxed">{group.description}</p>
                     {group.category && (
-                      <Badge variant="secondary" className="mt-auto self-start">
+                      <Badge variant="secondary" className="mt-auto self-start text-[10px] sm:text-xs py-0.5 px-1.5 sm:py-1 sm:px-2">
                         {group.category}
                       </Badge>
                     )}
-                    <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2">
+                    <p className="text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 mt-2 font-medium">
                       {group._count.members} members
                     </p>
                   </div>
@@ -159,88 +161,83 @@ export default async function GroupsPage(props: GroupsPageProps) {
           </div>
         </section>
         
-        {/* Main Groups Section */}
-        <section className="mb-20">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <div className="flex flex-col md:flex-row gap-4 justify-between mb-8">
+        {/* Main Groups Section - Mobile Optimized */}
+        <section className="mb-12 sm:mb-20">
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 dark:border-gray-700/50">
+            <div className="flex flex-col gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                   Explore Study Groups
                 </h2>
-                <p className="text-gray-600 dark:text-gray-300">
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                   Discover groups that match your learning goals and interests
                 </p>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex items-center bg-slate-100 dark:bg-gray-700 rounded-lg p-1">
+              {/* Controls Bar - Mobile Optimized */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                {/* View Toggle - Hidden on mobile, shown on tablet+ */}
+                <div className="hidden sm:flex items-center bg-slate-100 dark:bg-gray-700 rounded-lg p-1 border border-gray-200 dark:border-gray-600">
                   <Link href={{ pathname: '/groups', query: { ...searchParams, view: 'grid' } }}>
-                    <Button variant={viewMode === 'grid' ? "default" : "ghost"} size="sm" className="rounded-md">
+                    <Button 
+                      variant={viewMode === 'grid' ? "default" : "ghost"} 
+                      size="sm" 
+                      className="rounded-md h-8 w-8 p-0"
+                    >
                       <Grid3X3 className="w-4 h-4" />
                     </Button>
                   </Link>
                   <Link href={{ pathname: '/groups', query: { ...searchParams, view: 'list' } }}>
-                    <Button variant={viewMode === 'list' ? "default" : "ghost"} size="sm" className="rounded-md">
+                    <Button 
+                      variant={viewMode === 'list' ? "default" : "ghost"} 
+                      size="sm" 
+                      className="rounded-md h-8 w-8 p-0"
+                    >
                       <List className="w-4 h-4" />
                     </Button>
                   </Link>
                 </div>
                 
-                <div className="relative group">
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Filter className="w-4 h-4" />
-                    Filter by Category
-                  </Button>
-                  <div className="absolute mt-2 right-0 z-10 w-56 bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 border border-gray-200 dark:border-gray-700 hidden group-hover:block">
-                    <div className="space-y-2">
-                      <Link href="/groups" className="block px-3 py-1.5 text-sm rounded-md hover:bg-slate-100 dark:hover:bg-gray-700">
-                        All Categories
-                      </Link>
-                      {categories.map(category => (
-                        <Link 
-                          key={category.id} 
-                          href={`/groups?category=${category.name}`}
-                          className="block px-3 py-1.5 text-sm rounded-md hover:bg-slate-100 dark:hover:bg-gray-700"
-                        >
-                          {category.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                {/* Filter Component */}
+                <MobileGroupFilters 
+                  categories={categories} 
+                  currentCategory={searchParams.category}
+                />
                 
-                <Link href="/groups/create">
-                  <Button className="bg-indigo-600 hover:bg-indigo-700">
+                {/* Create Group Button */}
+                <Link href="/groups/create" className="flex-1 sm:flex-initial">
+                  <Button className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 h-9 sm:h-10 text-sm sm:text-base font-semibold shadow-md">
                     <PlusCircle className="w-4 h-4 mr-2" />
-                    Create Group
+                    <span className="hidden xs:inline">Create Group</span>
+                    <span className="xs:hidden">Create</span>
                   </Button>
                 </Link>
               </div>
             </div>
             
-            {/* Groups Display */}
+            {/* Groups Display - Mobile Optimized */}
             {groups.length === 0 ? (
-              <div className="text-center py-16 bg-slate-50 dark:bg-gray-900/50 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
-                <div className="bg-slate-100 dark:bg-gray-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 text-gray-400" />
+              <div className="text-center py-12 sm:py-16 bg-slate-50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+                <div className="bg-slate-100 dark:bg-gray-800 w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-7 h-7 sm:w-8 sm:h-8 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">No groups found</h3>
-                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">No groups found</h3>
+                <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto px-4">
                   Try adjusting your search or filters, or create your own group to get started.
                 </p>
                 <Link href="/groups/create">
-                  <Button className="mt-6 bg-indigo-600 hover:bg-indigo-700">
+                  <Button className="mt-6 bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-11 text-sm sm:text-base font-semibold">
                     Create a New Group
                   </Button>
                 </Link>
               </div>
             ) : (
               viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
                   {groups.map((group) => (
-                    <Link key={group.id} href={`/groups/${group.id}`} className="block">
-                      <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 h-full flex flex-col group">
-                        <div className="h-36 bg-gradient-to-r from-indigo-500 to-purple-600 relative overflow-hidden">
+                    <Link key={group.id} href={`/groups/${group.id}`} className="block group">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-xl active:scale-[0.98] transition-all duration-300 h-full flex flex-col shadow-sm">
+                        <div className="h-32 sm:h-36 bg-gradient-to-r from-indigo-500 to-purple-600 relative overflow-hidden">
                           {group.imageUrl ? (
                             <Image 
                               src={group.imageUrl} 
@@ -252,32 +249,32 @@ export default async function GroupsPage(props: GroupsPageProps) {
                             <div className="absolute inset-0 bg-grid-white/10 bg-grid-pattern"></div>
                           )}
                           {group.category && (
-                            <Badge className="absolute top-3 right-3 bg-white/90 text-indigo-700 hover:bg-white">
+                            <Badge className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-white/95 dark:bg-gray-900/95 text-indigo-700 dark:text-indigo-300 hover:bg-white dark:hover:bg-gray-900 text-xs sm:text-sm font-semibold shadow-md">
                               {group.category}
                             </Badge>
                           )}
                         </div>
                         
-                        <div className="p-5 flex-1 flex flex-col">
-                          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        <div className="p-4 sm:p-5 flex-1 flex flex-col">
+                          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
                             {group.name}
                           </h3>
-                          <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2 flex-1">
+                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-4 line-clamp-2 flex-1 leading-relaxed">
                             {group.description}
                           </p>
                           
                           <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100 dark:border-gray-700">
-                            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                               <div className="flex items-center">
-                                <Users className="w-4 h-4 mr-1 text-indigo-500" />
-                                {group._count.members}
+                                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 text-indigo-500" />
+                                <span className="font-medium">{group._count.members}</span>
                               </div>
-                              <div className="text-xs">
+                              <div className="text-[10px] sm:text-xs hidden sm:block">
                                 by Admin
                               </div>
                             </div>
-                            <Button variant="ghost" size="sm" className="rounded-full h-8 w-8 p-0 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50">
-                              <PlusCircle className="h-4 w-4" />
+                            <Button variant="ghost" size="sm" className="rounded-full h-7 w-7 sm:h-8 sm:w-8 p-0 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950">
+                              <PlusCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                           </div>
                         </div>
@@ -286,11 +283,11 @@ export default async function GroupsPage(props: GroupsPageProps) {
                   ))}
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {groups.map((group) => (
-                    <Link key={group.id} href={`/groups/${group.id}`} className="block">
-                      <div className="flex flex-col md:flex-row gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-300 group">
-                        <div className="w-full md:w-48 h-32 md:h-auto bg-gradient-to-r from-indigo-500 to-purple-600 rounded-md overflow-hidden relative flex-shrink-0">
+                    <Link key={group.id} href={`/groups/${group.id}`} className="block group">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg active:scale-[0.99] transition-all duration-300 shadow-sm">
+                        <div className="w-full sm:w-40 md:w-48 h-28 sm:h-32 md:h-auto bg-gradient-to-r from-indigo-500 to-purple-600 rounded-md sm:rounded-lg overflow-hidden relative flex-shrink-0">
                           {group.imageUrl ? (
                             <Image 
                               src={group.imageUrl} 
@@ -300,37 +297,37 @@ export default async function GroupsPage(props: GroupsPageProps) {
                             />
                           ) : (
                             <div className="absolute inset-0 bg-grid-white/10 bg-grid-pattern flex items-center justify-center">
-                              <Users className="h-12 w-12 text-white/70" />
+                              <Users className="h-10 w-10 sm:h-12 sm:w-12 text-white/70" />
                             </div>
                           )}
                         </div>
                         
-                        <div className="flex-1 flex flex-col">
-                          <div className="flex flex-col md:flex-row justify-between gap-2 mb-2">
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        <div className="flex-1 flex flex-col min-w-0">
+                          <div className="flex flex-col sm:flex-row justify-between gap-2 mb-2">
+                            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
                               {group.name}
                             </h3>
                             {group.category && (
-                              <Badge className="self-start md:self-auto bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 hover:bg-indigo-200">
+                              <Badge className="self-start sm:self-auto bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 hover:bg-indigo-200 text-xs sm:text-sm font-semibold">
                                 {group.category}
                               </Badge>
                             )}
                           </div>
                           
-                          <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
+                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-3 sm:mb-4 line-clamp-2 leading-relaxed">
                             {group.description}
                           </p>
                           
-                          <div className="flex items-center gap-4 mt-auto text-sm text-gray-500 dark:text-gray-400">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mt-auto text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                             <div className="flex items-center">
-                              <Users className="w-4 h-4 mr-1 text-indigo-500" />
-                              {group._count.members} members
+                              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 text-indigo-500" />
+                              <span className="font-medium">{group._count.members} members</span>
                             </div>
-                            <div>
+                            <div className="hidden sm:block text-xs">
                               Created by Admin
                             </div>
-                            <div className="ml-auto">
-                              <Button variant="outline" size="sm" className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950">
+                            <div className="w-full sm:w-auto sm:ml-auto">
+                              <Button variant="outline" size="sm" className="w-full sm:w-auto text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 h-8 sm:h-9 text-xs sm:text-sm font-medium">
                                 View Group
                               </Button>
                             </div>

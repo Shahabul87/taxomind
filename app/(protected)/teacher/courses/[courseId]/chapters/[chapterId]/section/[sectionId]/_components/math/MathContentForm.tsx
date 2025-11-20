@@ -77,43 +77,44 @@ export const MathContentForm = ({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5" />
+      <CardHeader className="p-3 sm:p-6">
+        <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base">
+          <Calculator className="h-4 w-4 sm:h-5 sm:w-5" />
           Add Math Equation
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm mt-1">
           Add a new math equation to your section with LaTeX or visual mode.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 sm:p-6 pt-0">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 sm:space-y-6">
             {/* Title */}
             <FormField
               control={form.control}
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Equation Title</FormLabel>
+                  <FormLabel className="text-xs sm:text-sm">Equation Title</FormLabel>
                   <FormControl>
                     <Input
                       disabled={isSubmitting}
                       placeholder="e.g., Pythagorean Theorem, Quadratic Formula"
+                      className="h-9 sm:h-10 text-xs sm:text-sm"
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>
+                  <FormDescription className="text-[10px] sm:text-xs">
                     A descriptive title for this equation (e.g., &quot;Pythagorean Theorem&quot;)
                   </FormDescription>
-                  <FormMessage />
+                  <FormMessage className="text-xs sm:text-sm" />
                 </FormItem>
               )}
             />
 
             {/* Mode Selector */}
-            <div className="space-y-4">
-              <FormLabel>Equation Mode</FormLabel>
+            <div className="space-y-3 sm:space-y-4">
+              <FormLabel className="text-xs sm:text-sm">Equation Mode</FormLabel>
               <Tabs
                 value={currentMode}
                 onValueChange={(value) => {
@@ -122,46 +123,48 @@ export const MathContentForm = ({
                 }}
                 className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="latex" disabled={isSubmitting}>
-                    📐 LaTeX Equation
+                <TabsList className="grid w-full grid-cols-2 gap-1 sm:gap-2">
+                  <TabsTrigger value="latex" disabled={isSubmitting} className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-4">
+                    <span className="hidden xs:inline">📐 LaTeX Equation</span>
+                    <span className="xs:hidden">📐 LaTeX</span>
                   </TabsTrigger>
-                  <TabsTrigger value="visual" disabled={isSubmitting}>
-                    📷 Visual (Image)
+                  <TabsTrigger value="visual" disabled={isSubmitting} className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-4">
+                    <span className="hidden xs:inline">📷 Visual (Image)</span>
+                    <span className="xs:hidden">📷 Image</span>
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="latex" className="space-y-4">
+                <TabsContent value="latex" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
                   <FormField
                     control={form.control}
                     name="latexEquation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>LaTeX Equation</FormLabel>
+                        <FormLabel className="text-xs sm:text-sm">LaTeX Equation</FormLabel>
                         <FormControl>
                           <Textarea
                             disabled={isSubmitting}
                             placeholder="e.g., a^2 + b^2 = c^2"
-                            className="font-mono min-h-[150px] resize-y"
+                            className="font-mono min-h-[120px] sm:min-h-[150px] resize-y text-xs sm:text-sm"
                             {...field}
                           />
                         </FormControl>
-                        <FormDescription>
+                        <FormDescription className="text-[10px] sm:text-xs">
                           Enter your equation in LaTeX format. Delimiters like $$, $, or \[ \] will be automatically removed.
                         </FormDescription>
-                        <FormMessage />
+                        <FormMessage className="text-xs sm:text-sm" />
                       </FormItem>
                     )}
                   />
                 </TabsContent>
 
-                <TabsContent value="visual" className="space-y-4">
+                <TabsContent value="visual" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
                   <FormField
                     control={form.control}
                     name="imageUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Equation Image</FormLabel>
+                        <FormLabel className="text-xs sm:text-sm">Equation Image</FormLabel>
                         <FormControl>
                           <MathImageUpload
                             courseId={courseId}
@@ -172,10 +175,10 @@ export const MathContentForm = ({
                             disabled={isSubmitting}
                           />
                         </FormControl>
-                        <FormDescription>
+                        <FormDescription className="text-[10px] sm:text-xs">
                           Upload an equation image directly from your device
                         </FormDescription>
-                        <FormMessage />
+                        <FormMessage className="text-xs sm:text-sm" />
                       </FormItem>
                     )}
                   />
@@ -189,7 +192,7 @@ export const MathContentForm = ({
               name="explanation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Explanation</FormLabel>
+                  <FormLabel className="text-xs sm:text-sm">Explanation</FormLabel>
                   <FormControl>
                     <div className="border rounded-md overflow-hidden">
                       <Editor
@@ -200,25 +203,25 @@ export const MathContentForm = ({
                       />
                     </div>
                   </FormControl>
-                  <FormDescription>
+                  <FormDescription className="text-[10px] sm:text-xs">
                     Provide a detailed explanation of the equation and its use cases
                   </FormDescription>
-                  <FormMessage />
+                  <FormMessage className="text-xs sm:text-sm" />
                 </FormItem>
               )}
             />
 
             {/* Submit Button */}
             <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting} className="gap-2">
+              <Button type="submit" disabled={isSubmitting} className="gap-1.5 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm w-full sm:w-auto">
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                     Adding...
                   </>
                 ) : (
                   <>
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Add Equation
                   </>
                 )}

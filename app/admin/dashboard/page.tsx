@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { UserRole } from "@/lib/prisma-types";
+// UserRole removed - admins use AdminRole from AdminAccount table
 
 // Force dynamic rendering to avoid build-time database queries
 export const dynamic = 'force-dynamic';

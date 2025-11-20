@@ -24,8 +24,10 @@ export function AICreatorLayout({ children }: AICreatorLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-      {/* Smart Header */}
-      <SmartHeader user={user} />
+      {/* Smart Header - Hidden on mobile for AI Creator page */}
+      <div className="hidden md:block">
+        <SmartHeader user={user} />
+      </div>
 
       {/* Main Layout with Sidebar */}
       <div className="flex">
@@ -33,7 +35,7 @@ export function AICreatorLayout({ children }: AICreatorLayoutProps) {
         <SmartSidebar user={user} />
 
         {/* Main Content Area - Left padding matches collapsed sidebar width (72px) */}
-        <main className="flex-1 pt-16 pl-[72px] transition-all duration-300">
+        <main className="flex-1 pt-0 md:pt-14 lg:pt-16 pl-0 sm:pl-[72px] transition-all duration-300">
           {children}
         </main>
       </div>

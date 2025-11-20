@@ -46,7 +46,6 @@ export async function POST(req: Request) {
               email: true,
               emailVerified: true,
               image: true,
-              role: true,
               isTwoFactorEnabled: true,
               phone: true,
             }

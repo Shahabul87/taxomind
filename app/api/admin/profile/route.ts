@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
+import type { AdminRole } from "@prisma/client";
 
 // Schema for updating admin profile
 const UpdateProfileSchema = z.object({
@@ -52,8 +53,10 @@ export async function GET() {
     }
 
     // 3. Check if user is admin or superadmin
-    if (user.role !== "ADMIN" && user.role !== "SUPERADMIN") {
-      console.log("[ADMIN_PROFILE_GET] User is not admin:", user.role);
+    // NOTE: Admin sessions have role from AdminAccount table (AdminRole enum)
+    const userRole = user.role as AdminRole | undefined;
+    if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
+      console.log("[ADMIN_PROFILE_GET] User is not admin:", userRole);
       return NextResponse.json(
         { success: false, error: "Forbidden - Admin access required" },
         { status: 403 }
@@ -147,7 +150,9 @@ export async function PATCH(req: Request) {
     }
 
     // 3. Check if user is admin or superadmin
-    if (user.role !== "ADMIN" && user.role !== "SUPERADMIN") {
+    // NOTE: Admin sessions have role from AdminAccount table (AdminRole enum)
+    const userRole = user.role as AdminRole | undefined;
+    if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
       return NextResponse.json(
         { success: false, error: "Forbidden - Admin access required" },
         { status: 403 }

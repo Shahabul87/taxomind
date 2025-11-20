@@ -416,17 +416,14 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    // Check user role
-    const dbUser = await db.user.findUnique({
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
       where: { id: user.id },
       select: { id: true, email: true, role: true }
     });
-    
-    const userRole = dbUser?.role;
-    
-    if (userRole !== 'ADMIN') {
 
-      return new NextResponse(`Forbidden - Admin access required. Your role: ${userRole}`, { status: 403 });
+    if (!adminAccount || (adminAccount.role !== 'ADMIN' && adminAccount.role !== 'SUPERADMIN')) {
+      return new NextResponse("Forbidden - Admin access required", { status: 403 });
     }
     
     // Parse request body

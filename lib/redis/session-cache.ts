@@ -512,7 +512,7 @@ export class SessionUtils {
     return {
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role || undefined, // Users don't have roles - only admins do
       permissions: user.permissions || [],
       lastActivity: Date.now(),
       deviceInfo,

@@ -410,67 +410,69 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            "flex items-center justify-between",
+            "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3",
             "bg-white/60 dark:bg-gray-900/60",
             "border border-gray-200/70 dark:border-gray-800/70",
             "backdrop-blur-md",
-            "rounded-lg p-4 shadow-sm"
+            "rounded-lg p-3 sm:p-4 shadow-sm"
           )}
         >
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
               {selectedRowCount} course{selectedRowCount > 1 ? 's' : ''} selected
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button
               size="sm"
               variant="outline"
-              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/30"
+              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/30 h-8 sm:h-9 text-xs sm:text-sm flex-1 sm:flex-none"
               onClick={handleBulkPublish}
               disabled={isLoading}
             >
-              <Eye className="h-4 w-4 mr-2" />
-              Bulk Publish
+              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+              <span className="hidden xs:inline">Bulk Publish</span>
+              <span className="xs:hidden">Publish</span>
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/30"
+              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/30 h-8 sm:h-9 text-xs sm:text-sm flex-1 sm:flex-none"
               onClick={handleExport}
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
               Export
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="bg-white dark:bg-gray-800 border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
+              className="bg-white dark:bg-gray-800 border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 h-8 sm:h-9 text-xs sm:text-sm flex-1 sm:flex-none"
               onClick={handleBulkDelete}
               disabled={isLoading}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Selected
+              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+              <span className="hidden xs:inline">Delete Selected</span>
+              <span className="xs:hidden">Delete</span>
             </Button>
           </div>
         </motion.div>
       )}
       {/* Search and Filter Section */}
       <Card className="border-none shadow-none bg-transparent">
-        <CardContent className="p-4">
+        <CardContent className="p-2 sm:p-3 md:p-4">
           <div className={cn(
-            "flex flex-col sm:flex-row items-center gap-4",
-            "p-4 rounded-lg",
+            "flex flex-col gap-3 sm:gap-4",
+            "p-3 sm:p-4 rounded-lg",
             "bg-white/70 dark:bg-gray-900/70",
             "border border-gray-200/70 dark:border-gray-800/70",
             "backdrop-blur-md shadow-sm"
           )}>
             {/* Search Input */}
             <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <Input
                 ref={searchInputRef}
-                placeholder="Search courses... (Press / to focus)"
+                placeholder="Search courses..."
                 value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -489,7 +491,7 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
                   }
                 }}
                 className={cn(
-                  "pl-9 w-full",
+                  "pl-8 sm:pl-9 w-full h-9 sm:h-10 text-xs sm:text-sm",
                   "bg-white dark:bg-gray-800",
                   "border-gray-200 dark:border-gray-700",
                   "text-gray-900 dark:text-white",
@@ -505,137 +507,125 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
               </span>
             </div>
 
-            {/* Category Filter */}
-            <div className="w-full sm:w-auto">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-gray-400" />
+            {/* Filters Row */}
+            <div className="grid grid-cols-2 sm:flex sm:flex-row items-center gap-2 sm:gap-3">
+              {/* Category Filter */}
+              <div className="w-full sm:w-auto">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0" />
+                  <Select
+                    value={(table.getColumn("category")?.getFilterValue() as string) ?? "all"}
+                    onValueChange={handleCategoryChange}
+                  >
+                    <SelectTrigger className={cn(
+                    "w-full sm:w-[160px] md:w-[180px] h-9 sm:h-10 text-xs sm:text-sm",
+                    "bg-white dark:bg-gray-800",
+                    "border-gray-200 dark:border-gray-700",
+                    "text-gray-900 dark:text-white",
+                    "transition-all duration-200"
+                    )}>
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                      <SelectItem value="all" className="text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs sm:text-sm">
+                        All Categories
+                      </SelectItem>
+                      {uniqueCategories.map((category) => (
+                        <SelectItem 
+                          key={category} 
+                          value={category}
+                          className="text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs sm:text-sm"
+                        >
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="w-full sm:w-auto">
                 <Select
-                  value={(table.getColumn("category")?.getFilterValue() as string) ?? "all"}
-                  onValueChange={handleCategoryChange}
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value);
+                    if (value === "all") {
+                      table.getColumn("isPublished")?.setFilterValue(undefined);
+                    } else {
+                      table.getColumn("isPublished")?.setFilterValue(value === "published");
+                    }
+                  }}
                 >
                   <SelectTrigger className={cn(
-                  "w-full sm:w-[180px]",
-                  "bg-white dark:bg-gray-800",
-                  "border-gray-200 dark:border-gray-700",
-                  "text-gray-900 dark:text-white",
-                  "transition-all duration-200"
+                    "w-full sm:w-[120px] md:w-[140px] h-9 sm:h-10 text-xs sm:text-sm",
+                    "bg-white dark:bg-gray-800",
+                    "border-gray-200 dark:border-gray-700"
                   )}>
-                    <SelectValue placeholder="All Categories" />
+                    <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                    <SelectItem value="all" className="text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                      All Categories
-                    </SelectItem>
-                    {uniqueCategories.map((category) => (
-                      <SelectItem 
-                        key={category} 
-                        value={category}
-                        className="text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        {category}
-                      </SelectItem>
-                    ))}
+                  <SelectContent>
+                    <SelectItem value="all" className="text-xs sm:text-sm">All Status</SelectItem>
+                    <SelectItem value="published" className="text-xs sm:text-sm">Published</SelectItem>
+                    <SelectItem value="draft" className="text-xs sm:text-sm">Draft</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            {/* Status Filter */}
-            <div className="w-full sm:w-auto">
-              <Select
-                value={statusFilter}
-                onValueChange={(value) => {
-                  setStatusFilter(value);
-                  if (value === "all") {
-                    table.getColumn("isPublished")?.setFilterValue(undefined);
-                  } else {
-                    table.getColumn("isPublished")?.setFilterValue(value === "published");
-                  }
-                }}
-              >
-                <SelectTrigger className={cn(
-                  "w-full sm:w-[140px]",
-                  "bg-white dark:bg-gray-800",
-                  "border-gray-200 dark:border-gray-700"
-                )}>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Advanced Filters */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full sm:w-auto",
-                    "bg-white dark:bg-gray-800",
-                    "border-gray-200 dark:border-gray-700",
-                    "hover:bg-gray-50 dark:hover:bg-gray-700"
-                  )}
-                >
-                  <MoreVertical className="h-4 w-4 mr-2" />
-                  More Filters
-                  {(priceRange[0] > 0 || priceRange[1] < 1000) && (
-                    <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
-                      1
-                    </Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                      Price Range: ${priceRange[0]} - ${priceRange[1]}
-                    </label>
-                    <Slider
-                      value={priceRange}
-                      onValueChange={setPriceRange}
-                      max={1000}
-                      step={10}
-                      className="mt-2"
-                    />
+              {/* Advanced Filters */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full sm:w-auto h-9 sm:h-10 text-xs sm:text-sm",
+                      "bg-white dark:bg-gray-800",
+                      "border-gray-200 dark:border-gray-700",
+                      "hover:bg-gray-50 dark:hover:bg-gray-700"
+                    )}
+                  >
+                    <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                    <span className="hidden xs:inline">More Filters</span>
+                    <span className="xs:hidden">Filters</span>
+                    {(priceRange[0] > 0 || priceRange[1] < 1000) && (
+                      <Badge variant="secondary" className="ml-1.5 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 p-0 text-[9px] sm:text-xs">
+                        1
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80" align="end">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                        Price Range: ${priceRange[0]} - ${priceRange[1]}
+                      </label>
+                      <Slider
+                        value={priceRange}
+                        onValueChange={setPriceRange}
+                        max={1000}
+                        step={10}
+                        className="mt-2"
+                      />
+                    </div>
+                    
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setPriceRange([0, 1000]);
+                          setStatusFilter("all");
+                          setDateRange({});
+                        }}
+                        className="flex-1 h-8 sm:h-9 text-xs sm:text-sm"
+                      >
+                        Clear All
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setPriceRange([0, 1000]);
-                        setStatusFilter("all");
-                        setDateRange({});
-                      }}
-                      className="flex-1"
-                    >
-                      Clear All
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Keyboard Shortcuts Help */}
-            {/* TODO: Re-enable when KeyboardShortcutsHelp component is implemented */}
-            {/* <div className="w-full sm:w-auto">
-              <KeyboardShortcutsHelp shortcuts={shortcutsForHelp} />
-            </div> */}
-
-            {/* Create Course Button - Mobile */}
-            <div className="w-full sm:hidden">
-              <Link href="/teacher/create" className="w-full block">
-                <Button className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 text-white">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Create Course
-                </Button>
-              </Link>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </CardContent>
@@ -719,8 +709,8 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
       </div>
 
       {/* Pagination Section */}
-      <div className="flex flex-col sm:flex-row items-center justify-between pt-4 gap-4">
-        <div className="text-sm text-gray-500 dark:text-gray-400 order-2 sm:order-1">
+      <div className="flex flex-col sm:flex-row items-center justify-between pt-3 sm:pt-4 gap-3 sm:gap-4">
+        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 order-2 sm:order-1 text-center sm:text-left">
           {serverMode ? (
             <>Showing {total === 0 ? 0 : (table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1)}-{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, total)} of {total} courses</>
           ) : (
@@ -728,24 +718,24 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
           )}
         </div>
         
-        <div className="flex items-center gap-2 order-1 sm:order-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 order-1 sm:order-2 w-full sm:w-auto justify-center sm:justify-end">
           <Button
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
             variant="outline"
             size="sm"
             className={cn(
-              "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+              "px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 h-8 sm:h-9",
               !table.getCanPreviousPage()
                 ? "bg-gray-100 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
             )}
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
+            <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+            <span className="hidden xs:inline">Previous</span>
           </Button>
           
-          <div className="flex items-center justify-center px-4 py-2 text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <div className="flex items-center justify-center px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             Page {table.getState().pagination.pageIndex + 1} of {serverMode ? Math.max(1, Math.ceil(total / table.getState().pagination.pageSize)) : table.getPageCount()}
           </div>
           
@@ -755,14 +745,14 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
             variant="outline"
             size="sm"
             className={cn(
-              "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+              "px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 h-8 sm:h-9",
               !table.getCanNextPage()
                 ? "bg-gray-100 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
             )}
           >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <span className="hidden xs:inline">Next</span>
+            <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-0.5 sm:ml-1" />
           </Button>
         </div>
       </div>

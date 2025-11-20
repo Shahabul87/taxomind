@@ -79,8 +79,13 @@ export const AdminLoginForm = () => {
             }
           })
           .catch((error) => {
-            if (error?.message?.includes("NEXT_REDIRECT")) {
-              // Redirect happening - this is success
+            if (error?.message?.includes("NEXT_REDIRECT") || error?.digest?.includes("NEXT_REDIRECT")) {
+              // Redirect happening - navigate to dashboard
+              toast.success("Admin login successful! Redirecting...");
+              const redirectUrl = callbackUrl || "/dashboard/admin";
+              setTimeout(() => {
+                window.location.href = redirectUrl;
+              }, 500);
               return;
             }
             logger.error("Admin login error:", error);
@@ -120,36 +125,36 @@ export const AdminLoginForm = () => {
     <div className="w-full max-w-4xl mx-auto" style={{ contain: 'layout style' }}>
       {/* Header Section */}
       <motion.div
-        className="flex flex-col items-center justify-center mb-8"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, ease: "easeOut" as const }}
+        className="flex flex-col items-center justify-center mb-8 lg:mb-0 lg:hidden"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" as const }}
       >
         {/* Icon and Title */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="relative p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
-            <Shield className="w-12 h-12 text-red-600 dark:text-red-500" />
+        <div className="flex items-center gap-4 mb-4">
+          <div className="relative p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl shadow-md">
+            <Shield className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-red-600 to-orange-600 dark:from-red-400 dark:to-orange-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
             Admin Portal
           </h1>
         </div>
 
         {/* Subtitle */}
-        <p className="mt-2 text-lg font-medium text-center text-slate-600 dark:text-gray-300">
+        <p className="mt-2 text-base font-medium text-center text-slate-600 dark:text-slate-300">
           Secure Administrator Authentication
         </p>
 
         {/* Warning Badge */}
         <motion.div
-          className="mt-6 px-4 py-3 rounded-xl border bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, ease: "easeOut" as const }}
+          className="mt-6 px-4 py-3 rounded-xl bg-blue-50/50 dark:bg-blue-500/10 border border-blue-200/50 dark:border-blue-500/20 backdrop-blur-sm"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" as const }}
         >
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-            <p className="text-sm font-medium text-red-700 dark:text-red-300">
+            <AlertTriangle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
               Admin access only - All login attempts are logged
             </p>
           </div>
@@ -159,11 +164,13 @@ export const AdminLoginForm = () => {
       {/* Form Section */}
       <div className="max-w-md mx-auto">
         <motion.div
-          className="border rounded-2xl p-8 shadow-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700/50"
+          className="relative overflow-hidden rounded-3xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-8"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-400/5 to-transparent dark:from-blue-500/5 dark:via-indigo-500/5 pointer-events-none" />
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
@@ -175,8 +182,8 @@ export const AdminLoginForm = () => {
                     control={form.control}
                     name="code"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base font-medium text-slate-700 dark:text-gray-200">
+                      <FormItem className="relative z-10">
+                        <FormLabel className="text-base font-semibold text-slate-800 dark:text-slate-200">
                           Two Factor Code
                         </FormLabel>
                         <FormControl>
@@ -185,10 +192,10 @@ export const AdminLoginForm = () => {
                             disabled={isPending}
                             placeholder="123456"
                             type="text"
-                            className="w-full h-14 border-2 rounded-xl text-lg transition-all duration-300 bg-white dark:bg-slate-800/50 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-500 focus:border-red-500 dark:focus:border-red-500/70 focus:ring-2 focus:ring-red-500/20"
+                            className="w-full h-14 border-2 rounded-xl text-lg transition-all duration-200 bg-white dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 dark:focus:border-blue-500/70 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-400 dark:hover:border-slate-600"
                           />
                         </FormControl>
-                        <FormMessage className="text-red-600 dark:text-red-400" />
+                        <FormMessage className="text-blue-600 dark:text-blue-400" />
                       </FormItem>
                     )}
                   />
@@ -200,8 +207,8 @@ export const AdminLoginForm = () => {
                       control={form.control}
                       name="email"
                       render={({ field }) => (
-                        <FormItem className="w-full relative">
-                          <FormLabel className="text-base font-medium text-slate-700 dark:text-gray-200">
+                        <FormItem className="w-full relative z-10">
+                          <FormLabel className="text-base font-semibold text-slate-800 dark:text-slate-200">
                             Admin Email
                           </FormLabel>
                           <div className="relative">
@@ -211,24 +218,24 @@ export const AdminLoginForm = () => {
                                 disabled={isPending}
                                 placeholder="admin@taxomind.com"
                                 type="email"
-                                className="w-full h-14 border-2 rounded-xl text-lg pl-12 transition-colors duration-200 bg-white dark:bg-slate-800/50 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-500 focus:border-red-500 dark:focus:border-red-500/70 focus:ring-2 focus:ring-red-500/20"
+                                className="w-full h-14 border-2 rounded-xl text-lg pl-12 transition-all duration-200 bg-white dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 dark:focus:border-blue-500/70 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-400 dark:hover:border-slate-600"
                                 onFocus={() => setFocusedField('email')}
                                 onBlur={() => setFocusedField(null)}
                               />
                             </FormControl>
                             <div className={[
-                              "absolute left-4 top-1/2 transform -translate-y-1/2 transition-opacity duration-200 pointer-events-none",
-                              field.value || focusedField === 'email' ? 'opacity-0' : 'opacity-100',
-                              "text-slate-400 dark:text-gray-500"
+                              "absolute left-4 top-1/2 transform -translate-y-1/2 transition-all duration-200 pointer-events-none",
+                              field.value || focusedField === 'email' ? 'opacity-0 scale-95' : 'opacity-100 scale-100',
+                              "text-slate-400 dark:text-slate-500"
                             ].join(' ')}>
                               <Mail className="w-5 h-5" />
                             </div>
                             <div className={[
-                              "absolute top-0 left-0 h-full w-1 rounded-l-xl transition-colors duration-200",
-                              field.value ? "bg-gradient-to-b from-red-500 to-orange-500" : "bg-transparent"
+                              "absolute top-0 left-0 h-full w-1 rounded-l-xl transition-all duration-200",
+                              field.value ? "bg-gradient-to-b from-blue-500 to-indigo-500 opacity-100" : "bg-transparent opacity-0"
                             ].join(' ')}></div>
                           </div>
-                          <FormMessage className="text-red-600 dark:text-red-400" />
+                          <FormMessage className="text-blue-600 dark:text-blue-400" />
                         </FormItem>
                       )}
                     />
@@ -239,10 +246,18 @@ export const AdminLoginForm = () => {
                       control={form.control}
                       name="password"
                       render={({ field }) => (
-                        <FormItem className="w-full relative">
-                          <FormLabel className="text-base font-medium text-slate-700 dark:text-gray-200">
-                            Admin Password
-                          </FormLabel>
+                        <FormItem className="w-full relative z-10">
+                          <div className="flex items-center justify-between mb-2">
+                            <FormLabel className="text-base font-semibold text-slate-800 dark:text-slate-200">
+                              Admin Password
+                            </FormLabel>
+                            <Link
+                              href="/admin/auth/reset"
+                              className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors underline-offset-4 hover:underline"
+                            >
+                              Forgot password?
+                            </Link>
+                          </div>
                           <div className="relative">
                             <FormControl>
                               <Input
@@ -250,32 +265,32 @@ export const AdminLoginForm = () => {
                                 disabled={isPending}
                                 placeholder="••••••••"
                                 type={showPassword ? "text" : "password"}
-                                className="w-full h-14 border-2 rounded-xl text-lg pl-12 pr-12 transition-colors duration-200 bg-white dark:bg-slate-800/50 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-500 focus:border-red-500 dark:focus:border-red-500/70 focus:ring-2 focus:ring-red-500/20"
+                                className="w-full h-14 border-2 rounded-xl text-lg pl-12 pr-12 transition-all duration-200 bg-white dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 dark:focus:border-blue-500/70 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-400 dark:hover:border-slate-600"
                                 onFocus={() => setFocusedField('password')}
                                 onBlur={() => setFocusedField(null)}
                               />
                             </FormControl>
                             <div className={[
-                              "absolute left-4 top-1/2 transform -translate-y-1/2 transition-opacity duration-200 pointer-events-none",
-                              field.value || focusedField === 'password' ? 'opacity-0' : 'opacity-100',
-                              "text-slate-400 dark:text-gray-500"
+                              "absolute left-4 top-1/2 transform -translate-y-1/2 transition-all duration-200 pointer-events-none",
+                              field.value || focusedField === 'password' ? 'opacity-0 scale-95' : 'opacity-100 scale-100',
+                              "text-slate-400 dark:text-slate-500"
                             ].join(' ')}>
                               <Lock className="w-5 h-5" />
                             </div>
                             <button
                               type="button"
-                              className="absolute right-4 top-1/2 transform -translate-y-1/2 transition-colors focus:outline-none text-slate-400 hover:text-slate-600 dark:text-gray-500 dark:hover:text-gray-300"
+                              className="absolute right-4 top-1/2 transform -translate-y-1/2 transition-colors focus:outline-none text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300"
                               onClick={() => setShowPassword(!showPassword)}
                               aria-label={showPassword ? "Hide password" : "Show password"}
                             >
                               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
                             <div className={[
-                              "absolute top-0 left-0 h-full w-1 rounded-l-xl transition-colors duration-200",
-                              field.value ? "bg-gradient-to-b from-red-500 to-orange-500" : "bg-transparent"
+                              "absolute top-0 left-0 h-full w-1 rounded-l-xl transition-all duration-200",
+                              field.value ? "bg-gradient-to-b from-blue-500 to-indigo-500 opacity-100" : "bg-transparent opacity-0"
                             ].join(' ')}></div>
                           </div>
-                          <FormMessage className="text-red-600 dark:text-red-400" />
+                          <FormMessage className="text-blue-600 dark:text-blue-400" />
                         </FormItem>
                       )}
                     />
@@ -290,25 +305,34 @@ export const AdminLoginForm = () => {
 
               <motion.div
                 variants={itemVariants}
-                className="pt-2"
+                className="pt-4 relative z-10"
               >
                 <Button
                   disabled={isPending}
                   type="submit"
-                  className="w-full h-14 rounded-xl text-lg font-semibold transition-colors duration-200 shadow-lg relative overflow-hidden group bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white"
+                  className="w-full h-14 rounded-xl text-lg font-bold transition-all duration-300 shadow-md hover:shadow-xl relative overflow-hidden group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
                 >
-                  <span className="relative z-10">
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {isPending && (
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    )}
                     {isPending ? "Authenticating..." : "Admin Sign In"}
                   </span>
                 </Button>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="text-center pt-2">
-                <p className="text-sm text-slate-500 dark:text-gray-400">
+              <motion.div variants={itemVariants} className="text-center pt-4 relative z-10">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   Not an admin?{' '}
                   <Link
                     href="/auth/login"
-                    className="font-medium transition-colors underline-offset-4 hover:underline text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    className="font-semibold transition-all duration-200 underline-offset-4 hover:underline text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                   >
                     Regular Login
                   </Link>

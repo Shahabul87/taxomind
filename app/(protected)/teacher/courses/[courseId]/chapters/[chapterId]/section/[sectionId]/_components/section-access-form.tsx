@@ -72,36 +72,36 @@ export const SectionAccessForm = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Display Mode */}
       {!isEditing && (
         <div className="group relative">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {/* Access status display */}
             <div className="flex-1 min-w-0 w-full">
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
                 <div className={cn(
-                  "p-2 rounded-md",
+                  "p-1.5 sm:p-2 rounded-md flex-shrink-0",
                   initialData.isFree
                     ? "bg-emerald-100 dark:bg-emerald-900/30"
                     : "bg-purple-100 dark:bg-purple-900/30"
                 )}>
                   {initialData.isFree ? (
-                    <Unlock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    <Unlock className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
                   ) : (
-                    <Lock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
                   )}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className={cn(
-                    "font-semibold text-sm",
+                    "font-semibold text-xs sm:text-sm",
                     initialData.isFree
                       ? "text-emerald-700 dark:text-emerald-300"
                       : "text-purple-700 dark:text-purple-300"
                   )}>
                     {initialData.isFree ? "Free Preview" : "Premium Content"}
                   </p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mt-0.5">
+                  <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed mt-0.5 sm:mt-1">
                     {initialData.isFree
                       ? "This section is available as a free preview to attract students"
                       : "Students need to enroll in the course to access this section"
@@ -111,26 +111,27 @@ export const SectionAccessForm = ({
               </div>
             </div>
 
-            {/* Edit button - aligned to right */}
+            {/* Edit button - responsive layout */}
             <div className="flex items-center justify-end">
               <Button
                 onClick={toggleEdit}
                 variant="outline"
                 size="sm"
                 className={cn(
-                  "h-9 px-4",
+                  "h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto",
                   "bg-white/80 dark:bg-slate-800/80",
                   "border-slate-200 dark:border-slate-700",
                   "text-slate-700 dark:text-slate-300",
                   "hover:bg-slate-50 dark:hover:bg-slate-800",
                   "hover:border-purple-300 dark:hover:border-purple-600",
                   "hover:text-purple-600 dark:hover:text-purple-400",
-                  "font-semibold",
+                  "font-semibold text-xs sm:text-sm",
                   "transition-all duration-200",
-                  "shadow-sm hover:shadow-md"
+                  "shadow-sm hover:shadow-md",
+                  "justify-center xs:justify-start"
                 )}
               >
-                <Pencil className="h-4 w-4 mr-2" />
+                <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 Edit
               </Button>
             </div>
@@ -143,28 +144,28 @@ export const SectionAccessForm = ({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4"
+            className="space-y-3 sm:space-y-4"
           >
             <FormField
               control={form.control}
               name="isFree"
               render={({ field }) => (
                 <FormItem className={cn(
-                  "p-4 rounded-lg",
+                  "p-3 sm:p-4 rounded-lg sm:rounded-xl",
                   "border border-slate-200 dark:border-slate-700",
                   "bg-slate-50 dark:bg-slate-900/50"
                 )}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-                    <div className="space-y-1 flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 sm:gap-2">
+                    <div className="space-y-1 flex-1 min-w-0">
                       <p className={cn(
-                        "font-semibold text-sm",
+                        "font-semibold text-xs sm:text-sm",
                         field.value
                           ? "text-emerald-700 dark:text-emerald-300"
                           : "text-purple-700 dark:text-purple-300"
                       )}>
                         Free Preview
                       </p>
-                      <FormDescription className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+                      <FormDescription className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                         Enable this to make the section available as a free preview. This helps attract potential students by giving them a taste of your course content.
                       </FormDescription>
                     </div>
@@ -174,7 +175,8 @@ export const SectionAccessForm = ({
                         onCheckedChange={field.onChange}
                         disabled={isSubmitting}
                         className={cn(
-                          "data-[state=checked]:bg-emerald-600"
+                          "data-[state=checked]:bg-emerald-600",
+                          "flex-shrink-0"
                         )}
                       />
                     </FormControl>
@@ -182,22 +184,23 @@ export const SectionAccessForm = ({
                 </FormItem>
               )}
             />
-            <div className="flex items-center justify-between gap-x-2">
+            <div className="flex flex-col-reverse xs:flex-row items-stretch xs:items-center justify-between gap-2 sm:gap-x-2">
               <Button
                 onClick={toggleEdit}
                 variant="outline"
                 size="sm"
                 type="button"
                 className={cn(
-                  "h-9 px-4",
+                  "h-10 sm:h-9 px-4 w-full xs:w-auto",
                   "bg-white dark:bg-slate-800",
                   "border-slate-300 dark:border-slate-600",
                   "text-slate-700 dark:text-slate-300",
                   "hover:bg-slate-100 dark:hover:bg-slate-700",
                   "hover:text-slate-900 dark:hover:text-slate-100",
                   "hover:border-slate-400 dark:hover:border-slate-500",
-                  "font-semibold",
-                  "transition-all duration-200"
+                  "font-semibold text-xs sm:text-sm",
+                  "transition-all duration-200",
+                  "justify-center xs:justify-start"
                 )}
               >
                 Cancel
@@ -206,7 +209,13 @@ export const SectionAccessForm = ({
                 disabled={isSubmitting}
                 type="submit"
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className={cn(
+                  "h-10 sm:h-9 px-4 w-full xs:w-auto",
+                  "bg-emerald-600 hover:bg-emerald-700 text-white",
+                  "font-semibold text-xs sm:text-sm",
+                  "justify-center xs:justify-start",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
               >
                 {isSubmitting ? "Saving..." : "Save"}
               </Button>

@@ -9,7 +9,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { UserRole } from "@prisma/client";
+// UserRole removed - users no longer have roles
 import { 
   withAPIAuth, 
   withAdminAuth, 
@@ -41,11 +41,9 @@ export const GET = withAPIAuth(
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role,
         },
         permissions: {
           canViewAnalytics,
-          isAdmin: permissions.hasRole(UserRole.ADMIN),
         },
         requestInfo: {
           method: context.request.method,
@@ -230,12 +228,10 @@ export const PUT = withAPIAuth(
         throw ApiError.forbidden("Email must be verified to access this endpoint");
       }
 
-      // Example: Business hour restriction for non-admins
-      if (!context.permissions.hasRole(UserRole.ADMIN)) {
-        const currentHour = new Date().getHours();
-        if (currentHour < 9 || currentHour > 17) {
-          throw ApiError.forbidden("This endpoint is only available during business hours (9 AM - 5 PM)");
-        }
+      // Example: Business hour restriction
+      const currentHour = new Date().getHours();
+      if (currentHour < 9 || currentHour > 17) {
+        throw ApiError.forbidden("This endpoint is only available during business hours (9 AM - 5 PM)");
       }
     },
   }

@@ -174,24 +174,24 @@ export function StrengthWeaknessAnalysis({ cognitiveData }: StrengthWeaknessAnal
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.1 }}
       >
-        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-lg transition-all duration-300">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <div className={`p-2 rounded-lg bg-gradient-to-r ${getCategoryColor(item.category)} text-white`}>
-                  <Icon className="w-5 h-5" />
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-lg transition-all duration-300">
+          <CardHeader className="px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 sm:gap-0">
+              <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                <div className={`p-1.5 sm:p-2 rounded-lg bg-gradient-to-r ${getCategoryColor(item.category)} text-white flex-shrink-0`}>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <CardTitle className="text-slate-800 dark:text-slate-200">{item.title}</CardTitle>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{item.description}</p>
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-slate-800 dark:text-slate-200 text-sm sm:text-base break-words">{item.title}</CardTitle>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed break-words">{item.description}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge className={getImpactColor(item.impact)}>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                <Badge className={`${getImpactColor(item.impact)} text-xs sm:text-sm`}>
                   {item.impact} impact
                 </Badge>
                 <div className="text-right">
-                  <div className={`text-lg font-bold ${
+                  <div className={`text-base sm:text-lg font-bold ${
                     item.score >= 80 ? 'text-green-600' :
                     item.score >= 60 ? 'text-yellow-600' : 'text-red-600'
                   }`}>
@@ -201,34 +201,34 @@ export function StrengthWeaknessAnalysis({ cognitiveData }: StrengthWeaknessAnal
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <div className="flex justify-between text-sm mb-2">
+                <div className="flex justify-between text-xs sm:text-sm mb-2">
                   <span className="text-slate-600 dark:text-slate-400">Current Level</span>
                   <span className="font-medium text-slate-800 dark:text-slate-200">{item.score}%</span>
                 </div>
-                <Progress value={item.score} className="h-2" />
+                <Progress value={item.score} className="h-1.5 sm:h-2" />
               </div>
 
               <div>
-                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-2">
-                  <ArrowRight className="w-4 h-4 text-purple-500" />
+                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-2 text-sm sm:text-base">
+                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 flex-shrink-0" />
                   Action Steps
                 </h4>
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {item.actions.map((action, idx) => (
-                    <li key={idx} className="text-sm text-slate-600 dark:text-slate-400 flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                      {action}
+                    <li key={idx} className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 flex items-start gap-2 leading-relaxed break-words">
+                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-1.5 sm:mt-2 flex-shrink-0"></div>
+                      <span className="flex-1">{action}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
               <div>
-                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2">Related Skills</h4>
-                <div className="flex flex-wrap gap-2">
+                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 text-sm sm:text-base">Related Skills</h4>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {item.relatedSkills.map((skill, idx) => (
                     <Badge key={idx} variant="outline" className="text-xs">
                       {skill}
@@ -244,29 +244,29 @@ export function StrengthWeaknessAnalysis({ cognitiveData }: StrengthWeaknessAnal
   };
 
   return (
-    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-8 space-y-6">
+    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5 md:space-y-6">
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-emerald-500 rounded-lg text-white">
-                  <Star className="w-6 h-6" />
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
+            <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 pb-4 sm:pb-6">
+              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <div className="p-2 sm:p-3 bg-emerald-500 rounded-lg text-white flex-shrink-0">
+                  <Star className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-emerald-800 dark:text-emerald-400">Cognitive Strengths</h3>
-                  <p className="text-sm text-emerald-600 dark:text-emerald-500">{strengths.length} identified areas</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-emerald-800 dark:text-emerald-400 break-words">Cognitive Strengths</h3>
+                  <p className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-500">{strengths.length} identified areas</p>
                 </div>
               </div>
               <div className="space-y-2">
                 {cognitiveData.strengths.slice(0, 3).map((strength, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                    <span className="text-emerald-700 dark:text-emerald-300">{strength}</span>
+                  <div key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
+                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-emerald-700 dark:text-emerald-300 break-words leading-relaxed">{strength}</span>
                   </div>
                 ))}
               </div>
@@ -279,22 +279,22 @@ export function StrengthWeaknessAnalysis({ cognitiveData }: StrengthWeaknessAnal
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-red-500 rounded-lg text-white">
-                  <AlertTriangle className="w-6 h-6" />
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
+            <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 pb-4 sm:pb-6">
+              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <div className="p-2 sm:p-3 bg-red-500 rounded-lg text-white flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-400">Growth Areas</h3>
-                  <p className="text-sm text-red-600 dark:text-red-500">{weaknesses.length} priority areas</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-red-800 dark:text-red-400 break-words">Growth Areas</h3>
+                  <p className="text-xs sm:text-sm text-red-600 dark:text-red-500">{weaknesses.length} priority areas</p>
                 </div>
               </div>
               <div className="space-y-2">
                 {cognitiveData.weaknesses.slice(0, 3).map((weakness, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-sm">
-                    <Target className="w-4 h-4 text-red-500" />
-                    <span className="text-red-700 dark:text-red-300">{weakness}</span>
+                  <div key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
+                    <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-red-700 dark:text-red-300 break-words leading-relaxed">{weakness}</span>
                   </div>
                 ))}
               </div>
@@ -307,22 +307,22 @@ export function StrengthWeaknessAnalysis({ cognitiveData }: StrengthWeaknessAnal
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-blue-500 rounded-lg text-white">
-                  <TrendingUp className="w-6 h-6" />
+          <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
+            <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 pb-4 sm:pb-6">
+              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <div className="p-2 sm:p-3 bg-blue-500 rounded-lg text-white flex-shrink-0">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-400">Growth Rate</h3>
-                  <p className="text-sm text-blue-600 dark:text-blue-500">Cognitive development</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-blue-800 dark:text-blue-400 break-words">Growth Rate</h3>
+                  <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-500">Cognitive development</p>
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400">
                   +{cognitiveData.cognitiveGrowth}%
                 </div>
-                <p className="text-sm text-blue-500 dark:text-blue-500">This month</p>
+                <p className="text-xs sm:text-sm text-blue-500 dark:text-blue-500">This month</p>
               </div>
             </CardContent>
           </Card>
@@ -334,12 +334,12 @@ export function StrengthWeaknessAnalysis({ cognitiveData }: StrengthWeaknessAnal
         <motion.h3 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2"
+          className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-200 mb-3 sm:mb-4 flex items-center gap-2 break-words"
         >
-          <Star className="w-6 h-6 text-emerald-500" />
-          Cognitive Strengths - Leverage These Assets
+          <Star className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500 flex-shrink-0" />
+          <span>Cognitive Strengths - Leverage These Assets</span>
         </motion.h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
           {strengths.map((item, index) => renderAnalysisCard(item, index))}
         </div>
       </div>
@@ -349,12 +349,12 @@ export function StrengthWeaknessAnalysis({ cognitiveData }: StrengthWeaknessAnal
         <motion.h3 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2"
+          className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-200 mb-3 sm:mb-4 flex items-center gap-2 break-words"
         >
-          <AlertTriangle className="w-6 h-6 text-red-500" />
-          Priority Development Areas
+          <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 flex-shrink-0" />
+          <span>Priority Development Areas</span>
         </motion.h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
           {weaknesses.map((item, index) => renderAnalysisCard(item, index + strengths.length))}
         </div>
       </div>
@@ -364,12 +364,12 @@ export function StrengthWeaknessAnalysis({ cognitiveData }: StrengthWeaknessAnal
         <motion.h3 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2"
+          className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-200 mb-3 sm:mb-4 flex items-center gap-2 break-words"
         >
-          <Target className="w-6 h-6 text-blue-500" />
-          Growth Opportunities
+          <Target className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500 flex-shrink-0" />
+          <span>Growth Opportunities</span>
         </motion.h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
           {opportunities.map((item, index) => renderAnalysisCard(item, index + strengths.length + weaknesses.length))}
         </div>
       </div>
@@ -380,49 +380,49 @@ export function StrengthWeaknessAnalysis({ cognitiveData }: StrengthWeaknessAnal
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
-        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-              <Brain className="w-6 h-6 text-purple-600" />
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
+          <CardHeader className="px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200 text-base sm:text-lg break-words">
+              <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 flex-shrink-0" />
               Recommended Focus Areas
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">Immediate Actions</h4>
-                <ul className="space-y-2">
+                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 sm:mb-3 text-sm sm:text-base">Immediate Actions</h4>
+                <ul className="space-y-1.5 sm:space-y-2">
                   {cognitiveData.recommendedFocus.map((focus, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm">
-                      <ArrowRight className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-slate-600 dark:text-slate-400">{focus}</span>
+                    <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
+                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-slate-600 dark:text-slate-400 break-words leading-relaxed">{focus}</span>
                     </li>
                   ))}
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">Next Milestones</h4>
-                <ul className="space-y-2">
+                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 sm:mb-3 text-sm sm:text-base">Next Milestones</h4>
+                <ul className="space-y-1.5 sm:space-y-2">
                   {cognitiveData.nextMilestones.map((milestone, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm">
-                      <Target className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-slate-600 dark:text-slate-400">{milestone}</span>
+                    <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
+                      <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-slate-600 dark:text-slate-400 break-words leading-relaxed">{milestone}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button variant="default" size="sm" className="gap-2">
-                <Plus className="w-4 h-4" />
+            <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
+              <Button variant="default" size="sm" className="gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[36px] text-xs sm:text-sm px-3 sm:px-4 touch-manipulation flex-1 sm:flex-none">
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 Create Study Plan
               </Button>
-              <Button variant="outline" size="sm" className="gap-2">
-                <BarChart3 className="w-4 h-4" />
+              <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[36px] text-xs sm:text-sm px-3 sm:px-4 touch-manipulation flex-1 sm:flex-none">
+                <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 Track Progress
               </Button>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Users className="w-4 h-4" />
+              <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[36px] text-xs sm:text-sm px-3 sm:px-4 touch-manipulation flex-1 sm:flex-none">
+                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 Find Study Partners
               </Button>
             </div>

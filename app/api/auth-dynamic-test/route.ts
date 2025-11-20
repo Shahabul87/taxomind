@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
       },
       message: "Authentication successful",
       timestamp: new Date().toISOString()
@@ -59,7 +58,6 @@ export async function POST(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
       },
       requestBody: body,
       message: "Authentication and request processing successful",

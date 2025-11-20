@@ -29,8 +29,8 @@ export function PerformanceTab({ analytics, performance }: PerformanceTabProps) 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-slate-900 dark:via-gray-900 dark:to-slate-800 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-slate-900 dark:via-gray-900 dark:to-slate-800 p-3 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         {performance && (
           <>
             {/* Header Section */}
@@ -38,16 +38,16 @@ export function PerformanceTab({ analytics, performance }: PerformanceTabProps) 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="text-center mb-8"
+              className="text-center mb-6 sm:mb-8"
             >
-              <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full border border-slate-200/50 dark:border-slate-700/50 shadow-sm mb-4">
-                <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Performance Analytics</span>
+              <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full border border-slate-200/50 dark:border-slate-700/50 shadow-sm mb-3 sm:mb-4">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Performance Analytics</span>
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-1 sm:mb-2">
                 Your Learning Performance
               </h2>
-              <p className="text-slate-600 dark:text-slate-400">
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
                 Track your progress and identify areas for improvement
               </p>
             </motion.div>
@@ -57,7 +57,7 @@ export function PerformanceTab({ analytics, performance }: PerformanceTabProps) 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8"
             >
               {[
                 {
@@ -104,28 +104,28 @@ export function PerformanceTab({ analytics, performance }: PerformanceTabProps) 
                   >
                     <Card className={`group relative overflow-hidden bg-gradient-to-br ${colorClass} border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]`}>
                       <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <CardContent className="relative p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="p-2 bg-white/20 rounded-lg">
-                            <IconComponent className="w-5 h-5 text-white" />
+                      <CardContent className="relative p-4 sm:p-6">
+                        <div className="flex items-center justify-between mb-3 sm:mb-4">
+                          <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg">
+                            <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                           </div>
-                          <Badge 
-                            variant={metric.trend === 'IMPROVING' ? 'default' : 
+                          <Badge
+                            variant={metric.trend === 'IMPROVING' ? 'default' :
                                    metric.trend === 'DECLINING' ? 'destructive' : 'secondary'}
-                            className="bg-white/20 backdrop-blur-sm border-white/30"
+                            className="bg-white/20 backdrop-blur-sm border-white/30 text-xs"
                           >
                             {metric.trend}
                           </Badge>
                         </div>
-                        <div className="space-y-1">
-                          <h3 className="text-sm font-medium text-white/90">{metric.title}</h3>
+                        <div className="space-y-0.5 sm:space-y-1">
+                          <h3 className="text-xs sm:text-sm font-medium text-white/90">{metric.title}</h3>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-bold text-white">
+                            <span className="text-xl sm:text-2xl font-bold text-white">
                               {metric.value > 0 && metric.title === "Improvement Rate" ? '+' : ''}{metric.value}
                             </span>
-                            <span className="text-sm text-white/80">{metric.unit}</span>
+                            <span className="text-xs sm:text-sm text-white/80">{metric.unit}</span>
                           </div>
-                          <p className="text-xs text-white/70">{metric.subtitle}</p>
+                          <p className="text-[10px] sm:text-xs text-white/70">{metric.subtitle}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -142,41 +142,41 @@ export function PerformanceTab({ analytics, performance }: PerformanceTabProps) 
                 transition={{ duration: 0.5, delay: 0.5 }}
               >
                 <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-3 text-slate-900 dark:text-white">
-                      <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
-                        <TrendingUp className="w-5 h-5 text-white" />
+                  <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6 pt-4 sm:pt-6">
+                    <CardTitle className="flex items-center gap-2 sm:gap-3 text-slate-900 dark:text-white text-base sm:text-lg">
+                      <div className="p-1.5 sm:p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+                        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                       AI Performance Insights
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4">
+                  <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+                    <div className="grid gap-3 sm:gap-4">
                       {performance.insights.map((insight: any, index: number) => (
-                        <motion.div 
+                        <motion.div
                           key={index}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
                           className={cn(
-                            "p-4 rounded-xl border-l-4 transition-all duration-200 hover:shadow-md",
+                            "p-3 sm:p-4 rounded-lg sm:rounded-xl border-l-4 transition-all duration-200 hover:shadow-md",
                             insight.type === 'success' ? "bg-emerald-50 border-l-emerald-500 dark:bg-emerald-950/20" :
                             insight.type === 'warning' ? "bg-amber-50 border-l-amber-500 dark:bg-amber-950/20" :
                             insight.type === 'info' ? "bg-blue-50 border-l-blue-500 dark:bg-blue-950/20" :
                             "bg-slate-50 border-l-slate-500 dark:bg-slate-900/50"
                           )}
                         >
-                          <div className="flex items-start gap-3">
+                          <div className="flex items-start gap-2 sm:gap-3">
                             <div className={cn(
-                              "w-3 h-3 rounded-full mt-1 flex-shrink-0",
+                              "w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full mt-1 flex-shrink-0",
                               insight.priority === 'high' ? "bg-red-500" :
                               insight.priority === 'medium' ? "bg-amber-500" : "bg-emerald-500"
                             )} />
-                            <div className="flex-1">
-                              <h5 className="font-semibold text-slate-900 dark:text-white mb-1">
+                            <div className="flex-1 min-w-0">
+                              <h5 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white mb-0.5 sm:mb-1">
                                 {insight.title}
                               </h5>
-                              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                                 {insight.message}
                               </p>
                             </div>

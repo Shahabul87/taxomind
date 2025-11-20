@@ -190,21 +190,21 @@ export const ChatList = ({
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-sm text-slate-500 dark:text-slate-400">Loading conversations...</div>
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Loading conversations...</div>
       </div>
     );
   }
 
   if (conversations.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20
-                      dark:to-indigo-950/20 rounded-xl mb-3">
-          <MessageSquare className="w-8 h-8 text-blue-500" />
+      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 text-center">
+        <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20
+                      dark:to-indigo-950/20 rounded-lg sm:rounded-xl mb-3">
+          <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
         </div>
-        <h3 className="font-medium text-slate-700 dark:text-slate-300 mb-1">No conversations</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <h3 className="font-medium text-slate-700 dark:text-slate-300 mb-1 text-sm sm:text-base">No conversations</h3>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 px-4">
           Start a new conversation with an instructor
         </p>
       </div>
@@ -213,7 +213,7 @@ export const ChatList = ({
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="space-y-2 p-3">
+      <div className="space-y-2 p-2 sm:p-3">
         {conversations.map((conv, index) => (
           <motion.div
             key={conv.id}
@@ -222,7 +222,7 @@ export const ChatList = ({
             transition={{ duration: 0.3, delay: index * 0.05 }}
             onClick={() => onChatSelect(conv.id)}
             className={`
-              group relative p-4 rounded-xl cursor-pointer transition-all duration-300
+              group relative p-3 sm:p-4 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-300 active:scale-[0.98]
               ${activeChat === conv.id
                 ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-blue-200 dark:border-blue-800'
                 : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-slate-200 dark:border-slate-700'
@@ -241,46 +241,46 @@ export const ChatList = ({
             )}
 
             {/* Instructor Avatar & Info */}
-            <div className="flex items-start gap-3">
-              <div className="relative">
-                <Avatar className="w-12 h-12 border-2 border-white dark:border-slate-700">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <div className="relative flex-shrink-0">
+                <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-white dark:border-slate-700">
                   <AvatarImage src={conv.instructor.avatar || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white text-sm sm:text-base">
                     {conv.instructor.name?.charAt(0) || "?"}
                   </AvatarFallback>
                 </Avatar>
 
                 {/* Online Status */}
                 {conv.instructor.online && (
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500
+                  <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500
                               rounded-full border-2 border-white dark:border-slate-800" />
                 )}
 
                 {/* Instructor Badge */}
-                <div className="absolute -top-1 -left-1 bg-gradient-to-r from-yellow-500 to-amber-500
-                            rounded-full p-1">
-                  <GraduationCap className="w-3 h-3 text-white" />
+                <div className="absolute -top-0.5 -left-0.5 sm:-top-1 sm:-left-1 bg-gradient-to-r from-yellow-500 to-amber-500
+                            rounded-full p-0.5 sm:p-1">
+                  <GraduationCap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                 </div>
               </div>
 
               <div className="flex-1 min-w-0">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-start justify-between mb-1 gap-2">
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-slate-900 dark:text-white text-sm truncate">
+                    <h4 className="font-semibold text-slate-900 dark:text-white text-xs sm:text-sm truncate">
                       {conv.instructor.name || "Unknown"}
                     </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
                       Instructor • {conv.instructor.responseTime}
                     </p>
                   </div>
-                  <div className="flex flex-col items-end gap-1 ml-2">
-                    <span className="text-xs text-slate-400">
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className="text-[10px] sm:text-xs text-slate-400 whitespace-nowrap">
                       {formatDistanceToNow(conv.lastMessage.timestamp, { addSuffix: true })}
                     </span>
                     {/* Priority Badge */}
                     {conv.priority === "URGENT" && (
-                      <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-1.5 py-0.5 text-xs">
+                      <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-xs">
                         Urgent
                       </Badge>
                     )}
@@ -288,18 +288,18 @@ export const ChatList = ({
                 </div>
 
                 {/* Last Message Preview */}
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-1.5 sm:mt-2 flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     {/* Category Icon */}
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
                       <div className="text-slate-500 dark:text-slate-400">
                         {getCategoryIcon(conv.category)}
                       </div>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                      <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
                         {conv.category}
                       </span>
                     </div>
-                    <p className={`text-sm truncate ${
+                    <p className={`text-xs sm:text-sm truncate leading-relaxed ${
                       conv.unread > 0
                         ? 'text-slate-900 dark:text-white font-medium'
                         : 'text-slate-600 dark:text-slate-400'
@@ -311,8 +311,8 @@ export const ChatList = ({
 
                   {/* Unread Badge */}
                   {conv.unread > 0 && (
-                    <div className="ml-2 px-2 py-1 bg-gradient-to-r from-blue-500 to-indigo-500
-                                  text-white text-xs font-bold rounded-full min-w-[24px] text-center">
+                    <div className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gradient-to-r from-blue-500 to-indigo-500
+                                  text-white text-[10px] sm:text-xs font-bold rounded-full min-w-[20px] sm:min-w-[24px] text-center flex-shrink-0">
                       {conv.unread}
                     </div>
                   )}

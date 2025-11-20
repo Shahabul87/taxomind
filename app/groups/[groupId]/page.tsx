@@ -104,7 +104,7 @@ export default async function GroupPage(props: GroupPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <ConditionalHeader user={{ id: user.id!, role: user.role }} />
+      <ConditionalHeader user={{ id: user.id! }} />
       
       <div className="flex pt-16">
         {/* Custom Group Sidebar */}

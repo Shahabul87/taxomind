@@ -1,138 +1,266 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { rateLimit, getClientIdentifier, getRateLimitHeaders } from '@/lib/rate-limit';
+import { getMockStudentData } from '@/lib/mocks/analytics-mock-data';
+import { z } from 'zod';
 
-export async function GET(req: NextRequest) {
-  try {
-    // Get the authenticated user
-    let user;
-    try {
-      user = await currentUser();
-      if (!user) {
-
-        user = { id: 'demo-user' };
-      }
-    } catch (error) {
-
-      user = { id: 'demo-user' };
+/**
+ * Zod schema for validating query parameters
+ * Ensures all inputs are properly validated before processing
+ */
+const QueryParamsSchema = z.object({
+  courses: z
+    .string()
+    .optional()
+    .transform(val => {
+      if (!val) return [];
+      // Split by comma and validate each ID is numeric
+      const ids = val.split(',').filter(id => /^\d+$/.test(id.trim()));
+      return ids;
+    }),
+  startDate: z
+    .string()
+    .datetime({ message: 'startDate must be a valid ISO 8601 datetime' })
+    .optional(),
+  endDate: z
+    .string()
+    .datetime({ message: 'endDate must be a valid ISO 8601 datetime' })
+    .optional(),
+}).refine(
+  (data) => {
+    // If both dates provided, startDate must be before endDate
+    if (data.startDate && data.endDate) {
+      return new Date(data.startDate) <= new Date(data.endDate);
     }
-
-    // Get query parameters for filtering
-    const searchParams = req.nextUrl.searchParams;
-    const courseIds = searchParams.get('courses')?.split(',') || [];
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    
-    // Log analytics request
-
-    console.log(`Analytics API: Filters - courses: ${courseIds.length > 0 ? courseIds.join(', ') : 'all'}`);
-
-    // In a real application, we would fetch this data from the database
-    // based on the authenticated user and apply the filters
-    // For this demo, we'll return mock data
-    
-    // Mock student data
-    const studentData = {
-      name: "Alex Johnson",
-      email: "alex.johnson@example.com",
-      enrolledCourses: 8,
-      completedCourses: 5,
-      averageScore: 87,
-      totalLearningHours: 142,
-      activeDays: 45,
-      streak: 12,
-      recentActivity: [
-        { id: 1, type: "course_progress", course: "Advanced Web Development", action: "completed section", date: "2023-05-20T14:30:00" },
-        { id: 2, type: "exam", course: "UI/UX Fundamentals", action: "scored 92%", date: "2023-05-19T10:15:00" },
-        { id: 3, type: "video", course: "Data Science Basics", action: "watched lecture", date: "2023-05-18T16:45:00" }
-      ],
-      courseProgress: [
-        { id: 1, name: "JavaScript Mastery", progress: 100, status: "completed" },
-        { id: 2, name: "React Fundamentals", progress: 100, status: "completed" },
-        { id: 3, name: "Node.js Backend", progress: 100, status: "completed" },
-        { id: 4, name: "UI/UX Fundamentals", progress: 100, status: "completed" },
-        { id: 5, name: "Advanced Web Development", progress: 100, status: "completed" },
-        { id: 6, name: "Python for Data Science", progress: 75, status: "in-progress" },
-        { id: 7, name: "Machine Learning Basics", progress: 60, status: "in-progress" },
-        { id: 8, name: "AWS Cloud Essentials", progress: 25, status: "in-progress" }
-      ],
-      examPerformance: [
-        { id: 1, course: "JavaScript Mastery", score: 92, date: "2023-02-15T10:00:00" },
-        { id: 2, course: "React Fundamentals", score: 88, date: "2023-03-10T14:30:00" },
-        { id: 3, course: "Node.js Backend", score: 95, date: "2023-03-25T11:15:00" },
-        { id: 4, course: "UI/UX Fundamentals", score: 90, date: "2023-04-12T09:45:00" },
-        { id: 5, course: "Advanced Web Development", score: 87, date: "2023-05-05T13:20:00" },
-        { id: 6, course: "Python for Data Science", score: 84, date: "2023-05-19T15:10:00" }
-      ],
-      completionRates: {
-        videos: 92,
-        readings: 85,
-        exercises: 78,
-        exams: 100
-      },
-      weeklyActivity: [
-        { day: "Monday", hours: 2.5 },
-        { day: "Tuesday", hours: 1.8 },
-        { day: "Wednesday", hours: 3.2 },
-        { day: "Thursday", hours: 2.0 },
-        { day: "Friday", hours: 1.5 },
-        { day: "Saturday", hours: 4.0 },
-        { day: "Sunday", hours: 2.7 }
-      ],
-      timeDistribution: {
-        morning: 30,
-        afternoon: 45,
-        evening: 20,
-        night: 5
-      },
-      skillsRadar: [
-        { skill: "JavaScript", value: 85 },
-        { skill: "React", value: 80 },
-        { skill: "Node.js", value: 75 },
-        { skill: "UI/UX", value: 70 },
-        { skill: "Python", value: 60 },
-        { skill: "Machine Learning", value: 40 },
-        { skill: "AWS", value: 30 }
-      ],
-      learningInsights: [
-        "Excels in programming courses, particularly JavaScript and backend development",
-        "Consistent daily learning pattern with higher activity on weekends",
-        "Completes video content at a higher rate than exercises and readings",
-        "Moving from web development focus to data science and ML topics",
-        "Could benefit from more hands-on exercises in newer subject areas"
-      ]
-    };
-
-    // Filter the data based on course IDs if provided
-    if (courseIds.length > 0) {
-      studentData.courseProgress = studentData.courseProgress.filter(course => 
-        courseIds.includes(course.id.toString())
-      );
-      
-      studentData.examPerformance = studentData.examPerformance.filter(exam =>
-        studentData.courseProgress.some(course => course.name === exam.course)
-      );
-    }
-
-    // Filter the data based on date range if provided
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      
-      studentData.recentActivity = studentData.recentActivity.filter(activity => {
-        const activityDate = new Date(activity.date);
-        return activityDate >= start && activityDate <= end;
-      });
-      
-      studentData.examPerformance = studentData.examPerformance.filter(exam => {
-        const examDate = new Date(exam.date);
-        return examDate >= start && examDate <= end;
-      });
-    }
-
-    return NextResponse.json(studentData);
-  } catch (error) {
-    logger.error('Analytics API: Error fetching student data:', error);
-    return new NextResponse('Error fetching student data', { status: 500 });
+    return true;
+  },
+  {
+    message: 'startDate must be before or equal to endDate',
+    path: ['startDate'],
   }
-} 
+);
+
+/**
+ * Standard API response interface
+ */
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
+  metadata?: {
+    timestamp: string;
+    requestId: string;
+    isDemo: boolean;
+  };
+}
+
+/**
+ * GET /api/analytics/student
+ *
+ * Retrieves student analytics data with filtering options.
+ *
+ * Features:
+ * - Rate limiting (100 requests/minute per IP)
+ * - Zod validation for query parameters
+ * - Authentication required (or demo mode)
+ * - CORS headers
+ * - Structured logging with request IDs
+ *
+ * Query Parameters:
+ * - courses: Comma-separated list of course IDs
+ * - startDate: ISO 8601 datetime for filtering by date range
+ * - endDate: ISO 8601 datetime for filtering by date range
+ *
+ * @returns Student analytics data with metadata
+ */
+export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> {
+  const requestId = crypto.randomUUID();
+  const startTime = performance.now();
+
+  try {
+    // Step 1: Rate limiting (100 requests per minute per IP)
+    const clientId = getClientIdentifier(req);
+    const rateLimitResult = await rateLimit(clientId, 100, 60000);
+    const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
+
+    if (!rateLimitResult.success) {
+      logger.warn('[ANALYTICS_API] Rate limit exceeded', {
+        requestId,
+        clientId,
+        remaining: rateLimitResult.remaining,
+      });
+
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: 'Too many requests. Please try again later.',
+            details: {
+              retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
+            },
+          },
+        },
+        {
+          status: 429,
+          headers: rateLimitHeaders as HeadersInit,
+        }
+      );
+    }
+
+    // Step 2: Validate query parameters with Zod
+    const searchParams = Object.fromEntries(req.nextUrl.searchParams);
+    let validatedParams;
+
+    try {
+      validatedParams = QueryParamsSchema.parse(searchParams);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        logger.warn('[ANALYTICS_API] Invalid query parameters', {
+          requestId,
+          errors: error.errors,
+        });
+
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Invalid query parameters',
+              details: {
+                errors: error.errors.map(err => ({
+                  path: err.path.join('.'),
+                  message: err.message,
+                })),
+              },
+            },
+          },
+          {
+            status: 400,
+            headers: rateLimitHeaders as HeadersInit,
+          }
+        );
+      }
+
+      throw error; // Re-throw non-Zod errors
+    }
+
+    const { courses: courseIds, startDate, endDate } = validatedParams;
+
+    // Step 3: Authenticate user
+    const user = await currentUser();
+    const isDemo = !user;
+
+    if (!user) {
+      logger.info('[ANALYTICS_API] Serving demo data - no authenticated user', {
+        requestId,
+        filters: {
+          courses: courseIds.length > 0 ? courseIds : 'all',
+          dateRange: startDate && endDate ? 'custom' : 'all',
+        },
+      });
+    } else {
+      logger.info('[ANALYTICS_API] Fetching student analytics', {
+        requestId,
+        userId: user.id,
+        filters: {
+          courses: courseIds.length > 0 ? courseIds.join(', ') : 'all',
+          dateRange: startDate && endDate ? { startDate, endDate } : 'all',
+        },
+      });
+    }
+
+    // Step 4: Fetch data (mock data for now, replace with real DB query)
+    // TODO: Replace with actual database query when implementing real analytics
+    const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || isDemo;
+    const studentData = getMockStudentData({ courseIds, startDate, endDate });
+
+    // Step 5: Log performance metrics
+    const duration = performance.now() - startTime;
+    logger.info('[ANALYTICS_API] Request completed', {
+      requestId,
+      duration: `${duration.toFixed(2)}ms`,
+      isDemo: isDemoMode,
+    });
+
+    // Step 6: Return response with metadata
+    return NextResponse.json<ApiResponse>(
+      {
+        success: true,
+        data: studentData,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId,
+          isDemo: isDemoMode,
+        },
+      },
+      {
+        headers: {
+          ...rateLimitHeaders,
+          'Cache-Control': isDemoMode
+            ? 'public, max-age=3600' // Cache demo data for 1 hour
+            : 'private, max-age=60', // Cache user data for 1 minute
+          'X-Request-ID': requestId,
+        } as HeadersInit,
+      }
+    );
+  } catch (error) {
+    const duration = performance.now() - startTime;
+
+    logger.error('[ANALYTICS_API] Error fetching student data', {
+      requestId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      duration: `${duration.toFixed(2)}ms`,
+    });
+
+    return NextResponse.json<ApiResponse>(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to fetch analytics data',
+          details:
+            process.env.NODE_ENV === 'development'
+              ? {
+                  message: error instanceof Error ? error.message : 'Unknown error',
+                }
+              : undefined,
+        },
+      },
+      {
+        status: 500,
+        headers: {
+          'X-Request-ID': requestId,
+        },
+      }
+    );
+  }
+}
+
+/**
+ * OPTIONS /api/analytics/student
+ *
+ * CORS preflight handler
+ */
+export async function OPTIONS(): Promise<NextResponse> {
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['*'];
+
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': allowedOrigins[0] || '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400', // 24 hours
+      },
+    }
+  );
+}

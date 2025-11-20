@@ -112,24 +112,25 @@ export const Actions = ({
         variant="ghost"
         size="sm"
         className={cn(
-          "text-xs sm:text-sm font-medium",
-          "h-9 sm:h-10",
-          "px-3 sm:px-6",
-          "flex items-center justify-center gap-1.5 sm:gap-2",
+          "text-xs sm:text-sm font-semibold",
+          "h-10 sm:h-10 md:h-11",
+          "px-4 sm:px-6",
+          "flex items-center justify-center gap-2",
           "relative overflow-hidden group",
           "whitespace-nowrap",
-          "flex-1 sm:flex-initial",
+          "w-full sm:w-auto sm:flex-initial",
           "rounded-xl",
           "transition-all duration-200",
-          // Smart colors for Publish state
-          !isPublished && "border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:border-emerald-300 dark:hover:border-emerald-700/60 shadow-sm hover:shadow-md",
-          // Smart colors for Unpublish state
-          isPublished && "border border-purple-200 dark:border-purple-800/50 bg-purple-50/50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 hover:border-purple-300 dark:hover:border-purple-700/60 shadow-sm hover:shadow-md",
-          disabled && "opacity-50 cursor-not-allowed hover:scale-100 hover:shadow-sm"
+          "shadow-md hover:shadow-lg",
+          // Enhanced mobile visibility - Publish state (green background)
+          !isPublished && "border-2 border-emerald-400 dark:border-emerald-600 bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 text-white hover:from-emerald-600 hover:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800",
+          // Unpublish state (no green, use default ghost style)
+          isPublished && "border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700",
+          disabled && "opacity-60 cursor-not-allowed hover:scale-100 hover:shadow-md from-gray-400 to-gray-500 border-gray-400 dark:from-gray-600 dark:to-gray-700 dark:border-gray-600"
         )}
       >
         {isPublishLoading ? (
-          <div className="flex items-center gap-x-1.5 sm:gap-x-2">
+          <div className="flex items-center gap-x-2">
             <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
             <span>{isPublished ? "Unpublishing..." : "Publishing..."}</span>
           </div>
@@ -137,14 +138,14 @@ export const Actions = ({
           <>
             {isPublished ? (
               <>
-                <EyeOff className="h-4 w-4 flex-shrink-0" />
+                <EyeOff className="h-4 w-4 sm:h-4 md:h-5 flex-shrink-0" />
                 <span>Unpublish</span>
               </>
             ) : (
               <>
-                <Eye className="h-4 w-4 flex-shrink-0" />
+                <Eye className="h-4 w-4 sm:h-4 md:h-5 flex-shrink-0" />
                 <span className="hidden sm:inline">Publish Course</span>
-                <span className="sm:hidden">Publish</span>
+                <span className="sm:hidden font-semibold">Publish</span>
               </>
             )}
           </>

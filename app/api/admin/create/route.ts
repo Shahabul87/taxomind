@@ -177,7 +177,7 @@ async function handleCreateFirstAdmin(body: any) {
 async function handlePromoteUser(req: NextRequest, body: any) {
   const session = await adminAuth();
   
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
     return NextResponse.json(
       { error: "Unauthorized: Admin access required" },
       { status: 403 }
@@ -219,7 +219,7 @@ async function handlePromoteUser(req: NextRequest, body: any) {
 async function handleDemoteAdmin(req: NextRequest, body: any) {
   const session = await adminAuth();
   
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
     return NextResponse.json(
       { error: "Unauthorized: Admin access required" },
       { status: 403 }
@@ -261,7 +261,7 @@ async function handleDemoteAdmin(req: NextRequest, body: any) {
 async function handleCreateInvitation(req: NextRequest, body: any) {
   const session = await adminAuth();
   
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
     return NextResponse.json(
       { error: "Unauthorized: Admin access required" },
       { status: 403 }

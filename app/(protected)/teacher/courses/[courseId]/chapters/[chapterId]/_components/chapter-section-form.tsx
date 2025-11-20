@@ -156,28 +156,27 @@ export const ChaptersSectionForm = ({
 
   return (
     <div className={cn(
-      "relative p-4 sm:p-6 rounded-xl",
+      "relative p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl",
       "border border-slate-200 dark:border-slate-700",
       "bg-white dark:bg-slate-900",
-      "transition-all duration-200",
-      "overflow-x-auto"
+      "transition-all duration-200"
     )}>
-      <div className="min-w-[600px] sm:min-w-full">
-        {(isUpdating || isGeneratingAI) && (
-          <div className="absolute h-full w-full bg-white/80 dark:bg-slate-900/80 top-0 right-0 rounded-xl flex items-center justify-center backdrop-blur-sm z-10">
-            <Loader2 className="h-6 w-6 text-slate-600 dark:text-slate-400 animate-spin" />
-          </div>
-        )}
-        <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-          <div className="space-y-1">
-            <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+      {(isUpdating || isGeneratingAI) && (
+        <div className="absolute h-full w-full bg-white/80 dark:bg-slate-900/80 top-0 right-0 rounded-lg sm:rounded-xl flex items-center justify-center backdrop-blur-sm z-10">
+          <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600 dark:text-slate-400 animate-spin" />
+        </div>
+      )}
+      <div className="font-medium flex flex-col gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-2">
+          <div className="space-y-0.5 sm:space-y-1">
+            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100">
               Chapter Sections
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
               Add and organize your course content
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col xs:flex-row gap-2">
             <AISectionGenerator
               chapterTitle={chapter.title}
               courseId={courseId}
@@ -190,11 +189,11 @@ export const ChaptersSectionForm = ({
               variant="outline"
               size="sm"
               className={cn(
-                "h-9 px-4",
+                "h-9 sm:h-10 px-3 sm:px-4",
                 "transition-all duration-200",
-                "w-full sm:w-auto",
+                "w-full xs:w-auto",
                 "justify-center",
-                "font-semibold",
+                "font-semibold text-xs sm:text-sm",
                 isCreating
                   ? "text-rose-700 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 border-rose-200 dark:border-rose-700"
                   : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700"
@@ -203,8 +202,8 @@ export const ChaptersSectionForm = ({
               {isCreating ? (
                 "Cancel"
               ) : (
-                <div className="flex items-center gap-x-2">
-                  <PlusCircle className="h-4 w-4" />
+                <div className="flex items-center gap-x-1.5 sm:gap-x-2">
+                  <PlusCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span>Add Section</span>
                 </div>
               )}
@@ -213,7 +212,7 @@ export const ChaptersSectionForm = ({
         </div>
 
         {/* Horizontal separator */}
-        <div className="my-4 border-b border-slate-200 dark:border-slate-700" />
+        <div className="my-3 sm:my-4 border-b border-slate-200 dark:border-slate-700" />
 
         <AnimatePresence mode="wait">
           {isCreating && (
@@ -222,12 +221,12 @@ export const ChaptersSectionForm = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2 }}
-              className="mt-4"
+              className="mt-3 sm:mt-4"
             >
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-4"
+                  className="space-y-3 sm:space-y-4"
                   data-form="chapter-sections"
                 >
                   <FormField
@@ -248,12 +247,13 @@ export const ChaptersSectionForm = ({
                               "focus:border-slate-400/70 dark:focus:border-slate-500/70",
                               "focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
                               "text-sm sm:text-base",
-                              "h-11",
-                              "transition-all duration-200"
+                              "h-10 sm:h-11",
+                              "transition-all duration-200",
+                              "w-full"
                             )}
                           />
                         </FormControl>
-                        <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
+                        <FormMessage className="text-rose-500 dark:text-rose-400 text-xs sm:text-sm" />
                       </FormItem>
                     )}
                   />
@@ -264,16 +264,17 @@ export const ChaptersSectionForm = ({
                     className={cn(
                       "bg-emerald-600 hover:bg-emerald-700",
                       "text-white",
-                      "w-full sm:w-auto",
-                      "h-9 px-4",
+                      "w-full xs:w-auto",
+                      "h-10 sm:h-9 px-4",
                       "justify-center",
-                      "font-semibold",
-                      "transition-all duration-200"
+                      "font-semibold text-xs sm:text-sm",
+                      "transition-all duration-200",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
                     )}
                   >
                     {isSubmitting ? (
-                      <div className="flex items-center gap-x-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                      <div className="flex items-center gap-x-1.5 sm:gap-x-2">
+                        <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                         <span>Creating...</span>
                       </div>
                     ) : (
@@ -290,7 +291,7 @@ export const ChaptersSectionForm = ({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-4"
+            className="mt-3 sm:mt-4"
           >
             <ChapterSectionList
               onEdit={onEdit}
@@ -299,14 +300,14 @@ export const ChaptersSectionForm = ({
               items={chapter.sections || []}
             />
             {chapter.sections.length === 0 && (
-              <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
-                <div className="flex items-center gap-2 px-3">
-                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <div className="space-y-2 sm:space-y-2.5 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                <div className="flex items-center gap-2 px-2.5 sm:px-3">
+                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                  <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
                     No sections yet
                   </p>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-2.5 sm:px-3">
                   Add sections to organize your chapter content. {!chapter.title && "Add chapter title to use AI generation."}
                 </p>
               </div>

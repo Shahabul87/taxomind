@@ -25,8 +25,8 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     redirect("/admin/auth/login");
   }
 
-  // Redirect if not an admin
-  if (session.user.role !== "ADMIN") {
+  // Redirect if not an admin or superadmin
+  if (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN") {
     redirect("/admin/auth/login");
   }
 
@@ -45,7 +45,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     name: session.user.name || null,
     email: session.user.email || null,
     image: session.user.image || null,
-    role: session.user.role as "ADMIN"
+    role: session.user.role as "ADMIN" | "SUPERADMIN"
   };
 
   return <AdminWithSidebar user={user}>{children}</AdminWithSidebar>;

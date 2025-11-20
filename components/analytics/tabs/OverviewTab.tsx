@@ -12,9 +12,9 @@ interface OverviewTabProps {
 
 export function OverviewTab({ analytics, performance, pulse }: OverviewTabProps) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Smart Metric Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         {analytics && (
           <>
             <motion.div
@@ -24,17 +24,17 @@ export function OverviewTab({ analytics, performance, pulse }: OverviewTabProps)
             >
               <Card className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-blue-700/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="relative p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <Clock className="w-4 h-4 text-white" />
+                <div className="relative p-3 sm:p-5">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg">
+                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-white/90">Total Time</span>
+                    <span className="text-xs sm:text-sm font-medium text-white/90">Total Time</span>
                   </div>
-                  <div className="text-2xl font-bold text-white">
+                  <div className="text-xl sm:text-2xl font-bold text-white">
                     {Math.round(analytics.summary.totalLearningTime / 60)}h
                   </div>
-                  <div className="text-xs text-white/80">
+                  <div className="text-[10px] sm:text-xs text-white/80">
                     {analytics.summary.totalLearningTime % 60}m additional
                   </div>
                 </div>
@@ -48,17 +48,17 @@ export function OverviewTab({ analytics, performance, pulse }: OverviewTabProps)
             >
               <Card className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-600 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 to-emerald-700/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="relative p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <Activity className="w-4 h-4 text-white" />
+                <div className="relative p-3 sm:p-5">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg">
+                      <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-white/90">Engagement</span>
+                    <span className="text-xs sm:text-sm font-medium text-white/90">Engagement</span>
                   </div>
-                  <div className="text-2xl font-bold text-white">
+                  <div className="text-xl sm:text-2xl font-bold text-white">
                     {analytics.summary.averageEngagementScore}%
                   </div>
-                  <div className="text-xs text-white/80">Average score</div>
+                  <div className="text-[10px] sm:text-xs text-white/80">Average score</div>
                 </div>
               </Card>
             </motion.div>
@@ -170,31 +170,31 @@ export function OverviewTab({ analytics, performance, pulse }: OverviewTabProps)
                 Today&apos;s Learning Activity
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-xl border-0 shadow-md">
-                  <div className="text-2xl font-bold text-white">
+            <CardContent className="p-4 sm:p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-xl border-0 shadow-md">
+                  <div className="text-xl sm:text-2xl font-bold text-white">
                     {Math.round(pulse.todayStats.totalStudyTime / 60)}h
                   </div>
-                  <div className="text-sm text-white/80">Study Time</div>
+                  <div className="text-xs sm:text-sm text-white/80">Study Time</div>
                 </div>
-                <div className="text-center p-4 bg-gradient-to-br from-teal-400 to-teal-500 rounded-xl border-0 shadow-md">
-                  <div className="text-2xl font-bold text-white">
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-teal-400 to-teal-500 rounded-xl border-0 shadow-md">
+                  <div className="text-xl sm:text-2xl font-bold text-white">
                     {pulse.todayStats.sessionCount}
                   </div>
-                  <div className="text-sm text-white/80">Sessions</div>
+                  <div className="text-xs sm:text-sm text-white/80">Sessions</div>
                 </div>
-                <div className="text-center p-4 bg-gradient-to-br from-violet-400 to-violet-500 rounded-xl border-0 shadow-md">
-                  <div className="text-2xl font-bold text-white">
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-violet-400 to-violet-500 rounded-xl border-0 shadow-md">
+                  <div className="text-xl sm:text-2xl font-bold text-white">
                     {pulse.todayStats.averageEngagement}%
                   </div>
-                  <div className="text-sm text-white/80">Engagement</div>
+                  <div className="text-xs sm:text-sm text-white/80">Engagement</div>
                 </div>
-                <div className="text-center p-4 bg-gradient-to-br from-rose-400 to-rose-500 rounded-xl border-0 shadow-md">
-                  <div className="text-2xl font-bold text-white">
+                <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-rose-400 to-rose-500 rounded-xl border-0 shadow-md">
+                  <div className="text-xl sm:text-2xl font-bold text-white">
                     {pulse.weeklyMomentum.streak}
                   </div>
-                  <div className="text-sm text-white/80">Day Streak</div>
+                  <div className="text-xs sm:text-sm text-white/80">Day Streak</div>
                 </div>
               </div>
             </CardContent>

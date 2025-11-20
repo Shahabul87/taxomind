@@ -42,7 +42,6 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
       email: user.email || undefined,
       password: undefined,
       newPassword: undefined,
-      role: user.role,
       isTwoFactorEnabled: user.isTwoFactorEnabled || undefined,
 
       // Profile

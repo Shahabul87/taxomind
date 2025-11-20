@@ -41,7 +41,6 @@ export function UserDashboard({ user }: UserDashboardProps) {
         onSkip={skipOnboarding}
       />
       {/* Background pattern */}
-      <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
       
       {/* Glowing orbs */}
       <div className="absolute -top-40 -right-20 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20"></div>

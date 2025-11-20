@@ -3,6 +3,7 @@ import { withAuth, type APIAuthContext, createSuccessResponse, createErrorRespon
 import { db } from "@/lib/db";
 import { isRateLimited, getRateLimitMessage } from "@/lib/rate-limit";
 import { logger } from '@/lib/logger';
+import { ReactionCreateSchema } from '@/lib/validations/blog';
 
 // A simplified, universal endpoint for handling all types of reactions
 export const POST = withAuth(async (
@@ -22,31 +23,31 @@ export const POST = withAuth(async (
       }, 429);
     }
 
-    // Parse request body
+    // Parse and validate request body
     let body;
     try {
       body = await request.json();
-
     } catch (err) {
       logger.error("[COMMENT_REACTION] Error parsing request:", err);
       return createSuccessResponse({ error: "Invalid request format" }, 400);
     }
 
-    const { postId, commentId, replyId, type } = body;
-    
-    // Validate required fields
-    if (!type) {
-      return createSuccessResponse({ error: "Reaction type is required" }, 400);
+    // Validate input with Zod schema
+    const validationResult = ReactionCreateSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors[0]?.message || 'Invalid input';
+      logger.warn('[COMMENT_REACTION] Validation failed', {
+        errors: validationResult.error.errors,
+        userId: context.user.id,
+      });
+      return createSuccessResponse({ error: errorMessage }, 400);
     }
-    
-    if (!postId) {
-      return createSuccessResponse({ error: "Post ID is required" }, 400);
-    }
-    
+
+    const { postId, commentId, replyId, type } = validationResult.data;
+
     // Modified validation to allow either/or for testing purposes
     if (!commentId && !replyId) {
-
-      return createSuccessResponse({ 
+      return createSuccessResponse({
         error: "Either commentId or replyId is required",
         status: "VALIDATION_ERROR"
       }, 400);

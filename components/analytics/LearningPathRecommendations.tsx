@@ -452,54 +452,54 @@ export function LearningPathRecommendations({ cognitiveData }: LearningPathRecom
   };
 
   return (
-    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-8 space-y-6">
+    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5 md:space-y-6">
       {/* Learning Path Overview */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white relative overflow-hidden"
+        className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 text-white relative overflow-hidden"
       >
-        <div className="absolute inset-0 bg-black/10 rounded-2xl"></div>
+        <div className="absolute inset-0 bg-black/10 rounded-xl sm:rounded-2xl"></div>
         <div className="relative z-10">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-white/20 rounded-full">
-                <Route className="w-8 h-8" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <div className="p-2 sm:p-3 bg-white/20 rounded-full flex-shrink-0">
+                <Route className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
               </div>
-              <div>
-                <h2 className="text-2xl font-bold">Personalized Learning Paths</h2>
-                <p className="text-white/80">AI-generated recommendations based on your cognitive profile</p>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl sm:text-2xl font-bold break-words">Personalized Learning Paths</h2>
+                <p className="text-white/80 text-xs sm:text-sm md:text-base leading-relaxed">AI-generated recommendations based on your cognitive profile</p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold">{learningPaths.length}</div>
-              <div className="text-white/80 text-sm">Recommended Paths</div>
+            <div className="text-left sm:text-right w-full sm:w-auto">
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold">{learningPaths.length}</div>
+              <div className="text-white/80 text-xs sm:text-sm">Recommended Paths</div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-5 h-5 text-white/80" />
-                <span className="text-sm text-white/80">Total Study Time</span>
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white/80 flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-white/80">Total Study Time</span>
               </div>
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold">
                 {learningPaths.reduce((sum, path) => sum + path.totalTime, 0)} min
               </div>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Target className="w-5 h-5 text-white/80" />
-                <span className="text-sm text-white/80">Focus Areas</span>
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white/80 flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-white/80">Focus Areas</span>
               </div>
-              <div className="text-2xl font-bold">{cognitiveData.recommendedFocus.length}</div>
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold">{cognitiveData.recommendedFocus.length}</div>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-5 h-5 text-white/80" />
-                <span className="text-sm text-white/80">Growth Potential</span>
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white/80 flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-white/80">Growth Potential</span>
               </div>
-              <div className="text-2xl font-bold">+{cognitiveData.cognitiveGrowth}%</div>
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold">+{cognitiveData.cognitiveGrowth}%</div>
             </div>
           </div>
         </div>
@@ -514,31 +514,31 @@ export function LearningPathRecommendations({ cognitiveData }: LearningPathRecom
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: pathIndex * 0.1 }}
           >
-            <Card className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border transition-all duration-300 shadow-sm hover:shadow-lg ${
+            <Card className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border transition-all duration-300 shadow-sm hover:shadow-lg ${
               selectedPath === path.id 
                 ? 'border-purple-300 dark:border-purple-600' 
                 : 'border-slate-200/50 dark:border-slate-700/50'
             }`}>
               <CardHeader 
-                className="cursor-pointer"
+                className="cursor-pointer px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 touch-manipulation"
                 onClick={() => setSelectedPath(selectedPath === path.id ? null : path.id)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg text-white">
-                      <Route className="w-6 h-6" />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+                  <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 min-w-0">
+                    <div className="p-2 sm:p-3 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg text-white flex-shrink-0">
+                      <Route className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <div>
-                      <CardTitle className="text-slate-800 dark:text-slate-200">{path.title}</CardTitle>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{path.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-slate-800 dark:text-slate-200 text-base sm:text-lg break-words">{path.title}</CardTitle>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed break-words">{path.description}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge className={getDifficultyColor(path.difficulty)}>
+                  <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <Badge className={`${getDifficultyColor(path.difficulty)} text-xs sm:text-sm`}>
                       {path.difficulty}
                     </Badge>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-slate-800 dark:text-slate-200">
+                      <div className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-200">
                         {path.totalTime}min
                       </div>
                       <div className="text-xs text-slate-500">Total time</div>
@@ -548,26 +548,26 @@ export function LearningPathRecommendations({ cognitiveData }: LearningPathRecom
               </CardHeader>
 
               {selectedPath === path.id && (
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4 sm:space-y-5 md:space-y-6 px-3 sm:px-6 pb-4 sm:pb-6">
                   {/* Path Progress */}
-                  <div className="bg-white/60 dark:bg-slate-700/60 backdrop-blur-sm rounded-lg p-4 border border-slate-200/30 dark:border-slate-600/30">
+                  <div className="bg-white/60 dark:bg-slate-700/60 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-slate-200/30 dark:border-slate-600/30">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
                         Overall Progress
                       </span>
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
                         {path.completionRate}%
                       </span>
                     </div>
-                    <Progress value={path.completionRate} className="h-2" />
+                    <Progress value={path.completionRate} className="h-1.5 sm:h-2" />
                   </div>
 
                   {/* Focus Areas */}
                   <div>
-                    <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 sm:mb-3 text-sm sm:text-base">
                       Focus Areas
                     </h4>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
                       {path.focus.map((focus, idx) => (
                         <Badge key={idx} variant="outline" className="text-xs">
                           {focus}
@@ -578,45 +578,45 @@ export function LearningPathRecommendations({ cognitiveData }: LearningPathRecom
 
                   {/* Learning Modules */}
                   <div>
-                    <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
-                      <BookOpen className="w-5 h-5" />
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
+                      <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                       Learning Modules
                     </h4>
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {path.modules.map((module, moduleIndex) => (
                         <Card 
                           key={module.id} 
-                          className={`bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border transition-all duration-300 shadow-sm hover:shadow-md ${
+                          className={`bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg sm:rounded-xl border transition-all duration-300 shadow-sm hover:shadow-md ${
                             !module.isUnlocked 
                               ? 'opacity-60 border-slate-300/50 dark:border-slate-600/50' 
                               : 'border-slate-200/40 dark:border-slate-700/40 hover:border-slate-300/60 dark:hover:border-slate-600/60'
                           }`}
                         >
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-start gap-3">
-                                <div className={`p-2 rounded-lg ${
+                          <CardContent className="p-3 sm:p-4">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between mb-3 gap-3">
+                              <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                                <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
                                   module.isUnlocked 
                                     ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
                                     : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
                                 }`}>
-                                  <Target className="w-5 h-5" />
+                                  <Target className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
-                                <div>
-                                  <h5 className="font-semibold text-slate-800 dark:text-slate-200">
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="font-semibold text-slate-800 dark:text-slate-200 text-sm sm:text-base break-words">
                                     {module.title}
                                   </h5>
-                                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed break-words">
                                     {module.description}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Badge className={getPriorityColor(module.priority)}>
+                              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                                <Badge className={`${getPriorityColor(module.priority)} text-xs`}>
                                   {module.priority}
                                 </Badge>
                                 <div className="text-right">
-                                  <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                  <div className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
                                     {module.estimatedTime}min
                                   </div>
                                   <div className="text-xs text-slate-500">Duration</div>
@@ -624,22 +624,22 @@ export function LearningPathRecommendations({ cognitiveData }: LearningPathRecom
                               </div>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-2.5 sm:space-y-3">
                               {/* Module Progress */}
                               <div>
-                                <div className="flex justify-between text-sm mb-1">
+                                <div className="flex justify-between text-xs sm:text-sm mb-1">
                                   <span className="text-slate-600 dark:text-slate-400">Progress</span>
                                   <span className="font-medium text-slate-800 dark:text-slate-200">
                                     {module.progress}%
                                   </span>
                                 </div>
-                                <Progress value={module.progress} className="h-2" />
+                                <Progress value={module.progress} className="h-1.5 sm:h-2" />
                               </div>
 
                               {/* Prerequisites */}
                               {module.prerequisites.length > 0 && (
                                 <div>
-                                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                                  <span className="text-xs text-slate-500 dark:text-slate-400 break-words">
                                     Prerequisites: {module.prerequisites.join(', ')}
                                   </span>
                                 </div>
@@ -647,42 +647,42 @@ export function LearningPathRecommendations({ cognitiveData }: LearningPathRecom
 
                               {/* Activities */}
                               <div>
-                                <h6 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                <h6 className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                   Activities ({module.activities.length})
                                 </h6>
-                                <div className="space-y-2">
+                                <div className="space-y-1.5 sm:space-y-2">
                                   {module.activities.map((activity, activityIndex) => {
                                     const Icon = getActivityIcon(activity.type);
                                     return (
                                       <div 
                                         key={activity.id} 
-                                        className={`flex items-center gap-3 p-2 rounded-lg ${
+                                        className={`flex items-center gap-2 sm:gap-3 p-2 rounded-lg ${
                                           activity.completed 
                                             ? 'bg-green-50/80 dark:bg-green-950/30 backdrop-blur-sm border border-green-200/30 dark:border-green-800/30' 
                                             : 'bg-white/40 dark:bg-slate-700/40 backdrop-blur-sm border border-slate-200/20 dark:border-slate-600/20'
                                         }`}
                                       >
-                                        <div className={`p-1 rounded ${
+                                        <div className={`p-1 rounded flex-shrink-0 ${
                                           activity.completed 
                                             ? 'bg-green-500 text-white' 
                                             : 'bg-slate-300 text-slate-600 dark:bg-slate-600 dark:text-slate-300'
                                         }`}>
                                           {activity.completed ? (
-                                            <CheckCircle className="w-4 h-4" />
+                                            <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                           ) : (
-                                            <Icon className="w-4 h-4" />
+                                            <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                           )}
                                         </div>
-                                        <div className="flex-1">
-                                          <div className="flex items-center justify-between">
-                                            <span className={`text-sm ${
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className={`text-xs sm:text-sm break-words ${
                                               activity.completed 
                                                 ? 'text-green-700 dark:text-green-400' 
                                                 : 'text-slate-700 dark:text-slate-300'
                                             }`}>
                                               {activity.title}
                                             </span>
-                                            <span className="text-xs text-slate-500">
+                                            <span className="text-xs text-slate-500 flex-shrink-0">
                                               {activity.duration}min
                                             </span>
                                           </div>
@@ -695,36 +695,36 @@ export function LearningPathRecommendations({ cognitiveData }: LearningPathRecom
 
                               {/* Learning Outcomes */}
                               <div>
-                                <h6 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                <h6 className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                   Learning Outcomes
                                 </h6>
                                 <ul className="space-y-1">
                                   {module.outcomes.map((outcome, idx) => (
-                                    <li key={idx} className="text-sm text-slate-600 dark:text-slate-400 flex items-start gap-2">
-                                      <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
-                                      {outcome}
+                                    <li key={idx} className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 flex items-start gap-2 leading-relaxed break-words">
+                                      <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 sm:mt-1 flex-shrink-0" />
+                                      <span className="flex-1">{outcome}</span>
                                     </li>
                                   ))}
                                 </ul>
                               </div>
 
                               {/* Action Buttons */}
-                              <div className="flex gap-2 pt-2">
+                              <div className="flex flex-col sm:flex-row gap-2 pt-2">
                                 <Button 
                                   size="sm" 
                                   disabled={!module.isUnlocked}
-                                  className="gap-2"
+                                  className="gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[36px] text-xs sm:text-sm px-3 sm:px-4 touch-manipulation w-full sm:w-auto"
                                 >
-                                  <Play className="w-4 h-4" />
+                                  <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                   {module.progress > 0 ? 'Continue' : 'Start'}
                                 </Button>
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
                                   disabled={!module.isUnlocked}
-                                  className="gap-2"
+                                  className="gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[36px] text-xs sm:text-sm px-3 sm:px-4 touch-manipulation w-full sm:w-auto"
                                 >
-                                  <BookOpen className="w-4 h-4" />
+                                  <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                   Preview
                                 </Button>
                               </div>
@@ -747,49 +747,49 @@ export function LearningPathRecommendations({ cognitiveData }: LearningPathRecom
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >
-        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-              <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
+          <CardHeader className="px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200 text-base sm:text-lg">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
               Quick Actions
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300 p-4 cursor-pointer group">
+          <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300 p-3 sm:p-4 cursor-pointer group touch-manipulation min-h-[100px] sm:min-h-[120px]">
                 <div className="flex flex-col items-start gap-2">
                   <div className="p-2 bg-blue-100/80 dark:bg-blue-900/40 rounded-lg group-hover:bg-blue-200/80 dark:group-hover:bg-blue-800/60 transition-colors">
-                    <Flag className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <Flag className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">Set Weekly Goals</span>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">Plan your learning schedule</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200 text-sm sm:text-base break-words">Set Weekly Goals</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed break-words">Plan your learning schedule</span>
                 </div>
               </div>
-              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300 p-4 cursor-pointer group">
+              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300 p-3 sm:p-4 cursor-pointer group touch-manipulation min-h-[100px] sm:min-h-[120px]">
                 <div className="flex flex-col items-start gap-2">
                   <div className="p-2 bg-green-100/80 dark:bg-green-900/40 rounded-lg group-hover:bg-green-200/80 dark:group-hover:bg-green-800/60 transition-colors">
-                    <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
                   </div>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">Schedule Study Time</span>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">Block time for learning</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200 text-sm sm:text-base break-words">Schedule Study Time</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed break-words">Block time for learning</span>
                 </div>
               </div>
-              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300 p-4 cursor-pointer group">
+              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300 p-3 sm:p-4 cursor-pointer group touch-manipulation min-h-[100px] sm:min-h-[120px]">
                 <div className="flex flex-col items-start gap-2">
                   <div className="p-2 bg-orange-100/80 dark:bg-orange-900/40 rounded-lg group-hover:bg-orange-200/80 dark:group-hover:bg-orange-800/60 transition-colors">
-                    <Trophy className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">Track Achievements</span>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">Monitor your progress</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200 text-sm sm:text-base break-words">Track Achievements</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed break-words">Monitor your progress</span>
                 </div>
               </div>
-              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300 p-4 cursor-pointer group">
+              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-200/40 dark:border-slate-700/40 shadow-sm hover:shadow-md transition-all duration-300 p-3 sm:p-4 cursor-pointer group touch-manipulation min-h-[100px] sm:min-h-[120px]">
                 <div className="flex flex-col items-start gap-2">
                   <div className="p-2 bg-purple-100/80 dark:bg-purple-900/40 rounded-lg group-hover:bg-purple-200/80 dark:group-hover:bg-purple-800/60 transition-colors">
-                    <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">Find Study Partners</span>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">Connect with peers</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200 text-sm sm:text-base break-words">Find Study Partners</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed break-words">Connect with peers</span>
                 </div>
               </div>
             </div>

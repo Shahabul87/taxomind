@@ -1,69 +1,83 @@
+/**
+ * @deprecated Regular users no longer have roles.
+ * This hook is only for admin routes with AdminRole.
+ * Admin authentication is completely separate from user authentication.
+ */
+
 "use client";
 
 import { useSession } from "next-auth/react";
-import { UserRole } from "@prisma/client";
-import { ROLE_PERMISSIONS, Permission } from "@/lib/role-management";
+import { AdminRole } from "@prisma/client";
+import { Permission, USER_PERMISSIONS } from "@/lib/role-management";
 
 export function usePermissions() {
   const { data: session, status } = useSession();
-  
+
   const hasPermission = (permission: Permission): boolean => {
-    if (!session?.user?.role) return false;
-    return ROLE_PERMISSIONS[session.user.role]?.includes(permission) || false;
+    if (!session?.user) return false;
+    // All authenticated users have basic permissions
+    return USER_PERMISSIONS.includes(permission);
   };
-  
-  const hasRole = (role: UserRole | UserRole[]): boolean => {
+
+  const hasRole = (role: AdminRole | AdminRole[]): boolean => {
     if (!session?.user?.role) return false;
     const roles = Array.isArray(role) ? role : [role];
     return roles.includes(session.user.role);
   };
-  
-  const hasAnyRole = (roles: UserRole[]): boolean => {
+
+  const hasAnyRole = (roles: AdminRole[]): boolean => {
     if (!session?.user?.role) return false;
     return roles.includes(session.user.role);
   };
-  
+
   const isAdmin = (): boolean => {
-    return session?.user?.role === UserRole.ADMIN;
+    return session?.user?.role === AdminRole.ADMIN || session?.user?.role === AdminRole.SUPERADMIN;
   };
-  
+
+  /**
+   * @deprecated Users don't have teacher/student roles. This is admin-only.
+   */
   const isTeacher = (): boolean => {
-    return session?.user?.role === UserRole.USER;
+    return false; // Users don't have roles
   };
-  
+
+  /**
+   * @deprecated Users don't have teacher/student roles. This is admin-only.
+   */
   const isStudent = (): boolean => {
-    return session?.user?.role === UserRole.USER;
+    return false; // Users don't have roles
   };
-  
+
+  /**
+   * @deprecated Users don't have roles. Admin-only hook.
+   */
   const isTeacherOrAdmin = (): boolean => {
-    return hasAnyRole([UserRole.USER, UserRole.ADMIN]);
+    return isAdmin();
   };
-  
+
   const canManageUsers = (): boolean => {
-    return hasPermission("user:edit_roles");
+    return isAdmin(); // Only admins can manage users
   };
-  
+
   const canCreateCourses = (): boolean => {
     return hasPermission("course:create");
   };
-  
+
   const canViewAnalytics = (): boolean => {
-    return hasPermission("analytics:view_all") || 
-           hasPermission("analytics:view_students") || 
-           hasPermission("analytics:view_own");
+    return hasPermission("analytics:view_own") || isAdmin();
   };
-  
+
   const canGradeExams = (): boolean => {
-    return hasPermission("exam:grade");
+    return isAdmin(); // Only admins can grade exams
   };
-  
-  const getUserRole = (): UserRole | null => {
-    return session?.user?.role || null;
+
+  const getUserRole = (): AdminRole | null => {
+    return (session?.user?.role as AdminRole) || null;
   };
-  
+
   const getPermissions = (): readonly Permission[] => {
-    if (!session?.user?.role) return [];
-    return ROLE_PERMISSIONS[session.user.role] || [];
+    if (!session?.user) return [];
+    return USER_PERMISSIONS;
   };
   
   return {

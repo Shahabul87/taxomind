@@ -23,13 +23,13 @@ export class SAMMasterIntegration {
     interactionType: string,
     query?: string
   ): Promise<SAMEnhancedContext> {
-    // Get user role and basic info
+    // Get user basic info
+    // NOTE: Users don't have roles - only AdminAccount has roles
     const user = await db.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
         name: true,
-        role: true,
         createdAt: true,
       },
     });
@@ -39,18 +39,19 @@ export class SAMMasterIntegration {
     }
 
     // Get engine insights based on interaction type
+    // NOTE: Users don't have roles - all users in User table are regular users
     const engineInsights = await this.getRelevantEngineInsights(
       userId,
       courseId,
       interactionType,
-      user.role
+      'USER' // Users don't have roles, default to 'USER'
     );
 
     // Get personalized recommendations
     const recommendations = await this.getPersonalizedRecommendations(
       userId,
       courseId,
-      user.role,
+      'USER', // Users don't have roles, default to 'USER'
       engineInsights
     );
 
@@ -59,7 +60,7 @@ export class SAMMasterIntegration {
       user: {
         id: user.id,
         name: user.name,
-        role: user.role,
+        role: 'USER', // NOTE: Users don't have roles - all users are 'USER'
         learningProfile: engineInsights.learningProfile,
       },
       course: courseId ? await this.getCourseContext(courseId) : null,

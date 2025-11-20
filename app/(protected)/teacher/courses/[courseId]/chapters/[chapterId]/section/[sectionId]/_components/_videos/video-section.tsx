@@ -282,7 +282,7 @@ export const VideoSectionForm = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
 
       <AnimatePresence>
         {isCreating && (
@@ -291,20 +291,20 @@ export const VideoSectionForm = ({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="overflow-hidden mt-4"
+            className="overflow-hidden mt-3 sm:mt-4"
           >
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
+                className="space-y-3 sm:space-y-4"
               >
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <FormField
                     control={form.control}
                     name="videoUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <FormLabel className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                           Video URL <span className="text-blue-500">*</span>
                         </FormLabel>
                         <div className="relative">
@@ -317,24 +317,25 @@ export const VideoSectionForm = ({
                                 "bg-white dark:bg-gray-900/50",
                                 "border-gray-200 dark:border-gray-700/50",
                                 "text-gray-900 dark:text-gray-200",
-                                "pl-10 pr-20",
+                                "pl-8 sm:pl-10 pr-16 sm:pr-20",
                                 "focus:ring-blue-500/20",
-                                "text-sm",
+                                "text-xs sm:text-sm",
+                                "h-9 sm:h-10",
                                 "transition-all duration-200"
                               )}
                             />
                           </FormControl>
-                          <Video className="absolute left-3 top-3 h-4 w-4 text-blue-500 dark:text-blue-400" />
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                          <Video className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 dark:text-blue-400" />
+                          <div className="absolute right-1.5 sm:right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 sm:gap-1">
                             <Button
                               type="button"
                               size="sm"
                               variant="ghost"
                               onClick={pasteFromClipboard}
-                              className="h-7 px-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+                              className="h-6 sm:h-7 px-1.5 sm:px-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
                             >
-                              <Clipboard className="h-4 w-4 mr-1" />
-                              <span className="text-xs">Paste</span>
+                              <Clipboard className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                              <span className="hidden sm:inline text-xs">Paste</span>
                             </Button>
                             {field.value && (
                               <button
@@ -343,15 +344,15 @@ export const VideoSectionForm = ({
                                   field.onChange("");
                                   setPreviewData(null);
                                 }}
-                                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-0.5"
                               >
-                                <X className="h-4 w-4" />
+                                <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               </button>
                             )}
                           </div>
                         </div>
-                        <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
-                        <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
+                        <FormMessage className="text-rose-500 dark:text-rose-400 text-xs sm:text-sm" />
+                        <FormDescription className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                           Enter a URL from YouTube, Vimeo, or other video platforms
                         </FormDescription>
                       </FormItem>
@@ -359,10 +360,10 @@ export const VideoSectionForm = ({
                   />
 
                   {isLoadingMetadata && (
-                    <div className="flex justify-center py-8">
+                    <div className="flex justify-center py-6 sm:py-8">
                       <div className="flex flex-col items-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Fetching video details...</p>
+                        <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-500" />
+                        <p className="mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">Fetching video details...</p>
                       </div>
                     </div>
                   )}
@@ -371,9 +372,9 @@ export const VideoSectionForm = ({
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl border border-blue-100 dark:border-blue-800/30 overflow-hidden bg-white dark:bg-gray-800/60 shadow-md"
+                      className="rounded-lg sm:rounded-xl border border-blue-100 dark:border-blue-800/30 overflow-hidden bg-white dark:bg-gray-800/60 shadow-md"
                     >
-                      <div className="relative h-[200px] w-full bg-gray-100 dark:bg-gray-700">
+                      <div className="relative h-[140px] sm:h-[180px] md:h-[200px] w-full bg-gray-100 dark:bg-gray-700">
                         {previewData.thumbnail ? (
                           <div className="h-full w-full relative group overflow-hidden">
                             <Image
@@ -392,47 +393,47 @@ export const VideoSectionForm = ({
                             
                             {/* Play button overlay */}
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="bg-black/60 rounded-full p-4 transform scale-90 group-hover:scale-100 transition-transform">
-                                <Play className="h-8 w-8 text-white fill-white" />
+                              <div className="bg-black/60 rounded-full p-2 sm:p-3 md:p-4 transform scale-90 group-hover:scale-100 transition-transform">
+                                <Play className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-white fill-white" />
                               </div>
                             </div>
                           </div>
                         ) : (
                           <div className="h-full w-full flex items-center justify-center bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30">
-                            <Video className="h-16 w-16 text-blue-300 dark:text-blue-500" />
+                            <Video className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 text-blue-300 dark:text-blue-500" />
                           </div>
                         )}
                         {previewData.platform && (
-                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md">
-                            <span className="text-white text-xs font-medium">{previewData.platform}</span>
+                          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-black/60 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
+                            <span className="text-white text-[10px] sm:text-xs font-medium">{previewData.platform}</span>
                           </div>
                         )}
                       </div>
-                      <div className="p-4">
+                      <div className="p-3 sm:p-4">
                         <FormField
                           control={form.control}
                           name="title"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-gray-700 dark:text-gray-300">Video Title</FormLabel>
+                              <FormLabel className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Video Title</FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
                                   placeholder="Video title"
-                                  className="text-base font-medium border border-gray-200 dark:border-gray-700 bg-transparent"
+                                  className="text-sm sm:text-base font-medium border border-gray-200 dark:border-gray-700 bg-transparent h-9 sm:h-10"
                                 />
                               </FormControl>
-                              <FormMessage />
+                              <FormMessage className="text-xs sm:text-sm" />
                             </FormItem>
                           )}
                         />
                         
                         {previewData.author && (
                           <div className="mt-2 flex items-center">
-                            <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-xs font-medium text-blue-600 dark:text-blue-300 mr-2">
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-[10px] sm:text-xs font-medium text-blue-600 dark:text-blue-300 mr-1.5 sm:mr-2">
                               {previewData.author.charAt(0).toUpperCase()}
                             </div>
-                            <span className="text-sm text-gray-700 dark:text-gray-300">{previewData.author}</span>
+                            <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 truncate">{previewData.author}</span>
                           </div>
                         )}
                         
@@ -440,39 +441,39 @@ export const VideoSectionForm = ({
                           control={form.control}
                           name="description"
                           render={({ field }) => (
-                            <FormItem className="mt-4">
-                              <FormLabel className="text-gray-700 dark:text-gray-300">Description</FormLabel>
+                            <FormItem className="mt-3 sm:mt-4">
+                              <FormLabel className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Description</FormLabel>
                               <Select
                                 value={field.value}
                                 onValueChange={field.onChange}
                                 disabled={isSubmitting}
                               >
                                 <FormControl>
-                                  <SelectTrigger className="bg-transparent border-gray-200 dark:border-gray-700 h-20">
+                                  <SelectTrigger className="bg-transparent border-gray-200 dark:border-gray-700 h-auto min-h-[60px] sm:min-h-[80px] py-2 sm:py-3 text-xs sm:text-sm">
                                     <SelectValue placeholder="Select or enter a description" />
                                   </SelectTrigger>
                                 </FormControl>
-                                <SelectContent className="max-h-[240px]">
+                                <SelectContent className="max-h-[200px] sm:max-h-[240px]">
                                   {/* Include the current description if it's not in the options */}
                                   {field.value && !descriptionOptions.includes(field.value) && (
-                                    <SelectItem value={field.value}>{field.value}</SelectItem>
+                                    <SelectItem value={field.value} className="text-xs sm:text-sm">{field.value}</SelectItem>
                                   )}
                                   {/* Predefined description options */}
                                   {descriptionOptions.map((option) => (
-                                    <SelectItem key={option} value={option}>
+                                    <SelectItem key={option} value={option} className="text-xs sm:text-sm">
                                       {option}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
-                              <FormMessage />
+                              <FormMessage className="text-xs sm:text-sm" />
                             </FormItem>
                           )}
                         />
                         
-                        <div className="mt-4">
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rate this video&apos;s quality</p>
-                          <div className="flex items-center gap-1">
+                        <div className="mt-3 sm:mt-4">
+                          <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">Rate this video&apos;s quality</p>
+                          <div className="flex items-center gap-0.5 sm:gap-1 flex-wrap">
                             {[1, 2, 3, 4, 5].map((rating) => (
                               <button
                                 key={rating}
@@ -480,11 +481,11 @@ export const VideoSectionForm = ({
                                 onMouseEnter={() => setHoveredRating(rating)}
                                 onMouseLeave={() => setHoveredRating(0)}
                                 onClick={() => setSelectedRating(rating)}
-                                className="focus:outline-none transition-transform hover:scale-110"
+                                className="focus:outline-none transition-transform hover:scale-110 active:scale-95"
                               >
                                 <Star
                                   className={cn(
-                                    "h-6 w-6 transition-colors duration-200",
+                                    "h-5 w-5 sm:h-6 sm:w-6 transition-colors duration-200",
                                     (rating <= (hoveredRating || selectedRating))
                                       ? "text-yellow-400 fill-yellow-400"
                                       : "text-gray-300 dark:text-gray-600"
@@ -492,25 +493,28 @@ export const VideoSectionForm = ({
                                 />
                               </button>
                             ))}
-                            <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <span className="ml-1 sm:ml-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                               {selectedRating > 0 ? `${selectedRating}/5` : "Select rating"}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex justify-end mt-4">
+                        <div className="flex justify-end mt-3 sm:mt-4">
                           <Button
                             type="submit"
                             disabled={!isValid || isSubmitting}
                             className={cn(
                               "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600",
                               "text-white border-0",
-                              "shadow-md hover:shadow-lg transition-all"
+                              "shadow-md hover:shadow-lg transition-all",
+                              "h-9 sm:h-10 px-3 sm:px-4",
+                              "text-xs sm:text-sm",
+                              "w-full sm:w-auto"
                             )}
                           >
                             {isSubmitting ? (
                               <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
                                 Adding...
                               </>
                             ) : (
@@ -523,7 +527,7 @@ export const VideoSectionForm = ({
                   )}
 
                   {!previewData && !isLoadingMetadata && videoUrl && z.string().url().safeParse(videoUrl).success && (
-                    <p className="text-sm text-rose-500 dark:text-rose-400 italic">
+                    <p className="text-xs sm:text-sm text-rose-500 dark:text-rose-400 italic">
                       We couldn&apos;t fetch details for this video. Please check if the URL is correct and accessible.
                     </p>
                   )}

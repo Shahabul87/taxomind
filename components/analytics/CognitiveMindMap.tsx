@@ -281,29 +281,29 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
             boxShadow: isSelected ? '0 0 0 4px rgba(168, 85, 247, 0.4)' : 
                       isHovered ? '0 8px 25px rgba(0,0,0,0.15)' : '0 4px 15px rgba(0,0,0,0.1)'
           }}
-          className={`relative ${isCore ? 'w-24 h-24' : 'w-16 h-16'} rounded-full
-            bg-gradient-to-br ${node.color} shadow-lg border-4 border-white dark:border-slate-800
-            flex items-center justify-center text-white cursor-pointer ${
+          className={`relative ${isCore ? 'w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24' : 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16'} rounded-full
+            bg-gradient-to-br ${node.color} shadow-lg border-2 sm:border-3 md:border-4 border-white dark:border-slate-800
+            flex items-center justify-center text-white cursor-pointer touch-manipulation ${
               isDraggingEnabled && !isCore ? 'cursor-move' : 'cursor-pointer'
             }`}
         >
-          <Icon className={`${isCore ? 'w-8 h-8' : 'w-6 h-6'}`} />
+          <Icon className={`${isCore ? 'w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8' : 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6'}`} />
           
           {/* Expand/Collapse Indicator */}
           {hasChildren && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white dark:bg-slate-800 
-                border-2 border-gray-200 dark:border-slate-600 flex items-center justify-center cursor-pointer"
+              className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white dark:bg-slate-800 
+                border-2 border-gray-200 dark:border-slate-600 flex items-center justify-center cursor-pointer touch-manipulation z-10"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleNodeExpansion(node.id);
               }}
             >
               {isExpanded ? 
-                <ChevronUp className="w-3 h-3 text-slate-600 dark:text-slate-400" /> :
-                <ChevronDown className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                <ChevronUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-600 dark:text-slate-400" /> :
+                <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-600 dark:text-slate-400" />
               }
             </motion.div>
           )}
@@ -313,10 +313,10 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: depth * 0.2 + index * 0.1 + 0.5 }}
-            className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white dark:bg-slate-800 
+            className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-white dark:bg-slate-800 
               border-2 border-gray-200 dark:border-slate-600 flex items-center justify-center"
           >
-            <span className={`text-xs font-bold ${
+            <span className={`text-[10px] sm:text-xs font-bold ${
               node.value >= 80 ? 'text-green-600' :
               node.value >= 60 ? 'text-yellow-600' : 'text-red-600'
             }`}>
@@ -330,12 +330,12 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: depth * 0.2 + index * 0.1 + 0.3 }}
-          className={`absolute top-full mt-2 text-center ${isCore ? 'w-32' : 'w-24'}`}
+          className={`absolute top-full mt-1 sm:mt-2 text-center ${isCore ? 'w-24 sm:w-28 md:w-32' : 'w-20 sm:w-22 md:w-24'}`}
           style={{ left: '50%', transform: 'translateX(-50%)' }}
         >
-          <div className={`${isCore ? 'text-sm' : 'text-xs'} font-semibold 
+          <div className={`${isCore ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-xs'} font-semibold 
             text-slate-800 dark:text-slate-200 bg-white/90 dark:bg-slate-800/90 
-            backdrop-blur-sm rounded px-2 py-1 shadow-sm`}>
+            backdrop-blur-sm rounded px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm break-words leading-tight`}>
             {node.label}
           </div>
         </motion.div>
@@ -347,7 +347,7 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
               initial={{ opacity: 0, scale: 0.8, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 10 }}
-              className="fixed z-50 pointer-events-none"
+              className="fixed z-50 pointer-events-none hidden sm:block"
               style={{
                 left: '50%',
                 top: '50%',
@@ -358,7 +358,7 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
               {/* Tooltip Container with improved visibility */}
               <div className="relative">
                 {/* Main tooltip content */}
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-2xl 
+                <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-2xl 
                   border-2 border-slate-200 dark:border-slate-600 backdrop-blur-md
                   bg-opacity-95 dark:bg-opacity-95">
                   
@@ -368,32 +368,32 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
                       border-slate-200 dark:border-slate-600 transform rotate-45"></div>
                   </div>
                   
-                  <div className="text-sm text-center">
+                  <div className="text-xs sm:text-sm text-center">
                     {/* Node icon */}
                     <div className="flex justify-center mb-2">
-                      <div className={`p-2 rounded-full bg-gradient-to-br ${node.color} text-white`}>
-                        <Icon className="w-4 h-4" />
+                      <div className={`p-1.5 sm:p-2 rounded-full bg-gradient-to-br ${node.color} text-white`}>
+                        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </div>
                     </div>
                     
                     {/* Node title */}
-                    <div className="font-bold text-slate-900 dark:text-white mb-2 text-base">
+                    <div className="font-bold text-slate-900 dark:text-white mb-2 text-sm sm:text-base break-words">
                       {node.label}
                     </div>
                     
                     {/* Node description */}
-                    <div className="text-slate-600 dark:text-slate-300 mb-3 text-xs leading-relaxed">
+                    <div className="text-slate-600 dark:text-slate-300 mb-3 text-xs leading-relaxed break-words">
                       {node.description}
                     </div>
                     
                     {/* Proficiency badge */}
                     <div className="flex justify-center">
-                      <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
+                      <div className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-bold shadow-sm ${
                         node.value >= 80 ? 'bg-emerald-500 text-white' :
                         node.value >= 60 ? 'bg-amber-500 text-white' :
                         'bg-red-500 text-white'
                       }`}>
-                        <Star className="w-3 h-3 mr-1" />
+                        <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />
                         {node.value}% Proficiency
                       </div>
                     </div>
@@ -413,24 +413,24 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5 md:space-y-6">
       {/* Mind Map Container */}
-      <Card className="border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+      <Card className="border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 rounded-xl sm:rounded-2xl">
+        <CardHeader className="px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200 text-base sm:text-lg break-words">
+              <div className="p-1.5 sm:p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex-shrink-0">
+                <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
               </div>
               Interactive Cognitive Mind Map
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               {/* Filter Controls */}
               <select 
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="text-sm border border-slate-200 dark:border-slate-700 rounded px-2 py-1 
-                  bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                className="text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded px-2 sm:px-3 py-1.5 sm:py-2 
+                  bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex-1 sm:flex-none min-h-[36px] sm:min-h-[32px] touch-manipulation"
               >
                 <option value="all">All Nodes</option>
                 <option value="strengths">Strengths</option>
@@ -443,10 +443,10 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
                 variant={isDraggingEnabled ? "default" : "outline"}
                 size="sm"
                 onClick={() => setIsDraggingEnabled(!isDraggingEnabled)}
-                className="gap-1"
+                className="gap-1 min-h-[36px] sm:min-h-[32px] text-xs sm:text-sm px-2 sm:px-3 touch-manipulation"
               >
-                <MousePointer className="w-4 h-4" />
-                {isDraggingEnabled ? 'Lock' : 'Drag'}
+                <MousePointer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">{isDraggingEnabled ? 'Lock' : 'Drag'}</span>
               </Button>
               
               {/* Animation Toggle */}
@@ -454,8 +454,9 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
                 variant={isAnimating ? "default" : "outline"}
                 size="sm"
                 onClick={() => setIsAnimating(!isAnimating)}
+                className="min-h-[36px] sm:min-h-[32px] px-2 sm:px-3 touch-manipulation"
               >
-                {isAnimating ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                {isAnimating ? <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
               </Button>
               
               {/* Zoom Controls */}
@@ -464,42 +465,45 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
                   variant="outline" 
                   size="sm"
                   onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.2))}
+                  className="min-h-[36px] sm:min-h-[32px] px-2 sm:px-3 touch-manipulation"
                 >
-                  <Minus className="w-4 h-4" />
+                  <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setZoomLevel(Math.min(2, zoomLevel + 0.2))}
+                  className="min-h-[36px] sm:min-h-[32px] px-2 sm:px-3 touch-manipulation"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setZoomLevel(1)}
+                  className="min-h-[36px] sm:min-h-[32px] px-2 sm:px-3 touch-manipulation"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </Button>
               </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
           <div 
             ref={constraintsRef}
-            className="relative w-full h-96 overflow-hidden rounded-lg bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-slate-800 dark:via-slate-700 dark:to-slate-600"
+            className="relative w-full h-64 sm:h-80 md:h-96 overflow-hidden rounded-lg bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-slate-800 dark:via-slate-700 dark:to-slate-600 touch-pan-y"
           >
             {renderNode(mindMapData)}
           </div>
-          <div className="mt-4 text-center space-y-2">
-            <div className="text-sm text-slate-600 dark:text-slate-400">
+          <div className="mt-3 sm:mt-4 text-center space-y-2">
+            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed px-2">
               {isDraggingEnabled ? 
-                'Drag nodes to reposition • Click expand/collapse buttons • Hover for details' :
-                'Click nodes for details • Hover for quick info • Enable drag mode to reposition'
+                'Drag nodes to reposition • Tap expand/collapse buttons • Tap for details' :
+                'Tap nodes for details • Enable drag mode to reposition'
               }
             </div>
-            <div className="flex justify-center gap-4 text-xs text-slate-500 dark:text-slate-500">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 text-xs text-slate-500 dark:text-slate-500">
               <span>Filter: {filterCategory === 'all' ? 'All Categories' : filterCategory}</span>
               <span>Zoom: {Math.round(zoomLevel * 100)}%</span>
               <span>Animation: {isAnimating ? 'On' : 'Off'}</span>
@@ -534,18 +538,18 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
               const Icon = node.icon;
               
               return (
-                <Card className="border-purple-200 dark:border-purple-700 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <div className={`p-3 rounded-lg bg-gradient-to-br ${node.color} text-white`}>
-                        <Icon className="w-6 h-6" />
+                <Card className="border-purple-200 dark:border-purple-700 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-xl sm:rounded-2xl">
+                  <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 pb-4 sm:pb-6">
+                    <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                      <div className={`p-2 sm:p-3 rounded-lg bg-gradient-to-br ${node.color} text-white flex-shrink-0`}>
+                        <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                          <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-200 break-words">
                             {node.label}
                           </h3>
-                          <Badge className={`${
+                          <Badge className={`text-xs sm:text-sm w-fit ${
                             node.value >= 80 ? 'bg-green-100 text-green-800' :
                             node.value >= 60 ? 'bg-yellow-100 text-yellow-800' :
                             'bg-red-100 text-red-800'
@@ -553,15 +557,15 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
                             {node.value}% Proficiency
                           </Badge>
                         </div>
-                        <p className="text-slate-600 dark:text-slate-400 mb-4">{node.description}</p>
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-3 sm:mb-4 leading-relaxed break-words">{node.description}</p>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                           <div>
-                            <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2">
+                            <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 text-sm sm:text-base">
                               Performance Level
                             </h4>
-                            <Progress value={node.value} className="mb-2" />
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                            <Progress value={node.value} className="mb-2 h-1.5 sm:h-2" />
+                            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed break-words">
                               {node.value >= 80 ? 'Excellent - Strong performance' :
                                node.value >= 60 ? 'Good - Room for improvement' :
                                'Needs Focus - Priority development area'}
@@ -569,14 +573,14 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
                           </div>
                           
                           <div>
-                            <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2">
+                            <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 text-sm sm:text-base">
                               Recommendations
                             </h4>
-                            <ul className="space-y-1">
+                            <ul className="space-y-1.5">
                               {node.recommendations.map((rec, idx) => (
-                                <li key={idx} className="text-sm text-slate-600 dark:text-slate-400 flex items-start gap-2">
-                                  <ArrowRight className="w-3 h-3 mt-1 text-purple-500 flex-shrink-0" />
-                                  {rec}
+                                <li key={idx} className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 flex items-start gap-2 leading-relaxed break-words">
+                                  <ArrowRight className="w-3 h-3 mt-0.5 sm:mt-1 text-purple-500 flex-shrink-0" />
+                                  <span className="flex-1">{rec}</span>
                                 </li>
                               ))}
                             </ul>
@@ -593,20 +597,20 @@ export function CognitiveMindMap({ cognitiveData }: CognitiveMindMapProps) {
       </AnimatePresence>
 
       {/* Legend */}
-      <Card className="border-slate-200 dark:border-slate-700">
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4 justify-center">
+      <Card className="border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-2xl">
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 pb-4 sm:pb-6">
+          <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-green-500"></div>
-              <span className="text-sm text-slate-600 dark:text-slate-400">80%+ Excellent</span>
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-green-500 flex-shrink-0"></div>
+              <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">80%+ Excellent</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
-              <span className="text-sm text-slate-600 dark:text-slate-400">60-79% Good</span>
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-yellow-500 flex-shrink-0"></div>
+              <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">60-79% Good</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-red-500"></div>
-              <span className="text-sm text-slate-600 dark:text-slate-400">&lt;60% Needs Focus</span>
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-red-500 flex-shrink-0"></div>
+              <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">&lt;60% Needs Focus</span>
             </div>
           </div>
         </CardContent>

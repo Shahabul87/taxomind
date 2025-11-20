@@ -1,5 +1,6 @@
 import * as z from "zod";
-import { UserRole } from "@prisma/client";
+// NOTE: UserRole no longer exists - only AdminAccount has roles (AdminRole enum)
+// import { UserRole } from "@prisma/client";
 
 // export const SettingsSchema = z.object({
 //   name: z.optional(z.string()),

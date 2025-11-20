@@ -85,10 +85,9 @@ async function getEnterpriseData() {
       },
     });
 
-    // Get top instructors
+    // Get top instructors (users with published courses)
     const topInstructors = await db.user.findMany({
       where: {
-        role: 'ADMIN', // Instructors have courses
         courses: {
           some: {
             isPublished: true,

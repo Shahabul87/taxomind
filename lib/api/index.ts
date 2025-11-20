@@ -46,7 +46,11 @@ export {
 } from "./api-responses";
 
 // Re-export commonly used types
-export { UserRole } from "@prisma/client";
+/**
+ * @deprecated Regular users no longer have roles.
+ * Only admins have roles (ADMIN or SUPERADMIN).
+ */
+export { AdminRole } from "@prisma/client";
 export type { Permission } from "../role-management";
 
 /**

@@ -27,7 +27,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserRole } from "@/lib/prisma-types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -70,7 +69,6 @@ interface DashboardData {
     id: string;
     name: string | null;
     email: string;
-    role: UserRole;
     image: string | null;
     createdAt: Date;
     emailVerified: Date | null;
@@ -381,7 +379,6 @@ export function SecureClientAdminDashboard() {
                   <tr className="border-b">
                     <th className="text-left py-3 font-medium">User</th>
                     <th className="text-left py-3 font-medium">Email</th>
-                    <th className="text-left py-3 font-medium">Role</th>
                     <th className="text-left py-3 font-medium">Status</th>
                     <th className="text-left py-3 font-medium">Joined</th>
                   </tr>
@@ -399,15 +396,6 @@ export function SecureClientAdminDashboard() {
                         </div>
                       </td>
                       <td className="py-3 text-muted-foreground">{user.email}</td>
-                      <td className="py-3">
-                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${
-                          user.role === UserRole.ADMIN 
-                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400" 
-                            : "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                        }`}>
-                          {user.role}
-                        </span>
-                      </td>
                       <td className="py-3">
                         {user.emailVerified ? (
                           <CheckCircle className="h-5 w-5 text-green-500" />

@@ -31,24 +31,12 @@ export async function requireRole(requirement: RoleRequirement) {
 }
 
 // Helper function to determine user role
+// NOTE: Users don't have roles anymore - only AdminAccount has roles
+// This is for regular user auth only. Admins use separate admin auth system.
 function getUserRole(user: any): UserRole {
-  // Check if user has role property
-  if (user.role) {
-    switch (user.role.toString().toUpperCase()) {
-      case 'ADMIN':
-        return 'ADMIN';
-      case 'USER':
-      default:
-        return 'USER';
-    }
-  }
-
-  // Legacy users: Check by email domain for admin
-  if (user.email?.includes('@admin.') || user.email?.includes('admin@')) {
-    return 'ADMIN';
-  }
-
-  // Default all users to USER role
+  // All users from currentUser() are regular users (not admins)
+  // Admins use AdminAccount and separate admin auth system
+  // Just return 'USER' for all regular users
   return 'USER';
 }
 

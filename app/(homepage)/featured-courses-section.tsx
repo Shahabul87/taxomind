@@ -152,36 +152,36 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
   return (
     <div className="relative bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-20 pb-12 sm:pt-24 sm:pb-16">
+      <section className="relative overflow-hidden pt-12 pb-8 sm:pt-20 sm:pb-12 md:pt-24 md:pb-16">
         {/* Subtle animated background pattern */}
-        <div className="absolute inset-0 opacity-30" aria-hidden="true">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 dark:bg-blue-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-2xl sm:blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" />
-          <div className="absolute top-40 right-20 w-96 h-96 bg-indigo-200 dark:bg-indigo-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-2xl sm:blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" style={{ animationDelay: '1s' }} />
+        <div className="absolute inset-0 opacity-20 sm:opacity-30" aria-hidden="true">
+          <div className="absolute top-20 left-4 sm:left-10 w-48 h-48 sm:w-72 sm:h-72 bg-blue-200 dark:bg-blue-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-2xl sm:blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" />
+          <div className="absolute top-40 right-4 sm:right-20 w-64 h-64 sm:w-96 sm:h-96 bg-indigo-200 dark:bg-indigo-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-2xl sm:blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" style={{ animationDelay: '1s' }} />
         </div>
 
         <div className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Section Heading */}
           <motion.div
-            className="mb-12 text-center"
+            className="mb-8 sm:mb-10 md:mb-12 text-center"
             variants={fadeInUp}
             initial="hidden"
             animate="visible"
             style={{ willChange: 'transform, opacity' }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-blue-200/50 dark:border-blue-500/30 shadow-sm mb-4">
-              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-blue-200/50 dark:border-blue-500/30 shadow-sm mb-3 sm:mb-4">
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
                 {sortedCourses.length} Courses Available
               </span>
             </div>
 
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.1] tracking-tight text-slate-900 dark:text-white mb-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] sm:leading-[1.15] tracking-tight text-slate-900 dark:text-white mb-3 sm:mb-4 px-2 sm:px-0">
               <span className="block">Featured</span>
               <span className="block bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent">
                 Learning Paths
               </span>
             </h2>
-            <p className="mt-4 text-base sm:text-lg md:text-xl leading-relaxed text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed text-slate-600 dark:text-slate-300 max-w-2xl mx-auto px-2 sm:px-0">
               Discover and explore our curated collection of courses
             </p>
           </motion.div>
@@ -190,16 +190,16 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
       </section>
 
       {/* Main Content Section */}
-      <section ref={sectionRef} className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20 lg:pb-24">
+      <section ref={sectionRef} className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 md:pb-20 lg:pb-24">
         {/* Controls Bar */}
-        <div className="mb-8 space-y-4">
+        <div className="mb-6 sm:mb-8 space-y-3 sm:space-y-4">
           {/* Category Select and Sort Controls */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            {/* Left side controls */}
-            <div className="flex gap-3 items-center flex-wrap">
+          <div className="flex flex-col gap-3 sm:gap-4">
+            {/* Mobile: Stack controls vertically */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center">
               {/* Category Select */}
               <Select value={activeCategory} onValueChange={(value) => setActiveCategory(value as CategoryKey)}>
-                <SelectTrigger className="w-52 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                <SelectTrigger className="w-full sm:w-52 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-10 sm:h-auto">
                   <SelectValue placeholder="Browse Categories" />
                 </SelectTrigger>
                 <SelectContent>
@@ -219,7 +219,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
 
               {/* Sort Dropdown */}
               <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                <SelectTrigger className="w-48 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                <SelectTrigger className="w-full sm:w-48 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-10 sm:h-auto">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -233,7 +233,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
             </div>
 
             {/* Right side - View Mode Toggle */}
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-2 sm:gap-3 items-center justify-end">
               <div className="hidden md:flex items-center border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800">
                 <Button
                   variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
@@ -264,12 +264,12 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
           </div>
 
           {/* Results Info */}
-          <div className="flex items-center gap-3">
-            <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <h3 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
               {sortedCourses.length} {sortedCourses.length === 1 ? 'Course' : 'Courses'}
             </h3>
             {activeCategory !== 'all' && (
-              <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+              <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm">
                 {CATEGORIES.find(c => c.key === activeCategory)?.label}
               </Badge>
             )}
@@ -289,10 +289,10 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                 {sortedCourses.length > 0 ? (
                   <motion.div
                     className={cn(
-                      'grid gap-6',
-                      viewMode === 'grid' && 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+                      'grid gap-4 sm:gap-5 md:gap-6',
+                      viewMode === 'grid' && 'grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
                       viewMode === 'list' && 'grid-cols-1',
-                      viewMode === 'compact' && 'sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                      viewMode === 'compact' && 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
                     )}
                     variants={staggerContainer}
                     initial="hidden"
@@ -319,20 +319,20 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                   </motion.div>
                 ) : (
                   <div className="col-span-full">
-                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-3xl p-12 text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center">
-                        <BookOpen className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 text-center">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center">
+                        <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-slate-400 dark:text-slate-500" />
                       </div>
-                      <p className="text-lg font-medium text-slate-600 dark:text-slate-400">
+                      <p className="text-base sm:text-lg font-medium text-slate-600 dark:text-slate-400">
                         No courses found matching your criteria
                       </p>
-                      <p className="text-sm text-slate-500 dark:text-slate-500 mt-2">
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-500 mt-2">
                         Try adjusting your category or sort filters
                       </p>
                       {activeCategory !== 'all' && (
                         <Button
                           variant="outline"
-                          className="mt-6"
+                          className="mt-4 sm:mt-6 text-sm"
                           onClick={clearFilters}
                         >
                           Clear Filters
@@ -345,7 +345,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                 {/* View All CTA */}
                 {sortedCourses.length > 12 && (
                   <motion.div
-                    className="mt-8 flex justify-center"
+                    className="mt-6 sm:mt-8 flex justify-center px-4"
                     variants={fadeInUp}
                     initial="hidden"
                     animate={isInView ? 'visible' : 'hidden'}
@@ -353,10 +353,10 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                   >
                     <Link
                       href="/courses"
-                      className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold"
+                      className="group inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-sm sm:text-base"
                     >
                       View All {sortedCourses.length} Courses
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </motion.div>
                 )}

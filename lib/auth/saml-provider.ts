@@ -167,11 +167,12 @@ export class SAMLProvider {
 
     if (!user) {
       // Create new user from SAML profile
+      // Note: Users don't have roles - only AdminAccount has roles
+      // SAML users are created as regular users by default
       user = await db.user.create({
         data: {
           email: profile.email,
           name: profile.name || `${profile.firstName} ${profile.lastName}`.trim(),
-          role: this.mapRole(profile.role),
           emailVerified: new Date(), // SAML users are pre-verified
         },
       });

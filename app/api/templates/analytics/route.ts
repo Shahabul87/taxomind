@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
@@ -10,6 +9,12 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
+
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: user.id },
+    });
+    const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
 
     const { searchParams } = new URL(request.url);
     const templateId = searchParams.get("templateId");
@@ -39,7 +44,7 @@ export async function GET(request: NextRequest) {
       where.id = templateId;
     } else if (authorId) {
       where.authorId = authorId;
-    } else if (user.role !== UserRole.ADMIN) {
+    } else if (!isAdmin) {
       where.authorId = user.id;
     }
 
@@ -96,7 +101,7 @@ export async function GET(request: NextRequest) {
 
     // Get most active authors (if admin)
     let topAuthors: any[] = [];
-    if (user.role === UserRole.ADMIN) {
+    if (isAdmin) {
       topAuthors = []; // Simplified - groupBy operation too complex for current schema
 
       // Get author details

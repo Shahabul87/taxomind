@@ -92,27 +92,35 @@ export async function GET(req: NextRequest) {
       case 'permissions':
         // Test role-based permissions
         const currentSession = await auth();
-        
+
         if (currentSession?.user) {
           const user = await db.user.findUnique({
             where: { id: currentSession.user.id },
             select: {
               id: true,
               email: true,
-              role: true,
               createdAt: true,
             },
           });
-          
+
+          // Check if user is admin - admins are now in AdminAccount table
+          const adminAccount = await db.adminAccount.findUnique({
+            where: { id: currentSession.user.id },
+          });
+          const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
+
           results.userPermissions = {
             isAuthenticated: true,
-            isAdmin: user?.role === 'ADMIN',
-            isUser: user?.role === 'USER',
+            isAdmin,
+            isUser: !isAdmin,
             canAccessDashboard: true,
-            canAccessAdmin: user?.role === 'ADMIN',
-            canCreateCourse: user?.role === 'ADMIN' || user?.role === 'USER',
+            canAccessAdmin: isAdmin,
+            canCreateCourse: true, // All authenticated users can create courses
           };
-          results.userData = user;
+          results.userData = {
+            ...user,
+            adminRole: adminAccount?.role || null,
+          };
         } else {
           results.userPermissions = {
             isAuthenticated: false,

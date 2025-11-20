@@ -2,11 +2,12 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { UserRole } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
+import { AdminSession } from "@/types/admin-session";
 
 export const AdminGuard = ({ children }: { children: React.ReactNode }) => {
   const { data: session, status } = useSession();
-  
+
   if (status === "loading") {
     return null;
   }
@@ -16,8 +17,11 @@ export const AdminGuard = ({ children }: { children: React.ReactNode }) => {
     redirect("/admin/auth/login");
   }
 
+  // Cast to AdminSession since this guard is for admin routes
+  const adminSession = session as AdminSession;
+
   // Then check if user has admin role
-  if (session.user.role !== UserRole.ADMIN) {
+  if (adminSession.user.role !== AdminRole.ADMIN && adminSession.user.role !== AdminRole.SUPERADMIN) {
     redirect("/unauthorized");
   }
 

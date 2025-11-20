@@ -16,6 +16,7 @@
 
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
+import { AdminRole } from "@prisma/client";
 import type { Adapter, AdapterUser, AdapterAccount, AdapterSession, VerificationToken } from "next-auth/adapters";
 
 /**
@@ -28,124 +29,72 @@ export function AdminPrismaAdapter(): Adapter {
   return {
     ...baseAdapter,
 
-    // Override createUser to ensure ADMIN role
+    // Override createUser to create AdminAccount
     async createUser(user: Omit<AdapterUser, "id">): Promise<AdapterUser> {
-      console.log('[admin-adapter] Creating admin user:', user.email);
-
-      const adminUser = await db.user.create({
-        data: {
-          ...user,
-          role: 'ADMIN', // ENFORCE ADMIN role
-        },
-      });
-
-      console.log('[admin-adapter] Admin user created:', adminUser.id);
-      return adminUser as AdapterUser;
-    },
-
-    // Override getUser to verify ADMIN role
-    async getUser(id: string): Promise<AdapterUser | null> {
-      console.log('[admin-adapter] Getting admin user:', id);
-
-      const user = await db.user.findUnique({
-        where: { id },
-      });
-
-      if (!user || user.role !== 'ADMIN') {
-        console.log('[admin-adapter] User not found or not admin');
-        return null;
-      }
-
-      return user as AdapterUser;
-    },
-
-    // Override getUserByEmail to verify ADMIN role
-    async getUserByEmail(email: string): Promise<AdapterUser | null> {
-      console.log('[admin-adapter] Getting admin by email:', email);
-
-      const user = await db.user.findUnique({
-        where: { email },
-      });
-
-      if (!user || user.role !== 'ADMIN') {
-        console.log('[admin-adapter] User not found or not admin');
-        return null;
-      }
-
-      return user as AdapterUser;
-    },
-
-    // Override getUserByAccount to use AdminAccount table
-    async getUserByAccount(providerAccountId: Pick<AdapterAccount, "provider" | "providerAccountId">): Promise<AdapterUser | null> {
-      console.log('[admin-adapter] Getting admin by account:', providerAccountId);
-
-      const adminAccount = await db.adminAccount.findUnique({
-        where: {
-          provider_providerAccountId: {
-            provider: providerAccountId.provider,
-            providerAccountId: providerAccountId.providerAccountId,
-          },
-        },
-        include: {
-          admin: true,
-        },
-      });
-
-      if (!adminAccount || !adminAccount.admin || adminAccount.admin.role !== 'ADMIN') {
-        console.log('[admin-adapter] Admin account not found or not admin');
-        return null;
-      }
-
-      return adminAccount.admin as AdapterUser;
-    },
-
-    // Override linkAccount to use AdminAccount table
-    async linkAccount(account: AdapterAccount): Promise<AdapterAccount | null | undefined> {
-      console.log('[admin-adapter] Linking admin account:', account.provider);
+      console.log('[admin-adapter] Creating admin account:', user.email);
 
       const adminAccount = await db.adminAccount.create({
         data: {
-          adminId: account.userId,
-          type: account.type,
-          provider: account.provider,
-          providerAccountId: account.providerAccountId,
-          refresh_token: account.refresh_token,
-          access_token: account.access_token,
-          expires_at: account.expires_at,
-          token_type: account.token_type,
-          scope: account.scope,
-          id_token: account.id_token,
-          session_state: typeof account.session_state === 'string' ? account.session_state : null,
+          email: user.email || '',
+          name: user.name,
+          emailVerified: user.emailVerified,
+          image: user.image,
+          password: '', // Will be set during registration
         },
       });
 
-      console.log('[admin-adapter] Admin account linked:', adminAccount.id);
-
-      return {
-        ...adminAccount,
-        userId: adminAccount.adminId,
-      } as unknown as AdapterAccount;
+      console.log('[admin-adapter] Admin account created:', adminAccount.id);
+      return adminAccount as unknown as AdapterUser;
     },
 
-    // Override unlinkAccount to use AdminAccount table
-    async unlinkAccount(providerAccountId: Pick<AdapterAccount, "provider" | "providerAccountId">): Promise<AdapterAccount | undefined> {
-      console.log('[admin-adapter] Unlinking admin account:', providerAccountId);
+    // Override getUser to get AdminAccount
+    async getUser(id: string): Promise<AdapterUser | null> {
+      console.log('[admin-adapter] Getting admin account:', id);
 
-      const adminAccount = await db.adminAccount.delete({
-        where: {
-          provider_providerAccountId: {
-            provider: providerAccountId.provider,
-            providerAccountId: providerAccountId.providerAccountId,
-          },
-        },
+      const adminAccount = await db.adminAccount.findUnique({
+        where: { id },
       });
 
-      console.log('[admin-adapter] Admin account unlinked:', adminAccount.id);
+      if (!adminAccount) {
+        console.log('[admin-adapter] Admin account not found');
+        return null;
+      }
 
-      return {
-        ...adminAccount,
-        userId: adminAccount.adminId,
-      } as unknown as AdapterAccount;
+      return adminAccount as unknown as AdapterUser;
+    },
+
+    // Override getUserByEmail to get AdminAccount
+    async getUserByEmail(email: string): Promise<AdapterUser | null> {
+      console.log('[admin-adapter] Getting admin by email:', email);
+
+      const adminAccount = await db.adminAccount.findUnique({
+        where: { email },
+      });
+
+      if (!adminAccount) {
+        console.log('[admin-adapter] Admin account not found');
+        return null;
+      }
+
+      return adminAccount as unknown as AdapterUser;
+    },
+
+    // OAuth NOT supported for admins (password-only authentication)
+    async getUserByAccount(providerAccountId: Pick<AdapterAccount, "provider" | "providerAccountId">): Promise<AdapterUser | null> {
+      console.log('[admin-adapter] OAuth not supported for admins');
+      return null;
+    },
+
+    // OAuth NOT supported for admins (password-only authentication)
+    async linkAccount(account: AdapterAccount): Promise<AdapterAccount | null | undefined> {
+      console.log('[admin-adapter] OAuth not supported for admins');
+      return null;
+    },
+
+    // OAuth NOT supported for admins (password-only authentication)
+    async unlinkAccount(providerAccountId: Pick<AdapterAccount, "provider" | "providerAccountId">): Promise<AdapterAccount | undefined> {
+      console.log('[admin-adapter] OAuth not supported for admins');
+      return undefined;
     },
 
     // Override createSession to use AdminActiveSession table
@@ -191,8 +140,8 @@ export function AdminPrismaAdapter(): Adapter {
         return null;
       }
 
-      // Verify admin role
-      if (adminSession.admin.role !== 'ADMIN') {
+      // Verify admin role (ADMIN or SUPERADMIN)
+      if (adminSession.admin.role !== AdminRole.ADMIN && adminSession.admin.role !== AdminRole.SUPERADMIN) {
         console.error('[admin-adapter] SECURITY ALERT - Non-admin in admin session');
         return null;
       }

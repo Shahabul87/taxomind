@@ -71,6 +71,7 @@ export const getSimplePostsForBlog = async (): Promise<SimplePost[]> => {
     
   } catch (error: any) {
     logger.error("💥 [SIMPLE_POSTS] Error fetching posts:", error);
-    return [];
+    // Throw error for Next.js error boundary to catch
+    throw new Error("Unable to load blog posts. Please try again later.");
   }
 };

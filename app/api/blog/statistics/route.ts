@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
 import { logger } from '@/lib/logger';
+import { BlogStatisticsSchema } from '@/lib/validations/blog';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -158,20 +159,23 @@ export async function GET(req: Request): Promise<NextResponse<BlogStatisticsResp
       popularCategories,
     };
 
+    // Validate statistics before returning/caching
+    const validatedStatistics = BlogStatisticsSchema.parse(statistics);
+
     // Cache the results for 10 minutes
-    await redisCache.set(cacheKey, statistics, {
+    await redisCache.set(cacheKey, validatedStatistics, {
       prefix: CACHE_PREFIXES.COURSE,
       ttl: CACHE_TTL.MEDIUM, // 10 minutes
       tags: ['statistics', 'blog', 'posts'],
     });
 
     logger.info('[BLOG_STATISTICS] Successfully calculated and cached blog statistics', {
-      stats: statistics,
+      stats: validatedStatistics,
     });
 
     return NextResponse.json({
       success: true,
-      data: statistics,
+      data: validatedStatistics,
       metadata: {
         timestamp: new Date().toISOString(),
         cached: false,

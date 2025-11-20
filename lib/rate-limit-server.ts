@@ -12,6 +12,7 @@ export type AuthEndpoint =
   | 'admin-login'
   | 'register'
   | 'reset'
+  | 'admin-reset'
   | 'verify'
   | 'twoFactor'
   | 'mfa-recovery'

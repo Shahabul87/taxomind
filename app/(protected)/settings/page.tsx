@@ -20,7 +20,6 @@ const SettingsPage = async () => {
       email: true,
       image: true,
       phone: true,
-      role: true,
       isTwoFactorEnabled: true,
       totpEnabled: true,
       totpVerified: true,
@@ -51,7 +50,6 @@ const SettingsPage = async () => {
     email: dbUser.email,
     image: dbUser.image,
     phone: dbUser.phone,
-    role: dbUser.role,
     isOAuth: user.isOAuth || false,
     isTwoFactorEnabled: dbUser.isTwoFactorEnabled,
     totpEnabled: dbUser.totpEnabled,
@@ -77,7 +75,6 @@ const SettingsPage = async () => {
     name: user.name || null,
     email: user.email || null,
     image: user.image || null,
-    role: dbUser.role,
     isTeacher: dbUser.isTeacher || false,
     isAffiliate: dbUser.isAffiliate || false,
   };

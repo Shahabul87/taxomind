@@ -232,9 +232,9 @@ export const UnifiedMathView = ({
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="py-12 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Loading math equations...</p>
+        <CardContent className="py-8 sm:py-12 flex flex-col items-center justify-center gap-2 sm:gap-3">
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
+          <p className="text-xs sm:text-sm text-muted-foreground">Loading math equations...</p>
         </CardContent>
       </Card>
     );
@@ -243,8 +243,8 @@ export const UnifiedMathView = ({
   if (equations.length === 0) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          No math equations yet. Add your first equation to get started.
+        <CardContent className="py-6 sm:py-8 text-center text-muted-foreground px-3 sm:px-6">
+          <p className="text-xs sm:text-sm">No math equations yet. Add your first equation to get started.</p>
         </CardContent>
       </Card>
     );
@@ -252,23 +252,23 @@ export const UnifiedMathView = ({
 
   return (
     <Card className="relative overflow-hidden">
-      <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900 dark:to-violet-900">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CardTitle className="text-xl font-bold">
+      <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900 dark:to-violet-900 p-3 sm:p-6">
+        <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <CardTitle className="text-base sm:text-lg md:text-xl font-bold">
               Math Equations
             </CardTitle>
-            <Badge variant="outline" className="gap-1">
+            <Badge variant="outline" className="gap-1 text-xs">
               {equations.length} {equations.length === 1 ? 'Equation' : 'Equations'}
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full xs:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowExplanations(!showExplanations)}
-              className="gap-2"
+              className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm w-full xs:w-auto"
             >
               {showExplanations ? 'Hide Buttons' : 'Show Buttons'}
             </Button>
@@ -287,35 +287,36 @@ export const UnifiedMathView = ({
                 className="relative border-b border-gray-200 dark:border-gray-800 last:border-b-0"
               >
                 {/* Equation Header */}
-                <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20 border-b border-purple-200 dark:border-purple-800">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-purple-900 dark:text-purple-100">
+                <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-3 px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20 border-b border-purple-200 dark:border-purple-800">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                    <span className="text-xs sm:text-sm font-semibold text-purple-900 dark:text-purple-100 break-words">
                       {equation.title}
                     </span>
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-[10px] sm:text-xs flex-shrink-0">
                       {isVisualMode ? '📷 Visual' : '📐 LaTeX'}
                     </Badge>
                     {!equation.explanation && (
-                      <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400">
+                      <Badge variant="outline" className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 flex-shrink-0">
                         No explanation yet
                       </Badge>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 w-full xs:w-auto">
                     {equation.explanation && showExplanations && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={(e) => handleShowExplanation(equation.id, e)}
-                        className={`h-7 px-2 text-xs font-medium ${
+                        className={`h-7 sm:h-8 px-1.5 sm:px-2 text-[10px] sm:text-xs font-medium flex-1 xs:flex-none ${
                           openTooltips.has(equation.id)
                             ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                             : 'bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-700 dark:hover:text-white'
                         }`}
                       >
-                        <BookOpen className="h-3 w-3 mr-1" />
-                        {openTooltips.has(equation.id) ? 'Shown' : 'Show Explanation'}
+                        <BookOpen className="h-2.5 w-2.5 sm:h-3 sm:w-3 sm:mr-1" />
+                        <span className="hidden xs:inline">{openTooltips.has(equation.id) ? 'Shown' : 'Show Explanation'}</span>
+                        <span className="xs:hidden">{openTooltips.has(equation.id) ? 'Shown' : 'Explain'}</span>
                       </Button>
                     )}
                     {!isVisualMode && (
@@ -323,7 +324,7 @@ export const UnifiedMathView = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => handleCopyEquation(equation.id)}
-                        className={`h-7 px-2 text-xs font-medium ${
+                        className={`h-7 sm:h-8 px-1.5 sm:px-2 text-[10px] sm:text-xs font-medium ${
                           copiedEquationId === equation.id
                             ? 'bg-green-600 text-white'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-600 hover:text-white dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white'
@@ -333,8 +334,8 @@ export const UnifiedMathView = ({
                           <>✓ Copied</>
                         ) : (
                           <>
-                            <Copy className="h-3 w-3 mr-1" />
-                            Copy
+                            <Copy className="h-2.5 w-2.5 sm:h-3 sm:w-3 sm:mr-1" />
+                            <span className="hidden xs:inline">Copy</span>
                           </>
                         )}
                       </Button>
@@ -343,27 +344,28 @@ export const UnifiedMathView = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEdit(equation)}
-                      className="h-7 px-2 text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-600 hover:text-white dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-700 dark:hover:text-white"
+                      className="h-7 sm:h-8 px-1.5 sm:px-2 text-[10px] sm:text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-600 hover:text-white dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-700 dark:hover:text-white"
                     >
-                      <Pencil className="h-3 w-3 mr-1" />
-                      Edit
+                      <Pencil className="h-2.5 w-2.5 sm:h-3 sm:w-3 sm:mr-1" />
+                      <span className="hidden xs:inline">Edit</span>
                     </Button>
                     <ConfirmModal onConfirm={() => handleDelete(equation.id)}>
                       <Button
                         variant="ghost"
                         size="sm"
                         disabled={isDeletingId === equation.id}
-                        className="h-7 px-2 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-900/40 dark:text-red-200 dark:hover:bg-red-700 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="h-7 sm:h-8 px-1.5 sm:px-2 text-[10px] sm:text-xs font-medium bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-900/40 dark:text-red-200 dark:hover:bg-red-700 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        {isDeletingId === equation.id ? 'Deleting...' : 'Delete'}
+                        <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 sm:mr-1" />
+                        <span className="hidden xs:inline">{isDeletingId === equation.id ? 'Deleting...' : 'Delete'}</span>
+                        <span className="xs:hidden">{isDeletingId === equation.id ? '...' : 'Del'}</span>
                       </Button>
                     </ConfirmModal>
                   </div>
                 </div>
 
                 {/* Equation Preview */}
-                <div className="relative group p-4">
+                <div className="relative group p-2 sm:p-4">
                   {isVisualMode ? (
                     equation.imageUrl && (
                       <div className="flex justify-center" key={`image-${equation.id}-${equation.imageUrl}`}>
@@ -385,7 +387,7 @@ export const UnifiedMathView = ({
                   ) : (
                     equation.latexEquation && (
                       <div className="flex justify-center" key={`latex-${equation.id}-${equation.latexEquation}`}>
-                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 p-6 rounded-lg w-fit max-w-full overflow-x-auto">
+                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 p-3 sm:p-4 md:p-6 rounded-lg w-fit max-w-full overflow-x-auto">
                           <KaTeXRenderer
                             math={cleanLatex(equation.latexEquation)}
                             displayMode={true}

@@ -3,7 +3,9 @@ import { DashboardStats } from "./_components/DashboardStats";
 import { RecentActivity } from "./_components/RecentActivity";
 import { QuickActions } from "./_components/QuickActions";
 import { SystemStatus } from "./_components/SystemStatus";
+import { CreateAdminSection } from "./_components/CreateAdminSection";
 import { db } from "@/lib/db";
+import { adminAuth } from "@/auth.admin";
 import type { DashboardStats as StatsType } from "@/app/api/admin/dashboard/stats/route";
 import type { ActivityItem } from "@/app/api/admin/dashboard/activity/route";
 
@@ -257,6 +259,15 @@ async function getRecentActivity(): Promise<ActivityItem[]> {
 }
 
 export default async function AdminPage() {
+  // Get current admin session
+  const session = await adminAuth();
+  const currentAdmin = session?.user ? await db.adminAccount.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  }) : null;
+
+  const isSuperAdmin = currentAdmin?.role === "SUPERADMIN";
+
   // Fetch data in parallel for better performance
   const [stats, activities] = await Promise.all([
     getDashboardStats(),
@@ -265,15 +276,22 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-      <div className="container mx-auto px-4 py-8 space-y-8">
+      <div className="container mx-auto px-2 sm:px-4 md:px-6 py-3 sm:py-6 md:py-8 space-y-3 sm:space-y-6 md:space-y-8">
         {/* Header */}
         <DashboardHeader />
 
         {/* Stats Grid */}
         <DashboardStats {...stats} />
 
+        {/* Create Admin Section (SUPERADMIN only) */}
+        {isSuperAdmin && (
+          <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
+            <CreateAdminSection isSuperAdmin={isSuperAdmin} />
+          </div>
+        )}
+
         {/* Main Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
           {/* Recent Activity Card */}
           <RecentActivity activities={activities} />
 

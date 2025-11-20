@@ -85,16 +85,16 @@ export function DashboardHeader() {
 
   return (
     <motion.div
-      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+      className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+      <div className="flex-1 min-w-0">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
           Admin Dashboard
         </h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
           Welcome back, Admin! Here&apos;s your platform overview.
         </p>
       </div>
@@ -105,18 +105,20 @@ export function DashboardHeader() {
             variant="outline"
             size="default"
             className={cn(
-              "relative bg-white dark:bg-slate-800 backdrop-blur-sm",
+              "relative bg-white dark:bg-slate-800 backdrop-blur-sm shrink-0",
               "border-slate-300 dark:border-slate-600",
               "text-slate-700 dark:text-slate-300",
               "hover:bg-blue-500 hover:text-white",
               "dark:hover:bg-blue-600 dark:hover:text-white",
               "hover:border-blue-500 dark:hover:border-blue-600",
               "hover:shadow-lg hover:scale-105",
-              "transition-all duration-300 shadow-sm"
+              "transition-all duration-300 shadow-sm",
+              "w-full sm:w-auto min-h-[44px] sm:min-h-0"
             )}
           >
-            <Bell className="mr-2 h-4 w-4" />
-            <span>Notifications</span>
+            <Bell className="mr-2 h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">Notifications</span>
+            <span className="sm:hidden">Alerts</span>
             {unreadCount > 0 && (
               <motion.span
                 initial={{ scale: 0 }}
@@ -130,7 +132,7 @@ export function DashboardHeader() {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="w-80 max-h-96 overflow-y-auto bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-slate-200 dark:border-slate-700"
+          className="w-[calc(100vw-1rem)] sm:w-80 max-h-[70vh] sm:max-h-96 overflow-y-auto bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-slate-200 dark:border-slate-700"
         >
           <DropdownMenuLabel className="flex items-center justify-between">
             <span>Notifications</span>
@@ -161,8 +163,9 @@ export function DashboardHeader() {
                 key={notification.id}
                 onClick={() => markAsRead(notification.id)}
                 className={cn(
-                  "flex flex-col items-start gap-1 p-3 cursor-pointer",
-                  "hover:bg-slate-50 dark:hover:bg-slate-700/50",
+                  "group flex flex-col items-start gap-1 p-3 cursor-pointer",
+                  "hover:bg-slate-200/60 dark:hover:bg-slate-600/50",
+                  "transition-colors duration-200",
                   !notification.read && "bg-blue-50/50 dark:bg-blue-950/20"
                 )}
               >
@@ -173,16 +176,17 @@ export function DashboardHeader() {
                         <span className="h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400 flex-shrink-0" />
                       )}
                       <p className={cn(
-                        "text-sm font-medium truncate",
-                        getNotificationColor(notification.type)
+                        "text-sm font-medium truncate transition-colors duration-200",
+                        getNotificationColor(notification.type),
+                        "group-hover:text-slate-900 dark:group-hover:text-white"
                       )}>
                         {notification.title}
                       </p>
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 mt-1 transition-colors duration-200">
                       {notification.message}
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400 mt-1 transition-colors duration-200">
                       {notification.time}
                     </p>
                   </div>

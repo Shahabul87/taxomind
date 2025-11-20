@@ -29,11 +29,9 @@ export const getAuthPageStats = async (): Promise<AuthPageStats> => {
           // Fetch all stats in parallel for better performance
           const [totalLearners, totalCourses, reviewStats] = await Promise.all([
             // Count total users (learners)
-            db.user.count({
-              where: {
-                role: "USER",
-              },
-            }),
+            // NOTE: Users don't have roles - only AdminAccount has roles
+            // All users in the User table are considered learners
+            db.user.count(),
 
             // Count published courses
             db.course.count({

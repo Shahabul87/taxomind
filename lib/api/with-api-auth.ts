@@ -1,5 +1,11 @@
+/**
+ * API authentication helper for all authenticated routes.
+ * Role is optional - only admin routes require AdminRole.
+ * Regular users authenticate with userId only.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-import { UserRole } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
 import { currentUser, currentRole } from "../auth";
 import { hasPermission, Permission } from "../role-management";
 import { rateLimit, getClientIdentifier, getRateLimitHeaders } from "../rate-limit";
@@ -8,13 +14,14 @@ import { ApiError, ApiResponse, createErrorResponse, createSuccessResponse } fro
 
 /**
  * Enhanced API authentication context with user information and request details
+ * Role is optional since regular users don't have roles (only admins do)
  */
 export interface APIAuthContext {
   user: {
     id: string;
     name: string | null;
     email: string | null;
-    role: UserRole;
+    role?: AdminRole | null;
     image: string | null;
     isOAuth: boolean;
     isTwoFactorEnabled: boolean;
@@ -27,18 +34,19 @@ export interface APIAuthContext {
     timestamp: Date;
   };
   permissions: {
-    hasRole: (role: UserRole) => boolean;
+    hasRole: (role: AdminRole) => boolean;
     hasPermission: (permission: Permission) => Promise<boolean>;
-    canAccess: (resource: { userId?: string; roles?: UserRole[]; permissions?: Permission[] }) => Promise<boolean>;
+    canAccess: (resource: { userId?: string; roles?: AdminRole[]; permissions?: Permission[] }) => Promise<boolean>;
   };
 }
 
 /**
  * Configuration options for API authentication
+ * Use 'roles' option only for admin-specific routes
  */
 export interface APIAuthOptions {
-  /** Required user roles (if any) */
-  roles?: UserRole | UserRole[];
+  /** Required admin roles (if any) */
+  roles?: AdminRole | AdminRole[];
   /** Required permissions (if any) */
   permissions?: Permission | Permission[];
   /** Rate limiting configuration */
@@ -79,7 +87,7 @@ export type PublicAPIHandler = (
 interface AuditLogEntry {
   timestamp: Date;
   userId: string | null;
-  userRole: UserRole | null;
+  userRole: AdminRole | null;
   method: string;
   endpoint: string;
   ip: string;
@@ -90,19 +98,32 @@ interface AuditLogEntry {
 }
 
 /**
+ * User data structure from currentUser()
+ */
+interface AuthUser {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  role?: AdminRole | null;
+  image?: string | null;
+  isOAuth?: boolean;
+  isTwoFactorEnabled?: boolean;
+}
+
+/**
  * Create API authentication context from request and user data
  */
-async function createAuthContext(request: NextRequest, user: any): Promise<APIAuthContext> {
+async function createAuthContext(request: NextRequest, user: AuthUser): Promise<APIAuthContext> {
   const ip = getClientIdentifier(request);
   const userAgent = request.headers.get("user-agent");
 
   return {
     user: {
       id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      image: user.image,
+      name: user.name ?? null,
+      email: user.email ?? null,
+      role: user.role || null, // Optional - null for regular users
+      image: user.image ?? null,
       isOAuth: user.isOAuth || false,
       isTwoFactorEnabled: user.isTwoFactorEnabled || false,
     },
@@ -114,20 +135,20 @@ async function createAuthContext(request: NextRequest, user: any): Promise<APIAu
       timestamp: new Date(),
     },
     permissions: {
-      hasRole: (role: UserRole) => user.role === role,
+      hasRole: (role: AdminRole) => user.role === role,
       hasPermission: async (permission: Permission) => {
         return await hasPermission(permission);
       },
-      canAccess: async (resource: { 
-        userId?: string; 
-        roles?: UserRole[]; 
-        permissions?: Permission[] 
+      canAccess: async (resource: {
+        userId?: string;
+        roles?: AdminRole[];
+        permissions?: Permission[]
       }) => {
-        // Check role-based access
-        if (resource.roles && !resource.roles.includes(user.role)) {
+        // Check role-based access (only if user has a role - i.e., is admin)
+        if (resource.roles && user.role && !resource.roles.includes(user.role)) {
           return false;
         }
-        
+
         // Check permission-based access
         if (resource.permissions) {
           for (const permission of resource.permissions) {
@@ -135,12 +156,13 @@ async function createAuthContext(request: NextRequest, user: any): Promise<APIAu
             if (!hasAccess) return false;
           }
         }
-        
+
         // Check ownership (user can access their own resources)
-        if (resource.userId && resource.userId !== user.id && user.role !== UserRole.ADMIN) {
+        // Admins can access any resource
+        if (resource.userId && resource.userId !== user.id && user.role !== AdminRole.ADMIN) {
           return false;
         }
-        
+
         return true;
       },
     },
@@ -225,13 +247,12 @@ export function withAPIAuth(
         return await publicHandler(request, params);
       }
 
-      // Get current user and role
+      // Get current user (role is optional - only for admins)
       const user = await currentUser();
-      const role = await currentRole();
 
-      if (!user || !role) {
+      if (!user) {
         const error = ApiError.unauthorized("Authentication required");
-        
+
         if (options.auditLog) {
           await logAuditEntry({
             timestamp: new Date(),
@@ -250,7 +271,10 @@ export function withAPIAuth(
         return createErrorResponse(error);
       }
 
-      // Create authentication context
+      // Get role (only for admin routes - will be null for regular users)
+      const role = await currentRole();
+
+      // Create authentication context (role is optional)
       context = await createAuthContext(request, { ...user, role });
 
       // Apply rate limiting (before authentication checks)
@@ -264,7 +288,7 @@ export function withAPIAuth(
           await logAuditEntry({
             timestamp: new Date(),
             userId: context.user.id,
-            userRole: context.user.role,
+            userRole: context.user.role ?? null,
             method: request.method,
             endpoint: new URL(request.url).pathname,
             ip: getClientIdentifier(request),
@@ -278,19 +302,45 @@ export function withAPIAuth(
         return createErrorResponse(error, rateLimitHeaders);
       }
 
-      // Check role requirements
+      // Check role requirements (only for admin routes)
       if (options.roles) {
         const allowedRoles = Array.isArray(options.roles) ? options.roles : [options.roles];
-        if (!allowedRoles.includes(context.user.role)) {
+
+        // If role is required but user doesn't have one, deny access
+        if (!context.user.role) {
           const error = ApiError.forbidden(
-            `Access denied. Required role: ${allowedRoles.join(" or ")}`
+            `Access denied. Admin role required.`
           );
-          
+
           if (options.auditLog) {
             await logAuditEntry({
               timestamp: new Date(),
               userId: context.user.id,
-              userRole: context.user.role,
+              userRole: context.user.role ?? null,
+              method: request.method,
+              endpoint: new URL(request.url).pathname,
+              ip: getClientIdentifier(request),
+              userAgent: request.headers.get("user-agent"),
+              success: false,
+              error: `No admin role found`,
+              responseTime: Date.now() - startTime,
+            });
+          }
+
+          return createErrorResponse(error, rateLimitHeaders);
+        }
+
+        // Check if user has the required role
+        if (!allowedRoles.includes(context.user.role)) {
+          const error = ApiError.forbidden(
+            `Access denied. Required role: ${allowedRoles.join(" or ")}`
+          );
+
+          if (options.auditLog) {
+            await logAuditEntry({
+              timestamp: new Date(),
+              userId: context.user.id,
+              userRole: context.user.role ?? null,
               method: request.method,
               endpoint: new URL(request.url).pathname,
               ip: getClientIdentifier(request),
@@ -322,7 +372,7 @@ export function withAPIAuth(
               await logAuditEntry({
                 timestamp: new Date(),
                 userId: context.user.id,
-                userRole: context.user.role,
+                userRole: context.user.role ?? null,
                 method: request.method,
                 endpoint: new URL(request.url).pathname,
                 ip: getClientIdentifier(request),
@@ -358,7 +408,7 @@ export function withAPIAuth(
         await logAuditEntry({
           timestamp: new Date(),
           userId: context.user.id,
-          userRole: context.user.role,
+          userRole: context.user.role ?? null,
           method: request.method,
           endpoint: new URL(request.url).pathname,
           ip: getClientIdentifier(request),
@@ -370,21 +420,22 @@ export function withAPIAuth(
 
       return response;
 
-    } catch (error: any) {
-      logger.error("API authentication error", error);
+    } catch (error) {
+      const apiError = error as { message?: string };
+      logger.error("API authentication error", apiError);
 
       // Log failed request
       if (options.auditLog && context) {
         await logAuditEntry({
           timestamp: new Date(),
           userId: context.user.id,
-          userRole: context.user.role,
+          userRole: context.user.role ?? null,
           method: request.method,
           endpoint: new URL(request.url).pathname,
           ip: getClientIdentifier(request),
           userAgent: request.headers.get("user-agent"),
           success: false,
-          error: error.message || "Unknown error",
+          error: error instanceof Error ? error.message : "Unknown error",
           responseTime: Date.now() - startTime,
         });
       }
@@ -395,16 +446,16 @@ export function withAPIAuth(
       }
 
       // Handle authorization errors
-      if (error.message?.includes("Unauthorized") || error.message?.includes("Authentication")) {
+      if (apiError.message?.includes("Unauthorized") || apiError.message?.includes("Authentication")) {
         return createErrorResponse(
-          ApiError.unauthorized(error.message || "Authentication required"),
+          ApiError.unauthorized(apiError.message || "Authentication required"),
           rateLimitHeaders
         );
       }
 
-      if (error.message?.includes("Forbidden") || error.message?.includes("permissions")) {
+      if (apiError.message?.includes("Forbidden") || apiError.message?.includes("permissions")) {
         return createErrorResponse(
-          ApiError.forbidden(error.message || "Access denied"),
+          ApiError.forbidden(apiError.message || "Access denied"),
           rateLimitHeaders
         );
       }
@@ -427,7 +478,7 @@ export function withAdminAuth(
 ): (request: NextRequest, params?: any) => Promise<Response> {
   return withAPIAuth(handler, {
     ...options,
-    roles: UserRole.ADMIN,
+    roles: AdminRole.ADMIN,
   });
 }
 

@@ -37,7 +37,7 @@ import { Input } from "@/components/ui/input";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { FormError } from "@/components/form-error";
 import { FormSuccess } from "@/components/form-success";
-import { UserRole } from "@prisma/client";
+// UserRole removed - users no longer have roles
 
 
 
@@ -57,7 +57,6 @@ export const PublicSettingsPage = () => {
       newPassword: undefined,
       name: user?.name || undefined,
       email: user?.email || undefined,
-      role: (user?.role === 'ADMIN' || user?.role === 'USER') ? user.role : 'USER',
       isTwoFactorEnabled: user?.isTwoFactorEnabled || undefined,
     }
   });
@@ -185,33 +184,7 @@ export const PublicSettingsPage = () => {
                     />
                   </>
                 )}
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <Select
-                        disabled={isPending}
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <SelectTrigger className="bg-white dark:bg-gray-900">
-                          <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={UserRole.ADMIN}>
-                            Admin
-                          </SelectItem>
-                          <SelectItem value={UserRole.USER}>
-                            User
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Role field removed - users no longer have roles, use isTeacher flag instead */}
                 {user?.isOAuth === false && (
                   <FormField
                     control={form.control}

@@ -1,8 +1,14 @@
 import { z } from 'zod';
-import { UserRole } from '@prisma/client';
+import { AdminRole } from '@prisma/client';
 
-// User role validation
-export const userRoleSchema = z.nativeEnum(UserRole);
+// NOTE: UserRole no longer exists - only AdminAccount has roles (AdminRole enum)
+// User role validation is deprecated
+// For admin role validation, use AdminRole enum instead
+/**
+ * @deprecated Users don't have roles - only AdminAccount has roles
+ * Use AdminRole from @prisma/client for admin validation
+ */
+export const userRoleSchema = z.enum(['ADMIN', 'USER']); // Kept for backward compatibility
 
 // Dashboard filter schemas
 export const dateRangeSchema = z.object({
@@ -155,32 +161,49 @@ export function sanitizeDashboardInput(input: any): any {
 }
 
 // Permission check helpers
-export function canAccessAdminDashboard(userRole: UserRole): boolean {
-  return userRole === UserRole.ADMIN;
+// NOTE: Users don't have roles - only AdminAccount has roles
+// These functions are deprecated for regular user checks
+/**
+ * @deprecated Users don't have roles - only AdminAccount has roles
+ * For admin checks, query AdminAccount table with AdminRole enum
+ * For user permission checks, use PermissionManager from lib/permissions.ts
+ */
+export function canAccessAdminDashboard(userRole: string): boolean {
+  return userRole === 'ADMIN';
 }
 
-export function canPerformBulkAction(userRole: UserRole, action: string): boolean {
-  if (userRole !== UserRole.ADMIN) return false;
-  
+/**
+ * @deprecated Users don't have roles - only AdminAccount has roles
+ * For admin checks, query AdminAccount table with AdminRole enum
+ * For user permission checks, use PermissionManager from lib/permissions.ts
+ */
+export function canPerformBulkAction(userRole: string, action: string): boolean {
+  if (userRole !== 'ADMIN') return false;
+
   // Add specific action permissions if needed
   const dangerousActions = ['delete', 'deactivate'];
   if (dangerousActions.includes(action)) {
     // Could add additional checks here
     return true;
   }
-  
+
   return true;
 }
 
-export function canExportData(userRole: UserRole, dataType: string): boolean {
-  if (userRole !== UserRole.ADMIN) return false;
-  
+/**
+ * @deprecated Users don't have roles - only AdminAccount has roles
+ * For admin checks, query AdminAccount table with AdminRole enum
+ * For user permission checks, use PermissionManager from lib/permissions.ts
+ */
+export function canExportData(userRole: string, dataType: string): boolean {
+  if (userRole !== 'ADMIN') return false;
+
   // Add specific data type permissions if needed
   const sensitiveData = ['users', 'logs'];
   if (sensitiveData.includes(dataType)) {
     // Could add additional checks here
     return true;
   }
-  
+
   return true;
 }

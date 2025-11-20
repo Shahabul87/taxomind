@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
-import { UserRole } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
 import { withRole } from "@/lib/api-protection";
 import { db, getEnterpriseDB } from "@/lib/db-migration";
-import { assignRole } from "@/lib/role-management";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
 
@@ -12,7 +11,7 @@ interface RouteParams {
   }>;
 }
 
-export const GET = withRole(UserRole.ADMIN, async (
+export const GET = withRole(AdminRole.ADMIN, async (
   request: NextRequest,
   { params }: RouteParams
 ) => {
@@ -24,7 +23,7 @@ export const GET = withRole(UserRole.ADMIN, async (
         id: true,
         name: true,
         email: true,
-        role: true,
+        isTeacher: true,
         createdAt: true,
         emailVerified: true,
         isTwoFactorEnabled: true
@@ -47,71 +46,56 @@ export const GET = withRole(UserRole.ADMIN, async (
   }
 });
 
-export const PATCH = withRole(UserRole.ADMIN, async (
+export const PATCH = withRole(AdminRole.ADMIN, async (
   request: NextRequest,
   { params }: RouteParams
 ) => {
   try {
     const { userId } = await params;
-    const { role } = await request.json();
+    const { isTeacher } = await request.json();
     const user = await currentUser();
-    
-    if (!role) {
+
+    if (isTeacher === undefined) {
       return Response.json(
-        { error: "Role is required" },
+        { error: "isTeacher field is required" },
         { status: 400 }
       );
     }
-    
-    if (!Object.values(UserRole).includes(role)) {
-      return Response.json(
-        { error: "Invalid role" },
-        { status: 400 }
-      );
-    }
-    
-    // Use EnterpriseDB for role updates
+
+    // Use EnterpriseDB for user updates
     const enterpriseDb = getEnterpriseDB({
-      userContext: (user?.id) ? { id: user.id, role: user.role as string } : undefined,
+      userContext: (user?.id) ? { id: user.id, role: "ADMIN" } : undefined,
       auditEnabled: true
     });
-    
-    // Prevent self-demotion from admin
-    if (user?.id === userId && user.role === UserRole.ADMIN && role !== UserRole.ADMIN) {
-      return Response.json(
-        { error: "Cannot remove your own admin privileges" },
-        { status: 400 }
-      );
-    }
-    
-    await assignRole(userId, role);
-    
-    const updatedUser = await enterpriseDb.user.findUnique({
+
+    // Update user's teacher status
+    const updatedUser = await enterpriseDb.user.update({
       where: { id: userId },
+      data: { isTeacher: Boolean(isTeacher) },
       select: {
         id: true,
         name: true,
         email: true,
-        role: true,
+        isTeacher: true,
         createdAt: true,
         emailVerified: true
       }
     });
-    
-    return Response.json({ 
-      message: "Role updated successfully",
+
+    return Response.json({
+      message: "User type updated successfully",
       user: updatedUser
     });
   } catch (error) {
-    logger.error("Role update error:", error);
+    logger.error("User type update error:", error);
     return Response.json(
-      { error: "Failed to update user role" },
+      { error: "Failed to update user type" },
       { status: 500 }
     );
   }
 });
 
-export const DELETE = withRole(UserRole.ADMIN, async (
+export const DELETE = withRole(AdminRole.ADMIN, async (
   request: NextRequest,
   { params }: RouteParams
 ) => {
@@ -121,7 +105,7 @@ export const DELETE = withRole(UserRole.ADMIN, async (
     
     // Use EnterpriseDB for this critical operation
     const enterpriseDb = getEnterpriseDB({
-      userContext: (user && user.id) ? { id: user.id, role: user.role as string } : undefined,
+      userContext: (user && user.id) ? { id: user.id, role: "ADMIN" } : undefined,
       auditEnabled: true
     });
     

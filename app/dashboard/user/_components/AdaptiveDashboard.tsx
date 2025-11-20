@@ -187,7 +187,6 @@ export function AdaptiveDashboard({ user }: AdaptiveDashboardProps) {
         }}
       >
         {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-center opacity-30 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0.3))]" />
         
         {/* Floating orbs that adapt to sidebar */}
         <motion.div 

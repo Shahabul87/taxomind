@@ -15,15 +15,15 @@
 import "server-only";
 
 import NextAuth from "next-auth"
-import { UserRole } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
 import type { JWT } from "next-auth/jwt";
 import type { Session, User } from "next-auth";
 
 import authConfigAdmin from "@/auth.config.admin";
 import { AdminPrismaAdapter } from "@/lib/auth/admin-prisma-adapter";
 import { db } from "@/lib/db";
-import { getUserById, getAdminById } from "@/data/user";
-import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
+import { getAdminAccountById } from "@/data/admin";
+import { getTwoFactorConfirmationByAdminId } from "@/data/admin-two-factor-confirmation";
 import { getAccountByUserId } from "@/data/account";
 import { checkEnvironmentVariables } from "@/lib/env-check";
 import { validateCookieConfig, getAdminCookieConfig } from "@/lib/security/cookie-config";
@@ -62,7 +62,7 @@ export const {
     async linkAccount({ user, account }) {
       // OAuth linking for admins (disabled in auth.config.admin.ts)
       // Kept for potential future use
-      await db.user.update({
+      await db.adminAccount.update({
         where: { id: user.id },
         data: { emailVerified: new Date() }
       });
@@ -79,6 +79,8 @@ export const {
       // Phase 3: Enhanced logging for admin sign-ins with AdminAuditLog
       if (user?.id && user?.email) {
         const provider = account?.provider || 'credentials';
+        const crypto = require('crypto');
+        const uniqueSessionId = `session-${user.id}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
         // Phase 2: Standard auth audit logging (kept for backwards compatibility)
         await authAuditHelpers.logSignInSuccess(
@@ -93,7 +95,7 @@ export const {
         // Phase 3: Log to AdminAuditLog (new enhanced logging)
         await logAdminLoginSuccess(
           user.id,
-          'pending-session-id', // Will be updated when sessionToken is available
+          uniqueSessionId,
           'unknown',            // IP will be extracted in admin-login-form
           'unknown',            // UserAgent will be extracted in admin-login-form
           provider
@@ -102,7 +104,7 @@ export const {
         // Phase 3: Create session metric record
         await createAdminSessionMetric({
           userId: user.id,
-          sessionId: 'pending-session-id',
+          sessionId: uniqueSessionId,
           ipAddress: 'unknown',
           userAgent: 'unknown',
         }).catch(console.error);
@@ -194,51 +196,45 @@ export const {
       }
 
       try {
-        // Use dedicated admin lookup function with all required fields
-        const existingUser = await getAdminById(user.id);
+        // Use dedicated admin account lookup
+        const existingAdmin = await getAdminAccountById(user.id);
 
-        if (!existingUser) {
-          console.log("[admin-auth] Admin user not found in database");
+        if (!existingAdmin) {
+          console.log("[admin-auth] Admin account not found in database");
           return false;
         }
 
-        // Role verification is done in getAdminById, but double-check for security
-        if (existingUser.role !== 'ADMIN') {
-          console.log("[admin-auth] SECURITY ALERT - Non-admin returned from getAdminById");
-          await authAuditHelpers.logSuspiciousActivity(
-            existingUser.id,
-            existingUser.email || 'unknown',
-            'UNAUTHORIZED_ADMIN_AUTH_ATTEMPT',
-            'Non-admin user attempted to use admin authentication instance'
-          );
+        // Verify role is ADMIN or SUPERADMIN
+        if (existingAdmin.role !== 'ADMIN' && existingAdmin.role !== 'SUPERADMIN') {
+          console.log("[admin-auth] SECURITY ALERT - Invalid role:", existingAdmin.role);
           return false;
         }
 
         console.log("[admin-auth] Admin user verified:", {
-          id: existingUser.id,
-          emailVerified: !!existingUser.emailVerified,
-          isTwoFactorEnabled: existingUser.isTwoFactorEnabled,
-          hasCreatedAt: !!existingUser.createdAt
+          id: existingAdmin.id,
+          emailVerified: !!existingAdmin.emailVerified,
+          isTwoFactorEnabled: existingAdmin.isTwoFactorEnabled,
+          hasCreatedAt: !!existingAdmin.createdAt
         });
 
-        if (!existingUser?.emailVerified) {
+        if (!existingAdmin?.emailVerified) {
           console.log("[admin-auth] Email not verified");
           return false;
         }
 
         // MANDATORY MFA enforcement for all admins
         const mfaEnforcement = shouldEnforceMFAOnSignIn({
-          role: existingUser.role,
-          isTwoFactorEnabled: existingUser.isTwoFactorEnabled,
-          totpEnabled: existingUser.totpEnabled || false,
-          totpVerified: existingUser.totpVerified || false,
-          createdAt: existingUser.createdAt,
+          role: existingAdmin.role,
+          isTwoFactorEnabled: existingAdmin.isTwoFactorEnabled,
+          totpEnabled: existingAdmin.totpEnabled || false,
+          totpVerified: existingAdmin.totpVerified || false,
+          createdAt: existingAdmin.createdAt,
         });
 
         if (mfaEnforcement.enforce) {
           console.log("[admin-auth] MFA enforcement blocking admin sign-in:", mfaEnforcement.reason);
 
-          await logMFAEnforcementAction(existingUser.id, "FORCED_SETUP", {
+          await logMFAEnforcementAction(existingAdmin.id, "FORCED_SETUP", {
             reason: mfaEnforcement.reason,
             userAgent: "unknown",
             ipAddress: "unknown",
@@ -247,17 +243,17 @@ export const {
           return false;
         }
 
-        if (existingUser.isTwoFactorEnabled) {
+        if (existingAdmin.isTwoFactorEnabled) {
           console.log("[admin-auth] 2FA enabled, checking confirmation");
           try {
-            const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(existingUser.id);
+            const twoFactorConfirmation = await getTwoFactorConfirmationByAdminId(existingAdmin.id);
 
             if (!twoFactorConfirmation) {
               console.log("[admin-auth] No 2FA confirmation found");
               return false;
             }
 
-            await db.twoFactorConfirmation.delete({
+            await db.adminTwoFactorConfirmation.delete({
               where: { id: twoFactorConfirmation.id }
             });
             console.log("[admin-auth] 2FA confirmation verified and deleted");
@@ -285,11 +281,11 @@ export const {
       }
 
       if (token.role && session.user) {
-        session.user.role = token.role as UserRole;
+        session.user.role = token.role as AdminRole;
 
-        // Verify role is ADMIN
-        if (token.role !== 'ADMIN') {
-          console.error("[admin-auth] SECURITY ALERT - Non-admin in admin session");
+        // Verify role is ADMIN or SUPERADMIN
+        if (token.role !== 'ADMIN' && token.role !== 'SUPERADMIN') {
+          console.error("[admin-auth] SECURITY ALERT - Invalid role in admin session:", token.role);
           // Session will be invalid
           return session;
         }
@@ -308,25 +304,25 @@ export const {
       if (!token || !token.sub) return token;
 
       try {
-        // Use dedicated admin lookup function
-        const existingUser = await getAdminById(token.sub);
+        // Use dedicated admin account lookup
+        const existingAdmin = await getAdminAccountById(token.sub);
 
-        if (!existingUser) return token;
+        if (!existingAdmin) return token;
 
-        // Role verification is done in getAdminById, but double-check
-        if (existingUser.role !== 'ADMIN') {
-          console.error("[admin-auth] SECURITY ALERT - Non-admin in JWT token");
+        // Role verification - check for ADMIN or SUPERADMIN
+        if (existingAdmin.role !== 'ADMIN' && existingAdmin.role !== 'SUPERADMIN') {
+          console.error("[admin-auth] SECURITY ALERT - Invalid role in JWT token:", existingAdmin.role);
           // Return invalid token
           return token;
         }
 
-        const existingAccount = await getAccountByUserId(existingUser.id);
+        const existingAccount = await getAccountByUserId(existingAdmin.id);
 
         token.isOAuth = !!existingAccount;
-        token.name = existingUser.name || null;
-        token.email = existingUser.email || null;
-        token.role = existingUser.role;
-        token.isTwoFactorEnabled = !!existingUser.isTwoFactorEnabled;
+        token.name = existingAdmin.name || null;
+        token.email = existingAdmin.email || null;
+        token.role = existingAdmin.role;
+        token.isTwoFactorEnabled = !!existingAdmin.isTwoFactorEnabled;
 
         // Generate session token for fingerprinting
         if (!token.sessionToken) {

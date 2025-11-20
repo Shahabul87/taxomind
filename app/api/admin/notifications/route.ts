@@ -23,7 +23,7 @@ export async function GET() {
     // Check admin authentication
     const session = await adminAuth();
 
-    if (!session || !session.user || session.user.role !== "ADMIN") {
+    if (!session || !session.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
       return NextResponse.json(
         { success: false, error: { code: "UNAUTHORIZED", message: "Admin access required" } },
         { status: 401 }
@@ -35,11 +35,10 @@ export async function GET() {
 
     // Fetch recent activities to create notifications
     const [recentUsers, recentCourses, recentPosts, recentEnrollments] = await Promise.all([
-      // New user registrations
+      // New user registrations (admins are in separate AdminAccount table)
       db.user.findMany({
         where: {
           createdAt: { gte: last24Hours },
-          role: "USER", // Only regular users, not admins
         },
         select: {
           id: true,

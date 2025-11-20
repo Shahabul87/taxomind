@@ -33,7 +33,7 @@ interface AdminWithSidebarProps {
 }
 
 export function AdminWithSidebar({ user, children }: AdminWithSidebarProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false); // Start with sidebar closed on mobile
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -102,7 +102,7 @@ export function AdminWithSidebar({ user, children }: AdminWithSidebarProps) {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full flex-1 flex-col overflow-hidden md:flex-row",
+        "flex w-full flex-col md:flex-row",
         "h-screen", // Full screen height for admin dashboard
         "bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"
       )}
@@ -150,8 +150,8 @@ export function AdminWithSidebar({ user, children }: AdminWithSidebarProps) {
           </div>
         </SidebarBody>
       </Sidebar>
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex h-full w-full flex-1 flex-col gap-4 overflow-y-auto rounded-tl-2xl border border-neutral-200 bg-white p-4 md:p-10 dark:border-neutral-700 dark:bg-slate-800/90 dark:backdrop-blur-sm">
+      <div className="flex flex-1 w-full min-h-0">
+        <div className="flex h-full w-full flex-1 flex-col overflow-y-auto md:rounded-tl-2xl border-t md:border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-slate-800/90 dark:backdrop-blur-sm pt-14 md:pt-0 pb-safe">
           {children}
         </div>
       </div>

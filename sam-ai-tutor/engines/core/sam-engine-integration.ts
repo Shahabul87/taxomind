@@ -11,7 +11,6 @@ import { logger } from '@/lib/logger';
 export interface SAMEngineContext {
   userId: string;
   courseId?: string;
-  role: 'ADMIN' | 'USER';
   enginePreferences?: {
     enableMarketAnalysis?: boolean;
     enableBloomsTracking?: boolean;
@@ -107,7 +106,7 @@ export class SAMEngineIntegration {
       context.enginePreferences?.enableBloomsTracking !== false
         ? this.bloomsEngine.analyzeCourse(context.courseId, analysisDepth)
         : null,
-      context.enginePreferences?.enableCourseGuide !== false && context.role === 'ADMIN'
+      context.enginePreferences?.enableCourseGuide !== false
         ? this.guideEngine.generateCourseGuide(context.courseId)
         : null,
       context.enginePreferences?.enableTrendsAnalysis !== false
@@ -122,7 +121,8 @@ export class SAMEngineIntegration {
     ]);
 
     // Get student progress if applicable
-    const studentProgress = context.role === 'USER'
+    // NOTE: Users don't have roles - always get student progress for valid userId
+    const studentProgress = context.userId && context.courseId
       ? await this.getStudentProgress(context.userId, context.courseId)
       : null;
 
@@ -777,10 +777,10 @@ export class SAMEngineIntegration {
     courseId: string,
     interactionType: string
   ): Promise<any> {
+    // NOTE: Users don't have roles - only AdminAccount has roles
     const context: SAMEngineContext = {
       userId,
       courseId,
-      role: await this.getUserRole(userId),
     };
 
     const analysis = await this.performIntegratedAnalysis(context, 'basic');
@@ -798,13 +798,15 @@ export class SAMEngineIntegration {
     };
   }
 
+  /**
+   * @deprecated Users don't have roles - only AdminAccount has roles
+   * This function is kept for backward compatibility but always returns 'USER'
+   * For admin checks, query AdminAccount table instead
+   */
   private async getUserRole(userId: string): Promise<'ADMIN' | 'USER'> {
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    });
-    
-    return user?.role === 'ADMIN' ? 'ADMIN' : 'USER';
+    // NOTE: Users don't have roles - only AdminAccount has roles
+    // All users in User table are regular users (not admins)
+    return 'USER';
   }
 
   // New engine integration methods

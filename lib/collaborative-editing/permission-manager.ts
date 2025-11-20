@@ -349,7 +349,6 @@ export class PermissionManager {
         where: { id: userId },
         select: {
           id: true,
-          role: true,
           email: true,
         },
       });
@@ -370,9 +369,11 @@ export class PermissionManager {
         }
 
         // Check role-specific rule
-        if (rule.userRole && rule.userRole !== user.role) {
-          matches = false;
-        }
+        // NOTE: Users don't have roles - only AdminAccount has roles
+        // Role-based rules are skipped for regular users
+        // if (rule.userRole && rule.userRole !== user.role) {
+        //   matches = false;
+        // }
 
         // Check conditions
         if (rule.conditions && matches) {

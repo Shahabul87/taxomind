@@ -33,10 +33,7 @@ const TeacherAllPostsPage = async () => {
     return redirect("/");
   }
 
-  // Check if user has appropriate role
-  if (user.role !== "USER" && user.role !== "ADMIN") {
-    return redirect("/");
-  }
+  // Note: All users can create posts, role check removed since users no longer have roles
 
   // Fetch user's posts
   const postsData = await db.post.findMany({
@@ -50,7 +47,7 @@ const TeacherAllPostsPage = async () => {
           name: true,
           email: true,
           image: true,
-          role: true,
+          isTeacher: true,
         }
       },
       comments: true,

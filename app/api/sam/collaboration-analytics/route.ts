@@ -416,12 +416,14 @@ async function handleGetCollaborationInsights(data: any) {
 
 // Helper functions
 async function isTeacherOrAdmin(userId: string, courseId: string): Promise<boolean> {
-  const user = await db.user.findUnique({
+  // Check if user is admin - admins are now in AdminAccount table
+  const adminAccount = await db.adminAccount.findUnique({
     where: { id: userId },
   });
 
-  if (user?.role === "ADMIN") return true;
+  if (adminAccount?.role === "ADMIN" || adminAccount?.role === "SUPERADMIN") return true;
 
+  // Check if user is the course owner
   const course = await db.course.findUnique({
     where: { id: courseId },
   });
@@ -430,11 +432,12 @@ async function isTeacherOrAdmin(userId: string, courseId: string): Promise<boole
 }
 
 async function isAdmin(userId: string): Promise<boolean> {
-  const user = await db.user.findUnique({
+  // Check if user is admin - admins are now in AdminAccount table
+  const adminAccount = await db.adminAccount.findUnique({
     where: { id: userId },
   });
 
-  return user?.role === "ADMIN";
+  return adminAccount?.role === "ADMIN" || adminAccount?.role === "SUPERADMIN";
 }
 
 async function notifyUsersAboutSession(

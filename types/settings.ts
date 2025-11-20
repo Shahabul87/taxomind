@@ -1,5 +1,5 @@
 // Enterprise Settings Types
-import { UserRole, LearningStyle } from '@prisma/client';
+import { LearningStyle } from '@prisma/client';
 
 /**
  * Comprehensive Settings User Interface
@@ -11,7 +11,6 @@ export interface SettingsUser {
   email: string | null;
   image: string | null;
   phone: string | null;
-  role: UserRole;
   isOAuth: boolean;
   isTwoFactorEnabled: boolean;
   totpEnabled: boolean;

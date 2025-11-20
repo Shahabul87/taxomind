@@ -37,16 +37,7 @@ export async function deletePost(
       };
     }
 
-    // Check if user has permission (must be ADMIN, TEACHER, or INSTRUCTOR)
-    if (user.role !== "ADMIN" && user.role !== "USER") {
-      return {
-        success: false,
-        error: {
-          code: "FORBIDDEN",
-          message: "You do not have permission to delete posts",
-        },
-      };
-    }
+    // Note: Role check removed - all users can delete their own posts (ownership verified below)
 
     // Fetch the post to verify ownership
     const post = await db.post.findUnique({
@@ -206,7 +197,7 @@ export async function togglePostPublished(
             name: true,
             email: true,
             image: true,
-            role: true,
+            isTeacher: true,
           },
         },
         _count: {
@@ -348,7 +339,7 @@ export async function duplicatePost(
             name: true,
             email: true,
             image: true,
-            role: true,
+            isTeacher: true,
           },
         },
         _count: {

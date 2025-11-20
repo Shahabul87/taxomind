@@ -249,7 +249,7 @@ export const ChapterSectionList = ({
   };
 
   return (
-    <div ref={listRef} className="space-y-3">
+    <div ref={listRef} className="space-y-2 sm:space-y-3">
       {sections.map((section) => {
         const isDragging = draggedItem?.id === section.id;
         const isDragOver = dragOverItemId === section.id;
@@ -269,52 +269,55 @@ export const ChapterSectionList = ({
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchCancel}
             className={cn(
-              "flex items-center gap-x-2",
+              "flex items-center gap-x-1 sm:gap-x-1.5 sm:gap-x-2",
               "bg-white dark:bg-slate-900",
               "border border-slate-200 dark:border-slate-700",
               "text-slate-900 dark:text-slate-100",
-              "rounded-lg mb-3",
-              "text-sm sm:text-base",
+              "rounded-lg mb-2 sm:mb-3",
+              "text-xs sm:text-sm md:text-base",
               "transition-all duration-200 ease-in-out",
               "touch-manipulation",
+              "min-h-[52px] xs:min-h-[56px] sm:min-h-[60px]",
+              "overflow-hidden",
               isDragOver && !isDragging && "border-purple-300 dark:border-purple-700 bg-purple-50/30 dark:bg-purple-900/10",
               section.isPublished && "bg-emerald-50/50 dark:bg-emerald-900/20 border-emerald-200/50 dark:border-emerald-800/50"
             )}
           >
             <div
               className={cn(
-                "px-2 py-3 border-r",
+                "px-1 xs:px-1.5 sm:px-2 py-2 sm:py-3 border-r",
                 "border-r-slate-200 dark:border-r-slate-700",
                 "hover:bg-slate-100/50 dark:hover:bg-slate-800/50",
                 "rounded-l-lg transition cursor-grab active:cursor-grabbing",
-                "flex items-center",
-                "touch-manipulation",
+                "flex items-center justify-center",
+                "touch-manipulation flex-shrink-0",
+                "min-w-[32px] xs:min-w-[36px] sm:min-w-[40px]",
                 section.isPublished && "border-r-emerald-200/50 dark:border-r-emerald-800/50"
               )}
             >
-              <Grip className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+              <Grip className="h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400" />
             </div>
-            <div className="flex-1 px-2 py-2 truncate">
-              {section.title}
+            <div className="flex-1 px-1.5 sm:px-2 py-2 min-w-0 overflow-hidden">
+              <p className="truncate text-xs sm:text-sm md:text-base leading-tight">{section.title}</p>
             </div>
-            <div className="ml-auto pr-2 flex items-center gap-x-2">
-              {/* isFree Badge */}
+            <div className="ml-auto pr-1 sm:pr-2 flex items-center gap-x-0.5 xs:gap-x-1 sm:gap-x-1.5 flex-shrink-0">
+              {/* isFree Badge - Icon only on very small screens */}
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className={cn(
-                      "flex items-center gap-1.5 px-2 py-1 rounded-md",
+                      "flex items-center gap-0.5 xs:gap-1 sm:gap-1.5 px-1 xs:px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md",
                       section.isFree
                         ? "bg-emerald-50 dark:bg-emerald-900/30"
                         : "bg-purple-50 dark:bg-purple-900/30"
                     )}>
                       {section.isFree ? (
-                        <Unlock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <Unlock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                       ) : (
-                        <Lock className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                        <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                       )}
                       <span className={cn(
-                        "text-xs font-medium",
+                        "text-[9px] xs:text-[10px] sm:text-xs font-medium whitespace-nowrap hidden xs:inline",
                         section.isFree
                           ? "text-emerald-700 dark:text-emerald-300"
                           : "text-purple-700 dark:text-purple-300"
@@ -329,15 +332,26 @@ export const ChapterSectionList = ({
                 </Tooltip>
               </TooltipProvider>
 
-              {/* Published Status Badge */}
+              {/* Published Status Badge - Smaller on mobile */}
               <Badge className={cn(
                 "bg-slate-100 dark:bg-slate-800",
                 "text-slate-700 dark:text-slate-300",
                 "border-slate-200 dark:border-slate-700",
+                "text-[9px] xs:text-[10px] sm:text-xs px-1 xs:px-1.5 sm:px-2 py-0.5 sm:py-1",
+                "whitespace-nowrap",
+                "hidden xs:inline-flex",
                 section.isPublished && "bg-emerald-50 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/50"
               )}>
                 {section.isPublished ? "Published" : "Draft"}
               </Badge>
+
+              {/* Published Status Badge - Mobile only compact indicator */}
+              <div className={cn(
+                "xs:hidden w-2 h-2 rounded-full flex-shrink-0",
+                section.isPublished 
+                  ? "bg-emerald-500" 
+                  : "bg-slate-400"
+              )} />
 
               {/* Edit Button with Tooltip */}
               <TooltipProvider>
@@ -348,12 +362,14 @@ export const ChapterSectionList = ({
                       variant="ghost"
                       size="sm"
                       className={cn(
+                        "h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 p-0",
                         "hover:bg-slate-100 dark:hover:bg-slate-800",
                         "text-slate-700 dark:text-slate-400",
-                        "hover:text-slate-900 dark:hover:text-slate-200"
+                        "hover:text-slate-900 dark:hover:text-slate-200",
+                        "flex-shrink-0"
                       )}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -372,24 +388,26 @@ export const ChapterSectionList = ({
                           variant="ghost"
                           size="sm"
                           className={cn(
+                            "h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 p-0",
                             "hover:bg-rose-50 dark:hover:bg-rose-500/10",
                             "text-rose-700 dark:text-rose-400",
-                            "hover:text-rose-800 dark:hover:text-rose-300"
+                            "hover:text-rose-800 dark:hover:text-rose-300",
+                            "flex-shrink-0"
                           )}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                       </AlertDialogTrigger>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Delete section</p>
                     </TooltipContent>
-                <AlertDialogContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <AlertDialogContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-w-[calc(100vw-2rem)] sm:max-w-md">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="text-xl text-slate-900 dark:text-white">
+                    <AlertDialogTitle className="text-lg sm:text-xl text-slate-900 dark:text-white">
                       Delete Section
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="text-slate-600 dark:text-slate-300 text-base">
+                    <AlertDialogDescription className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
                       Are you sure you want to delete this section?
                       <br />
                       <span className="text-rose-600 dark:text-rose-400 font-medium">
@@ -397,12 +415,14 @@ export const ChapterSectionList = ({
                       </span>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <AlertDialogFooter>
+                  <AlertDialogFooter className="flex-col-reverse xs:flex-row gap-2 sm:gap-0">
                     <AlertDialogCancel className={cn(
                       "bg-slate-100 dark:bg-slate-800",
                       "hover:bg-slate-200 dark:hover:bg-slate-700",
                       "border-slate-200 dark:border-slate-700",
-                      "text-slate-900 dark:text-white"
+                      "text-slate-900 dark:text-white",
+                      "w-full xs:w-auto",
+                      "text-xs sm:text-sm"
                     )}>
                       Cancel
                     </AlertDialogCancel>
@@ -411,12 +431,14 @@ export const ChapterSectionList = ({
                       className={cn(
                         "bg-rose-600 dark:bg-rose-600",
                         "hover:bg-rose-700 dark:hover:bg-rose-700",
-                        "text-white border-0"
+                        "text-white border-0",
+                        "w-full xs:w-auto",
+                        "text-xs sm:text-sm"
                       )}
                     >
                       {deletingId === section.id ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
                           Deleting...
                         </>
                       ) : (

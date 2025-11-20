@@ -133,8 +133,9 @@ export const getPostData = async (postId: string, userId?: string) => {
       },
       userReaction: hasUserReacted ? { type: "LOVE" } : null,
     };
-  } catch (error: any) {
-    logger.error("[GET_POST_DATA]", error);
+  } catch (error) {
+    const errorDetails = error as { message?: string };
+    logger.error("[GET_POST_DATA]", errorDetails);
     return null;
   }
 }; 

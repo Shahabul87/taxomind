@@ -14,7 +14,7 @@ export default async function CalendarPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      <ConditionalHeader user={user?.id ? { id: user.id, role: user.role } : null} />
+      <ConditionalHeader user={user?.id ? { id: user.id } : null} />
       <SidebarDemo>
         <div className="mt-20 p-6">
           <CalendarErrorBoundary>

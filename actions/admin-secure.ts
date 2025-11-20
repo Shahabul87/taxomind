@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
-import { UserRole } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
 import { 
@@ -42,8 +42,8 @@ export async function getAdminDashboardDataSecure(
   try {
     // Authentication check
     const session = await adminAuth();
-    
-    if (!session?.user?.id || !canAccessAdminDashboard(session.user.role as UserRole)) {
+
+    if (!session?.user?.id || !canAccessAdminDashboard(session.user.role as AdminRole)) {
       throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
@@ -160,7 +160,7 @@ export async function getAdminDashboardDataSecure(
           id: true,
           name: true,
           email: true,
-          role: true,
+          isTeacher: true,
           image: true,
           createdAt: true,
           emailVerified: true
@@ -306,7 +306,7 @@ function maskEmail(email: string): string {
 export async function isAdminSecure() {
   try {
     const session = await adminAuth();
-    
+
     // Check session validity
     if (!session?.user?.id || !session.user.role) {
       return {
@@ -316,7 +316,8 @@ export async function isAdminSecure() {
     }
 
     // Double-check with database to ensure role hasn't changed
-    const user = await db.user.findUnique({
+    // NOTE: Admins are now in AdminAccount table, not User table
+    const admin = await db.adminAccount.findUnique({
       where: { id: session.user.id },
       select: {
         id: true,
@@ -327,8 +328,8 @@ export async function isAdminSecure() {
       }
     });
 
-    // Validate user exists and role matches
-    if (!user || user.role !== session.user.role || user.role !== UserRole.ADMIN) {
+    // Validate admin exists and role matches
+    if (!admin || admin.role !== session.user.role || (admin.role !== AdminRole.ADMIN && admin.role !== AdminRole.SUPERADMIN)) {
       return {
         isAdmin: false,
         user: null
@@ -337,7 +338,7 @@ export async function isAdminSecure() {
 
     return {
       isAdmin: true,
-      user
+      user: admin
     };
   } catch (error: any) {
     logger.error("[IS_ADMIN_SECURE_ERROR]", error);
@@ -372,8 +373,8 @@ export async function exportUserDataSecure(
 ) {
   try {
     const session = await adminAuth();
-    
-    if (!session?.user?.id || session.user.role !== UserRole.ADMIN) {
+
+    if (!session?.user?.id || (session.user.role !== AdminRole.ADMIN && session.user.role !== AdminRole.SUPERADMIN)) {
       throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
@@ -381,7 +382,7 @@ export async function exportUserDataSecure(
     const clientIp = await getClientIp();
     const rateLimitKey = `export:${session.user.id}:${clientIp}`;
     const rateLimitResult = await rateLimiters.heavy.check(rateLimitKey);
-    
+
     if (!rateLimitResult.allowed) {
       throw new Error(ERROR_MESSAGES.RATE_LIMITED);
     }
@@ -413,8 +414,8 @@ export async function performBulkActionSecure(
 ) {
   try {
     const session = await adminAuth();
-    
-    if (!session?.user?.id || session.user.role !== UserRole.ADMIN) {
+
+    if (!session?.user?.id || (session.user.role !== AdminRole.ADMIN && session.user.role !== AdminRole.SUPERADMIN)) {
       throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
@@ -427,14 +428,14 @@ export async function performBulkActionSecure(
     const clientIp = await getClientIp();
     const rateLimitKey = `bulk-action:${session.user.id}:${clientIp}`;
     const rateLimitResult = await rateLimiters.heavy.check(rateLimitKey);
-    
+
     if (!rateLimitResult.allowed) {
       throw new Error(ERROR_MESSAGES.RATE_LIMITED);
     }
 
     // Log bulk action
     await logAdminAccess(
-      session.user.id, 
+      session.user.id,
       `bulk_${action}_${entityIds.length}_items`
     );
 

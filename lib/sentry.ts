@@ -202,7 +202,7 @@ export function setUserContext(user: {
     id: user.id,
     email: user.email,
     username: user.username,
-    role: user.role,
+    role: (user as any).role || undefined, // Users don't have roles - only admins do
   });
 }
 

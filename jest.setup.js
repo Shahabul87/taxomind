@@ -457,7 +457,7 @@ jest.mock('@/lib/db', () => ({
 }));
 
 // Also mock the test-db prismaMock to use the same instance
-jest.mock('../__tests__/utils/test-db', () => ({
+jest.mock('./__tests__/utils/test-db', () => ({
   prismaMock: dbMock,
   createMockDatabase: () => dbMock,
   TestDatabase: jest.fn().mockImplementation(() => ({
@@ -838,15 +838,7 @@ jest.mock('@/lib/encryption', () => ({
   verifyPassword: jest.fn((password, hash) => hash === `hashed_${password}`),
 }));
 
-// Mock TOTP utilities
-jest.mock('@/lib/totp', () => ({
-  generateTOTPSecret: jest.fn(() => ({ 
-    secret: 'test-secret',
-    qrCodeUrl: 'https://qr.example.com/test',
-  })),
-  verifyTOTP: jest.fn(() => true),
-  generateBackupCodes: jest.fn(() => ['code1', 'code2', 'code3']),
-}));
+// Mock TOTP utilities - removed, using lib/auth/totp below
 
 // Mock auth/totp (alias for lib/totp)
 jest.mock('@/lib/auth/totp', () => ({

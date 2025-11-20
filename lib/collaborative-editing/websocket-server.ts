@@ -210,7 +210,6 @@ export class CollaborativeEditingServer {
           name: true,
           email: true,
           image: true,
-          role: true,
         },
       });
 
@@ -218,12 +217,15 @@ export class CollaborativeEditingServer {
         return null;
       }
 
+      // NOTE: Users don't have roles - only AdminAccount has roles
+      // For collaborative editing, regular users default to 'EDITOR'
+      // Admins would need to be checked via AdminAccount separately
       return {
         id: user.id,
         name: user.name || 'Anonymous',
         email: user.email || '',
         avatar: user.image || undefined,
-        role: user.role === 'ADMIN' ? 'ADMIN' : 'EDITOR',
+        role: 'EDITOR',
         cursorColor: this.generateCursorColor(user.id),
       };
     } catch (error: any) {

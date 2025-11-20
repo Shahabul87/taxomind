@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import createDOMPurify from 'isomorphic-dompurify';
 
 /**
  * Blog Post Validation Schemas
@@ -111,28 +112,110 @@ export const NewsletterSubscriptionSchema = z.object({
 export type NewsletterSubscription = z.infer<typeof NewsletterSubscriptionSchema>;
 
 /**
- * Sanitize HTML content
- * Removes all HTML tags and dangerous content
+ * Comment Creation Validation
+ * Prevents XSS and injection attacks in comment content
  */
-export const sanitizeHtml = (html: string | null): string => {
+export const CommentCreateSchema = z.object({
+  content: z
+    .string()
+    .min(1, 'Comment cannot be empty')
+    .max(10000, 'Comment too long (max 10,000 characters)')
+    .trim()
+    .transform((val) => sanitizeHtml(val, { stripTags: false })),
+  commentId: z.string().cuid().optional(), // For replies to existing comments
+});
+
+export type CommentCreate = z.infer<typeof CommentCreateSchema>;
+
+/**
+ * Reply Creation Validation
+ * Prevents XSS and injection attacks in reply content
+ */
+export const ReplyCreateSchema = z.object({
+  content: z
+    .string()
+    .min(1, 'Reply cannot be empty')
+    .max(10000, 'Reply too long (max 10,000 characters)')
+    .trim()
+    .transform((val) => sanitizeHtml(val, { stripTags: false })),
+  parentReplyId: z.string().cuid().optional(), // For nested replies
+});
+
+export type ReplyCreate = z.infer<typeof ReplyCreateSchema>;
+
+/**
+ * Comment Update Validation
+ */
+export const CommentUpdateSchema = z.object({
+  content: z
+    .string()
+    .min(1, 'Comment cannot be empty')
+    .max(10000, 'Comment too long (max 10,000 characters)')
+    .trim()
+    .transform((val) => sanitizeHtml(val, { stripTags: false })),
+});
+
+export type CommentUpdate = z.infer<typeof CommentUpdateSchema>;
+
+/**
+ * Reaction Validation
+ * Validates reaction types and required IDs
+ */
+export const ReactionCreateSchema = z.object({
+  type: z.enum(['LIKE', 'LOVE', 'INSIGHTFUL', 'THANKS'], {
+    errorMap: () => ({ message: 'Invalid reaction type' }),
+  }),
+  postId: z.string().cuid('Invalid post ID'),
+  commentId: z.string().cuid('Invalid comment ID').optional(),
+  replyId: z.string().cuid('Invalid reply ID').optional(),
+});
+
+export type ReactionCreate = z.infer<typeof ReactionCreateSchema>;
+
+/**
+ * Sanitize HTML content using DOMPurify
+ * Enterprise-grade XSS protection
+ * @param html - HTML string to sanitize
+ * @param options - Sanitization options
+ * @returns Safely sanitized HTML string
+ */
+export const sanitizeHtml = (
+  html: string | null,
+  options?: {
+    stripTags?: boolean; // Remove all HTML tags completely
+    allowedTags?: string[]; // Whitelist of allowed HTML tags
+  }
+): string => {
   if (!html) return '';
 
-  // Remove all HTML tags
-  let cleaned = html.replace(/<[^>]*>/g, '');
+  // If stripTags is true, remove all HTML completely
+  if (options?.stripTags) {
+    // Use DOMPurify to sanitize then extract text content
+    const sanitized = createDOMPurify.sanitize(html, {
+      ALLOWED_TAGS: [], // No tags allowed
+      KEEP_CONTENT: true, // Keep text content
+    });
+    return sanitized.trim();
+  }
 
-  // Decode HTML entities
-  cleaned = cleaned
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&apos;/g, "'");
+  // Otherwise, sanitize with allowed tags
+  const sanitized = createDOMPurify.sanitize(html, {
+    ALLOWED_TAGS: options?.allowedTags || [
+      'p',
+      'br',
+      'strong',
+      'em',
+      'u',
+      'a',
+      'ul',
+      'ol',
+      'li',
+    ],
+    ALLOWED_ATTR: ['href', 'target', 'rel'],
+    ALLOW_DATA_ATTR: false,
+  });
 
-  // Remove any remaining special characters that could be dangerous
-  cleaned = cleaned.replace(/[<>]/g, '');
-
-  return cleaned.trim();
+  return sanitized.trim();
 };
 
 /**

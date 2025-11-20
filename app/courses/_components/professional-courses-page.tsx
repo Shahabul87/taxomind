@@ -136,8 +136,8 @@ const ProfessionalStatsBar = ({ stats, isLoading }: { stats: any; isLoading: boo
 
   return (
     <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 border-y border-slate-200/50 dark:border-slate-700/50">
-      <div className="container mx-auto px-4 py-6 sm:py-8 md:py-10">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 md:py-8 lg:py-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
           {statsData.map((stat, index) => (
             <motion.div
               key={index}
@@ -146,18 +146,18 @@ const ProfessionalStatsBar = ({ stats, isLoading }: { stats: any; isLoading: boo
               transition={{ delay: index * 0.1 }}
               className="group relative"
             >
-              <Card className="text-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-xl transition-all duration-300 p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl">
-                <div className={cn("w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 mx-auto mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-gradient-to-br shadow-lg flex items-center justify-center", stat.gradient)}>
-                  <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
+              <Card className="text-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-xl transition-all duration-300 p-2.5 sm:p-3 md:p-4 lg:p-6 rounded-lg sm:rounded-xl md:rounded-2xl">
+                <div className={cn("w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 mx-auto mb-1.5 sm:mb-2 md:mb-3 rounded-lg sm:rounded-xl bg-gradient-to-br shadow-lg flex items-center justify-center", stat.gradient)}>
+                  <stat.icon className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
                 </div>
                 {isLoading ? (
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-400 animate-pulse">--</div>
+                  <div className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-slate-400 animate-pulse">--</div>
                 ) : (
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1">
+                  <div className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-0.5 sm:mb-1 break-words">
                     {stat.value}
                   </div>
                 )}
-                <div className="text-[10px] sm:text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400">
+                <div className="text-[9px] xs:text-[10px] sm:text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400 break-words">
                   {stat.label}
                 </div>
               </Card>
@@ -182,16 +182,16 @@ const ProfessionalFilterSidebar = ({
   activeFiltersCount
 }: any) => {
   return (
-    <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg rounded-3xl overflow-hidden">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
-              <Filter className="w-4 h-4 text-white" />
+    <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg rounded-2xl sm:rounded-3xl overflow-hidden">
+      <div className="p-4 sm:p-5 md:p-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-5 md:mb-6">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="p-1.5 sm:p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
+              <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </div>
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Filters</h3>
+            <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">Filters</h3>
             {activeFiltersCount > 0 && (
-              <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+              <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 text-[10px] xs:text-xs px-1.5 sm:px-2 py-0.5">
                 {activeFiltersCount}
               </Badge>
             )}
@@ -200,23 +200,23 @@ const ProfessionalFilterSidebar = ({
             variant="ghost"
             size="sm"
             onClick={onClearAll}
-            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs sm:text-sm h-8 sm:h-9"
           >
             Clear All
           </Button>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-5 md:space-y-6">
           {/* Categories */}
           <div>
-            <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">
+            <h4 className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white mb-2 sm:mb-3">
               Categories
             </h4>
-            <div className="space-y-2.5">
+            <div className="space-y-2 sm:space-y-2.5">
               {filterOptions.categories.map((category: any) => (
                 <label
                   key={category.id}
-                  className="flex items-center gap-3 cursor-pointer group p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  className="flex items-center gap-2 sm:gap-3 cursor-pointer group p-1.5 sm:p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   <input
                     type="checkbox"
@@ -228,12 +228,12 @@ const ProfessionalFilterSidebar = ({
                         setSelectedCategories(selectedCategories.filter((c: string) => c !== category.id));
                       }
                     }}
-                    className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 w-4 h-4 sm:w-4.5 sm:h-4.5"
                   />
-                  <span className="flex-1 text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <span className="flex-1 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words">
                     {category.name}
                   </span>
-                  <Badge variant="secondary" className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                  <Badge variant="secondary" className="text-[9px] xs:text-[10px] sm:text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-1.5 sm:px-2 py-0.5 flex-shrink-0">
                     {category.count}
                   </Badge>
                 </label>
@@ -245,23 +245,23 @@ const ProfessionalFilterSidebar = ({
 
           {/* Price Range */}
           <div>
-            <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">
+            <h4 className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white mb-2 sm:mb-3">
               Price Range
             </h4>
-            <div className="space-y-2.5">
+            <div className="space-y-2 sm:space-y-2.5">
               {filterOptions.priceRanges.map((range: any) => (
                 <label
                   key={range.label}
-                  className="flex items-center gap-3 cursor-pointer group p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  className="flex items-center gap-2 sm:gap-3 cursor-pointer group p-1.5 sm:p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   <input
                     type="radio"
                     name="priceRange"
                     checked={selectedPriceRange?.min === range.min && selectedPriceRange?.max === range.max}
                     onChange={() => setSelectedPriceRange({ min: range.min, max: range.max })}
-                    className="text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600"
+                    className="text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 w-4 h-4 sm:w-4.5 sm:h-4.5"
                   />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words">
                     {range.label}
                   </span>
                 </label>
@@ -269,18 +269,18 @@ const ProfessionalFilterSidebar = ({
             </div>
           </div>
 
-          <Separator className="bg-slate-200 dark:bg-slate-700" />
+          <Separator className="bg-slate-200 dark:border-slate-700" />
 
           {/* Difficulty */}
           <div>
-            <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">
+            <h4 className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white mb-2 sm:mb-3">
               Difficulty Level
             </h4>
-            <div className="space-y-2.5">
+            <div className="space-y-2 sm:space-y-2.5">
               {filterOptions.difficulties.map((diff: any) => (
                 <label
                   key={diff.value}
-                  className="flex items-center gap-3 cursor-pointer group p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  className="flex items-center gap-2 sm:gap-3 cursor-pointer group p-1.5 sm:p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   <input
                     type="checkbox"
@@ -292,12 +292,12 @@ const ProfessionalFilterSidebar = ({
                         setSelectedDifficulties(selectedDifficulties.filter((d: string) => d !== diff.value));
                       }
                     }}
-                    className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 w-4 h-4 sm:w-4.5 sm:h-4.5"
                   />
-                  <span className="flex-1 text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <span className="flex-1 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words">
                     {diff.label}
                   </span>
-                  <Badge variant="secondary" className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                  <Badge variant="secondary" className="text-[9px] xs:text-[10px] sm:text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-1.5 sm:px-2 py-0.5 flex-shrink-0">
                     {diff.count}
                   </Badge>
                 </label>
@@ -473,12 +473,12 @@ export function ProfessionalCoursesPage({
       />
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-2 sm:px-4 py-8 sm:py-12 md:py-16">
         {/* Quick Action Pills */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-wrap gap-2 sm:gap-3 mb-8 sm:mb-10"
+          className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8 md:mb-10 overflow-x-auto pb-2 -mx-2 sm:mx-0 px-2 sm:px-0"
         >
           {[
             { icon: Brain, label: "AI Recommendations", color: "from-purple-500 to-pink-600" },
@@ -489,42 +489,42 @@ export function ProfessionalCoursesPage({
             <Button
               key={index}
               variant="outline"
-              className="group bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-xs sm:text-sm px-2.5 sm:px-3 md:px-4 h-9 sm:h-10"
+              className="group bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-[10px] xs:text-xs sm:text-sm px-2 xs:px-2.5 sm:px-3 md:px-4 h-8 xs:h-9 sm:h-10 flex-shrink-0"
             >
-              <div className={cn("p-1 sm:p-1.5 rounded-lg bg-gradient-to-br mr-1.5 sm:mr-2", action.color)}>
-                <action.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-white" />
+              <div className={cn("p-0.5 xs:p-1 sm:p-1.5 rounded-lg bg-gradient-to-br mr-1 xs:mr-1.5 sm:mr-2", action.color)}>
+                <action.icon className="w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-white" />
               </div>
-              <span className="whitespace-nowrap text-[11px] sm:text-xs md:text-sm">{action.label}</span>
-              <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 ml-1.5 sm:ml-2 transition-transform group-hover:translate-x-1" />
+              <span className="whitespace-nowrap text-[10px] xs:text-[11px] sm:text-xs md:text-sm">{action.label}</span>
+              <ArrowRight className="w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 ml-1 xs:ml-1.5 sm:ml-2 transition-transform group-hover:translate-x-1" />
             </Button>
           ))}
         </motion.div>
 
         {/* Most Trending Courses Section */}
-        <div className="mb-12">
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-6">
+        <div className="mb-8 sm:mb-10 md:mb-12">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">
             Most Trending Courses
           </h2>
 
           {/* Two Column Layout with List Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
             {courses.slice(0, 6).map((course, index) => {
               // Use secure HTTPS URL with fallback
               const secureImageUrl = ensureHttpsUrl(course.imageUrl) || getFallbackImageUrl('course');
 
               return (
                 <Link key={course.id} href={`/courses/${course.id}`} className="block group">
-                  <Card className="overflow-hidden border-0 bg-white dark:bg-slate-800 shadow-md hover:shadow-xl transition-all duration-300">
+                  <Card className="overflow-hidden border-0 bg-white dark:bg-slate-800 shadow-md hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl">
                     <CardContent className="p-0">
                       <div className="flex gap-2 sm:gap-3 md:gap-4 h-full">
                         {/* Course Image */}
-                        <div className="relative w-32 sm:w-36 md:w-40 flex-shrink-0 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600">
+                        <div className="relative w-28 xs:w-32 sm:w-36 md:w-40 h-24 xs:h-28 sm:h-32 md:h-36 flex-shrink-0 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600">
                           <Image
                             src={secureImageUrl}
                             alt={course.title}
                             fill
-                            sizes="(max-width: 640px) 128px, (max-width: 768px) 144px, 160px"
-                            className="object-cover h-full"
+                            sizes="(max-width: 475px) 112px, (max-width: 640px) 128px, (max-width: 768px) 144px, 160px"
+                            className="object-cover"
                             onError={(e) => {
                               e.currentTarget.src = getFallbackImageUrl('course');
                             }}
@@ -532,10 +532,10 @@ export function ProfessionalCoursesPage({
 
                         {/* Badge Overlay */}
                         {course.badges?.[0] && (
-                          <div className="absolute top-2 left-2">
+                          <div className="absolute top-1.5 xs:top-2 left-1.5 xs:left-2">
                             <Badge
                               className={cn(
-                                "backdrop-blur-md shadow-md font-medium px-2 py-0.5 text-xs",
+                                "backdrop-blur-md shadow-md font-medium px-1.5 xs:px-2 py-0.5 text-[9px] xs:text-[10px] sm:text-xs",
                                 course.badges[0] === "Hot" && "bg-gradient-to-r from-orange-500 to-red-500 text-white border-0",
                                 course.badges[0] === "New" && "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0",
                                 course.badges[0] === "Bestseller" && "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0"
@@ -548,23 +548,23 @@ export function ProfessionalCoursesPage({
                       </div>
 
                       {/* Course Info */}
-                      <div className="flex-1 py-2 pr-2 sm:py-3 sm:pr-3 md:py-4 md:pr-4 min-w-0">
+                      <div className="flex-1 py-2 xs:py-2.5 sm:py-3 md:py-4 px-2 xs:px-2.5 sm:px-3 md:px-4 min-w-0">
                         {/* Title */}
-                        <h3 className="font-bold text-xs sm:text-sm md:text-base mb-1 sm:mb-2 line-clamp-2 sm:line-clamp-1 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <h3 className="font-bold text-xs xs:text-sm sm:text-base mb-1 sm:mb-2 line-clamp-2 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words">
                           {course.title}
                         </h3>
 
                         {/* Description */}
                         {course.description && (
-                          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 line-clamp-1 sm:line-clamp-2 mb-1 sm:mb-2 leading-relaxed hidden sm:block">
+                          <p className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mb-1.5 sm:mb-2 leading-relaxed hidden sm:block break-words">
                             {course.description}
                           </p>
                         )}
 
                         {/* Instructor */}
-                        <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                        <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
                           {course.instructor?.avatar ? (
-                            <div className="relative w-4 h-4 sm:w-5 sm:h-5 rounded-full overflow-hidden flex-shrink-0">
+                            <div className="relative w-4 h-4 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5 rounded-full overflow-hidden flex-shrink-0">
                               <Image
                                 src={ensureHttpsUrl(course.instructor.avatar) || getFallbackImageUrl('user')}
                                 alt={course.instructor.name}
@@ -577,37 +577,37 @@ export function ProfessionalCoursesPage({
                               />
                             </div>
                           ) : (
-                            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
-                              <span className="text-white text-[8px] sm:text-[10px] font-bold">
+                            <div className="w-4 h-4 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                              <span className="text-white text-[8px] xs:text-[9px] sm:text-[10px] font-bold">
                                 {course.instructor?.name?.charAt(0).toUpperCase() || course.category.name.charAt(0)}
                               </span>
                             </div>
                           )}
-                          <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium truncate">
+                          <span className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400 font-medium truncate">
                             {course.instructor?.name || course.category.name}
                           </span>
                         </div>
 
                         {/* Type Badge and Stats Row */}
-                        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-wrap">
-                          <Badge variant="outline" className="text-[10px] sm:text-xs border-slate-200 dark:border-slate-700 px-1.5 py-0.5">
+                        <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 md:gap-4 flex-wrap">
+                          <Badge variant="outline" className="text-[9px] xs:text-[10px] sm:text-xs border-slate-200 dark:border-slate-700 px-1 xs:px-1.5 py-0.5">
                             {course.difficulty || "Beginner"}
                           </Badge>
 
-                          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-[10px] sm:text-xs">
-                            <div className="flex items-center gap-0.5 sm:gap-1">
-                              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-400 flex-shrink-0" />
+                          <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 md:gap-4 text-[9px] xs:text-[10px] sm:text-xs">
+                            <div className="flex items-center gap-0.5 xs:gap-1">
+                              <Star className="w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-400 flex-shrink-0" />
                               <span className="font-semibold text-slate-900 dark:text-white">
                                 {course.rating?.toFixed(1)}
                               </span>
                             </div>
-                            <div className="flex items-center gap-0.5 sm:gap-1 text-slate-600 dark:text-slate-400">
-                              <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                            <div className="flex items-center gap-0.5 xs:gap-1 text-slate-600 dark:text-slate-400">
+                              <Users className="w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
                               <span>{course.enrolledCount?.toLocaleString()}</span>
                             </div>
                             {course.duration && (
-                              <div className="flex items-center gap-0.5 sm:gap-1 text-slate-600 dark:text-slate-400 hidden sm:flex">
-                                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                              <div className="flex items-center gap-0.5 xs:gap-1 text-slate-600 dark:text-slate-400 hidden sm:flex">
+                                <Clock className="w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
                                 <span>{course.duration}h</span>
                               </div>
                             )}
@@ -625,39 +625,39 @@ export function ProfessionalCoursesPage({
 
         {/* All Courses Grid */}
         <div data-results-section>
-          <div className="flex items-center justify-between mb-6 gap-3">
-            <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
+          <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between mb-4 sm:mb-6 gap-3">
+            <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
               All Courses
             </h2>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Mobile Filter Button */}
               <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
                 <SheetTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="lg:hidden bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-md"
+                    className="lg:hidden bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-md h-9 sm:h-10 text-xs sm:text-sm"
                   >
-                    <SlidersHorizontal className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Filters</span>
+                    <SlidersHorizontal className="w-3.5 h-3.5 xs:w-4 xs:h-4 mr-1.5 xs:mr-2" />
+                    <span className="hidden xs:inline">Filters</span>
                     {activeFiltersCount > 0 && (
-                      <Badge className="ml-2 bg-blue-600 text-white text-xs px-1.5 py-0.5 min-w-[20px] h-5">
+                      <Badge className="ml-1.5 xs:ml-2 bg-blue-600 text-white text-[10px] xs:text-xs px-1.5 py-0.5 min-w-[18px] xs:min-w-[20px] h-4.5 xs:h-5">
                         {activeFiltersCount}
                       </Badge>
                     )}
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[300px] sm:w-[400px] overflow-y-auto">
-                  <SheetHeader>
-                    <SheetTitle className="flex items-center gap-2">
-                      <Filter className="w-5 h-5" />
+                <SheetContent side="left" className="w-[280px] xs:w-[300px] sm:w-[400px] overflow-y-auto p-4 sm:p-6">
+                  <SheetHeader className="mb-4 sm:mb-6">
+                    <SheetTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
                       Filter Courses
                     </SheetTitle>
-                    <SheetDescription>
+                    <SheetDescription className="text-xs sm:text-sm">
                       Refine your course search with filters
                     </SheetDescription>
                   </SheetHeader>
-                  <div className="mt-6">
+                  <div className="mt-4 sm:mt-6">
                     <ProfessionalFilterSidebar
                       filterOptions={filterOptions}
                       selectedCategories={selectedCategories}
@@ -671,10 +671,10 @@ export function ProfessionalCoursesPage({
                     />
 
                     {/* Apply Filters Button for Mobile */}
-                    <div className="sticky bottom-0 left-0 right-0 p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 mt-6 -mx-6 -mb-6">
+                    <div className="sticky bottom-0 left-0 right-0 p-3 sm:p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 mt-6 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
                       <Button
                         onClick={() => setIsMobileFilterOpen(false)}
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg h-10 sm:h-11 text-sm sm:text-base"
                       >
                         View {totalCourses} Course{totalCourses !== 1 ? 's' : ''}
                       </Button>
@@ -683,7 +683,7 @@ export function ProfessionalCoursesPage({
                 </SheetContent>
               </Sheet>
 
-              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 hidden sm:block">
+              <div className="text-[10px] xs:text-xs sm:text-sm text-slate-600 dark:text-slate-400 hidden xs:block">
                 Showing {((currentPage - 1) * 12) + 1}-{Math.min(currentPage * 12, totalCourses)} of {totalCourses} courses
               </div>
             </div>
@@ -691,17 +691,17 @@ export function ProfessionalCoursesPage({
 
           {/* Loading State */}
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="h-96 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-xl" />
+                <div key={i} className="h-80 xs:h-88 sm:h-96 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-xl" />
               ))}
             </div>
           ) : courses.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-xl text-slate-600 dark:text-slate-400">No courses found</p>
+            <div className="text-center py-12 sm:py-16">
+              <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400">No courses found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
               {courses.map((course, index) => (
                 <EnhancedCourseCard
                   key={course.id}
@@ -734,19 +734,19 @@ export function ProfessionalCoursesPage({
 
           {/* Pagination */}
           {totalPages > 1 && onPageChange && (
-            <div className="mt-12 flex items-center justify-center gap-2 sm:gap-3">
+            <div className="mt-8 sm:mt-10 md:mt-12 flex items-center justify-center gap-1.5 xs:gap-2 sm:gap-3 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1 || isLoading}
-                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm text-xs sm:text-sm px-3 sm:px-4 h-9 sm:h-10 min-w-[44px]"
+                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm text-[10px] xs:text-xs sm:text-sm px-2 xs:px-3 sm:px-4 h-8 xs:h-9 sm:h-10 min-w-[40px] xs:min-w-[44px]"
               >
-                <span className="hidden sm:inline">Previous</span>
-                <span className="sm:hidden">Prev</span>
+                <span className="hidden xs:inline">Previous</span>
+                <span className="xs:hidden">Prev</span>
               </Button>
 
-              <div className="flex gap-1 sm:gap-2">
+              <div className="flex gap-0.5 xs:gap-1 sm:gap-2">
                 {(() => {
                   const pages = [];
                   // Show fewer pages on mobile (3) vs desktop (5)
@@ -767,7 +767,7 @@ export function ProfessionalCoursesPage({
                         onClick={() => onPageChange(1)}
                         disabled={isLoading}
                         className={cn(
-                          "min-w-[32px] h-8 px-2 text-xs md:text-sm md:min-w-[40px] md:h-9 md:px-3",
+                          "min-w-[28px] xs:min-w-[32px] h-7 xs:h-8 px-1.5 xs:px-2 text-[10px] xs:text-xs md:text-sm md:min-w-[40px] md:h-9 md:px-3",
                           1 === currentPage
                             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
                             : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"
@@ -777,7 +777,7 @@ export function ProfessionalCoursesPage({
                       </Button>
                     );
                     if (startPage > 2) {
-                      pages.push(<span key="ellipsis1" className="px-1 text-xs md:text-sm">...</span>);
+                      pages.push(<span key="ellipsis1" className="px-0.5 xs:px-1 text-[10px] xs:text-xs md:text-sm">...</span>);
                     }
                   }
 
@@ -790,7 +790,7 @@ export function ProfessionalCoursesPage({
                         onClick={() => onPageChange(i)}
                         disabled={isLoading}
                         className={cn(
-                          "min-w-[32px] h-8 px-2 text-xs md:text-sm md:min-w-[40px] md:h-9 md:px-3",
+                          "min-w-[28px] xs:min-w-[32px] h-7 xs:h-8 px-1.5 xs:px-2 text-[10px] xs:text-xs md:text-sm md:min-w-[40px] md:h-9 md:px-3",
                           i === currentPage
                             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
                             : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"
@@ -803,7 +803,7 @@ export function ProfessionalCoursesPage({
 
                   if (endPage < totalPages) {
                     if (endPage < totalPages - 1) {
-                      pages.push(<span key="ellipsis2" className="px-1 text-xs md:text-sm">...</span>);
+                      pages.push(<span key="ellipsis2" className="px-0.5 xs:px-1 text-[10px] xs:text-xs md:text-sm">...</span>);
                     }
                     pages.push(
                       <Button
@@ -813,7 +813,7 @@ export function ProfessionalCoursesPage({
                         onClick={() => onPageChange(totalPages)}
                         disabled={isLoading}
                         className={cn(
-                          "min-w-[32px] h-8 px-2 text-xs md:text-sm md:min-w-[40px] md:h-9 md:px-3",
+                          "min-w-[28px] xs:min-w-[32px] h-7 xs:h-8 px-1.5 xs:px-2 text-[10px] xs:text-xs md:text-sm md:min-w-[40px] md:h-9 md:px-3",
                           totalPages === currentPage
                             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
                             : "bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm"
@@ -833,7 +833,7 @@ export function ProfessionalCoursesPage({
                 size="sm"
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages || isLoading}
-                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm text-xs sm:text-sm px-3 sm:px-4 h-9 sm:h-10 min-w-[44px]"
+                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm text-[10px] xs:text-xs sm:text-sm px-2 xs:px-3 sm:px-4 h-8 xs:h-9 sm:h-10 min-w-[40px] xs:min-w-[44px]"
               >
                 Next
               </Button>

@@ -71,9 +71,9 @@ export const CourseImageUpload = ({
       {/* Display Mode */}
       {!isEditing && (
         <div className="group relative">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {secureImageUrl ? (
-              <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700">
+              <div className="relative aspect-video w-full rounded-lg sm:rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700">
                 <Image
                   src={secureImageUrl}
                   alt="Course image"
@@ -85,14 +85,14 @@ export const CourseImageUpload = ({
                 />
               </div>
             ) : (
-              <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
-                <div className="flex items-center gap-2 px-3">
-                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <div className="space-y-2 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3">
+                  <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                  <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
                     No image uploaded
                   </p>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-2 sm:px-3 break-words">
                   Upload an attractive course thumbnail (16:9 ratio recommended)
                 </p>
               </div>
@@ -104,19 +104,19 @@ export const CourseImageUpload = ({
                 variant="outline"
                 size="sm"
                 className={cn(
-                  "h-9 px-4",
+                  "h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
                   "bg-white/80 dark:bg-slate-800/80",
                   "border-slate-200 dark:border-slate-700",
                   "text-slate-700 dark:text-slate-300",
                   "hover:bg-slate-50 dark:hover:bg-slate-800",
                   "hover:border-purple-300 dark:hover:border-purple-600",
                   "hover:text-purple-600 dark:hover:text-purple-400",
-                  "font-semibold text-sm",
+                  "font-semibold",
                   "transition-all duration-200",
                   "shadow-sm hover:shadow-md"
                 )}
               >
-                <ImagePlus className="h-4 w-4 mr-2" />
+                <ImagePlus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 {secureImageUrl ? "Change" : "Upload"}
               </Button>
             </div>
@@ -139,8 +139,8 @@ export const CourseImageUpload = ({
           <label
             htmlFor="imageUpload"
             className={cn(
-              "flex flex-col items-center justify-center gap-3",
-              "w-full p-8",
+              "flex flex-col items-center justify-center gap-2 sm:gap-3",
+              "w-full p-4 sm:p-6 md:p-8",
               "border-2 border-dashed rounded-lg",
               "border-slate-300 dark:border-slate-600",
               "bg-slate-50 dark:bg-slate-900",
@@ -148,24 +148,24 @@ export const CourseImageUpload = ({
               "transition-all duration-200"
             )}
           >
-            <div className="p-3 rounded-full bg-slate-200 dark:bg-slate-700">
+            <div className="p-2 sm:p-3 rounded-full bg-slate-200 dark:bg-slate-700">
               {uploading ? (
-                <Loader2 className="h-6 w-6 text-slate-600 dark:text-slate-400 animate-spin" />
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600 dark:text-slate-400 animate-spin" />
               ) : (
-                <ImagePlus className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+                <ImagePlus className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600 dark:text-slate-400" />
               )}
             </div>
-            <div className="text-center space-y-1">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <div className="text-center space-y-0.5 sm:space-y-1">
+              <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
                 {uploading ? "Uploading..." : "Click to upload an image"}
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
                 PNG, JPG up to 5MB
               </p>
             </div>
           </label>
 
-          <div className="flex items-center justify-between gap-x-2">
+          <div className="flex items-center justify-end">
             <Button
               onClick={toggleEdit}
               variant="outline"
@@ -173,7 +173,7 @@ export const CourseImageUpload = ({
               type="button"
               disabled={uploading}
               className={cn(
-                "h-9 px-4",
+                "h-10 sm:h-9 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
                 "bg-white dark:bg-slate-800",
                 "border-slate-300 dark:border-slate-600",
                 "text-slate-700 dark:text-slate-300",

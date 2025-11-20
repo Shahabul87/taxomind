@@ -280,9 +280,8 @@ export class APISecurityManager {
       // Verify user still exists and is active
       const user = await db.user.findUnique({
         where: { id: decoded.userId || decoded.sub },
-        select: { 
-          id: true, 
-          role: true, 
+        select: {
+          id: true,
           isAccountLocked: true,
           userPermissions: {
             where: {
@@ -304,11 +303,10 @@ export class APISecurityManager {
       }
       
       const permissions = user.userPermissions.map(up => up.permission.name);
-      
+
       return {
         valid: true,
         userId: user.id,
-        role: user.role,
         permissions
       };
     } catch (error) {

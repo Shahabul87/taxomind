@@ -5,7 +5,7 @@
  */
 
 // import { headers } from 'next/headers'; // Removed - causes build error
-import { UserRole } from '@prisma/client';
+import { AdminRole } from '@prisma/client';
 import { auditLogger, AuditEventType, AuditSeverity, AuditContext, AuditMetadata } from '@/lib/compliance/audit-logger';
 import { db } from '@/lib/db';
 
@@ -71,8 +71,8 @@ interface AuthAuditContext extends AuditContext {
   loginMethod?: string;
   deviceInfo?: string;
   locationInfo?: string;
-  previousRole?: UserRole;
-  newRole?: UserRole;
+  previousRole?: AdminRole;
+  newRole?: AdminRole;
   failureReason?: string;
   attemptCount?: number;
   timeWindow?: string;
@@ -498,8 +498,8 @@ class AuthenticationAuditLogger {
     targetEmail: string,
     adminUserId: string,
     adminEmail: string,
-    oldRole: UserRole,
-    newRole: UserRole,
+    oldRole: AdminRole,
+    newRole: AdminRole,
     reason?: string,
     additionalContext?: Partial<AuthAuditContext>
   ): Promise<void> {
@@ -549,10 +549,10 @@ class AuthenticationAuditLogger {
   /**
    * Check if role change is an escalation
    */
-  private isRoleEscalation(oldRole: UserRole, newRole: UserRole): boolean {
+  private isRoleEscalation(oldRole: AdminRole, newRole: AdminRole): boolean {
     const roleHierarchy = {
-      [UserRole.USER]: 0,
-      [UserRole.ADMIN]: 1,
+      [AdminRole.ADMIN]: 0,
+      [AdminRole.SUPERADMIN]: 1,
     };
 
     return roleHierarchy[newRole] > roleHierarchy[oldRole];
@@ -787,8 +787,8 @@ export const authAuditHelpers = {
     targetEmail: string, 
     adminUserId: string, 
     adminEmail: string, 
-    oldRole: UserRole, 
-    newRole: UserRole, 
+    oldRole: AdminRole, 
+    newRole: AdminRole, 
     reason?: string,
     context?: Partial<AuthAuditContext>
   ) => authAudit.logRoleChange(targetUserId, targetEmail, adminUserId, adminEmail, oldRole, newRole, reason, context),

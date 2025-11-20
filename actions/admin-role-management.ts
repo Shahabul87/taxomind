@@ -1,96 +1,18 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { adminAuth } from "@/auth.admin";
 import { currentUser } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
+import { AdminSession } from "@/types/admin-session";
 
 /**
- * Admin-only action to change user roles
- * Only ADMIN users can change roles of other users
+ * NOTE: Users no longer have roles. This function is deprecated.
+ * Use isTeacher flag instead to distinguish between regular users and teachers.
  */
-export const changeUserRole = async (
-  targetUserId: string,
-  newRole: UserRole
-) => {
-  try {
-    const user = await currentUser();
-
-    // Check if current user is authenticated
-    if (!user || !user.id) {
-      return { error: "Unauthorized: Authentication required" };
-    }
-
-    // Check if current user is an admin
-    if (user.role !== UserRole.ADMIN) {
-      logger.warn(`Unauthorized role change attempt by user ${user.id}`);
-      return { error: "Unauthorized: Admin access required" };
-    }
-
-    // Prevent admin from changing their own role
-    if (user.id === targetUserId) {
-      return { error: "Cannot change your own role for security reasons" };
-    }
-
-    // Check if target user exists
-    const targetUser = await db.user.findUnique({
-      where: { id: targetUserId },
-      select: { 
-        id: true, 
-        email: true, 
-        role: true,
-        name: true 
-      }
-    });
-
-    if (!targetUser) {
-      return { error: "User not found" };
-    }
-
-    // Prevent demotion of the last admin
-    if (targetUser.role === UserRole.ADMIN && newRole !== UserRole.ADMIN) {
-      const adminCount = await db.user.count({
-        where: { role: UserRole.ADMIN }
-      });
-
-      if (adminCount <= 1) {
-        return { error: "Cannot remove the last admin user" };
-      }
-    }
-
-    // Update the user's role
-    const updatedUser = await db.user.update({
-      where: { id: targetUserId },
-      data: { 
-        role: newRole
-      }
-    });
-
-    // Create comprehensive audit log using new auth audit system
-    await authAuditHelpers.logRoleChange(
-      targetUserId,
-      targetUser.email!,
-      user.id,
-      user.email!,
-      targetUser.role,
-      newRole,
-      'Admin role change operation'
-    );
-
-    logger.info(`Role changed for user ${targetUser.email} from ${targetUser.role} to ${newRole} by admin ${user.email}`);
-
-    return { 
-      success: `Role updated successfully for ${targetUser.name || targetUser.email}`,
-      updatedUser: {
-        id: updatedUser.id,
-        role: updatedUser.role
-      }
-    };
-  } catch (error) {
-    logger.error("Error changing user role:", error);
-    return { error: "Failed to change user role" };
-  }
+export const changeUserRole = async () => {
+  return { error: "Users no longer have roles. Use teacher verification instead." };
 };
 
 /**
@@ -109,12 +31,7 @@ export const requestInstructorRole = async (
       return { error: "Unauthorized: Authentication required" };
     }
 
-    // Check if user is already an admin (admins have all privileges)
-    if (user.role === UserRole.ADMIN) {
-      return { error: "You already have instructor privileges" };
-    }
-    
-    // Check if user has teacher flag (for legacy compatibility)
+    // Check if user has teacher flag or TEACHER role
     const userData = await db.user.findUnique({
       where: { id: user.id },
       select: { isTeacher: true }
@@ -197,13 +114,15 @@ export const reviewInstructorRequest = async (
   reviewNotes?: string
 ) => {
   try {
-    const reviewer = await currentUser();
+    const session = await adminAuth() as AdminSession | null;
 
-    if (!reviewer || !reviewer.id) {
-      return { error: "Unauthorized: Authentication required" };
+    if (!session || !session.user || !session.user.id) {
+      return { error: "Unauthorized: Admin authentication required" };
     }
 
-    if (reviewer.role !== UserRole.ADMIN) {
+    const reviewer = session.user;
+
+    if (reviewer.role !== "ADMIN" && reviewer.role !== "SUPERADMIN") {
       return { error: "Unauthorized: Admin access required" };
     }
 
@@ -282,13 +201,15 @@ export const reviewInstructorRequest = async (
  */
 export const getPendingInstructorRequests = async () => {
   try {
-    const user = await currentUser();
+    const session = await adminAuth();
 
-    if (!user || !user.id) {
-      return { error: "Unauthorized: Authentication required" };
+    if (!session || !session.user || !session.user.id) {
+      return { error: "Unauthorized: Admin authentication required" };
     }
 
-    if (user.role !== UserRole.ADMIN) {
+    const admin = session.user;
+
+    if (admin.role !== "ADMIN" && admin.role !== "SUPERADMIN") {
       return { error: "Unauthorized: Admin access required" };
     }
 

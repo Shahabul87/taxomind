@@ -198,10 +198,10 @@ export const AddCodeExplanationForm = ({
                         {...field}
                         placeholder="e.g., User Authentication Function"
                         disabled={isSaving}
-                        className="text-sm"
+                        className="text-xs sm:text-sm h-9 sm:h-10"
                       />
                     </FormControl>
-                    <FormMessage className="text-xs" />
+                    <FormMessage className="text-xs sm:text-sm" />
                   </FormItem>
                 )}
               />
@@ -218,19 +218,19 @@ export const AddCodeExplanationForm = ({
                       value={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="text-sm">
+                        <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
                           <SelectValue placeholder="Select a language" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {PROGRAMMING_LANGUAGES.map((lang) => (
-                          <SelectItem key={lang.value} value={lang.value} className="text-sm">
+                          <SelectItem key={lang.value} value={lang.value} className="text-xs sm:text-sm">
                             {lang.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage className="text-xs" />
+                    <FormMessage className="text-xs sm:text-sm" />
                   </FormItem>
                 )}
               />
@@ -262,14 +262,14 @@ export const AddCodeExplanationForm = ({
                     >
                       <div className="space-y-2">
                         {/* Editor Header with Clear Button */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
                             {block.type === "code" ? (
-                              <Code className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                              <Code className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                             ) : (
-                              <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                             )}
-                            <label className="text-xs sm:text-sm font-medium">
+                            <label className="text-xs sm:text-sm font-medium truncate">
                               {block.type === "code" ? "Code Editor" : "Explanation Editor"} #{blockNumber}
                             </label>
                           </div>
@@ -279,9 +279,9 @@ export const AddCodeExplanationForm = ({
                             size="sm"
                             onClick={() => handleRemoveBlock(block.id)}
                             disabled={isSaving}
-                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                            className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-destructive hover:text-destructive flex-shrink-0"
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
 
@@ -291,7 +291,7 @@ export const AddCodeExplanationForm = ({
                             value={block.content}
                             onChange={(e) => handleUpdateBlock(block.id, e.target.value)}
                             placeholder="Enter your code here..."
-                            className="text-xs sm:text-sm min-h-[120px] sm:min-h-[150px] resize-y font-mono"
+                            className="text-xs sm:text-sm min-h-[100px] sm:min-h-[120px] md:min-h-[150px] resize-y font-mono"
                             disabled={isSaving}
                           />
                         ) : (
@@ -319,19 +319,19 @@ export const AddCodeExplanationForm = ({
                       variant="outline"
                       size="sm"
                       disabled={isSaving}
-                      className="gap-2 border-dashed border-2 hover:border-solid"
+                      className="gap-1.5 sm:gap-2 border-dashed border-2 hover:border-solid h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm w-full sm:w-auto"
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       Add Block
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center">
-                    <DropdownMenuItem onClick={() => handleAddBlock("code")}>
-                      <Code className="h-4 w-4 mr-2 text-emerald-600" />
+                  <DropdownMenuContent align="center" className="w-[200px] sm:w-auto">
+                    <DropdownMenuItem onClick={() => handleAddBlock("code")} className="text-xs sm:text-sm">
+                      <Code className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 text-emerald-600" />
                       Add Code
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleAddBlock("explanation")}>
-                      <FileText className="h-4 w-4 mr-2 text-blue-600" />
+                    <DropdownMenuItem onClick={() => handleAddBlock("explanation")} className="text-xs sm:text-sm">
+                      <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 text-blue-600" />
                       Add Explanation
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -344,10 +344,10 @@ export const AddCodeExplanationForm = ({
               <Button
                 type="submit"
                 disabled={isSaving || blocks.length === 0}
-                className="gap-2 w-full xs:w-auto touch-manipulation min-h-[44px]"
+                className="gap-1.5 sm:gap-2 w-full xs:w-auto touch-manipulation min-h-[44px] h-10 sm:h-11 px-4 sm:px-6 text-xs sm:text-sm"
               >
-                <Save className="h-4 w-4" />
-                <span className="text-sm">{isSaving ? "Saving..." : "Save Code Block"}</span>
+                <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span>{isSaving ? "Saving..." : "Save Code Block"}</span>
               </Button>
             </div>
           </form>

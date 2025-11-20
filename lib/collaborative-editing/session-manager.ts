@@ -47,7 +47,6 @@ export class CollaborativeSessionManager {
                   name: true,
                   email: true,
                   image: true,
-                  role: true,
                 },
               },
             },

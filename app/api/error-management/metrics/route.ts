@@ -126,8 +126,7 @@ export const GET = withErrorHandling(async (request: Request) => {
       select: {
         id: true,
         name: true,
-        email: true,
-        role: true
+        email: true
       }
     });
 

@@ -10,12 +10,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is admin
-    const user = await db.user.findUnique({
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
       where: { id: session.user.id },
     });
 
-    if (!user || user.role !== "ADMIN") {
+    if (!adminAccount || (adminAccount.role !== "ADMIN" && adminAccount.role !== "SUPERADMIN")) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
@@ -466,11 +466,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
       where: { id: session.user.id },
     });
 
-    if (!user || user.role !== "ADMIN") {
+    if (!adminAccount || (adminAccount.role !== "ADMIN" && adminAccount.role !== "SUPERADMIN")) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 

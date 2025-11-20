@@ -49,9 +49,9 @@ datasource db {
 //
 // ==========================================
 
-enum UserRole {
+enum AdminRole {
+  SUPERADMIN
   ADMIN
-  USER
 }
 
 enum InstructorStatus {
@@ -871,7 +871,6 @@ model User {
   password                                String?
   // SECURITY FIX: confirmPassword removed - should never be persisted in database
   // Password confirmation is only for frontend validation
-  role                                    UserRole                             @default(USER)
   isTwoFactorEnabled                      Boolean                              @default(false)
   totpSecret                              String? // Encrypted TOTP secret
   totpEnabled                             Boolean                              @default(false)
@@ -1073,16 +1072,6 @@ model User {
   userCapabilities          UserCapability[]
   emailLogs                 EmailLog[]
   userContext               UserContext?
-
-  // Phase 3: Admin-specific relations (added January 11, 2025)
-  adminMetadata       AdminMetadata?        @relation("AdminMetadataUser")
-  adminAuditLogs      AdminAuditLog[]       @relation("AdminAuditLogUser")
-  adminSessionMetrics AdminSessionMetrics[] @relation("AdminSessionMetricsUser")
-
-  // Phase 4: Enterprise Auth Separation - Admin-only auth tables (added January 11, 2025)
-  adminAccounts               AdminAccount[]              @relation("AdminAccounts")
-  adminActiveSessions         AdminActiveSession[]        @relation("AdminActiveSessions")
-  adminTwoFactorConfirmation  AdminTwoFactorConfirmation? @relation("AdminTwoFactorConfirmation")
 
   // User Preferences & Settings (added January 16, 2025)
   notificationPreferences UserNotificationPreferences?
@@ -1301,23 +1290,10 @@ model Permission {
   description     String?
   category        String
   createdAt       DateTime         @default(now())
-  roles           RolePermission[]
   userPermissions UserPermission[]
 
   @@index([category])
   @@map("permissions")
-}
-
-model RolePermission {
-  id           String     @id @default(cuid())
-  role         UserRole
-  permissionId String
-  createdAt    DateTime   @default(now())
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([role, permissionId])
-  @@index([role])
-  @@map("role_permissions")
 }
 
 model UserPermission {
@@ -1406,27 +1382,39 @@ model UserCapability {
 }
 
 model AdminAccount {
-  id                String  @id @default(cuid())
-  adminId           String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String    // Hashed password
+  name          String?
+  role          AdminRole @default(ADMIN)
+  emailVerified DateTime?
+  image         String?
 
-  admin User @relation("AdminAccounts", fields: [adminId], references: [id], onDelete: Cascade)
+  // Profile fields
+  phone         String?
+  department    String?
+  bio           String?
 
+  // Security & 2FA
+  isTwoFactorEnabled Boolean  @default(false)
+  totpEnabled        Boolean? @default(false)
+  totpVerified       Boolean? @default(false)
+  totpSecret         String?  @db.Text
+  recoveryCodes      String[]
+
+  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([provider, providerAccountId])
-  @@index([adminId])
-  @@index([provider])
+  // Relations
+  activeSessions         AdminActiveSession[]
+  auditLogs              AdminAuditLog[]
+  sessionMetrics         AdminSessionMetrics[]
+  metadata               AdminMetadata?
+  twoFactorConfirmation  AdminTwoFactorConfirmation?
+
+  @@index([email])
+  @@index([role])
 }
 
 model AdminActiveSession {
@@ -1444,7 +1432,7 @@ model AdminActiveSession {
   isActive     Boolean  @default(true)
   lastActiveAt DateTime @default(now())
 
-  admin User @relation("AdminActiveSessions", fields: [adminId], references: [id], onDelete: Cascade)
+  admin AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1456,9 +1444,9 @@ model AdminActiveSession {
 }
 
 model AdminTwoFactorConfirmation {
-  id      String @id @default(cuid())
-  adminId String @unique
-  admin   User   @relation("AdminTwoFactorConfirmation", fields: [adminId], references: [id], onDelete: Cascade)
+  id      String       @id @default(cuid())
+  adminId String       @unique
+  admin   AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -5206,9 +5194,9 @@ model UserContext {
 }
 
 model AdminMetadata {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation("AdminMetadataUser", fields: [userId], references: [id], onDelete: Cascade)
+  id      String        @id @default(cuid())
+  adminId String?       @unique  // Make optional temporarily for migration
+  admin   AdminAccount? @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   // Session configuration
   sessionTimeout         Int @default(14400) // 4 hours in seconds
@@ -5239,14 +5227,14 @@ model AdminMetadata {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId])
+  @@index([adminId])
   @@index([updatedAt])
 }
 
 model AdminAuditLog {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation("AdminAuditLogUser", fields: [userId], references: [id], onDelete: Cascade)
+  id      String        @id @default(cuid())
+  adminId String?       // Make optional temporarily for migration
+  admin   AdminAccount? @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   // Action details
   action         String // LOGIN, LOGOUT, DATA_ACCESS, CONFIG_CHANGE, USER_MANAGEMENT, etc.
@@ -5278,7 +5266,7 @@ model AdminAuditLog {
   // Timestamp
   timestamp DateTime @default(now())
 
-  @@index([userId, timestamp])
+  @@index([adminId, timestamp])
   @@index([action, timestamp])
   @@index([actionCategory, timestamp])
   @@index([success, timestamp])
@@ -5287,9 +5275,9 @@ model AdminAuditLog {
 }
 
 model AdminSessionMetrics {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation("AdminSessionMetricsUser", fields: [userId], references: [id], onDelete: Cascade)
+  id      String        @id @default(cuid())
+  adminId String?       // Make optional temporarily for migration
+  admin   AdminAccount? @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   // Session identification
   sessionId    String  @unique
@@ -5324,7 +5312,7 @@ model AdminSessionMetrics {
   logoutReason String? // MANUAL, TIMEOUT, FORCE, ERROR
   wasForced    Boolean @default(false)
 
-  @@index([userId, loginTime])
+  @@index([adminId, loginTime])
   @@index([sessionId])
   @@index([loginTime])
   @@index([isSuspicious])

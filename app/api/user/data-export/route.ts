@@ -31,7 +31,6 @@ export async function GET() {
         id: userData?.id,
         name: userData?.name,
         email: userData?.email,
-        role: userData?.role,
         createdAt: userData?.createdAt,
         lastLoginAt: userData?.lastLoginAt,
       },

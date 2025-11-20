@@ -238,9 +238,7 @@ export const login = async (
   console.log('[login] credentials validated, returning success');
   
   // Log successful login
-  await authAuditHelpers.logSignInSuccess(existingUser.id, existingUser.email, 'credentials', {
-    userRole: existingUser.role
-  });
+  await authAuditHelpers.logSignInSuccess(existingUser.id, existingUser.email, 'credentials');
   
   // Return success - client will handle the actual sign in
   return { 

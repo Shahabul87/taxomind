@@ -24,24 +24,18 @@ export async function POST(req: Request): Promise<NextResponse> {
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    // Also check database for user role directly
+    // Verify user exists in database
     const dbUser = await db.user.findUnique({
       where: { id: user.id },
-      select: { id: true, email: true, role: true }
+      select: { id: true, email: true, isTeacher: true }
     });
     console.log("[COURSES] Database user:", JSON.stringify(dbUser, null, 2));
 
-    // Use database role as source of truth
-    const userRole = dbUser?.role;
-
-    if (!userRole) {
-      return new NextResponse("User role not found", { status: 403 });
+    if (!dbUser) {
+      return new NextResponse("User not found", { status: 404 });
     }
 
-    // Both USER and ADMIN roles can create courses
-    if (userRole !== 'USER' && userRole !== 'ADMIN') {
-      return new NextResponse(`Forbidden - Invalid user role: ${userRole}`, { status: 403 });
-    }
+    // All authenticated users can create courses (both regular users and teachers)
 
     // Parse request body
     const body = await req.json();

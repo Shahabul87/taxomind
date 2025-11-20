@@ -15,7 +15,7 @@
 import "server-only";
 
 import NextAuth from "next-auth"
-import { UserRole } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
 import type { JWT } from "next-auth/jwt";
 import type { Session, User } from "next-auth";
 
@@ -285,7 +285,7 @@ export const {
       }
 
       if (token.role && session.user) {
-        session.user.role = token.role as UserRole;
+        session.user.role = token.role as AdminRole;
 
         // Verify role is ADMIN
         if (token.role !== 'ADMIN') {

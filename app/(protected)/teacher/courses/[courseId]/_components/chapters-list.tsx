@@ -246,13 +246,13 @@ export const ChaptersList = ({
     <div 
       ref={listRef}
       className={cn(
-        "space-y-3",
-        "overflow-x-auto pb-4",
+        "space-y-2 sm:space-y-3",
+        "overflow-x-auto pb-2 sm:pb-4",
         "scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700",
         "scrollbar-track-transparent"
       )}
     >
-      <div className="min-w-[600px] sm:min-w-full">
+      <div className="min-w-0 w-full">
         {chapters.map((chapter) => {
           const isDragging = draggedItem?.id === chapter.id;
           const isDragOver = dragOverItemId === chapter.id;
@@ -272,46 +272,48 @@ export const ChaptersList = ({
               onTouchEnd={handleTouchEnd}
               onTouchCancel={handleTouchCancel}
               className={cn(
-                "flex items-center gap-x-2 mb-3",
+                "flex items-stretch sm:items-center gap-0 mb-2 sm:mb-3",
                 "bg-white/50 dark:bg-gray-900/50 border",
-                "border-gray-200 dark:border-gray-700/50 rounded-xl",
+                "border-gray-200 dark:border-gray-700/50 rounded-lg sm:rounded-xl",
                 "text-gray-900 dark:text-gray-100",
                 "shadow-sm backdrop-blur-sm",
                 "transition-all duration-200 ease-in-out",
                 "touch-manipulation",
+                "min-h-[52px] xs:min-h-[56px] sm:min-h-[60px]",
                 chapter.isPublished && "bg-purple-50/50 dark:bg-purple-900/20 border-purple-200/50 dark:border-purple-500/30",
                 isDragOver && !isDragging && "border-purple-300 dark:border-purple-700 bg-purple-50/30 dark:bg-purple-900/10"
               )}
             >
               <div
                 className={cn(
-                  "px-3 py-4 border-r transition-colors",
+                  "px-1.5 xs:px-2 sm:px-3 py-2.5 xs:py-3 sm:py-4 border-r transition-colors flex-shrink-0",
                   "hover:bg-gray-100/50 dark:hover:bg-gray-800/50",
-                  "rounded-l-xl cursor-grab active:cursor-grabbing",
+                  "rounded-l-lg sm:rounded-l-xl cursor-grab active:cursor-grabbing",
                   "border-gray-200 dark:border-gray-700/50",
-                  "touch-manipulation",
+                  "touch-manipulation flex items-center",
+                  "min-w-[36px] xs:min-w-[40px] sm:min-w-[48px]",
                   chapter.isPublished && "border-purple-200/50 dark:border-purple-500/30"
                 )}
               >
-                <Grip className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <Grip className="h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-400" />
               </div>
-              <div className="flex-1 flex items-center justify-between px-2">
-                <p className="text-sm sm:text-base font-medium line-clamp-1 text-gray-900 dark:text-gray-100 min-w-[120px]">
+              <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 xs:gap-2 sm:gap-0 px-1.5 xs:px-2 sm:px-3 py-1.5 xs:py-2 sm:py-0 min-w-0 overflow-hidden">
+                <p className="text-xs sm:text-sm md:text-base font-medium line-clamp-2 sm:line-clamp-1 text-gray-900 dark:text-gray-100 flex-1 min-w-0 break-words leading-tight sm:leading-normal">
                   {chapter.title}
                 </p>
-                <div className="flex items-center gap-x-2 sm:gap-x-3">
+                <div className="flex items-center gap-x-2 xs:gap-x-2.5 sm:gap-x-2 md:gap-x-3 flex-wrap sm:flex-nowrap flex-shrink-0">
                   {chapter.isFree ? (
-                    <div className="flex items-center justify-center gap-x-1 text-emerald-700 dark:text-emerald-400 min-w-[40px]">
-                      <Unlock className="h-4 w-4" />
-                      <span className="text-xs font-medium hidden sm:inline">Free</span>
+                    <div className="flex items-center justify-center gap-x-0.5 xs:gap-x-1 text-emerald-700 dark:text-emerald-400 flex-shrink-0">
+                      <Unlock className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" />
+                      <span className="text-[9px] xs:text-[10px] sm:text-xs font-medium hidden md:inline">Free</span>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center min-w-[40px]">
-                      <Lock className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <div className="flex items-center justify-center flex-shrink-0">
+                      <Lock className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
                     </div>
                   )}
                   <Badge className={cn(
-                    "px-2 py-0.5 rounded-full text-xs font-medium min-w-[70px] text-center",
+                    "px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-xs font-medium min-w-[50px] xs:min-w-[60px] sm:min-w-[70px] text-center flex-shrink-0",
                     chapter.isPublished 
                       ? "bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border-purple-200/50 dark:border-purple-500/30"
                       : "bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200/50 dark:border-gray-700/50"
@@ -321,15 +323,16 @@ export const ChaptersList = ({
                   <button
                     onClick={() => onEdit(chapter.id)}
                     className={cn(
-                      "flex items-center justify-center gap-x-1.5 px-2 py-1 rounded-md min-w-[40px]",
+                      "flex items-center justify-center gap-x-0.5 xs:gap-x-1 px-1 xs:px-1.5 sm:px-2 py-0.5 xs:py-1 rounded-md flex-shrink-0",
                       "text-gray-700 dark:text-gray-300",
                       "hover:text-gray-900 dark:hover:text-gray-100",
                       "hover:bg-gray-100/50 dark:hover:bg-gray-800/50",
-                      "transition-colors"
+                      "transition-colors",
+                      "h-6 xs:h-7 sm:h-8"
                     )}
                   >
-                    <Pencil className="h-4 w-4" />
-                    <span className="text-xs sm:text-sm font-medium hidden sm:inline">Edit</span>
+                    <Pencil className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" />
+                    <span className="text-[9px] xs:text-[10px] sm:text-xs md:text-sm font-medium hidden lg:inline">Edit</span>
                   </button>
                   {onDelete && (
                     <ChapterDeleteButton 
@@ -372,33 +375,34 @@ const ChapterDeleteButton = ({
       <button
         onClick={handleDeleteClick}
         className={cn(
-          "flex items-center justify-center gap-x-1.5 px-2 py-1 rounded-md min-w-[40px]",
+          "flex items-center justify-center gap-x-0.5 xs:gap-x-1 px-1 xs:px-1.5 sm:px-2 py-0.5 xs:py-1 rounded-md flex-shrink-0",
           "text-rose-600 dark:text-rose-500",
           "hover:text-rose-700 dark:hover:text-rose-400",
           "hover:bg-rose-50/50 dark:hover:bg-rose-900/20",
-          "transition-colors"
+          "transition-colors",
+          "h-6 xs:h-7 sm:h-8"
         )}
       >
-        <Trash2 className="h-4 w-4" />
-        <span className="text-xs sm:text-sm font-medium hidden sm:inline">Delete</span>
+        <Trash2 className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" />
+        <span className="text-[9px] xs:text-[10px] sm:text-xs md:text-sm font-medium hidden lg:inline">Delete</span>
       </button>
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg">
+        <AlertDialogContent className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg max-w-[calc(100vw-2rem)] sm:max-w-md mx-2 sm:mx-4">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900 dark:text-gray-100">Delete Chapter</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
+            <AlertDialogTitle className="text-sm sm:text-base md:text-lg text-gray-900 dark:text-gray-100">Delete Chapter</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 break-words">
               Are you sure you want to delete &quot;{chapter.title}&quot;?
               <br />
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+          <AlertDialogFooter className="flex-col-reverse xs:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel className="bg-transparent border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 w-full xs:w-auto text-xs sm:text-sm md:text-base h-9 sm:h-10">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleConfirmDelete}
-              className="bg-rose-500 hover:bg-rose-600 text-white focus:ring-rose-500/20"
+              className="bg-rose-500 hover:bg-rose-600 text-white focus:ring-rose-500/20 w-full xs:w-auto text-xs sm:text-sm md:text-base h-9 sm:h-10"
             >
               Delete
             </AlertDialogAction>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { UserRole } from '@prisma/client';
+// UserRole removed - users no longer have roles
 
 interface RouteParams {
   params: {
@@ -53,13 +53,18 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     }
 
     // Check permissions - users can only resolve their own alerts, admins can resolve any
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: session.user.id },
+    });
+    const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
+
     const affectedUsers = Array.isArray(alert.affectedUsers) ? alert.affectedUsers : [];
-    const canResolve = session.user.role === UserRole.ADMIN || 
-                      affectedUsers.includes(session.user.id);
+    const canResolve = isAdmin || affectedUsers.includes(session.user.id);
 
     if (!canResolve) {
       return NextResponse.json(
-        { success: false, error: 'Permission denied' }, 
+        { success: false, error: 'Permission denied' },
         { status: 403 }
       );
     }
@@ -128,21 +133,25 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check permissions
+    // Check permissions - check if user is admin from AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: session.user.id },
+    });
+    const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
+
     const affectedUsers = Array.isArray(alert.affectedUsers) ? alert.affectedUsers : [];
-    const canView = session.user.role === UserRole.ADMIN || 
-                   affectedUsers.includes(session.user.id);
+    const canView = isAdmin || affectedUsers.includes(session.user.id);
 
     if (!canView) {
       return NextResponse.json(
-        { success: false, error: 'Permission denied' }, 
+        { success: false, error: 'Permission denied' },
         { status: 403 }
       );
     }
 
     // Filter sensitive information for non-admin users
     let filteredAlert = alert;
-    if (session.user.role !== UserRole.ADMIN) {
+    if (!isAdmin) {
       filteredAlert = {
         ...alert,
         affectedUsers: [session.user.id], // Only show self

@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -252,48 +252,48 @@ export function IntelligentFeaturesTab({ analytics, performance }: IntelligentFe
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-purple-900/20 dark:to-pink-900/20">
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-8 p-3 sm:p-4 md:p-6">
         {/* Hero Section */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-8"
+          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-4 sm:p-6 md:p-8"
         >
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 rounded-full text-white font-medium">
-              <Sparkles className="h-5 w-5" />
-              <span>AI-Powered Learning Hub</span>
+          <div className="text-center space-y-3 sm:space-y-4">
+            <div className="inline-flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-violet-500 to-purple-600 rounded-full text-white font-medium text-xs sm:text-sm">
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="break-words">AI-Powered Learning Hub</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent break-words leading-tight">
               Supercharge Your Learning
             </h1>
-            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto break-words leading-relaxed px-2">
               Unlock the power of artificial intelligence to accelerate your learning journey, create better content, and achieve your goals faster than ever before.
             </p>
             
             {/* Feature Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-6 md:mt-8">
               <motion.div 
                 whileHover={{ scale: 1.05 }}
-                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-700 p-6 text-center shadow-sm hover:shadow-md transition-all duration-300"
+                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-700 p-4 sm:p-5 md:p-6 text-center shadow-sm hover:shadow-md transition-all duration-300"
               >
-                <div className="text-3xl font-bold text-green-600">{availableFeatures}</div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">Available Features</div>
+                <div className="text-2xl sm:text-3xl font-bold text-green-600 break-words">{availableFeatures}</div>
+                <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words mt-1">Available Features</div>
               </motion.div>
               <motion.div 
                 whileHover={{ scale: 1.05 }}
-                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-700 p-6 text-center shadow-sm hover:shadow-md transition-all duration-300"
+                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-700 p-4 sm:p-5 md:p-6 text-center shadow-sm hover:shadow-md transition-all duration-300"
               >
-                <div className="text-3xl font-bold text-amber-600">{premiumFeatures}</div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">Premium Features</div>
+                <div className="text-2xl sm:text-3xl font-bold text-amber-600 break-words">{premiumFeatures}</div>
+                <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words mt-1">Premium Features</div>
               </motion.div>
               <motion.div 
                 whileHover={{ scale: 1.05 }}
-                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-700 p-6 text-center shadow-sm hover:shadow-md transition-all duration-300"
+                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-700 p-4 sm:p-5 md:p-6 text-center shadow-sm hover:shadow-md transition-all duration-300"
               >
-                <div className="text-3xl font-bold text-blue-600">{comingSoonFeatures}</div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">Coming Soon</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600 break-words">{comingSoonFeatures}</div>
+                <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words mt-1">Coming Soon</div>
               </motion.div>
             </div>
           </div>
@@ -304,16 +304,16 @@ export function IntelligentFeaturesTab({ analytics, performance }: IntelligentFe
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-2"
+          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm p-2 sm:p-3"
         >
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             <Button
               variant={selectedCategory === 'all' ? 'default' : 'ghost'}
               onClick={() => setSelectedCategory('all')}
               className={`${selectedCategory === 'all' 
                 ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md' 
                 : 'hover:bg-slate-100 dark:hover:bg-slate-700'
-              } transition-all duration-200`}
+              } transition-all duration-200 text-xs sm:text-sm min-h-[36px] sm:min-h-[32px] px-3 sm:px-4 touch-manipulation`}
             >
               All Features
             </Button>
@@ -325,7 +325,7 @@ export function IntelligentFeaturesTab({ analytics, performance }: IntelligentFe
                 className={`${selectedCategory === category 
                   ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md' 
                   : 'hover:bg-slate-100 dark:hover:bg-slate-700'
-                } transition-all duration-200`}
+                } transition-all duration-200 text-xs sm:text-sm min-h-[36px] sm:min-h-[32px] px-3 sm:px-4 touch-manipulation break-words`}
               >
                 {category}
               </Button>
@@ -338,7 +338,7 @@ export function IntelligentFeaturesTab({ analytics, performance }: IntelligentFe
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6"
         >
           {filteredFeatures.map((feature, index) => (
             <AIFeatureCard 
@@ -356,34 +356,34 @@ export function IntelligentFeaturesTab({ analytics, performance }: IntelligentFe
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-8"
+          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg p-4 sm:p-6 md:p-8"
         >
-          <div className="text-center space-y-6">
-            <h3 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+          <div className="text-center space-y-4 sm:space-y-5 md:space-y-6">
+            <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent break-words">
               Ready to Transform Your Learning?
             </h3>
-            <p className="text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto break-words leading-relaxed px-2">
               Join thousands of learners who are already using AI to accelerate their growth and achieve their goals faster.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
                 <Button 
                   size="lg" 
-                  className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg"
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg w-full sm:w-auto min-h-[44px] sm:min-h-[48px] text-sm sm:text-base touch-manipulation"
                   onClick={() => alert('Feature coming soon!')}
                 >
-                  <Rocket className="h-5 w-5 mr-2" />
+                  <Rocket className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
                   Get Started with AI
                 </Button>
               </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
                 <Button 
                   variant="outline" 
                   size="lg"
-                  className="border-violet-200 hover:bg-violet-50 dark:border-violet-700 dark:hover:bg-violet-900/20"
+                  className="border-violet-200 hover:bg-violet-50 dark:border-violet-700 dark:hover:bg-violet-900/20 w-full sm:w-auto min-h-[44px] sm:min-h-[48px] text-sm sm:text-base touch-manipulation"
                   onClick={() => alert('Tutorial coming soon!')}
                 >
-                  <Play className="h-5 w-5 mr-2" />
+                  <Play className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
                   Watch Tutorial
                 </Button>
               </motion.div>
@@ -435,49 +435,49 @@ function AIFeatureCard({
       whileHover={{ y: -8, scale: 1.02 }}
       onHoverStart={() => onHover(feature.id)}
       onHoverEnd={() => onHover(null)}
-      className={`group relative overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border ${config.border} shadow-sm hover:shadow-xl transition-all duration-300`}
+      className={`group relative overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border ${config.border} shadow-sm hover:shadow-xl transition-all duration-300`}
     >
       {/* Gradient Background */}
       <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
       
       {/* Card Content */}
-      <div className="relative p-6 space-y-4">
+      <div className="relative p-4 sm:p-5 md:p-6 space-y-3 sm:space-y-4">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className={`p-3 rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg`}>
-            <div className="text-white">
+        <div className="flex items-start justify-between gap-2">
+          <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg flex-shrink-0`}>
+            <div className="text-white [&>svg]:h-5 [&>svg]:w-5 sm:[&>svg]:h-6 sm:[&>svg]:w-6">
               {feature.icon}
             </div>
           </div>
-          <Badge className={`${config.badge} font-medium`}>
+          <Badge className={`${config.badge} font-medium text-[10px] sm:text-xs flex-shrink-0`}>
             {feature.status === 'coming-soon' ? 'Soon' : feature.status}
           </Badge>
         </div>
 
         {/* Title & Description */}
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg text-slate-900 dark:text-white group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-violet-600 group-hover:to-purple-600 transition-all duration-300">
+        <div className="space-y-1.5 sm:space-y-2">
+          <h3 className="font-semibold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-violet-600 group-hover:to-purple-600 transition-all duration-300 break-words">
             {feature.name}
           </h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed break-words">
             {feature.description}
           </p>
         </div>
 
         {/* User Benefit */}
-        <div className="bg-slate-50/80 dark:bg-slate-700/50 rounded-lg p-3">
-          <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+        <div className="bg-slate-50/80 dark:bg-slate-700/50 rounded-lg p-2.5 sm:p-3">
+          <p className="text-[10px] sm:text-xs font-medium text-slate-700 dark:text-slate-300 break-words leading-relaxed">
             💡 {feature.userBenefit}
           </p>
         </div>
 
         {/* Metrics */}
         {feature.metrics && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {Object.entries(feature.metrics).map(([key, value]) => (
               <div key={key} className="text-center">
-                <div className="text-lg font-bold text-slate-900 dark:text-white">{value}</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">{key}</div>
+                <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-white break-words">{value}</div>
+                <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 break-words mt-0.5">{key}</div>
               </div>
             ))}
           </div>
@@ -487,10 +487,10 @@ function AIFeatureCard({
         <motion.div 
           whileHover={{ scale: 1.05 }} 
           whileTap={{ scale: 0.95 }}
-          className="pt-2"
+          className="pt-1 sm:pt-2"
         >
           <Button 
-            className={`w-full ${config.actionButton} shadow-md group-hover:shadow-lg transition-all duration-300`}
+            className={`w-full ${config.actionButton} shadow-md group-hover:shadow-lg transition-all duration-300 min-h-[40px] sm:min-h-[44px] text-xs sm:text-sm touch-manipulation`}
             disabled={feature.status === 'coming-soon'}
             onClick={() => {
               if (feature.status === 'premium') {
@@ -500,8 +500,8 @@ function AIFeatureCard({
               }
             }}
           >
-            {feature.actionText}
-            {feature.status === 'available' && <ChevronRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />}
+            <span className="break-words">{feature.actionText}</span>
+            {feature.status === 'available' && <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1.5 sm:ml-2 group-hover:translate-x-1 transition-transform flex-shrink-0" />}
           </Button>
         </motion.div>
       </div>

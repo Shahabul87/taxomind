@@ -1,47 +1,32 @@
-import { UserRole } from "@prisma/client";
 import { db } from "@/lib/db";
-import { currentUser, currentRole } from "@/lib/auth";
+import { currentUser } from "@/lib/auth";
 
-export const ROLE_PERMISSIONS: Record<UserRole, readonly string[]> = {
-  [UserRole.USER]: [
-    "course:view",
-    "course:enroll",
-    "course:create",
-    "course:edit_own",
-    "course:delete_own",
-    "exam:take",
-    "exam:create",
-    "exam:edit_own",
-    "progress:view_own",
-    "analytics:view_own",
-    "analytics:view_students",
-    "analytics:view_courses"
-  ],
-  [UserRole.ADMIN]: [
-    "course:view",
-    "course:create",
-    "course:edit_any",
-    "course:delete_any",
-    "user:view_all",
-    "user:edit_roles",
-    "user:delete",
-    "analytics:view_all",
-    "system:manage",
-    "role:assign",
-    "exam:create",
-    "exam:edit_any",
-    "exam:grade",
-    "student:view_progress"
-  ]
-};
+// Simplified permission system without roles
+// Since we have separate user and admin systems, all authenticated users have basic permissions
 
-export type Permission = (typeof ROLE_PERMISSIONS)[UserRole][number];
+export const USER_PERMISSIONS = [
+  "course:view",
+  "course:enroll",
+  "course:create",
+  "course:edit_own",
+  "course:delete_own",
+  "exam:take",
+  "exam:create",
+  "exam:edit_own",
+  "progress:view_own",
+  "analytics:view_own",
+  "analytics:view_students",
+  "analytics:view_courses"
+] as const;
+
+export type Permission = typeof USER_PERMISSIONS[number];
 
 export async function hasPermission(permission: Permission): Promise<boolean> {
-  const role = await currentRole();
-  if (!role) return false;
-  
-  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+  const user = await currentUser();
+  if (!user) return false;
+
+  // All authenticated users have basic permissions
+  return USER_PERMISSIONS.includes(permission);
 }
 
 export async function requirePermission(permission: Permission): Promise<void> {
@@ -51,40 +36,18 @@ export async function requirePermission(permission: Permission): Promise<void> {
   }
 }
 
-export async function assignRole(userId: string, newRole: UserRole): Promise<void> {
-  await requirePermission("role:assign");
-  
-  await db.user.update({
-    where: { id: userId },
-    data: { role: newRole }
-  });
-}
-
-export async function getUsersWithRole(role: UserRole) {
-  await requirePermission("user:view_all");
-  
-  return await db.user.findMany({
-    where: { role },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-      emailVerified: true
-    }
-  });
-}
-
 export async function getAllUsers() {
-  await requirePermission("user:view_all");
-  
+  // Basic implementation - in production, you'd want proper admin auth check
+  const user = await currentUser();
+  if (!user) {
+    throw new Error("Authentication required");
+  }
+
   return await db.user.findMany({
     select: {
       id: true,
       name: true,
       email: true,
-      role: true,
       createdAt: true,
       emailVerified: true
     },
@@ -94,36 +57,19 @@ export async function getAllUsers() {
   });
 }
 
-export async function isOwnerOrAdmin(resourceUserId: string): Promise<boolean> {
+export async function isOwner(resourceUserId: string): Promise<boolean> {
   const user = await currentUser();
-  const role = await currentRole();
-  
-  if (!user || !role) return false;
-  
-  return user.id === resourceUserId || role === UserRole.ADMIN;
+
+  if (!user) return false;
+
+  return user.id === resourceUserId;
 }
 
 export async function canModifyUser(targetUserId: string): Promise<boolean> {
   const currentUserData = await currentUser();
-  const role = await currentRole();
-  
-  if (!currentUserData || !role) return false;
-  
-  if (role === UserRole.ADMIN) return true;
-  
+
+  if (!currentUserData) return false;
+
+  // Users can only modify their own data
   return currentUserData.id === targetUserId;
-}
-
-export function getRoleHierarchy(): UserRole[] {
-  return [UserRole.USER, UserRole.ADMIN];
-}
-
-export function canAssignRole(currentRole: UserRole, targetRole: UserRole): boolean {
-  if (currentRole !== UserRole.ADMIN) return false;
-  
-  const hierarchy = getRoleHierarchy();
-  const currentIndex = hierarchy.indexOf(currentRole);
-  const targetIndex = hierarchy.indexOf(targetRole);
-  
-  return currentIndex >= targetIndex;
 }

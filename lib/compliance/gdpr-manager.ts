@@ -240,7 +240,6 @@ export class GDPRComplianceManager {
           email: userData?.email,
           emailVerified: userData?.emailVerified,
           image: userData?.image,
-          role: userData?.role,
           createdAt: userData?.createdAt,
         },
         learningData: {

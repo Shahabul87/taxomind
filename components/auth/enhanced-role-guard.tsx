@@ -1,22 +1,25 @@
 "use client";
 
+// NOTE: This component is deprecated - users no longer have roles
+// Use isTeacher flag for regular users, AdminRole for admin accounts
+// This file remains for backwards compatibility only
+
 import { ReactNode } from "react";
-import { UserRole, Permission } from "@/types/auth";
+import { Permission } from "@/types/auth";
 import { useCurrentRole, useHasPermission, useHasAnyPermission, useHasAllPermissions } from "@/hooks/use-enhanced-auth";
 
 interface RoleGuardProps {
   children: ReactNode;
-  allowedRoles?: UserRole[];
+  allowedRoles?: string[];
   requiredPermissions?: Permission[];
   requireAllPermissions?: boolean;
   fallback?: ReactNode;
   redirect?: boolean;
 }
 
-const mapPrismaRole = (role: any): UserRole | null => {
+const mapPrismaRole = (role: any): string | null => {
   if (!role) return null;
-  const str = String(role).toUpperCase();
-  return str === 'ADMIN' ? UserRole.ADMIN : str === 'USER' ? UserRole.USER : null;
+  return String(role).toUpperCase();
 };
 
 export const RoleGuard = ({ 
@@ -54,21 +57,21 @@ export const RoleGuard = ({
   return <>{children}</>;
 };
 
-// Specific role guards
+// Specific role guards - deprecated but kept for backwards compatibility
 export const AdminGuard = ({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) => (
-  <RoleGuard allowedRoles={[UserRole.ADMIN]} fallback={fallback}>
+  <RoleGuard allowedRoles={["ADMIN"]} fallback={fallback}>
     {children}
   </RoleGuard>
 );
 
 export const UserGuard = ({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) => (
-  <RoleGuard allowedRoles={[UserRole.USER]} fallback={fallback}>
+  <RoleGuard allowedRoles={["USER"]} fallback={fallback}>
     {children}
   </RoleGuard>
 );
 
 export const UserOrAdminGuard = ({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) => (
-  <RoleGuard allowedRoles={[UserRole.USER, UserRole.ADMIN]} fallback={fallback}>
+  <RoleGuard allowedRoles={["USER", "ADMIN"]} fallback={fallback}>
     {children}
   </RoleGuard>
 );
@@ -87,24 +90,24 @@ export const PermissionGuard = ({
   </RoleGuard>
 );
 
-// Role Badge Component
-export const RoleBadge = ({ role }: { role: UserRole }) => {
-  const getColor = (role: UserRole) => {
+// Role Badge Component - deprecated but kept for backwards compatibility
+export const RoleBadge = ({ role }: { role: string }) => {
+  const getColor = (role: string) => {
     switch (role) {
-      case UserRole.ADMIN:
+      case "ADMIN":
         return "bg-red-100 text-red-800 border-red-200";
-      case UserRole.USER:
+      case "USER":
         return "bg-blue-100 text-blue-800 border-blue-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
-  const getLabel = (role: UserRole) => {
+  const getLabel = (role: string) => {
     switch (role) {
-      case UserRole.ADMIN:
+      case "ADMIN":
         return "Admin";
-      case UserRole.USER:
+      case "USER":
         return "User";
       default:
         return "Unknown";

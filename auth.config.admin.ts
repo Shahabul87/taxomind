@@ -13,7 +13,7 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
 import { LoginSchema } from "@/schemas";
-import { getUserByEmail } from "@/data/user";
+import { getAdminAccountByEmail } from "@/data/admin";
 import { getAdminCookieConfig, SessionDurations } from "@/lib/security/cookie-config";
 // REMOVED: adminJwtConfig - causes JWE/JWT format conflict with NextAuth v5
 // import { adminJwtConfig } from "@/lib/auth/admin-jwt";
@@ -29,11 +29,12 @@ export default {
         if (validatedFields.success) {
           const { email, password } = validatedFields.data;
 
-          const user = await getUserByEmail(email);
+          const admin = await getAdminAccountByEmail(email);
 
-          // CRITICAL: Verify user is actually an admin
-          if (!user || !user.password || user.role !== 'ADMIN') {
-            console.log('[admin-auth-config] Non-admin or invalid credentials');
+          // CRITICAL: Verify admin exists and has password
+          // No role check needed - AdminAccount table only contains admins
+          if (!admin || !admin.password) {
+            console.log('[admin-auth-config] Admin not found or invalid credentials');
             return null;
           }
 
@@ -42,12 +43,12 @@ export default {
             const { verifyPassword } = await import("@/lib/passwordUtils");
             const passwordsMatch = await verifyPassword(
               password,
-              user.password,
+              admin.password,
             );
 
             if (passwordsMatch) {
               console.log('[admin-auth-config] Admin authenticated successfully');
-              return user;
+              return admin;
             }
           } catch (error) {
             console.error("[admin-auth-config] Password verification failed:", error);

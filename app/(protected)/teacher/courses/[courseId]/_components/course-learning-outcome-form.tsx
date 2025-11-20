@@ -141,31 +141,31 @@ export const CourseLearningOutcomeForm = ({
       {/* Display Mode */}
       {!isEditing && (
         <div className="group relative">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {/* Learning objectives content - full width with nice bullet points */}
             <div className="flex-1 min-w-0 w-full">
               {!learningOutcomesHtml ? (
-                <div className="space-y-2 py-3 rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
-                  <div className="flex items-center gap-2 px-3">
-                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <div className="space-y-2 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
+                  <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3">
+                    <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                    <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
                       No learning objectives set
                     </p>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-3">
+                  <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md px-2 sm:px-3 break-words">
                     Define what students will learn from this course. Use bullet points to clearly outline the key learning objectives.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3 w-full">
+                <div className="space-y-2.5 sm:space-y-3 w-full">
                   {/* Display learning objectives as numbered list with nice formatting */}
-                  <ul className="space-y-3">
+                  <ul className="space-y-2 sm:space-y-3">
                     {initialData.whatYouWillLearn?.slice(0, isExpanded ? initialData.whatYouWillLearn.length : 3).map((objective, index) => (
-                      <li key={index} className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                        <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+                      <li key={index} className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed break-words">
+                        <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold text-[10px] sm:text-xs">
                           {index + 1}
                         </span>
-                        <span className="flex-1 pt-0.5">{objective}</span>
+                        <span className="flex-1 pt-0.5 min-w-0">{objective}</span>
                       </li>
                     ))}
                   </ul>
@@ -175,7 +175,7 @@ export const CourseLearningOutcomeForm = ({
                       onClick={() => setIsExpanded(!isExpanded)}
                       variant="ghost"
                       size="sm"
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-xs font-medium"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0 h-auto text-[10px] sm:text-xs font-medium"
                     >
                       {isExpanded ? "Show Less" : `Show More (${initialData.whatYouWillLearn.length - 3} more)`}
                     </Button>
@@ -185,7 +185,7 @@ export const CourseLearningOutcomeForm = ({
             </div>
 
             {/* Buttons below objectives - aligned to right */}
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-end gap-2">
               <AICourseAssistant
                 courseTitle={initialData.title || ""}
                 type="objectives"
@@ -196,7 +196,7 @@ export const CourseLearningOutcomeForm = ({
                     size="sm"
                     disabled={!initialData.title}
                     className={cn(
-                      "h-9 px-4",
+                      "h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
                       "bg-gradient-to-r from-sky-500 to-blue-500",
                       "hover:from-sky-600 hover:to-blue-600",
                       "text-white font-semibold",
@@ -205,8 +205,9 @@ export const CourseLearningOutcomeForm = ({
                       "disabled:opacity-50 disabled:cursor-not-allowed"
                     )}
                   >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate with AI
+                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                    <span className="hidden xs:inline">Generate with AI</span>
+                    <span className="xs:hidden">AI Generate</span>
                   </Button>
                 }
               />
@@ -215,7 +216,7 @@ export const CourseLearningOutcomeForm = ({
                 variant="outline"
                 size="sm"
                 className={cn(
-                  "h-9 px-4",
+                  "h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
                   "bg-white/80 dark:bg-slate-800/80",
                   "border-slate-200 dark:border-slate-700",
                   "text-slate-700 dark:text-slate-300",
@@ -227,7 +228,7 @@ export const CourseLearningOutcomeForm = ({
                   "shadow-sm hover:shadow-md"
                 )}
               >
-                <Pencil className="h-4 w-4 mr-2" />
+                <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 Edit
               </Button>
             </div>
@@ -267,18 +268,19 @@ export const CourseLearningOutcomeForm = ({
 • Apply practical skills in real-world scenarios
 • Build confidence through hands-on projects
 • Develop industry-relevant expertise"
-                        editorClassName="prose prose-sm max-w-none
-                          [&_.tiptap]:min-h-[200px]
+                        editorClassName="prose prose-xs sm:prose-sm max-w-none
+                          [&_.tiptap]:min-h-[180px] sm:[&_.tiptap]:min-h-[200px] md:[&_.tiptap]:min-h-[220px]
                           [&_.tiptap]:text-slate-800 dark:[&_.tiptap]:text-slate-200
-                          [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3 [&_ul]:space-y-1
-                          [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3 [&_ol]:space-y-1
-                          [&_li]:mb-1 [&_li]:text-slate-800 [&_li]:dark:text-slate-200 [&_li]:leading-relaxed
+                          [&_.tiptap]:px-2 sm:[&_.tiptap]:px-4 [&_.tiptap]:py-2 sm:[&_.tiptap]:py-3
+                          [&_ul]:list-disc [&_ul]:pl-4 sm:[&_ul]:pl-6 [&_ul]:mb-2 sm:[&_ul]:mb-3 [&_ul]:space-y-1
+                          [&_ol]:list-decimal [&_ol]:pl-4 sm:[&_ol]:pl-6 [&_ol]:mb-2 sm:[&_ol]:mb-3 [&_ol]:space-y-1
+                          [&_li]:mb-1 [&_li]:text-xs sm:[&_li]:text-sm [&_li]:text-slate-800 [&_li]:dark:text-slate-200 [&_li]:leading-relaxed
                           [&_li]:marker:text-slate-600 [&_li]:dark:marker:text-slate-400
-                          [&_p]:text-slate-800 dark:[&_p]:text-slate-200 [&_p]:leading-relaxed
-                          [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_strong]:font-semibold
-                          [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-slate-900 dark:[&_h1]:text-slate-100
-                          [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 dark:[&_h2]:text-slate-100
-                          [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-slate-900 dark:[&_h3]:text-slate-100"
+                          [&_p]:text-xs sm:[&_p]:text-sm [&_p]:text-slate-800 dark:[&_p]:text-slate-200 [&_p]:leading-relaxed
+                          [&_strong]:text-xs sm:[&_strong]:text-sm [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_strong]:font-semibold
+                          [&_h1]:text-lg sm:[&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-slate-900 dark:[&_h1]:text-slate-100
+                          [&_h2]:text-base sm:[&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 dark:[&_h2]:text-slate-100
+                          [&_h3]:text-sm sm:[&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-slate-900 dark:[&_h3]:text-slate-100"
                         data-field-purpose="learning-outcomes"
                         data-validation="required,min:10"
                         data-content-type="learning-objectives"
@@ -286,18 +288,18 @@ export const CourseLearningOutcomeForm = ({
                       />
                     </div>
                   </FormControl>
-                  <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
+                  <FormMessage className="text-rose-500 dark:text-rose-400 text-xs sm:text-sm" />
                 </FormItem>
               )}
             />
-            <div className="flex items-center justify-between gap-x-2">
+            <div className="flex flex-col-reverse xs:flex-row items-stretch xs:items-center justify-between gap-2">
               <Button
                 onClick={() => setIsEditing(false)}
                 variant="outline"
                 size="sm"
                 type="button"
                 className={cn(
-                  "h-9 px-4",
+                  "h-10 sm:h-9 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
                   "bg-white dark:bg-slate-800",
                   "border-slate-300 dark:border-slate-600",
                   "text-slate-700 dark:text-slate-300",
@@ -312,11 +314,11 @@ export const CourseLearningOutcomeForm = ({
                 disabled={!isValid || isSubmitting}
                 type="submit"
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 sm:h-9 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm"
               >
                 {isSubmitting ? (
-                  <div className="flex items-center gap-x-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                     <span>Saving...</span>
                   </div>
                 ) : (

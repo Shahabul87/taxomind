@@ -4,7 +4,9 @@
  */
 
 import { db } from '@/lib/db';
-import { UserRole } from '@prisma/client';
+
+// NOTE: UserRole enum no longer exists - only AdminRole exists in AdminAccount
+// Users don't have roles, only permissions
 
 // Define all available permissions
 export enum Permission {
@@ -46,30 +48,16 @@ export enum Permission {
 export class PermissionManager {
   /**
    * Get default permissions for each role
+   * @deprecated Users don't have roles anymore - only AdminAccount has roles
+   * This function is kept for backward compatibility but should not be used
    */
-  static getRolePermissions(role: UserRole): Permission[] {
-    const permissionMap: Record<UserRole, Permission[]> = {
-      ADMIN: [
-        // Admins have all permissions
-        ...Object.values(Permission)
-      ],
-      // Users can be instructors with these permissions
-      USER: [
-        Permission.COURSE_CREATE,
-        Permission.COURSE_EDIT_OWN,
-        Permission.COURSE_DELETE_OWN,
-        Permission.COURSE_PUBLISH,
-        Permission.COURSE_UNPUBLISH,
-        Permission.COURSE_PRICE_SET,
-        Permission.USER_VIEW_ANALYTICS,
-        Permission.USER_MANAGE_OWN,
-        Permission.PAYMENT_RECEIVE,
-        Permission.PAYMENT_WITHDRAW,
-        Permission.PAYMENT_VIEW_REPORTS,
-      ]
-    };
-    
-    return permissionMap[role] || [];
+  static getRolePermissions(role: string): Permission[] {
+    // NOTE: This function is deprecated since users don't have roles
+    // For admins, check AdminAccount.role instead
+    // For users, check user-specific permissions via getUserPermissions()
+
+    // Return empty array since users don't have role-based permissions
+    return [];
   }
 
   /**
@@ -83,7 +71,6 @@ export class PermissionManager {
       const user = await db.user.findUnique({
         where: { id: userId },
         select: {
-          role: true,
           isAccountLocked: true,
           userPermissions: {
             include: {
@@ -92,17 +79,14 @@ export class PermissionManager {
           }
         }
       });
-      
+
       if (!user) return false;
-      
+
       // Check if user is locked
       if (user.isAccountLocked) return false;
-      
-      // Get role-based permissions
-      const rolePermissions = this.getRolePermissions(user.role);
-      if (rolePermissions.includes(permission)) {
-        return true;
-      }
+
+      // NOTE: Users don't have roles - only check user-specific permissions
+      // For admin permissions, use AdminAccount table instead
       
       // Check user-specific permissions
       const userPermission = user.userPermissions?.find(
@@ -364,7 +348,6 @@ export class PermissionManager {
       const user = await db.user.findUnique({
         where: { id: userId },
         select: {
-          role: true,
           userPermissions: {
             where: {
               granted: true,
@@ -379,11 +362,11 @@ export class PermissionManager {
           }
         }
       });
-      
+
       if (!user) return [];
-      
-      // Get role permissions
-      const rolePermissions = this.getRolePermissions(user.role);
+
+      // NOTE: Users don't have roles - only return user-specific permissions
+      const rolePermissions: Permission[] = [];
       
       // Get user-specific permissions
       const userPermissions = user.userPermissions.map(up => up.permission.name);

@@ -9,7 +9,6 @@ interface UserData {
   id: string;
   name: string | null;
   email: string | null;
-  role: string;
   status: "Active" | "Inactive" | "Suspended";
   joinDate: string;
   lastActive: string;
@@ -29,7 +28,6 @@ async function getUsersData(): Promise<UserData[]> {
         id: true,
         name: true,
         email: true,
-        role: true,
         image: true,
         createdAt: true,
         lastLoginAt: true,
@@ -86,7 +84,6 @@ async function getUsersData(): Promise<UserData[]> {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
         status,
         joinDate: user.createdAt.toLocaleDateString(),
         lastActive,
@@ -114,9 +111,7 @@ export default async function UsersPage() {
   const stats = {
     total: users.length,
     active: users.filter((u) => u.status === "Active").length,
-    instructors: users.filter(
-      (u) => u.role === "INSTRUCTOR" || u.role === "ADMIN"
-    ).length,
+    instructors: users.filter((u) => u.courses > 0).length, // Users with courses (created or enrolled)
     newToday: users.filter((u) => {
       const today = new Date().toDateString();
       return new Date(u.joinDate).toDateString() === today;

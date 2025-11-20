@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { UserRole } from '@prisma/client';
+// UserRole removed - users no longer have roles
 
 /**
  * Get security alerts for the authenticated user (or admin)
@@ -30,7 +30,13 @@ export async function GET(req: NextRequest) {
 
     // For regular users, only show their own security events
     // For admins, show all events
-    if (session.user.role !== UserRole.ADMIN) {
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: session.user.id },
+    });
+    const isAdmin = adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
+
+    if (!isAdmin) {
       whereCondition.affectedUsers = {
         has: session.user.id,
       };
@@ -75,7 +81,7 @@ export async function GET(req: NextRequest) {
 
     // Filter sensitive information for non-admin users
     const filteredEvents = events.map(event => {
-      if (session.user.role !== UserRole.ADMIN) {
+      if (!isAdmin) {
         return {
           ...event,
           affectedUsers: undefined, // Hide other affected users
@@ -116,10 +122,22 @@ export async function POST(req: NextRequest) {
   try {
     // Get current session - only admins can create security events manually
     const session = await auth();
-    
-    if (!session?.user?.id || session.user.role !== UserRole.ADMIN) {
+
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { success: false, error: 'Admin access required' }, 
+        { success: false, error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user is admin - admins are now in AdminAccount table
+    const adminAccount = await db.adminAccount.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!adminAccount || (adminAccount.role !== 'ADMIN' && adminAccount.role !== 'SUPERADMIN')) {
+      return NextResponse.json(
+        { success: false, error: 'Admin access required' },
         { status: 403 }
       );
     }

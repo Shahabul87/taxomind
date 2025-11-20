@@ -81,7 +81,7 @@ export function DashboardStats({
 
   return (
     <motion.div
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+      className="grid grid-cols-1 gap-2.5 sm:gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-4"
       variants={staggerContainer}
       initial="initial"
       animate="animate"
@@ -100,17 +100,17 @@ export function DashboardStats({
               "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300",
               stat.hoverGradient
             )} />
-            <div className="relative p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <stat.icon className="w-5 h-5 text-white" />
+            <div className="relative p-3.5 sm:p-4 md:p-5">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg backdrop-blur-sm shrink-0">
+                  <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <span className="text-sm font-medium text-white/90">{stat.title}</span>
+                <span className="text-xs sm:text-sm font-medium text-white/90 truncate">{stat.title}</span>
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-              <div className="flex items-center gap-1 text-xs text-white/80">
-                {stat.trend === "up" && <TrendingUp className="w-3 h-3" />}
-                {stat.change}
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 break-words">{stat.value}</div>
+              <div className="flex items-center gap-1 text-[10px] sm:text-xs text-white/80">
+                {stat.trend === "up" && <TrendingUp className="w-3 h-3 shrink-0" />}
+                <span className="truncate">{stat.change}</span>
               </div>
             </div>
           </Card>

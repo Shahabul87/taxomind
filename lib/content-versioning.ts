@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-import { UserRole, ContentType, AITemplateType } from "@prisma/client";
+import { ContentType, AITemplateType } from "@prisma/client";
 
 export interface ContentSnapshot {
   id: string;
@@ -96,11 +96,11 @@ export class ContentVersioningService {
     if (!version) throw new Error("Version not found");
 
     // Check permissions
-    const canPublish = user.role === UserRole.ADMIN || 
-                      user.role === UserRole.USER || 
-                      version.authorId === user.id;
-    
-    if (!canPublish) throw new Error("Insufficient permissions to publish");
+    // NOTE: Users don't have roles - only check if user is the author
+    // or allow all authenticated users to publish (depends on business logic)
+    const canPublish = version.authorId === user.id;
+
+    if (!canPublish) throw new Error("Only the author can publish this version");
 
     // Deactivate current active version
     await db.contentVersion.updateMany({

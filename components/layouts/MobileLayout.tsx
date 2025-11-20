@@ -8,14 +8,19 @@ import { SmartSidebar } from '@/components/dashboard/smart-sidebar';
 import { MobileGestureController } from '@/components/mobile/MobileGestureController';
 import { useViewportHeight } from '@/hooks/useViewportHeight';
 import { cn } from '@/lib/utils';
+import { ExtendedUser } from '@/next-auth';
 
+/**
+ * Mobile-optimized layout component with responsive navigation.
+ * Supports both ExtendedUser (authenticated) and basic NextAuth User types.
+ */
 interface MobileLayoutProps {
   children: React.ReactNode;
-  user?: NextAuthUser & {
+  user?: ExtendedUser | (NextAuthUser & {
     role?: string;
     isTeacher?: boolean;
     isAffiliate?: boolean;
-  };
+  }) | null;
   showHeader?: boolean;
   showSidebar?: boolean;
   showBottomBar?: boolean;
@@ -136,14 +141,24 @@ export function MobileLayout({
     );
   };
 
-  // If user is not provided, try to get from session (you can add this logic)
-  // For now, we'll use a default user object
-  const defaultUser = user || {
+  // If user is not provided, create a minimal fallback user object
+  // This ensures type safety while providing a default for unauthenticated states
+  // The fallback satisfies ExtendedUser and includes optional role for compatibility
+  const createFallbackUser = (): ExtendedUser & { role?: string } => ({
     id: '',
     name: 'User',
     email: 'user@example.com',
+    image: null,
+    isTwoFactorEnabled: false,
+    isOAuth: false,
     role: 'USER',
-  } as any;
+  });
+
+  const defaultUser: ExtendedUser | (NextAuthUser & {
+    role?: string;
+    isTeacher?: boolean;
+    isAffiliate?: boolean;
+  }) = user || createFallbackUser();
 
   return (
     <MobileGestureController
