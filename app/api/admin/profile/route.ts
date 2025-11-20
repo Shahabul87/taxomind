@@ -51,8 +51,8 @@ export async function GET() {
       );
     }
 
-    // 3. Check if user is admin
-    if (user.role !== "ADMIN") {
+    // 3. Check if user is admin or superadmin
+    if (user.role !== "ADMIN" && user.role !== "SUPERADMIN") {
       console.log("[ADMIN_PROFILE_GET] User is not admin:", user.role);
       return NextResponse.json(
         { success: false, error: "Forbidden - Admin access required" },
@@ -60,9 +60,9 @@ export async function GET() {
       );
     }
 
-    // 4. Fetch full user profile from database
-    console.log("[ADMIN_PROFILE_GET] Fetching profile for user ID:", userId);
-    const adminProfile = await db.user.findUnique({
+    // 4. Fetch full admin profile from database
+    console.log("[ADMIN_PROFILE_GET] Fetching profile for admin ID:", userId);
+    const adminProfile = await db.adminAccount.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -71,11 +71,9 @@ export async function GET() {
         image: true,
         role: true,
         phone: true,
-        location: true,
+        department: true,
         bio: true,
-        socialLinks: true,
         createdAt: true,
-        lastLoginAt: true,
         emailVerified: true,
         isTwoFactorEnabled: true,
         _count: {
@@ -103,9 +101,7 @@ export async function GET() {
           month: "long",
           day: "numeric",
         }),
-        lastLogin: adminProfile.lastLoginAt
-          ? getRelativeTime(adminProfile.lastLoginAt)
-          : "Never",
+        lastLogin: "Recently", // AdminAccount doesn't have lastLoginAt yet
         totalActions: adminProfile._count.auditLogs,
       },
     });
@@ -150,8 +146,8 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // 3. Check if user is admin
-    if (user.role !== "ADMIN") {
+    // 3. Check if user is admin or superadmin
+    if (user.role !== "ADMIN" && user.role !== "SUPERADMIN") {
       return NextResponse.json(
         { success: false, error: "Forbidden - Admin access required" },
         { status: 403 }
@@ -164,33 +160,27 @@ export async function PATCH(req: Request) {
 
     // 5. Check if email is being changed and if it's already in use
     if (validatedData.email && validatedData.email !== user.email) {
-      const existingUser = await db.user.findUnique({
+      const existingAdmin = await db.adminAccount.findUnique({
         where: { email: validatedData.email },
       });
 
-      if (existingUser) {
+      if (existingAdmin) {
         return NextResponse.json(
-          { success: false, error: "Email already in use by another account" },
+          { success: false, error: "Email already in use by another admin account" },
           { status: 409 }
         );
       }
     }
 
     // 6. Update admin profile
-    const updatedProfile = await db.user.update({
+    const updatedProfile = await db.adminAccount.update({
       where: { id: userId },
       data: {
         ...(validatedData.name && { name: validatedData.name }),
         ...(validatedData.email && { email: validatedData.email }),
         ...(validatedData.phone !== undefined && { phone: validatedData.phone }),
-        ...(validatedData.location !== undefined && {
-          location: validatedData.location,
-        }),
         ...(validatedData.bio !== undefined && { bio: validatedData.bio }),
         ...(validatedData.image !== undefined && { image: validatedData.image }),
-        ...(validatedData.socialLinks && {
-          socialLinks: validatedData.socialLinks as Record<string, string>,
-        }),
       },
       select: {
         id: true,
@@ -198,20 +188,23 @@ export async function PATCH(req: Request) {
         email: true,
         image: true,
         phone: true,
-        location: true,
+        department: true,
         bio: true,
-        socialLinks: true,
       },
     });
 
     // 7. Create audit log
-    await db.auditLog.create({
+    await db.adminAuditLog.create({
       data: {
-        action: "UPDATE",
-        userId: userId,
-        entityId: userId,
-        entityType: "USER",
-        context: {
+        adminId: userId,
+        action: "PROFILE_UPDATED",
+        actionCategory: "CONFIGURATION",
+        resource: "AdminAccount",
+        resourceId: userId,
+        ipAddress: "unknown",
+        userAgent: "unknown",
+        success: true,
+        metadata: {
           updatedBy: user.email,
           updatedFields: Object.keys(validatedData),
           method: "PROFILE_UPDATE",
