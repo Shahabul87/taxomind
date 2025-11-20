@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-// Note: logger import removed - using console.error for error handling
+import { logger } from '@/lib/logger';
 import {
   LineChart,
   Line,
@@ -155,7 +155,11 @@ export function RealTimeDashboard({
       setMetrics([...metricsHistory.current]);
       setIsConnected(true);
     } catch (error: any) {
-      console.error('Failed to fetch current metrics:', error);
+      logger.error('[REAL_TIME_DASHBOARD] Failed to fetch current metrics', {
+        courseId,
+        timeRange: selectedTimeRange,
+        error: error instanceof Error ? error.message : String(error),
+      });
       setIsConnected(false);
     }
   }, [courseId, selectedTimeRange]);
@@ -171,7 +175,11 @@ export function RealTimeDashboard({
       const data = await response.json();
       setStudentActivities(data.activities || []);
     } catch (error: any) {
-      console.error('Failed to fetch student activities:', error);
+      logger.error('[REAL_TIME_DASHBOARD] Failed to fetch student activities', {
+        courseId,
+        timeRange: selectedTimeRange,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }, [courseId, selectedTimeRange]);
 
@@ -186,7 +194,10 @@ export function RealTimeDashboard({
       const data = await response.json();
       setAlerts(data.alerts || []);
     } catch (error: any) {
-      console.error('Failed to fetch content alerts:', error);
+      logger.error('[REAL_TIME_DASHBOARD] Failed to fetch content alerts', {
+        courseId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }, [courseId]);
 
@@ -199,12 +210,15 @@ export function RealTimeDashboard({
         fetchContentAlerts()
       ]);
     } catch (error: any) {
-      console.error('Failed to fetch initial data:', error);
+      logger.error('[REAL_TIME_DASHBOARD] Failed to fetch initial data', {
+        courseId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       setIsConnected(false);
     } finally {
       setLoading(false);
     }
-  }, [fetchCurrentMetrics, fetchStudentActivities, fetchContentAlerts]);
+  }, [courseId, fetchCurrentMetrics, fetchStudentActivities, fetchContentAlerts]);
 
   const startAutoRefresh = useCallback(() => {
     stopAutoRefresh();
@@ -255,11 +269,14 @@ export function RealTimeDashboard({
         method: 'POST'
       });
       
-      setAlerts(alerts.map(alert => 
+      setAlerts(alerts.map(alert =>
         alert.id === alertId ? { ...alert, resolved: true } : alert
       ));
     } catch (error: any) {
-      console.error('Failed to resolve alert:', error);
+      logger.error('[REAL_TIME_DASHBOARD] Failed to resolve alert', {
+        alertId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   };
 

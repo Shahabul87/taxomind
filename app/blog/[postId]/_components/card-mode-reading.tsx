@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Carousel, Card } from "@/components/ui/apple-cards-carousel";
 import parse from 'html-react-parser';
 import { cn } from "@/lib/utils";
@@ -95,9 +96,11 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
         )}
 
         {chapter.imageUrl && (
-          <img
+          <Image
             src={chapter.imageUrl}
             alt={chapter.title}
+            width={800}
+            height={600}
             className="md:w-1/2 md:h-1/2 h-full w-full mx-auto object-contain mt-8 rounded-2xl"
           />
         )}
