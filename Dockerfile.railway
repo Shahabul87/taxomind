@@ -78,16 +78,17 @@ COPY . .
 
 # Copy merged schema.prisma and generated Prisma client from deps-dev
 COPY --from=deps-dev /app/prisma/schema.prisma ./prisma/schema.prisma
-COPY --from=deps-dev /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=deps-dev /app/node_modules/@prisma ./node_modules/@prisma
 
 # Set production environment for build
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SKIP_ENV_VALIDATION=true
 
+# Regenerate Prisma client with latest schema
+# This ensures the client matches the current schema
+RUN npx prisma generate
+
 # Step 1: Build Next.js application
-# Note: Prisma client already generated in deps-dev stage
 # Database migrations run at startup, not during build
 # Environment variables will be available at runtime, not during build
 RUN npm run build
