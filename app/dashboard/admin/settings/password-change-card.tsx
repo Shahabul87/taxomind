@@ -80,28 +80,28 @@ export function PasswordChangeCard() {
 
   return (
     <Card className="bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-blue-500/10 dark:bg-blue-500/20">
-            <Key className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6 pt-3 sm:pt-6">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-1.5 sm:p-2 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 shrink-0">
+            <Key className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
           </div>
-          <div>
-            <CardTitle className="text-slate-900 dark:text-slate-100">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base sm:text-lg text-slate-900 dark:text-slate-100">
               Change Password
             </CardTitle>
-            <CardDescription className="text-slate-600 dark:text-slate-400">
+            <CardDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
               Update your password to keep your account secure
             </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           {/* Success Alert */}
           {success && (
             <Alert className="border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-900/20">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertDescription className="text-green-700 dark:text-green-300">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+              <AlertDescription className="text-xs sm:text-sm text-green-700 dark:text-green-300">
                 Password changed successfully!
               </AlertDescription>
             </Alert>
@@ -110,17 +110,17 @@ export function PasswordChangeCard() {
           {/* Error Alert */}
           {error && (
             <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <AlertDescription className="text-xs sm:text-sm">{error}</AlertDescription>
             </Alert>
           )}
 
           {/* Validation Errors */}
           {validationErrors.length > 0 && (
             <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <ul className="list-disc list-inside">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <AlertDescription className="text-xs sm:text-sm">
+                <ul className="list-disc list-inside space-y-1">
                   {validationErrors.map((err, idx) => (
                     <li key={idx}>{err.message}</li>
                   ))}
@@ -131,7 +131,7 @@ export function PasswordChangeCard() {
 
           {/* Current Password */}
           <div className="space-y-2">
-            <Label htmlFor="currentPassword" className="text-slate-700 dark:text-slate-300">
+            <Label htmlFor="currentPassword" className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
               Current Password
             </Label>
             <div className="relative">
@@ -145,14 +145,14 @@ export function PasswordChangeCard() {
                 }
                 disabled={loading}
                 required
-                className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 pr-10"
+                className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 pr-10 min-h-[44px] text-base sm:text-sm"
               />
               <button
                 type="button"
                 onClick={() =>
                   setShowPasswords({ ...showPasswords, current: !showPasswords.current })
                 }
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 tabIndex={-1}
               >
                 {showPasswords.current ? (
@@ -166,7 +166,7 @@ export function PasswordChangeCard() {
 
           {/* New Password */}
           <div className="space-y-2">
-            <Label htmlFor="newPassword" className="text-slate-700 dark:text-slate-300">
+            <Label htmlFor="newPassword" className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
               New Password
             </Label>
             <div className="relative">
@@ -180,14 +180,14 @@ export function PasswordChangeCard() {
                 }
                 disabled={loading}
                 required
-                className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 pr-10"
+                className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 pr-10 min-h-[44px] text-base sm:text-sm"
               />
               <button
                 type="button"
                 onClick={() =>
                   setShowPasswords({ ...showPasswords, new: !showPasswords.new })
                 }
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 tabIndex={-1}
               >
                 {showPasswords.new ? (
@@ -197,14 +197,14 @@ export function PasswordChangeCard() {
                 )}
               </button>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
               Minimum 8 characters with uppercase, lowercase, number, and special character
             </p>
           </div>
 
           {/* Confirm Password */}
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-300">
+            <Label htmlFor="confirmPassword" className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
               Confirm New Password
             </Label>
             <div className="relative">
@@ -218,14 +218,14 @@ export function PasswordChangeCard() {
                 }
                 disabled={loading}
                 required
-                className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 pr-10"
+                className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 pr-10 min-h-[44px] text-base sm:text-sm"
               />
               <button
                 type="button"
                 onClick={() =>
                   setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })
                 }
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 tabIndex={-1}
               >
                 {showPasswords.confirm ? (
@@ -242,16 +242,16 @@ export function PasswordChangeCard() {
             <Button
               type="submit"
               disabled={loading}
-              className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
+              className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 min-h-[44px] text-sm sm:text-base"
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
                   Changing Password...
                 </>
               ) : (
                 <>
-                  <Key className="mr-2 h-4 w-4" />
+                  <Key className="mr-2 h-4 w-4 shrink-0" />
                   Change Password
                 </>
               )}

@@ -232,7 +232,7 @@ export function CreateAdminDialog({
                 }
                 disabled={loading}
                 required
-                className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 pr-10"
+                className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 pr-10 min-h-[44px] text-base sm:text-sm"
               />
               <button
                 type="button"
@@ -266,34 +266,36 @@ export function CreateAdminDialog({
               }
               disabled={loading}
               required
-              className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600"
+              className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 min-h-[44px] text-base sm:text-sm"
             />
           </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-              className="border-slate-200 dark:border-slate-600"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create User"
-              )}
-            </Button>
+          <DialogFooter className="flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={loading}
+                className="w-full sm:w-auto border-slate-200 dark:border-slate-600 min-h-[44px] text-sm sm:text-base order-2 sm:order-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 min-h-[44px] text-sm sm:text-base order-1 sm:order-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create User"
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

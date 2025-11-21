@@ -679,9 +679,6 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                       User
                     </TableHead>
                     <TableHead className="text-slate-600 dark:text-slate-300 text-center">
-                      Role
-                    </TableHead>
-                    <TableHead className="text-slate-600 dark:text-slate-300 text-center">
                       Status
                     </TableHead>
                     <TableHead className="text-slate-600 dark:text-slate-300 text-left">
