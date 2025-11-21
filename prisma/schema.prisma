@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-11-12T03:24:34.011Z
+// Generated: 2025-11-21T00:45:53.820Z
 // Source: 18 domain files
 // ==========================================
 
@@ -49,9 +49,14 @@ datasource db {
 //
 // ==========================================
 
-enum AdminRole {
-  SUPERADMIN
+enum UserRole {
   ADMIN
+  USER
+}
+
+enum AdminRole {
+  ADMIN
+  SUPERADMIN
 }
 
 enum InstructorStatus {
@@ -871,6 +876,7 @@ model User {
   password                                String?
   // SECURITY FIX: confirmPassword removed - should never be persisted in database
   // Password confirmation is only for frontend validation
+  role                                    UserRole                             @default(USER)
   isTwoFactorEnabled                      Boolean                              @default(false)
   totpSecret                              String? // Encrypted TOTP secret
   totpEnabled                             Boolean                              @default(false)
@@ -1290,10 +1296,23 @@ model Permission {
   description     String?
   category        String
   createdAt       DateTime         @default(now())
+  roles           RolePermission[]
   userPermissions UserPermission[]
 
   @@index([category])
   @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  role         UserRole
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@map("role_permissions")
 }
 
 model UserPermission {
@@ -1444,9 +1463,9 @@ model AdminActiveSession {
 }
 
 model AdminTwoFactorConfirmation {
-  id      String       @id @default(cuid())
-  adminId String       @unique
-  admin   AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  adminId String @unique
+  admin   AdminAccount   @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -5194,9 +5213,9 @@ model UserContext {
 }
 
 model AdminMetadata {
-  id      String        @id @default(cuid())
-  adminId String?       @unique  // Make optional temporarily for migration
-  admin   AdminAccount? @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  adminId String @unique
+  admin   AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   // Session configuration
   sessionTimeout         Int @default(14400) // 4 hours in seconds
@@ -5232,9 +5251,9 @@ model AdminMetadata {
 }
 
 model AdminAuditLog {
-  id      String        @id @default(cuid())
-  adminId String?       // Make optional temporarily for migration
-  admin   AdminAccount? @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  adminId String
+  admin   AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   // Action details
   action         String // LOGIN, LOGOUT, DATA_ACCESS, CONFIG_CHANGE, USER_MANAGEMENT, etc.
@@ -5275,9 +5294,9 @@ model AdminAuditLog {
 }
 
 model AdminSessionMetrics {
-  id      String        @id @default(cuid())
-  adminId String?       // Make optional temporarily for migration
-  admin   AdminAccount? @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  adminId String
+  admin   AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   // Session identification
   sessionId    String  @unique

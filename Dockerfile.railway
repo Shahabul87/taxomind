@@ -51,7 +51,8 @@ FROM base AS deps-dev
 # Set CI=true to prevent husky from running during install
 # NOTE: Do NOT set NODE_ENV=production here - it prevents proper dev dependency installation
 ENV CI=true
-# Don't skip postinstall here - we have all dependencies
+# Skip postinstall to avoid outdated schema merge - use committed schema.prisma
+ENV SKIP_POSTINSTALL=true
 
 COPY package.json package-lock.json* ./
 
