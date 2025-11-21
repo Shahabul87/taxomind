@@ -242,6 +242,7 @@ const CommentItem = ({
                   variant="ghost"
                   size="sm"
                   className="absolute -right-4 sm:-right-6 md:-right-8 top-0 sm:top-0.5 md:top-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 p-0"
+                  aria-label="Comment options"
                 >
                   <MoreHorizontal className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4" />
                 </Button>
@@ -331,6 +332,7 @@ const CommentItem = ({
                   onClick={handleReplySubmit}
                   disabled={!replyContent.trim()}
                   className="absolute bottom-1 sm:bottom-1.5 md:bottom-2 right-1 sm:right-1.5 md:right-2 h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 p-0 rounded-full"
+                  aria-label="Send reply"
                 >
                   <Send className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3" />
                 </Button>
@@ -766,6 +768,7 @@ export const CommentSection = ({
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as "newest" | "popular")}
           className="text-[10px] sm:text-xs md:text-sm bg-transparent border-0 text-gray-600 dark:text-gray-400 focus:ring-0 cursor-pointer flex-shrink-0 px-1 py-0.5 rounded"
+          aria-label="Sort comments by"
         >
           <option value="newest">Newest</option>
           <option value="popular">Most Relevant</option>
@@ -799,6 +802,7 @@ export const CommentSection = ({
               onClick={handleAddComment}
               disabled={!newComment.trim() || isSubmitting}
               className="absolute bottom-1 sm:bottom-1.5 md:bottom-2 right-1 sm:right-1.5 md:right-2 h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 p-0 rounded-full"
+              aria-label="Post comment"
             >
               <Send className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3" />
             </Button>

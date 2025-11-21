@@ -1,6 +1,13 @@
 import { SessionProvider } from 'next-auth/react'
 import { auth } from '@/auth'
 import { ConfettiProvider } from '@/components/providers/confetti-provider';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  other: {
+    'cache-control': 'public, max-age=3600, stale-while-revalidate=86400',
+  },
+};
 
 export default async function BlogLayout({
   children,

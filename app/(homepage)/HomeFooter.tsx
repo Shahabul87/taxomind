@@ -104,6 +104,7 @@ export const HomeFooter = () => {
                     whileHover={{ y: -3, backgroundColor: "#1DA1F2", color: "#ffffff" }}
                     href="#"
                     className="p-1.5 sm:p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-purple-400 transition-all duration-300"
+                    aria-label="Follow us on Twitter"
                   >
                     <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.a>
@@ -111,6 +112,7 @@ export const HomeFooter = () => {
                     whileHover={{ y: -3, backgroundColor: "#333", color: "#ffffff" }}
                     href="#"
                     className="p-1.5 sm:p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-cyan-400 transition-all duration-300"
+                    aria-label="View our GitHub repository"
                   >
                     <Github className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.a>
@@ -118,6 +120,7 @@ export const HomeFooter = () => {
                     whileHover={{ y: -3, backgroundColor: "#0A66C2", color: "#ffffff" }}
                     href="#"
                     className="p-1.5 sm:p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-blue-400 transition-all duration-300"
+                    aria-label="Connect with us on LinkedIn"
                   >
                     <Linkedin className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.a>
@@ -125,6 +128,7 @@ export const HomeFooter = () => {
                     whileHover={{ y: -3, backgroundColor: "#8B5CF6", color: "#ffffff" }}
                     href="#"
                     className="p-1.5 sm:p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-purple-400 transition-all duration-300"
+                    aria-label="Join our community chat"
                   >
                     <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.a>

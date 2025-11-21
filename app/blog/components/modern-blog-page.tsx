@@ -76,36 +76,59 @@ export function ModernBlogPage({
   const [minViews, setMinViews] = useState<number>(0);
   const [dateRange, setDateRange] = useState<"all" | "today" | "week" | "month" | "year">("all");
 
-  // Fetch blog statistics on mount
+  // Fetch blog statistics on mount - optimized with error handling
   useEffect(() => {
+    let mounted = true;
+    
     const fetchStatistics = async () => {
       try {
         setStatsLoading(true);
-        const response = await fetch('/api/blog/statistics');
+        const response = await fetch('/api/blog/statistics', {
+          cache: 'force-cache',
+          next: { revalidate: 3600 }, // Cache for 1 hour
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch statistics');
+        }
+        
         const result = await response.json();
 
-        if (result.success && result.data) {
+        if (mounted && result.success && result.data) {
           setStatistics(result.data);
         }
       } catch (error) {
-        console.error('Failed to fetch blog statistics:', error);
-        // Fallback to default values
-        setStatistics({
-          totalArticles: initialPosts.length,
-          publishedArticles: initialPosts.length,
-          totalReaders: 50000,
-          totalAuthors: 100,
-          totalViews: 0,
-          totalComments: 0,
-          averageViews: 0,
-          popularCategories: [],
-        });
+        // Silently fallback to default values - no console.error in production
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to fetch blog statistics:', error);
+        }
+        
+        if (mounted) {
+          setStatistics({
+            totalArticles: initialPosts.length,
+            publishedArticles: initialPosts.length,
+            totalReaders: 50000,
+            totalAuthors: 100,
+            totalViews: 0,
+            totalComments: 0,
+            averageViews: 0,
+            popularCategories: [],
+          });
+        }
       } finally {
-        setStatsLoading(false);
+        if (mounted) {
+          setStatsLoading(false);
+        }
       }
     };
 
-    fetchStatistics();
+    // Delay fetch to prioritize critical content
+    const timeoutId = setTimeout(fetchStatistics, 100);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [initialPosts.length]);
 
   // Filter posts by category and search
@@ -214,7 +237,10 @@ export function ModernBlogPage({
             <div className="flex flex-wrap gap-2">
               {/* Sort Dropdown - Consistent Height */}
               <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                <SelectTrigger className="flex-1 sm:flex-none sm:w-[160px] h-10 sm:h-11 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 text-slate-900 dark:text-white text-sm sm:text-base">
+                <SelectTrigger 
+                  className="flex-1 sm:flex-none sm:w-[160px] h-10 sm:h-11 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 text-slate-900 dark:text-white text-sm sm:text-base"
+                  aria-label="Sort articles by"
+                >
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
@@ -382,6 +408,7 @@ export function ModernBlogPage({
                   key={category.id}
                   value={category.id}
                   className="whitespace-nowrap h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
+                  aria-label={`Filter by ${category.name} category`}
                 >
                   {category.name}
                   <Badge variant="secondary" className="ml-1.5 sm:ml-2 h-4 sm:h-5 px-1 sm:px-1.5 text-[10px] sm:text-xs">

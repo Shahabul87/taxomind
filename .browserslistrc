@@ -1,0 +1,17 @@
+# Browsers that we support
+# This configuration tells Next.js/Babel to target modern browsers
+# Eliminates legacy polyfills and reduces bundle size
+
+[production]
+# Modern browsers that support ES2020+ features
+# Removes polyfills for Array.at, Array.flat, Object.fromEntries, etc.
+chrome >= 92
+firefox >= 90
+safari >= 15.4
+edge >= 92
+
+[development]
+# Latest version for faster development builds
+last 1 chrome version
+last 1 firefox version
+last 1 safari version

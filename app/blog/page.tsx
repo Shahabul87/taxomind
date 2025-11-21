@@ -69,5 +69,20 @@ export const metadata = {
     title: 'Blog - Modern Tech Insights & Tutorials',
     description: 'Explore our collection of articles on web development, AI, design, and more.',
     type: 'website',
+    url: '/blog',
+  },
+  alternates: {
+    canonical: '/blog',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };

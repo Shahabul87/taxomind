@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import axios from "axios";
 import { useSession } from "next-auth/react";
@@ -215,38 +215,29 @@ export const EnterprisePostHeader = ({
       {/* Premium/Featured Badges */}
       <div className="flex items-center gap-1.5 sm:gap-2 mb-3 sm:mb-4 md:mb-6">
         {isFeatured && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 md:px-3 md:py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20"
-          >
+          <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 md:px-3 md:py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
             <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-amber-600 dark:text-amber-400" />
             <span className="text-[10px] sm:text-xs font-semibold text-amber-700 dark:text-amber-300">Featured</span>
-          </motion.div>
+          </div>
         )}
         {isPremium && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 md:px-3 md:py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20"
-          >
+          <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 md:px-3 md:py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20">
             <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-purple-600 dark:text-purple-400" />
             <span className="text-[10px] sm:text-xs font-semibold text-purple-700 dark:text-purple-300">Premium</span>
-          </motion.div>
+          </div>
         )}
       </div>
 
       {/* Main Header Section */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
         className="space-y-3 sm:space-y-4 md:space-y-6"
       >
         {/* Category and Metadata Bar */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 text-xs sm:text-sm">
-          <Link href="/" className="flex-shrink-0">
+          <Link href="/" className="flex-shrink-0" aria-label="Go to homepage">
             <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer transition-colors" />
           </Link>
           {category && (
@@ -304,9 +295,9 @@ export const EnterprisePostHeader = ({
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white truncate">
+                  <p className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white truncate">
                     {authorName || 'Anonymous'}
-                  </h3>
+                  </p>
                   {isVerified && (
                     <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
                   )}
@@ -318,7 +309,10 @@ export const EnterprisePostHeader = ({
               variant={isFollowing ? "secondary" : "default"}
               size="sm"
               onClick={() => setIsFollowing(!isFollowing)}
-              className="flex-shrink-0 text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 md:px-4 h-7 sm:h-8 md:h-9"
+              className={cn(
+                "flex-shrink-0 text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 md:px-4 h-7 sm:h-8 md:h-9 font-bold",
+                !isFollowing && "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+              )}
             >
               <span className="hidden xs:inline">{isFollowing ? 'Following' : 'Follow'}</span>
               <span className="xs:hidden">{isFollowing ? '✓' : '+'}</span>
@@ -369,6 +363,7 @@ export const EnterprisePostHeader = ({
               size="sm"
               onClick={() => setIsBookmarked(!isBookmarked)}
               className="flex-shrink-0 h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-4"
+              aria-label={isBookmarked ? "Remove bookmark" : "Bookmark this article"}
             >
               <Bookmark className={cn("w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4", isBookmarked && "fill-current")} />
             </Button>
@@ -376,7 +371,12 @@ export const EnterprisePostHeader = ({
             {mounted && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1 sm:gap-1.5 md:gap-2 flex-shrink-0 text-[10px] sm:text-xs md:text-sm h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 sm:gap-1.5 md:gap-2 flex-shrink-0 text-[10px] sm:text-xs md:text-sm h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-4"
+                    aria-label="Share this article"
+                  >
                     <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
                     <span className="hidden sm:inline">Share</span>
                   </Button>
@@ -419,7 +419,12 @@ export const EnterprisePostHeader = ({
           {mounted && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="flex-shrink-0 h-8 sm:h-9 md:h-10 w-8 sm:w-9 md:w-10 p-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-shrink-0 h-8 sm:h-9 md:h-10 w-8 sm:w-9 md:w-10 p-0"
+                  aria-label="More options"
+                >
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>

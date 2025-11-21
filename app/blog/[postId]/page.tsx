@@ -1,13 +1,29 @@
 import { redirect } from "next/navigation";
 import { currentUser } from '@/lib/auth'
-import { HomeFooter } from "@/app/(homepage)/HomeFooter";
-import ReadingModes from "./_components/reading-mode";
-import { FeaturedImage } from "./_components/featured-image";
 import { Metadata } from "next";
-import EnterprisePostHeader from "./_components/enterprise-post-header";
 import { getPostData } from "@/app/actions/get-post-data";
-import YouMayLikeSection from "./_components/you-may-like-section";
-import CommentSection from "./_components/facebook-comment-section";
+import dynamic from 'next/dynamic';
+
+// Lazy load heavy components
+const HomeFooter = dynamic(() => import("@/app/(homepage)/HomeFooter").then(mod => ({ default: mod.HomeFooter })), {
+  loading: () => <div className="h-96 bg-slate-900" />
+});
+
+const ReadingModes = dynamic(() => import("./_components/reading-mode"), {
+  loading: () => <div className="h-64 bg-white/80 dark:bg-slate-800/80 rounded-xl animate-pulse" />
+});
+
+const YouMayLikeSection = dynamic(() => import("./_components/you-may-like-section"), {
+  loading: () => <div className="h-96 bg-white/80 dark:bg-slate-800/80 rounded-xl animate-pulse" />
+});
+
+const CommentSection = dynamic(() => import("./_components/facebook-comment-section"), {
+  loading: () => <div className="h-96 bg-white/80 dark:bg-slate-800/80 rounded-xl animate-pulse" />
+});
+
+// Keep these for above-the-fold content
+import { FeaturedImage } from "./_components/featured-image";
+import EnterprisePostHeader from "./_components/enterprise-post-header";
 
 // Is the app running in development mode?
 const isDev = process.env.NODE_ENV === 'development';
@@ -53,6 +69,10 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
 
   return (
     <>
+      {/* Preconnect to external image CDN for faster LCP */}
+      <link rel="preconnect" href="https://lh3.googleusercontent.com" />
+      <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
+
       {/* Article JSON-LD for SEO */}
       {post && (
         <script
@@ -204,5 +224,8 @@ export async function generateMetadata(props: { params: Promise<{ postId: string
         follow: true,
       },
     },
+    other: post.imageUrl ? {
+      'preload-image': post.imageUrl,
+    } : undefined,
   };
 }

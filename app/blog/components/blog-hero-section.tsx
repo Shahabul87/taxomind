@@ -66,10 +66,23 @@ export function ModernHeroSection({
   ];
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
-    return () => clearInterval(timer);
+    // Use requestAnimationFrame for smoother animations
+    let animationFrameId: number;
+    let timeoutId: NodeJS.Timeout;
+    
+    const scheduleNextSlide = () => {
+      timeoutId = setTimeout(() => {
+        setCurrentSlide((prev) => (prev + 1) % slides.length);
+        animationFrameId = requestAnimationFrame(scheduleNextSlide);
+      }, 6000);
+    };
+    
+    animationFrameId = requestAnimationFrame(scheduleNextSlide);
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
   }, [slides.length]);
 
   const currentSlideData = slides[currentSlide];
@@ -274,6 +287,9 @@ export function ModernHeroSection({
                           alt={featuredPosts[0].title}
                           fill
                           className="object-cover transition-transform duration-700 group-hover:scale-110"
+                          sizes="(max-width: 768px) 100vw, 320px"
+                          priority
+                          quality={85}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                         <Badge className="absolute top-2 left-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 text-xs px-2 py-1">
@@ -361,17 +377,22 @@ export function ModernHeroSection({
         </div>
 
         {/* Slide Indicators */}
-        <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+        <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex gap-3">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
               className={cn(
-                "h-1.5 sm:h-2 rounded-full transition-all",
-                index === currentSlide ? "w-6 sm:w-8 bg-white" : "w-1.5 sm:w-2 bg-white/30"
+                "h-6 w-6 sm:h-8 sm:w-8 rounded-full transition-all flex items-center justify-center",
+                index === currentSlide ? "bg-white" : "bg-white/30"
               )}
               aria-label={`Go to slide ${index + 1}`}
-            />
+            >
+              <span className={cn(
+                "h-1.5 sm:h-2 rounded-full transition-all",
+                index === currentSlide ? "w-6 sm:w-8 bg-white" : "w-1.5 sm:w-2 bg-white/30"
+              )} />
+            </button>
           ))}
         </div>
       </div>

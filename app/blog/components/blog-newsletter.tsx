@@ -28,7 +28,7 @@ export function NewsletterSection() {
             placeholder="Enter your email"
             className="bg-white dark:bg-slate-800"
           />
-          <Button className="w-full">
+          <Button className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white">
             <Sparkles className="w-4 h-4 mr-2" />
             Subscribe Now
           </Button>

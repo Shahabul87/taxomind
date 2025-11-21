@@ -111,8 +111,9 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            quality={75}
-            unoptimized={!post.imageUrl}
+            quality={80}
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-slate-100 via-purple-50 to-pink-50 dark:from-slate-700 dark:via-slate-600 dark:to-slate-700 flex items-center justify-center">

@@ -112,6 +112,7 @@ export function SAMMobileResponsive({ className }: SAMMobileResponsiveProps) {
                 "hover:scale-110 active:scale-95",
                 `bg-gradient-to-r ${getThemeStyles()}`
               )}
+              aria-label="Open SAM AI Tutor"
             >
               <ThemeIcon className="h-6 w-6 text-white" />
             </Button>
@@ -171,6 +172,7 @@ export function SAMMobileResponsive({ className }: SAMMobileResponsiveProps) {
                 "hover:scale-110 active:scale-95",
                 `bg-gradient-to-r ${getThemeStyles()}`
               )}
+              aria-label="Open SAM AI Tutor"
             >
               <ThemeIcon className="h-5 w-5 text-white" />
             </Button>
