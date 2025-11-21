@@ -7,7 +7,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import { Permission, USER_PERMISSIONS } from "@/lib/role-management";
 
 export function usePermissions() {

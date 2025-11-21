@@ -3,7 +3,7 @@
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { getAdminCookieConfig, SessionDurations } from "@/lib/security/cookie-config";
-import type { AdminRole } from "@prisma/client";
+import type { AdminRole } from "@/types/admin-role";
 
 // IMPORTANT: This mirrors admin settings from auth.config.admin.ts but remains Edge-safe.
 export default {

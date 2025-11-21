@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
-import type { AdminRole } from "@prisma/client";
+import type { AdminRole } from "@/types/admin-role";
 
 // Schema for updating admin profile
 const UpdateProfileSchema = z.object({

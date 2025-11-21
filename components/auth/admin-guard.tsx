@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import { AdminSession } from "@/types/admin-session";
 
 export const AdminGuard = ({ children }: { children: React.ReactNode }) => {

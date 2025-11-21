@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import { currentUser, currentRole } from "../auth";
 import { hasPermission, Permission } from "../role-management";
 import { rateLimit, getClientIdentifier, getRateLimitHeaders } from "../rate-limit";

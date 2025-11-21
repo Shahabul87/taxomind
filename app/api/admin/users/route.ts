@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AdminRole, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import { withRole } from "@/lib/api-protection";
 import { db } from "@/lib/db";
 import { z } from "zod";

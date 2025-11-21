@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import { logger } from '@/lib/logger';
 
 // Mark this route as dynamic to prevent static generation attempts

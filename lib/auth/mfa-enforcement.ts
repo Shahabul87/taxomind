@@ -12,7 +12,7 @@
  */
 
 import { db } from "@/lib/db";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import { logger } from "@/lib/logger";
 
 // Configuration constants - these should be moved to environment variables

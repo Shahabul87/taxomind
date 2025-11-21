@@ -5,7 +5,7 @@
  */
 
 import { useSession } from "next-auth/react";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import { Permission } from "@/types/auth";
 import { hasPermission, hasAnyPermission, hasAllPermissions } from "@/lib/auth/permissions";
 import { useRouter } from "next/navigation";

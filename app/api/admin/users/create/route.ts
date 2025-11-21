@@ -3,7 +3,7 @@ import { hash } from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 
 const CreateUserSchema = z.object({
   email: z.string().email("Invalid email format"),

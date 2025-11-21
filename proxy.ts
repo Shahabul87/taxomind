@@ -13,7 +13,7 @@ import NextAuth from "next-auth";
 import userAuthConfig from "@/auth.config.edge";
 import adminAuthConfig from "@/auth.config.admin.edge";
 import { NextResponse, NextRequest } from 'next/server';
-import type { AdminRole } from "@prisma/client";
+import type { AdminRole } from "@/types/admin-role";
 import { applySecurityHeaders, getMinimalSecurityHeaders } from "@/lib/security/headers";
 import { UserCapability } from "@/lib/auth/capability-types";
 

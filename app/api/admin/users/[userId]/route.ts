@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import { withRole } from "@/lib/api-protection";
 import { db, getEnterpriseDB } from "@/lib/db-migration";
 import { currentUser } from "@/lib/auth";

@@ -7,7 +7,7 @@
  */
 
 import { db } from "@/lib/db";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import { logger } from "@/lib/logger";
 import { AdminMFAInfo, calculateMFAEnforcementStatus } from "./mfa-enforcement";
 

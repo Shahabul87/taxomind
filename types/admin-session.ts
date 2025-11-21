@@ -1,4 +1,4 @@
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 
 /**
  * Admin Session Type

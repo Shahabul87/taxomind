@@ -15,7 +15,7 @@
 import "server-only";
 
 import NextAuth from "next-auth"
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import type { JWT } from "next-auth/jwt";
 import type { Session, User } from "next-auth";
 

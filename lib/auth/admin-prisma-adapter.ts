@@ -16,7 +16,7 @@
 
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/types/admin-role";
 import type { Adapter, AdapterUser, AdapterAccount, AdapterSession, VerificationToken } from "next-auth/adapters";
 
 /**
