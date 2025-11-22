@@ -41,7 +41,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 // Extracted components
-import { ModernHeroSection } from "./blog-hero-section";
+import { ModernHeroSectionOptimized } from "./blog-hero-section-optimized";
 import { TrendingSidebar } from "./blog-sidebar";
 import { NewsletterSection } from "./blog-newsletter";
 import { BlogCardSkeleton, HeroSkeleton } from "./blog-skeleton";
@@ -122,12 +122,23 @@ export function ModernBlogPage({
       }
     };
 
-    // Delay fetch to prioritize critical content
-    const timeoutId = setTimeout(fetchStatistics, 100);
+    // Defer stats fetch to idle time to reduce TBT
+    let idleId: number | null = null;
+    if (typeof (window as any).requestIdleCallback === 'function') {
+      idleId = (window as any).requestIdleCallback(fetchStatistics, { timeout: 1500 });
+    } else {
+      // Fallback with a slightly longer delay
+      const timeoutId = setTimeout(fetchStatistics, 300);
+      idleId = timeoutId as unknown as number;
+    }
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      if (typeof (window as any).cancelIdleCallback === 'function' && idleId) {
+        (window as any).cancelIdleCallback(idleId);
+      } else if (idleId) {
+        clearTimeout(idleId as unknown as number);
+      }
     };
   }, [initialPosts.length]);
 
@@ -203,8 +214,8 @@ export function ModernBlogPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-      {/* Hero Section */}
-      <ModernHeroSection
+      {/* Hero Section - Optimized */}
+      <ModernHeroSectionOptimized
         featuredPosts={featuredPosts}
         statistics={statistics}
         isLoading={statsLoading}
@@ -218,17 +229,22 @@ export function ModernBlogPage({
             {/* Search Input - Consistent Height */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 h-4 w-4 sm:h-5 sm:w-5" />
+              <Label htmlFor="blog-search" className="sr-only">Search articles</Label>
               <Input
+                id="blog-search"
                 placeholder="Search articles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 sm:pl-10 pr-9 sm:pr-10 h-10 sm:h-11 text-sm sm:text-base bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                autoComplete="off"
+                aria-label="Search articles"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-2 -m-2"
                   aria-label="Clear search"
+                  type="button"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -332,12 +348,13 @@ export function ModernBlogPage({
               </Popover>
 
               {/* View Mode Toggle - Hidden on mobile, shown on tablet+ */}
-              <div className="hidden md:flex items-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 rounded-lg h-10 sm:h-11">
+              <div className="hidden md:flex items-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 rounded-lg h-11">
                 <Button
                   variant={viewMode === "grid" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setViewMode("grid")}
-                  className="rounded-r-none h-9 w-11 text-slate-900 dark:text-white"
+                  className="rounded-r-none h-11 w-11 text-slate-900 dark:text-white"
+                  aria-label="Switch to grid view"
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </Button>
@@ -345,7 +362,8 @@ export function ModernBlogPage({
                   variant={viewMode === "list" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setViewMode("list")}
-                  className="rounded-l-none h-9 w-11 text-slate-900 dark:text-white"
+                  className="rounded-l-none h-11 w-11 text-slate-900 dark:text-white"
+                  aria-label="Switch to list view"
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -365,7 +383,9 @@ export function ModernBlogPage({
                   {searchQuery && <span className="hidden sm:inline">&quot;</span>}
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="ml-1 hover:text-slate-900 dark:hover:text-white"
+                    className="ml-1 hover:text-slate-900 dark:hover:text-white p-2 -m-2"
+                    aria-label="Clear search filter"
+                    type="button"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -378,7 +398,9 @@ export function ModernBlogPage({
                   {minViews.toLocaleString()}
                   <button
                     onClick={() => setMinViews(0)}
-                    className="ml-1 hover:text-slate-900 dark:hover:text-white"
+                    className="ml-1 hover:text-slate-900 dark:hover:text-white p-2 -m-2"
+                    aria-label="Clear minimum views filter"
+                    type="button"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -389,7 +411,9 @@ export function ModernBlogPage({
                   Date: {dateRange}
                   <button
                     onClick={() => setDateRange("all")}
-                    className="ml-1 hover:text-slate-900 dark:hover:text-white"
+                    className="ml-1 hover:text-slate-900 dark:hover:text-white p-2 -m-2"
+                    aria-label="Clear date range filter"
+                    type="button"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -402,21 +426,26 @@ export function ModernBlogPage({
         {/* Category Tabs - Non-Sticky, Below Search/Filter */}
         <div className="mb-6 sm:mb-8 -mx-3 sm:-mx-4 px-3 sm:px-4">
           <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-            <TabsList className="w-full justify-start overflow-x-auto flex-nowrap bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 h-10 sm:h-11 scrollbar-hide">
+            <TabsList className="w-full justify-start overflow-x-auto flex-nowrap bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 h-11 scrollbar-hide">
               {categories.map(category => (
                 <TabsTrigger
                   key={category.id}
                   value={category.id}
-                  className="whitespace-nowrap h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
+                  className="whitespace-nowrap h-11 px-4 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200"
                   aria-label={`Filter by ${category.name} category`}
                 >
                   {category.name}
-                  <Badge variant="secondary" className="ml-1.5 sm:ml-2 h-4 sm:h-5 px-1 sm:px-1.5 text-[10px] sm:text-xs">
+                  <Badge variant="secondary" className="ml-1.5 sm:ml-2 h-5 px-1 sm:px-1.5 text-[10px] sm:text-xs">
                     {category.count}
                   </Badge>
                 </TabsTrigger>
               ))}
             </TabsList>
+            {categories.map(category => (
+              <TabsContent key={`panel-${category.id}`} value={category.id} className="sr-only">
+                Currently filtering by {category.name}
+              </TabsContent>
+            ))}
           </Tabs>
         </div>
 
