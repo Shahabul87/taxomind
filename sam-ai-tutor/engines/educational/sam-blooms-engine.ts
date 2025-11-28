@@ -2,6 +2,26 @@ import { db } from '@/lib/db';
 import { BloomsLevel } from '@prisma/client';
 import { Anthropic } from '@anthropic-ai/sdk';
 
+// Limit parallel section analyses to avoid LLM spikes
+const SECTION_ANALYSIS_CONCURRENCY = Number(process.env.SAM_BLOOMS_CONCURRENCY || 3);
+
+async function mapWithConcurrency<T, R>(items: T[], limit: number, mapper: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const i = nextIndex++;
+      if (i >= items.length) break;
+      results[i] = await mapper(items[i], i);
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, Math.max(1, items.length)) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
@@ -253,8 +273,10 @@ export class BloomsAnalysisEngine {
   }
 
   private async analyzeChapter(chapter: any): Promise<ChapterBloomsAnalysis> {
-    const sectionAnalyses = await Promise.all(
-      chapter.sections.map((section: any) => this.analyzeSection(section))
+    const sectionAnalyses = await mapWithConcurrency(
+      chapter.sections,
+      SECTION_ANALYSIS_CONCURRENCY,
+      (section: any) => this.analyzeSection(section)
     );
 
     const chapterDistribution = this.calculateChapterDistribution(sectionAnalyses);
@@ -312,7 +334,7 @@ Description: ${section.description || 'No description'}
 `;
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 500,
       temperature: 0.3,
       system: systemPrompt,

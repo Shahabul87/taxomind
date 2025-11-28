@@ -133,29 +133,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return false;
         }
 
-        // Check MFA enforcement for admin users
-        if (existingUser.role === "ADMIN") {
-          const mfaEnforcement = shouldEnforceMFAOnSignIn({
-            role: existingUser.role,
-            isTwoFactorEnabled: existingUser.isTwoFactorEnabled,
-            totpEnabled: existingUser.totpEnabled || false,
-            totpVerified: existingUser.totpVerified || false,
-            createdAt: existingUser.createdAt,
-          });
-
-          if (mfaEnforcement.enforce) {
-            console.log("MFA enforcement blocking admin sign-in:", mfaEnforcement.reason);
-            
-            // Log the enforcement action
-            await logMFAEnforcementAction(existingUser.id, "FORCED_SETUP", {
-              reason: mfaEnforcement.reason,
-              userAgent: "unknown", // Could extract from request if available
-              ipAddress: "unknown", // Could extract from request if available
-            }).catch(console.error);
-            
-            return false;
-          }
-        }
+        // NOTE: Admin MFA enforcement is handled separately in AdminAccount auth
+        // Regular users use User model without role field
 
         if (existingUser.isTwoFactorEnabled) {
           console.log("2FA is enabled, checking confirmation");

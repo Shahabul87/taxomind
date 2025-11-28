@@ -16,6 +16,7 @@ interface CourseCardProps {
   chaptersLength: number;
   price: number;
   category: string;
+  priority?: boolean;
 }
 
 export const CourseCardHome = ({
@@ -26,6 +27,7 @@ export const CourseCardHome = ({
   chaptersLength,
   price,
   category,
+  priority = false,
 }: CourseCardProps) => {
   // Ensure image URLs use HTTPS for Next.js Image component in production
   // Use fallback if imageUrl is null, undefined, or empty string
@@ -66,7 +68,7 @@ export const CourseCardHome = ({
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-700 group-hover:scale-110"
           quality={75}
-          priority={false}
+          priority={priority}
           onError={(e) => {
             // Direct DOM manipulation for more reliable fallback
             e.currentTarget.src = getFallbackImageUrl('course');

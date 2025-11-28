@@ -3,10 +3,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { CoursesDashboard } from "./_components/courses-dashboard";
 import { CoursesSkeleton } from "./_components/courses-skeleton";
-import { cn } from "@/lib/utils";
 import { Suspense } from "react";
 import { SerializedCourseWithRelations } from "@/types/course";
-import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
 
 // Force dynamic rendering - this page MUST NOT be statically generated
 export const dynamic = 'force-dynamic';
@@ -73,17 +71,7 @@ const CoursesPage = async () => {
     console.log('[CoursesPage] Stats calculated - Total:', courses.length, 'Published:', publishedCount);
 
     return (
-    <PageWithMobileLayout
-      showHeader={false}
-      showSidebar={true}
-      showBottomBar={true}
-      enableGestures={true}
-      contentClassName={cn(
-        "bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40",
-        "dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
-      )}
-    >
-      <div className="min-h-screen w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-0 sm:pt-2 md:pt-4 lg:pt-6 pb-4 sm:pb-6 md:pb-8 lg:pb-12 max-w-7xl mx-auto">
+      <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-6">
         <Suspense fallback={<CoursesSkeleton />}>
           <CoursesDashboard
             courses={courses}
@@ -97,8 +85,7 @@ const CoursesPage = async () => {
           />
         </Suspense>
       </div>
-    </PageWithMobileLayout>
-  );
+    );
   } catch (error) {
     // Log the full error for debugging
     console.error('[CoursesPage] Fatal error:', error);

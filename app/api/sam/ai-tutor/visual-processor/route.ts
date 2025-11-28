@@ -98,7 +98,7 @@ Provide comprehensive analysis including:
 8. Related visual resources`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -154,7 +154,7 @@ Create a detailed diagram specification including:
 8. Implementation guidelines`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -214,7 +214,7 @@ Create a comprehensive visualization plan including:
 8. Customization options`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -272,7 +272,7 @@ Create interactive annotation plan including:
 8. Engagement mechanics`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1200,
     temperature: 0.7,
     messages: [
@@ -329,7 +329,7 @@ Create visual quiz including:
 8. Feedback and explanations`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -384,7 +384,7 @@ Create infographic specification including:
 8. Learning enhancement features`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -442,7 +442,7 @@ Create mind map specification including:
 8. Assessment integration points`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -500,7 +500,7 @@ Create flowchart specification including:
 8. Assessment opportunities`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [

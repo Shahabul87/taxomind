@@ -76,37 +76,46 @@ export const Sidebar = ({ children, open, setOpen, animate = true, className }: 
   );
 };
 
-export const SidebarBody = (props: React.ComponentProps<typeof motion.div>) => {
+interface SidebarBodyProps extends Omit<React.ComponentProps<'div'>, 'children'> {
+  children?: ReactNode;
+}
+
+export const SidebarBody = (props: SidebarBodyProps) => {
   return (
     <>
       <DesktopSidebar {...props} />
-      <MobileSidebar {...(props as React.ComponentProps<'div'>)} />
+      <MobileSidebar {...props} />
     </>
   );
 };
+
+interface DesktopSidebarProps extends Omit<React.ComponentProps<'div'>, 'children'> {
+  children?: ReactNode;
+}
 
 export const DesktopSidebar = ({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof motion.div>) => {
+}: DesktopSidebarProps) => {
   const { open, setOpen, animate } = useSidebar();
+
   return (
     <>
-      <motion.div
+      <div
         className={cn(
-          'h-full px-3 py-4 hidden  md:flex md:flex-col bg-slate-100 dark:bg-slate-900/95 border-r border-slate-200 dark:border-slate-700/50 w-[240px] flex-shrink-0 overflow-hidden',
+          'h-full px-3 py-4 hidden md:flex md:flex-col bg-slate-100 dark:bg-slate-900/95 border-r border-slate-200 dark:border-slate-700/50 flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-out',
           className
         )}
-        animate={{
-          width: animate ? (open ? '240px' : '80px') : '240px',
+        style={{
+          width: animate ? (open ? 240 : 80) : 240,
         }}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         {...props}
       >
         {children}
-      </motion.div>
+      </div>
     </>
   );
 };
@@ -156,7 +165,8 @@ export const MobileSidebar = ({ className, children, ...props }: React.Component
                 ease: 'easeInOut',
               }}
               className={cn(
-                'fixed h-full w-[85vw] max-w-sm inset-y-0 left-0 bg-slate-100 dark:bg-slate-900/95 z-[100] flex flex-col shadow-xl',
+                // Ensure the mobile drawer is hidden on md+ to avoid overlay conflicts
+                'fixed md:hidden h-full w-[85vw] max-w-sm inset-y-0 left-0 bg-slate-100 dark:bg-slate-900/95 z-[100] flex flex-col shadow-xl',
                 className
               )}
             >
@@ -213,17 +223,16 @@ export const SidebarLink = ({
       )}
       {...props}
     >
-      {link.icon}
+      <span className="flex-shrink-0">{link.icon}</span>
 
-      <motion.span
-        animate={{
-          display: animate ? (open ? 'inline-block' : 'none') : 'inline-block',
-          opacity: animate ? (open ? 1 : 0) : 1,
-        }}
-        className="text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+      <span
+        className={cn(
+          'text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-out',
+          animate && !open ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100'
+        )}
       >
         {link.label}
-      </motion.span>
+      </span>
     </Link>
   );
 };

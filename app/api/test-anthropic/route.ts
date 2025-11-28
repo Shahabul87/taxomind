@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger';
 // IMPORTANT: In production, always use environment variables
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_VERSION = '2023-06-01';
-const CLAUDE_MODEL = 'claude-3-5-sonnet-20241022';
+const CLAUDE_MODEL = 'claude-sonnet-4-5-20250929';
 
 export async function GET(req: NextRequest) {
   try {

@@ -2,6 +2,7 @@ import { BlogPageRedesigned } from './components/redesign/BlogPageRedesigned';
 import { ModernBlogPage } from './components/modern-blog-page';
 import { getSimplePostsForBlog } from '@/actions/get-simple-posts';
 import { PageWithMobileLayout } from '@/components/layouts/PageWithMobileLayout';
+import Script from 'next/script';
 
 // Fetch posts from database for initial SSR
 async function getPosts() {
@@ -41,6 +42,29 @@ async function getPosts() {
 
 export default async function BlogPage() {
   const { featuredPosts, posts, categories, trendingPosts } = await getPosts();
+  const base = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    name: 'Taxomind Blog',
+    url: `${base}/blog`,
+    description: 'Modern tech insights, tutorials, and best practices.',
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Taxomind',
+      url: base,
+    },
+    blogPost: posts.slice(0, 10).map((p) => ({
+      '@type': 'BlogPosting',
+      headline: p.title,
+      description: p.description,
+      url: `${base}/blog/${p.id}`,
+      datePublished: new Date(p.createdAt).toISOString(),
+      author: p.user?.name ? { '@type': 'Person', name: p.user.name } : undefined,
+      image: p.imageUrl ? [{ '@type': 'ImageObject', url: p.imageUrl }] : undefined,
+    })),
+  }
 
   // Use modern design - public page without navigation elements
   return (
@@ -51,6 +75,12 @@ export default async function BlogPage() {
       enableGestures={false}
       contentClassName="bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800"
     >
+      <Script
+        id="blog-ld-json"
+        type="application/ld+json"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <ModernBlogPage
         featuredPosts={featuredPosts}
         initialPosts={posts}
@@ -86,3 +116,6 @@ export const metadata = {
     },
   },
 };
+
+// Enable ISR to improve TTFB and cache the blog listing for 1 hour
+export const revalidate = 3600;

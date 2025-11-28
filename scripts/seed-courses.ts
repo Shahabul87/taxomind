@@ -346,19 +346,32 @@ async function seedCourses() {
   try {
     console.log("🌱 Starting courses seeding...");
 
-    // First, check if we have an admin user
-    const adminUser = await db.user.findFirst({
-      where: {
-        role: "ADMIN"
-      }
+    // Find a user to be the course creator
+    // Priority: 1. Teacher user, 2. Any user with courses, 3. First user
+    let courseCreator = await db.user.findFirst({
+      where: { isTeacher: true }
     });
 
-    if (!adminUser) {
-      console.error("❌ Admin user not found. Please run create-test-user.ts first");
-      throw new Error("Admin user not found");
+    if (!courseCreator) {
+      // Try to find a user who already has courses
+      courseCreator = await db.user.findFirst({
+        where: {
+          courses: { some: {} }
+        }
+      });
     }
 
-    console.log(`✅ Found admin user: ${adminUser!.email}`);
+    if (!courseCreator) {
+      // Fall back to first user
+      courseCreator = await db.user.findFirst();
+    }
+
+    if (!courseCreator) {
+      console.error("❌ No user found. Please create a user first");
+      throw new Error("No user found to assign as course creator");
+    }
+
+    console.log(`✅ Found course creator: ${courseCreator.email}`);
 
     // Create or find categories
     const categoryMap: { [key: string]: string } = {};
@@ -394,7 +407,7 @@ async function seedCourses() {
 
       const newCourse = await db.course.create({
         data: {
-          userId: adminUser!.id,
+          userId: courseCreator.id,
           title: course.title,
           subtitle: course.subtitle,
           description: course.description,
@@ -435,7 +448,7 @@ async function seedCourses() {
         await db.courseReview.create({
           data: {
             courseId: newCourse.id,
-            userId: adminUser!.id,
+            userId: courseCreator.id,
             rating,
             comment: `Great course! Really helped me understand the concepts.`
           }

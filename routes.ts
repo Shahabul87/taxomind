@@ -132,33 +132,35 @@ export const protectedRoutes: string[] = [
 ];
 
 /**
- * Returns the default redirect path after logging in based on user role
- * @param role - The user's role (ADMIN or USER)
+ * Returns the default redirect path after logging in
+ * NOTE: Users don't have roles - all regular users go to /dashboard
+ * Admin users use separate AdminAccount auth and go to /admin/*
  * @returns {string} The redirect path
  */
-const getDefaultRedirect = (role?: string): string => {
-  switch (role) {
-    case "ADMIN":
-      return "/dashboard/admin";
-    case "USER":
-    default:
-      return "/dashboard";
-  }
+const getDefaultRedirect = (): string => {
+  // All regular users go to /dashboard
+  // Admin auth is completely separate via AdminAccount model
+  return "/dashboard";
 };
 
 /**
  * The default redirect path after logging in
- * Now using the getDefaultRedirect function
  * @type {string}
  */
 export const DEFAULT_LOGIN_REDIRECT = "/dashboard";
 
 /**
- * Get redirect URL based on role
- * @param role - The user's role
+ * Get redirect URL for authenticated users
+ * NOTE: Role parameter is deprecated - users don't have roles
+ * @deprecated Use DEFAULT_LOGIN_REDIRECT constant instead
  */
-export const getRedirectUrl = (role?: string) => {
-  return getDefaultRedirect(role);
+export const getRedirectUrl = (_role?: string) => {
+  // Role parameter ignored - users don't have roles
+  // Kept for backward compatibility, logs deprecation warning
+  if (_role) {
+    console.warn('[getRedirectUrl] Role parameter is deprecated - users no longer have roles');
+  }
+  return getDefaultRedirect();
 };
 
 /**

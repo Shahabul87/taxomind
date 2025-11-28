@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { UserRole } from '@prisma/client';
+// NOTE: Users don't have roles - Admin auth uses AdminRole enum
+import { AdminRole } from '@/types/admin-role';
 import {
   withAPIAuth,
   withAuth,
@@ -43,20 +44,22 @@ import { rateLimit, getClientIdentifier, getRateLimitHeaders } from '@/lib/rate-
 import { logger } from '@/lib/logger';
 
 describe('Enterprise API Authentication', () => {
+  // Regular users don't have roles - role is null for regular users
   const mockUser = {
     id: 'user-123',
     name: 'Test User',
     email: 'test@example.com',
-    role: UserRole.USER,
+    role: null, // Regular users don't have roles
     image: null,
     isOAuth: false,
     isTwoFactorEnabled: false,
   };
 
+  // Admin users get AdminRole from currentRole() which checks AdminAccount
   const mockAdminUser = {
     ...mockUser,
     id: 'admin-123',
-    role: UserRole.ADMIN,
+    // Admin role is returned by currentRole() from AdminAccount auth
   };
 
   const createMockRequest = (options: {
@@ -103,7 +106,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should allow authenticated users', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       const wrappedHandler = withAuth(mockHandler);
       const request = createMockRequest();
@@ -115,7 +118,7 @@ describe('Enterprise API Authentication', () => {
         expect.objectContaining({
           user: expect.objectContaining({
             id: 'user-123',
-            role: UserRole.USER,
+            role: null, // Regular users don't have roles
           }),
         }),
         undefined
@@ -139,7 +142,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should include proper authentication context', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       const contextCapture = jest.fn().mockResolvedValue(NextResponse.json({ success: true }));
       const wrappedHandler = withAuth(contextCapture);
@@ -154,7 +157,7 @@ describe('Enterprise API Authentication', () => {
             id: 'user-123',
             name: 'Test User',
             email: 'test@example.com',
-            role: UserRole.USER,
+            role: null, // Regular users don't have roles
             image: null,
             isOAuth: false,
             isTwoFactorEnabled: false,
@@ -186,7 +189,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should allow admin users', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockAdminUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.ADMIN);
+      (currentRole as jest.Mock).mockResolvedValue(AdminRole.ADMIN); // Admin role from AdminAccount
 
       const wrappedHandler = withAdminAuth(mockHandler);
       const request = createMockRequest();
@@ -198,7 +201,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should reject non-admin users with 403', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       const wrappedHandler = withAdminAuth(mockHandler);
       const request = createMockRequest();
@@ -233,7 +236,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should allow users with required permissions', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
       (hasPermission as jest.Mock).mockResolvedValue(true);
 
       const wrappedHandler = withPermissions('READ_COURSES', mockHandler);
@@ -247,7 +250,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should reject users without required permissions with 403', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
       (hasPermission as jest.Mock).mockResolvedValue(false);
 
       const wrappedHandler = withPermissions('WRITE_COURSES', mockHandler);
@@ -263,7 +266,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should handle multiple permissions', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
       (hasPermission as jest.Mock)
         .mockResolvedValueOnce(true)  // First permission
         .mockResolvedValueOnce(false); // Second permission fails
@@ -288,7 +291,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should allow user to access their own resources', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
       getUserId.mockResolvedValue('user-123'); // Same as current user
 
       const wrappedHandler = withOwnership(getUserId, mockHandler);
@@ -302,7 +305,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should allow admin to access any resource', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockAdminUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.ADMIN);
+      (currentRole as jest.Mock).mockResolvedValue(AdminRole.ADMIN); // Admin role from AdminAccount
       getUserId.mockResolvedValue('user-456'); // Different user
 
       const wrappedHandler = withOwnership(getUserId, mockHandler);
@@ -315,7 +318,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should reject non-owner non-admin with 403', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
       getUserId.mockResolvedValue('user-456'); // Different user
 
       const wrappedHandler = withOwnership(getUserId, mockHandler);
@@ -339,7 +342,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should apply rate limiting when configured', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       const options: APIAuthOptions = {
         rateLimit: {
@@ -362,7 +365,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should reject requests when rate limit exceeded', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
       (rateLimit as jest.Mock).mockResolvedValue({
         success: false,
         limit: 10,
@@ -400,7 +403,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should use custom key generator when provided', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       const customKeyGenerator = jest.fn().mockReturnValue('custom-key-123');
       const options: APIAuthOptions = {
@@ -434,7 +437,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should log successful requests when audit enabled', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       const options: APIAuthOptions = {
         auditLog: true,
@@ -448,7 +451,7 @@ describe('Enterprise API Authentication', () => {
         'API Audit Log',
         expect.objectContaining({
           userId: 'user-123',
-          userRole: UserRole.USER,
+          userRole: null, // Regular users don't have roles
           method: 'GET',
           endpoint: '/api/test',
           ip: '127.0.0.1',
@@ -483,10 +486,10 @@ describe('Enterprise API Authentication', () => {
 
     it('should log authorization failures', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       const options: APIAuthOptions = {
-        roles: UserRole.ADMIN,
+        roles: AdminRole.ADMIN,
         auditLog: true,
       };
 
@@ -498,7 +501,7 @@ describe('Enterprise API Authentication', () => {
         'API Audit Log',
         expect.objectContaining({
           userId: 'user-123',
-          userRole: UserRole.USER,
+          userRole: null, // Regular users don't have roles
           success: false,
           error: expect.stringContaining('Insufficient role'),
         })
@@ -507,7 +510,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should log rate limiting failures', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
       (rateLimit as jest.Mock).mockResolvedValue({ success: false });
 
       const options: APIAuthOptions = {
@@ -538,7 +541,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should run custom validation function', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       const customValidation = jest.fn().mockResolvedValue(undefined);
       const options: APIAuthOptions = {
@@ -559,7 +562,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should handle custom validation failures', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       const customValidation = jest.fn().mockRejectedValue(
         ApiError.forbidden('Custom validation failed')
@@ -619,7 +622,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should handle unexpected errors gracefully', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
       mockHandler.mockRejectedValue(new Error('Unexpected error'));
 
       const wrappedHandler = withAuth(mockHandler);
@@ -650,7 +653,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should handle rate limiting service failures', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
       (rateLimit as jest.Mock).mockRejectedValue(new Error('Rate limit service down'));
 
       const options: APIAuthOptions = {
@@ -670,13 +673,13 @@ describe('Enterprise API Authentication', () => {
   describe('Context permissions helper methods', () => {
     it('should provide working permission helper methods', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
       (hasPermission as jest.Mock).mockResolvedValue(true);
 
       const contextCapture = jest.fn().mockImplementation(async (req, context: APIAuthContext) => {
-        // Test hasRole method
-        expect(context.permissions.hasRole(UserRole.USER)).toBe(true);
-        expect(context.permissions.hasRole(UserRole.ADMIN)).toBe(false);
+        // Test hasRole method - regular users have null role
+        expect(context.permissions.hasRole(AdminRole.ADMIN)).toBe(false);
+        expect(context.user.role).toBe(null); // Regular users don't have roles
 
         // Test hasPermission method
         const permissionResult = await context.permissions.hasPermission('READ_COURSES');
@@ -701,7 +704,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should handle admin access in canAccess method', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockAdminUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.ADMIN);
+      (currentRole as jest.Mock).mockResolvedValue(AdminRole.ADMIN); // Admin role from AdminAccount
 
       const contextCapture = jest.fn().mockImplementation(async (req, context: APIAuthContext) => {
         // Admin should be able to access any resource
@@ -728,7 +731,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should handle concurrent requests', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       const wrappedHandler = withAuth(mockHandler);
       const requests = Array.from({ length: 10 }, () =>
@@ -750,7 +753,7 @@ describe('Enterprise API Authentication', () => {
 
     it('should provide request timing information', async () => {
       (currentUser as jest.Mock).mockResolvedValue(mockUser);
-      (currentRole as jest.Mock).mockResolvedValue(UserRole.USER);
+      (currentRole as jest.Mock).mockResolvedValue(null); // Regular users don't have roles
 
       // Add delay to handler to test timing
       const delayedHandler = jest.fn().mockImplementation(async () => {

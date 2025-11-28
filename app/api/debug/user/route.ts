@@ -7,18 +7,18 @@ export async function GET(request: NextRequest) {
   try {
     // Get current session
     const session = await auth();
-    
-    // Check if in development mode or user is admin
+
+    // Check if in development mode
+    // NOTE: Admin access is handled separately via AdminAccount auth
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const isAdmin = session?.user?.role === 'ADMIN';
-    
-    // In production, only allow admins to access this endpoint
-    if (!isDevelopment && !isAdmin) {
+
+    // Only allow in development mode (admins use separate AdminAccount auth)
+    if (!isDevelopment) {
       return NextResponse.json(
-        { 
-          error: 'Unauthorized', 
-          message: 'Debug endpoint only available in development or for admins' 
-        }, 
+        {
+          error: 'Unauthorized',
+          message: 'Debug endpoint only available in development mode'
+        },
         { status: 403 }
       );
     }
@@ -227,11 +227,11 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const isAdmin = session?.user?.role === 'ADMIN';
-    
-    if (!isDevelopment && !isAdmin) {
+
+    // Only allow in development mode (admins use separate AdminAccount auth)
+    if (!isDevelopment) {
       return NextResponse.json(
-        { error: 'Unauthorized' }, 
+        { error: 'Unauthorized - debug endpoint only available in development' },
         { status: 403 }
       );
     }

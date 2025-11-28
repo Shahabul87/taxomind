@@ -281,7 +281,7 @@ const nextConfig = {
     // This fixes the infinite loop of 400 errors from avatars.githubusercontent.com and res.cloudinary.com
     unoptimized: process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production',
     // Configure image quality settings for premium display
-    qualities: [75, 90],
+    qualities: [75, 80, 90],
     remotePatterns: [
       {
         protocol: 'https',

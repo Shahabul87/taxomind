@@ -1,8 +1,14 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { DashboardClient } from "./_components/DashboardClient";
-import { SmartSidebar } from "@/components/dashboard/smart-sidebar";
 
+/**
+ * User Dashboard Page
+ *
+ * NOTE: Regular users don't have roles - Admin auth is completely separate.
+ * Admin users use /admin/* routes with AdminAccount authentication.
+ * This dashboard is for regular users only.
+ */
 const DashboardPage = async () => {
   const user = await currentUser();
 
@@ -10,12 +16,8 @@ const DashboardPage = async () => {
     redirect("/auth/login");
   }
 
-  // Admin users get redirected to admin dashboard
-  if (user.role === "ADMIN") {
-    redirect("/dashboard/admin");
-  }
-
-  // Regular users see the new Canvas LMS-inspired dashboard
+  // Regular users see the Canvas LMS-inspired dashboard
+  // Admin dashboard is accessed via /admin/* routes with separate AdminAccount auth
   return <DashboardClient user={user} />;
 };
 

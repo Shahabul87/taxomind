@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       const prompt = buildExamGenerationPrompt(examRequest);
       
       const completion = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 4000,
         temperature: 0.7,
         system: EXAM_GENERATION_SYSTEM_PROMPT,
@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
         questions: aiQuestions,
         metadata: {
           tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-5-20250929',
           generatedAt: new Date().toISOString()
         }
       });

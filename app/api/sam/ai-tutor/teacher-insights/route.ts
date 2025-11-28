@@ -164,7 +164,7 @@ Provide actionable insights including:
 Make the insights practical and actionable for teachers.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -246,7 +246,7 @@ Provide insights on:
 Focus on actionable recommendations to improve student engagement.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1200,
     temperature: 0.7,
     messages: [
@@ -332,7 +332,7 @@ Provide insights on:
 Focus on data-driven recommendations for improving student outcomes.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1200,
     temperature: 0.7,
     messages: [
@@ -427,7 +427,7 @@ Provide insights on:
 Focus on prevention and early intervention strategies.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1200,
     temperature: 0.7,
     messages: [
@@ -509,7 +509,7 @@ Provide insights on:
 Focus on how to adapt teaching methods to match student learning patterns.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
@@ -579,7 +579,7 @@ Provide insights on:
 Focus on data-driven content optimization strategies.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
@@ -685,7 +685,7 @@ async function generateCustomInsight(query: string, courseId: string) {
 Provide practical, actionable insights based on educational best practices and data analysis principles.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 800,
     temperature: 0.7,
     messages: [

@@ -404,7 +404,7 @@ ${existingQuestions.slice(0, 5).map(q => q.text.substring(0, 50) + '...').join('
 Generate ${count} questions following the distribution requirements.`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4000,
       temperature: 0.8,
       system: systemPrompt,

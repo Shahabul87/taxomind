@@ -16,8 +16,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, useReducedMotion, useInView } from 'framer-motion';
 import { useRef } from 'react';
+import { motion, useReducedMotion, useInView } from '@/components/lazy-motion';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { UserMenu } from '@/app/(homepage)/_components/user-menu';
 
@@ -33,14 +33,15 @@ export default function HomeHeroSectionRedesigned() {
   const isInView = useInView(sectionRef, { once: true, margin: '-50px' });
   const user = useCurrentUser();
 
-  // Animation variants
+  // Simplified animation variants for better performance
   const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: shouldReduceMotion ? 0.01 : 0.6,
+        duration: shouldReduceMotion ? 0 : 0.3,
+        ease: "easeOut" as const,
       },
     },
   };
@@ -50,18 +51,19 @@ export default function HomeHeroSectionRedesigned() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: shouldReduceMotion ? 0 : 0.1,
+        staggerChildren: shouldReduceMotion ? 0 : 0.05,
       },
     },
   };
 
   const scaleIn = {
-    hidden: { scale: 0.95, opacity: 0 },
+    hidden: { scale: 0.98, opacity: 0 },
     visible: {
       scale: 1,
       opacity: 1,
       transition: {
-        duration: shouldReduceMotion ? 0.01 : 0.5,
+        duration: shouldReduceMotion ? 0 : 0.25,
+        ease: "easeOut" as const,
       },
     },
   };
@@ -440,12 +442,11 @@ export default function HomeHeroSectionRedesigned() {
 
               {/* Floating AI indicator - Top Right */}
               <motion.div
-                className="absolute top-2 right-2 sm:top-4 sm:right-4 px-2 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-lg sm:rounded-xl shadow-lg border border-purple-200 dark:border-purple-500/30 motion-safe:animate-float-slow motion-reduce:animate-none"
+                className="absolute top-2 right-2 sm:top-4 sm:right-4 px-2 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-lg sm:rounded-xl shadow-lg border border-purple-200 dark:border-purple-500/30 sm:motion-safe:animate-float-slow motion-reduce:animate-none"
                 // Use CSS animation to reduce JS overhead; keep FM for initial reveal
                 initial={{ opacity: 0, y: -8 }}
                 animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
                 transition={{ duration: shouldReduceMotion ? 0.01 : 0.4 }}
-                style={{ willChange: 'transform, opacity' }}
               >
                 <div className="flex items-center gap-1 sm:gap-2">
                   <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-purple-600 dark:text-purple-400 motion-safe:animate-pulse motion-reduce:animate-none" />
@@ -455,12 +456,11 @@ export default function HomeHeroSectionRedesigned() {
 
               {/* Floating How It Works indicator - Bottom Left */}
               <motion.div
-                className="absolute -bottom-2 left-2 sm:-bottom-4 sm:left-4 motion-safe:animate-float-slow motion-reduce:animate-none"
+                className="absolute -bottom-2 left-2 sm:-bottom-4 sm:left-4 sm:motion-safe:animate-float-slow motion-reduce:animate-none"
                 // Use CSS animation to reduce JS overhead; keep FM for initial reveal
                 initial={{ opacity: 0, y: 8 }}
                 animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
                 transition={{ duration: shouldReduceMotion ? 0.01 : 0.4, delay: 0.2 }}
-                style={{ willChange: 'transform, opacity' }}
               >
                 <Link
                   href="/blooms-taxonomy"

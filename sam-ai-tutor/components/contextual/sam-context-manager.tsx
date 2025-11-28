@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSAMGlobal } from '@/sam/components/global/sam-global-provider';
 import { logger } from '@/lib/logger';
@@ -125,6 +125,7 @@ export function useContextAwareSAM() {
   const { updateContext } = useSAMGlobal();
   const [currentContext, setCurrentContext] = useState<SAMContextData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const lastFormHashRef = useRef<string | null>(null);
 
   const extractRouteParams = useCallback((pattern: RegExp, url: string): Record<string, string> => {
     const match = url.match(pattern);
@@ -233,6 +234,11 @@ export function useContextAwareSAM() {
   const updateContextWithFormData = useCallback(() => {
     if (currentContext) {
       const formData = gatherFormData();
+      // Avoid noisy updates if nothing changed
+      const hash = JSON.stringify(formData);
+      if (lastFormHashRef.current === hash) return;
+      lastFormHashRef.current = hash;
+
       const updatedContext = {
         ...currentContext,
         formData,
@@ -279,7 +285,7 @@ export function useContextAwareSAM() {
     const handleFormChange = () => {
       // Debounce form updates
       clearTimeout((window as any).samFormUpdateTimeout);
-      (window as any).samFormUpdateTimeout = setTimeout(updateContextWithFormData, 1000);
+      (window as any).samFormUpdateTimeout = setTimeout(updateContextWithFormData, 2000);
     };
 
     // Listen to form changes

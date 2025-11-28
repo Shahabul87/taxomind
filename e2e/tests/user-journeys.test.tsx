@@ -58,12 +58,13 @@ beforeEach(() => {
 });
 
 // Mock session for authenticated tests
+// NOTE: Users don't have roles - Admin auth is completely separate
 const mockSession: Session = {
   user: {
     id: 'user-123',
     email: 'test@example.com',
     name: 'Test User',
-    role: 'USER',
+    isTeacher: false,
     isTwoFactorEnabled: false,
     isOAuth: false,
   },
@@ -404,7 +405,7 @@ describe('E2E User Journeys', () => {
         };
 
         return (
-          <SessionProvider session={{ ...mockSession, user: { ...mockSession.user, role: 'USER' } }}>
+          <SessionProvider session={{ ...mockSession, user: { ...mockSession.user, isTeacher: true } }}>
             <div>
               <h1>Teacher Dashboard</h1>
               
@@ -607,13 +608,13 @@ describe('E2E User Journeys', () => {
       const AdminDashboard = () => {
         const [activeTab, setActiveTab] = React.useState('overview');
         const [users] = React.useState([
-          { id: '1', name: 'John Doe', email: 'john@example.com', role: 'USER', status: 'active' },
-          { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'USER', status: 'active' },
-          { id: '3', name: 'Bob Teacher', email: 'bob@example.com', role: 'USER', status: 'suspended' },
+          { id: '1', name: 'John Doe', email: 'john@example.com', isTeacher: false, status: 'active' },
+          { id: '2', name: 'Jane Smith', email: 'jane@example.com', isTeacher: false, status: 'active' },
+          { id: '3', name: 'Bob Teacher', email: 'bob@example.com', isTeacher: true, status: 'suspended' },
         ]);
 
         return (
-          <SessionProvider session={{ ...mockSession, user: { ...mockSession.user, role: 'ADMIN' } }}>
+          <SessionProvider session={mockSession}>
             <div>
               <h1>Admin Dashboard</h1>
               
@@ -669,7 +670,7 @@ describe('E2E User Journeys', () => {
                         <tr key={user.id}>
                           <td>{user.name}</td>
                           <td>{user.email}</td>
-                          <td>{user.role}</td>
+                          <td>{user.isTeacher ? 'Teacher' : 'Student'}</td>
                           <td>{user.status}</td>
                           <td>
                             <button data-testid={`edit-user-${user.id}`}>Edit</button>

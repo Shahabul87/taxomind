@@ -313,7 +313,7 @@ export async function POST(request: NextRequest) {
 
       const anthropic = getAnthropicClient();
       const completion = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 2000,
         temperature: 0.7,
         system: systemPrompt,
@@ -356,7 +356,7 @@ export async function POST(request: NextRequest) {
         content: htmlContent,
         metadata: {
           tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-5-20250929',
           generatedAt: new Date().toISOString(),
           contentType: contentRequest.contentType
         }

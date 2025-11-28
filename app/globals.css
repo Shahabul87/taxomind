@@ -7,13 +7,23 @@
 
 /* Remove these animation keyframes since they're now in the tailwind config */
 
-/* Enterprise Animations */
+/* Enterprise Animations - Hardware Accelerated */
 @keyframes float {
   0%, 100% {
-    transform: translateY(0px);
+    transform: translateY(0px) translateZ(0);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-10px) translateZ(0);
+  }
+}
+
+/* Mobile: Disable floating, use subtle scale pulse instead */
+@keyframes pulse-mobile {
+  0%, 100% {
+    transform: scale(1) translateZ(0);
+  }
+  50% {
+    transform: scale(1.02) translateZ(0);
   }
 }
 

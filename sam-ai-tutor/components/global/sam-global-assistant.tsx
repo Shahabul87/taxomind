@@ -91,6 +91,7 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
   const [activeTab, setActiveTab] = useState<'chat' | 'actions' | 'context'>('chat');
   const [quickActions, setQuickActions] = useState<Array<{id: string, label: string, icon: any, description: string, available: boolean}>>([]);
   const [pageContext, setPageContext] = useState<any>(null);
+  const lastContextHashRef = useRef<string | null>(null);
 
   // Mark component as mounted to prevent hydration mismatch
   useEffect(() => {
@@ -266,60 +267,67 @@ export function SAMGlobalAssistant({ className }: SAMGlobalAssistantProps) {
     setActiveTab('chat');
     
     try {
-      // Simulate enhanced AI response based on action
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      let responseContent = '';
-      switch (actionId) {
-        case 'explain_page':
-          const formsDetails = pageContext?.forms?.map((form: any) => {
-            const fieldsWithValues = form.fields.filter((f: any) => f.value).length;
-            const totalFields = form.fields.length;
-            return `${form.purpose !== 'unknown' ? form.purpose : form.id} (${fieldsWithValues}/${totalFields} fields filled)`;
-          }).join(', ') || 'no forms';
-          
-          responseContent = `I can see you're on "${pageContext?.pageTitle || 'this page'}" (${pageContext?.pageUrl || ''}). This page appears to be designed for ${tutorMode === 'teacher' ? 'course management and content creation' : 'learning and studying'}. 
+      const response = await fetch('/api/sam/context-aware-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: action.label,
+          pathname: pageContext?.pageUrl || '',
+          pageContext: {
+            pageName: pageContext?.pageTitle || 'Unknown Page',
+            pageType: tutorMode === 'teacher' ? 'teacher-management' : 'student-learning',
+            breadcrumbs: pageContext?.breadcrumbs || [],
+            capabilities: ['form-detection', 'content-generation', 'page-analysis'],
+            dataContext: {
+              forms: pageContext?.forms?.map((form: any) => ({
+                id: form.id,
+                purpose: form.purpose,
+                fields: form.fields.map((field: any) => ({
+                  name: field.name,
+                  type: field.type,
+                  value: field.value,
+                  label: field.label,
+                  placeholder: field.placeholder,
+                  required: field.required
+                }))
+              })) || [],
+              buttons: pageContext?.buttons || [],
+              detectedAt: pageContext?.detectedAt || new Date().toISOString()
+            },
+            parentContext: {
+              courseId: pageContext?.pageUrl?.includes('/courses/') ? 
+                pageContext.pageUrl.split('/courses/')[1]?.split('/')[0] : null,
+              chapterId: pageContext?.pageUrl?.includes('/chapters/') ? 
+                pageContext.pageUrl.split('/chapters/')[1]?.split('/')[0] : null,
+              sectionId: pageContext?.pageUrl?.includes('/section/') ? 
+                pageContext.pageUrl.split('/section/')[1]?.split('/')[0] : null
+            }
+          },
+          conversationHistory: messages.slice(-5).map(msg => ({
+            role: msg.isUser ? 'user' : 'assistant',
+            content: msg.content
+          }))
+        })
+      });
 
-Current page status:
-• Forms detected: ${formsDetails}
-• Available buttons: ${pageContext?.buttons?.length || 0}
-• Page breadcrumbs: ${pageContext?.breadcrumbs?.join(' > ') || 'none'}
-
-I can help you fill forms, generate content, or explain how to use any specific feature. What would you like to focus on?`;
-          break;
-        case 'fill_forms':
-          const formsInfo = pageContext?.forms?.map((form: any) => {
-            const emptyFields = form.fields.filter((f: any) => !f.value && !f.readOnly).length;
-            return `• ${form.purpose !== 'unknown' ? form.purpose : form.id}: ${emptyFields} empty field(s) that could be filled`;
-          }).join('\n') || '• No forms available to fill';
-          
-          responseContent = `I've detected ${pageContext?.forms?.length || 0} form(s) on this page:
-
-${formsInfo}
-
-Which form would you like me to help you with? I can generate content based on the form's purpose and existing data.`;
-          break;
-        case 'generate_content':
-          responseContent = `I can help you create engaging educational content! I can generate course descriptions, learning objectives, chapter outlines, quiz questions, and more. What type of content would you like me to create for you?`;
-          break;
-        case 'analyze_content':
-          responseContent = `I can analyze various types of content including text, course materials, student responses, and more. What would you like me to analyze? I can provide insights on clarity, engagement, difficulty level, and learning effectiveness.`;
-          break;
-        case 'create_assessment':
-          responseContent = `I can create comprehensive assessments including multiple choice questions, essay prompts, practical exercises, and rubrics. What subject or topic would you like me to create an assessment for?`;
-          break;
-        default:
-          responseContent = `I'm ready to help you with ${action.label}! This feature provides ${action.description}. What specific assistance do you need?`;
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
       }
-      
+
+      const data = await response.json();
+
       const aiResponse = {
         id: (Date.now() + 1).toString(),
-        content: responseContent,
+        content: data.response || 'I can help with that!',
         isUser: false,
         timestamp: new Date()
       };
-      
+
       setMessages(prev => [...prev, aiResponse]);
+
+      if (data.action) {
+        handleAction(data.action);
+      }
     } catch (error: any) {
       logger.error('Error handling quick action:', error);
       const errorResponse = {
@@ -332,7 +340,7 @@ Which form would you like me to help you with? I can generate content based on t
     } finally {
       setIsLoading(false);
     }
-  }, [quickActions, pageContext, tutorMode]);
+  }, [quickActions, pageContext, tutorMode, messages, handleAction]);
 
   // Detect page context and generate quick actions
   useEffect(() => {
@@ -408,8 +416,20 @@ Which form would you like me to help you with? I can generate content based on t
           detectedAt: new Date().toISOString()
         };
 
-        setPageContext(context);
-        generateQuickActions(context);
+        // Avoid excessive updates by hashing important parts
+        const signature = JSON.stringify({
+          url: pageUrl,
+          title: pageTitle,
+          bc: breadcrumbs,
+          forms: forms.map((f: any) => ({ id: f.id, fields: Array.isArray(f.fields) ? f.fields.length : 0 })),
+          buttons: Array.isArray(buttons) ? buttons.length : 0,
+        });
+
+        if (lastContextHashRef.current !== signature) {
+          lastContextHashRef.current = signature;
+          setPageContext(context);
+          generateQuickActions(context);
+        }
       } catch (error: any) {
         logger.error('Error detecting page context:', error);
       }
@@ -417,8 +437,8 @@ Which form would you like me to help you with? I can generate content based on t
 
     if (isOpen) {
       detectPageContext();
-      // Refresh context every 5 seconds
-      const interval = setInterval(detectPageContext, 5000);
+      // Refresh context every 15 seconds to reduce overhead
+      const interval = setInterval(detectPageContext, 15000);
       return () => clearInterval(interval);
     }
   }, [isOpen, generateQuickActions]);
@@ -441,6 +461,92 @@ Which form would you like me to help you with? I can generate content based on t
       generateQuickActions(pageContext);
     }
   }, [isOpen, messages.length, tutorMode, quickActions.length, generateQuickActions, pageContext]);
+
+  // Form and action execution helpers
+  const applyFormUpdate = useCallback((details: any) => {
+    const dispatchEvents = (el: HTMLElement) => {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    const trySet = (selectors: string[], value: string) => {
+      for (const sel of selectors) {
+        const target = document.querySelector(sel) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+        if (target) {
+          (target as any).value = value;
+          dispatchEvents(target);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    switch (details.action) {
+      case 'update_chapter_title':
+        return trySet(
+          ['input[name="title"]', 'input[id*="title"]', 'input[aria-label*="title" i]'],
+          details.title
+        );
+      case 'update_chapter_description':
+        return trySet(
+          ['textarea[name="description"]', 'textarea[id*="description"]', 'textarea[aria-label*="description" i]'],
+          details.value
+        );
+      case 'update_learning_outcomes':
+        return trySet(
+          [
+            'textarea[name*="outcome" i]',
+            'textarea[id*="outcome" i]',
+            'textarea[aria-label*="outcome" i]'
+          ],
+          details.outcomes || details.value || ''
+        );
+      case 'create_sections': {
+        const combined = Array.isArray(details.sections)
+          ? details.sections.map((s: any, idx: number) => `${idx + 1}. ${s.title}${s.description ? ` — ${s.description}` : ''}`).join('\n')
+          : '';
+        return trySet(
+          [
+            'textarea[name*="section" i]',
+            'textarea[id*="section" i]',
+            'textarea[aria-label*="section" i]'
+          ],
+          combined
+        );
+      }
+      default:
+        return false;
+    }
+  }, []);
+
+  const handleAction = useCallback((action: any) => {
+    try {
+      if (!action?.type) return;
+
+      if (action.type === 'form_update') {
+        const ok = applyFormUpdate(action.details || {});
+        const content = ok
+          ? `Applied: ${action.details?.description || action.details?.action}`
+          : `I have the update ready: ${action.details?.description || action.details?.action}. Tell me where to apply it.`;
+        setMessages(prev => [...prev, { id: `${Date.now()}-act`, content, isUser: false, timestamp: new Date() }]);
+        return;
+      }
+
+      if (action.type === 'navigation' && action.details?.url) {
+        setMessages(prev => [...prev, { id: `${Date.now()}-nav`, content: `Navigating to ${action.details.url}`, isUser: false, timestamp: new Date() }]);
+        window.location.href = action.details.url;
+        return;
+      }
+
+      if (action.type === 'page_action' && action.details?.action === 'refresh') {
+        setMessages(prev => [...prev, { id: `${Date.now()}-refresh`, content: 'Refreshing the page…', isUser: false, timestamp: new Date() }]);
+        window.location.reload();
+        return;
+      }
+    } catch (error) {
+      logger.error('Error handling action:', error);
+    }
+  }, [applyFormUpdate]);
 
   // Handle sending messages with enhanced context awareness
   const handleSendMessage = useCallback(async () => {
@@ -519,6 +625,9 @@ Which form would you like me to help you with? I can generate content based on t
       };
       
       setMessages(prev => [...prev, aiResponse]);
+      if (data.action) {
+        handleAction(data.action);
+      }
     } catch (error: any) {
       logger.error('Error sending message:', error);
       
@@ -559,7 +668,7 @@ Which form would you like me to help you with? I can generate content based on t
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, isLoading, pageContext, tutorMode, messages]);
+  }, [inputValue, isLoading, pageContext, tutorMode, messages, handleAction]);
 
   // Handle Enter key press
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {

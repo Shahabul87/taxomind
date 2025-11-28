@@ -7,7 +7,8 @@ import { getAdminDashboardData, admin } from '@/actions/admin';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { prismaMock } from '../utils/test-db';
-import { UserRole } from '@prisma/client';
+// NOTE: Users don't have roles - Admin auth uses AdminRole enum
+import { AdminRole } from '@/types/admin-role';
 
 jest.mock('@/auth', () => ({
   auth: jest.fn(),
@@ -75,11 +76,11 @@ describe('admin actions', () => {
 
   describe('admin function', () => {
     it('should return admin status for admin user', async () => {
-      (admin as jest.Mock).mockResolvedValue(UserRole.ADMIN);
+      (admin as jest.Mock).mockResolvedValue(AdminRole.ADMIN);
 
       const result = await admin();
 
-      expect(result).toBe(UserRole.ADMIN);
+      expect(result).toBe(AdminRole.ADMIN);
     });
 
     it('should return undefined for regular user', async () => {

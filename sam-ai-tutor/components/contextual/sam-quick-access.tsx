@@ -15,18 +15,19 @@ import {
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 
+// NOTE: Users don't have roles - use isTeacher flag instead
 interface SAMQuickAccessProps {
   courseId?: string;
   userId: string;
-  role: 'ADMIN' | 'USER';
+  isTeacher?: boolean;
   variant?: 'compact' | 'full';
 }
 
-export function SAMQuickAccess({ 
-  courseId, 
-  userId, 
-  role, 
-  variant = 'compact' 
+export function SAMQuickAccess({
+  courseId,
+  userId,
+  isTeacher = false,
+  variant = 'compact'
 }: SAMQuickAccessProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -42,7 +43,7 @@ export function SAMQuickAccess({
           description: 'This feature will be available soon. SAM has the market analysis engine integrated.',
         });
       },
-      access: ['ADMIN'],
+      requiresTeacher: true,
       color: 'text-blue-600',
     },
     {
@@ -55,7 +56,7 @@ export function SAMQuickAccess({
           description: 'This feature will be available soon. SAM has the Bloom\'s taxonomy engine integrated.',
         });
       },
-      access: ['ADMIN', 'USER'],
+      requiresTeacher: false,
       color: 'text-purple-600',
     },
     {
@@ -68,7 +69,7 @@ export function SAMQuickAccess({
           description: 'This feature will be available soon. SAM has the advanced exam engine integrated.',
         });
       },
-      access: ['ADMIN'],
+      requiresTeacher: true,
       color: 'text-green-600',
     },
     {
@@ -81,7 +82,8 @@ export function SAMQuickAccess({
           description: 'This feature will be available soon. SAM has the student dashboard engine integrated.',
         });
       },
-      access: ['USER'],
+      requiresTeacher: false,
+      studentsOnly: true,
       color: 'text-orange-600',
     },
     {
@@ -94,14 +96,17 @@ export function SAMQuickAccess({
           description: 'This feature will be available soon. SAM has the course guide engine integrated.',
         });
       },
-      access: ['ADMIN'],
+      requiresTeacher: true,
       color: 'text-indigo-600',
     },
   ];
 
-  const availableActions = quickActions.filter(action => 
-    action.access.includes(role)
-  );
+  // Filter actions based on isTeacher flag
+  const availableActions = quickActions.filter(action => {
+    if (action.studentsOnly && isTeacher) return false;
+    if (action.requiresTeacher && !isTeacher) return false;
+    return true;
+  });
 
   if (variant === 'compact') {
     return (
@@ -122,7 +127,7 @@ export function SAMQuickAccess({
                   variant="outline"
                   size="sm"
                   onClick={action.action}
-                  disabled={!courseId && action.access.includes('ADMIN')}
+                  disabled={!courseId && action.requiresTeacher}
                 >
                   <Icon className={`w-4 h-4 mr-1 ${action.color}`} />
                   {action.title}
@@ -169,7 +174,7 @@ export function SAMQuickAccess({
           })}
         </div>
 
-        {!courseId && role === 'ADMIN' && (
+        {!courseId && isTeacher && (
           <p className="text-xs text-gray-500 text-center mt-4">
             Select a course to access all features
           </p>

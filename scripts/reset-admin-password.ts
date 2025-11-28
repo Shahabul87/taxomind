@@ -3,6 +3,9 @@
 /**
  * Script to reset admin password
  * Usage: tsx scripts/reset-admin-password.ts
+ *
+ * NOTE: Admin auth uses AdminAccount model (separate from User model)
+ * Users don't have roles - admin auth is completely separate.
  */
 
 import { PrismaClient } from "@prisma/client";
@@ -13,21 +16,21 @@ const db = new PrismaClient();
 
 async function resetAdminPassword() {
   try {
-    // Get all admin users
-    const admins = await db.user.findMany({
-      where: { role: "ADMIN" },
-      select: { id: true, email: true, name: true },
+    // Get all admin accounts (separate from User model)
+    const admins = await db.adminAccount.findMany({
+      select: { id: true, email: true, name: true, role: true },
     });
 
     if (admins.length === 0) {
-      console.log("❌ No admin users found");
+      console.log("❌ No admin accounts found");
+      console.log("💡 Admin accounts use AdminAccount model (separate from User)");
       return;
     }
 
     console.log("\n🔐 Admin Password Reset Tool\n");
-    console.log("Found admins:");
+    console.log("Found admin accounts:");
     admins.forEach((admin, i) => {
-      console.log(`${i + 1}. ${admin.email} (${admin.name})`);
+      console.log(`${i + 1}. ${admin.email} (${admin.name}) - Role: ${admin.role}`);
     });
 
     const { adminIndex, newPassword, confirmPassword } = await prompts([
@@ -60,8 +63,8 @@ async function resetAdminPassword() {
     const selectedAdmin = admins[adminIndex - 1];
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update password
-    await db.user.update({
+    // Update password in AdminAccount
+    await db.adminAccount.update({
       where: { id: selectedAdmin.id },
       data: {
         password: hashedPassword,
@@ -73,7 +76,7 @@ async function resetAdminPassword() {
     console.log("\n📝 Login credentials:");
     console.log(`Email: ${selectedAdmin.email}`);
     console.log(`Password: ${newPassword}`);
-    console.log("\n🚀 You can now login at: http://localhost:3000/auth/login");
+    console.log("\n🚀 You can now login at: http://localhost:3000/admin/auth/login");
 
   } catch (error) {
     console.error("❌ Error:", error);
@@ -88,9 +91,8 @@ async function quickReset() {
     const defaultPassword = "Admin123!@#";
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-    // Reset all admin passwords
-    const result = await db.user.updateMany({
-      where: { role: "ADMIN" },
+    // Reset all admin passwords in AdminAccount
+    const result = await db.adminAccount.updateMany({
       data: {
         password: hashedPassword,
         emailVerified: new Date(),
@@ -99,10 +101,10 @@ async function quickReset() {
 
     console.log(`\n✅ Reset ${result.count} admin account(s) with default password`);
     console.log("\n📝 Default admin credentials:");
-    console.log("Email: admin@example.com OR system@taxomind.com");
+    console.log("Check your AdminAccount records for email addresses");
     console.log(`Password: ${defaultPassword}`);
     console.log("\n⚠️  IMPORTANT: Change this password after first login!");
-    console.log("\n🚀 Login at: http://localhost:3000/auth/login");
+    console.log("\n🚀 Login at: http://localhost:3000/admin/auth/login");
 
   } catch (error) {
     console.error("❌ Error:", error);

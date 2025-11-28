@@ -29,7 +29,7 @@ export const VERSION = '1.0.0';
 // Default configuration
 export const defaultConfig = {
   provider: 'anthropic' as const,
-  model: 'claude-3-5-sonnet-20241022',
+  model: 'claude-sonnet-4-5-20250929',
   temperature: 0.7,
   maxTokens: 1000,
   cacheEnabled: true,

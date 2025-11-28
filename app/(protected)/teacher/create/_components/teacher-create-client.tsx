@@ -33,7 +33,7 @@ export function TeacherCreateClient({ children, user }: TeacherCreateClientProps
         onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
 
-      <div className="min-h-screen pt-16 pb-20 lg:pb-16 lg:ml-[72px] transition-all duration-300">
+      <div className="min-h-screen transition-all duration-300">
         {children}
       </div>
     </MobileGestureController>

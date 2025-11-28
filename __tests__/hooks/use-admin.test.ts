@@ -1,6 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
-import { UserRole } from '@prisma/client';
+// NOTE: Users don't have roles - Admin auth uses AdminRole enum
+import { AdminRole } from '@/types/admin-role';
 import { useAdmin } from '@/hooks/use-admin';
 
 // Mock next-auth
@@ -18,7 +19,7 @@ describe('useAdmin', () => {
         id: 'admin-1',
         name: 'Admin User',
         email: 'admin@example.com',
-        role: UserRole.ADMIN
+        role: AdminRole.ADMIN
       }
     };
 
@@ -39,7 +40,7 @@ describe('useAdmin', () => {
         id: 'user-1',
         name: 'Regular User',
         email: 'user@example.com',
-        role: UserRole.USER
+        role: null // Regular users don't have roles
       }
     };
 
@@ -117,14 +118,14 @@ describe('useAdmin', () => {
         id: 'user-1',
         name: 'John Doe',
         email: 'john@example.com',
-        role: UserRole.USER
+        role: null // Regular users don't have roles
       }
     };
 
     const mockAdminSession = {
       user: {
         ...mockUserSession.user,
-        role: UserRole.ADMIN
+        role: AdminRole.ADMIN
       }
     };
 
@@ -156,14 +157,14 @@ describe('useAdmin', () => {
         id: 'admin-1',
         name: 'Admin User',
         email: 'admin@example.com',
-        role: UserRole.ADMIN
+        role: AdminRole.ADMIN
       }
     };
 
     const mockUserSession = {
       user: {
         ...mockAdminSession.user,
-        role: UserRole.USER
+        role: null // Regular users don't have roles
       }
     };
 

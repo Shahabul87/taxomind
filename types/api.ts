@@ -62,11 +62,13 @@ export interface PaginatedResponse<T> extends APIResponse<T[]> {
 // Authentication & User Types
 // ============================================================================
 
+// NOTE: Users don't have roles - Admin auth is completely separate (AdminAccount model)
+// isTeacher determines if user can create courses
 export interface AuthUser {
   id: string;
   email: string;
   name?: string | null;
-  role: 'USER' | 'ADMIN';
+  isTeacher?: boolean;
   image?: string | null;
   emailVerified?: Date | null;
   isTwoFactorEnabled?: boolean;
@@ -593,8 +595,7 @@ export function isAuthUser(user: unknown): user is AuthUser {
     typeof user === 'object' &&
     user !== null &&
     'id' in user &&
-    'email' in user &&
-    'role' in user
+    'email' in user
   );
 }
 

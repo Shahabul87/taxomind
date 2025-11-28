@@ -43,26 +43,24 @@ export const HomeFooter = () => {
               Join thousands of learners who have already transformed their careers through our platform.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 items-stretch sm:items-center relative z-20 mt-6 sm:mt-8">
-              <Link href="/get-started" className="relative z-20 w-full sm:w-auto">
-                <motion.button
-                  className="w-full sm:w-auto bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgba(120,0,255,0.3)] transition-all duration-300 text-sm sm:text-base"
+              <Link href="/get-started" className="relative z-20 w-full sm:w-auto" aria-label="Get started for free">
+                <motion.span
+                  className="inline-flex w-full sm:w-auto items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgba(120,0,255,0.3)] transition-all duration-300 text-sm sm:text-base"
                   whileHover={{ y: -5 }}
                   whileTap={{ y: 0 }}
                 >
-                  <div className="flex items-center justify-center">
-                    <span className="mr-2">Get Started Free</span>
-                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </div>
-                </motion.button>
+                  <span className="mr-2">Get Started Free</span>
+                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                </motion.span>
               </Link>
-              <Link href="/courses" className="relative z-20 w-full sm:w-auto">
-                <motion.button
-                  className="w-full sm:w-auto bg-transparent border-2 font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-lg transition-colors duration-300 text-cyan-700 border-cyan-300 hover:bg-cyan-50 dark:text-cyan-400 dark:border-cyan-500 dark:hover:bg-cyan-500/10 text-sm sm:text-base"
+              <Link href="/courses" className="relative z-20 w-full sm:w-auto" aria-label="Explore courses">
+                <motion.span
+                  className="inline-flex w-full sm:w-auto items-center justify-center bg-transparent border-2 font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-lg transition-colors duration-300 text-cyan-700 border-cyan-300 hover:bg-cyan-50 dark:text-cyan-400 dark:border-cyan-500 dark:hover:bg-cyan-500/10 text-sm sm:text-base"
                   whileHover={{ y: -5 }}
                   whileTap={{ y: 0 }}
                 >
                   View Courses
-                </motion.button>
+                </motion.span>
               </Link>
             </div>
           </motion.div>
@@ -103,7 +101,7 @@ export const HomeFooter = () => {
                   <motion.a
                     whileHover={{ y: -3, backgroundColor: "#1DA1F2", color: "#ffffff" }}
                     href="#"
-                    className="p-1.5 sm:p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-purple-400 transition-all duration-300"
+                    className="rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-purple-400 transition-all duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
                     aria-label="Follow us on Twitter"
                   >
                     <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -111,7 +109,7 @@ export const HomeFooter = () => {
                   <motion.a
                     whileHover={{ y: -3, backgroundColor: "#333", color: "#ffffff" }}
                     href="#"
-                    className="p-1.5 sm:p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-cyan-400 transition-all duration-300"
+                    className="rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-cyan-400 transition-all duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
                     aria-label="View our GitHub repository"
                   >
                     <Github className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -119,7 +117,7 @@ export const HomeFooter = () => {
                   <motion.a
                     whileHover={{ y: -3, backgroundColor: "#0A66C2", color: "#ffffff" }}
                     href="#"
-                    className="p-1.5 sm:p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-blue-400 transition-all duration-300"
+                    className="rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-blue-400 transition-all duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
                     aria-label="Connect with us on LinkedIn"
                   >
                     <Linkedin className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -127,7 +125,7 @@ export const HomeFooter = () => {
                   <motion.a
                     whileHover={{ y: -3, backgroundColor: "#8B5CF6", color: "#ffffff" }}
                     href="#"
-                    className="p-1.5 sm:p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-purple-400 transition-all duration-300"
+                    className="rounded-full bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-purple-400 transition-all duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
                     aria-label="Join our community chat"
                   >
                     <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -170,12 +168,16 @@ export const HomeFooter = () => {
               <h3 className="font-semibold mb-4 sm:mb-6 pl-2 border-l-2 border-gradient-to-r from-cyan-400 to-purple-400 text-slate-900 dark:text-white text-sm sm:text-base">Stay Updated</h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 mb-3 sm:mb-4">Subscribe to our newsletter for the latest updates.</p>
               <div className="space-y-2 sm:space-y-3">
+                <label htmlFor="footer-newsletter-email" className="sr-only">Email address</label>
                 <input
+                  id="footer-newsletter-email"
                   type="email"
                   placeholder="Enter your email"
+                  autoComplete="email"
+                  aria-label="Email address"
                   className="w-full bg-white/60 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-gray-300 px-3 py-2 sm:px-4 sm:py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm sm:text-base"
                 />
-                <button className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-cyan-500 hover:to-purple-500 transition-all duration-300 text-sm sm:text-base font-semibold">
+                <button className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-cyan-500 hover:to-purple-500 transition-all duration-300 text-sm sm:text-base font-semibold" aria-label="Subscribe to newsletter">
                   Subscribe
                 </button>
               </div>

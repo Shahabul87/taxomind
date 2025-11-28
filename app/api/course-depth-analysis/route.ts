@@ -630,7 +630,7 @@ Use this exact JSON structure:
     }
 
     const response = await callAnthropicWithRetry({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-sonnet-4-5-20250929",
       max_tokens: 4000,
       temperature: 0.3,
       system: "You are an expert instructional designer specializing in Bloom's Taxonomy and course depth analysis. Provide precise, actionable insights.",

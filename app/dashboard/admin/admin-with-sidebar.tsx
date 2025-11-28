@@ -12,7 +12,6 @@ import {
   FileText,
   Shield,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -110,7 +109,7 @@ export function AdminWithSidebar({ user, children }: AdminWithSidebarProps) {
       <Sidebar open={open} setOpen={setOpen}>
         <SidebarBody className="justify-between gap-10">
           <div className="flex flex-1 flex-col overflow-hidden">
-            {open ? <Logo /> : <LogoIcon />}
+            <Logo open={open} />
             <div className="mt-8 flex flex-col gap-2 overflow-y-auto no-scrollbar">
               {links.map((link, idx) => (
                 <SidebarLink key={idx} link={link} />
@@ -137,13 +136,15 @@ export function AdminWithSidebar({ user, children }: AdminWithSidebarProps) {
             />
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-2 py-2 px-3 rounded-lg transition-colors duration-150 hover:bg-neutral-100 dark:hover:bg-neutral-800 w-full text-left"
+              className="flex items-center gap-2 py-2 px-3 rounded-lg transition-colors duration-150 hover:bg-neutral-100 dark:hover:bg-neutral-800 w-full text-left"
             >
               <LogOut className="h-6 w-6 shrink-0 text-red-500 dark:text-red-400" />
-              <span className={cn(
-                "text-sm",
-                !open && "hidden"
-              )}>
+              <span
+                className={cn(
+                  "text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-out",
+                  open ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
+                )}
+              >
                 Logout
               </span>
             </button>
@@ -159,33 +160,22 @@ export function AdminWithSidebar({ user, children }: AdminWithSidebarProps) {
   );
 }
 
-// Logo Component
-const Logo = () => {
+// Logo Component with smooth animation
+const Logo = ({ open }: { open: boolean }) => {
   return (
     <Link
       href="/dashboard/admin"
       className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
     >
       <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-gradient-to-br from-blue-500 to-purple-600 dark:from-blue-400 dark:to-purple-500" />
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="whitespace-pre font-medium text-black dark:text-white"
+      <span
+        className={cn(
+          "whitespace-nowrap overflow-hidden font-medium text-black dark:text-white transition-all duration-300 ease-out",
+          open ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
+        )}
       >
         Taxomind Admin
-      </motion.span>
-    </Link>
-  );
-};
-
-// Logo Icon Component (collapsed state)
-const LogoIcon = () => {
-  return (
-    <Link
-      href="/dashboard/admin"
-      className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
-    >
-      <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-gradient-to-br from-blue-500 to-purple-600 dark:from-blue-400 dark:to-purple-500" />
+      </span>
     </Link>
   );
 };

@@ -117,12 +117,15 @@ async function createAuthContext(request: NextRequest, user: AuthUser): Promise<
   const ip = getClientIdentifier(request);
   const userAgent = request.headers.get("user-agent");
 
+  // Get admin role from currentRole() - regular users don't have roles
+  const adminRole = await currentRole();
+
   return {
     user: {
       id: user.id,
       name: user.name ?? null,
       email: user.email ?? null,
-      role: user.role || null, // Optional - null for regular users
+      role: adminRole ?? null, // Only admins have roles - null for regular users
       image: user.image ?? null,
       isOAuth: user.isOAuth || false,
       isTwoFactorEnabled: user.isTwoFactorEnabled || false,
@@ -135,7 +138,7 @@ async function createAuthContext(request: NextRequest, user: AuthUser): Promise<
       timestamp: new Date(),
     },
     permissions: {
-      hasRole: (role: AdminRole) => user.role === role,
+      hasRole: (role: AdminRole) => adminRole === role,
       hasPermission: async (permission: Permission) => {
         return await hasPermission(permission);
       },
@@ -145,7 +148,7 @@ async function createAuthContext(request: NextRequest, user: AuthUser): Promise<
         permissions?: Permission[]
       }) => {
         // Check role-based access (only if user has a role - i.e., is admin)
-        if (resource.roles && user.role && !resource.roles.includes(user.role)) {
+        if (resource.roles && adminRole && !resource.roles.includes(adminRole)) {
           return false;
         }
 
@@ -159,7 +162,7 @@ async function createAuthContext(request: NextRequest, user: AuthUser): Promise<
 
         // Check ownership (user can access their own resources)
         // Admins can access any resource
-        if (resource.userId && resource.userId !== user.id && user.role !== AdminRole.ADMIN) {
+        if (resource.userId && resource.userId !== user.id && adminRole !== AdminRole.ADMIN) {
           return false;
         }
 

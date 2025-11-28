@@ -23,9 +23,14 @@ export function NewsletterSection() {
           </p>
         </div>
         <div className="space-y-3">
+          {/* Accessible email input */}
+          <label htmlFor="newsletter-email" className="sr-only">Email address</label>
           <Input
+            id="newsletter-email"
             type="email"
             placeholder="Enter your email"
+            autoComplete="email"
+            aria-label="Email address"
             className="bg-white dark:bg-slate-800"
           />
           <Button className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white">

@@ -88,7 +88,7 @@ ${JSON.stringify(userState, null, 2)}
 - Include relevant emojis to make it engaging`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 300,
     temperature: 0.8,
     messages: [
@@ -136,7 +136,7 @@ ${JSON.stringify(recentActivity, null, 2)}
 - Include growth mindset principles`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 400,
     temperature: 0.7,
     messages: [
@@ -192,7 +192,7 @@ ${JSON.stringify(recentAchievements, null, 2)}
 - Make it feel special and rewarding`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 300,
     temperature: 0.8,
     messages: [
@@ -246,7 +246,7 @@ ${JSON.stringify(streakData, null, 2)}
 - Include streak-related imagery and language`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 300,
     temperature: 0.7,
     messages: [
@@ -300,7 +300,7 @@ ${JSON.stringify(goals, null, 2)}
 - Connect daily actions to bigger picture`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 300,
     temperature: 0.7,
     messages: [
@@ -355,7 +355,7 @@ ${JSON.stringify(peerData, null, 2)}
 - Maintain positive, inclusive tone`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 300,
     temperature: 0.7,
     messages: [
@@ -410,7 +410,7 @@ ${JSON.stringify(inactivityData, null, 2)}
 - Keep the tone positive and supportive`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 300,
     temperature: 0.7,
     messages: [
@@ -463,7 +463,7 @@ ${JSON.stringify(personalityProfile, null, 2)}
 - Use language that resonates with their values`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 400,
     temperature: 0.8,
     messages: [

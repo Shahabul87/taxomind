@@ -91,7 +91,7 @@ async function analyzeVideoContent(
   - Accessibility considerations`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 2000,
     temperature: 0.7,
     messages: [
@@ -145,7 +145,7 @@ async function analyzeTextContent(
   - Assessment opportunities`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -199,7 +199,7 @@ async function analyzeCodeContent(
   - Step-by-step explanations`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -255,7 +255,7 @@ async function analyzeImageContent(
   - Related visual aids suggestions`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
@@ -306,7 +306,7 @@ async function analyzePDFContent(
   - Note-taking suggestions`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -356,7 +356,7 @@ async function analyzeQuizContent(
   - Learning objectives alignment`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [
@@ -407,7 +407,7 @@ async function analyzeWebpageContent(
   - Critical thinking questions`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [

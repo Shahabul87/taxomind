@@ -97,7 +97,7 @@ Provide contextual help that:
 5. Offers interactive exercises related to this concept`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
@@ -147,7 +147,7 @@ Provide:
 6. Step-by-step breakdown if complex`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
@@ -198,7 +198,7 @@ Provide:
 6. Related concepts to explore`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
@@ -249,7 +249,7 @@ Provide:
 6. Connections to broader concepts`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
@@ -302,7 +302,7 @@ Based on the assistance level, provide:
 Always encourage independent thinking and learning.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 800,
     temperature: 0.7,
     messages: [
@@ -353,7 +353,7 @@ Provide:
 6. Study schedule suggestions`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 800,
     temperature: 0.7,
     messages: [
@@ -404,7 +404,7 @@ Provide:
 6. Interactive exercises to reinforce the connection`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1000,
     temperature: 0.7,
     messages: [
@@ -457,7 +457,7 @@ Provide:
 6. Suggestions for next session`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1000,
     temperature: 0.7,
     messages: [

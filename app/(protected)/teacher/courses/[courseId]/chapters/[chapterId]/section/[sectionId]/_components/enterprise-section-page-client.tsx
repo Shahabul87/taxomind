@@ -175,7 +175,7 @@ export const EnterpriseSectionPageClient = ({
       <div className="min-h-[100dvh] w-full overflow-x-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
         {/* Enterprise Header with Status Bar */}
         <div className="sticky top-0 z-40 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-b border-gray-200/70 dark:border-gray-800/70 shadow-sm">
-          <div className="w-full sm:container sm:mx-auto px-3 sm:px-4 md:px-6 py-2.5 sm:py-3">
+          <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-2.5 sm:py-3">
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
               {/* Breadcrumb Navigation */}
               <nav className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm overflow-x-auto w-full sm:w-auto scrollbar-hide -mx-3 sm:mx-0 px-3 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -234,7 +234,7 @@ export const EnterpriseSectionPageClient = ({
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="w-full sm:container sm:mx-auto px-2 sm:px-4 pt-2 sm:pt-4"
+              className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 pt-2 sm:pt-4"
             >
               <Banner
                 variant="warning"
@@ -245,7 +245,7 @@ export const EnterpriseSectionPageClient = ({
         </AnimatePresence>
 
         {/* Main Content Area */}
-        <div className="w-full sm:container sm:mx-auto px-2 sm:px-4 py-4 sm:py-6 md:py-8">
+        <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-4 sm:py-6">
           {/* Page Header with Metrics */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

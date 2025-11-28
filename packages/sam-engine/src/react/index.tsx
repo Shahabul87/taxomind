@@ -51,7 +51,7 @@ export interface SAMProviderProps {
 export function SAMProvider({
   children,
   config,
-  user = { id: 'anonymous', role: 'USER' },
+  user = { id: 'anonymous', isTeacher: false },
   initialContext = {},
   onError,
   onMessage

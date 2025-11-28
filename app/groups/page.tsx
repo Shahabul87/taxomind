@@ -91,8 +91,7 @@ export default async function GroupsPage(props: GroupsPageProps) {
       enableGestures={true}
       contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
     >
-      <main className="min-h-screen">
-        <div className="py-4 sm:py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <main className="min-h-screen w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-6">
         {/* Hero Section with Background Image - Mobile Optimized */}
         <div className="relative bg-gradient-to-r from-indigo-600 to-purple-700 h-[280px] sm:h-[320px] md:h-80 rounded-xl sm:rounded-2xl overflow-hidden mb-4 sm:mb-6 shadow-xl">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
@@ -341,7 +340,6 @@ export default async function GroupsPage(props: GroupsPageProps) {
             )}
           </div>
         </section>
-        </div>
       </main>
     </PageWithMobileLayout>
   );

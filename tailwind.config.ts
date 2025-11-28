@@ -140,6 +140,7 @@ const config = {
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			scroll: 'scroll var(--animation-duration, 40s) var(--animation-direction, forwards) linear infinite',
         'float-slow': 'float 6s ease-in-out infinite',
+        'pulse-mobile': 'pulse-mobile 1.5s ease-in-out infinite',
         'float-medium': 'float 4s ease-in-out infinite',
         'float-fast': 'float 3s ease-in-out infinite',
         'pulse-slow': 'pulse-slow 4s ease-in-out infinite',

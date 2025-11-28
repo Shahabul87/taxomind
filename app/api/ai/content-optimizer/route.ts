@@ -153,7 +153,7 @@ Return ONLY valid JSON:
 }`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 1500,
     temperature: 0.4,
     messages: [{ role: "user", content: prompt }]
@@ -193,7 +193,7 @@ Create an optimized description that converts browsers into students.
 Return ONLY valid JSON with the same structure, focusing on description optimization.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 2000,
     temperature: 0.5,
     messages: [{ role: "user", content: prompt }]
@@ -231,7 +231,7 @@ Transform these into compelling, measurable learning outcomes.
 Return ONLY valid JSON with learning objectives optimization structure.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 1800,
     temperature: 0.4,
     messages: [{ role: "user", content: prompt }]
@@ -275,7 +275,7 @@ Optimize all elements to work together synergistically for maximum impact.
 Return ONLY valid JSON with comprehensive optimization covering title, description, and learning objectives.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 3000,
     temperature: 0.5,
     messages: [{ role: "user", content: prompt }]

@@ -58,7 +58,6 @@ export const PrivateDetailsSettingsPage = () => {
       newPassword: undefined,
       name: user?.name || undefined,
       email: user?.email || undefined,
-      role: (user?.role === 'ADMIN' || user?.role === 'USER') ? user.role : 'USER',
       isTwoFactorEnabled: user?.isTwoFactorEnabled || undefined,
     }
   });
@@ -278,18 +277,18 @@ export const PrivateDetailsSettingsPage = () => {
                   <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3 sm:mb-4">Account Preferences</h3>
                   <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                     {/* Only show Role selection for admin users */}
-                    {/* Role Display - Only editable by admins */}
+                    {/* Account Type Display */}
                     <div className="space-y-2">
-                      <label className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Account Role</label>
+                      <label className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Account Type</label>
                       <div className={cn(
                         "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg",
                         "bg-white/50 dark:bg-slate-900/50",
                         "border border-slate-200/50 dark:border-slate-700/50"
                       )}>
                         <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {user?.role?.charAt(0).toUpperCase()}{user?.role?.slice(1).toLowerCase()}
+                          {user?.isTeacher ? 'Instructor' : 'Learner'}
                         </span>
-                        {user?.role !== "ADMIN" && !user?.isTeacher && (
+                        {!user?.isTeacher && (
                           <Link
                             href="/auth/register-teacher"
                             className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap"
@@ -298,11 +297,6 @@ export const PrivateDetailsSettingsPage = () => {
                           </Link>
                         )}
                       </div>
-                      {user?.role === "ADMIN" && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          As an admin, you can manage user roles in the admin panel.
-                        </p>
-                      )}
                       {user?.isTeacher === true && (
                         <p className="text-xs text-green-600 dark:text-green-400">
                           ✓ Verified instructor account

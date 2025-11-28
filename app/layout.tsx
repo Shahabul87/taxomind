@@ -20,6 +20,7 @@ import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client
 // export const dynamic = 'force-dynamic'; // Commented out to fix SSR bailout issue
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: 'Taxomind - Intelligent Learning Platform',
   description: 'Transform your learning journey with AI-powered education. Adaptive courses, real-time analytics, and personalized learning paths.',
   keywords: 'AI learning, adaptive education, intelligent tutoring, online courses, personalized learning, educational technology',
@@ -63,6 +64,10 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Favicon - prevent 404 errors */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         {/* Color scheme meta tag for instant dark mode support */}
         <meta name="color-scheme" content="light dark" />
         {/* Prevent theme flash by applying theme class before React hydrates */}
@@ -88,6 +93,13 @@ export default async function RootLayout({
         "bg-background text-foreground"
       )}>
         <Providers session={session}>
+          {/* Skip link for keyboard users */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-md focus:bg-blue-600 focus:text-white"
+          >
+            Skip to main content
+          </a>
           <ConfettiProvider />
           <ClientToaster />
           <SAMGlobalProvider>

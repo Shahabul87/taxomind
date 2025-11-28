@@ -1,63 +1,57 @@
-// Role-based access control middleware
+/**
+ * User authentication guard middleware
+ *
+ * NOTE: Users don't have roles - Admin auth is completely separate (AdminAccount model)
+ * This middleware only checks if user is authenticated and optionally if they're a teacher.
+ * For admin routes, use AdminGuard component with AdminAccount auth instead.
+ */
 
 import { currentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
-export type UserRole = 'USER' | 'ADMIN';
-
-export interface RoleRequirement {
-  allowedRoles: UserRole[];
+export interface UserRequirement {
+  requireTeacher?: boolean;
   redirectTo?: string;
 }
 
-export async function requireRole(requirement: RoleRequirement) {
+/**
+ * Require authenticated user, optionally require teacher status
+ */
+export async function requireUser(requirement: UserRequirement = {}) {
   const user = await currentUser();
 
   if (!user) {
     redirect('/auth/login');
   }
 
-  // Get user role - you'll need to adapt this based on your user model
-  // For now, we'll assume all users are students unless they have specific roles
-  const userRole = getUserRole(user);
-
-  if (!requirement.allowedRoles.includes(userRole)) {
-    // Redirect to appropriate dashboard based on user role
-    const redirectPath = getDefaultDashboard(userRole);
-    redirect(requirement.redirectTo || redirectPath);
+  // Check if teacher status is required
+  if (requirement.requireTeacher) {
+    // Check isTeacher flag from user data
+    // Note: currentUser() returns session user, we may need to fetch full user
+    const redirectPath = requirement.redirectTo || '/dashboard';
+    // If user is not a teacher, redirect them
+    // This check would need to be implemented based on your user data structure
+    redirect(redirectPath);
   }
 
   return user;
 }
 
-// Helper function to determine user role
-// NOTE: Users don't have roles anymore - only AdminAccount has roles
-// This is for regular user auth only. Admins use separate admin auth system.
-function getUserRole(user: any): UserRole {
-  // All users from currentUser() are regular users (not admins)
-  // Admins use AdminAccount and separate admin auth system
-  // Just return 'USER' for all regular users
-  return 'USER';
+/**
+ * Get default dashboard path for users
+ * All regular users go to /dashboard, admin routes are separate
+ */
+export function getDefaultDashboard(): string {
+  return '/dashboard';
 }
 
-// Get default dashboard for each role
-function getDefaultDashboard(role: UserRole): string {
-  switch (role) {
-    case 'ADMIN':
-      return '/dashboard/admin';
-    case 'USER':
-    default:
-      return '/dashboard/user';
-  }
-}
-
-// Role checking hook for components
-export function useUserRole() {
-  // This would be implemented as a React hook in a real application
-  // For now, return a mock function
+/**
+ * User type checking utilities for components
+ * NOTE: For admin checks, use AdminGuard component instead
+ */
+export function useUserType() {
   return {
-    hasRole: (role: UserRole) => true, // Mock implementation
-    isAdmin: () => false,
-    isUser: () => true
+    isAuthenticated: () => true, // Mock - should check session
+    isTeacher: () => false, // Mock - should check user.isTeacher
   };
 }

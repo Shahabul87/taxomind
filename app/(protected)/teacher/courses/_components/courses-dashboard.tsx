@@ -7,7 +7,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CoursesDashboardProps, CourseFilters } from "@/types/course";
 import { AnalyticsSection } from "./analytics-section";
 import { FilterPresets } from "./filter-presets";
@@ -16,36 +16,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // Props interface now imported from types file
 
 export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [activeFilters, setActiveFilters] = useState<CourseFilters>({});
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'courses'>('overview');
-
-  // Listen to sidebar state changes
-  useEffect(() => {
-    const handleSidebarChange = (event: CustomEvent) => {
-      setSidebarExpanded(event.detail.expanded);
-    };
-
-    window.addEventListener('sidebar-state-change', handleSidebarChange as EventListener);
-
-    return () => {
-      window.removeEventListener('sidebar-state-change', handleSidebarChange as EventListener);
-    };
-  }, []);
 
   const handleFilterPresetSelected = (filters: CourseFilters) => {
     setActiveFilters(filters);
   };
 
   return (
-    <motion.div
-      className="space-y-4 sm:space-y-6"
-      animate={{
-        paddingLeft: sidebarExpanded ? "1rem" : "0.5rem",
-        paddingRight: sidebarExpanded ? "1rem" : "0.5rem",
-      }}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
-    >
+    <div className="w-full space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="rounded-xl sm:rounded-2xl md:rounded-3xl border bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 md:p-5 lg:p-6" data-tour="course-creation-header">
@@ -157,6 +136,6 @@ export const CoursesDashboard = ({ courses, stats }: CoursesDashboardProps) => {
           </motion.div>
         </TabsContent>
       </Tabs>
-    </motion.div>
+    </div>
   );
 }; 

@@ -510,7 +510,7 @@ export class SAMPredictiveEngine {
     `;
 
     const response = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-sonnet-4-5-20250929",
       max_tokens: 100,
       temperature: 0.3,
       messages: [{

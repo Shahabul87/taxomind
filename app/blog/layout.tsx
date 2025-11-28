@@ -23,9 +23,10 @@ export default async function BlogLayout({
         <div className="antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
           <ConfettiProvider />
          
-          <main className="min-h-screen w-full">             
+          {/* Use a div wrapper here to avoid multiple main landmarks on the page. */}
+          <div className="min-h-screen w-full">             
               {children}
-          </main> 
+          </div> 
         </div>
       </div>
    </SessionProvider>

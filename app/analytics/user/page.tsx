@@ -126,7 +126,7 @@ export default function UserAnalyticsPage() {
 
   if (error && !user) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-8">
         <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-red-600 dark:text-red-400 mb-3">
@@ -187,7 +187,7 @@ export default function UserAnalyticsPage() {
       contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
     >
       {error && (
-        <div className="container mx-auto px-4 py-4">
+        <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-4">
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
             <p className="text-amber-700 dark:text-amber-300 text-sm">
               {error} — Using demo data for analytics.

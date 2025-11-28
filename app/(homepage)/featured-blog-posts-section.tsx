@@ -133,7 +133,10 @@ export const FeaturedBlogPostsSection = ({ posts }: FeaturedBlogPostsProps) => {
             {/* Category Select */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center justify-between">
               <Select value={activeCategory} onValueChange={(value) => setActiveCategory(value as BlogCategoryKey)}>
-                <SelectTrigger className="w-full sm:w-52 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-10 sm:h-auto">
+                <SelectTrigger
+                  className="w-full sm:w-52 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-11 sm:h-11"
+                  aria-label="Browse blog topics"
+                >
                   <SelectValue placeholder="Browse Topics" />
                 </SelectTrigger>
                 <SelectContent>

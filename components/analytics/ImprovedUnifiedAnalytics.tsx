@@ -289,7 +289,7 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
 
   if (isLoading) {
     return (
-      <div className={cn("p-6 space-y-6", variant === 'fullpage' ? 'max-w-7xl mx-auto' : 'max-w-6xl mx-auto', className)}>
+      <div className={cn("p-6 space-y-6 w-full", className)}>
         <div
           className="flex items-center justify-center py-12"
           role="status"
@@ -307,7 +307,7 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
 
   if (hasError && !analytics && !performance && !pulse) {
     return (
-      <div className={cn("p-6 space-y-6", variant === 'fullpage' ? 'max-w-7xl mx-auto' : 'max-w-6xl mx-auto', className)}>
+      <div className={cn("p-6 space-y-6 w-full", className)}>
         <Card className="border-destructive/50 bg-destructive/10" role="alert" aria-live="assertive">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-destructive">
@@ -337,7 +337,7 @@ export function ImprovedUnifiedAnalytics({ user, variant = 'dashboard', classNam
   if (variant === 'fullpage') {
     return (
       <div className={cn("min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700", className)}>
-        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-6">
           <AnalyticsNavigation variant="fullpage" />
 
           <AnalyticsHeader

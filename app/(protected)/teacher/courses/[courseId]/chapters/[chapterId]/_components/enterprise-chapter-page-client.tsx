@@ -92,7 +92,7 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
 
         {/* Enterprise Header with Status Bar */}
         <div className="sticky top-0 z-40 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800">
-          <div className="container mx-auto px-3 sm:px-4 md:px-6 py-2.5 sm:py-3">
+          <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-2.5 sm:py-3">
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
               {/* Breadcrumb Navigation */}
               <nav className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm overflow-x-auto w-full sm:w-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] -mx-3 sm:mx-0 px-3 sm:px-0">
@@ -147,7 +147,7 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="container mx-auto px-2 sm:px-4 pt-2 sm:pt-4"
+              className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 pt-2 sm:pt-4"
             >
               <Banner
                 variant="warning"
@@ -158,7 +158,7 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
         </AnimatePresence>
 
         {/* Main Content Area */}
-        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 md:py-8">
+        <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-4 sm:py-6">
           {/* Page Header with Metrics */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

@@ -280,7 +280,7 @@ ${focusAreas?.join(', ') || 'General improvement'}
 6. Tips for improvement based on performance patterns`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 3000,
     temperature: 0.7,
     messages: [

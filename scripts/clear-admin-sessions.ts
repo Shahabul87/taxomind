@@ -13,8 +13,8 @@
  *   - Forces admins to login again with new JWT configuration
  *   - Ensures all admin sessions use the updated JWT secret
  *
- * IMPORTANT: This is safe to run - it only affects admin sessions,
- * not user data or regular user sessions.
+ * NOTE: Admin auth uses AdminAccount model (separate from User model).
+ * Users don't have roles - admin auth is completely separate.
  */
 
 import { db } from '@/lib/db';
@@ -23,32 +23,33 @@ async function clearAdminSessions() {
   console.log('🔧 Starting admin session cleanup...\n');
 
   try {
-    // Find all admin users
-    const adminUsers = await db.user.findMany({
-      where: {
-        role: 'ADMIN',
-      },
+    // Find all admin accounts (separate from User model)
+    const adminAccounts = await db.adminAccount.findMany({
       select: {
         id: true,
         email: true,
         name: true,
+        role: true,
       },
     });
 
-    console.log(`📊 Found ${adminUsers.length} admin users\n`);
+    console.log(`📊 Found ${adminAccounts.length} admin accounts\n`);
 
-    if (adminUsers.length === 0) {
-      console.log('ℹ️  No admin users found.');
+    if (adminAccounts.length === 0) {
+      console.log('ℹ️  No admin accounts found.');
       return;
     }
 
-    // Note: Admin sessions use JWT strategy (stored in cookies)
-    // No database session records to clear
-    console.log('ℹ️  Admin authentication uses JWT strategy');
-    console.log('   Sessions are stored in browser cookies, not database\n');
+    // Clear admin active sessions from AdminActiveSession table
+    const deletedSessions = await db.adminActiveSession.deleteMany({});
+    console.log(`🗑️  Deleted ${deletedSessions.count} admin sessions from AdminActiveSession table\n`);
 
-    console.log('✨ Admin session information retrieved!\n');
-    console.log('📋 REQUIRED STEPS TO FIX JWT AUTHENTICATION:\n');
+    // Note: Admin sessions use JWT strategy (stored in cookies)
+    console.log('ℹ️  Admin authentication uses JWT strategy');
+    console.log('   Sessions are also stored in browser cookies\n');
+
+    console.log('✨ Admin session cleanup complete!\n');
+    console.log('📋 REQUIRED STEPS TO COMPLETE THE FIX:\n');
     console.log('1. 🔴 CRITICAL: Clear browser cookies for localhost:3000');
     console.log('   - Open DevTools (F12)');
     console.log('   - Go to Application tab → Cookies → http://localhost:3000');
@@ -65,17 +66,17 @@ async function clearAdminSessions() {
     console.log('   - Use your admin credentials');
     console.log('   - New JWT will be generated with fixed configuration\n');
 
-    console.log('👥 Admin users in database:');
-    adminUsers.forEach((admin, index) => {
+    console.log('👥 Admin accounts in database:');
+    adminAccounts.forEach((admin, index) => {
       console.log(
-        `   ${index + 1}. ${admin.name || 'Unnamed'} (${admin.email || 'no-email'})`
+        `   ${index + 1}. ${admin.name || 'Unnamed'} (${admin.email || 'no-email'}) - Role: ${admin.role}`
       );
     });
 
     console.log('\n✅ Verification complete!');
     console.log('💡 The JWT configuration has been fixed. Follow steps above to complete the fix.\n');
   } catch (error) {
-    console.error('❌ Error retrieving admin information:', error);
+    console.error('❌ Error during admin session cleanup:', error);
     throw error;
   } finally {
     await db.$disconnect();

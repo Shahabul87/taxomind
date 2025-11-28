@@ -3,14 +3,14 @@
  * Core types for the modular SAM AI assistant
  */
 
-// User and Role Types
-export type UserRole = 'ADMIN' | 'USER' | 'TEACHER' | 'STUDENT';
-
+// User Types
+// NOTE: Users don't have roles - Admin auth is completely separate
+// isTeacher flag determines if user can create courses
 export interface User {
   id: string;
   name?: string;
   email?: string;
-  role: UserRole;
+  isTeacher?: boolean;
   metadata?: Record<string, any>;
 }
 
@@ -205,7 +205,6 @@ export interface IntegrationConfig {
 
 // Export all types as a namespace
 export namespace SAMTypes {
-  export type Role = UserRole;
   export type IUser = User;
   export type IContext = SAMContext;
   export type IConfig = SAMEngineConfig;

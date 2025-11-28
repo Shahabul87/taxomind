@@ -18,7 +18,7 @@ export default async function MessagesPage() {
       enableGestures={true}
       contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
     >
-      <div className="min-h-screen py-4 sm:py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="min-h-screen w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-6">
         <MessageCenter userId={user.id!} />
       </div>
     </PageWithMobileLayout>

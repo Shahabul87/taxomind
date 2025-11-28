@@ -205,9 +205,9 @@ Provide a helpful response in JSON format:
    */
   private formatContext(context: SAMContext): string {
     const parts = ['CONTEXT:'];
-    
+
     if (context.user) {
-      parts.push(`- User Role: ${context.user.role}`);
+      parts.push(`- User Type: ${context.user.isTeacher ? 'Teacher/Instructor' : 'Student/Learner'}`);
       parts.push(`- User ID: ${context.user.id}`);
     }
     
@@ -281,20 +281,13 @@ Provide a helpful response in JSON format:
    * Generate fallback response
    */
   private generateFallbackResponse(context: SAMContext): SAMResponse {
-    const role = context.user.role;
+    const isTeacher = context.user.isTeacher;
     let message = "I'm here to help! ";
 
-    switch (role) {
-      case 'USER':
-      case 'ADMIN':
-        message += "As an educator, I can assist with course creation, content development, student engagement strategies, and assessment design.";
-        break;
-      case 'USER':
-      case 'USER':
-        message += "I can help you with learning strategies, understanding concepts, and making the most of your educational journey.";
-        break;
-      default:
-        message += "How can I assist you with your educational needs today?";
+    if (isTeacher) {
+      message += "As an educator, I can assist with course creation, content development, student engagement strategies, and assessment design.";
+    } else {
+      message += "I can help you with learning strategies, understanding concepts, and making the most of your educational journey.";
     }
 
     return {
@@ -308,8 +301,8 @@ Provide a helpful response in JSON format:
    */
   private generateDefaultSuggestions(context: SAMContext): string[] {
     const { pageType, user } = context;
-    
-    if (pageType === 'course-edit' && (user.role === 'ADMIN' || user.isTeacher === true)) {
+
+    if (pageType === 'course-edit' && user.isTeacher) {
       return [
         'Help me improve this course structure',
         'Suggest engagement strategies',
@@ -317,8 +310,8 @@ Provide a helpful response in JSON format:
         'Generate assessment ideas'
       ];
     }
-    
-    if (pageType === 'learning' && (user.role === 'USER' || user.role === 'STUDENT')) {
+
+    if (pageType === 'learning' && !user.isTeacher) {
       return [
         'Explain this concept differently',
         'Give me practice problems',

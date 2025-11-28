@@ -12,12 +12,13 @@ import { SecurityDashboard } from "@/components/enterprise/SecurityDashboard";
 import { EnterpriseAdminTab } from "@/components/enterprise/EnterpriseAdminTab";
 
 // Stable demo admin user object to prevent unnecessary re-renders
+// NOTE: This page should use AdminAccount auth, not regular User auth
+// For now using demo mode - TODO: migrate to proper admin auth
 const DEMO_ADMIN_USER: User = {
   id: "demo-admin",
   name: "Demo Admin",
   email: "admin@example.com",
-  image: null,
-  role: "ADMIN"
+  image: null
 } as User;
 
 export default function EnterpriseAdminPage() {
@@ -27,39 +28,23 @@ export default function EnterpriseAdminPage() {
   const [activeTab, setActiveTab] = useState("overview");
 
   // Memoize the user to prevent unnecessary re-renders
+  // NOTE: Admin auth is separate from User auth - this page uses demo mode
+  // TODO: Implement proper AdminAccount session handling
   const user = useMemo(() => {
     if (status === "loading" || !isInitialized) return null;
-    
-    if (session?.user && session.user.role === "ADMIN") {
-      return session.user as User;
-    }
-    
+
+    // For now, use demo mode - AdminGuard handles actual admin protection
     return DEMO_ADMIN_USER;
-  }, [session?.user, status, isInitialized]);
+  }, [status, isInitialized]);
 
 
   useEffect(() => {
     if (status === "loading") return; // Still loading
-    
-    if (status === "unauthenticated") {
-      setError("User not authenticated - Using demo mode");
-      setIsInitialized(true);
-      return;
-    }
 
-    if (session?.user) {
-      if (session.user.role !== "ADMIN") {
-        setError("Admin access required - Using demo mode");
-        setIsInitialized(true);
-        return;
-      }
-      setError(null);
-      setIsInitialized(true);
-    } else {
-      setError("No user data available - Using demo mode");
-      setIsInitialized(true);
-    }
-  }, [session?.user, status]);
+    // Using demo mode for now - AdminGuard component handles actual admin access
+    setError("Using demo mode - Admin auth is separate from User auth");
+    setIsInitialized(true);
+  }, [status]);
 
   if (status === "loading") {
     return (

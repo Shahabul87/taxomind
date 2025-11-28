@@ -166,7 +166,7 @@ Return ONLY valid JSON in this format:
 Focus on evidence-based educational practices and modern learning science principles.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 1000,
     temperature: 0.6,
     messages: [{ role: "user", content: prompt }]
@@ -232,7 +232,7 @@ Return ONLY valid JSON in this format:
 Make this course irresistible to the target audience while ensuring educational excellence.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 2000,
     temperature: 0.7,
     messages: [{ role: "user", content: prompt }]
@@ -321,7 +321,7 @@ Return ONLY valid JSON in this format:
 Make each section rich with practical, actionable content that students can immediately apply.`;
 
     const response = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-sonnet-4-5-20250929",
       max_tokens: 3000,
       temperature: 0.7,
       messages: [{ role: "user", content: chapterPrompt }]

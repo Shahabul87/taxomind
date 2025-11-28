@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
       const prompt = buildExerciseGeneratorPrompt(exerciseRequest);
       
       const completion = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 5000,
         temperature: 0.7,
         system: EXERCISE_GENERATOR_SYSTEM_PROMPT,
@@ -299,7 +299,7 @@ export async function POST(request: NextRequest) {
         exercises: aiExercises,
         metadata: {
           tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-5-20250929',
           generatedAt: new Date().toISOString(),
           exerciseType: exerciseRequest.exerciseType,
           difficulty: exerciseRequest.difficulty

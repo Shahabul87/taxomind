@@ -876,7 +876,7 @@ model User {
   password                                String?
   // SECURITY FIX: confirmPassword removed - should never be persisted in database
   // Password confirmation is only for frontend validation
-  role                                    UserRole                             @default(USER)
+  // NOTE: Users don't have roles - Admin auth is completely separate (AdminAccount model)
   isTwoFactorEnabled                      Boolean                              @default(false)
   totpSecret                              String? // Encrypted TOTP secret
   totpEnabled                             Boolean                              @default(false)

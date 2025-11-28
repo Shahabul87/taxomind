@@ -113,7 +113,7 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 Make the plan practical, engaging, and aligned with modern educational best practices.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 3000,
     temperature: 0.7,
     messages: [
@@ -192,7 +192,7 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 Create a cohesive unit that builds understanding progressively and engages students throughout.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 3000,
     temperature: 0.7,
     messages: [
@@ -269,7 +269,7 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 Create activities that are engaging, educational, and practically feasible for the classroom.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 2000,
     temperature: 0.8,
     messages: [
@@ -345,7 +345,7 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 Create assessments that are fair, comprehensive, and aligned with learning objectives.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 2500,
     temperature: 0.7,
     messages: [
@@ -421,7 +421,7 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 Create a plan that ensures all students can access and engage with the content at their level.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 2500,
     temperature: 0.7,
     messages: [

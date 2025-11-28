@@ -2,12 +2,9 @@
  * User Domain Types
  *
  * Core types for the user domain, independent of database schema.
+ * NOTE: Users don't have roles - Admin auth is completely separate (AdminAccount model)
+ * User capabilities determine what users can do
  */
-
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  USER = 'USER',
-}
 
 export enum UserCapability {
   STUDENT = 'STUDENT',

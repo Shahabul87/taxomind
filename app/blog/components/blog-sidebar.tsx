@@ -37,38 +37,40 @@ export function TrendingSidebar({ posts }: TrendingSidebarProps) {
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y divide-slate-200/50 dark:divide-slate-700/50">
+        <ul className="divide-y divide-slate-200/50 dark:divide-slate-700/50">
           {posts.slice(0, 5).map((post, index) => (
-            <Link key={post.id} href={`/blog/${post.id}`}>
-              <div className="px-5 py-4 group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-all duration-200">
-                <div className="flex gap-4 items-start">
-                  {/* Gradient Number Badge */}
-                  <div className={`flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br ${gradients[index]} text-white flex items-center justify-center font-bold text-lg shadow-lg`}>
-                    {index + 1}
-                  </div>
+            <li key={post.id}>
+              <Link href={`/blog/${post.id}`} aria-label={`Read: ${post.title}`}>
+                <div className="px-5 py-4 group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-all duration-200">
+                  <div className="flex gap-4 items-start">
+                    {/* Gradient Number Badge */}
+                    <div className={`flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br ${gradients[index]} text-white flex items-center justify-center font-bold text-lg shadow-lg`}>
+                      {index + 1}
+                    </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold line-clamp-2 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-2 leading-tight">
-                      {post.title}
-                    </h4>
-                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        {post.user.name}
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Eye className="w-3 h-3" />
-                        {post.views.toLocaleString()}
-                      </span>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold line-clamp-2 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-2 leading-tight">
+                        {post.title}
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          {post.user.name}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          {post.views.toLocaleString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       </CardContent>
     </Card>
   );

@@ -180,7 +180,7 @@ TASK: Create an enhanced, comprehensive course description that:
 Return only the enhanced course description (2-3 paragraphs), no additional formatting or explanations.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 500,
     messages: [{ role: 'user', content: prompt }]
   });
@@ -224,7 +224,7 @@ Format each objective as a complete sentence starting with "Students will be abl
 Return as a JSON array of strings, no additional formatting.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 800,
     messages: [{ role: 'user', content: prompt }]
   });
@@ -300,7 +300,7 @@ Return as JSON in this exact format:
 }`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 4000,
     messages: [{ role: 'user', content: prompt }]
   });

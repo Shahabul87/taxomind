@@ -45,13 +45,16 @@ const phoneValidation = z.string()
   .regex(/^\+?[1-9]\d{1,14}$/, { message: "Invalid phone number format" });
 
 // Extended Settings Schema for Enterprise Features
+// NOTE: Users don't have roles - Admin auth is completely separate (AdminAccount model)
+// Use isTeacher flag to distinguish teachers from regular users
 export const SettingsSchema = z.object({
   // Basic Account Info
   name: z.optional(z.string()),
   email: z.optional(z.string().email()),
   password: z.optional(z.string().min(1)),
   newPassword: z.optional(passwordValidation),
-  role: z.enum(["ADMIN", "USER"]),
+  // role field removed - users don't have roles, use isTeacher flag instead
+  isTeacher: z.optional(z.boolean()),
   isTwoFactorEnabled: z.optional(z.boolean()),
 
   // Profile Fields

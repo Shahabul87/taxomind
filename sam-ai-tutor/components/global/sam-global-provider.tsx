@@ -247,11 +247,14 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
   }, [screenSize, pathname]);
 
   // Determine theme based on context
+  // NOTE: Users don't have roles - use isTeacher flag instead
   const theme = useMemo((): 'teacher' | 'student' | 'learning' | 'dashboard' | 'default' => {
     if (pathname?.includes('/teacher')) return 'teacher';
     if (pathname?.includes('/learn')) return 'learning';
     if (pathname?.includes('/dashboard')) return 'dashboard';
-    if (session?.user?.role === 'ADMIN') return 'teacher';
+    // Type-safe check for isTeacher on extended user
+    const user = session?.user as { isTeacher?: boolean } | undefined;
+    if (user?.isTeacher) return 'teacher';
     return 'student';
   }, [pathname, session]);
 

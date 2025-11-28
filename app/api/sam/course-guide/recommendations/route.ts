@@ -382,7 +382,7 @@ async function generateAssessmentExamples(course: any): Promise<any[]> {
   const prompt = `Generate 3 example assessment questions for a course titled "${course.title}" with description: "${course.description}". Include different question types.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1000,
     temperature: 0.7,
     messages: [

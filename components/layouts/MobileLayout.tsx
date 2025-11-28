@@ -143,19 +143,18 @@ export function MobileLayout({
 
   // If user is not provided, create a minimal fallback user object
   // This ensures type safety while providing a default for unauthenticated states
-  // The fallback satisfies ExtendedUser and includes optional role for compatibility
-  const createFallbackUser = (): ExtendedUser & { role?: string } => ({
+  // NOTE: Users don't have roles - use isTeacher flag instead
+  const createFallbackUser = (): ExtendedUser => ({
     id: '',
     name: 'User',
     email: 'user@example.com',
     image: null,
     isTwoFactorEnabled: false,
     isOAuth: false,
-    role: 'USER',
+    isTeacher: false,
   });
 
   const defaultUser: ExtendedUser | (NextAuthUser & {
-    role?: string;
     isTeacher?: boolean;
     isAffiliate?: boolean;
   }) = user || createFallbackUser();

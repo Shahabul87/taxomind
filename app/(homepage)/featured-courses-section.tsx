@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { motion, AnimatePresence, useReducedMotion, useInView } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, useInView } from '@/components/lazy-motion';
 import Link from 'next/link';
 import { CourseCardHome } from "@/components/course-card-home";
 import {
@@ -127,14 +127,15 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
     setSortBy('featured');
   };
 
-  // Animation variants
+  // Simplified animation variants for better performance
   const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: shouldReduceMotion ? 0.01 : 0.6,
+        duration: shouldReduceMotion ? 0 : 0.25,
+        ease: "easeOut" as const,
       },
     },
   };
@@ -144,7 +145,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: shouldReduceMotion ? 0 : 0.1,
+        staggerChildren: shouldReduceMotion ? 0 : 0.03,
       },
     },
   };
@@ -199,7 +200,10 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center">
               {/* Category Select */}
               <Select value={activeCategory} onValueChange={(value) => setActiveCategory(value as CategoryKey)}>
-                <SelectTrigger className="w-full sm:w-52 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-10 sm:h-auto">
+                <SelectTrigger
+                  className="w-full sm:w-52 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-11 sm:h-11"
+                  aria-label="Browse categories"
+                >
                   <SelectValue placeholder="Browse Categories" />
                 </SelectTrigger>
                 <SelectContent>
@@ -219,7 +223,10 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
 
               {/* Sort Dropdown */}
               <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                <SelectTrigger className="w-full sm:w-48 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-10 sm:h-auto">
+                <SelectTrigger
+                  className="w-full sm:w-48 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-11 sm:h-11"
+                  aria-label="Sort courses by"
+                >
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -240,6 +247,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                   size="icon"
                   onClick={() => setViewMode('grid')}
                   className="rounded-r-none"
+                  aria-label="Grid view"
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </Button>
@@ -248,6 +256,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                   size="icon"
                   onClick={() => setViewMode('list')}
                   className="rounded-none border-x border-slate-200 dark:border-slate-700"
+                  aria-label="List view"
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -256,6 +265,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                   size="icon"
                   onClick={() => setViewMode('compact')}
                   className="rounded-l-none"
+                  aria-label="Compact view"
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </Button>
@@ -313,6 +323,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                           chaptersLength={course.chapters?.length || 0}
                           price={course.price || 0}
                           category={course?.category?.name || "General"}
+                          priority={index < 4}
                         />
                       </motion.div>
                     ))}

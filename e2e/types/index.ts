@@ -4,12 +4,13 @@
  */
 
 // User-related types based on Prisma schema
+// NOTE: Users don't have roles - Admin auth is completely separate
 export interface TestUser {
   id: string;
   name: string;
   email: string;
   password: string;
-  role: 'USER' | 'ADMIN';
+  isTeacher: boolean;
   emailVerified: Date | null;
   image: string | null;
   isTwoFactorEnabled: boolean;

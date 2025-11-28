@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { CreateNewCoursePage } from "./create-course";
 import { cn } from "@/lib/utils";
 import { BookOpen, TrendingUp, Users, Zap } from "lucide-react";
-import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
 
 const CourseCreationPage = async() => {
     const user = await currentUser();
@@ -13,14 +12,7 @@ const CourseCreationPage = async() => {
     }
 
     return (
-        <PageWithMobileLayout
-            showHeader={false}
-            showSidebar={true}
-            showBottomBar={true}
-            enableGestures={true}
-            contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
-        >
-            <div className="min-h-screen w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-0 sm:pt-2 md:pt-4 lg:pt-6 pb-4 sm:pb-6 md:pb-8 max-w-7xl mx-auto">
+        <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-6 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
                 {/* Header glass shell */}
                 <div className="mb-4 sm:mb-6 md:mb-8 rounded-xl sm:rounded-2xl md:rounded-3xl border bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 md:gap-6 p-3 sm:p-4 md:p-5 lg:p-6">
@@ -65,15 +57,14 @@ const CourseCreationPage = async() => {
                     </div>
                 </div>
 
-                {/* Main Content */}
-                <div className={cn(
-                    "rounded-xl sm:rounded-2xl md:rounded-3xl bg-white/80 dark:bg-slate-800/80 shadow-lg backdrop-blur-sm hover:shadow-xl transition-all duration-300",
-                    "border border-slate-200/50 dark:border-slate-700/50 p-3 sm:p-4 md:p-6 lg:p-8"
-                )}>
-                    <CreateNewCoursePage />
-                </div>
+            {/* Main Content */}
+            <div className={cn(
+                "rounded-xl sm:rounded-2xl md:rounded-3xl bg-white/80 dark:bg-slate-800/80 shadow-lg backdrop-blur-sm hover:shadow-xl transition-all duration-300",
+                "border border-slate-200/50 dark:border-slate-700/50 p-3 sm:p-4 md:p-6 lg:p-8"
+            )}>
+                <CreateNewCoursePage />
             </div>
-        </PageWithMobileLayout>
+        </div>
     );
 }
 

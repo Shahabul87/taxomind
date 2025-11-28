@@ -289,11 +289,6 @@ export function SmartHeader({
               ease: "easeIn"
             }
           }}
-          style={{
-            boxShadow: isHeaderVisible
-              ? "0 10px 30px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)"
-              : "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)"
-          }}
           className={cn(
             "fixed top-0 left-0 right-0 z-40 h-16",
             "border-b border-slate-200/50 dark:border-slate-700/50",

@@ -29,8 +29,7 @@ export function MyPlansClient({ user }: MyPlansClientProps) {
       enableGestures={true}
       contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"
     >
-      <div className="min-h-screen">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="min-h-screen w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-6">
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
             My Plans
@@ -59,7 +58,6 @@ export function MyPlansClient({ user }: MyPlansClientProps) {
             <StudyPlansTab />
           </TabsContent>
         </Tabs>
-        </div>
       </div>
     </MobileLayout>
   );

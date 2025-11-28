@@ -32,15 +32,15 @@ interface OnboardingStep {
 }
 
 interface OnboardingFlow {
-  role: string;
+  userType: 'teacher' | 'student';
   title: string;
   description: string;
   steps: OnboardingStep[];
   estimatedTime: string;
 }
 
+// NOTE: Users don't have roles - use isTeacher flag instead
 interface IntelligentOnboardingProps {
-  userRole: "USER" | "ADMIN";
   isTeacher?: boolean;
   isVisible: boolean;
   onComplete: () => void;
@@ -48,7 +48,7 @@ interface IntelligentOnboardingProps {
 }
 
 const teacherOnboarding: OnboardingFlow = {
-  role: "USER",
+  userType: 'teacher',
   title: "Welcome to AI-Enhanced Teaching",
   description: "Let's get you set up with powerful AI tools to create better courses and assessments.",
   estimatedTime: "5 minutes",
@@ -167,7 +167,7 @@ const teacherOnboarding: OnboardingFlow = {
 };
 
 const studentOnboarding: OnboardingFlow = {
-  role: "USER",
+  userType: 'student',
   title: "Welcome to Personalized Learning",
   description: "Discover how AI adapts to your learning style and helps you succeed.",
   estimatedTime: "3 minutes",
@@ -262,8 +262,10 @@ const studentOnboarding: OnboardingFlow = {
   ]
 };
 
+// NOTE: Admin onboarding is handled by AdminAccount auth, not regular User auth
+// This is kept for legacy compatibility
 const adminOnboarding: OnboardingFlow = {
-  role: "ADMIN",
+  userType: 'teacher', // Admins would use teacher-style onboarding
   title: "Welcome to AI-Powered Administration",
   description: "Manage your institution with advanced analytics and AI insights.",
   estimatedTime: "4 minutes",
@@ -328,8 +330,7 @@ const adminOnboarding: OnboardingFlow = {
 };
 
 export const IntelligentOnboarding = ({
-  userRole,
-  isTeacher,
+  isTeacher = false,
   isVisible,
   onComplete,
   onSkip
@@ -337,10 +338,10 @@ export const IntelligentOnboarding = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
 
+  // NOTE: Users don't have roles - use isTeacher flag instead
+  // Admin onboarding is handled separately by AdminAccount auth
   const getOnboardingFlow = () => {
-    if (userRole === "ADMIN") {
-      return adminOnboarding;
-    } else if (isTeacher) {
+    if (isTeacher) {
       return teacherOnboarding;
     } else {
       return studentOnboarding;
@@ -372,7 +373,8 @@ export const IntelligentOnboarding = ({
 
   const handleComplete = () => {
     // Save onboarding completion to localStorage
-    localStorage.setItem(`onboarding-completed-${userRole}`, "true");
+    const userType = isTeacher ? 'teacher' : 'student';
+    localStorage.setItem(`onboarding-completed-${userType}`, "true");
     onComplete();
   };
 

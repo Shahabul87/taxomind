@@ -125,7 +125,7 @@ For each question, provide:
 Create a balanced assessment that challenges students appropriately while providing comprehensive evaluation of their understanding.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 4000,
     temperature: 0.7,
     messages: [
@@ -203,7 +203,7 @@ async function generateAdaptiveQuestion(
 Create a question that optimally challenges the student while supporting their learning journey.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.8,
     messages: [
@@ -262,7 +262,7 @@ ${JSON.stringify(assessmentData, null, 2)}
 Provide actionable insights that can guide personalized learning interventions.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 2000,
     temperature: 0.7,
     messages: [
@@ -330,7 +330,7 @@ For each criterion, provide:
 Create a rubric that promotes fair, consistent, and meaningful assessment.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 2500,
     temperature: 0.7,
     messages: [
@@ -391,7 +391,7 @@ ${JSON.stringify(assessmentData, null, 2)}
 Create feedback that empowers students to take ownership of their learning journey.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 2000,
     temperature: 0.8,
     messages: [
@@ -1127,7 +1127,7 @@ ${JSON.stringify(assessmentData, null, 2)}
 Provide specific recommendations for difficulty adjustment including question types, cognitive levels, and support strategies.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1500,
     temperature: 0.7,
     messages: [

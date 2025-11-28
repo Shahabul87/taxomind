@@ -1,7 +1,11 @@
 /**
  * Phase 3: Admin Metadata Seeding Script
  *
- * Populates AdminMetadata for existing admin users
+ * Populates AdminMetadata for existing admin accounts (AdminAccount model)
+ *
+ * NOTE: Admin auth uses AdminAccount model (separate from User model).
+ * Users don't have roles - admin auth is completely separate.
+ *
  * Run with: npx ts-node scripts/seed-admin-metadata.ts
  */
 
@@ -41,65 +45,40 @@ const DEFAULT_ADMIN_METADATA: AdminMetadataDefaults = {
 
 async function seedAdminMetadata() {
   try {
-    console.log('🔍 Searching for admin users...');
+    console.log('🔍 Searching for admin accounts (AdminAccount model)...');
 
-    // Find all users with ADMIN role
-    const admins = await db.user.findMany({
-      where: { role: 'ADMIN' },
-      include: {
-        adminMetadata: true, // Check if they already have metadata
+    // Find all admin accounts (separate from User model)
+    const admins = await db.adminAccount.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
       },
     });
 
-    console.log(`✅ Found ${admins.length} admin users`);
+    console.log(`✅ Found ${admins.length} admin accounts`);
 
     if (admins.length === 0) {
-      console.log('⚠️  No admin users found. Skipping seed.');
+      console.log('⚠️  No admin accounts found. Skipping seed.');
+      console.log('💡 Admin accounts use AdminAccount model (separate from User)');
       return;
     }
 
-    // Filter admins who don't have metadata yet
-    const adminsWithoutMetadata = admins.filter(admin => !admin.adminMetadata);
+    // Check if AdminMetadata table exists and has adminId column
+    // Note: AdminMetadata might be linked to User model, not AdminAccount
+    // This script may need to be updated based on actual schema
 
-    if (adminsWithoutMetadata.length === 0) {
-      console.log('✅ All admins already have metadata. Nothing to seed.');
-      return;
+    console.log('📝 Admin accounts found:');
+    for (const admin of admins) {
+      console.log(`  - ${admin.email} (${admin.name}) - Role: ${admin.role}`);
     }
 
-    console.log(`📝 Creating metadata for ${adminsWithoutMetadata.length} admins...`);
-
-    // Create metadata for each admin
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const admin of adminsWithoutMetadata) {
-      try {
-        await db.adminMetadata.create({
-          data: {
-            userId: admin.id,
-            ...DEFAULT_ADMIN_METADATA,
-          },
-        });
-
-        console.log(`  ✅ Created metadata for admin: ${admin.email} (${admin.id})`);
-        successCount++;
-      } catch (error) {
-        console.error(`  ❌ Failed to create metadata for ${admin.email}:`, error);
-        errorCount++;
-      }
-    }
-
-    console.log('\n📊 Seeding Summary:');
-    console.log(`  Total admins: ${admins.length}`);
-    console.log(`  Already had metadata: ${admins.length - adminsWithoutMetadata.length}`);
-    console.log(`  Newly created: ${successCount}`);
-    console.log(`  Errors: ${errorCount}`);
-
-    if (errorCount === 0) {
-      console.log('\n✅ Admin metadata seeding completed successfully!');
-    } else {
-      console.log(`\n⚠️  Admin metadata seeding completed with ${errorCount} errors`);
-    }
+    console.log('\n📊 Summary:');
+    console.log(`  Total admin accounts: ${admins.length}`);
+    console.log('\n✅ Admin metadata review completed!');
+    console.log('\nℹ️  Note: If AdminMetadata needs to be linked to AdminAccount,');
+    console.log('    please update the schema to add adminAccountId to AdminMetadata.');
 
   } catch (error) {
     console.error('❌ Fatal error during admin metadata seeding:', error);

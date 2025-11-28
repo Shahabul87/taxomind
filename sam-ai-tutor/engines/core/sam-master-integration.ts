@@ -31,6 +31,7 @@ export class SAMMasterIntegration {
         id: true,
         name: true,
         createdAt: true,
+        isTeacher: true,
       },
     });
 
@@ -56,11 +57,12 @@ export class SAMMasterIntegration {
     );
 
     // Build enhanced context for SAM
+    // NOTE: Users don't have roles - use isTeacher flag instead
     return {
       user: {
         id: user.id,
         name: user.name,
-        role: 'USER', // NOTE: Users don't have roles - all users are 'USER'
+        isTeacher: user.isTeacher || false,
         learningProfile: engineInsights.learningProfile,
       },
       course: courseId ? await this.getCourseContext(courseId) : null,
@@ -460,7 +462,7 @@ export class SAMMasterIntegration {
     return {
       primaryIntent,
       useEngineData: true,
-      personalize: context.user.role === 'USER',
+      personalize: !context.user.isTeacher, // Personalize for students (non-teachers)
       includeRecommendations: intents.recommendation || intents.help,
       includeAnalytics: intents.analysis || intents.progress,
     };
@@ -513,11 +515,12 @@ export class SAMMasterIntegration {
         break;
 
       case 'analysis':
-        if (context.user.role === 'ADMIN' && context.engineInsights.courseGuide) {
+        // Show course analysis for teachers
+        if (context.user.isTeacher && context.engineInsights.courseGuide) {
           const guide = context.engineInsights.courseGuide;
           elements.message += `Your course has ${guide.metrics?.depth?.overallDepth}% content depth `;
           elements.message += `with ${guide.successProbability}% success probability.`;
-          
+
           elements.insights.push({
             type: 'metrics',
             data: guide.metrics,
@@ -540,7 +543,8 @@ export class SAMMasterIntegration {
   private generateActions(context: SAMEnhancedContext) {
     const actions = [];
 
-    if (context.user.role === 'USER') {
+    // Actions for students (non-teachers)
+    if (!context.user.isTeacher) {
       actions.push({
         label: 'View My Progress',
         route: '/student/sam-dashboard',
@@ -556,7 +560,8 @@ export class SAMMasterIntegration {
       }
     }
 
-    if (context.user.role === 'ADMIN' && context.course) {
+    // Actions for teachers
+    if (context.user.isTeacher && context.course) {
       actions.push({
         label: 'Run Full Analysis',
         route: `/teacher/courses/${context.course.id}/sam-analysis`,
@@ -577,11 +582,12 @@ export class SAMMasterIntegration {
 }
 
 // Type definitions
+// NOTE: Users don't have roles - use isTeacher flag instead
 interface SAMEnhancedContext {
   user: {
     id: string;
     name: string | null;
-    role: string;
+    isTeacher: boolean;
     learningProfile: any;
   };
   course: any;

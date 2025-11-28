@@ -347,7 +347,7 @@ export async function POST(request: NextRequest) {
       const prompt = buildContentCurationPrompt(curationRequest);
       
       const completion = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 8000,
         temperature: 0.7,
         system: CONTENT_CURATOR_SYSTEM_PROMPT,
@@ -399,7 +399,7 @@ export async function POST(request: NextRequest) {
         data: validationResult.data,
         metadata: {
           tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-5-20250929',
           generatedAt: new Date().toISOString()
         }
       });

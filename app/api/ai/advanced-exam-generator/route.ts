@@ -353,7 +353,7 @@ export async function POST(request: NextRequest) {
 
       const anthropic = getAnthropicClient();
       const completion = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 6000, // Increased for more detailed responses
         temperature: 0.3, // Lower temperature for more consistent pedagogical quality
         system: ADVANCED_EXAM_GENERATION_SYSTEM_PROMPT,
@@ -414,7 +414,7 @@ export async function POST(request: NextRequest) {
         questions: enhancedQuestions,
         metadata: {
           tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-5-20250929',
           bloomsDistribution: finalDistribution,
           validationEnabled: examRequest.enableQualityValidation,
           validationResults: examRequest.enableQualityValidation ? validationResults : undefined,

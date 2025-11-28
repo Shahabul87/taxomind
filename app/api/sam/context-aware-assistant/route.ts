@@ -2,6 +2,78 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import getAnthropicClient from '@/lib/anthropic-client';
 import { logger } from '@/lib/logger';
+import { applyRateLimit, samConversationLimiter } from '@/sam/config/sam-rate-limiter';
+
+// Redact potentially sensitive values from pageContext before sending to LLM
+function scrubDataContext(dataContext: any) {
+  if (!dataContext || typeof dataContext !== 'object') return {};
+
+  const redactField = (name: string) => {
+    const n = name.toLowerCase();
+    return (
+      n.includes('password') ||
+      n.includes('pass') ||
+      n.includes('email') ||
+      n.includes('phone') ||
+      n.includes('mobile') ||
+      n.includes('address') ||
+      n.includes('token') ||
+      n.includes('secret') ||
+      n.includes('api') ||
+      n.includes('key') ||
+      n.includes('credit') ||
+      n.includes('card') ||
+      n.includes('ssn') ||
+      n.includes('otp') ||
+      n.includes('auth')
+    );
+  };
+
+  const safeForms = Array.isArray(dataContext.forms)
+    ? dataContext.forms.map((form: any) => ({
+        id: form?.id ?? 'unknown',
+        purpose: form?.purpose ?? 'unknown',
+        // Drop values; only keep non-sensitive field metadata
+        fields: Array.isArray(form?.fields)
+          ? form.fields.map((f: any) => ({
+              name: f?.name ?? '',
+              type: f?.type ?? '',
+              label: f?.label ?? '',
+              placeholder: f?.placeholder ?? '',
+              required: !!f?.required,
+              // if the field looks sensitive, omit entirely the hint; otherwise don’t include values
+              redacted: true,
+              sensitive: redactField(f?.name || f?.label || ''),
+            }))
+          : [],
+      }))
+    : [];
+
+  const safeButtons = Array.isArray(dataContext.buttons)
+    ? dataContext.buttons.map((b: any) => ({
+        text: typeof b?.text === 'string' ? b.text.slice(0, 60) : '',
+        disabled: !!b?.disabled,
+      }))
+    : [];
+
+  return {
+    forms: safeForms,
+    buttons: safeButtons,
+    detectedAt: dataContext.detectedAt,
+  };
+}
+
+function buildSanitizedPageContext(pageContext: any) {
+  if (!pageContext) return { pageName: 'Unknown', pageType: 'other', breadcrumbs: [], capabilities: [], dataContext: {} };
+  return {
+    pageName: pageContext.pageName,
+    pageType: pageContext.pageType,
+    breadcrumbs: Array.isArray(pageContext.breadcrumbs) ? pageContext.breadcrumbs.slice(0, 10) : [],
+    capabilities: Array.isArray(pageContext.capabilities) ? pageContext.capabilities.slice(0, 20) : [],
+    dataContext: scrubDataContext(pageContext.dataContext),
+    parentContext: pageContext.parentContext,
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,22 +84,30 @@ export async function POST(req: NextRequest) {
 
     const { message, pageContext, pathname, conversationHistory } = await req.json();
 
+    // Apply rate limiting per user
+    const rl = await applyRateLimit(req, samConversationLimiter, user.id);
+    if (!rl.success && rl.response) {
+      return rl.response;
+    }
+
+    const safePageContext = buildSanitizedPageContext(pageContext);
+
     // Build context-aware system prompt
     const systemPrompt = `You are SAM, an intelligent context-aware AI assistant for teachers in the Taxomind LMS platform. You have full awareness of the current page context and can provide tailored assistance.
 
 CURRENT PAGE CONTEXT:
-- Page Name: ${pageContext.pageName}
-- Page Type: ${pageContext.pageType}
+- Page Name: ${safePageContext.pageName}
+- Page Type: ${safePageContext.pageType}
 - Current Route: ${pathname}
-- Breadcrumbs: ${pageContext.breadcrumbs.join(' → ')}
-- Available Capabilities: ${pageContext.capabilities.join(', ')}
-- Data Context: ${JSON.stringify(pageContext.dataContext)}
+- Breadcrumbs: ${safePageContext.breadcrumbs.join(' → ')}
+- Available Capabilities: ${safePageContext.capabilities.join(', ')}
+- Data Context (sanitized): ${JSON.stringify(safePageContext.dataContext)}
 
 PARENT CONTEXT:
-${pageContext.parentContext ? `- Course ID: ${pageContext.parentContext.courseId || 'N/A'}
-- Chapter ID: ${pageContext.parentContext.chapterId || 'N/A'}
-- Section ID: ${pageContext.parentContext.sectionId || 'N/A'}
-- Post ID: ${pageContext.parentContext.postId || 'N/A'}` : '- No parent context available'}
+${safePageContext.parentContext ? `- Course ID: ${safePageContext.parentContext.courseId || 'N/A'}
+- Chapter ID: ${safePageContext.parentContext.chapterId || 'N/A'}
+- Section ID: ${safePageContext.parentContext.sectionId || 'N/A'}
+- Post ID: ${safePageContext.parentContext.postId || 'N/A'}` : '- No parent context available'}
 
 RESPONSE GUIDELINES:
 1. Always respond in context of the current page the user is on
@@ -57,15 +137,16 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
     // Generate response using Anthropic
     const messages = [
       ...conversationHistory.map((msg: any) => ({
-        role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+        // Accept either {type} or {role}
+        role: (msg.role || msg.type) === 'user' ? ('user' as const) : ('assistant' as const),
         content: msg.content
       })),
-      { role: "user" as const, content: message }
+      { role: 'user' as const, content: message }
     ];
 
     const anthropic = getAnthropicClient();
     const response = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-sonnet-4-5-20250929",
       max_tokens: 1500,
       temperature: 0.7,
       system: systemPrompt,
@@ -85,16 +166,20 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
     // Check if we need to generate any actions
     const action = generateAction(message, pageContext, aiResponse);
 
-    return NextResponse.json({
+    const json = NextResponse.json({
       response: aiResponse,
       suggestions,
       action,
       metadata: {
-        pageContext: pageContext.pageType,
+        pageContext: safePageContext.pageType,
         processingTime: Date.now(),
         confidence: 0.95
       }
+    }, {
+      headers: rl.headers,
     });
+
+    return json;
 
   } catch (error) {
     logger.error('Context-Aware SAM API Error:', error);

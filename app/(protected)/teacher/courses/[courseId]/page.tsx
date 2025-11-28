@@ -21,7 +21,6 @@ import { BlueprintIntegration } from "./_components/blueprint-integration";
 import { CourseDepthAnalyzer } from "./_components/course-depth-analyzer";
 // SAM Integration removed - using global SAM assistant instead
 import { SimpleCourseContext } from "@/app/(protected)/teacher/_components/simple-course-context";
-import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
 // import { TestComponent } from "@/app/(protected)/teacher/_components/test-component";
 
 interface CourseIdPageProps {
@@ -105,13 +104,7 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
   const completionPercentage = Math.round((completedSections / totalSections) * 100);
 
   return (
-    <PageWithMobileLayout
-      showHeader={false}
-      showSidebar={true}
-      showBottomBar={true}
-      enableGestures={true}
-      contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800"
-    >
+    <>
       {/* Enhanced SAM Context Injection */}
       <SimpleCourseContext
         course={{
@@ -140,7 +133,7 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
         completionStatus={completionStatus}
       />
 
-      <div className="min-h-screen w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-0 sm:pt-2 md:pt-4 lg:pt-6 pb-4 sm:pb-6 md:pb-8 lg:pb-12 max-w-7xl mx-auto">
+      <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-6">
         {/* Full-Width Course Setup Header with Glass Effects */}
         <div className="w-full mb-4 sm:mb-6 md:mb-8">
           {/* Banner for unpublished status */}
@@ -500,6 +493,6 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
 
       {/* Global SAM Assistant is available via the floating button in the bottom-right corner */}
       {/* SimpleCourseContext provides course data to the global SAM */}
-    </PageWithMobileLayout>
+    </>
   );
 }

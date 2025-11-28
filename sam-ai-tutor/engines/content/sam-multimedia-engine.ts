@@ -292,7 +292,7 @@ export class SAMMultiMediaEngine {
     const prompt = `Analyze video content and suggest improvements for educational effectiveness.`;
     
     const response = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-sonnet-4-5-20250929",
       max_tokens: 500,
       temperature: 0.7,
       messages: [{
