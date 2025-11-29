@@ -1,23 +1,39 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { StepComponentProps, BLOOMS_LEVELS, CONTENT_TYPES } from '../../types/sam-creator.types';
-import { BookOpen, Target, Brain } from 'lucide-react';
+import { FormFieldWrapper } from '../ui/FormField';
+import {
+  BookOpen,
+  Target,
+  Brain,
+  CheckCircle2,
+  Lightbulb,
+  Plus,
+  X,
+  GripVertical,
+  Layers,
+  FileText,
+  ClipboardCheck,
+  Sparkles
+} from 'lucide-react';
 
 export function CourseStructureStep({ formData, setFormData, validationErrors }: StepComponentProps) {
+  const [newGoal, setNewGoal] = useState('');
+
   const addGoal = (goal: string) => {
     if (goal.trim() && Array.isArray(formData.courseGoals) && !formData.courseGoals.includes(goal.trim())) {
       setFormData(prev => ({
         ...prev,
         courseGoals: [...(prev.courseGoals || []), goal.trim()]
       }));
+      setNewGoal('');
     }
   };
 
@@ -31,7 +47,7 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
   const toggleBloomsLevel = (level: string) => {
     setFormData(prev => ({
       ...prev,
-      bloomsFocus: Array.isArray(prev.bloomsFocus) 
+      bloomsFocus: Array.isArray(prev.bloomsFocus)
         ? (prev.bloomsFocus.includes(level)
           ? prev.bloomsFocus.filter(l => l !== level)
           : [...prev.bloomsFocus, level])
@@ -42,7 +58,7 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
   const toggleContentType = (type: string) => {
     setFormData(prev => ({
       ...prev,
-      preferredContentTypes: Array.isArray(prev.preferredContentTypes) 
+      preferredContentTypes: Array.isArray(prev.preferredContentTypes)
         ? (prev.preferredContentTypes.includes(type)
           ? prev.preferredContentTypes.filter(t => t !== type)
           : [...prev.preferredContentTypes, type])
@@ -50,199 +66,411 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
     }));
   };
 
+  const goalsIsValid = Array.isArray(formData.courseGoals) && formData.courseGoals.length >= 2;
+  const bloomsIsValid = Array.isArray(formData.bloomsFocus) && formData.bloomsFocus.length >= 2;
+  const completedFields = [goalsIsValid, bloomsIsValid].filter(Boolean).length;
+  const totalRequired = 2;
+
+  const totalLessons = formData.chapterCount * formData.sectionsPerChapter;
+
   return (
-    <div className="space-y-5 sm:space-y-6">
-      {/* Course Structure */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-        <div className="space-y-3 sm:space-y-4 p-4 sm:p-5 bg-white/60 dark:bg-slate-800/60 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-sm">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
-              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <Label className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">
-              Number of Chapters: <span className="text-indigo-600 dark:text-indigo-400 font-bold">{formData.chapterCount}</span>
-            </Label>
+    <div className="space-y-6">
+      {/* Step Progress Indicator */}
+      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-emerald-50/50 dark:from-slate-900/50 dark:to-emerald-950/30 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/50">
+            <Brain className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              Step 3: Course structure
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Define learning objectives and content organization
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex -space-x-1">
+            {[goalsIsValid, bloomsIsValid].map((isValid, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center transition-all duration-300",
+                  isValid
+                    ? "bg-emerald-500 text-white"
+                    : "bg-slate-200 dark:bg-slate-700 text-slate-400"
+                )}
+              >
+                {isValid ? (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                ) : (
+                  <span className="text-[10px] font-bold">{i + 1}</span>
+                )}
+              </div>
+            ))}
+          </div>
+          <Badge variant="outline" className={cn(
+            "text-xs font-semibold transition-colors",
+            completedFields === totalRequired
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+              : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+          )}>
+            {completedFields}/{totalRequired} complete
+          </Badge>
+        </div>
+      </div>
+
+      {/* Course Structure Sliders */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Chapters Slider */}
+        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 rounded-xl bg-indigo-100 dark:bg-indigo-900/50">
+              <BookOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div className="flex-1">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Number of chapters
+              </Label>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Main sections of your course
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
+                {formData.chapterCount}
+              </span>
+            </div>
+          </div>
+
           <Slider
             value={[formData.chapterCount]}
             onValueChange={(value) => setFormData(prev => ({ ...prev, chapterCount: value[0] }))}
             max={20}
             min={3}
             step={1}
-            className="w-full"
+            className="w-full mb-3"
           />
-          <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg">
-            💡 Recommended: 5-10 chapters for optimal learning progression
+
+          <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-3">
+            <span>3 (Mini)</span>
+            <span>10 (Standard)</span>
+            <span>20 (Comprehensive)</span>
+          </div>
+
+          <div className="text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 p-2.5 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50">
+            <Lightbulb className="h-3 w-3 inline mr-1.5" />
+            Recommended: 5-10 chapters for optimal learning progression
           </div>
         </div>
 
-        <div className="space-y-3 sm:space-y-4 p-4 sm:p-5 bg-white/60 dark:bg-slate-800/60 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-sm">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-              <Target className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
+        {/* Sections Slider */}
+        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-900/50">
+              <Layers className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
-            <Label className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">
-              Sections per Chapter: <span className="text-purple-600 dark:text-purple-400 font-bold">{formData.sectionsPerChapter}</span>
-            </Label>
+            <div className="flex-1">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Sections per chapter
+              </Label>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Lessons within each chapter
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-2xl font-bold text-purple-600 dark:text-purple-400 tabular-nums">
+                {formData.sectionsPerChapter}
+              </span>
+            </div>
           </div>
+
           <Slider
             value={[formData.sectionsPerChapter]}
             onValueChange={(value) => setFormData(prev => ({ ...prev, sectionsPerChapter: value[0] }))}
             max={8}
             min={2}
             step={1}
-            className="w-full"
+            className="w-full mb-3"
           />
-          <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg">
-            💡 Recommended: 3-5 sections per chapter for digestible content
+
+          <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-3">
+            <span>2 (Brief)</span>
+            <span>4 (Standard)</span>
+            <span>8 (Detailed)</span>
+          </div>
+
+          <div className="text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 p-2.5 rounded-lg border border-purple-200/50 dark:border-purple-800/50">
+            <Lightbulb className="h-3 w-3 inline mr-1.5" />
+            Recommended: 3-5 sections per chapter for digestible content
+          </div>
+        </div>
+      </div>
+
+      {/* Course Preview Stats */}
+      <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+              {formData.chapterCount}
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">Chapters</div>
+          </div>
+          <div className="border-x border-slate-200 dark:border-slate-700">
+            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+              {totalLessons}
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">Total lessons</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+              ~{Math.round(totalLessons * 8)} min
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">Est. duration</div>
           </div>
         </div>
       </div>
 
       {/* Learning Objectives Section */}
-      <div className="space-y-3">
-        <Label className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-          <span>Learning Objectives</span>
-          <span className="text-red-500">*</span>
-        </Label>
-        <Textarea
-          placeholder="What will students be able to do after completing this course? (Press Enter to add each goal)"
-          className="min-h-[120px] sm:min-h-[100px] bg-white/80 dark:bg-slate-900/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all duration-200 text-sm sm:text-base px-4 py-3 touch-manipulation shadow-sm hover:shadow-md resize-none"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              const target = e.target as HTMLTextAreaElement;
-              addGoal(target.value);
-              target.value = '';
-            }
-          }}
-        />
-        <p className="text-xs text-slate-500 dark:text-slate-400">Press Enter to add each goal (minimum 2 required)</p>
-        
-        {formData.courseGoals.length > 0 && (
-          <div className="space-y-2.5 mt-4">
-            <div className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">Current Goals ({formData.courseGoals.length}):</div>
-            <div className="flex flex-wrap gap-2">
-              {formData.courseGoals.map((goal, index) => (
-                <Badge
-                  key={index}
-                  variant="secondary"
-                  className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 hover:border-red-300 dark:hover:border-red-700 transition-all duration-200 text-xs sm:text-sm px-3 py-1.5 border-2 border-transparent hover:border-red-300 dark:hover:border-red-700 rounded-lg"
-                  onClick={() => removeGoal(index)}
-                >
-                  {goal} <span className="ml-1.5 text-red-500 font-bold">×</span>
-                </Badge>
-              ))}
-            </div>
+      <FormFieldWrapper
+        label="Learning objectives"
+        required
+        tooltip="What will students be able to do after completing this course? Use action verbs like 'Build', 'Create', 'Analyze', 'Design'."
+      >
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder="e.g., Build responsive web applications using React"
+              value={newGoal}
+              onChange={(e) => setNewGoal(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  addGoal(newGoal);
+                }
+              }}
+              className={cn(
+                "h-11 flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700",
+                "rounded-xl text-sm px-4 shadow-sm",
+                "transition-all duration-200",
+                "hover:border-emerald-300 dark:hover:border-emerald-600",
+                "focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              )}
+            />
+            <button
+              type="button"
+              onClick={() => addGoal(newGoal)}
+              disabled={!newGoal.trim()}
+              className={cn(
+                "h-11 px-4 rounded-xl font-semibold text-sm",
+                "bg-emerald-600 hover:bg-emerald-700 text-white",
+                "shadow-sm hover:shadow-md",
+                "transition-all duration-200 hover:-translate-y-0.5",
+                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0",
+                "flex items-center gap-1.5"
+              )}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add</span>
+            </button>
           </div>
-        )}
-      </div>
+
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Press Enter or click Add to add each objective (minimum 2 required)
+          </p>
+
+          {formData.courseGoals.length > 0 && (
+            <div className="space-y-2 mt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Learning objectives ({formData.courseGoals.length})
+                </span>
+                {goalsIsValid && (
+                  <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 border-0 text-xs">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Complete
+                  </Badge>
+                )}
+              </div>
+              <div className="space-y-2">
+                {formData.courseGoals.map((goal, index) => (
+                  <div
+                    key={index}
+                    className="group flex items-start gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all"
+                  >
+                    <div className="flex-shrink-0 flex items-center gap-2 pt-0.5">
+                      <GripVertical className="h-4 w-4 text-slate-300 dark:text-slate-600 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          {index + 1}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="flex-1 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      {goal}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => removeGoal(index)}
+                      className="flex-shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors opacity-0 group-hover:opacity-100"
+                      aria-label="Remove objective"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </FormFieldWrapper>
 
       {/* Bloom's Taxonomy Focus Section */}
-      <div className="space-y-3 sm:space-y-4">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-            <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
-          </div>
-          <Label className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-            <span>Bloom&rsquo;s Taxonomy Focus</span>
-            <span className="text-red-500">*</span>
-          </Label>
+      <FormFieldWrapper
+        label="Bloom&apos;s Taxonomy focus"
+        required
+        tooltip="Select cognitive levels to target. Higher levels (Analyze, Evaluate, Create) lead to deeper learning but require more foundational knowledge first."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+          {BLOOMS_LEVELS.map((level) => {
+            const isSelected = formData.bloomsFocus.includes(level.value);
+            return (
+              <button
+                key={level.value}
+                type="button"
+                onClick={() => toggleBloomsLevel(level.value)}
+                className={cn(
+                  "group relative p-4 rounded-xl border-2 text-left transition-all duration-300",
+                  "hover:shadow-md hover:-translate-y-0.5",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500",
+                  isSelected
+                    ? "bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/50 dark:to-green-950/30 border-emerald-400 dark:border-emerald-600 shadow-sm"
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                )}
+              >
+                {isSelected && (
+                  <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                    <CheckCircle2 className="h-3 w-3 text-white" />
+                  </div>
+                )}
+                <div className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-1.5 pr-6">
+                  {level.label}
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  {level.description}
+                </p>
+              </button>
+            );
+          })}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {BLOOMS_LEVELS.map((level) => (
-            <div
-              key={level.value}
-              className={cn(
-                "p-3.5 sm:p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 backdrop-blur-sm shadow-sm hover:shadow-md",
-                formData.bloomsFocus.includes(level.value)
-                  ? "bg-gradient-to-br from-green-500/20 via-emerald-500/20 to-teal-500/20 border-green-400 dark:border-green-500 ring-2 ring-green-500/30 dark:ring-green-400/30 scale-[1.02]"
-                  : "bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-white/80 dark:hover:bg-slate-800/80 hover:border-green-300 dark:hover:border-green-600"
-              )}
-              onClick={() => toggleBloomsLevel(level.value)}
-            >
-              <div className="font-semibold text-sm sm:text-base text-slate-800 dark:text-slate-100 mb-1.5">{level.label}</div>
-              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                {level.description}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+        {!bloomsIsValid && formData.bloomsFocus.length > 0 && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+            Select at least 2 cognitive levels for a balanced learning experience
+          </p>
+        )}
+      </FormFieldWrapper>
 
       {/* Content Types */}
-      <div className="space-y-3 sm:space-y-4">
-        <Label className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Preferred Content Types</Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {CONTENT_TYPES.map((type) => (
-            <div
-              key={type.value}
-              className={cn(
-                "p-3.5 sm:p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 backdrop-blur-sm flex items-center gap-3 shadow-sm hover:shadow-md",
-                formData.preferredContentTypes.includes(type.value)
-                  ? "bg-gradient-to-br from-blue-500/20 via-cyan-500/20 to-indigo-500/20 border-blue-400 dark:border-blue-500 ring-2 ring-blue-500/30 dark:ring-blue-400/30 scale-[1.02]"
-                  : "bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-white/80 dark:hover:bg-slate-800/80 hover:border-blue-300 dark:hover:border-blue-600"
-              )}
-              onClick={() => toggleContentType(type.value)}
-            >
-              <span className="text-xl sm:text-2xl">{type.icon}</span>
-              <div className="flex-1">
-                <div className="font-semibold text-sm sm:text-base text-slate-800 dark:text-slate-100">{type.label}</div>
+      <FormFieldWrapper
+        label="Preferred content types"
+        tooltip="Select the types of content you want to include. Mix different types for varied learning experiences."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+          {CONTENT_TYPES.map((type) => {
+            const isSelected = formData.preferredContentTypes.includes(type.value);
+            return (
+              <div
+                key={type.value}
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleContentType(type.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleContentType(type.value);
+                  }
+                }}
+                className={cn(
+                  "group relative p-4 rounded-xl border-2 text-left transition-all duration-300 cursor-pointer",
+                  "hover:shadow-md hover:-translate-y-0.5",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500",
+                  isSelected
+                    ? "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/30 border-blue-400 dark:border-blue-600 shadow-sm"
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{type.icon}</span>
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm text-slate-800 dark:text-slate-100">
+                      {type.label}
+                    </div>
+                  </div>
+                  <div
+                    className={cn(
+                      "h-5 w-5 rounded-sm border shadow flex items-center justify-center transition-colors",
+                      isSelected
+                        ? "bg-blue-500 border-blue-500 text-white"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                    )}
+                  >
+                    {isSelected && <CheckCircle2 className="h-3.5 w-3.5" />}
+                  </div>
+                </div>
               </div>
-              <Checkbox
-                checked={formData.preferredContentTypes.includes(type.value)}
-                className="ml-auto"
-                disabled
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
-      </div>
+      </FormFieldWrapper>
 
       {/* Include Assessments */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-5 bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-purple-50/60 dark:from-blue-900/30 dark:via-indigo-900/20 dark:to-purple-900/20 rounded-xl border-2 border-blue-200/50 dark:border-blue-700/30 shadow-sm">
-        <div className="flex-1">
-          <Label className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Include Assessments</Label>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1.5">
-            Quizzes, assignments, and progress tracking throughout the course
-          </p>
+      <div className="flex items-center justify-between p-5 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/50">
+            <ClipboardCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              Include assessments
+            </Label>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Quizzes, assignments, and progress tracking
+            </p>
+          </div>
         </div>
         <Switch
           checked={formData.includeAssessments}
           onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includeAssessments: checked }))}
-          className="flex-shrink-0"
+          className="data-[state=checked]:bg-amber-500"
         />
       </div>
 
-      {/* Course Structure Preview */}
-      <div className="p-4 sm:p-5 bg-gradient-to-br from-purple-50/80 via-indigo-50/60 to-blue-50/60 dark:from-purple-900/30 dark:via-indigo-900/20 dark:to-blue-900/20 rounded-xl border-2 border-purple-200/50 dark:border-purple-700/30 shadow-sm">
-        <h4 className="text-sm sm:text-base font-semibold mb-3.5 flex items-center gap-2 text-slate-800 dark:text-slate-100">
-          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
-          Course Structure Preview
-        </h4>
-        <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-base">📚</span>
-            <span>{formData.chapterCount} chapters × {formData.sectionsPerChapter} sections = <strong>{formData.chapterCount * formData.sectionsPerChapter} total lessons</strong></span>
+      {/* Tips Card */}
+      <div className="p-4 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 rounded-xl border border-violet-200/50 dark:border-violet-800/50">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900/50">
+            <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400" />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-base">🎯</span>
-            <span><strong>{formData.courseGoals.length}</strong> learning objectives defined</span>
+          <div className="flex-1">
+            <h4 className="text-sm font-semibold text-violet-800 dark:text-violet-200 mb-1.5">
+              Tips for effective course structure
+            </h4>
+            <ul className="text-xs text-violet-700 dark:text-violet-300 space-y-1.5">
+              <li className="flex items-start gap-2">
+                <Target className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                <span>Start with concrete, measurable objectives using action verbs</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Target className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                <span>Build from lower Bloom&apos;s levels (Remember, Understand) to higher ones (Analyze, Create)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Target className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                <span>Mix content types to accommodate different learning styles</span>
+              </li>
+            </ul>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-base">🧠</span>
-            <span><strong>{formData.bloomsFocus.length}</strong> cognitive levels targeted</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-base">📝</span>
-            <span><strong>{formData.preferredContentTypes.length}</strong> content types selected</span>
-          </div>
-          {formData.includeAssessments && (
-            <div className="flex items-center gap-2">
-              <span className="text-base">✅</span>
-              <span>Assessments included for progress tracking</span>
-            </div>
-          )}
         </div>
       </div>
     </div>

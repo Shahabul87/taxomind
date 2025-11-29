@@ -133,6 +133,35 @@ const config = {
         'gradient-x': {
           '0%, 100%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' }
+        },
+        'blob': {
+          '0%': { transform: 'translate(0px, 0px) scale(1)' },
+          '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+          '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+          '100%': { transform: 'translate(0px, 0px) scale(1)' }
+        },
+        'gradient-shift': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' }
+        },
+        'glow-pulse': {
+          '0%, 100%': { boxShadow: '0 0 20px rgba(99, 102, 241, 0.3)' },
+          '50%': { boxShadow: '0 0 40px rgba(99, 102, 241, 0.6)' }
+        },
+        'slide-up': {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' }
+        },
+        'scale-in': {
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' }
+        },
+        'spin-slow': {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' }
+        },
+        'border-beam': {
+          '100%': { offsetDistance: '100%' }
         }
   		},
   		animation: {
@@ -145,7 +174,15 @@ const config = {
         'float-fast': 'float 3s ease-in-out infinite',
         'pulse-slow': 'pulse-slow 4s ease-in-out infinite',
         'shimmer': 'shimmer 3s linear infinite',
-        'gradient-x': 'gradient-x 3s ease infinite'
+        'gradient-x': 'gradient-x 3s ease infinite',
+        'blob': 'blob 7s infinite',
+        'gradient-shift': 'gradient-shift 8s ease infinite',
+        'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
+        'slide-up': 'slide-up 0.5s ease-out',
+        'scale-in': 'scale-in 0.3s ease-out',
+        'spin-slow': 'spin-slow 8s linear infinite',
+        'border-beam': 'border-beam calc(var(--duration)*1s) infinite linear',
+        'float': 'float 20s ease-in-out infinite'
   		}
   	}
   },

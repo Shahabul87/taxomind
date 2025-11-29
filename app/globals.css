@@ -696,8 +696,85 @@ body.dragging *::selection {
   animation-delay: 2s;
 }
 
+.animation-delay-3000 {
+  animation-delay: 3s;
+}
+
 .animation-delay-4000 {
   animation-delay: 4s;
+}
+
+.animation-delay-5000 {
+  animation-delay: 5s;
+}
+
+/* AI Creator Page - Premium Effects */
+.gradient-border {
+  background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899, #6366f1);
+  background-size: 300% 300%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+.glow-effect {
+  box-shadow: 0 0 40px rgba(99, 102, 241, 0.15);
+}
+
+.dark .glow-effect {
+  box-shadow: 0 0 40px rgba(99, 102, 241, 0.1);
+}
+
+.premium-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.dark .premium-card {
+  background: linear-gradient(135deg, rgba(15,23,42,0.9) 0%, rgba(15,23,42,0.7) 100%);
+}
+
+/* Animated Gradient Text */
+.gradient-text-animated {
+  background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899, #6366f1);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-x 3s ease infinite;
+}
+
+/* Step Card Hover Effects */
+.step-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.step-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.1);
+}
+
+.dark .step-card-hover:hover {
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.05);
+}
+
+/* Floating Label Animation */
+@keyframes float-label {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.float-label {
+  animation: float-label 3s ease-in-out infinite;
+}
+
+/* Sparkle Animation */
+@keyframes sparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.animate-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
 }
 
 /* ========================================

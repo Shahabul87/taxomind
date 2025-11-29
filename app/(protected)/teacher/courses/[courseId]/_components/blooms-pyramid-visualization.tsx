@@ -81,9 +81,9 @@ const BLOOMS_LEVELS = [
   }
 ];
 
-export function BloomsPyramidVisualization({ 
-  distribution, 
-  onLevelClick 
+export function BloomsPyramidVisualization({
+  distribution = {},
+  onLevelClick
 }: BloomsPyramidVisualizationProps) {
   const [hoveredLevel, setHoveredLevel] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);

@@ -4,10 +4,9 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { StreamingGenerationModal } from "@/components/course-creation/streaming-generation-modal";
+import { Badge } from "@/components/ui/badge";
 import { SamErrorBoundary } from "@/sam/components/ui/sam-error-boundary";
-import { ArrowRight, ArrowLeft, Sparkles, Home, AlertTriangle, BookOpen, RefreshCw, Brain, Target, Users, GraduationCap } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, AlertTriangle, BookOpen, RefreshCw, Brain, Users, GraduationCap, Wand2, Zap, Star, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { logger } from '@/lib/logger';
@@ -22,32 +21,33 @@ import { TargetAudienceStep } from "./components/steps/target-audience-step";
 import { CourseStructureStep } from "./components/steps/course-structure-step";
 import { AdvancedSettingsStep } from "./components/steps/advanced-settings-step";
 // Removed SamAssistantPanel - using global SAM instead
-import { SimpleProgressTracker } from "./components/sam-wizard/simple-progress-tracker";
 import { CourseScoringPanel } from "./components/course-scoring-panel";
 import { SamLearningDesignAssistance } from "./components/sam-learning-design-assistance";
-import { SAMCompleteGenerationModal } from "./components/sam-complete-generation-modal";
 import { VerticalStepper } from "./components/navigation/VerticalStepper";
 import { MobileStepNav } from "./components/navigation/MobileStepNav";
+import { AnimatedBackground, GlassCard, AnimatedIcon, ProgressRing } from "./components/ui/AnimatedBackground";
 
 const STEP_TITLES = [
   "Course Basics",
-  "Target Audience", 
+  "Target Audience",
   "Course Structure",
   "Final Review"
 ];
 
 const STEP_DESCRIPTIONS = [
-  "Let's start with the foundation of your course",
-  "Who are you creating this course for?",
-  "Design the structure and learning path",
-  "Review everything and generate your course"
+  "Define your course identity and foundation",
+  "Identify who will benefit most from your course",
+  "Design objectives and learning framework",
+  "Review and generate your course with AI"
 ];
+
+const STEP_ICONS = [BookOpen, Users, Brain, GraduationCap];
 
 export default function AICreatorPage() {
   const router = useRouter();
   const [showCompleteGenerationModal, setShowCompleteGenerationModal] = React.useState(false);
   const [isCreatingCourse, setIsCreatingCourse] = React.useState(false);
-  
+
   const {
     // State
     step,
@@ -61,7 +61,7 @@ export default function AICreatorPage() {
     lastAutoSave,
     showStreamingModal,
     setShowStreamingModal,
-    
+
     // Actions
     handleNext,
     handleBack,
@@ -98,7 +98,7 @@ export default function AICreatorPage() {
   const handleCompleteGeneration = async () => {
     try {
       const samContext = gatherSamContext(formData, typeof samSuggestion === 'string' ? samSuggestion : JSON.stringify(samSuggestion) || '');
-      
+
       await generateCompleteStructure({
         formData,
         samContext,
@@ -114,23 +114,23 @@ export default function AICreatorPage() {
                 chapters: result.chapters,
                 generationMethod: 'sam-complete'
               });
-              
+
               // Track successful generation
               samMemory.incrementSuccessfulGenerations();
             });
           }
-          
+
           // Optionally refresh SAM suggestion after generation
           getSamSuggestion('course_structure_complete');
         }
       });
-      
+
       // Close modal on success
       setTimeout(() => {
         setShowCompleteGenerationModal(false);
       }, 2000);
-      
-    } catch (error: any) {
+
+    } catch (error: unknown) {
       logger.error('Complete generation failed:', error);
       // Modal stays open to show error
     }
@@ -144,9 +144,9 @@ export default function AICreatorPage() {
   };
 
   // New unified course generation handler
-  const handleGenerateCompleteeCourse = async () => {
+  const handleGenerateCompleteeCourse = React.useCallback(async () => {
     setIsCreatingCourse(true);
-    
+
     try {
       // Debug: Log the form data to see what we're sending
 
@@ -207,12 +207,12 @@ Format as:
 3. [Chapter Title]
 etc.`,
           context: {
-            pageData: { 
+            pageData: {
               pageType: 'course_creation',
               title: 'Chapter Generation',
               forms: []
             },
-            learningContext: { 
+            learningContext: {
               userRole: 'teacher',
               courseCreationMode: true,
               chapterGenerationMode: true
@@ -247,7 +247,7 @@ etc.`,
                   position: index + 1,
                 }),
               });
-              
+
               if (chapterResponse.ok) {
                 const chapter = await chapterResponse.json();
 
@@ -256,7 +256,7 @@ etc.`,
                 const errorText = await chapterResponse.text();
                 logger.error(`Failed to create chapter "${title}": ${chapterResponse.status} - ${errorText}`);
               }
-            } catch (error: any) {
+            } catch (error: unknown) {
               logger.error(`Error creating chapter: ${title}`, error);
             }
             return null;
@@ -287,17 +287,17 @@ etc.`,
 
       // Success message and redirect
       toast.success(`Course "${course.title}" created successfully with ${successfulChapters.length} chapters!`);
-      
+
       // Redirect to course editing page (skip blueprint stage)
       router.push(`/teacher/courses/${course.id}`);
-      
-    } catch (error: any) {
+
+    } catch (error: unknown) {
       logger.error('Error creating course:', error);
       toast.error('Failed to create course. Please try again.');
     } finally {
       setIsCreatingCourse(false);
     }
-  };
+  }, [formData, router]);
 
   // SAM Memory Integration - Save wizard data as user progresses
   React.useEffect(() => {
@@ -366,14 +366,14 @@ etc.`,
         );
       case 2:
         return !!(
-          formData.targetAudience?.trim()?.length > 0 && 
+          formData.targetAudience?.trim()?.length > 0 &&
           formData.difficulty?.trim()?.length > 0
         );
       case 3:
         return !!(
-          Array.isArray(formData.courseGoals) && 
+          Array.isArray(formData.courseGoals) &&
           formData.courseGoals.length >= 2 &&
-          Array.isArray(formData.bloomsFocus) && 
+          Array.isArray(formData.bloomsFocus) &&
           formData.bloomsFocus.length >= 2
         );
       case 4:
@@ -384,9 +384,9 @@ etc.`,
           formData.courseCategory?.trim()?.length > 0 &&
           formData.targetAudience?.trim()?.length > 0 &&
           formData.difficulty?.trim()?.length > 0 &&
-          Array.isArray(formData.courseGoals) && 
+          Array.isArray(formData.courseGoals) &&
           formData.courseGoals.length >= 2 &&
-          Array.isArray(formData.bloomsFocus) && 
+          Array.isArray(formData.bloomsFocus) &&
           formData.bloomsFocus.length >= 2
         );
       default:
@@ -420,6 +420,61 @@ etc.`,
 
   const canProceed = isStepValid();
   const isLastStep = step === totalSteps;
+
+  // Keyboard shortcuts for navigation
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Allow Ctrl/Cmd+Enter even when in input/textarea
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          if (canProceed && !isLastStep) {
+            handleNext();
+          } else if (canProceed && isLastStep && !isCreatingCourse) {
+            handleGenerateCompleteeCourse();
+          }
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + Enter: Advance to next step or generate
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (canProceed && !isLastStep) {
+          handleNext();
+        } else if (canProceed && isLastStep && !isCreatingCourse) {
+          handleGenerateCompleteeCourse();
+        }
+      }
+
+      // Escape: Go back
+      if (e.key === 'Escape' && step > 1) {
+        e.preventDefault();
+        handleBack();
+      }
+
+      // Alt + Number: Jump to step (only backwards)
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        const num = parseInt(e.key);
+        if (num >= 1 && num <= totalSteps && num < step) {
+          e.preventDefault();
+          let currentStep = step;
+          while (currentStep > num) {
+            handleBack();
+            currentStep--;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [step, canProceed, isLastStep, isCreatingCourse, totalSteps, handleNext, handleBack, handleGenerateCompleteeCourse]);
+
+  const stepProgress = Math.min(100, Math.round((step / totalSteps) * 100));
 
   // Debug: Log validation state (remove in production)
   React.useEffect(() => {
@@ -468,58 +523,196 @@ etc.`,
     }
   ];
 
+  const StepIcon = STEP_ICONS[step - 1];
+
   return (
     <AICreatorLayout>
       <SamErrorBoundary>
-        <div className="container mx-auto px-2 sm:px-3 md:px-4 py-4 sm:py-6 md:py-8 pb-40 sm:pb-44 md:pb-8 max-w-[1600px]">
-          {/* Header */}
-          <div className="text-center mb-4 sm:mb-6 md:mb-8 lg:mb-12">
-            <div className="flex items-center justify-center gap-2 sm:gap-2.5 md:gap-3 mb-2.5 sm:mb-3 md:mb-4">
-              <div className="p-1.5 sm:p-2 md:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg">
-                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" />
-              </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent break-words">
-                AI Course Creator
-              </h1>
-            </div>
-            <p className="text-xs sm:text-sm md:text-sm lg:text-base text-slate-600 dark:text-slate-300 max-w-2xl mx-auto px-2 break-words">
-              Create professional courses with AI assistance. Sam will guide you through each step
-              and help optimize your content for maximum learning impact.
-            </p>
+        {/* Animated Background */}
+        <AnimatedBackground />
 
-            {/* Top Actions Bar - Mobile and Desktop */}
-            <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-center gap-2 sm:gap-3 md:gap-4 mt-4 sm:mt-5 md:mt-6 px-2">
-              {lastAutoSave && (
-                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-emerald-600 dark:text-emerald-400 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 shadow-sm w-full xs:w-auto justify-center xs:justify-start">
-                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></div>
-                  <span className="truncate">Auto-saved {new Date(lastAutoSave).toLocaleTimeString()}</span>
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-10 pb-40 sm:pb-44 md:pb-8 max-w-[1600px] relative">
+          {/* Premium Hero Header */}
+          <div className="mb-8 sm:mb-10 md:mb-12 lg:mb-16">
+            {/* Top Badge Row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-xl blur opacity-40 group-hover:opacity-60 transition duration-500" />
+                  <Badge className="relative bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 border-0 px-4 py-1.5 text-sm font-semibold shadow-lg">
+                    <Wand2 className="h-4 w-4 mr-2 animate-sparkle" />
+                    AI Course Creator
+                  </Badge>
                 </div>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetWizard}
-                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 h-9 sm:h-10 text-xs sm:text-sm w-full xs:w-auto"
-              >
-                <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                Start Over
-              </Button>
+                <span className="hidden sm:inline-flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Powered by SAM
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {lastAutoSave && (
+                  <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50 rounded-full px-3 py-1.5 backdrop-blur-sm">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                    </span>
+                    <span className="font-medium">Saved {new Date(lastAutoSave).toLocaleTimeString()}</span>
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetWizard}
+                  className="h-9 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/80"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  Reset
+                </Button>
+              </div>
+            </div>
+
+            {/* Main Hero Content */}
+            <div className="grid gap-6 lg:gap-8 lg:grid-cols-[1.3fr_0.7fr] items-start">
+              {/* Left Content */}
+              <div className="space-y-5">
+                <div className="space-y-3">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 dark:text-white leading-[1.1]">
+                    Create courses that
+                    <span className="block gradient-text-animated">inspire learning</span>
+                  </h1>
+                  <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+                    Build professional, pedagogically-sound courses with AI assistance.
+                    Our guided wizard ensures quality at every step.
+                  </p>
+                </div>
+
+                {/* Feature Pills */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { icon: Zap, label: "Smart Validation" },
+                    { icon: Star, label: "Best Practices" },
+                    { icon: Sparkles, label: "AI-Enhanced" },
+                  ].map(({ icon: Icon, label }) => (
+                    <div
+                      key={label}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm text-sm font-medium text-slate-700 dark:text-slate-300"
+                    >
+                      <Icon className="h-3.5 w-3.5 text-indigo-500" />
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Stats Cards */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Progress Card */}
+                <GlassCard variant="gradient" className="p-5 col-span-2">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Progress
+                      </p>
+                      <div className="flex items-baseline gap-2 mt-1">
+                        <span className="text-4xl font-bold text-slate-900 dark:text-white tabular-nums">
+                          {step}
+                        </span>
+                        <span className="text-lg text-slate-500 dark:text-slate-400">
+                          / {totalSteps}
+                        </span>
+                      </div>
+                    </div>
+                    <ProgressRing progress={stepProgress} size={80} strokeWidth={6} />
+                  </div>
+
+                  {/* Step Indicators */}
+                  <div className="flex gap-1.5">
+                    {Array.from({ length: totalSteps }, (_, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "h-1.5 flex-1 rounded-full transition-all duration-500",
+                          i + 1 < step
+                            ? "bg-emerald-500"
+                            : i + 1 === step
+                            ? "bg-gradient-to-r from-indigo-500 to-purple-500"
+                            : "bg-slate-200 dark:bg-slate-700"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </GlassCard>
+
+                {/* Current Step Card */}
+                <GlassCard className="p-4">
+                  <div className="flex items-center gap-3">
+                    <AnimatedIcon color="indigo" className="p-2.5">
+                      <StepIcon className="h-5 w-5" />
+                    </AnimatedIcon>
+                    <div className="min-w-0">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Current</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                        {STEP_TITLES[step - 1]}
+                      </p>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Status Card */}
+                <GlassCard className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "p-2.5 rounded-xl",
+                      canProceed
+                        ? "bg-emerald-100 dark:bg-emerald-900/50"
+                        : "bg-amber-100 dark:bg-amber-900/50"
+                    )}>
+                      {canProceed ? (
+                        <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                      ) : (
+                        <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Status</p>
+                      <p className={cn(
+                        "text-sm font-semibold truncate",
+                        canProceed
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-amber-600 dark:text-amber-400"
+                      )}>
+                        {canProceed ? "Ready" : "In Progress"}
+                      </p>
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
             </div>
           </div>
 
           {/* Main Content Layout - 3 Column Grid for Desktop */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 md:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
             {/* Left Sidebar - Vertical Stepper (Desktop Only) */}
             <aside className="hidden lg:block lg:col-span-3">
               <div className="sticky top-8">
                 <VerticalStepper
                   steps={stepperSteps}
                   currentStep={step}
+                  formData={{
+                    courseTitle: formData.courseTitle,
+                    targetAudience: formData.targetAudience,
+                    difficulty: formData.difficulty,
+                    courseGoals: formData.courseGoals,
+                    bloomsFocus: formData.bloomsFocus
+                  }}
                   onStepClick={(newStep) => {
                     if (newStep < step) {
                       // Allow going back to previous steps
-                      while (step > newStep) {
+                      let currentStep = step;
+                      while (currentStep > newStep) {
                         handleBack();
+                        currentStep--;
                       }
                     }
                   }}
@@ -528,51 +721,69 @@ etc.`,
             </aside>
 
             {/* Main Content Area */}
-            <main className="lg:col-span-6 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6">
+            <main className="lg:col-span-6 space-y-5">
               {/* Step Header Card */}
-              <Card className="p-4 sm:p-5 md:p-6 lg:p-7 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-2xl sm:rounded-3xl hover:shadow-xl transition-all duration-300">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100 break-words">
-                      {STEP_TITLES[step - 1]}
-                    </h2>
-                    <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-2 break-words">
-                      {STEP_DESCRIPTIONS[step - 1]}
-                    </p>
+              <GlassCard variant="elevated" className="p-5 sm:p-6 md:p-7 step-card-hover overflow-hidden relative">
+                {/* Decorative gradient */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+                <div className="relative flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <AnimatedIcon
+                      color={step === 1 ? "indigo" : step === 2 ? "purple" : step === 3 ? "emerald" : "amber"}
+                      className="hidden sm:flex"
+                    >
+                      <StepIcon className="h-6 w-6" />
+                    </AnimatedIcon>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                          Step {step} of {totalSteps}
+                        </span>
+                      </div>
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+                        {STEP_TITLES[step - 1]}
+                      </h2>
+                      <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-1.5">
+                        {STEP_DESCRIPTIONS[step - 1]}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Mobile: Step Indicator */}
                   <div className="lg:hidden text-right flex-shrink-0">
-                    <div className="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400">
-                      {step}/{totalSteps}
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-lg shadow-lg">
+                      {step}
                     </div>
                   </div>
                 </div>
-              </Card>
+              </GlassCard>
 
               {/* Step Content */}
-              <Card className="p-3 sm:p-4 md:p-5 lg:p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-2xl sm:rounded-3xl hover:shadow-xl transition-all duration-300">
-                <div key={step} className="animate-in fade-in-50 duration-300">
+              <GlassCard variant="default" className="p-5 sm:p-6 md:p-8 step-card-hover">
+                <div key={step} className="animate-slide-up">
                   {renderStepContent()}
                 </div>
-              </Card>
+              </GlassCard>
 
               {/* Desktop Navigation */}
-              <Card className="hidden lg:block p-4 md:p-5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-2xl sm:rounded-3xl hover:shadow-xl transition-all duration-300">
-                <div className="flex items-center justify-between gap-3">
+              <GlassCard variant="subtle" className="hidden lg:block p-5">
+                <div className="flex items-center justify-between gap-4">
                   <Button
                     variant="outline"
                     onClick={handleBack}
                     disabled={step === 1}
                     className={cn(
-                      "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-700",
-                      "hover:bg-slate-50 dark:hover:bg-slate-700",
-                      "disabled:opacity-50 disabled:cursor-not-allowed",
-                      "h-9 sm:h-10 text-xs sm:text-sm"
+                      "group bg-white/80 dark:bg-slate-900/80 border-2 border-slate-200 dark:border-slate-700",
+                      "hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600",
+                      "hover:-translate-y-0.5 hover:shadow-lg",
+                      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0",
+                      "h-12 text-sm font-semibold rounded-xl shadow-sm transition-all duration-300 px-5"
                     )}
                   >
-                    <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                    <ArrowLeft className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-0.5" />
                     Back
+                    <kbd className="hidden xl:inline-flex ml-3 px-2 py-0.5 text-[10px] bg-slate-100 dark:bg-slate-800 rounded-md text-slate-500 dark:text-slate-400 font-mono border border-slate-200 dark:border-slate-700">Esc</kbd>
                   </Button>
 
                   {isLastStep ? (
@@ -580,23 +791,29 @@ etc.`,
                       onClick={handleGenerateCompleteeCourse}
                       disabled={!canProceed || isCreatingCourse}
                       className={cn(
-                        "bg-gradient-to-r from-blue-500 to-indigo-500",
-                        "hover:from-indigo-700 hover:to-purple-700",
-                        "text-white font-semibold shadow-lg hover:shadow-xl",
-                        "disabled:opacity-50 disabled:cursor-not-allowed",
+                        "group relative overflow-hidden",
+                        "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700",
+                        "hover:from-indigo-500 hover:via-purple-500 hover:to-indigo-600",
+                        "text-white font-semibold shadow-xl shadow-indigo-500/30 hover:shadow-2xl hover:shadow-indigo-500/40",
+                        "transition-all duration-300 hover:-translate-y-0.5",
+                        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0",
                         isCreatingCourse && "animate-pulse",
-                        "h-9 sm:h-10 text-xs sm:text-sm"
+                        "h-12 text-sm px-6 rounded-xl"
                       )}
                     >
+                      {/* Animated shine effect */}
+                      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+
                       {isCreatingCourse ? (
                         <>
-                          <div className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Creating Course...
+                          <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Creating Your Course...
                         </>
                       ) : (
                         <>
-                          <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                          <Sparkles className="h-4 w-4 mr-2" />
                           Generate Course
+                          <ChevronRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-0.5" />
                         </>
                       )}
                     </Button>
@@ -605,33 +822,37 @@ etc.`,
                       onClick={handleNext}
                       disabled={!canProceed}
                       className={cn(
-                        "bg-gradient-to-r from-blue-500 to-indigo-500",
-                        "hover:from-indigo-700 hover:to-purple-700",
-                        "text-white font-semibold shadow-lg hover:shadow-xl",
-                        "disabled:opacity-50 disabled:cursor-not-allowed",
-                        "h-9 sm:h-10 text-xs sm:text-sm"
+                        "group relative overflow-hidden",
+                        "bg-gradient-to-r from-indigo-600 to-purple-600",
+                        "hover:from-indigo-500 hover:to-purple-500",
+                        "text-white font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/35",
+                        "transition-all duration-300 hover:-translate-y-0.5",
+                        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0",
+                        "h-12 text-sm px-6 rounded-xl"
                       )}
                     >
+                      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                       Continue
-                      <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1.5 sm:ml-2" />
+                      <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-0.5" />
+                      <kbd className="hidden xl:inline-flex ml-3 px-2 py-0.5 text-[10px] bg-white/20 rounded-md text-white/80 font-mono">⌘↵</kbd>
                     </Button>
                   )}
                 </div>
 
                 {!canProceed && (
-                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-500">
-                      <AlertTriangle className="h-3 w-3 xs:h-3.5 xs:w-3.5 flex-shrink-0" />
-                      <span className="break-words">Complete all required fields to continue</span>
+                  <div className="mt-4 pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                      <span>Complete all required fields to continue</span>
                     </div>
                   </div>
                 )}
-              </Card>
+              </GlassCard>
             </main>
 
             {/* Right Sidebar - Context Panels (SAM Assistant now global) */}
-            <aside className="lg:col-span-3 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6">
-              <div className="lg:sticky lg:top-8 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6">
+            <aside className="lg:col-span-3 space-y-5">
+              <div className="lg:sticky lg:top-8 space-y-5">
                 {/* SamAssistantPanel removed - using global SAM instead */}
                 {/* Global SAM (bottom-right floating button) provides AI assistance */}
 
@@ -648,6 +869,34 @@ etc.`,
                     onUpdateFormData={setFormData}
                   />
                 )}
+
+                {/* Tips Card */}
+                <GlassCard className="p-5 border-indigo-200/30 dark:border-indigo-800/30">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/50">
+                      <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
+                        Pro Tips
+                      </h4>
+                      <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                        <li className="flex items-start gap-2">
+                          <ChevronRight className="h-3 w-3 mt-0.5 text-indigo-500 flex-shrink-0" />
+                          <span>Use <kbd className="px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-mono">⌘/Ctrl + Enter</kbd> to proceed</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <ChevronRight className="h-3 w-3 mt-0.5 text-indigo-500 flex-shrink-0" />
+                          <span>Your progress is automatically saved</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <ChevronRight className="h-3 w-3 mt-0.5 text-indigo-500 flex-shrink-0" />
+                          <span>Click the SAM button for AI assistance</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </GlassCard>
               </div>
             </aside>
           </div>

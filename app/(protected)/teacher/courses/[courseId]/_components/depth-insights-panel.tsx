@@ -27,7 +27,7 @@ interface DepthInsightsPanelProps {
   onAskSam: (context: string) => void;
 }
 
-export function DepthInsightsPanel({ insights, gaps, onAskSam }: DepthInsightsPanelProps) {
+export function DepthInsightsPanel({ insights = [], gaps = [], onAskSam }: DepthInsightsPanelProps) {
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'high':

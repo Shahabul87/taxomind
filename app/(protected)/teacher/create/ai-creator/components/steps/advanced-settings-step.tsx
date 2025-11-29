@@ -10,8 +10,17 @@ import { Brain, Users, BookOpen, Target, Eye, ArrowRight, Trophy, Star, Sparkles
 import { cn } from '@/lib/utils';
 
 export function AdvancedSettingsStep({ formData, setFormData }: StepComponentProps) {
+  // Format difficulty for display (capitalize properly)
+  const formatDifficulty = (difficulty: string) => {
+    const displayMap: Record<string, string> = {
+      'BEGINNER': 'Beginner',
+      'INTERMEDIATE': 'Intermediate',
+      'ADVANCED': 'Advanced'
+    };
+    return displayMap[difficulty] || difficulty;
+  };
 
-  const isFormComplete = 
+  const isFormComplete =
     formData.courseTitle.length >= 10 &&
     formData.courseShortOverview.length >= 50 &&
     formData.courseCategory &&
@@ -22,18 +31,14 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
   return (
     <div className="w-full">
       {/* Hero Section with Course Preview */}
-      <Card className="p-4 sm:p-5 md:p-6 lg:p-8 backdrop-blur-md bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-cyan-500/10 border-2 border-white/20 shadow-xl relative overflow-hidden mb-4 sm:mb-5 md:mb-6 rounded-xl sm:rounded-2xl">
-        {/* Background Orbs */}
-        <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-xl transform translate-x-12 sm:translate-x-16 -translate-y-12 sm:-translate-y-16"></div>
-        <div className="absolute bottom-0 left-0 w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-xl transform -translate-x-10 sm:-translate-x-12 translate-y-10 sm:translate-y-12"></div>
-        
-        <div className="relative z-10">
+      <Card className="p-4 sm:p-5 md:p-6 lg:p-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md mb-4 sm:mb-5 md:mb-6 rounded-xl sm:rounded-2xl">
+        <div className="relative">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
-            <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 shadow-lg">
-              <Eye className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            <div className="p-2.5 sm:p-3 rounded-xl bg-slate-100 dark:bg-slate-800">
+              <Eye className="h-5 w-5 sm:h-6 sm:w-6 text-slate-900 dark:text-slate-100" />
             </div>
             <div>
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-slate-50">
                 Course Preview
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
@@ -43,7 +48,7 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
           </div>
 
           {/* Course Title & Overview */}
-          <div className="mb-4 sm:mb-5 md:mb-6 p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-800/60 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm shadow-sm">
+          <div className="mb-4 sm:mb-5 md:mb-6 p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
             <h4 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 mb-2 break-words">
               {formData.courseTitle || 'Untitled Course'}
             </h4>
@@ -54,7 +59,7 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="p-3 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm text-center shadow-sm">
+            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center shadow-sm">
               <div className="flex items-center justify-center mb-2">
                 <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400" />
               </div>
@@ -66,7 +71,7 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
               </div>
             </div>
             
-            <div className="p-3 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm text-center shadow-sm">
+            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center shadow-sm">
               <div className="flex items-center justify-center mb-2">
                 <Target className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
@@ -78,7 +83,7 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
               </div>
             </div>
             
-            <div className="p-3 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm text-center shadow-sm">
+            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center shadow-sm">
               <div className="flex items-center justify-center mb-2">
                 <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
               </div>
@@ -90,12 +95,12 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
               </div>
             </div>
             
-            <div className="p-3 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm text-center shadow-sm">
+            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center shadow-sm overflow-hidden">
               <div className="flex items-center justify-center mb-2">
                 <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">
-                {formData.difficulty}
+              <div className="text-xs sm:text-sm md:text-base font-bold text-slate-800 dark:text-slate-100 truncate">
+                {formatDifficulty(formData.difficulty)}
               </div>
               <div className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400">
                 Level
@@ -110,17 +115,17 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
         {/* Course Information */}
         <div className="space-y-4 sm:space-y-5 md:space-y-6">
           {/* Basic Course Information */}
-          <Card className="p-4 sm:p-5 md:p-6 backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border-2 border-white/20 shadow-xl rounded-xl sm:rounded-2xl">
+          <Card className="p-4 sm:p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl sm:rounded-2xl">
             <div className="flex items-center gap-2.5 mb-4 sm:mb-5 md:mb-6">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20">
-                <Star className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+                <Star className="h-4 w-4 sm:h-5 sm:w-5 text-slate-900 dark:text-slate-100" />
               </div>
               <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Course Information</h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
               <div className="space-y-3 sm:space-y-4">
-                <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                   <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Category</Label>
                   <div className="flex flex-wrap gap-2 mt-2.5">
                     {formData.courseCategory && (
@@ -136,7 +141,7 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
                   </div>
                 </div>
                 
-                <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                   <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Target Audience</Label>
                   <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 mt-2.5 break-words">
                     {formData.targetAudience || 'Not specified'}
@@ -145,14 +150,14 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
               </div>
               
               <div className="space-y-3 sm:space-y-4">
-                <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                   <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Learning Intent</Label>
                   <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 mt-2.5 break-words">
                     {formData.courseIntent || 'Not specified'}
                   </p>
                 </div>
                 
-                <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                   <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Difficulty Level</Label>
                   <div className="flex items-center gap-2 mt-2.5">
                     <Badge className={cn(
@@ -161,7 +166,7 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
                       formData.difficulty === 'INTERMEDIATE' && "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-600",
                       formData.difficulty === 'ADVANCED' && "bg-red-500/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-600"
                     )}>
-                      {formData.difficulty}
+                      {formatDifficulty(formData.difficulty)}
                     </Badge>
                   </div>
                 </div>
@@ -170,10 +175,10 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
           </Card>
 
           {/* Learning Objectives */}
-          <Card className="p-4 sm:p-5 md:p-6 backdrop-blur-md bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 border-2 border-white/20 shadow-xl rounded-xl sm:rounded-2xl">
+          <Card className="p-4 sm:p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl sm:rounded-2xl">
             <div className="flex items-center gap-2.5 mb-3 sm:mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md">
-                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-slate-900 dark:text-slate-100" />
               </div>
               <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">
                 Learning Objectives ({formData.courseGoals.length})
@@ -184,7 +189,7 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
               {formData.courseGoals.map((goal, index) => (
                 <div key={index} className="p-3.5 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 border-2 border-white/30 dark:border-slate-700/50 backdrop-blur-sm shadow-sm">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center text-white text-[10px] xs:text-xs font-bold shadow-sm">
+                    <div className="flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[10px] xs:text-xs font-bold shadow-sm">
                       {index + 1}
                     </div>
                     <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed break-words flex-1">
@@ -196,16 +201,16 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
             </div>
           </Card>
           {/* Learning Framework */}
-          <Card className="p-4 sm:p-5 md:p-6 backdrop-blur-md bg-white/70 dark:bg-slate-800/70 border-2 border-white/20 shadow-xl rounded-xl sm:rounded-2xl">
+          <Card className="p-4 sm:p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl sm:rounded-2xl">
           <div className="flex items-center gap-2.5 mb-4 sm:mb-5 md:mb-6">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500/20 to-teal-500/20">
-              <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+              <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-slate-900 dark:text-slate-100" />
             </div>
             <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Learning Framework</h3>
           </div>
           
           <div className="space-y-3 sm:space-y-4">
-            <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
               <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3 block">
                 Bloom&apos;s Taxonomy Focus ({formData.bloomsFocus.length})
               </Label>
@@ -279,32 +284,19 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
       </div>
 
       {/* Generation Status */}
-      <Card className={cn(
-        "p-4 sm:p-5 md:p-6 backdrop-blur-md border-2 border-white/20 shadow-xl relative overflow-hidden rounded-xl sm:rounded-2xl",
-        isFormComplete 
-          ? "bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10"
-          : "bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10"
-      )}>
-        {/* Background Orb */}
-        <div className={cn(
-          "absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 rounded-full blur-xl transform translate-x-12 sm:translate-x-16 -translate-y-12 sm:-translate-y-16",
-          isFormComplete 
-            ? "bg-gradient-to-br from-green-400/20 to-emerald-400/20"
-            : "bg-gradient-to-br from-amber-400/20 to-orange-400/20"
-        )}></div>
-        
-        <div className="relative z-10">
+      <Card className="p-4 sm:p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl sm:rounded-2xl">
+        <div className="relative">
           <div className="flex items-center gap-2.5 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
             <div className={cn(
-              "p-2 sm:p-2.5 md:p-3 rounded-xl shadow-lg",
-              isFormComplete 
-                ? "bg-gradient-to-r from-green-500 to-emerald-500"
-                : "bg-gradient-to-r from-amber-500 to-orange-500"
+              "p-2 sm:p-2.5 md:p-3 rounded-xl shadow-sm",
+              isFormComplete
+                ? "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-200"
+                : "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-200"
             )}>
               {isFormComplete ? (
-                <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                <Trophy className="h-5 w-5 sm:h-6 sm:w-6" />
               ) : (
-                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
               )}
             </div>
             <div className="flex-1 min-w-0">
@@ -320,7 +312,7 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
           </div>
           
           {!isFormComplete && (
-            <div className="p-3 sm:p-4 rounded-xl bg-white/40 dark:bg-slate-800/40 border border-white/20 backdrop-blur-sm">
+            <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
               <p className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-300 mb-2.5 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
                 <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                 <span>Complete these requirements:</span>

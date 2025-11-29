@@ -44,7 +44,27 @@ export function generateCourseContentHash(course: CourseContent): string {
         id: s.id,
         title: s.title,
         description: s.description,
-        position: s.position
+        position: s.position,
+        duration: (s as any).duration ?? null,
+        videoUrl: (s as any).videoUrl ?? null,
+        exams: (s as any).exams?.map((exam: any) => ({
+          id: exam.id,
+          title: exam.title,
+          questions: exam.ExamQuestion?.map((q: any) => ({
+            id: q.id,
+            text: q.text,
+            type: q.type,
+            bloomsLevel: q.bloomsLevel,
+            options: q.options?.map((o: any) => ({ id: o.id, text: o.text, isCorrect: o.isCorrect })) || []
+          })) || []
+        })) || [],
+        questions: (s as any).Question?.map((q: any) => ({
+          id: q.id,
+          text: q.text,
+          type: q.type,
+          bloomsLevel: q.bloomsLevel,
+          options: (q as any).options || []
+        })) || []
       })) || []
     })),
     attachmentsCount: course.attachments?.length || 0

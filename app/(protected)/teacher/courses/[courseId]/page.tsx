@@ -1,7 +1,8 @@
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { CircleDollarSign, File, LayoutDashboard, ListChecks, AlertTriangle, CheckCircle2, Brain, Target, FileQuestion, Lightbulb, Sparkles, BarChart3 } from "lucide-react";
+import { CircleDollarSign, File, LayoutDashboard, ListChecks, AlertTriangle, CheckCircle2, Brain, Target, FileQuestion, Lightbulb, Sparkles, BarChart3, Microscope, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { TitleForm } from "./_components/title-form";
 import { DescriptionForm } from "./_components/description-form";
 
@@ -18,7 +19,7 @@ import { CourseLearningOutcomeForm } from "./_components/course-learning-outcome
 import { BloomsTaxonomyGuide } from "./chapters/[chapterId]/section/[sectionId]/_components/blooms-taxonomy-guide";
 import { ContextAwareFeatureRevealer } from "@/components/ui/context-aware-feature-revealer";
 import { BlueprintIntegration } from "./_components/blueprint-integration";
-import { CourseDepthAnalyzer } from "./_components/course-depth-analyzer";
+// CourseDepthAnalyzer moved to standalone page at /teacher/depth-analyzer
 // SAM Integration removed - using global SAM assistant instead
 import { SimpleCourseContext } from "@/app/(protected)/teacher/_components/simple-course-context";
 // import { TestComponent } from "@/app/(protected)/teacher/_components/test-component";
@@ -468,26 +469,26 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
           </div>
         </div>
 
-        {/* Course Depth Analysis - Single Column */}
+        {/* Quick Link to Depth Analyzer */}
         <div className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8">
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6">
-            {/* Header Section */}
-            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-5 lg:mb-6">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 shadow-md flex-shrink-0">
-                <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
+          <Link href={`/teacher/depth-analyzer?courseId=${params.courseId}`}>
+            <div className="bg-gradient-to-r from-purple-500/5 via-indigo-500/5 to-blue-500/5 dark:from-purple-500/10 dark:via-indigo-500/10 dark:to-blue-500/10 backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 cursor-pointer group hover:border-purple-300 dark:hover:border-purple-600">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 shadow-lg group-hover:shadow-xl transition-all group-hover:scale-105">
+                  <Microscope className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">
+                    Analyze Course Depth
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    Run Bloom&apos;s Taxonomy analysis on this course, chapters, or sections
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-slate-400 dark:text-slate-500 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors group-hover:translate-x-1 transform" />
               </div>
-              <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-900 dark:text-white flex-1 min-w-0 truncate tracking-tight">
-                Course Depth Analysis
-              </h2>
             </div>
-
-            {/* Course Depth Analyzer */}
-            <CourseDepthAnalyzer
-              courseId={params.courseId}
-              courseData={course as any}
-              completionStatus={completionStatus}
-            />
-          </div>
+          </Link>
         </div>
       </div>
 

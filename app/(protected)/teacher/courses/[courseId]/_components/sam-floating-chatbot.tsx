@@ -100,6 +100,7 @@ export function SamFloatingChatbot({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingContextMessage, setPendingContextMessage] = useState<{ message: string; context?: Record<string, unknown> } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -118,6 +119,24 @@ export function SamFloatingChatbot({
     samMemory.updateCourseData(courseData);
     samMemory.updateCompletionStatus(completionStatus);
   }, [courseData, completionStatus]);
+
+  // Listen for context messages from other components (e.g., "Fix Now" buttons)
+  useEffect(() => {
+    const handleContextMessage = (event: CustomEvent<{ message: string; context?: Record<string, unknown> }>) => {
+      const { message, context } = event.detail;
+
+      // Open the chat and store the pending message
+      setIsOpen(true);
+      setIsMinimized(false);
+      setPendingContextMessage({ message, context });
+    };
+
+    window.addEventListener('sam-context-message', handleContextMessage as EventListener);
+
+    return () => {
+      window.removeEventListener('sam-context-message', handleContextMessage as EventListener);
+    };
+  }, []);
 
   // Initialize with contextual welcome message based on SAM memory
   useEffect(() => {
@@ -168,6 +187,23 @@ export function SamFloatingChatbot({
       ]
     }]);
   }, [courseData.title, courseData.chapters, courseData.isPublished, courseData.whatYouWillLearn.length]);
+
+  // Process pending context messages (from "Fix Now" buttons, etc.)
+  useEffect(() => {
+    if (pendingContextMessage && isOpen && !isLoading) {
+      const { message, context } = pendingContextMessage;
+      setPendingContextMessage(null); // Clear pending message
+
+      // Build enhanced context and send the message
+      const enhancedContext = context ? { ...buildCourseContext(), ...context } : buildCourseContext();
+
+      // Use setTimeout to ensure the chat is fully rendered
+      setTimeout(() => {
+        sendMessage(message, enhancedContext);
+      }, 150);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingContextMessage, isOpen, isLoading]);
 
   const calculateCourseHealthScore = useCallback(() => {
     let score = 0;

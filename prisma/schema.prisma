@@ -1593,6 +1593,7 @@ model Course {
   organization                 Organization?                  @relation("OrganizationCourses", fields: [organizationId], references: [id])
   user                         User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
   CourseBloomsAnalysis         CourseBloomsAnalysis?
+  CourseAnalysisHistory        CourseAnalysisHistory[]
   CourseCompetitor             CourseCompetitor[]
   CourseGuideAnalysis          CourseGuideAnalysis?
   CourseMarketAnalysis         CourseMarketAnalysis?
@@ -2071,9 +2072,43 @@ model CourseBloomsAnalysis {
   contentHash        String?
   analyzedAt         DateTime @default(now())
   course             Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  // Enhanced analysis fields (Phase 2)
+  dokDistribution    Json?    // Webb's DOK distribution
+  courseType         String?  // Detected course type
+  courseTypeMatch    Float?   // How well course matches detected type (0-100)
+  assessmentQuality  Json?    // Assessment quality metrics
+  objectiveAnalysis  Json?    // Detailed objective analysis with SMART criteria
 
   @@index([courseId])
   @@index([contentHash])
+}
+
+// Historical Trend Analysis for tracking course improvements over time
+model CourseAnalysisHistory {
+  id                  String   @id @default(uuid())
+  courseId            String
+  // Snapshot metrics
+  cognitiveDepth      Float
+  balanceScore        Float
+  completenessScore   Float
+  assessmentQuality   Float    @default(0)
+  // Distribution snapshots
+  bloomsDistribution  Json     // BloomsDistribution snapshot
+  dokDistribution     Json?    // WebbDOKDistribution snapshot
+  // Structure metrics
+  totalChapters       Int
+  totalSections       Int
+  totalObjectives     Int
+  // Metadata
+  contentHash         String
+  engineVersion       String   @default("2.0.0")
+  snapshotAt          DateTime @default(now())
+  // Relation
+  course              Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, snapshotAt])
+  @@index([courseId])
+  @@index([snapshotAt])
 }
 
 model SectionBloomsMapping {

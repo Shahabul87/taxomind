@@ -24,6 +24,7 @@ import {
   Newspaper,
   User,
   Briefcase,
+  Microscope,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { User as NextAuthUser } from 'next-auth';
@@ -145,6 +146,12 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
       label: 'Analytics',
       href: '/analytics',
       icon: BarChart3,
+      roles: ['all'],
+    },
+    {
+      label: 'Depth Analyzer',
+      href: '/teacher/depth-analyzer',
+      icon: Microscope,
       roles: ['all'],
     },
     {
