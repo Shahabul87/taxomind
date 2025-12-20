@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { AdvancedExamEngine } from '@/sam/engines/educational/sam-exam-engine';
+import { AdvancedExamEngine } from '@/lib/sam-engines/educational/sam-exam-engine';
 import { db } from '@/lib/db';
 import { QuestionType, BloomsLevel, QuestionDifficulty } from '@prisma/client';
 import { logger } from '@/lib/logger';

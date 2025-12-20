@@ -12,12 +12,26 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-// Chapter content generation request schema
+// Chapter content generation request schema - with full context support
 const ChapterContentRequestSchema = z.object({
   chapterTitle: z.string().min(1, "Chapter title is required"),
   type: z.enum(["description", "objectives"]),
   userPrompt: z.string().optional(),
-  focusArea: z.string().optional()
+  focusArea: z.string().optional(),
+  // Rich context fields
+  courseContext: z.object({
+    title: z.string().optional(),
+    description: z.string().nullable().optional(),
+    whatYouWillLearn: z.array(z.string()).optional(),
+    courseGoals: z.string().nullable().optional(),
+    difficulty: z.string().nullable().optional(),
+    category: z.string().nullable().optional(),
+  }).optional(),
+  chapterContext: z.object({
+    description: z.string().nullable().optional(),
+    position: z.number().optional(),
+    existingObjectives: z.string().nullable().optional(),
+  }).optional(),
 });
 
 type ChapterContentRequest = z.infer<typeof ChapterContentRequestSchema>;
@@ -37,23 +51,51 @@ function buildChapterContentPrompt(request: ChapterContentRequest): string {
   const focusText = request.focusArea ? `\n**Focus Area**: ${request.focusArea}` : '';
   const userInstructions = request.userPrompt ? `\n**Special Instructions**: ${request.userPrompt}` : '';
 
+  // Build rich context section
+  let contextSection = '';
+
+  if (request.courseContext) {
+    const { title, description, whatYouWillLearn, courseGoals, difficulty, category } = request.courseContext;
+    contextSection += '\n\n## COURSE CONTEXT (Use this to align chapter content):\n';
+
+    if (title) contextSection += `**Course Title**: ${title}\n`;
+    if (category) contextSection += `**Category**: ${category}\n`;
+    if (difficulty) contextSection += `**Difficulty Level**: ${difficulty}\n`;
+    if (description) contextSection += `**Course Description**: ${description.substring(0, 500)}${description.length > 500 ? '...' : ''}\n`;
+    if (courseGoals) contextSection += `**Course Goals**: ${courseGoals}\n`;
+    if (whatYouWillLearn && whatYouWillLearn.length > 0) {
+      contextSection += `**Course Learning Outcomes**:\n${whatYouWillLearn.slice(0, 5).map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}\n`;
+    }
+  }
+
+  if (request.chapterContext) {
+    const { description, position, existingObjectives } = request.chapterContext;
+    contextSection += '\n## CHAPTER CONTEXT:\n';
+
+    if (position !== undefined) contextSection += `**Chapter Position**: Chapter ${position + 1}\n`;
+    if (description) contextSection += `**Chapter Description**: ${description.substring(0, 300)}${description.length > 300 ? '...' : ''}\n`;
+    if (existingObjectives && request.type === 'description') {
+      contextSection += `**Existing Learning Objectives**: ${existingObjectives.substring(0, 300)}\n`;
+    }
+  }
+
   if (request.type === "description") {
     return `Create a comprehensive, engaging chapter description for the following chapter:
 
-**Chapter Title**: ${request.chapterTitle}${focusText}${userInstructions}
+**Chapter Title**: ${request.chapterTitle}${focusText}${userInstructions}${contextSection}
 
 **Requirements for Chapter Description**:
 1. **Length**: 2-4 paragraphs (200-400 words)
-2. **Structure**: 
+2. **Structure**:
    - Opening: Hook the reader and explain what they'll learn
    - Body: Describe key concepts, skills, and knowledge they'll gain
    - Conclusion: Explain how this chapter fits into the bigger picture
 3. **Tone**: Engaging, motivational, and clear
-4. **Content**: 
+4. **Content**:
    - Explain what students will learn and why it matters
    - Describe practical applications and real-world relevance
    - Build excitement and motivation for learning
-   - Connect to broader course objectives
+   - **IMPORTANT**: Connect to the course objectives and goals provided above
 5. **Format**: Use HTML formatting for better readability (paragraphs, bold text, etc.)
 
 **Writing Guidelines**:
@@ -62,12 +104,13 @@ function buildChapterContentPrompt(request: ChapterContentRequest): string {
 - Make it scannable with clear paragraph breaks
 - Avoid jargon unless explained
 - Show the practical value of the content
+- **Reference the course context** when explaining how this chapter contributes to overall learning
 
 Generate ONLY the chapter description content, ready to use directly in the course.`;
   } else {
     return `Create clear, measurable learning objectives for the following chapter:
 
-**Chapter Title**: ${request.chapterTitle}${focusText}${userInstructions}
+**Chapter Title**: ${request.chapterTitle}${focusText}${userInstructions}${contextSection}
 
 **Requirements for Learning Objectives**:
 1. **Format**: Use HTML unordered list format (<ul><li>...)</li></ul>)
@@ -81,12 +124,18 @@ Generate ONLY the chapter description content, ready to use directly in the cour
    - Synthesis: create, design, develop, formulate
    - Evaluation: assess, critique, judge, recommend
 
-5. **Specificity**: Each objective should be:
+5. **Alignment**:
+   - **CRITICAL**: Align with the course learning outcomes provided above
+   - Each chapter objective should contribute to overall course goals
+   - Consider the chapter's position in the course progression
+   - Build upon concepts from earlier chapters (if applicable)
+
+6. **Specificity**: Each objective should be:
    - Specific and clear
    - Measurable and observable
    - Achievable within the chapter scope
-   - Relevant to the chapter content
-   - Time-bound (implicitly within the chapter)
+   - Relevant to the chapter content and course goals
+   - Appropriately challenging for the course difficulty level
 
 **Content Guidelines**:
 - Start each objective with "Students will be able to..."
@@ -94,7 +143,7 @@ Generate ONLY the chapter description content, ready to use directly in the cour
 - Be specific about what exactly students will achieve
 - Include both knowledge and skills where appropriate
 - Progress from basic to advanced concepts
-- Ensure objectives align with the chapter title
+- Ensure objectives align with both the chapter title AND course objectives
 
 **Example Format**:
 <ul>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { SAMMemoryEngine } from '@/sam/engines/advanced/sam-memory-engine';
-import { applyRateLimit, samSummariesLimiter } from '@/sam/config/sam-rate-limiter';
+import { SAMMemoryEngine } from '@/lib/sam-engines/advanced/sam-memory-engine';
+import { applyRateLimit, samSummariesLimiter } from '@/lib/sam/config/sam-rate-limiter';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';

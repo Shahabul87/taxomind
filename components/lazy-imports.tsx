@@ -128,8 +128,8 @@ export const TeacherInsights = dynamic(
 // ============================================
 
 // SAM AI Assistant - Complex AI components
-export const SAMAssistant = dynamic(
-  () => import('@/sam/components/global/sam-global-provider').then(m => ({ default: m.SAMGlobalProvider } as any)),
+export const SAMAssistantLazy = dynamic(
+  () => import('@/components/sam/SAMAssistant').then(m => ({ default: m.SAMAssistant })),
   { loading: () => <LoadingSpinner />, ssr: false }
 );
 
@@ -253,7 +253,7 @@ const LazyComponents = {
   TeacherInsights,
   
   // AI
-  SAMAssistant,
+  SAMAssistant: SAMAssistantLazy,
   AICourseCreator,
   
   // UI

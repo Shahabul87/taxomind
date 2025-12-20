@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getAvailableChallengesForUser, getActiveChallenges } from '@/sam/engines/educational/sam-achievement-engine';
-import { CHALLENGES } from '@/sam/utils/sam-achievements';
+import { getAvailableChallengesForUser, getActiveChallenges } from '@/lib/sam-engines/educational/sam-achievement-engine';
+import { CHALLENGES } from '@/lib/sam/utils/sam-achievements';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 

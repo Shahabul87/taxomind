@@ -8,7 +8,14 @@
 
 enum UserRole {
   ADMIN
+  SUPERADMIN
   USER
+}
+
+// Admin-specific roles (for separate admin auth system)
+enum AdminRole {
+  ADMIN
+  SUPERADMIN
 }
 
 enum InstructorStatus {
@@ -802,5 +809,22 @@ enum EmailStatus {
   SENT
   FAILED
   BOUNCED
+}
+
+// Premium Subscription Plans
+enum PremiumPlan {
+  MONTHLY
+  YEARLY
+  LIFETIME
+}
+
+// SAM AI Feature Types (for access control)
+enum SAMFeatureType {
+  BASIC_QA           // Free tier - limited queries
+  COURSE_CREATION    // Premium only
+  CONTENT_GENERATION // Premium only
+  QUIZ_GENERATION    // Premium only
+  LEARNING_PATH      // Premium only
+  ADVANCED_ANALYTICS // Premium only
 }
 

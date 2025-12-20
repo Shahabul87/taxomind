@@ -1,4 +1,4 @@
-import { NewsArticle } from '@/sam/engines/content/sam-news-engine';
+import { NewsArticle } from '@/lib/sam-engines/content/sam-news-engine';
 import { newsConfig } from './config/news-config';
 
 interface CachedNews {

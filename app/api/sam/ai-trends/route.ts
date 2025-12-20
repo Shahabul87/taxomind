@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { samTrendsEngine } from '@/sam/engines/advanced/sam-trends-engine';
+import { samTrendsEngine } from '@/lib/sam-engines/advanced/sam-trends-engine';
 import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {

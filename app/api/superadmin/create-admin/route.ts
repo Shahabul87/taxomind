@@ -95,7 +95,8 @@ export async function POST(req: Request) {
     // 7. Create audit log
     await db.adminAuditLog.create({
       data: {
-        adminId: session.user.id,
+        userId: session.user.id,
+        adminAccountId: session.user.id,
         action: "ADMIN_CREATED",
         actionCategory: "USER_MANAGEMENT",
         resource: "AdminAccount",

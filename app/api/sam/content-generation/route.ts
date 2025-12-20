@@ -1,28 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samGenerationEngine } from "@/sam/engines/content/sam-generation-engine";
+import { samGenerationEngine } from "@/lib/sam-engines/content/sam-generation-engine";
 import { logger } from '@/lib/logger';
+import { SAMGuards } from '@/lib/premium';
 import {
   LearningObjective,
   GenerationConfig,
-} from "@/sam/engines/content/sam-generation-engine";
+} from "@/lib/sam-engines/content/sam-generation-engine";
 
-export async function POST(req: NextRequest) {
+// Content Generation is a premium-only feature
+export const POST = SAMGuards.contentGeneration(async (req, context) => {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Check if user is admin
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Only admins can generate content" },
-        { status: 403 }
-      );
-    }
-
     const body = await req.json();
     const { action, data } = body;
 
@@ -44,7 +33,7 @@ export async function POST(req: NextRequest) {
         break;
 
       case "generate-study-guide":
-        result = await handleGenerateStudyGuide(data, session.user.id);
+        result = await handleGenerateStudyGuide(data, context.userId);
         break;
 
       case "create-exercises":
@@ -66,6 +55,7 @@ export async function POST(req: NextRequest) {
       success: true,
       action,
       data: result,
+      isPremium: context.isPremium
     });
   } catch (error) {
     logger.error("Content generation error:", error);
@@ -74,7 +64,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 async function handleGenerateCourse(data: any) {
   const { objectives, config } = data;

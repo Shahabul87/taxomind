@@ -8,8 +8,8 @@ import {
   CourseData,
   ChapterData,
   SectionData,
-} from '@/sam-ai-tutor/engines/educational/enhanced-depth-engine';
-import type { EnhancedDepthAnalysisResponse, BloomsDistribution as EnhancedBloomsDistribution } from '@/sam-ai-tutor/engines/educational/types/depth-analysis.types';
+} from '@/lib/sam-engines/educational/enhanced-depth-engine';
+import type { EnhancedDepthAnalysisResponse, BloomsDistribution as EnhancedBloomsDistribution } from '@/lib/sam-engines/educational/types/depth-analysis.types';
 import type { Prisma, BloomsLevel, QuestionType } from '@prisma/client';
 import {
   deterministicRubricEngine,
@@ -22,7 +22,7 @@ import {
   type DeepContentAnalysisResult,
   type TranscriptSource,
   type CourseTranscriptAnalysisResult,
-} from '@/sam-ai-tutor/engines/educational/analyzers';
+} from '@/lib/sam-engines/educational/analyzers';
 import {
   getValidatedDistribution,
   getCitationString,
@@ -32,7 +32,7 @@ import {
   type QMEvaluationResult,
   type OLCEvaluationResult,
   type DistributionAnalysisResult,
-} from '@/sam-ai-tutor/engines/educational/standards';
+} from '@/lib/sam-engines/educational/standards';
 
 // Type for exam question options from JSON field
 interface ExamQuestionOption {
@@ -218,7 +218,7 @@ interface LegacyResource {
 async function analyzeBlooms(courseContent: LegacyCourseContent): Promise<FallbackBloomsAnalysis | Record<string, unknown>> {
   try {
     // Import the Blooms engine directly instead of making HTTP calls
-    const { BloomsAnalysisEngine } = await import('@/sam/engines/educational/sam-blooms-engine');
+    const { BloomsAnalysisEngine } = await import('@/lib/sam-engines/educational/sam-blooms-engine');
     const engine = new BloomsAnalysisEngine();
 
     // Perform comprehensive analysis

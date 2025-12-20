@@ -258,10 +258,19 @@ export async function POST(request: NextRequest) {
     // Generate chapters using Anthropic Claude
     try {
       const prompt = buildBulkChapterPrompt(course, bulkRequest);
-      
+
+      // Calculate appropriate max tokens based on chapter count
+      // Each chapter with sections needs ~800-1200 tokens
+      const tokensPerChapter = 1200;
+      const baseTokens = 2000;
+      const calculatedMaxTokens = Math.min(
+        baseTokens + (bulkRequest.chapterCount * tokensPerChapter),
+        16000 // Claude's reasonable limit for structured output
+      );
+
       const completion = await anthropic.messages.create({
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 8000,
+        max_tokens: calculatedMaxTokens,
         temperature: 0.7,
         system: BULK_CHAPTER_SYSTEM_PROMPT,
         messages: [
@@ -273,21 +282,88 @@ export async function POST(request: NextRequest) {
       });
 
       // Extract and parse the response
-      const responseText = completion.content[0]?.type === 'text' 
-        ? completion.content[0].text 
+      const responseText = completion.content[0]?.type === 'text'
+        ? completion.content[0].text
         : '';
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
       }
 
-      // Parse JSON response
+      // Check if response was truncated
+      const wasStopReason = completion.stop_reason;
+      if (wasStopReason === 'max_tokens') {
+        logger.warn('AI response was truncated due to max_tokens limit');
+      }
+
+      // Parse JSON response with recovery logic
       let aiResponse;
       try {
         // Clean the response to extract just the JSON array
-        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-        const jsonString = jsonMatch ? jsonMatch[0] : responseText;
-        aiResponse = JSON.parse(jsonString);
+        let jsonString = responseText.trim();
+
+        // Remove any markdown code blocks
+        jsonString = jsonString.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '');
+
+        // Try to find the JSON array
+        const jsonMatch = jsonString.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          jsonString = jsonMatch[0];
+        }
+
+        // Try to parse as-is first
+        try {
+          aiResponse = JSON.parse(jsonString);
+        } catch (firstParseError) {
+          // If parsing fails, try to recover truncated JSON
+          logger.warn('Initial JSON parse failed, attempting recovery...');
+
+          // Try to fix truncated JSON by closing brackets
+          let recoveredJson = jsonString;
+
+          // Count open brackets
+          const openBrackets = (recoveredJson.match(/\[/g) || []).length;
+          const closeBrackets = (recoveredJson.match(/\]/g) || []).length;
+          const openBraces = (recoveredJson.match(/\{/g) || []).length;
+          const closeBraces = (recoveredJson.match(/\}/g) || []).length;
+
+          // Try to close open structures
+          // First, handle any unclosed strings (find last unclosed quote)
+          const lastQuoteIndex = recoveredJson.lastIndexOf('"');
+          const beforeQuote = recoveredJson.substring(0, lastQuoteIndex + 1);
+          const afterQuote = recoveredJson.substring(lastQuoteIndex + 1);
+
+          // If there's content after the last quote that isn't a valid JSON token, truncate
+          if (afterQuote && !afterQuote.match(/^[\s,\}\]\:]/)) {
+            recoveredJson = beforeQuote + '"';
+          }
+
+          // Remove any trailing incomplete property (like `"title":` without value)
+          recoveredJson = recoveredJson.replace(/,\s*"[^"]*"\s*:\s*$/, '');
+          recoveredJson = recoveredJson.replace(/,\s*"[^"]*"\s*:\s*"[^"]*$/, '');
+
+          // Close unclosed braces and brackets
+          for (let i = 0; i < openBraces - closeBraces; i++) {
+            recoveredJson += '}';
+          }
+          for (let i = 0; i < openBrackets - closeBrackets; i++) {
+            recoveredJson += ']';
+          }
+
+          // Clean up any double commas or trailing commas before closing brackets
+          recoveredJson = recoveredJson.replace(/,(\s*[\}\]])/g, '$1');
+          recoveredJson = recoveredJson.replace(/,\s*,/g, ',');
+
+          try {
+            aiResponse = JSON.parse(recoveredJson);
+            logger.info('Successfully recovered truncated JSON response');
+          } catch (recoveryError) {
+            // If recovery still fails, log and throw
+            logger.error('JSON recovery failed:', recoveryError);
+            logger.error('Original response (first 500 chars):', responseText.substring(0, 500));
+            throw new Error('Invalid JSON response from AI model');
+          }
+        }
       } catch (parseError) {
         logger.error('Failed to parse AI response as JSON:', parseError);
         throw new Error('Invalid JSON response from AI model');

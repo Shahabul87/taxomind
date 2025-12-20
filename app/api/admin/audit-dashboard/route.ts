@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { AdminRole } from '@prisma/client';
 import { auditLogger, AuditEventType, AuditSeverity } from '@/lib/compliance/audit-logger';
 import { authAuditHelpers } from '@/lib/audit/auth-audit';
 import { withAdminAuth } from '@/lib/api/with-api-auth';

@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SamSuggestion } from '../../types/sam-creator.types';
-import { SamLoadingState } from '@/sam/components/ui/sam-loading-state';
+import { SamLoadingState } from '@/components/sam/sam-loading-state';
 import { Bot, MessageCircle, ThumbsUp, AlertTriangle, Info, Lightbulb, Zap, Sparkles, RefreshCw, ChevronRight, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

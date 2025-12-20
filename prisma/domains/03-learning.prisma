@@ -110,6 +110,9 @@ model Course {
   dashboardGoals           DashboardGoal[]         @relation("CourseGoals")
   dashboardNotes           DashboardNote[]         @relation("CourseNotes")
 
+  // Course Analysis History (for SAM AI Depth Analyzer)
+  analysisHistory          CourseAnalysisHistory[] @relation("CourseAnalysisSnapshots")
+
   @@index([categoryId])
   @@index([organizationId])
 }

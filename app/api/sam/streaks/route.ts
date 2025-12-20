@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { updateSAMStreak } from '@/sam/utils/sam-database';
+import { updateSAMStreak } from '@/lib/sam/utils/sam-database';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {

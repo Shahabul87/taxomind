@@ -11,12 +11,30 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { logger } from '@/lib/logger';
 
+interface CourseContext {
+  title?: string;
+  description?: string | null;
+  whatYouWillLearn?: string[];
+  courseGoals?: string | null;
+  difficulty?: string | null;
+  category?: string | null;
+}
+
+interface ChapterContext {
+  description?: string | null;
+  position?: number;
+  existingObjectives?: string | null;
+}
+
 interface AIChapterAssistantProps {
   chapterTitle: string;
   type: "description" | "objectives";
   onGenerate: (content: string) => void;
   trigger?: React.ReactNode;
   disabled?: boolean;
+  // Rich context props
+  courseContext?: CourseContext;
+  chapterContext?: ChapterContext;
 }
 
 export const AIChapterAssistant = ({
@@ -24,7 +42,9 @@ export const AIChapterAssistant = ({
   type,
   onGenerate,
   trigger,
-  disabled = false
+  disabled = false,
+  courseContext,
+  chapterContext,
 }: AIChapterAssistantProps) => {
   const [open, setOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -54,7 +74,21 @@ export const AIChapterAssistant = ({
           chapterTitle,
           type,
           userPrompt: userPrompt || getDefaultPrompt(),
-          focusArea
+          focusArea,
+          // Pass rich context to the API
+          courseContext: courseContext ? {
+            title: courseContext.title,
+            description: courseContext.description,
+            whatYouWillLearn: courseContext.whatYouWillLearn,
+            courseGoals: courseContext.courseGoals,
+            difficulty: courseContext.difficulty,
+            category: courseContext.category,
+          } : undefined,
+          chapterContext: chapterContext ? {
+            description: chapterContext.description,
+            position: chapterContext.position,
+            existingObjectives: chapterContext.existingObjectives,
+          } : undefined,
         })
       });
 
@@ -115,11 +149,41 @@ export const AIChapterAssistant = ({
               Generate {type === "description" ? "description" : "learning objectives"} for your chapter using AI.
             </span>
           </DialogDescription>
-          <div className="flex items-center gap-2 text-sm bg-purple-50 dark:bg-purple-900/30 p-3 rounded-lg border border-purple-200 dark:border-purple-700 mt-2">
-            <Wand2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            <span className="font-medium text-purple-800 dark:text-purple-200">
-              Chapter: {chapterTitle || "Untitled Chapter"}
-            </span>
+
+          {/* Context Summary */}
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm bg-purple-50 dark:bg-purple-900/30 p-3 rounded-lg border border-purple-200 dark:border-purple-700">
+              <Wand2 className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+              <span className="font-medium text-purple-800 dark:text-purple-200">
+                Chapter: {chapterTitle || "Untitled Chapter"}
+              </span>
+            </div>
+
+            {/* Show course context if available */}
+            {courseContext?.title && (
+              <div className="text-xs bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-lg border border-blue-200 dark:border-blue-700">
+                <div className="font-medium text-blue-800 dark:text-blue-200 mb-1">
+                  AI will use course context:
+                </div>
+                <ul className="text-blue-700 dark:text-blue-300 space-y-0.5 ml-3">
+                  <li>• Course: {courseContext.title}</li>
+                  {courseContext.difficulty && <li>• Difficulty: {courseContext.difficulty}</li>}
+                  {courseContext.whatYouWillLearn && courseContext.whatYouWillLearn.length > 0 && (
+                    <li>• {courseContext.whatYouWillLearn.length} course learning outcomes</li>
+                  )}
+                  {chapterContext?.description && <li>• Chapter description available</li>}
+                </ul>
+              </div>
+            )}
+
+            {/* Warning if no context */}
+            {!courseContext?.title && (
+              <div className="text-xs bg-amber-50 dark:bg-amber-900/20 p-2.5 rounded-lg border border-amber-200 dark:border-amber-700">
+                <span className="text-amber-700 dark:text-amber-300">
+                  ⚠️ Limited context available. For better results, ensure course title and description are set.
+                </span>
+              </div>
+            )}
           </div>
         </DialogHeader>
 

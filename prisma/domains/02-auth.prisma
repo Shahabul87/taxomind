@@ -54,6 +54,17 @@ model User {
   isAffiliate                             Boolean                              @default(false)
   isTeacher                               Boolean                              @default(false)
   teacherActivatedAt                      DateTime?
+
+  // Premium Subscription Fields
+  isPremium                               Boolean                              @default(false)
+  premiumPlan                             PremiumPlan?
+  premiumStartedAt                        DateTime?
+  premiumExpiresAt                        DateTime?
+  premiumStripeSubscriptionId             String?                              @unique
+
+  // SAM AI Usage Tracking (for free tier limits)
+  dailyAiUsageCount                       Int                                  @default(0)
+  dailyAiUsageResetAt                     DateTime?
   AIContentGeneration                     AIContentGeneration[]
   AIContentTemplate                       AIContentTemplate[]
   AIGeneratedContent                      AIGeneratedContent[]
@@ -553,20 +564,47 @@ model UserCapability {
 }
 
 model AdminAccount {
-  id                String  @id @default(cuid())
-  adminId           String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  id                String       @id @default(cuid())
+
+  // Admin User Profile Fields
+  name              String?
+  email             String       @unique
+  emailVerified     DateTime?
+  password          String?
+  image             String?
+  role              AdminRole    @default(ADMIN)
+  phone             String?
+  department        String?
+  bio               String?      @db.Text
+
+  // Two-Factor Authentication
+  isTwoFactorEnabled Boolean     @default(false)
+  totpEnabled       Boolean      @default(false)
+  totpVerified      Boolean      @default(false)
+  totpSecret        String?
+  recoveryCodes     String[]     @default([])
+
+  // OAuth Fields (for admin SSO if needed)
+  adminId           String?
+  type              String?
+  provider          String?
+  providerAccountId String?
+  refresh_token     String?      @db.Text
+  access_token      String?      @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?      @db.Text
   session_state     String?
 
-  admin User @relation("AdminAccounts", fields: [adminId], references: [id], onDelete: Cascade)
+  // Relation to User (optional, for linking to existing user if needed)
+  admin             User?        @relation("AdminAccounts", fields: [adminId], references: [id], onDelete: Cascade)
+
+  // Audit logs relation
+  auditLogs         AdminAuditLog[]
+
+  // Active sessions relation
+  activeSessions    AdminActiveSession[] @relation("AdminAccountSessions")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -574,29 +612,34 @@ model AdminAccount {
   @@unique([provider, providerAccountId])
   @@index([adminId])
   @@index([provider])
+  @@index([email])
+  @@index([role])
 }
 
 model AdminActiveSession {
-  id           String   @id @default(cuid())
-  adminId      String
-  sessionToken String   @unique
-  ipAddress    String
-  userAgent    String?
-  browser      String?
-  os           String?
-  deviceType   String?
-  deviceInfo   String?
-  location     String?
-  expiresAt    DateTime
-  isActive     Boolean  @default(true)
-  lastActiveAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  adminId         String
+  adminAccountId  String?
+  sessionToken    String   @unique
+  ipAddress       String
+  userAgent       String?
+  browser         String?
+  os              String?
+  deviceType      String?
+  deviceInfo      String?
+  location        String?
+  expiresAt       DateTime
+  isActive        Boolean  @default(true)
+  lastActiveAt    DateTime @default(now())
 
-  admin User @relation("AdminActiveSessions", fields: [adminId], references: [id], onDelete: Cascade)
+  admin           User          @relation("AdminActiveSessions", fields: [adminId], references: [id], onDelete: Cascade)
+  adminAccount    AdminAccount? @relation("AdminAccountSessions", fields: [adminAccountId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([adminId])
+  @@index([adminAccountId])
   @@index([sessionToken])
   @@index([expiresAt])
   @@index([isActive])

@@ -109,6 +109,12 @@ async function SectionContent(props: {
             title: true,
             code: true,
             explanation: true,
+            language: true,
+            position: true,
+            lineStart: true,
+            lineEnd: true,
+            groupId: true,
+            isPublished: true,
           },
         },
         mathExplanations: {

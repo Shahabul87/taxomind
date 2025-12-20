@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { unlockSAMBadge } from '@/sam/utils/sam-database';
+import { unlockSAMBadge } from '@/lib/sam/utils/sam-database';
 import { SAMBadgeType, BadgeLevel } from '@prisma/client';
 import { logger } from '@/lib/logger';
 

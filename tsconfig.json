@@ -34,48 +34,6 @@
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@/sam/*": [
-        "./sam-ai-tutor/*"
-      ],
-      "@/sam/hooks/*": [
-        "./sam-ai-tutor/hooks/*"
-      ],
-      "@/sam/hooks": [
-        "./sam-ai-tutor/hooks"
-      ],
-      "@/sam/engines/*": [
-        "./sam-ai-tutor/engines/*"
-      ],
-      "@/sam/engines/core/*": [
-        "./sam-ai-tutor/engines/core/*"
-      ],
-      "@/sam/engines/educational/*": [
-        "./sam-ai-tutor/engines/educational/*"
-      ],
-      "@/sam/engines/content/*": [
-        "./sam-ai-tutor/engines/content/*"
-      ],
-      "@/sam/engines/business/*": [
-        "./sam-ai-tutor/engines/business/*"
-      ],
-      "@/sam/engines/social/*": [
-        "./sam-ai-tutor/engines/social/*"
-      ],
-      "@/sam/engines/advanced/*": [
-        "./sam-ai-tutor/engines/advanced/*"
-      ],
-      "@/sam/components/*": [
-        "./sam-ai-tutor/components/*"
-      ],
-      "@/sam/utils/*": [
-        "./sam-ai-tutor/utils/*"
-      ],
-      "@/sam/types/*": [
-        "./sam-ai-tutor/types/*"
-      ],
-      "@/sam/config/*": [
-        "./sam-ai-tutor/config/*"
       ]
     }
   },
@@ -91,6 +49,7 @@
   "exclude": [
     "node_modules",
     "_archive/**",
+    "sam_ai_deprecated/**",
     "packages/sam-engine",
     "playwright.config.ts",
     "e2e/**",
@@ -106,7 +65,6 @@
     "**/*.e2e.ts",
     "**/test-utils/**",
     "**/mocks/**",
-    "sam-ai-tutor/**",
     "scripts/**",
     "SCALABLE_ARCHITECTURE_DOCS/**",
     "old-components/**"

@@ -104,7 +104,7 @@ export async function GET() {
           month: "long",
           day: "numeric",
         }),
-        lastLogin: "Recently", // AdminAccount doesn't have lastLoginAt yet
+        lastLogin: "Recently",
         totalActions: adminProfile._count.auditLogs,
       },
     });
@@ -201,7 +201,8 @@ export async function PATCH(req: Request) {
     // 7. Create audit log
     await db.adminAuditLog.create({
       data: {
-        adminId: userId,
+        userId: userId,
+        adminAccountId: userId,
         action: "PROFILE_UPDATED",
         actionCategory: "CONFIGURATION",
         resource: "AdminAccount",

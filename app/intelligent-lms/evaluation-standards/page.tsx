@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { SamStandardsInfo } from "@/sam/components/integration/sam-standards-info";
+import { SamStandardsInfo } from "@/components/sam/sam-standards-info";
 
 const standards = [
   {

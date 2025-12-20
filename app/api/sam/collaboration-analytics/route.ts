@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samCollaborationEngine } from "@/sam/engines/social/sam-collaboration-engine";
+import { samCollaborationEngine } from "@/lib/sam-engines/social/sam-collaboration-engine";
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {

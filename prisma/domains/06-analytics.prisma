@@ -519,3 +519,25 @@ model CourseCompletionAnalytics {
   @@index([lastAnalyzed])
 }
 
+// Course Analysis History for tracking cognitive depth trends
+model CourseAnalysisHistory {
+  id                String   @id @default(cuid())
+  courseId          String
+  course            Course   @relation("CourseAnalysisSnapshots", fields: [courseId], references: [id], onDelete: Cascade)
+
+  snapshotAt        DateTime @default(now())
+  cognitiveDepth    Float    @default(0)
+  balanceScore      Float    @default(0)
+  completenessScore Float    @default(0)
+  totalChapters     Int      @default(0)
+  totalObjectives   Int      @default(0)
+
+  metadata          Json?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([courseId])
+  @@index([snapshotAt])
+}
+

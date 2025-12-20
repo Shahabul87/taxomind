@@ -163,11 +163,10 @@ export async function GET(
       }, { status: 403 });
     }
 
-    // Fetch code blocks
+    // Fetch code blocks - Teachers should see ALL blocks (including unpublished)
     const codeBlocks = await db.codeExplanation.findMany({
       where: {
         sectionId: params.sectionId,
-        isPublished: true
       },
       orderBy: [
         { position: 'asc' },
@@ -194,11 +193,10 @@ export async function GET(
         )
       );
 
-      // Refetch with updated line numbers
+      // Refetch with updated line numbers - Teachers see all blocks
       const updatedBlocks = await db.codeExplanation.findMany({
         where: {
           sectionId: params.sectionId,
-          isPublished: true
         },
         orderBy: [
           { position: 'asc' },

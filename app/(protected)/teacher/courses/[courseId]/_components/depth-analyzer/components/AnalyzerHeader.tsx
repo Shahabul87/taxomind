@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { SamStandardsInfo, SamStandardsBadge } from "@/sam-ai-tutor/components/integration/sam-standards-info";
+import { SamStandardsInfo, SamStandardsBadge } from "@/components/sam/sam-standards-info";
 import type { AnalysisData } from "../types";
 
 interface AnalyzerHeaderProps {

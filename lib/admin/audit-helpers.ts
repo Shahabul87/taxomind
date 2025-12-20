@@ -57,7 +57,8 @@ export async function logAdminAuditEvent(data: AdminAuditEventData): Promise<voi
   try {
     await db.adminAuditLog.create({
       data: {
-        adminId: data.userId,
+        userId: data.userId,
+        adminAccountId: data.userId,
         action: data.action,
         actionCategory: data.actionCategory || 'GENERAL',
         resource: data.resource,
@@ -93,7 +94,7 @@ export async function createAdminSessionMetric(data: AdminSessionData): Promise<
   try {
     await db.adminSessionMetrics.create({
       data: {
-        adminId: data.userId,
+        userId: data.userId,
         sessionId: data.sessionId,
         sessionToken: data.sessionToken,
         loginTime: new Date(),

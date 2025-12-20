@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { CourseGuideEngine } from '@/sam/engines/educational/sam-course-guide-engine';
+import { CourseGuideEngine } from '@/lib/sam-engines/educational/sam-course-guide-engine';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 

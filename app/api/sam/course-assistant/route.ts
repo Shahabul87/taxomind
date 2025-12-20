@@ -1,24 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@/lib/auth';
 import Anthropic from '@anthropic-ai/sdk';
 import { logger } from '@/lib/logger';
+import { SAMGuards } from '@/lib/premium';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export async function POST(request: NextRequest) {
+// Course Assistant is a premium-only feature
+export const POST = SAMGuards.courseCreation(async (request, context) => {
   try {
-    const user = await currentUser();
-    if (!user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { 
-      message, 
-      courseContext, 
-      conversationHistory = [], 
-      selectedContext 
+    const {
+      message,
+      courseContext,
+      conversationHistory = [],
+      selectedContext
     } = await request.json();
 
     if (!message || !courseContext) {
@@ -31,23 +27,24 @@ export async function POST(request: NextRequest) {
       courseContext,
       conversationHistory,
       selectedContext,
-      userId: user.id
+      userId: context.userId
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       response: response.content,
       suggestions: response.suggestions,
       data: response.data,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      isPremium: context.isPremium
     });
   } catch (error) {
     logger.error('Error in SAM course assistant:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to process request',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
-}
+});
 
 async function generateSamResponse({
   message,

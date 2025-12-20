@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-11-21T00:45:53.820Z
+// Generated: 2025-12-20T07:40:07.744Z
 // Source: 18 domain files
 // ==========================================
 
@@ -51,9 +51,11 @@ datasource db {
 
 enum UserRole {
   ADMIN
+  SUPERADMIN
   USER
 }
 
+// Admin-specific roles (for separate admin auth system)
 enum AdminRole {
   ADMIN
   SUPERADMIN
@@ -852,6 +854,23 @@ enum EmailStatus {
   BOUNCED
 }
 
+// Premium Subscription Plans
+enum PremiumPlan {
+  MONTHLY
+  YEARLY
+  LIFETIME
+}
+
+// SAM AI Feature Types (for access control)
+enum SAMFeatureType {
+  BASIC_QA           // Free tier - limited queries
+  COURSE_CREATION    // Premium only
+  CONTENT_GENERATION // Premium only
+  QUIZ_GENERATION    // Premium only
+  LEARNING_PATH      // Premium only
+  ADVANCED_ANALYTICS // Premium only
+}
+
 
 // ==========================================
 // Source: 02-auth.prisma
@@ -876,7 +895,7 @@ model User {
   password                                String?
   // SECURITY FIX: confirmPassword removed - should never be persisted in database
   // Password confirmation is only for frontend validation
-  // NOTE: Users don't have roles - Admin auth is completely separate (AdminAccount model)
+  role                                    UserRole                             @default(USER)
   isTwoFactorEnabled                      Boolean                              @default(false)
   totpSecret                              String? // Encrypted TOTP secret
   totpEnabled                             Boolean                              @default(false)
@@ -912,6 +931,17 @@ model User {
   isAffiliate                             Boolean                              @default(false)
   isTeacher                               Boolean                              @default(false)
   teacherActivatedAt                      DateTime?
+
+  // Premium Subscription Fields
+  isPremium                               Boolean                              @default(false)
+  premiumPlan                             PremiumPlan?
+  premiumStartedAt                        DateTime?
+  premiumExpiresAt                        DateTime?
+  premiumStripeSubscriptionId             String?                              @unique
+
+  // SAM AI Usage Tracking (for free tier limits)
+  dailyAiUsageCount                       Int                                  @default(0)
+  dailyAiUsageResetAt                     DateTime?
   AIContentGeneration                     AIContentGeneration[]
   AIContentTemplate                       AIContentTemplate[]
   AIGeneratedContent                      AIGeneratedContent[]
@@ -1078,6 +1108,16 @@ model User {
   userCapabilities          UserCapability[]
   emailLogs                 EmailLog[]
   userContext               UserContext?
+
+  // Phase 3: Admin-specific relations (added January 11, 2025)
+  adminMetadata       AdminMetadata?        @relation("AdminMetadataUser")
+  adminAuditLogs      AdminAuditLog[]       @relation("AdminAuditLogUser")
+  adminSessionMetrics AdminSessionMetrics[] @relation("AdminSessionMetricsUser")
+
+  // Phase 4: Enterprise Auth Separation - Admin-only auth tables (added January 11, 2025)
+  adminAccounts               AdminAccount[]              @relation("AdminAccounts")
+  adminActiveSessions         AdminActiveSession[]        @relation("AdminActiveSessions")
+  adminTwoFactorConfirmation  AdminTwoFactorConfirmation? @relation("AdminTwoFactorConfirmation")
 
   // User Preferences & Settings (added January 16, 2025)
   notificationPreferences UserNotificationPreferences?
@@ -1401,62 +1441,82 @@ model UserCapability {
 }
 
 model AdminAccount {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String    // Hashed password
-  name          String?
-  role          AdminRole @default(ADMIN)
-  emailVerified DateTime?
-  image         String?
+  id                String       @id @default(cuid())
 
-  // Profile fields
-  phone         String?
-  department    String?
-  bio           String?
+  // Admin User Profile Fields
+  name              String?
+  email             String       @unique
+  emailVerified     DateTime?
+  password          String?
+  image             String?
+  role              AdminRole    @default(ADMIN)
+  phone             String?
+  department        String?
+  bio               String?      @db.Text
 
-  // Security & 2FA
-  isTwoFactorEnabled Boolean  @default(false)
-  totpEnabled        Boolean? @default(false)
-  totpVerified       Boolean? @default(false)
-  totpSecret         String?  @db.Text
-  recoveryCodes      String[]
+  // Two-Factor Authentication
+  isTwoFactorEnabled Boolean     @default(false)
+  totpEnabled       Boolean      @default(false)
+  totpVerified      Boolean      @default(false)
+  totpSecret        String?
+  recoveryCodes     String[]     @default([])
 
-  // Timestamps
+  // OAuth Fields (for admin SSO if needed)
+  adminId           String?
+  type              String?
+  provider          String?
+  providerAccountId String?
+  refresh_token     String?      @db.Text
+  access_token      String?      @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?      @db.Text
+  session_state     String?
+
+  // Relation to User (optional, for linking to existing user if needed)
+  admin             User?        @relation("AdminAccounts", fields: [adminId], references: [id], onDelete: Cascade)
+
+  // Audit logs relation
+  auditLogs         AdminAuditLog[]
+
+  // Active sessions relation
+  activeSessions    AdminActiveSession[] @relation("AdminAccountSessions")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  activeSessions         AdminActiveSession[]
-  auditLogs              AdminAuditLog[]
-  sessionMetrics         AdminSessionMetrics[]
-  metadata               AdminMetadata?
-  twoFactorConfirmation  AdminTwoFactorConfirmation?
-
+  @@unique([provider, providerAccountId])
+  @@index([adminId])
+  @@index([provider])
   @@index([email])
   @@index([role])
 }
 
 model AdminActiveSession {
-  id           String   @id @default(cuid())
-  adminId      String
-  sessionToken String   @unique
-  ipAddress    String
-  userAgent    String?
-  browser      String?
-  os           String?
-  deviceType   String?
-  deviceInfo   String?
-  location     String?
-  expiresAt    DateTime
-  isActive     Boolean  @default(true)
-  lastActiveAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  adminId         String
+  adminAccountId  String?
+  sessionToken    String   @unique
+  ipAddress       String
+  userAgent       String?
+  browser         String?
+  os              String?
+  deviceType      String?
+  deviceInfo      String?
+  location        String?
+  expiresAt       DateTime
+  isActive        Boolean  @default(true)
+  lastActiveAt    DateTime @default(now())
 
-  admin AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  admin           User          @relation("AdminActiveSessions", fields: [adminId], references: [id], onDelete: Cascade)
+  adminAccount    AdminAccount? @relation("AdminAccountSessions", fields: [adminAccountId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([adminId])
+  @@index([adminAccountId])
   @@index([sessionToken])
   @@index([expiresAt])
   @@index([isActive])
@@ -1465,7 +1525,7 @@ model AdminActiveSession {
 model AdminTwoFactorConfirmation {
   id      String @id @default(cuid())
   adminId String @unique
-  admin   AdminAccount   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  admin   User   @relation("AdminTwoFactorConfirmation", fields: [adminId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -1593,7 +1653,6 @@ model Course {
   organization                 Organization?                  @relation("OrganizationCourses", fields: [organizationId], references: [id])
   user                         User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
   CourseBloomsAnalysis         CourseBloomsAnalysis?
-  CourseAnalysisHistory        CourseAnalysisHistory[]
   CourseCompetitor             CourseCompetitor[]
   CourseGuideAnalysis          CourseGuideAnalysis?
   CourseMarketAnalysis         CourseMarketAnalysis?
@@ -1647,6 +1706,9 @@ model Course {
   dashboardTodos           DashboardTodo[]         @relation("CourseTodos")
   dashboardGoals           DashboardGoal[]         @relation("CourseGoals")
   dashboardNotes           DashboardNote[]         @relation("CourseNotes")
+
+  // Course Analysis History (for SAM AI Depth Analyzer)
+  analysisHistory          CourseAnalysisHistory[] @relation("CourseAnalysisSnapshots")
 
   @@index([categoryId])
   @@index([organizationId])
@@ -2072,43 +2134,9 @@ model CourseBloomsAnalysis {
   contentHash        String?
   analyzedAt         DateTime @default(now())
   course             Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  // Enhanced analysis fields (Phase 2)
-  dokDistribution    Json?    // Webb's DOK distribution
-  courseType         String?  // Detected course type
-  courseTypeMatch    Float?   // How well course matches detected type (0-100)
-  assessmentQuality  Json?    // Assessment quality metrics
-  objectiveAnalysis  Json?    // Detailed objective analysis with SMART criteria
 
   @@index([courseId])
   @@index([contentHash])
-}
-
-// Historical Trend Analysis for tracking course improvements over time
-model CourseAnalysisHistory {
-  id                  String   @id @default(uuid())
-  courseId            String
-  // Snapshot metrics
-  cognitiveDepth      Float
-  balanceScore        Float
-  completenessScore   Float
-  assessmentQuality   Float    @default(0)
-  // Distribution snapshots
-  bloomsDistribution  Json     // BloomsDistribution snapshot
-  dokDistribution     Json?    // WebbDOKDistribution snapshot
-  // Structure metrics
-  totalChapters       Int
-  totalSections       Int
-  totalObjectives     Int
-  // Metadata
-  contentHash         String
-  engineVersion       String   @default("2.0.0")
-  snapshotAt          DateTime @default(now())
-  // Relation
-  course              Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId, snapshotAt])
-  @@index([courseId])
-  @@index([snapshotAt])
 }
 
 model SectionBloomsMapping {
@@ -3612,6 +3640,28 @@ model CourseCompletionAnalytics {
   @@index([completionRate])
   @@index([averageScore])
   @@index([lastAnalyzed])
+}
+
+// Course Analysis History for tracking cognitive depth trends
+model CourseAnalysisHistory {
+  id                String   @id @default(cuid())
+  courseId          String
+  course            Course   @relation("CourseAnalysisSnapshots", fields: [courseId], references: [id], onDelete: Cascade)
+
+  snapshotAt        DateTime @default(now())
+  cognitiveDepth    Float    @default(0)
+  balanceScore      Float    @default(0)
+  completenessScore Float    @default(0)
+  totalChapters     Int      @default(0)
+  totalObjectives   Int      @default(0)
+
+  metadata          Json?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([courseId])
+  @@index([snapshotAt])
 }
 
 
@@ -5248,9 +5298,9 @@ model UserContext {
 }
 
 model AdminMetadata {
-  id      String @id @default(cuid())
-  adminId String @unique
-  admin   AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation("AdminMetadataUser", fields: [userId], references: [id], onDelete: Cascade)
 
   // Session configuration
   sessionTimeout         Int @default(14400) // 4 hours in seconds
@@ -5281,14 +5331,18 @@ model AdminMetadata {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([adminId])
+  @@index([userId])
   @@index([updatedAt])
 }
 
 model AdminAuditLog {
-  id      String @id @default(cuid())
-  adminId String
-  admin   AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("AdminAuditLogUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional relation to AdminAccount for separate admin auth system
+  adminAccountId String?
+  adminAccount   AdminAccount? @relation(fields: [adminAccountId], references: [id], onDelete: Cascade)
 
   // Action details
   action         String // LOGIN, LOGOUT, DATA_ACCESS, CONFIG_CHANGE, USER_MANAGEMENT, etc.
@@ -5320,18 +5374,19 @@ model AdminAuditLog {
   // Timestamp
   timestamp DateTime @default(now())
 
-  @@index([adminId, timestamp])
+  @@index([userId, timestamp])
   @@index([action, timestamp])
   @@index([actionCategory, timestamp])
   @@index([success, timestamp])
   @@index([sessionId])
   @@index([ipAddress])
+  @@index([adminAccountId])
 }
 
 model AdminSessionMetrics {
-  id      String @id @default(cuid())
-  adminId String
-  admin   AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("AdminSessionMetricsUser", fields: [userId], references: [id], onDelete: Cascade)
 
   // Session identification
   sessionId    String  @unique
@@ -5366,7 +5421,7 @@ model AdminSessionMetrics {
   logoutReason String? // MANUAL, TIMEOUT, FORCE, ERROR
   wasForced    Boolean @default(false)
 
-  @@index([adminId, loginTime])
+  @@index([userId, loginTime])
   @@index([sessionId])
   @@index([loginTime])
   @@index([isSuspicious])

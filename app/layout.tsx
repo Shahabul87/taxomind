@@ -10,10 +10,8 @@ import { auth } from '@/auth'
 import { ConfettiProvider } from '@/components/providers/confetti-provider';
 import { Providers } from "@/components/providers";
 import ClientToaster from '@/components/client-toaster';
-// SAM AI Tutor imports
-import { SAMGlobalProvider } from '@/sam-ai-tutor/components/global/sam-global-provider';
-import { SAMGlobalAssistantRedesigned } from '@/sam-ai-tutor/components/global/sam-global-assistant-redesigned';
-import { SAMMobileResponsive } from '@/sam-ai-tutor/components/ui/sam-mobile-responsive';
+// SAM AI Assistant - Context-aware assistant
+import { SAMAssistant } from '@/components/sam/SAMAssistant';
 import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
 
 // Use auto dynamic rendering (Next.js will determine optimal rendering)
@@ -102,19 +100,16 @@ export default async function RootLayout({
           </a>
           <ConfettiProvider />
           <ClientToaster />
-          <SAMGlobalProvider>
-            {/* All pages handle their own navigation and layout */}
-            <div className="min-h-screen" suppressHydrationWarning>
-              {children}
-            </div>
+          {/* All pages handle their own navigation and layout */}
+          <div className="min-h-screen" suppressHydrationWarning>
+            {children}
+          </div>
 
-            {/* SAM AI Tutor: Mobile/Tablet (bottom/side sheet) and Desktop (floating window) */}
-            <SAMMobileResponsive />
-            <SAMGlobalAssistantRedesigned />
+          {/* SAM AI Assistant - Context-aware floating assistant */}
+          <SAMAssistant />
 
-            {/* CSS Error Monitor - Only in development */}
-            <CSSErrorMonitorClient />
-          </SAMGlobalProvider>
+          {/* CSS Error Monitor - Only in development */}
+          <CSSErrorMonitorClient />
         </Providers>
       </body>
     </html>

@@ -196,7 +196,7 @@ export function useDepthAnalysis({
     } finally {
       setIsAnalyzing(false);
     }
-  }, [courseId]);
+  }, [courseId, courseData.title, onAnalysisComplete, router]);
 
   // Calculate overall score
   const overallScore = analysisData

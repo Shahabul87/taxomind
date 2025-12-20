@@ -5,7 +5,7 @@ import {
   createSAMConversation, 
   getSAMConversations, 
   addSAMMessage 
-} from '@/sam/utils/sam-database';
+} from '@/lib/sam/utils/sam-database';
 import { SAMMessageType } from '@prisma/client';
 
 export async function GET(req: NextRequest) {

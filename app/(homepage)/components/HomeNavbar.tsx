@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,13 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const user = useCurrentUser();
+
+  // Ensure consistent rendering between server and client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const navItems: NavItem[] = [
     {
@@ -76,9 +82,26 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
     }
   });
 
+  // Don't render animations until mounted to prevent hydration mismatch
+  if (!isMounted) {
+    return (
+      <div
+        className={cn(
+          "fixed inset-x-0 top-0 z-50 pointer-events-none",
+          className
+        )}
+        style={{ opacity: 0, pointerEvents: "none" }}
+      >
+        {/* Placeholder for SSR - matches structure but without animations */}
+        <div className="relative mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full px-4 py-2 lg:flex" />
+        <div className="relative z-[60] mx-auto flex flex-row items-center justify-between rounded-full px-3 py-2.5 sm:px-4 sm:py-3 lg:hidden" />
+      </div>
+    );
+  }
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: -20 }}
+      initial={false}
       animate={{
         opacity: isVisible ? 1 : 0,
         y: isVisible ? 0 : -20,

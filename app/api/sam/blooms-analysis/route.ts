@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { BloomsAnalysisEngine } from '@/sam/engines/educational/sam-blooms-engine';
+import { BloomsAnalysisEngine } from '@/lib/sam-engines/educational/sam-blooms-engine';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 

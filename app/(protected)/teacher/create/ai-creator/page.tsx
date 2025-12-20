@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SamErrorBoundary } from "@/sam/components/ui/sam-error-boundary";
+import { SamErrorBoundary } from "@/components/sam/sam-error-boundary";
 import { ArrowRight, ArrowLeft, Sparkles, AlertTriangle, BookOpen, RefreshCw, Brain, Users, GraduationCap, Wand2, Zap, Star, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -107,7 +107,7 @@ export default function AICreatorPage() {
 
           // Save generated structure to SAM memory (client-side only)
           if (typeof window !== 'undefined') {
-            import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
+            import('@/lib/sam/utils/sam-memory-system').then(({ samMemory }) => {
               samMemory.saveGeneratedStructure({
                 courseDescription: result.courseDescription,
                 enhancedObjectives: result.learningObjectives,
@@ -274,7 +274,7 @@ etc.`,
 
       // Step 3: Save progress to SAM memory and redirect
       if (typeof window !== 'undefined') {
-        import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
+        import('@/lib/sam/utils/sam-memory-system').then(({ samMemory }) => {
           samMemory.saveGeneratedStructure({
             courseDescription: formData.courseShortOverview,
             enhancedObjectives: formData.courseGoals || [],
@@ -303,7 +303,7 @@ etc.`,
   React.useEffect(() => {
     // Save form data to SAM memory whenever it changes (client-side only)
     if ((formData.courseTitle || formData.courseShortOverview) && typeof window !== 'undefined') {
-      import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
+      import('@/lib/sam/utils/sam-memory-system').then(({ samMemory }) => {
         samMemory.saveWizardData({
           courseTitle: formData.courseTitle || '',
           courseShortOverview: formData.courseShortOverview || '',
@@ -326,7 +326,7 @@ etc.`,
   // Save SAM interactions to memory
   React.useEffect(() => {
     if (samSuggestion && typeof window !== 'undefined') {
-      import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
+      import('@/lib/sam/utils/sam-memory-system').then(({ samMemory }) => {
         samMemory.addWizardInteraction({
           type: 'suggestion',
           content: typeof samSuggestion === 'string' ? samSuggestion : JSON.stringify(samSuggestion),
@@ -339,7 +339,7 @@ etc.`,
   // Initialize SAM session
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
+      import('@/lib/sam/utils/sam-memory-system').then(({ samMemory }) => {
         samMemory.startSession('ai-course-creator');
         samMemory.updateCurrentPage(`ai-creator-step-${step}`);
       });
@@ -349,7 +349,7 @@ etc.`,
   // Update current step in SAM memory
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      import('@/sam/utils/sam-memory-system').then(({ samMemory }) => {
+      import('@/lib/sam/utils/sam-memory-system').then(({ samMemory }) => {
         samMemory.updateCurrentPage(`ai-creator-step-${step}`);
       });
     }

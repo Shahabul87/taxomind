@@ -46,6 +46,13 @@ interface ChapterPageClientProps {
     sections: Section[];
     course: {
       title: string;
+      description: string | null;
+      whatYouWillLearn: string[];
+      courseGoals: string | null;
+      difficulty: string | null;
+      category: {
+        name: string;
+      } | null;
     };
   };
   params: { courseId: string; chapterId: string };
@@ -62,6 +69,16 @@ interface ContentStatistics {
 
 export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClientProps) => {
   const [activeMetricView, setActiveMetricView] = useState<'overview' | 'detailed'>('overview');
+
+  // Create course context for AI generation
+  const courseContext = useMemo(() => ({
+    title: chapter.course.title,
+    description: chapter.course.description,
+    whatYouWillLearn: chapter.course.whatYouWillLearn,
+    courseGoals: chapter.course.courseGoals,
+    difficulty: chapter.course.difficulty,
+    category: chapter.course.category?.name ?? null,
+  }), [chapter.course]);
 
   // Calculate comprehensive content statistics
   const contentStats: ContentStatistics = useMemo(() => {
@@ -376,10 +393,13 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
                   <ChapterDescriptionForm
                     initialData={{
                       title: chapter.title || "",
-                      description: chapter.description || ""
+                      description: chapter.description || "",
+                      learningOutcomes: chapter.learningOutcomes,
+                      position: chapter.position,
                     }}
                     courseId={params.courseId}
                     chapterId={params.chapterId}
+                    courseContext={courseContext}
                   />
                 </div>
               </motion.div>
@@ -416,10 +436,13 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
                   <ChapterLearningOutcomeForm
                     initialData={{
                       title: chapter.title || "",
-                      learningOutcomes: chapter.learningOutcomes || ""
+                      learningOutcomes: chapter.learningOutcomes || "",
+                      description: chapter.description,
+                      position: chapter.position,
                     }}
                     courseId={params.courseId}
                     chapterId={params.chapterId}
+                    courseContext={courseContext}
                   />
                 </div>
               </motion.div>

@@ -1,270 +1,210 @@
 # Understanding SAM AI Tutor Architecture
 
-You are tasked with understanding the SAM (Smart Adaptive Mentor) AI Tutor architecture. Follow this structured learning path to gain comprehensive knowledge of the system.
+You are tasked with understanding the SAM (Smart Adaptive Mentor) AI Tutor architecture. This document has been updated to reflect the **new unified system** implemented in Phase 4.
 
-## 📚 Required Reading Order
+## 📚 Key Documentation
 
-### Step 1: System Overview (15 minutes)
-**Read**: `docs/architecture/sam-ai-tutor/00-OVERVIEW.md`
+### Primary Documentation
+**Read**: `docs/features/sam-ai-system/SAM_OLD_VS_NEW_ARCHITECTURE.md`
 
-**Focus on**:
-- What SAM AI Tutor is (mission and purpose)
-- High-level architecture diagram
-- Key features: Bloom's Taxonomy, Personalization, Analytics, Gamification
-- Technology stack: Anthropic Claude, Next.js 15, Prisma, PostgreSQL
-- System scale: 35+ engines, 80+ API endpoints, 30+ React components
+This is the most comprehensive document explaining:
+- The old system problems and why we unified
+- The new architecture with SAMAgentOrchestrator
+- Complete file mappings (old vs new locations)
+- Data flow diagrams
+- Migration paths
 
-**Key Questions to Answer**:
-1. What problem does SAM solve?
-2. What are the 6 levels of Bloom's Taxonomy?
-3. What is the primary AI provider used?
-4. How many specialized engines exist?
-
-**Summary Required**: In 3-5 sentences, explain what SAM AI Tutor is and its core capabilities.
+### Supporting Documentation
+- `docs/features/sam-ai-system/SAM_UNIFICATION_PLAN.md` - Original unification plan
+- `docs/features/sam-ai-system/PHASE_3_IMPLEMENTATION.md` - State machine details
+- `docs/features/sam-ai-system/PHASE_4_STREAMING.md` - Streaming implementation
 
 ---
 
-### Step 2: Core Engine Architecture (20 minutes)
-**Read**: `docs/architecture/sam-ai-tutor/02-CORE-ENGINES.md`
+## 🏗️ New Unified Architecture
 
-**Focus on**:
-- SAMBaseEngine abstract class (foundation of all engines)
-- 9 core responsibilities: initialization, caching, performance monitoring, error handling, etc.
-- Specialized engine patterns (Bloom's, Personalization, Analytics)
-- Design principles: SOLID, Clean Architecture
-
-**Key Questions to Answer**:
-1. What does SAMBaseEngine provide to all child engines?
-2. How does the caching mechanism work?
-3. What is the engine initialization lifecycle?
-4. How are errors handled in engines?
-
-**Practical Exercise**: Explain in your own words how a new engine would inherit from SAMBaseEngine and what functionality it gets for free.
-
----
-
-### Step 3: File Organization (10 minutes)
-**Read**: `docs/architecture/sam-ai-tutor/08-FILE-MAPPING.md`
-
-**Focus on**:
-- Core Engine Files location: `lib/sam-*-engine.ts`
-- API Route Files location: `app/api/sam/*/route.ts`
-- React Component Files location: `components/sam/` and `app/(protected)/teacher/_components/`
-- Hook Files location: `hooks/use-sam*.ts`
-
-**Key Questions to Answer**:
-1. Where are the core engine files located?
-2. How many API endpoints exist?
-3. Where would you find the Bloom's Analysis Engine?
-4. Where are the React components for SAM chat?
-
-**Practical Exercise**: If you needed to modify the Personalization Engine, what file would you open? Provide the exact path.
-
----
-
-### Step 4: System Workflows (20 minutes)
-**Read**: `docs/architecture/sam-ai-tutor/07-WORKFLOWS.md`
-
-**Focus on**:
-- Request-response cycle (User → Component → API → Engine → AI → Response)
-- Chat with SAM workflow (complete interaction flow)
-- Bloom's Taxonomy Analysis workflow
-- Personalized Learning Path Generation
-- Multi-engine coordination
-
-**Key Questions to Answer**:
-1. What happens when a user sends a chat message?
-2. How does Bloom's Analysis workflow process a course?
-3. How do multiple engines coordinate in a single request?
-4. What is the role of caching in workflows?
-
-**Practical Exercise**: Trace the complete flow of "Student enrolls in course and receives personalized learning path" from start to finish.
-
----
-
-### Step 5: NPM Package Preparation (15 minutes)
-**Read**: `docs/architecture/sam-ai-tutor/09-NPM-PACKAGE-GUIDE.md`
-
-**Focus on**:
-- Package structure and organization
-- Dependency injection strategy
-- API design for consumers
-- Build configuration (TypeScript, tsup)
-- Release strategy
-
-**Key Questions to Answer**:
-1. What is the proposed package name?
-2. How will dependencies be injected into engines?
-3. What are the main export entry points?
-4. What testing strategy is recommended?
-
-**Practical Exercise**: Write a code snippet showing how a developer would use the published npm package to analyze a course with Bloom's Taxonomy.
-
----
-
-## 🎯 Comprehensive Understanding Check
-
-After completing all 5 steps, you should be able to:
-
-### Architecture Questions
-- [ ] Explain the engine-based architecture pattern
-- [ ] Describe the role of SAMBaseEngine
-- [ ] List at least 10 specialized engines and their purposes
-- [ ] Explain how caching reduces AI API costs
-
-### Implementation Questions
-- [ ] Locate any SAM-related file in the codebase
-- [ ] Trace a complete user interaction workflow
-- [ ] Explain how engines coordinate for complex requests
-- [ ] Describe the data flow from UI to database
-
-### NPM Package Questions
-- [ ] Explain the package structure
-- [ ] Describe how to extract SAM from Taxomind
-- [ ] List the steps to prepare for npm release
-- [ ] Write example code using the published package
-
----
-
-## 💡 Quick Reference Guide
-
-### Most Important Files to Know
-
-1. **SAMBaseEngine** (`lib/sam-base-engine.ts`): Foundation of all engines
-2. **BloomsAnalysisEngine** (`lib/sam-blooms-engine.ts`): Cognitive level analysis
-3. **PersonalizationEngine** (`lib/sam-personalization-engine.ts`): Learning customization
-4. **Main Chat API** (`app/api/sam/ai-tutor/chat/route.ts`): Real-time tutoring
-5. **SAM Provider** (`app/(protected)/teacher/_components/sam-ai-tutor-provider.tsx`): React context
-
-### Key Concepts Hierarchy
-
+### Core Package Location
 ```
-SAM AI Tutor System
-├── Core Layer
-│   └── SAMBaseEngine (abstract foundation)
-│       ├── Initialization
-│       ├── Caching (TTL-based)
-│       ├── Performance Monitoring
-│       └── Error Handling
-│
-├── Engine Layer (35+ engines)
-│   ├── Educational Engines
-│   │   ├── Bloom's Taxonomy Analysis
-│   │   ├── Personalization (learning style, emotion, motivation)
-│   │   ├── Analytics (engagement, performance)
-│   │   └── Predictive (outcomes, risk)
-│   ├── Content Engines
-│   │   ├── Generation (courses, chapters)
-│   │   ├── Architect (structure design)
-│   │   └── Exam (assessment creation)
-│   └── Business Engines
-│       ├── Financial (pricing, ROI)
-│       ├── Market (trends, competition)
-│       └── Enterprise (multi-tenant)
-│
-├── API Layer (80+ endpoints)
-│   └── RESTful routes in app/api/sam/
-│
-├── UI Layer (30+ components)
-│   ├── Providers (SAMProvider, GlobalSAMProvider)
-│   ├── Assistants (Chat, Course, Intelligent)
-│   └── Hooks (useSAM, useSAMChat, useSAMCache)
-│
-└── Data Layer
-    ├── Prisma ORM (PostgreSQL)
-    └── Redis Cache (optional)
+packages/core/src/           # @sam-ai/core package
+├── orchestrator.ts          # SAMAgentOrchestrator (main entry)
+├── state-machine.ts         # SAMStateMachine
+├── types/                   # TypeScript definitions
+├── engines/                 # 6 unified engines
+│   ├── context/
+│   ├── blooms/
+│   ├── content/
+│   ├── personalization/
+│   ├── assessment/
+│   └── response/
+├── adapters/               # AI and cache adapters
+└── errors/                 # Error handling
 ```
 
-### Common Workflows to Memorize
+### Active SAM Files
+```
+components/sam/
+├── SAMAssistant.tsx         # Main unified component
+├── sam-global-provider.tsx  # Global provider
 
-1. **Simple Chat**: User types → API → Context gathering → AI call → Response
-2. **Bloom's Analysis**: Course ID → Fetch content → Anthropic analysis → Distribution calculation → Recommendations
-3. **Personalization**: User behavior → Pattern detection → Style classification → Path generation → Content adaptation
-4. **Multi-Engine**: Request → Orchestrator → Parallel engine calls → Result aggregation → Unified response
+app/api/sam/unified/
+├── route.ts                 # Main API endpoint
+└── stream/route.ts          # SSE streaming
 
----
-
-## 🔍 Advanced Topics (Optional)
-
-After mastering the basics, explore:
-
-1. **API Design Patterns**: How SAM uses dependency injection
-2. **Caching Strategies**: Multi-layer caching with TTL expiration
-3. **Error Handling**: Graceful degradation and fallback mechanisms
-4. **Performance Optimization**: Parallelization and lazy loading
-5. **Security Patterns**: Input validation, sanitization, rate limiting
+lib/sam/
+├── form-actions.ts          # Form field detection
+├── gamification.ts          # XP, levels, achievements
+└── engine-presets.ts        # Engine selection
+```
 
 ---
 
-## 📊 Self-Assessment Quiz
+## 🎯 Key Concepts to Understand
 
-### Beginner Level
-1. What does SAM stand for?
-2. What is Bloom's Taxonomy used for?
-3. How many cognitive levels are in Bloom's Taxonomy?
-4. What is the primary AI provider?
+### 1. SAMAgentOrchestrator
+The central orchestrator that:
+- Manages engine registration and dependencies
+- Uses **topological sort** for execution order
+- Runs independent engines in **parallel**
+- Handles errors gracefully with fallbacks
 
-### Intermediate Level
-5. What does SAMBaseEngine provide to child engines?
-6. How does the caching mechanism reduce costs?
-7. What happens during engine initialization?
-8. Name 5 specialized engines and their purposes.
+```typescript
+// Key pattern
+const orchestrator = new SAMAgentOrchestrator(config);
+orchestrator.registerEngine(createContextEngine(config));
+orchestrator.registerEngine(createBloomsEngine(config));
+// ... register all engines
 
-### Advanced Level
-9. Trace the complete flow of a Bloom's Analysis request from UI to response.
-10. Explain how multiple engines coordinate in a personalization request.
-11. How would you add a new custom engine to the system?
-12. Describe the dependency injection strategy for the npm package.
+const result = await orchestrator.orchestrate(context, message, options);
+```
 
-**Scoring**:
-- 12/12: Expert - Ready to contribute
-- 9-11/12: Proficient - Good understanding
-- 6-8/12: Intermediate - Review specific sections
-- 0-5/12: Beginner - Re-read documentation
+### 2. Engine Dependency Graph
+Engines declare dependencies and execute in tiers:
+```
+Tier 1 (Parallel): context, personalization
+Tier 2 (After Tier 1): blooms, content
+Tier 3 (After all): response, assessment
+```
 
----
+### 3. State Machine
+States: `idle` → `processing` → `success`/`error` → `idle`
 
-## 🚀 Next Steps After Understanding
-
-Once you understand the architecture:
-
-1. **Explore the Codebase**: Use file mapping to locate and read actual implementations
-2. **Run Examples**: Test API endpoints and React components locally
-3. **Modify Code**: Make small changes to understand behavior
-4. **Contribute**: Add new features or improve existing engines
-5. **Prepare Package**: Follow the npm package guide to extract SAM
+### 4. Unified API
+Single endpoint: `POST /api/sam/unified`
+- Accepts message, pageContext, formContext, conversationHistory
+- Returns response, suggestions, actions, insights, metadata
 
 ---
 
-## 💬 Getting Help
+## 📁 File Location Quick Reference
 
-If you're stuck on any concept:
-
-1. **Re-read relevant section**: Most answers are in the documentation
-2. **Check cross-references**: Documents link to related topics
-3. **Review diagrams**: ASCII diagrams visualize complex flows
-4. **Read examples**: Code snippets demonstrate usage patterns
-5. **Ask specific questions**: Reference document and section when asking
-
----
-
-## ✅ Completion Checklist
-
-- [ ] Read all 5 required documents in order
-- [ ] Answered all key questions for each step
-- [ ] Completed practical exercises
-- [ ] Can explain SAM architecture in your own words
-- [ ] Passed the self-assessment quiz (9+ correct)
-- [ ] Can locate any SAM file in the codebase
-- [ ] Understand at least 3 complete workflows
-- [ ] Ready to work with SAM codebase or prepare npm package
-
-**Estimated Total Time**: 80 minutes (1 hour 20 minutes)
-
-**Difficulty Level**: Intermediate to Advanced
-
-**Prerequisites**: Understanding of TypeScript, React, Next.js, and AI concepts
+| What You Need | Location |
+|--------------|----------|
+| Main orchestrator | `packages/core/src/orchestrator.ts` |
+| Engine implementations | `packages/core/src/engines/*/` |
+| Main component | `components/sam/SAMAssistant.tsx` |
+| API endpoint | `app/api/sam/unified/route.ts` |
+| Streaming | `app/api/sam/unified/stream/route.ts` |
+| Form actions | `lib/sam/form-actions.ts` |
+| Gamification | `lib/sam/gamification.ts` |
+| Global provider | `components/sam/sam-global-provider.tsx` |
 
 ---
 
-**Note**: This is a comprehensive learning path. Focus on understanding concepts over memorizing details. The goal is to build a mental model of how SAM works, not to memorize every file location or API endpoint.
+## ⚠️ Deprecated Code
+
+All deprecated SAM code has been moved to:
+```
+sam_ai_deprecated/
+├── README.md                 # Explains what was deprecated and why
+├── sam-ai-tutor-legacy/      # Old engines (40+ files)
+├── teacher-sam-components/   # Old providers (5 nested providers)
+├── old-providers/            # Additional old providers
+└── old-docs/                 # Old architecture documentation
+```
+
+**Do not use deprecated code.** It exists only for historical reference.
+
+---
+
+## 🔍 Understanding the New System
+
+### Step 1: Read the Architecture Doc (15 min)
+```bash
+# Read this first
+docs/features/sam-ai-system/SAM_OLD_VS_NEW_ARCHITECTURE.md
+```
+
+### Step 2: Explore the Core Package (20 min)
+```bash
+# Understand the orchestrator
+packages/core/src/orchestrator.ts
+
+# Understand an engine
+packages/core/src/engines/blooms/engine.ts
+```
+
+### Step 3: See It In Action (15 min)
+```bash
+# Main component
+components/sam/SAMAssistant.tsx
+
+# API endpoint
+app/api/sam/unified/route.ts
+```
+
+### Step 4: Understand Data Flow (10 min)
+```
+User Message
+     ↓
+SAMAssistant.tsx (handleSendMessage)
+     ↓
+POST /api/sam/unified
+     ↓
+SAMAgentOrchestrator.orchestrate()
+     ↓
+Engine Execution (parallel where safe)
+     ↓
+Response aggregation
+     ↓
+JSON Response to frontend
+```
+
+---
+
+## ✅ Understanding Checklist
+
+After reading the documentation:
+
+- [ ] Understand why old system was problematic (5 providers, no dependency awareness)
+- [ ] Know where @sam-ai/core package lives
+- [ ] Can explain SAMAgentOrchestrator role
+- [ ] Understand engine dependency graph concept
+- [ ] Know the 6 unified engines
+- [ ] Can locate main component (SAMAssistant.tsx)
+- [ ] Know the unified API endpoint location
+- [ ] Understand form actions and gamification features
+- [ ] Know where deprecated code lives (and to not use it)
+
+---
+
+## 💡 Common Tasks
+
+### Adding a New Engine
+1. Create engine in `packages/core/src/engines/your-engine/`
+2. Implement `SAMEngine` interface
+3. Register in orchestrator with dependencies
+4. Export from `packages/core/src/index.ts`
+
+### Modifying SAM UI
+1. Edit `components/sam/SAMAssistant.tsx`
+2. Use hooks: `useSAMAssistant()` for state
+3. Form actions available in `lib/sam/form-actions.ts`
+
+### Debugging SAM
+1. Check browser console for client errors
+2. Check server logs for API errors
+3. Orchestrator logs engine execution order and timing
+
+---
+
+**Last Updated**: December 2024 (Phase 4 Unification Complete)

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import getAnthropicClient from '@/lib/anthropic-client';
 import { logger } from '@/lib/logger';
-import { applyRateLimit, samConversationLimiter } from '@/sam/config/sam-rate-limiter';
+import { applyRateLimit, samConversationLimiter } from '@/lib/sam/config/sam-rate-limiter';
 
 // Redact potentially sensitive values from pageContext before sending to LLM
 function scrubDataContext(dataContext: any) {

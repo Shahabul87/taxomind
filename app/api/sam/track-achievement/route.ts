@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { trackAchievementProgress } from '@/sam/engines/educational/sam-achievement-engine';
+import { trackAchievementProgress } from '@/lib/sam-engines/educational/sam-achievement-engine';
 import { logger } from '@/lib/logger';
 
 /**

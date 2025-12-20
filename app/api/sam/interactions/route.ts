@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { recordSAMInteraction } from '@/sam/utils/sam-database';
+import { recordSAMInteraction } from '@/lib/sam/utils/sam-database';
 import { SAMInteractionType } from '@prisma/client';
 import { logger } from '@/lib/logger';
 

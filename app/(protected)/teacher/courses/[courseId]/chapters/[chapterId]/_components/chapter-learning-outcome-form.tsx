@@ -21,13 +21,25 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import TipTapEditor from "@/components/tiptap/editor";
 
+interface CourseContext {
+  title?: string;
+  description?: string | null;
+  whatYouWillLearn?: string[];
+  courseGoals?: string | null;
+  difficulty?: string | null;
+  category?: string | null;
+}
+
 interface ChapterLearningOutcomeFormProps {
   initialData: {
     learningOutcomes: string | null;
     title: string;
+    description?: string | null;
+    position?: number;
   };
   courseId: string;
   chapterId: string;
+  courseContext?: CourseContext;
 }
 
 const formSchema = z.object({
@@ -40,6 +52,7 @@ export const ChapterLearningOutcomeForm = ({
   initialData,
   courseId,
   chapterId,
+  courseContext,
 }: ChapterLearningOutcomeFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -180,6 +193,11 @@ export const ChapterLearningOutcomeForm = ({
                 type="objectives"
                 onGenerate={handleAIGenerate}
                 disabled={!initialData.title}
+                courseContext={courseContext}
+                chapterContext={{
+                  description: initialData.description,
+                  position: initialData.position,
+                }}
                 trigger={
                   <Button
                     size="sm"

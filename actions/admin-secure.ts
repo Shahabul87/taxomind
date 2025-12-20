@@ -316,7 +316,7 @@ export async function isAdminSecure() {
     }
 
     // Double-check with database to ensure role hasn't changed
-    // NOTE: Admins are now in AdminAccount table, not User table
+    // NOTE: Admins are stored in AdminAccount table (separate from User table)
     const admin = await db.adminAccount.findUnique({
       where: { id: session.user.id },
       select: {
@@ -340,7 +340,7 @@ export async function isAdminSecure() {
       isAdmin: true,
       user: admin
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error("[IS_ADMIN_SECURE_ERROR]", error);
     throw error;
   }

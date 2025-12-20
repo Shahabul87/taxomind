@@ -29,7 +29,16 @@ const ChapterIdPage = async (
       },
       course: {
         select: {
-          title: true
+          title: true,
+          description: true,
+          whatYouWillLearn: true,
+          courseGoals: true,
+          difficulty: true,
+          category: {
+            select: {
+              name: true
+            }
+          }
         }
       }
     }

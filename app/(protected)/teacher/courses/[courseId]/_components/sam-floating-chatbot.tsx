@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { samMemory } from '@/sam/utils/sam-memory-system';
+import { samMemory } from '@/lib/sam/utils/sam-memory-system';
 
 interface ChatMessage {
   id: string;
