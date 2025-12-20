@@ -23,6 +23,27 @@ import TipTapEditor from "@/components/tiptap/editor";
 import ContentViewer from "@/components/tiptap/content-viewer";
 import { AISectionContentGenerator } from "./ai-section-content-generator";
 
+interface CourseContext {
+  title: string;
+  description: string | null;
+  whatYouWillLearn: string[];
+  courseGoals: string | null;
+  difficulty: string | null;
+  category: string | null;
+}
+
+interface ChapterContext {
+  description: string | null;
+  learningOutcomes: string | null;
+  position: number;
+}
+
+interface SectionContext {
+  position: number;
+  existingDescription: string | null;
+  existingObjectives: string | null;
+}
+
 interface SectionLearningObjectivesFormProps {
   initialData: {
     learningObjectives: string | null;
@@ -32,6 +53,9 @@ interface SectionLearningObjectivesFormProps {
   chapterId: string;
   sectionId: string;
   chapterTitle: string;
+  courseContext?: CourseContext;
+  chapterContext?: ChapterContext;
+  sectionContext?: SectionContext;
 }
 
 const formSchema = z.object({
@@ -46,6 +70,9 @@ export const SectionLearningObjectivesForm = ({
   chapterId,
   sectionId,
   chapterTitle,
+  courseContext,
+  chapterContext,
+  sectionContext,
 }: SectionLearningObjectivesFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -192,6 +219,9 @@ export const SectionLearningObjectivesForm = ({
                 onGenerate={handleAIGenerate}
                 disabled={!initialData.title}
                 existingContent={initialData.learningObjectives}
+                courseContext={courseContext}
+                chapterContext={chapterContext}
+                sectionContext={sectionContext}
                 trigger={
                   <Button
                     size="sm"

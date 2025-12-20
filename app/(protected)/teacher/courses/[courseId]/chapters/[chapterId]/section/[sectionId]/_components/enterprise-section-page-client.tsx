@@ -60,6 +60,28 @@ export const EnterpriseSectionPageClient = ({
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [activeMetricView, setActiveMetricView] = useState<'overview' | 'detailed'>('overview');
 
+  // Create context objects for AI generation
+  const courseContext = useMemo(() => ({
+    title: chapter.course.title,
+    description: chapter.course.description ?? null,
+    whatYouWillLearn: chapter.course.whatYouWillLearn ?? [],
+    courseGoals: chapter.course.courseGoals ?? null,
+    difficulty: chapter.course.difficulty ?? null,
+    category: chapter.course.category?.name ?? null,
+  }), [chapter.course]);
+
+  const chapterContext = useMemo(() => ({
+    description: chapter.description ?? null,
+    learningOutcomes: chapter.learningOutcomes ?? null,
+    position: chapter.position,
+  }), [chapter.description, chapter.learningOutcomes, chapter.position]);
+
+  const sectionContext = useMemo(() => ({
+    position: section.position,
+    existingDescription: section.description ?? null,
+    existingObjectives: section.learningObjectives ?? null,
+  }), [section.position, section.description, section.learningObjectives]);
+
   // Calculate comprehensive content statistics
   const contentStats: ContentStatistics = useMemo(() => {
     const hasTitle = Boolean(section.title);
@@ -542,6 +564,9 @@ export const EnterpriseSectionPageClient = ({
                       chapterId={params.chapterId}
                       sectionId={params.sectionId}
                       chapterTitle={chapter.title}
+                      courseContext={courseContext}
+                      chapterContext={chapterContext}
+                      sectionContext={sectionContext}
                     />
                   </CardContent>
                 </Card>
@@ -574,6 +599,9 @@ export const EnterpriseSectionPageClient = ({
                       chapterId={params.chapterId}
                       sectionId={params.sectionId}
                       chapterTitle={chapter.title}
+                      courseContext={courseContext}
+                      chapterContext={chapterContext}
+                      sectionContext={sectionContext}
                     />
                   </CardContent>
                 </Card>

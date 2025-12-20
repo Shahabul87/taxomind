@@ -136,6 +136,8 @@ async function SectionContent(props: {
           select: {
             id: true,
             title: true,
+            description: true,
+            learningOutcomes: true,
             position: true,
             isPublished: true,
             isFree: true,
@@ -147,6 +149,16 @@ async function SectionContent(props: {
                 id: true,
                 title: true,
                 userId: true,
+                description: true,
+                whatYouWillLearn: true,
+                courseGoals: true,
+                difficulty: true,
+                category: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },

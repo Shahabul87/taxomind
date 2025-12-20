@@ -33,7 +33,26 @@ const SectionContentGenerationRequestSchema = z.object({
   contentType: z.enum(['learningObjectives', 'description']),
   userPrompt: z.string().optional().transform(val => val === '' ? undefined : val),
   focusArea: z.string().optional().transform(val => val === '' ? undefined : val),
-  existingContent: z.string().nullable().optional().transform(val => val === '' ? undefined : val)
+  existingContent: z.string().nullable().optional().transform(val => val === '' ? undefined : val),
+  // Rich context fields
+  courseContext: z.object({
+    title: z.string().optional(),
+    description: z.string().nullable().optional(),
+    whatYouWillLearn: z.array(z.string()).optional(),
+    courseGoals: z.string().nullable().optional(),
+    difficulty: z.string().nullable().optional(),
+    category: z.string().nullable().optional(),
+  }).optional(),
+  chapterContext: z.object({
+    description: z.string().nullable().optional(),
+    learningOutcomes: z.string().nullable().optional(),
+    position: z.number().optional(),
+  }).optional(),
+  sectionContext: z.object({
+    position: z.number().optional(),
+    existingDescription: z.string().nullable().optional(),
+    existingObjectives: z.string().nullable().optional(),
+  }).optional(),
 });
 
 type SectionContentGenerationRequest = z.infer<typeof SectionContentGenerationRequestSchema>;
@@ -64,15 +83,58 @@ Your expertise includes:
 You MUST respond with valid HTML formatted content using <p> tags for paragraphs. Do not include any text outside the HTML.`
 };
 
+function buildContextSection(request: SectionContentGenerationRequest): string {
+  let contextSection = '';
+
+  if (request.courseContext) {
+    const { title, description, whatYouWillLearn, courseGoals, difficulty, category } = request.courseContext;
+    contextSection += '\n\n## COURSE CONTEXT (Use this to align section content):\n';
+
+    if (title) contextSection += `**Course Title**: ${title}\n`;
+    if (category) contextSection += `**Category**: ${category}\n`;
+    if (difficulty) contextSection += `**Difficulty Level**: ${difficulty}\n`;
+    if (description) contextSection += `**Course Description**: ${description.substring(0, 500)}${description.length > 500 ? '...' : ''}\n`;
+    if (courseGoals) contextSection += `**Course Goals**: ${courseGoals}\n`;
+    if (whatYouWillLearn && whatYouWillLearn.length > 0) {
+      contextSection += `**Course Learning Outcomes**:\n${whatYouWillLearn.slice(0, 5).map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}\n`;
+    }
+  }
+
+  if (request.chapterContext) {
+    const { description, learningOutcomes, position } = request.chapterContext;
+    contextSection += '\n## CHAPTER CONTEXT:\n';
+
+    if (position !== undefined) contextSection += `**Chapter Position**: Chapter ${position + 1}\n`;
+    if (description) contextSection += `**Chapter Description**: ${description.substring(0, 300)}${description.length > 300 ? '...' : ''}\n`;
+    if (learningOutcomes) contextSection += `**Chapter Learning Outcomes**: ${learningOutcomes.substring(0, 300)}${learningOutcomes.length > 300 ? '...' : ''}\n`;
+  }
+
+  if (request.sectionContext) {
+    const { position, existingDescription, existingObjectives } = request.sectionContext;
+    contextSection += '\n## SECTION CONTEXT:\n';
+
+    if (position !== undefined) contextSection += `**Section Position**: Section ${position + 1}\n`;
+    if (existingDescription && request.contentType === 'learningObjectives') {
+      contextSection += `**Section Description**: ${existingDescription.substring(0, 300)}\n`;
+    }
+    if (existingObjectives && request.contentType === 'description') {
+      contextSection += `**Existing Learning Objectives**: ${existingObjectives.substring(0, 300)}\n`;
+    }
+  }
+
+  return contextSection;
+}
+
 function buildLearningObjectivesPrompt(request: SectionContentGenerationRequest): string {
   const focusText = request.focusArea ? `\n**Focus Area**: ${request.focusArea}` : '';
   const userInstructions = request.userPrompt ? `\n**Special Instructions**: ${request.userPrompt}` : '';
+  const contextSection = buildContextSection(request);
 
   return `Create comprehensive, measurable learning objectives for the following section:
 
 **Section Title**: ${request.sectionTitle}
 **Chapter**: ${request.chapterTitle}${focusText}${userInstructions}
-
+${contextSection}
 **Requirements**:
 
 1. **Use Bloom's Taxonomy Verbs**:
@@ -118,12 +180,13 @@ Respond ONLY with the HTML-formatted learning objectives. No additional text or 
 function buildDescriptionPrompt(request: SectionContentGenerationRequest): string {
   const focusText = request.focusArea ? `\n**Focus Area**: ${request.focusArea}` : '';
   const userInstructions = request.userPrompt ? `\n**Special Instructions**: ${request.userPrompt}` : '';
+  const contextSection = buildContextSection(request);
 
   return `Create a comprehensive, engaging description for the following section:
 
 **Section Title**: ${request.sectionTitle}
 **Chapter**: ${request.chapterTitle}${focusText}${userInstructions}
-
+${contextSection}
 **Requirements**:
 
 1. **Structure** (4 paragraphs):

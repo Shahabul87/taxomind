@@ -12,6 +12,27 @@ import { toast } from "sonner";
 import { logger } from '@/lib/logger';
 import { Badge } from "@/components/ui/badge";
 
+interface CourseContext {
+  title: string;
+  description: string | null;
+  whatYouWillLearn: string[];
+  courseGoals: string | null;
+  difficulty: string | null;
+  category: string | null;
+}
+
+interface ChapterContext {
+  description: string | null;
+  learningOutcomes: string | null;
+  position: number;
+}
+
+interface SectionContext {
+  position: number;
+  existingDescription: string | null;
+  existingObjectives: string | null;
+}
+
 interface AISectionContentGeneratorProps {
   sectionTitle: string;
   chapterTitle: string;
@@ -23,6 +44,9 @@ interface AISectionContentGeneratorProps {
   trigger?: React.ReactNode;
   disabled?: boolean;
   existingContent?: string | null;
+  courseContext?: CourseContext;
+  chapterContext?: ChapterContext;
+  sectionContext?: SectionContext;
 }
 
 export const AISectionContentGenerator = ({
@@ -35,7 +59,10 @@ export const AISectionContentGenerator = ({
   onGenerate,
   trigger,
   disabled = false,
-  existingContent
+  existingContent,
+  courseContext,
+  chapterContext,
+  sectionContext
 }: AISectionContentGeneratorProps) => {
   const [open, setOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -115,7 +142,10 @@ export const AISectionContentGenerator = ({
         contentType,
         userPrompt,
         focusArea,
-        existingContent
+        existingContent,
+        courseContext,
+        chapterContext,
+        sectionContext
       };
 
       logger.info('Sending request to AI API:', payload);

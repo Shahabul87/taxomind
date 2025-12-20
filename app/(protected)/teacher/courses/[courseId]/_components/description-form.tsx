@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { Course } from "@prisma/client";
 import TipTapEditor from "@/components/tiptap/editor";
 import ContentViewer from "@/components/tiptap/content-viewer";
+import { PremiumAIGate } from "@/components/premium/premium-ai-gate";
+import { useIsPremium } from "@/hooks/use-premium-status";
 
 interface DescriptionFormProps {
   initialData: Course & { title?: string };
@@ -48,6 +50,8 @@ export const DescriptionForm = ({
   const [pendingSamData, setPendingSamData] = useState<{ description?: string; content?: string } | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [truncatedContent, setTruncatedContent] = useState("");
+
+  const isPremium = useIsPremium();
 
   const toggleEdit = () => setIsEditing((current) => !current);
 
@@ -290,46 +294,48 @@ export const DescriptionForm = ({
 
             {/* Buttons below description - aligned to right */}
             <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-end gap-2">
-              <ErrorBoundary
-                fallback={
-                  <Button
-                    variant="outline"
-                    type="button"
-                    size="sm"
-                    disabled
-                    className="h-9 sm:h-10 w-full xs:w-auto text-xs sm:text-sm"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                    AI Error
-                  </Button>
-                }
-              >
-                <AICourseAssistant
-                  courseTitle={initialData.title || ""}
-                  type="description"
-                  onGenerate={handleAIGenerate}
-                  disabled={!initialData.title}
-                  trigger={
+              <PremiumAIGate isPremium={isPremium} featureName="AI Description Generation">
+                <ErrorBoundary
+                  fallback={
                     <Button
+                      variant="outline"
+                      type="button"
                       size="sm"
-                      disabled={!initialData.title}
-                      className={cn(
-                        "h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
-                        "bg-gradient-to-r from-sky-500 to-blue-500",
-                        "hover:from-sky-600 hover:to-blue-600",
-                        "text-white font-semibold",
-                        "shadow-md hover:shadow-lg",
-                        "transition-all duration-200",
-                        "disabled:opacity-50 disabled:cursor-not-allowed"
-                      )}
+                      disabled
+                      className="h-9 sm:h-10 w-full xs:w-auto text-xs sm:text-sm"
                     >
                       <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                      <span className="hidden xs:inline">Generate with AI</span>
-                      <span className="xs:hidden">AI Generate</span>
+                      AI Error
                     </Button>
                   }
-                />
-              </ErrorBoundary>
+                >
+                  <AICourseAssistant
+                    courseTitle={initialData.title || ""}
+                    type="description"
+                    onGenerate={handleAIGenerate}
+                    disabled={!initialData.title}
+                    trigger={
+                      <Button
+                        size="sm"
+                        disabled={!initialData.title}
+                        className={cn(
+                          "h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
+                          "bg-gradient-to-r from-sky-500 to-blue-500",
+                          "hover:from-sky-600 hover:to-blue-600",
+                          "text-white font-semibold",
+                          "shadow-md hover:shadow-lg",
+                          "transition-all duration-200",
+                          "disabled:opacity-50 disabled:cursor-not-allowed"
+                        )}
+                      >
+                        <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                        <span className="hidden xs:inline">Generate with AI</span>
+                        <span className="xs:hidden">AI Generate</span>
+                      </Button>
+                    }
+                  />
+                </ErrorBoundary>
+              </PremiumAIGate>
               <Button
                 onClick={toggleEdit}
                 variant="outline"

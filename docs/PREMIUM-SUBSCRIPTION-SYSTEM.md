@@ -483,6 +483,39 @@ GET /api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/video
 - [ ] Test subscription expiration handling
 - [ ] Test lifetime subscription (never expires)
 
+### AI Button Premium Gate (48 files to update)
+
+Files with AI "Generate with AI" buttons that need `PremiumAIGate` wrapper:
+
+**Pattern to apply:**
+```tsx
+// 1. Add imports at top of file
+import { PremiumAIGate } from "@/components/premium/premium-ai-gate";
+import { useIsPremium } from "@/hooks/use-premium-status";
+
+// 2. Add hook inside component
+const isPremium = useIsPremium();
+
+// 3. Wrap AI button with PremiumAIGate
+<PremiumAIGate isPremium={isPremium} featureName="AI Content Generation">
+  {/* existing AI button code */}
+</PremiumAIGate>
+```
+
+**Files to update:**
+- [x] `teacher/courses/[courseId]/_components/description-form.tsx`
+- [ ] `teacher/courses/[courseId]/_components/chapters-form.tsx`
+- [ ] `teacher/courses/[courseId]/_components/course-learning-outcome-form.tsx`
+- [ ] `teacher/courses/[courseId]/_components/ai-course-assistant.tsx`
+- [ ] `teacher/courses/[courseId]/chapters/[chapterId]/_components/chapter-description-form.tsx`
+- [ ] `teacher/courses/[courseId]/chapters/[chapterId]/_components/chapter-learning-outcome-form.tsx`
+- [ ] `teacher/courses/[courseId]/chapters/[chapterId]/_components/ai-chapter-content-generator.tsx`
+- [ ] `teacher/courses/[courseId]/chapters/[chapterId]/section/[sectionId]/_components/section-description-form.tsx`
+- [ ] `teacher/courses/[courseId]/chapters/[chapterId]/section/[sectionId]/_components/section-learning-objectives-form.tsx`
+- [ ] `teacher/courses/[courseId]/chapters/[chapterId]/section/[sectionId]/_components/ai-exam-assistant.tsx`
+- [ ] `teacher/create/ai-creator/page.tsx` (entire page should check premium)
+- [ ] ... (see full list with: `grep -r "Generate with AI\|Sparkles" teacher/`)
+
 ### Production Deployment
 
 - [ ] Switch Stripe keys to production
@@ -490,6 +523,7 @@ GET /api/courses/[courseId]/chapters/[chapterId]/sections/[sectionId]/video
 - [ ] Configure cron job for `processExpiredSubscriptions()`
 - [ ] Monitor webhook delivery in Stripe dashboard
 - [ ] Set up alerts for failed payments
+- [ ] Apply PremiumAIGate to all 48 teacher AI files
 
 ---
 

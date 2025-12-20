@@ -124,6 +124,7 @@ export interface Chapter {
   id: string;
   title: string;
   description?: string | null;
+  learningOutcomes?: string | null;
   position: number;
   isPublished: boolean;
   isFree: boolean;
@@ -136,6 +137,13 @@ export interface Chapter {
     userId: string;
     description?: string | null;
     imageUrl?: string | null;
+    whatYouWillLearn?: string[];
+    courseGoals?: string | null;
+    difficulty?: string | null;
+    category?: {
+      id: string;
+      name: string;
+    } | null;
   };
   createdAt: Date | string;
   updatedAt: Date | string;

@@ -92,3 +92,12 @@ export function useSAMFeatureAccess(feature: string) {
     isUnlimited: status?.samAi.isUnlimited ?? false,
   };
 }
+
+/**
+ * Simple hook to check if user is premium
+ * Returns just the boolean for easy use in components
+ */
+export function useIsPremium(): boolean {
+  const { status } = usePremiumStatus();
+  return status?.isPremium ?? false;
+}
