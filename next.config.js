@@ -405,6 +405,24 @@ const nextConfig = {
                          'http://localhost:3000';
 
     return [
+      // Health check endpoints - no CORS restrictions (Railway healthcheck needs this)
+      {
+        source: '/api/healthz',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,HEAD,OPTIONS' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+        ]
+      },
+      {
+        source: '/api/health',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,HEAD,OPTIONS' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+        ]
+      },
+      // All other API routes - restricted CORS
       {
         source: '/api/:path*',
         headers: [
