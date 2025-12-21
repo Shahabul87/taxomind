@@ -101,11 +101,20 @@ interface FilterOptions {
   features: Array<{ value: string; label: string }>;
 }
 
+interface UserData {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  role: string | null;
+}
+
 interface CoursesPageClientProps {
   initialCourses: CourseData[];
   filterOptions: FilterOptions;
   totalCourses: number;
   userId?: string;
+  user?: UserData;
 }
 
 type ViewMode = "grid" | "list" | "compact" | "card";
@@ -123,7 +132,8 @@ export function CoursesPageClient({
   initialCourses,
   filterOptions,
   totalCourses,
-  userId
+  userId,
+  user
 }: CoursesPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -431,6 +441,7 @@ export function CoursesPageClient({
       filterOptions={filterOptions}
       totalCourses={totalCount}
       userId={userId}
+      user={user}
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
       isLoading={isLoading}

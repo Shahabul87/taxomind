@@ -49,12 +49,20 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { FilterResultsPreview } from "./FilterResultsPreview";
 import { useToast } from "@/components/ui/use-toast";
-import { UserButton } from "@/components/auth/user-button";
+import { UserMenu } from "@/app/(homepage)/_components/user-menu";
 
 interface FilterOptions {
   categories?: Array<{ id: string; name: string; count: number }>;
   priceRanges?: Array<{ label: string; min: number; max: number }>;
   difficulties?: Array<{ value: string; label: string; count: number }>;
+}
+
+interface UserData {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  role: string | null;
 }
 
 interface CoursesNavbarResizableProps {
@@ -70,6 +78,7 @@ interface CoursesNavbarResizableProps {
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   userId?: string;
+  user?: UserData;
 }
 
 // AI-Powered Smart Suggestions
@@ -149,7 +158,8 @@ export function CoursesNavbarResizable({
   onClearAll,
   searchQuery = "",
   onSearchChange,
-  userId
+  userId,
+  user
 }: CoursesNavbarResizableProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>("ai");
@@ -882,15 +892,15 @@ export function CoursesNavbarResizable({
               </DropdownMenu>
 
               {/* User Authentication Section */}
-              {userId ? (
-                // Show User Avatar for logged-in users
+              {userId && user ? (
+                // Show User Menu for logged-in users
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3 }}
                   className="flex items-center gap-2"
                 >
-                  <UserButton />
+                  <UserMenu user={user} />
                 </motion.div>
               ) : (
                 // Show Join Free button for guests

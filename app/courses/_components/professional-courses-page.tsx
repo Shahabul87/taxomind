@@ -310,12 +310,22 @@ const ProfessionalFilterSidebar = ({
   );
 };
 
+// User data interface
+interface UserData {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  role: string | null;
+}
+
 // Main Professional Courses Page Component
 export function ProfessionalCoursesPage({
   initialCourses,
   filterOptions,
   totalCourses,
   userId,
+  user,
   searchQuery = "",
   onSearchChange,
   isLoading = false,
@@ -334,6 +344,7 @@ export function ProfessionalCoursesPage({
   filterOptions: FilterOptions;
   totalCourses: number;
   userId?: string;
+  user?: UserData;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   isLoading?: boolean;
@@ -449,6 +460,7 @@ export function ProfessionalCoursesPage({
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
         userId={userId}
+        user={user}
       />
 
       {/* Enhanced Hero Section */}

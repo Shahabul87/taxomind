@@ -234,6 +234,13 @@ async function getInitialData() {
       filterOptions,
       totalCourses,
       userId: user?.id,
+      user: user ? {
+        id: user.id,
+        name: user.name || null,
+        email: user.email || null,
+        image: user.image || null,
+        role: user.role || null,
+      } : null,
     };
   } catch (error) {
     console.error("[CoursesPage] FATAL ERROR - Data fetch failed:", error);
@@ -252,6 +259,7 @@ async function getInitialData() {
       },
       totalCourses: 0,
       userId: null,
+      user: null,
     };
   }
 }
@@ -305,6 +313,7 @@ export default async function CoursesPage() {
         filterOptions={initialData.filterOptions}
         totalCourses={initialData.totalCourses}
         userId={initialData.userId || undefined}
+        user={initialData.user || undefined}
       />
     </Suspense>
   );
