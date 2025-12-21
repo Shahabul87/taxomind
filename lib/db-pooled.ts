@@ -217,13 +217,34 @@ declare global {
   var prisma: ReturnType<typeof prismaClientSingleton> | undefined;
 }
 
-// Export singleton instance
-export const db = globalThis.prisma ?? prismaClientSingleton();
+/**
+ * Lazy-loaded database client getter
+ * Prevents build-time and early runtime errors when DATABASE_URL isn't immediately available
+ * The actual connection is only created when first accessed
+ */
+export const getDb = (): ReturnType<typeof prismaClientSingleton> => {
+  if (!globalThis.prisma) {
+    globalThis.prisma = prismaClientSingleton();
+  }
+  return globalThis.prisma;
+};
 
-// Store in global for development to prevent multiple instances
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = db;
-}
+/**
+ * Lazy-loaded singleton instance for backward compatibility
+ * Uses a Proxy to defer actual instantiation until first property access
+ * This allows the module to be imported without crashing even if DATABASE_URL isn't set yet
+ */
+export const db = new Proxy({} as ReturnType<typeof prismaClientSingleton>, {
+  get(target, prop) {
+    const instance = getDb();
+    const value = (instance as any)[prop];
+    // If it's a function, bind it to the instance
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});
 
 // Export metrics for monitoring
 export const getDbMetrics = () => DatabaseMetrics.getMetrics();
@@ -236,7 +257,8 @@ export async function checkDatabaseHealth(): Promise<{
 }> {
   const start = Date.now();
   try {
-    await db.$queryRaw`SELECT 1`;
+    const dbInstance = getDb();
+    await dbInstance.$queryRaw`SELECT 1`;
     return {
       healthy: true,
       latency: Date.now() - start,
@@ -253,5 +275,7 @@ export async function checkDatabaseHealth(): Promise<{
 
 // Graceful shutdown
 process.on('beforeExit', async () => {
-  await db.$disconnect();
+  if (globalThis.prisma) {
+    await globalThis.prisma.$disconnect();
+  }
 });

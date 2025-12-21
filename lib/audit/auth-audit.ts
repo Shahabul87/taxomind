@@ -735,8 +735,33 @@ class AuthenticationAuditLogger {
   }
 }
 
-// Export singleton instance and helper functions
-export const authAudit = AuthenticationAuditLogger.getInstance();
+/**
+ * Lazy-loaded singleton getter
+ * Prevents module-load-time initialization issues in production environments
+ */
+let authAuditInstance: AuthenticationAuditLogger | null = null;
+
+const getAuthAudit = (): AuthenticationAuditLogger => {
+  if (!authAuditInstance) {
+    authAuditInstance = AuthenticationAuditLogger.getInstance();
+  }
+  return authAuditInstance;
+};
+
+/**
+ * Lazy-loaded singleton instance for backward compatibility
+ * Uses a Proxy to defer actual instantiation until first method call
+ */
+export const authAudit = new Proxy({} as AuthenticationAuditLogger, {
+  get(target, prop) {
+    const instance = getAuthAudit();
+    const value = (instance as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});
 
 // Convenience helper functions
 export const authAuditHelpers = {

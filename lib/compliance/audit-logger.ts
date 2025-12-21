@@ -472,8 +472,33 @@ class SOC2AuditLogger {
   }
 }
 
-// Export singleton instance
-export const auditLogger = SOC2AuditLogger.getInstance();
+/**
+ * Lazy-loaded singleton getter
+ * Prevents module-load-time initialization issues in production environments
+ */
+let auditLoggerInstance: SOC2AuditLogger | null = null;
+
+export const getAuditLogger = (): SOC2AuditLogger => {
+  if (!auditLoggerInstance) {
+    auditLoggerInstance = SOC2AuditLogger.getInstance();
+  }
+  return auditLoggerInstance;
+};
+
+/**
+ * Lazy-loaded singleton instance for backward compatibility
+ * Uses a Proxy to defer actual instantiation until first method call
+ */
+export const auditLogger = new Proxy({} as SOC2AuditLogger, {
+  get(target, prop) {
+    const instance = getAuditLogger();
+    const value = (instance as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});
 
 // Helper functions for common audit scenarios
 export const auditHelpers = {
