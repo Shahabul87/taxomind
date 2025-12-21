@@ -131,58 +131,6 @@ export function DesignHero({ course, tools = [], isEnrolled = false, onEnroll }:
                 <p className="text-2xl font-bold text-white">100+</p>
               </div>
             </div>
-
-            {/* Instructor Info with Stats */}
-            {course.user && (
-              <div className="flex items-center justify-between pt-4 pb-2 border-t border-pink-400/20">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    {course.user.image ? (
-                      <Image
-                        src={course.user.image}
-                        alt={course.user.name || 'Instructor'}
-                        width={48}
-                        height={48}
-                        className="rounded-full ring-2 ring-pink-400/30"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-pink-500/20 border border-pink-400/30 flex items-center justify-center">
-                        <User className="h-6 w-6 text-pink-300" />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-pink-200/70">Instructor</p>
-                    <p className="font-semibold text-white">{course.user.name || 'Anonymous'}</p>
-                  </div>
-                </div>
-
-                {/* Students and Reviews Stats */}
-                <div className="flex items-center gap-4">
-                  {/* Students Count */}
-                  <div className="flex items-center gap-1.5">
-                    <Users className="h-4 w-4 text-rose-400" />
-                    <span className="text-sm font-medium text-white">
-                      {(course._count?.Enrollment ?? course._count?.enrollments ?? 0).toLocaleString()}
-                    </span>
-                    <span className="text-sm text-pink-200/70">Students</span>
-                  </div>
-
-                  {/* Reviews Count & Rating */}
-                  {course.reviews && course.reviews.length > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                      <span className="text-sm font-medium text-white">
-                        {(course.reviews.reduce((acc, r) => acc + r.rating, 0) / course.reviews.length).toFixed(1)}
-                      </span>
-                      <span className="text-sm text-pink-200/70">
-                        ({course.reviews.length} Reviews)
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Visual - Course Image with top spacing */}
