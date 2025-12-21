@@ -75,6 +75,10 @@ RUN npx prisma generate
 # Database migrations run at startup, not during build
 RUN npm run build
 
+# CRITICAL: Remove any .env files from standalone output
+# Next.js may copy these during build - Railway injects env vars at runtime
+RUN rm -f .next/standalone/.env* .next/standalone/.env.* 2>/dev/null || true
+
 # ============================================
 # Stage 4: Runner (Production Runtime)
 # ============================================
