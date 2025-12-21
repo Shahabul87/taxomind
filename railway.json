@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile.railway"
   },
   "deploy": {
-    "startCommand": "echo 'PORT='$PORT 'DATABASE_URL exists='${DATABASE_URL:+yes} && (npx prisma migrate deploy --skip-generate || echo 'Migration failed, continuing...') && node server.js",
+    "startCommand": "node server.js",
     "healthcheckPath": "/api/healthz",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
