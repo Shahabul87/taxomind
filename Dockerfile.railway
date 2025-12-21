@@ -2,8 +2,8 @@
 # Railway-Compatible Next.js Dockerfile
 # ============================================
 #
-# This Dockerfile replicates the build process that Railway's Nixpacks
-# automatically generates for Next.js 15 applications.
+# This Dockerfile builds a Next.js 15 application with standalone output
+# for minimal image size and fast startup.
 #
 # To build locally: docker build -f Dockerfile.railway -t taxomind-railway .
 # To run: docker run -p 3000:3000 --env-file .env.production taxomind-railway
@@ -26,26 +26,8 @@ RUN npm install -g npm@11.6.2
 WORKDIR /app
 
 # ============================================
-# Stage 2: Dependencies Installation
+# Stage 2: Dependencies Installation (Dev)
 # ============================================
-FROM base AS deps
-
-# Set NODE_ENV to prevent husky from running during install
-ENV NODE_ENV=production
-ENV SKIP_POSTINSTALL=true
-
-# Copy package files
-COPY package.json package-lock.json* ./
-
-# Copy scripts and prisma directories BEFORE npm install (needed for postinstall)
-COPY scripts ./scripts
-COPY prisma ./prisma
-
-# Install dependencies with npm ci (skip postinstall for now)
-RUN npm ci --only=production && \
-    npm cache clean --force
-
-# Also create a dev dependencies install for the builder stage
 FROM base AS deps-dev
 
 # Set CI=true to prevent husky from running during install
@@ -89,9 +71,8 @@ ENV SKIP_ENV_VALIDATION=true
 # This ensures the client matches the current schema
 RUN npx prisma generate
 
-# Step 1: Build Next.js application
+# Build Next.js application (creates standalone output)
 # Database migrations run at startup, not during build
-# Environment variables will be available at runtime, not during build
 RUN npm run build
 
 # ============================================
@@ -105,7 +86,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 # NOTE: Do NOT set PORT here - Railway injects its own PORT variable
-# Next.js will automatically use the PORT environment variable
+# Next.js standalone server uses PORT env var automatically
 ENV HOSTNAME="0.0.0.0"
 
 # Create a non-root user for security
@@ -117,21 +98,24 @@ RUN mkdir -p /app/logs && \
     chown -R nextjs:nodejs /app/logs && \
     chmod -R 755 /app/logs
 
-# Copy built application files
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+# ============================================
+# Copy standalone build (IMPORTANT for output: 'standalone')
+# ============================================
+# The standalone output includes a minimal server.js and only necessary node_modules
 
-# Copy Prisma schema and generated client
+# Copy the standalone build
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+
+# Copy static files (these are NOT included in standalone by default)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy public folder
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Copy Prisma schema and generated client for migrations
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-
-# Copy production dependencies
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
-
-# Copy scripts directory (if needed for startup)
-COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
 # Switch to non-root user
 USER nextjs
@@ -145,5 +129,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3000) + '/api/healthz', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
-# Start command - Railway overrides this with railway.json startCommand
-CMD ["npm", "run", "start"]
+# Start the standalone server directly
+# For standalone output, use 'node server.js' NOT 'next start'
+CMD ["node", "server.js"]

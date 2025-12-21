@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile.railway"
   },
   "deploy": {
-    "startCommand": "npx prisma migrate deploy && npm run start",
+    "startCommand": "npx prisma migrate deploy && node server.js",
     "healthcheckPath": "/api/healthz",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
