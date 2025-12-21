@@ -211,9 +211,32 @@ export class DataEncryption {
 }
 
 /**
- * Singleton instance for global use
+ * Lazy-loaded singleton instance for global use
+ * Prevents build-time errors when environment variables aren't available
  */
-export const dataEncryption = new DataEncryption();
+let dataEncryptionInstance: DataEncryption | null = null;
+
+export const getDataEncryption = (): DataEncryption => {
+  if (!dataEncryptionInstance) {
+    dataEncryptionInstance = new DataEncryption();
+  }
+  return dataEncryptionInstance;
+};
+
+// For backward compatibility - but prefer getDataEncryption()
+// This getter will only create the instance when accessed at runtime
+export const dataEncryption = {
+  get instance(): DataEncryption {
+    return getDataEncryption();
+  },
+  encrypt: (plaintext: string) => getDataEncryption().encrypt(plaintext),
+  decrypt: (encryptedData: EncryptedData) => getDataEncryption().decrypt(encryptedData),
+  encryptObject: <T>(obj: T) => getDataEncryption().encryptObject(obj),
+  decryptObject: <T>(encryptedData: EncryptedData) => getDataEncryption().decryptObject<T>(encryptedData),
+  generateHash: (plaintext: string) => getDataEncryption().generateHash(plaintext),
+  verifyHash: (plaintext: string, hash: string) => getDataEncryption().verifyHash(plaintext, hash),
+  rotateKey: (encryptedData: EncryptedData, newMasterKey: string) => getDataEncryption().rotateKey(encryptedData, newMasterKey),
+};
 
 /**
  * Utility functions for common encryption operations
@@ -223,28 +246,28 @@ export const EncryptionUtils = {
    * Encrypts sensitive user data
    */
   async encryptUserData(userData: any): Promise<EncryptedData> {
-    return dataEncryption.encryptObject(userData);
+    return getDataEncryption().encryptObject(userData);
   },
 
   /**
    * Decrypts sensitive user data
    */
   async decryptUserData<T>(encryptedData: EncryptedData): Promise<T> {
-    return dataEncryption.decryptObject<T>(encryptedData);
+    return getDataEncryption().decryptObject<T>(encryptedData);
   },
 
   /**
    * Encrypts PII (Personally Identifiable Information)
    */
   async encryptPII(piiData: string): Promise<EncryptedData> {
-    return dataEncryption.encrypt(piiData);
+    return getDataEncryption().encrypt(piiData);
   },
 
   /**
    * Decrypts PII
    */
   async decryptPII(encryptedData: EncryptedData): Promise<string> {
-    return dataEncryption.decrypt(encryptedData);
+    return getDataEncryption().decrypt(encryptedData);
   },
 
   /**

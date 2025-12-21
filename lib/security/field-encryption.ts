@@ -69,15 +69,20 @@ export interface FieldEncryptionOptions {
 
 export class FieldEncryption {
   private version = 1; // For key rotation and format changes
-  
+  private validated = false;
+
   constructor() {
-    this.validateConfiguration();
+    // Don't validate at construction time - validate on first use
+    // This prevents build-time errors when env vars aren't available
   }
 
   private validateConfiguration() {
+    if (this.validated) return;
+
     if (!process.env.ENCRYPTION_MASTER_KEY) {
       throw new Error('Field encryption requires ENCRYPTION_MASTER_KEY');
     }
+    this.validated = true;
   }
 
   /**
@@ -88,6 +93,7 @@ export class FieldEncryption {
     value: string,
     options: FieldEncryptionOptions = {}
   ): Promise<EncryptedField> {
+    this.validateConfiguration(); // Validate on first use
     try {
       const fieldConfig = PII_FIELDS[fieldName];
       if (!fieldConfig) {
@@ -133,6 +139,7 @@ export class FieldEncryption {
     encryptedField: EncryptedField,
     options: FieldEncryptionOptions = {}
   ): Promise<string> {
+    this.validateConfiguration(); // Validate on first use
     try {
       const decryptedValue = await dataEncryption.decrypt(encryptedField.value);
 
@@ -385,9 +392,48 @@ export class FieldEncryption {
 }
 
 /**
- * Singleton instance for global use
+ * Lazy-loaded singleton instance for global use
+ * Prevents build-time errors when environment variables aren't available
  */
-export const fieldEncryption = new FieldEncryption();
+let fieldEncryptionInstance: FieldEncryption | null = null;
+
+export const getFieldEncryption = (): FieldEncryption => {
+  if (!fieldEncryptionInstance) {
+    fieldEncryptionInstance = new FieldEncryption();
+  }
+  return fieldEncryptionInstance;
+};
+
+// For backward compatibility
+export const fieldEncryption = {
+  get instance(): FieldEncryption {
+    return getFieldEncryption();
+  },
+  encryptField: (...args: Parameters<FieldEncryption['encryptField']>) =>
+    getFieldEncryption().encryptField(...args),
+  decryptField: (...args: Parameters<FieldEncryption['decryptField']>) =>
+    getFieldEncryption().decryptField(...args),
+  encryptUserFields: (...args: Parameters<FieldEncryption['encryptUserFields']>) =>
+    getFieldEncryption().encryptUserFields(...args),
+  decryptUserFields: (...args: Parameters<FieldEncryption['decryptUserFields']>) =>
+    getFieldEncryption().decryptUserFields(...args),
+  createSearchHash: (...args: Parameters<FieldEncryption['createSearchHash']>) =>
+    getFieldEncryption().createSearchHash(...args),
+  searchEncryptedField: (...args: Parameters<FieldEncryption['searchEncryptedField']>) =>
+    getFieldEncryption().searchEncryptedField(...args),
+  bulkEncryptFields: (...args: Parameters<FieldEncryption['bulkEncryptFields']>) =>
+    getFieldEncryption().bulkEncryptFields(...args),
+  bulkDecryptFields: (...args: Parameters<FieldEncryption['bulkDecryptFields']>) =>
+    getFieldEncryption().bulkDecryptFields(...args),
+  rotateFieldKeys: (...args: Parameters<FieldEncryption['rotateFieldKeys']>) =>
+    getFieldEncryption().rotateFieldKeys(...args),
+  getFieldConfig: (...args: Parameters<FieldEncryption['getFieldConfig']>) =>
+    getFieldEncryption().getFieldConfig(...args),
+  getFieldsByPIILevel: (...args: Parameters<FieldEncryption['getFieldsByPIILevel']>) =>
+    getFieldEncryption().getFieldsByPIILevel(...args),
+  validateFieldEncryption: () =>
+    getFieldEncryption().validateFieldEncryption(),
+};
 
 /**
  * Prisma middleware for automatic field encryption

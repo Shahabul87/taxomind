@@ -2,24 +2,34 @@
 import * as crypto from 'crypto';
 
 export class DataEncryption {
-  private masterKey: string;
-  
+  private masterKey: string | null = null;
+
   constructor() {
-    if (!process.env.ENCRYPTION_MASTER_KEY) {
-      throw new Error('ENCRYPTION_MASTER_KEY environment variable is required');
+    // Don't validate at construction - validate on first use
+    // This prevents build-time errors when env vars aren't available
+  }
+
+  private ensureInitialized(): string {
+    if (!this.masterKey) {
+      if (!process.env.ENCRYPTION_MASTER_KEY) {
+        throw new Error('ENCRYPTION_MASTER_KEY environment variable is required');
+      }
+      this.masterKey = process.env.ENCRYPTION_MASTER_KEY;
     }
-    this.masterKey = process.env.ENCRYPTION_MASTER_KEY;
+    return this.masterKey;
   }
   
   encrypt(text: string): string {
-    const cipher = crypto.createCipher('aes-256-cbc', this.masterKey);
+    const key = this.ensureInitialized();
+    const cipher = crypto.createCipher('aes-256-cbc', key);
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
     return encrypted;
   }
-  
+
   decrypt(text: string): string {
-    const decipher = crypto.createDecipher('aes-256-cbc', this.masterKey);
+    const key = this.ensureInitialized();
+    const decipher = crypto.createDecipher('aes-256-cbc', key);
     let decrypted = decipher.update(text, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
