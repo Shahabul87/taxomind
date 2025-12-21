@@ -4,11 +4,9 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, Sparkles, Loader2, FileText } from "lucide-react";
-import { AICourseAssistant } from "./ai-course-assistant";
+import { Pencil, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { logger } from '@/lib/logger';
@@ -24,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { Course } from "@prisma/client";
 import TipTapEditor from "@/components/tiptap/editor";
 import ContentViewer from "@/components/tiptap/content-viewer";
-import { PremiumAIGate } from "@/components/premium/premium-ai-gate";
+import { UnifiedAIGenerator } from "@/components/ai/unified-ai-generator";
 import { useIsPremium } from "@/hooks/use-premium-status";
 
 interface DescriptionFormProps {
@@ -44,7 +42,6 @@ export const DescriptionForm = ({
 }: DescriptionFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [samTriggerEdit, setSamTriggerEdit] = useState(false);
   const [pendingSamData, setPendingSamData] = useState<{ description?: string; content?: string } | null>(null);
@@ -294,48 +291,30 @@ export const DescriptionForm = ({
 
             {/* Buttons below description - aligned to right */}
             <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-end gap-2">
-              <PremiumAIGate isPremium={isPremium} featureName="AI Description Generation">
-                <ErrorBoundary
-                  fallback={
-                    <Button
-                      variant="outline"
-                      type="button"
-                      size="sm"
-                      disabled
-                      className="h-9 sm:h-10 w-full xs:w-auto text-xs sm:text-sm"
-                    >
-                      <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                      AI Error
-                    </Button>
-                  }
-                >
-                  <AICourseAssistant
-                    courseTitle={initialData.title || ""}
-                    type="description"
-                    onGenerate={handleAIGenerate}
-                    disabled={!initialData.title}
-                    trigger={
-                      <Button
-                        size="sm"
-                        disabled={!initialData.title}
-                        className={cn(
-                          "h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
-                          "bg-gradient-to-r from-sky-500 to-blue-500",
-                          "hover:from-sky-600 hover:to-blue-600",
-                          "text-white font-semibold",
-                          "shadow-md hover:shadow-lg",
-                          "transition-all duration-200",
-                          "disabled:opacity-50 disabled:cursor-not-allowed"
-                        )}
-                      >
-                        <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                        <span className="hidden xs:inline">Generate with AI</span>
-                        <span className="xs:hidden">AI Generate</span>
-                      </Button>
-                    }
-                  />
-                </ErrorBoundary>
-              </PremiumAIGate>
+              <UnifiedAIGenerator
+                contentType="description"
+                entityLevel="course"
+                entityTitle={initialData.title || "Untitled Course"}
+                context={{
+                  course: {
+                    title: initialData.title || "",
+                    description: initialData.description || null,
+                    whatYouWillLearn: [],
+                    courseGoals: null,
+                    difficulty: null,
+                    category: null,
+                  },
+                }}
+                courseId={courseId}
+                onGenerate={(content) => handleAIGenerate(content as string)}
+                disabled={!initialData.title}
+                isPremium={isPremium}
+                premiumRequired={true}
+                triggerVariant="sky-gradient"
+                size="sm"
+                buttonText="Generate with AI"
+                bloomsTaxonomy={{ enabled: true }}
+              />
               <Button
                 onClick={toggleEdit}
                 variant="outline"

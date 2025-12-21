@@ -4,8 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, GraduationCap, Loader2, Sparkles } from "lucide-react";
-import { AICourseAssistant } from "./ai-course-assistant";
+import { Pencil, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -20,7 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import TipTapEditor from "@/components/tiptap/editor";
-import ContentViewer from "@/components/tiptap/content-viewer";
+import { UnifiedAIGenerator } from "@/components/ai/unified-ai-generator";
+import { useIsPremium } from "@/hooks/use-premium-status";
 
 interface CourseLearningOutcomeFormProps {
   initialData: {
@@ -43,9 +43,9 @@ export const CourseLearningOutcomeForm = ({
 }: CourseLearningOutcomeFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const router = useRouter();
+  const isPremium = useIsPremium();
 
   // Convert array to HTML string for editor
   const learningOutcomesHtml = (initialData?.whatYouWillLearn?.length ?? 0) > 0
@@ -186,30 +186,29 @@ export const CourseLearningOutcomeForm = ({
 
             {/* Buttons below objectives - aligned to right */}
             <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-end gap-2">
-              <AICourseAssistant
-                courseTitle={initialData.title || ""}
-                type="objectives"
-                onGenerate={handleAIGenerate}
+              <UnifiedAIGenerator
+                contentType="learningObjectives"
+                entityLevel="course"
+                entityTitle={initialData.title || "Untitled Course"}
+                context={{
+                  course: {
+                    title: initialData.title || "",
+                    description: initialData.description || null,
+                    whatYouWillLearn: initialData.whatYouWillLearn || [],
+                    courseGoals: null,
+                    difficulty: null,
+                    category: null,
+                  },
+                }}
+                courseId={courseId}
+                onGenerate={(content) => handleAIGenerate(content as string)}
                 disabled={!initialData.title}
-                trigger={
-                  <Button
-                    size="sm"
-                    disabled={!initialData.title}
-                    className={cn(
-                      "h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto text-xs sm:text-sm",
-                      "bg-gradient-to-r from-sky-500 to-blue-500",
-                      "hover:from-sky-600 hover:to-blue-600",
-                      "text-white font-semibold",
-                      "shadow-md hover:shadow-lg",
-                      "transition-all duration-200",
-                      "disabled:opacity-50 disabled:cursor-not-allowed"
-                    )}
-                  >
-                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                    <span className="hidden xs:inline">Generate with AI</span>
-                    <span className="xs:hidden">AI Generate</span>
-                  </Button>
-                }
+                isPremium={isPremium}
+                premiumRequired={true}
+                triggerVariant="sky-gradient"
+                size="sm"
+                buttonText="Generate with AI"
+                bloomsTaxonomy={{ enabled: true }}
               />
               <Button
                 onClick={() => setIsEditing(!isEditing)}

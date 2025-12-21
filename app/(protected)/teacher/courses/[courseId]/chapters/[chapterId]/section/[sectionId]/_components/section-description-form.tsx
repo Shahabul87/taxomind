@@ -4,11 +4,10 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, Loader2, Sparkles } from "lucide-react";
+import { Pencil, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 
 import {
   Form,
@@ -20,7 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import TipTapEditor from "@/components/tiptap/editor";
-import { AISectionContentGenerator } from "./ai-section-content-generator";
+import { UnifiedAIGenerator } from "@/components/ai/unified-ai-generator";
+import { useIsPremium } from "@/hooks/use-premium-status";
 
 interface CourseContext {
   title: string;
@@ -78,6 +78,7 @@ export const SectionDescriptionForm = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [truncatedContent, setTruncatedContent] = useState("");
   const router = useRouter();
+  const isPremium = useIsPremium();
 
   const toggleEdit = () => setIsEditing((current) => !current);
 
@@ -117,8 +118,9 @@ export const SectionDescriptionForm = ({
     }
   }, [isExpanded, initialData.description, isMounted]);
 
-  const handleAIGenerate = (content: string) => {
-    form.setValue("description", content);
+  const handleAIGenerate = (content: string | string[] | object) => {
+    const descriptionContent = typeof content === 'string' ? content : JSON.stringify(content);
+    form.setValue("description", descriptionContent);
     form.trigger("description");
     if (!isEditing) {
       setIsEditing(true);
@@ -196,38 +198,44 @@ export const SectionDescriptionForm = ({
 
             {/* Buttons below description - responsive layout */}
             <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-end gap-2 sm:gap-2.5">
-              <AISectionContentGenerator
-                sectionTitle={initialData.title}
-                chapterTitle={chapterTitle}
+              <UnifiedAIGenerator
+                contentType="description"
+                entityLevel="section"
+                entityTitle={initialData.title || "Untitled Section"}
+                context={{
+                  course: courseContext ? {
+                    title: courseContext.title || "",
+                    description: courseContext.description || null,
+                    whatYouWillLearn: courseContext.whatYouWillLearn || [],
+                    courseGoals: courseContext.courseGoals || null,
+                    difficulty: courseContext.difficulty || null,
+                    category: courseContext.category || null,
+                  } : undefined,
+                  chapter: chapterContext ? {
+                    title: chapterTitle || "",
+                    description: chapterContext.description || null,
+                    learningOutcomes: chapterContext.learningOutcomes || null,
+                    position: chapterContext.position || 1,
+                  } : undefined,
+                  section: {
+                    title: initialData.title || "",
+                    description: initialData.description || null,
+                    learningObjectives: sectionContext?.existingObjectives || null,
+                    position: sectionContext?.position || 1,
+                  },
+                }}
                 courseId={courseId}
                 chapterId={chapterId}
                 sectionId={sectionId}
-                contentType="description"
                 onGenerate={handleAIGenerate}
                 disabled={!initialData.title}
+                isPremium={isPremium}
+                premiumRequired={true}
+                triggerVariant="sky-gradient"
+                size="sm"
+                buttonText="Generate with AI"
+                bloomsTaxonomy={{ enabled: true }}
                 existingContent={initialData.description}
-                courseContext={courseContext}
-                chapterContext={chapterContext}
-                sectionContext={sectionContext}
-                trigger={
-                  <Button
-                    size="sm"
-                    disabled={!initialData.title}
-                    className={cn(
-                      "h-9 sm:h-10 px-3 sm:px-4 w-full xs:w-auto",
-                      "bg-gradient-to-r from-sky-500 to-blue-500",
-                      "hover:from-sky-600 hover:to-blue-600",
-                      "text-white font-semibold text-xs sm:text-sm",
-                      "shadow-md hover:shadow-lg",
-                      "transition-all duration-200",
-                      "disabled:opacity-50 disabled:cursor-not-allowed",
-                      "justify-center xs:justify-start"
-                    )}
-                  >
-                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                    <span className="whitespace-nowrap">Generate with AI</span>
-                  </Button>
-                }
               />
               <Button
                 onClick={toggleEdit}

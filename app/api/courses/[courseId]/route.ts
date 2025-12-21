@@ -124,6 +124,7 @@ export async function PATCH(
     if (values.price !== undefined) updateData.price = values.price;
     if (values.whatYouWillLearn !== undefined) updateData.whatYouWillLearn = values.whatYouWillLearn;
     if (values.isPublished !== undefined) updateData.isPublished = values.isPublished;
+    if (values.isFeatured !== undefined) updateData.isFeatured = values.isFeatured;
     if (values.subtitle !== undefined) updateData.subtitle = values.subtitle;
     // Note: targetAudience and difficulty fields don't exist in Course schema, skipping
     

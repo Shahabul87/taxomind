@@ -100,36 +100,36 @@ interface PlatformStatistics {
 }
 
 // Professional Stats Bar
-const ProfessionalStatsBar = ({ stats, isLoading }: { stats: any; isLoading: boolean }) => {
+const ProfessionalStatsBar = ({ stats, isLoading }: { stats: PlatformStatistics; isLoading: boolean }) => {
   const statsData = [
     {
       icon: BookOpen,
       label: "Total Courses",
-      value: stats.totalCourses,
+      value: stats.totalCourses > 0 ? stats.totalCourses.toString() : "Coming",
       gradient: "from-purple-500 to-indigo-600"
     },
     {
       icon: TrendingUp,
       label: "New This Week",
-      value: stats.newCoursesThisWeek,
+      value: stats.newCoursesThisWeek > 0 ? stats.newCoursesThisWeek.toString() : "Fresh",
       gradient: "from-emerald-500 to-teal-600"
     },
     {
       icon: Users,
       label: "Active Learners",
-      value: `${stats.activeLearners.toLocaleString()}+`,
+      value: stats.activeLearners > 0 ? `${stats.activeLearners.toLocaleString()}+` : "Growing",
       gradient: "from-blue-500 to-cyan-600"
     },
     {
       icon: Star,
       label: "Avg. Rating",
-      value: stats.averageRating.toFixed(1),
+      value: stats.averageRating > 0 ? `${stats.averageRating.toFixed(1)}★` : "New ★",
       gradient: "from-amber-500 to-orange-600"
     },
     {
       icon: Trophy,
       label: "Completion Rate",
-      value: `${stats.completionRate}%`,
+      value: stats.completionRate > 0 ? `${stats.completionRate}%` : "Starting",
       gradient: "from-pink-500 to-rose-600"
     }
   ];
@@ -463,9 +463,11 @@ export function ProfessionalCoursesPage({
       {/* Professional Stats Bar */}
       <ProfessionalStatsBar
         stats={{
-          totalCourses: statistics?.publishedCourses || totalCourses,
+          totalCourses: statistics?.totalCourses || totalCourses,
+          publishedCourses: statistics?.publishedCourses || totalCourses,
           newCoursesThisWeek: statistics?.newCoursesThisWeek || 0,
           activeLearners: statistics?.activeLearners || 0,
+          totalLearners: statistics?.totalLearners || 0,
           averageRating: statistics?.averageRating || 0,
           completionRate: statistics?.completionRate || 0
         }}
@@ -502,9 +504,14 @@ export function ProfessionalCoursesPage({
 
         {/* Most Trending Courses Section */}
         <div className="mb-8 sm:mb-10 md:mb-12">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">
-            Most Trending Courses
-          </h2>
+          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg shadow-orange-500/25">
+              <Flame className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
+            </div>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+              Most Trending Courses
+            </h2>
+          </div>
 
           {/* Two Column Layout with List Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
@@ -530,6 +537,19 @@ export function ProfessionalCoursesPage({
                             }}
                           />
 
+                        {/* Ranking Badge */}
+                        <div className="absolute top-1.5 xs:top-2 right-1.5 xs:right-2">
+                          <div className={cn(
+                            "w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-[10px] xs:text-xs sm:text-sm shadow-lg",
+                            index === 0 && "bg-gradient-to-br from-amber-400 to-yellow-500 text-amber-900",
+                            index === 1 && "bg-gradient-to-br from-slate-300 to-slate-400 text-slate-700",
+                            index === 2 && "bg-gradient-to-br from-amber-600 to-orange-700 text-white",
+                            index > 2 && "bg-gradient-to-br from-slate-600 to-slate-700 text-white"
+                          )}>
+                            {index + 1}
+                          </div>
+                        </div>
+
                         {/* Badge Overlay */}
                         {course.badges?.[0] && (
                           <div className="absolute top-1.5 xs:top-2 left-1.5 xs:left-2">
@@ -554,10 +574,10 @@ export function ProfessionalCoursesPage({
                           {course.title}
                         </h3>
 
-                        {/* Description */}
+                        {/* Description - Strictly limited to 2 lines */}
                         {course.description && (
-                          <p className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mb-1.5 sm:mb-2 leading-relaxed hidden sm:block break-words">
-                            {course.description}
+                          <p className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400 mb-1.5 sm:mb-2 leading-relaxed hidden sm:block overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
+                            {course.description.length > 120 ? `${course.description.substring(0, 120)}...` : course.description}
                           </p>
                         )}
 

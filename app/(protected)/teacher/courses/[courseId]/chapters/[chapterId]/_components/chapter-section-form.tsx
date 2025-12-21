@@ -4,14 +4,15 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Loader2, PlusCircle, LayoutGrid, Sparkles } from "lucide-react";
-import { AISectionGenerator } from "./ai-section-generator";
+import { Loader2, PlusCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Chapter, Section } from "@prisma/client";
 import { logger } from '@/lib/logger';
+import { UnifiedAIGenerator } from "@/components/ai/unified-ai-generator";
+import { useIsPremium } from "@/hooks/use-premium-status";
 
 import {
   Form,
@@ -25,10 +26,20 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ChapterSectionList } from "./chapter-section-list";
 
+interface CourseContext {
+  title: string;
+  description: string | null;
+  whatYouWillLearn?: string[];
+  courseGoals?: string | null;
+  difficulty?: string | null;
+  categoryId?: string | null;
+}
+
 interface ChaptersSectionFormProps {
-  chapter: Chapter & { 
-    sections: Section[] 
+  chapter: Chapter & {
+    sections: Section[]
   };
+  course?: CourseContext;
   courseId: string;
   chapterId: string;
 }
@@ -41,6 +52,7 @@ const formSchema = z.object({
 
 export const ChaptersSectionForm = ({
   chapter,
+  course,
   courseId,
   chapterId,
 }: ChaptersSectionFormProps) => {
@@ -48,6 +60,7 @@ export const ChaptersSectionForm = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const router = useRouter();
+  const isPremium = useIsPremium();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -110,14 +123,55 @@ export const ChaptersSectionForm = ({
     }
   };
 
-  const generateSectionsWithAI = async (sections: any[]) => {
+  const handleAIGenerateSections = async (content: string | string[] | object) => {
     if (!chapter.title) {
-      toast.error("Chapter title is required to generate sections with AI");
+      toast.error("Please add chapter title first to generate sections with AI");
       return;
     }
 
     setIsGeneratingAI(true);
     try {
+      // Parse the AI response - can be JSON string of titles or array
+      let sections: Array<{ title: string; description?: string }> = [];
+
+      if (typeof content === 'string') {
+        try {
+          const parsed = JSON.parse(content);
+          // Convert array of strings or objects to unified format
+          if (Array.isArray(parsed)) {
+            sections = parsed.map((item: string | { title: string; description?: string }) =>
+              typeof item === 'string' ? { title: item.trim() } : { title: item.title?.trim() || '', description: item.description }
+            );
+          } else {
+            throw new Error('Expected array');
+          }
+        } catch {
+          // If not valid JSON, try to extract titles from the response
+          const lines = content.split('\n').filter(line => line.trim());
+          sections = lines
+            .map(line => line.trim())
+            .filter(line => line.length > 0 && line !== '[' && line !== ']' && !line.startsWith('```'))
+            .map(line => ({
+              title: line
+                .replace(/^["']|["'],?$/g, '') // Remove quotes and trailing comma
+                .replace(/^\d+\.\s*/, '') // Remove numbering
+                .trim()
+            }));
+        }
+      } else if (Array.isArray(content)) {
+        sections = content.map((item: string | { title: string; description?: string }) =>
+          typeof item === 'string' ? { title: item.trim() } : { title: item.title?.trim() || '', description: item.description }
+        );
+      }
+
+      // Filter out any sections with empty titles
+      sections = sections.filter(sec => sec.title && sec.title.length > 0);
+
+      if (sections.length === 0) {
+        throw new Error('No valid section titles received');
+      }
+
+      logger.info(`[SECTIONS_FORM] Creating ${sections.length} sections:`, sections.map(s => s.title));
 
       // Create sections in database
       const createdSections = [];
@@ -130,11 +184,10 @@ export const ChaptersSectionForm = ({
               title: sectionData.title
             }
           );
-          
-          createdSections.push(createResponse.data);
 
-        } catch (error: any) {
-          logger.error(`[SECTIONS_FORM] Failed to create section ${i + 1}:`, error);
+          createdSections.push(createResponse.data);
+        } catch (error) {
+          logger.error(`[SECTIONS_FORM] Failed to create section ${i + 1} "${sectionData.title}":`, error);
           // Continue with remaining sections instead of failing completely
         }
       }
@@ -145,8 +198,8 @@ export const ChaptersSectionForm = ({
       } else {
         throw new Error('No sections were created successfully');
       }
-      
-    } catch (error: any) {
+
+    } catch (error) {
       logger.error('[SECTIONS_FORM] AI section generation failed:', error);
       toast.error("Failed to generate sections with AI. Please try again.");
     } finally {
@@ -177,12 +230,37 @@ export const ChaptersSectionForm = ({
             </p>
           </div>
           <div className="flex flex-col xs:flex-row gap-2">
-            <AISectionGenerator
-              chapterTitle={chapter.title}
+            <UnifiedAIGenerator
+              contentType="sections"
+              entityLevel="chapter"
+              entityTitle={chapter.title || "Untitled Chapter"}
+              context={{
+                course: {
+                  title: course?.title || "",
+                  description: course?.description || null,
+                  whatYouWillLearn: course?.whatYouWillLearn || [],
+                  courseGoals: course?.courseGoals || null,
+                  difficulty: course?.difficulty || null,
+                  category: course?.categoryId || null,
+                },
+                chapter: {
+                  title: chapter.title || "",
+                  description: chapter.description || null,
+                  learningOutcomes: chapter.learningOutcomes || null,
+                  position: chapter.position || 1,
+                },
+              }}
               courseId={courseId}
               chapterId={chapterId}
-              onGenerate={generateSectionsWithAI}
-              disabled={isGeneratingAI || !chapter.title}
+              onGenerate={handleAIGenerateSections}
+              disabled={!chapter.title || isGeneratingAI}
+              isPremium={isPremium}
+              premiumRequired={true}
+              triggerVariant="sky-gradient"
+              size="sm"
+              buttonText="Generate with AI"
+              bloomsTaxonomy={{ enabled: false }}
+              sectionOptions={{ defaultCount: 5, minCount: 2, maxCount: 10 }}
             />
             <Button
               onClick={() => setIsCreating(!isCreating)}

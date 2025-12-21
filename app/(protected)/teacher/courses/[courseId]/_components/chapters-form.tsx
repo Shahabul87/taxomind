@@ -4,14 +4,15 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Loader2, PlusCircle, BookOpen, Sparkles } from "lucide-react";
+import { Loader2, PlusCircle, BookOpen } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Chapter, Course } from "@prisma/client";
-import { AIChapterPreferencesDialog, type AIChapterGenerationPreferences } from "./ai-chapter-preferences";
 import { logger } from '@/lib/logger';
+import { UnifiedAIGenerator } from "@/components/ai/unified-ai-generator";
+import { useIsPremium } from "@/hooks/use-premium-status";
 
 import {
   Form,
@@ -45,6 +46,7 @@ export const ChaptersForm = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const router = useRouter();
+  const isPremium = useIsPremium();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -132,7 +134,7 @@ export const ChaptersForm = ({
     }
   };
 
-  const generateChaptersWithAI = async (preferences: AIChapterGenerationPreferences) => {
+  const handleAIGenerateChapters = async (content: string | string[] | object) => {
     if (!initialData.title || !initialData.description) {
       toast.error("Please add course title and description first to generate chapters with AI");
       return;
@@ -140,36 +142,52 @@ export const ChaptersForm = ({
 
     setIsGeneratingAI(true);
     try {
+      // Parse the AI response - can be JSON string of titles or array
+      let chapters: Array<{ title: string; description?: string }> = [];
 
-      // First, generate chapters with AI
-      const aiResponse = await fetch('/api/ai/bulk-chapters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          courseId,
-          chapterCount: preferences.chapterCount,
-          difficulty: preferences.difficulty,
-          targetDuration: preferences.targetDuration,
-          focusAreas: preferences.focusAreas,
-          includeKeywords: preferences.includeKeywords,
-          additionalInstructions: preferences.additionalInstructions
-        })
-      });
-
-      if (!aiResponse.ok) {
-        throw new Error('Failed to generate chapters with AI');
+      if (typeof content === 'string') {
+        try {
+          const parsed = JSON.parse(content);
+          // Convert array of strings or objects to unified format
+          if (Array.isArray(parsed)) {
+            chapters = parsed.map((item: string | { title: string; description?: string }) =>
+              typeof item === 'string' ? { title: item.trim() } : { title: item.title?.trim() || '', description: item.description }
+            );
+          } else {
+            throw new Error('Expected array');
+          }
+        } catch {
+          // If not valid JSON, try to extract titles from the response
+          const lines = content.split('\n').filter(line => line.trim());
+          chapters = lines
+            .map(line => line.trim())
+            .filter(line => line.length > 0 && line !== '[' && line !== ']' && !line.startsWith('```'))
+            .map(line => ({
+              title: line
+                .replace(/^["']|["'],?$/g, '') // Remove quotes and trailing comma
+                .replace(/^\d+\.\s*/, '') // Remove numbering
+                .trim()
+            }));
+        }
+      } else if (Array.isArray(content)) {
+        chapters = content.map((item: string | { title: string; description?: string }) =>
+          typeof item === 'string' ? { title: item.trim() } : { title: item.title?.trim() || '', description: item.description }
+        );
       }
 
-      const aiData = await aiResponse.json();
-      
-      if (!aiData.success || !aiData.data || !Array.isArray(aiData.data)) {
-        throw new Error('Invalid AI response format');
+      // Filter out any chapters with empty titles
+      chapters = chapters.filter(ch => ch.title && ch.title.length > 0);
+
+      if (chapters.length === 0) {
+        throw new Error('No valid chapter titles received');
       }
+
+      logger.info(`[CHAPTERS_FORM] Creating ${chapters.length} chapters:`, chapters.map(c => c.title));
 
       // Create chapters in database
       const createdChapters = [];
-      for (let i = 0; i < aiData.data.length; i++) {
-        const chapterData = aiData.data[i];
+      for (let i = 0; i < chapters.length; i++) {
+        const chapterData = chapters[i];
         try {
           const createResponse = await axios.post(`/api/courses/${courseId}/chapters`, {
             title: chapterData.title
@@ -178,11 +196,10 @@ export const ChaptersForm = ({
             withCredentials: true,
             timeout: 30000
           });
-          
-          createdChapters.push(createResponse.data);
 
-        } catch (error: any) {
-          logger.error(`[CHAPTERS_FORM] Failed to create chapter ${i + 1}:`, error);
+          createdChapters.push(createResponse.data);
+        } catch (error) {
+          logger.error(`[CHAPTERS_FORM] Failed to create chapter ${i + 1} "${chapterData.title}":`, error);
           // Continue with remaining chapters instead of failing completely
         }
       }
@@ -190,16 +207,13 @@ export const ChaptersForm = ({
       if (createdChapters.length > 0) {
         toast.success(`Successfully generated ${createdChapters.length} chapters with AI!`);
         router.refresh();
-        // Generation succeeded - modal will be closed by the dialog component
       } else {
         throw new Error('No chapters were created successfully');
       }
-      
-    } catch (error: any) {
+
+    } catch (error) {
       logger.error('[CHAPTERS_FORM] AI chapter generation failed:', error);
       toast.error("Failed to generate chapters with AI. Please try again.");
-      // Re-throw error so dialog can handle modal state appropriately
-      throw error;
     } finally {
       setIsGeneratingAI(false);
     }
@@ -237,52 +251,30 @@ export const ChaptersForm = ({
             </div>
           </div>
           <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
-            <AIChapterPreferencesDialog
-              onGenerate={generateChaptersWithAI}
-              isGenerating={isGeneratingAI}
+            <UnifiedAIGenerator
+              contentType="chapters"
+              entityLevel="course"
+              entityTitle={initialData.title || "Untitled Course"}
+              context={{
+                course: {
+                  title: initialData.title || "",
+                  description: initialData.description || null,
+                  whatYouWillLearn: initialData.whatYouWillLearn || [],
+                  courseGoals: initialData.courseGoals || null,
+                  difficulty: initialData.difficulty || null,
+                  category: initialData.categoryId || null,
+                },
+              }}
+              courseId={courseId}
+              onGenerate={handleAIGenerateChapters}
               disabled={!initialData.title || !initialData.description || isGeneratingAI}
-              courseTitle={initialData.title}
-              courseDescription={initialData.description || undefined}
-              trigger={
-                <Button
-                  size="sm"
-                  disabled={isGeneratingAI || !initialData.title || !initialData.description}
-                  className={cn(
-                    // Elegant AI button - sky blue gradient (fresh & modern)
-                    "relative overflow-hidden group",
-                    "bg-gradient-to-r from-sky-500 to-blue-500",
-                    "hover:from-sky-600 hover:to-blue-600",
-                    "text-white font-semibold",
-                    "border-0",
-                    "shadow-lg shadow-sky-500/30 hover:shadow-xl hover:shadow-blue-500/40",
-                    "w-full sm:w-auto",
-                    "justify-center",
-                    "h-9 sm:h-10",
-                    "text-xs sm:text-sm",
-                    "transition-all duration-300 ease-out",
-                    "hover:scale-[1.02]",
-                    "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
-                    // Shine effect
-                    "before:absolute before:inset-0",
-                    "before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent",
-                    "before:translate-x-[-200%] group-hover:before:translate-x-[200%]",
-                    "before:transition-transform before:duration-700"
-                  )}
-                >
-                  {isGeneratingAI ? (
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                      <span className="relative z-10">Generating...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-pulse" />
-                      <span className="relative z-10 hidden sm:inline">Generate with AI</span>
-                      <span className="relative z-10 sm:hidden">AI Generate</span>
-                    </div>
-                  )}
-                </Button>
-              }
+              isPremium={isPremium}
+              premiumRequired={true}
+              triggerVariant="sky-gradient"
+              size="sm"
+              buttonText="Generate with AI"
+              bloomsTaxonomy={{ enabled: false }}
+              chapterOptions={{ defaultCount: 5, minCount: 3, maxCount: 10 }}
             />
             <Button
             onClick={() => setIsCreating(!isCreating)}

@@ -203,7 +203,11 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                   <Users className="w-5 h-5 xs:w-5.5 xs:h-5.5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-xl xs:text-2xl font-bold text-white">{(statistics.totalEnrollments || 0).toLocaleString()}+</p>
+                  <p className="text-xl xs:text-2xl font-bold text-white">
+                    {statistics.totalEnrollments > 0
+                      ? `${statistics.totalEnrollments.toLocaleString()}+`
+                      : "Growing"}
+                  </p>
                   <p className="text-xs xs:text-sm text-slate-400">Active Learners</p>
                 </div>
               </div>
@@ -212,7 +216,11 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                   <TrendingUp className="w-5 h-5 xs:w-5.5 xs:h-5.5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-xl xs:text-2xl font-bold text-white">{statistics.totalCourses}+</p>
+                  <p className="text-xl xs:text-2xl font-bold text-white">
+                    {statistics.totalCourses > 0
+                      ? `${statistics.totalCourses}+`
+                      : "Coming"}
+                  </p>
                   <p className="text-xs xs:text-sm text-slate-400">Expert Courses</p>
                 </div>
               </div>
@@ -221,7 +229,11 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                   <Award className="w-5 h-5 xs:w-5.5 xs:h-5.5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-xl xs:text-2xl font-bold text-white">{statistics.averageRating.toFixed(1)}★</p>
+                  <p className="text-xl xs:text-2xl font-bold text-white">
+                    {statistics.averageRating > 0
+                      ? `${statistics.averageRating.toFixed(1)}★`
+                      : "New ★"}
+                  </p>
                   <p className="text-xs xs:text-sm text-slate-400">Average Rating</p>
                 </div>
               </div>

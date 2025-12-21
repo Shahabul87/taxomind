@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { Video as VideoIcon, Star, Play, ExternalLink } from "lucide-react";
+import { Video as VideoIcon, Star, Play, ExternalLink, Plus, Film } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DisplayVideosProps {
@@ -52,15 +52,94 @@ const getVideoThumbnail = (video: DisplayVideosProps['videos'][0]): string | nul
   return null;
 };
 
+// Empty State Illustration Component
+const EmptyVideoIllustration = () => (
+  <div className="relative">
+    {/* Background decoration */}
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-cyan-100/30 dark:from-blue-900/20 dark:to-cyan-900/10 rounded-full blur-2xl" />
+
+    {/* Main illustration */}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5 }}
+      className="relative"
+    >
+      {/* Video frame */}
+      <div className="relative w-24 h-16 sm:w-32 sm:h-20 mx-auto">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-200 to-cyan-200 dark:from-blue-800 dark:to-cyan-800 rounded-lg shadow-lg" />
+        <div className="absolute inset-1 bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-700 dark:to-slate-800 rounded-md" />
+
+        {/* Play button */}
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/90 dark:bg-white/80 rounded-full flex items-center justify-center shadow-lg">
+            <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 ml-0.5" />
+          </div>
+        </motion.div>
+
+        {/* Decorative film strips */}
+        <motion.div
+          animate={{ y: [0, -3, 0] }}
+          transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
+          className="absolute -top-2 -left-2 w-6 h-6 sm:w-8 sm:h-8"
+        >
+          <Film className="w-full h-full text-blue-400/60 dark:text-blue-500/40" />
+        </motion.div>
+        <motion.div
+          animate={{ y: [0, -3, 0] }}
+          transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+          className="absolute -bottom-2 -right-2 w-5 h-5 sm:w-6 sm:h-6"
+        >
+          <VideoIcon className="w-full h-full text-cyan-400/60 dark:text-cyan-500/40" />
+        </motion.div>
+      </div>
+
+      {/* Dotted line decoration */}
+      <div className="flex justify-center gap-1 mt-3">
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0.3 }}
+            animate={{ opacity: [0.3, 0.8, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+            className="w-1 h-1 rounded-full bg-blue-400 dark:bg-blue-500"
+          />
+        ))}
+      </div>
+    </motion.div>
+  </div>
+);
+
 export const DisplayVideos = ({
   videos,
   onVideoClick,
 }: DisplayVideosProps) => {
   if (!videos.length) {
     return (
-      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-3 sm:mt-4">
-        No videos added to this section yet
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col items-center justify-center py-8 sm:py-12 px-4"
+      >
+        <EmptyVideoIllustration />
+
+        <h4 className="mt-5 sm:mt-6 text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-200">
+          No videos yet
+        </h4>
+        <p className="mt-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 text-center max-w-[280px]">
+          Add video resources to help students learn visually and engage with the material
+        </p>
+
+        {/* CTA hint */}
+        <div className="mt-4 flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium">
+          <Plus className="w-3.5 h-3.5" />
+          <span>Click &quot;Add video&quot; above to get started</span>
+        </div>
+      </motion.div>
     );
   }
 

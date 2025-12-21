@@ -371,36 +371,42 @@ export const EnterpriseSectionPageClient = ({
                           label="Videos"
                           value={contentStats.totalVideos}
                           color="blue"
+                          actionHint="Add video resources to help students learn visually"
                         />
                         <MetricCard
                           icon={BookOpen}
                           label="Blogs"
                           value={contentStats.totalBlogs}
                           color="green"
+                          actionHint="Link to blog posts for deeper reading"
                         />
                         <MetricCard
                           icon={FileQuestion}
                           label="Articles"
                           value={contentStats.totalArticles}
                           color="purple"
+                          actionHint="Add articles to expand on concepts"
                         />
                         <MetricCard
                           icon={Code2}
                           label="Code"
                           value={contentStats.totalCodeBlocks}
                           color="orange"
+                          actionHint="Add code examples with explanations"
                         />
                         <MetricCard
                           icon={Activity}
                           label="Math"
                           value={contentStats.totalMathEquations}
                           color="pink"
+                          actionHint="Add mathematical equations and formulas"
                         />
                         <MetricCard
                           icon={BarChart3}
                           label="Notes"
                           value={contentStats.totalNotes}
                           color="cyan"
+                          actionHint="Add study notes and key takeaways"
                         />
                       </motion.div>
                     ) : (
@@ -447,10 +453,10 @@ export const EnterpriseSectionPageClient = ({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
-                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70">
+                <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md overflow-hidden">
+                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70 bg-gradient-to-r from-indigo-50/50 to-purple-50/30 dark:from-indigo-950/20 dark:to-purple-950/10">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/25 flex-shrink-0 ring-2 ring-white/50 dark:ring-white/20">
                         <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -478,10 +484,10 @@ export const EnterpriseSectionPageClient = ({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15 }}
               >
-                <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
-                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70">
+                <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md overflow-hidden">
+                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70 bg-gradient-to-r from-emerald-50/50 to-teal-50/30 dark:from-emerald-950/20 dark:to-teal-950/10">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25 flex-shrink-0 ring-2 ring-white/50 dark:ring-white/20">
                         <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -509,10 +515,10 @@ export const EnterpriseSectionPageClient = ({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
-                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70">
+                <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md overflow-hidden">
+                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70 bg-gradient-to-r from-blue-50/50 to-cyan-50/30 dark:from-blue-950/20 dark:to-cyan-950/10">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg shadow-blue-500/25 flex-shrink-0 ring-2 ring-white/50 dark:ring-white/20">
                         <Video className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -535,53 +541,18 @@ export const EnterpriseSectionPageClient = ({
               </motion.div>
             </div>
 
-            {/* Right Column - Learning Objectives & Description */}
+            {/* Right Column - Description & Learning Objectives */}
             <div className="space-y-3 sm:space-y-4 md:space-y-6">
-              {/* Learning Objectives Card */}
+              {/* Section Description Card */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
-                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70">
+                <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md overflow-hidden">
+                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70 bg-gradient-to-r from-amber-50/50 to-orange-50/30 dark:from-amber-950/20 dark:to-orange-950/10">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/20 flex-shrink-0">
-                        <Target className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <CardTitle className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">
-                          Learning Objectives
-                        </CardTitle>
-                        <CardDescription className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 hidden sm:block">Define what students will learn in this section</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-3 sm:p-4 md:p-6">
-                    <SectionLearningObjectivesForm
-                      initialData={{ learningObjectives: section.learningObjectives ?? null, title: section.title }}
-                      courseId={params.courseId}
-                      chapterId={params.chapterId}
-                      sectionId={params.sectionId}
-                      chapterTitle={chapter.title}
-                      courseContext={courseContext}
-                      chapterContext={chapterContext}
-                      sectionContext={sectionContext}
-                    />
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Section Description Card */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Card className="shadow-md rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
-                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25 flex-shrink-0 ring-2 ring-white/50 dark:ring-white/20">
                         <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -595,6 +566,41 @@ export const EnterpriseSectionPageClient = ({
                   <CardContent className="p-3 sm:p-4 md:p-6">
                     <SectionDescriptionForm
                       initialData={{ description: section.description ?? null, title: section.title }}
+                      courseId={params.courseId}
+                      chapterId={params.chapterId}
+                      sectionId={params.sectionId}
+                      chapterTitle={chapter.title}
+                      courseContext={courseContext}
+                      chapterContext={chapterContext}
+                      sectionContext={sectionContext}
+                    />
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Learning Objectives Card */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md overflow-hidden">
+                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70 bg-gradient-to-r from-rose-50/50 to-pink-50/30 dark:from-rose-950/20 dark:to-pink-950/10">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25 flex-shrink-0 ring-2 ring-white/50 dark:ring-white/20">
+                        <Target className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">
+                          Learning Objectives
+                        </CardTitle>
+                        <CardDescription className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 hidden sm:block">Define what students will learn in this section</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 sm:p-4 md:p-6">
+                    <SectionLearningObjectivesForm
+                      initialData={{ learningObjectives: section.learningObjectives ?? null, title: section.title }}
                       courseId={params.courseId}
                       chapterId={params.chapterId}
                       sectionId={params.sectionId}
@@ -713,29 +719,129 @@ interface MetricCardProps {
   label: string;
   value: number;
   color: 'blue' | 'green' | 'purple' | 'orange' | 'pink' | 'cyan';
+  actionHint?: string;
 }
 
-const MetricCard = ({ icon: Icon, label, value, color }: MetricCardProps) => {
-  const colorClasses = {
-    blue: 'bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400',
-    green: 'bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400',
-    purple: 'bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400',
-    orange: 'bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400',
-    pink: 'bg-pink-500/10 border border-pink-500/20 text-pink-600 dark:text-pink-400',
-    cyan: 'bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400',
+const MetricCard = ({ icon: Icon, label, value, color, actionHint }: MetricCardProps) => {
+  const colorConfig = {
+    blue: {
+      bg: 'bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/40 dark:to-blue-900/20',
+      border: 'border-blue-200/60 dark:border-blue-700/40',
+      text: 'text-blue-600 dark:text-blue-400',
+      iconBg: 'bg-blue-500/10',
+      hoverBorder: 'hover:border-blue-300 dark:hover:border-blue-600',
+      hoverShadow: 'hover:shadow-blue-500/10',
+    },
+    green: {
+      bg: 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/40 dark:to-emerald-900/20',
+      border: 'border-emerald-200/60 dark:border-emerald-700/40',
+      text: 'text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-500/10',
+      hoverBorder: 'hover:border-emerald-300 dark:hover:border-emerald-600',
+      hoverShadow: 'hover:shadow-emerald-500/10',
+    },
+    purple: {
+      bg: 'bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/40 dark:to-purple-900/20',
+      border: 'border-purple-200/60 dark:border-purple-700/40',
+      text: 'text-purple-600 dark:text-purple-400',
+      iconBg: 'bg-purple-500/10',
+      hoverBorder: 'hover:border-purple-300 dark:hover:border-purple-600',
+      hoverShadow: 'hover:shadow-purple-500/10',
+    },
+    orange: {
+      bg: 'bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/40 dark:to-orange-900/20',
+      border: 'border-orange-200/60 dark:border-orange-700/40',
+      text: 'text-orange-600 dark:text-orange-400',
+      iconBg: 'bg-orange-500/10',
+      hoverBorder: 'hover:border-orange-300 dark:hover:border-orange-600',
+      hoverShadow: 'hover:shadow-orange-500/10',
+    },
+    pink: {
+      bg: 'bg-gradient-to-br from-pink-50 to-pink-100/50 dark:from-pink-950/40 dark:to-pink-900/20',
+      border: 'border-pink-200/60 dark:border-pink-700/40',
+      text: 'text-pink-600 dark:text-pink-400',
+      iconBg: 'bg-pink-500/10',
+      hoverBorder: 'hover:border-pink-300 dark:hover:border-pink-600',
+      hoverShadow: 'hover:shadow-pink-500/10',
+    },
+    cyan: {
+      bg: 'bg-gradient-to-br from-cyan-50 to-cyan-100/50 dark:from-cyan-950/40 dark:to-cyan-900/20',
+      border: 'border-cyan-200/60 dark:border-cyan-700/40',
+      text: 'text-cyan-600 dark:text-cyan-400',
+      iconBg: 'bg-cyan-500/10',
+      hoverBorder: 'hover:border-cyan-300 dark:hover:border-cyan-600',
+      hoverShadow: 'hover:shadow-cyan-500/10',
+    },
   };
 
+  const config = colorConfig[color];
+  const isEmpty = value === 0;
+
   return (
-    <div className={cn(
-      "p-2.5 sm:p-3 md:p-3.5 rounded-lg backdrop-blur-sm",
-      colorClasses[color],
-      "transition-all duration-200 hover:scale-105 hover:shadow-lg",
-      "min-h-[60px] sm:min-h-[70px] md:min-h-[80px] flex flex-col justify-between"
-    )}>
-      <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4.5 md:w-4.5 mb-1 sm:mb-1.5 flex-shrink-0" />
-      <div className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">{value}</div>
-      <div className="text-[10px] sm:text-xs md:text-sm opacity-70 leading-tight line-clamp-2">{label}</div>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <motion.div
+          whileHover={{ scale: 1.03, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          className={cn(
+            "relative p-3 sm:p-3.5 md:p-4 rounded-xl backdrop-blur-sm cursor-pointer",
+            "border",
+            config.bg,
+            config.border,
+            config.hoverBorder,
+            "transition-all duration-300",
+            "hover:shadow-lg",
+            config.hoverShadow,
+            "min-h-[72px] sm:min-h-[80px] md:min-h-[90px]",
+            "flex flex-col justify-between",
+            "group overflow-hidden"
+          )}
+        >
+          {/* Decorative gradient overlay on hover */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/40 dark:from-white/0 dark:to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+          {/* Icon with background */}
+          <div className={cn(
+            "relative z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center mb-2",
+            config.iconBg,
+            "transition-transform duration-300 group-hover:scale-110"
+          )}>
+            <Icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", config.text)} />
+          </div>
+
+          {/* Value with empty state styling */}
+          <div className="relative z-10">
+            <div className={cn(
+              "text-xl sm:text-2xl md:text-3xl font-bold leading-tight",
+              config.text,
+              isEmpty && "opacity-40"
+            )}>
+              {value}
+            </div>
+            <div className={cn(
+              "text-[10px] sm:text-xs font-medium mt-0.5",
+              isEmpty ? "text-muted-foreground" : config.text,
+              "opacity-80"
+            )}>
+              {label}
+            </div>
+          </div>
+
+          {/* Empty state indicator */}
+          {isEmpty && (
+            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-400 dark:bg-amber-500 animate-pulse" />
+          )}
+        </motion.div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="max-w-[200px]">
+        <p className="text-xs">
+          {isEmpty
+            ? actionHint || `Add ${label.toLowerCase()} to enhance your section`
+            : `${value} ${label.toLowerCase()} added`
+          }
+        </p>
+      </TooltipContent>
+    </Tooltip>
   );
 };
 
