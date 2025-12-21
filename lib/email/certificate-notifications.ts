@@ -1,7 +1,19 @@
 import { Resend } from "resend";
 import { logger } from '@/lib/logger';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-load Resend client to prevent build-time errors
+// Environment variables aren't available during Next.js build phase
+let resendClient: Resend | null = null;
+
+const getResendClient = (): Resend | null => {
+  if (!process.env.RESEND_API_KEY) {
+    return null;
+  }
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+};
 
 export interface CertificateEmailData {
   recipientName: string;
@@ -26,6 +38,11 @@ export async function sendCertificateEmail(
   data: CertificateEmailData
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const resend = getResendClient();
+    if (!resend) {
+      logger.warn('RESEND_API_KEY not configured. Certificate email not sent.');
+      return { success: false, error: 'Email service not configured' };
+    }
     const emailResult = await resend.emails.send({
       from: process.env.EMAIL_FROM || 'noreply@alamlms.com',
       to: recipientEmail,
@@ -48,6 +65,11 @@ export async function sendBadgeEmail(
   data: BadgeEmailData
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const resend = getResendClient();
+    if (!resend) {
+      logger.warn('RESEND_API_KEY not configured. Badge email not sent.');
+      return { success: false, error: 'Email service not configured' };
+    }
     const emailResult = await resend.emails.send({
       from: process.env.EMAIL_FROM || 'noreply@alamlms.com',
       to: recipientEmail,

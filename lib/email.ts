@@ -1,7 +1,19 @@
 import { Resend } from 'resend';
 import { logger } from '@/lib/logger';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-load Resend client to prevent build-time errors
+// Environment variables aren't available during Next.js build phase
+let resendClient: Resend | null = null;
+
+const getResendClient = (): Resend | null => {
+  if (!process.env.RESEND_API_KEY) {
+    return null;
+  }
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+};
 
 interface EmailParams {
   to: string;
@@ -23,11 +35,12 @@ export const sendEmail = async ({
   from = process.env.EMAIL_FROM || 'notifications@yourdomain.com'
 }: EmailParams) => {
   try {
-    if (!process.env.RESEND_API_KEY) {
+    const resend = getResendClient();
+    if (!resend) {
       logger.warn('RESEND_API_KEY is not set. Email not sent.');
       return { success: false, error: 'Email service not configured' };
     }
-    
+
     const { data, error } = await resend.emails.send({
       from,
       to,
@@ -42,8 +55,8 @@ export const sendEmail = async ({
     }
 
     return { success: true, data };
-  } catch (error: any) {
+  } catch (error) {
     logger.error('Exception when sending email:', error);
-    return { success: false, error };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }; 

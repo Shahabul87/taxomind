@@ -5,7 +5,18 @@ import { Resend } from 'resend';
 import { logger } from '@/lib/logger';
 import { z } from "zod";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-load Resend client to prevent build-time errors
+let resendClient: Resend | null = null;
+
+const getResendClient = (): Resend | null => {
+  if (!process.env.RESEND_API_KEY) {
+    return null;
+  }
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+};
 
 // Validation schema for creating notifications
 const CreateNotificationSchema = z.object({
@@ -71,18 +82,23 @@ export async function POST(req: Request) {
       ].filter(Boolean) as string[];
 
       if (recipients.length > 0) {
-        await resend.emails.send({
-          from: 'notifications@yourdomain.com',
-          to: recipients,
-          subject: `Reminder: ${event.title}`,
-          html: `
-            <h2>Event Reminder</h2>
-            <p>Your event "${event.title}" is starting soon.</p>
-            <p>Time: ${event.startTime}</p>
-            ${event.location ? `<p>Location: ${event.location}</p>` : ''}
-            ${event.isOnline && event.meetingUrl ? `<p>Meeting URL: ${event.meetingUrl}</p>` : ''}
-          `,
-        });
+        const resend = getResendClient();
+        if (resend) {
+          await resend.emails.send({
+            from: 'notifications@yourdomain.com',
+            to: recipients,
+            subject: `Reminder: ${event.title}`,
+            html: `
+              <h2>Event Reminder</h2>
+              <p>Your event "${event.title}" is starting soon.</p>
+              <p>Time: ${event.startTime}</p>
+              ${event.location ? `<p>Location: ${event.location}</p>` : ''}
+              ${event.isOnline && event.meetingUrl ? `<p>Meeting URL: ${event.meetingUrl}</p>` : ''}
+            `,
+          });
+        } else {
+          logger.warn('RESEND_API_KEY not configured. Event notification email not sent.');
+        }
       }
 
       return NextResponse.json({ success: true });

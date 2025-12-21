@@ -35,18 +35,28 @@ const getQueueFunctions = async () => {
   return queueFunctions;
 };
 
-// Initialize Resend with better error handling
+// Lazy-load Resend client to prevent build-time errors
+// Environment variables aren't available during Next.js build phase
 let resend: Resend | null = null;
+let resendInitialized = false;
 
-try {
-  if (process.env.RESEND_API_KEY) {
-    resend = new Resend(process.env.RESEND_API_KEY);
-  } else {
-    logger.warn('RESEND_API_KEY not found. Email functionality will be disabled.');
+const getResendClient = (): Resend | null => {
+  if (resendInitialized) {
+    return resend;
   }
-} catch (error: any) {
-  logger.error('Failed to initialize Resend:', error);
-}
+  resendInitialized = true;
+
+  try {
+    if (process.env.RESEND_API_KEY) {
+      resend = new Resend(process.env.RESEND_API_KEY);
+    } else {
+      logger.warn('RESEND_API_KEY not found. Email functionality will be disabled.');
+    }
+  } catch (error) {
+    logger.error('Failed to initialize Resend:', error);
+  }
+  return resend;
+};
 
 // Helper function to get the appropriate domain
 const getDomain = () => {
@@ -110,7 +120,7 @@ const isEmailConfigured = () => {
   if (config.isDevelopment) {
     return true; // Always "configured" in development (we'll log instead)
   }
-  return !!(resend && process.env.RESEND_API_KEY);
+  return !!(getResendClient() && process.env.RESEND_API_KEY);
 };
 
 type SafeEmailResult = {
@@ -123,7 +133,7 @@ type SafeEmailResult = {
 // Helper function to send emails safely in different environments
 const sendEmailSafely = async (emailData: any): Promise<SafeEmailResult> => {
   const config = getEnvironmentConfig();
-  
+
   if (config.isDevelopment) {
     devLog('📧 Email would be sent:', {
       to: emailData.to,
@@ -135,12 +145,13 @@ const sendEmailSafely = async (emailData: any): Promise<SafeEmailResult> => {
     }
     return { dev: true, id: 'dev_email_' + Date.now() };
   }
-  
+
   // Send real email in staging/production
-  if (!resend) {
+  const resendClient = getResendClient();
+  if (!resendClient) {
     throw new Error('Resend not configured for production email sending');
   }
-  const { data, error } = await resend.emails.send(emailData);
+  const { data, error } = await resendClient.emails.send(emailData);
   return { dev: false, id: data?.id, data, error };
 };
 
